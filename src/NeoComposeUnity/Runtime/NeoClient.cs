@@ -2,6 +2,8 @@
 // Licensed under the MIT License.
 
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
+using UnityEngine;
 
 namespace NeoCompose.Runtime
 {
@@ -14,6 +16,7 @@ namespace NeoCompose.Runtime
         public delegate void HandleSave(string content);
 
         protected ProjectData data;
+        protected ProjectSaveData saveData;
         protected LoadSave loadSave;
         protected HandleSave handleSave;
 
@@ -22,24 +25,63 @@ namespace NeoCompose.Runtime
             this.data = data;
             this.loadSave = loadSave;
             this.handleSave = handleSave;
-            LoadOrCreate();
+            LoadOrCreateSafe();
         }
 
-        protected string BuildDefaultSaveData()
+        protected ProjectSaveData BuildDefaultSaveData()
         {
-            return "";
+            ProjectSaveData empty = new()
+            {
+                projectId = data.project.id,
+                version = "0.0.0",
+                // leave `values` and `attributeValueOverrides` empty until value(s) are set at runtime
+                values = new(),
+                attributeValueOverrides = new(),
+            };
+            return empty;
         }
 
-        protected void LoadOrCreate()
+        protected ProjectSaveData DeserializeSaveData(string json)
+        {
+            return JsonConvert.DeserializeObject<ProjectSaveData>(json);
+        }
+
+        protected string SerializeSaveData()
+        {
+            return JsonConvert.SerializeObject(saveData);
+        }
+
+        protected void EmitHandleSave()
+        {
+            handleSave.Invoke(SerializeSaveData());
+            LoadUnsafe();
+        }
+
+        protected void LoadOrCreateSafe()
         {
             try
             {
-                string saveData = loadSave.Invoke();
+                string saveJson = loadSave.Invoke();
+                try
+                {
+                    saveData = DeserializeSaveData(saveJson);
+                }
+                catch (System.Exception exception)
+                {
+                    Debug.LogError(exception);
+                }
             }
             catch (System.Exception)
             {
-                handleSave.Invoke(BuildDefaultSaveData());
+                saveData = BuildDefaultSaveData();
+                EmitHandleSave();
             }
+        }
+
+        protected void LoadUnsafe()
+        {
+            string saveJson = loadSave.Invoke();
+            saveData = DeserializeSaveData(saveJson);
         }
     }
 }
