@@ -5,7 +5,7 @@ using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace NeoCompose.Export
+namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Newtonsoft converter that tolerates non-string JSON tokens for a

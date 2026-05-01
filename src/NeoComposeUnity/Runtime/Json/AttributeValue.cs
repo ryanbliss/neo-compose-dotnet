@@ -3,7 +3,7 @@
 
 using Newtonsoft.Json.Linq;
 
-namespace NeoCompose.Export
+namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Stored value for an attribute. Mirrors the TS-side

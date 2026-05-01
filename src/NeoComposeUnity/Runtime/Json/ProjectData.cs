@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace NeoCompose.Export
+namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Top-level deserialization target — pass to
@@ -24,7 +24,7 @@ namespace NeoCompose.Export
     /// }
     /// </code>
     /// </summary>
-    public class ProjectExport
+    public class ProjectData
     {
         public Project project;
         public Dictionary<string, Attribute> attributes;

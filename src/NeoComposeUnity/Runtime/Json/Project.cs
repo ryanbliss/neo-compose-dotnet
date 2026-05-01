@@ -1,7 +1,7 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
-namespace NeoCompose.Export
+namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Top-level project record. Mirrors the TS-side <c>IProject</c>

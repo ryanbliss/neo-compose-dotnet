@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace NeoCompose.Export
+namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// One option inside an <see cref="Enum"/>. Mirrors the TS-side

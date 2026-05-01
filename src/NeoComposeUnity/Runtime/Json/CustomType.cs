@@ -3,7 +3,7 @@
 
 using System.Collections.Generic;
 
-namespace NeoCompose.Export
+namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Custom type declaration. Mirrors the TS-side <c>ICustomType</c>.

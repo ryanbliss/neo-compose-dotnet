@@ -2,14 +2,14 @@
 // Licensed under the MIT License.
 
 using System.IO;
-using NeoCompose.Export;
+using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// Newtonsoft.Json round-trip coverage for <see cref="ProjectExport"/>
+    /// Newtonsoft.Json round-trip coverage for <see cref="ProjectData"/>
     /// and the full IR tree rooted on <see cref="Attribute.getter"/>.
     ///
     /// Two fixtures back the suite:
@@ -40,9 +40,9 @@ namespace NeoCompose.Tests
             return File.ReadAllText(Path.Combine(PackageRoot, fileName));
         }
 
-        private static ProjectExport Deserialize(string json)
+        private static ProjectData Deserialize(string json)
         {
-            return JsonConvert.DeserializeObject<ProjectExport>(json);
+            return JsonConvert.DeserializeObject<ProjectData>(json);
         }
 
         // --------------------------------------------------------------
