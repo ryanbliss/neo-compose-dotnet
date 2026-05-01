@@ -1,0 +1,16 @@
+{
+    "name": "com.ryanbliss.neocompose",
+    "version": "0.1.0",
+    "displayName": "NeoCompose",
+    "description": "NeoCompose Unity package.",
+    "unity": "6000.0",
+    "keywords": [],
+    "author": {
+        "name": "Ryan Bliss",
+        "url": "https://github.com/ryanbliss"
+    },
+    "license": "MIT",
+    "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.1"
+    }
+}

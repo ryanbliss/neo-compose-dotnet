@@ -1,0 +1,33 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      Two layers of output redirection, both critical:
+
+      1. **NuGet restore isolation** — multiple csprojs share a single
+         directory in this monorepo (`src/NeoComposeUnity/` puts
+         Runtime / Editor / Tests csprojs at the package root, and
+         `samples/HelloWorld/` does the same). NuGet restore by
+         default writes a single `obj/project.assets.json` per
+         directory, and the last restore wins — dropping any
+         PackageReferences declared on a previously-restored sibling
+         (`NUnit` from the Tests csprojs).
+
+      2. **Keep MSBuild output away from Unity's asset scanner** —
+         the IDE shim csprojs exist purely so VSCode / Rider can
+         resolve `using UnityEngine` / `using NeoCompose` over the
+         sample and package source. Their `bin/Debug/.../<name>.dll`
+         output, if landed inside the package directory, gets picked
+         up by Unity's plugin importer and shows up as a duplicate
+         test assembly alongside the real asmdef-compiled DLL —
+         which would result in NUnit running both copies of every
+         test. Routing both `bin/` and `obj/` to `<repo>/build/<csproj>/`
+         keeps the IDE artifacts outside Unity's scan path entirely.
+
+      The MSBuild docs require these to be set before
+      `Microsoft.Common.props` imports — `Directory.Build.props` runs
+      early enough.
+    -->
+    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)build/$(MSBuildProjectName)/obj/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildThisFileDirectory)build/$(MSBuildProjectName)/bin/</BaseOutputPath>
+  </PropertyGroup>
+</Project>

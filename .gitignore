@@ -1,0 +1,28 @@
+# Build results
+bin/
+obj/
+# IDE shim csprojs (Directory.Build.props redirects bin/obj here so the
+# DLL outputs don't land inside Unity-scanned package folders).
+build/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+*.userprefs
+
+# Rider
+.idea/
+*.sln.iml
+
+# NuGet
+*.nupkg
+packages/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test results
+TestResults/

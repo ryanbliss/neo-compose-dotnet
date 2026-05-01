@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>NeoCompose</RootNamespace>
+    <!-- Override UnityManagedDir via env var or a local Directory.Build.props if your Unity install differs -->
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Editor-only files live in NeoComposeUnityEditor.csproj -->
+    <Compile Remove="Editor\**" />
+    <!-- Tests have their own Unity Test Framework asmdef and aren't compiled by this IDE shim -->
+    <Compile Remove="Tests\**" />
+    <!-- Exclude SDK-generated AssemblyInfo files under sibling csprojs'
+         obj subfolders. `Directory.Build.props` pins each csproj's
+         `BaseIntermediateOutputPath` to `obj/<MSBuildProjectName>/`, but
+         the default `Compile` glob (`**/*.cs`) sweeps every obj subdir
+         in the directory and would otherwise pull in duplicate
+         `AssemblyInfo.cs` files. -->
+    <Compile Remove="obj\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Newtonsoft.Json — the runtime export classes use it for the
+         polymorphic IR deserialization (Pointer / Instruction / etc.).
+         Unity supplies the actual DLL at runtime via the
+         `com.unity.nuget.newtonsoft-json` UPM package; this NuGet
+         reference is purely for the IDE shim's IntelliSense + build. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>

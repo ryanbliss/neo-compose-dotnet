@@ -1,0 +1,16 @@
+{
+    "name": "HelloWorld",
+    "rootNamespace": "HelloWorld",
+    "references": [
+        "NeoCompose.Unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

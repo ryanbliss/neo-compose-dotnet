@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>HelloWorld</RootNamespace>
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+    <!-- Hand-authored IDE shim. The actual sample compile is driven by Unity
+         via the asmdefs under `Assets/`. This csproj exists so VSCode / Rider
+         can resolve `using UnityEngine;` and `using NeoCompose;` when the
+         monorepo is opened outside Unity. The `.IDE.csproj` suffix prevents
+         collision with the `HelloWorld.csproj` that Unity generates from the
+         `Assets/Scripts/HelloWorld.asmdef` whenever the sample is opened in
+         Unity (Unity-generated csprojs are gitignored; this one is checked
+         in). -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Limit the compile set to the asmdef's scripts. The default Sdk glob
+         (`**/*.cs`) would also pick up files under `Assets/Tests/` (which
+         belong to the test csproj) and any sibling `obj/<csproj>/`
+         AssemblyInfo files. -->
+    <Compile Remove="**/*.cs" />
+    <Compile Include="Assets/Scripts/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\NeoComposeUnity\NeoComposeUnity.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

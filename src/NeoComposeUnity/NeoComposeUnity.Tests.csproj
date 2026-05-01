@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>NeoCompose.Tests</RootNamespace>
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+    <!-- IDE-only shim — Unity drives the actual test compile via the
+         Tests/NeoCompose.Unity.Tests.asmdef. This csproj is what gives VSCode /
+         Rider IntelliSense over the test sources when the monorepo is opened
+         outside Unity. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Override the default `**/*.cs` glob so we only compile this folder's
+         own Tests subtree. Without the override the Sdk would also try to pick
+         up Runtime / Editor sources, which already belong to other csprojs. -->
+    <Compile Remove="**/*.cs" />
+    <Compile Include="Tests/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="NeoComposeUnity.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- NUnit symbols for IntelliSense. Unity supplies `nunit.framework.dll`
+         from the `com.unity.ext.nunit` package at runtime; this NuGet ref is
+         only used by the IDE to resolve `NUnit.Framework` types. The version
+         tracks the Unity Test Framework (which ships NUnit 3.x). -->
+    <PackageReference Include="NUnit" Version="3.13.3" />
+    <!-- Newtonsoft.Json is referenced transitively via the
+         NeoComposeUnity ProjectReference, but listing it here keeps the
+         tests csproj's IntelliSense self-contained when Rider /
+         OmniSharp resolves references in any order. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>
