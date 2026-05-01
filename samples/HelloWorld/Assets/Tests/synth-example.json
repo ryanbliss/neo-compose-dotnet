@@ -1,0 +1,687 @@
+{
+  "project": {
+    "_id": "test-project",
+    "id": "test-project",
+    "name": "Test Project",
+    "rootAssetsAttributeId": "root-assets",
+    "rootSaveFileAttributeId": "root-save",
+    "createdAt": "1970-01-01T00:00:00.000Z",
+    "updatedAt": "1970-01-01T00:00:00.000Z"
+  },
+  "attributes": {
+    "attr-name": {
+      "_id": "350285dc-02b5-46b7-b47f-5f6cba85a1fe",
+      "id": "attr-name",
+      "name": "Name",
+      "type": 3,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "defaultValue": {
+        "value": "Hero"
+      }
+    },
+    "attr-health": {
+      "_id": "16c69294-8b64-4a5d-8547-de1eb9302ab9",
+      "id": "attr-health",
+      "name": "Health",
+      "type": 2,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "defaultValue": {
+        "value": 100
+      }
+    },
+    "attr-speed": {
+      "_id": "d0e94a56-571e-452e-bf47-f9f3aca4da4f",
+      "id": "attr-speed",
+      "name": "Speed",
+      "type": 4,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "defaultValue": {
+        "value": 7.5
+      }
+    },
+    "attr-isalive": {
+      "_id": "4790ade0-b8d0-421a-92df-9d947e66aea5",
+      "id": "attr-isalive",
+      "name": "IsAlive",
+      "type": 1,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "defaultValue": {
+        "value": true
+      }
+    },
+    "attr-hero": {
+      "_id": "b389fd94-bc07-45dc-8246-cf328e4a329b",
+      "id": "attr-hero",
+      "name": "Hero",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-hero",
+      "defaultValue": {
+        "value": {
+          "Name": "v-name",
+          "Level": "v-level"
+        }
+      }
+    },
+    "attr-inventory": {
+      "_id": "dd4abf8c-6d3c-4908-b092-dfde0a15c914",
+      "id": "attr-inventory",
+      "name": "Inventory",
+      "type": 5,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "entryAttributeId": "attr-name",
+      "defaultValue": {
+        "value": {
+          "sword": "v-sword",
+          "shield": "v-shield"
+        }
+      }
+    },
+    "attr-tags": {
+      "_id": "d09980fb-86af-41fb-9347-8c1e450ee32e",
+      "id": "attr-tags",
+      "name": "Tags",
+      "type": 6,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "entryAttributeId": "attr-name",
+      "defaultValue": {
+        "value": [
+          "v-a",
+          "v-b"
+        ]
+      }
+    },
+    "attr-element": {
+      "_id": "223776b5-c3c2-4870-a9cd-a8ebb4a6ea73",
+      "id": "attr-element",
+      "name": "Element",
+      "type": 8,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "enumId": "enum-element",
+      "multiselect": false
+    },
+    "attr-choice": {
+      "_id": "cc20f254-c6e1-42be-9821-e0c47226f130",
+      "id": "attr-choice",
+      "name": "Choice",
+      "type": 9,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "collectionAttributeId": "attr-tags",
+      "multiselect": true
+    },
+    "attr-score": {
+      "_id": "b1421cd8-d4d5-4355-9f8c-c90e008c0749",
+      "id": "attr-score",
+      "name": "Score",
+      "type": 10,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "code": "// see compiled getter",
+      "returnTypeInfo": {
+        "type": 2,
+        "required": true
+      },
+      "getter": {
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "typeId": "type-hero"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "typeId": "type-hero"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        },
+        "instructions": [
+          {
+            "type": "variable",
+            "variable": {
+              "id": "x",
+              "typeInfo": {
+                "type": 2,
+                "required": true
+              },
+              "pointer": {
+                "type": "operation",
+                "operation": {
+                  "type": "arithmetic",
+                  "arithmetic": {
+                    "type": "+",
+                    "pointers": [
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 1
+                        }
+                      },
+                      {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 2,
+                            "required": true
+                          },
+                          "value": 2
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "variable",
+            "variable": {
+              "id": "label",
+              "typeInfo": {
+                "type": 3,
+                "required": true
+              },
+              "pointer": {
+                "type": "forceUnwrap",
+                "pointer": {
+                  "type": "coalesce",
+                  "left": {
+                    "type": "keyOf",
+                    "keyOf": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "__this__"
+                      },
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "value": "Name"
+                        }
+                      }
+                    },
+                    "optional": true
+                  },
+                  "right": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "Unknown"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          {
+            "type": "if",
+            "branches": [
+              {
+                "expression": {
+                  "condition": {
+                    "type": "equalTo",
+                    "operand1": {
+                      "type": "isCheck",
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "label"
+                      },
+                      "checkType": {
+                        "type": 3,
+                        "required": true
+                      }
+                    },
+                    "operand2": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 1,
+                          "required": true
+                        },
+                        "value": true
+                      }
+                    }
+                  },
+                  "connective": {
+                    "type": "&&",
+                    "to": {
+                      "condition": {
+                        "type": "doesNotEqual",
+                        "operand1": {
+                          "type": "variable",
+                          "variableId": "x"
+                        },
+                        "operand2": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 2,
+                              "required": true
+                            },
+                            "value": 0
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "instructions": [
+                  {
+                    "type": "return",
+                    "pointer": {
+                      "type": "function",
+                      "function": {
+                        "type": "count",
+                        "info": {
+                          "collectionPointer": {
+                            "type": "function",
+                            "function": {
+                              "type": "where",
+                              "info": {
+                                "collectionPointer": {
+                                  "type": "listLiteral",
+                                  "typeInfo": {
+                                    "type": 6,
+                                    "required": true,
+                                    "entryTypeInfo": {
+                                      "type": 2,
+                                      "required": true
+                                    }
+                                  },
+                                  "entries": [
+                                    {
+                                      "type": "value",
+                                      "value": {
+                                        "typeInfo": {
+                                          "type": 2,
+                                          "required": true
+                                        },
+                                        "value": 1
+                                      }
+                                    },
+                                    {
+                                      "type": "value",
+                                      "value": {
+                                        "typeInfo": {
+                                          "type": 2,
+                                          "required": true
+                                        },
+                                        "value": 2
+                                      }
+                                    },
+                                    {
+                                      "type": "value",
+                                      "value": {
+                                        "typeInfo": {
+                                          "type": 2,
+                                          "required": true
+                                        },
+                                        "value": 3
+                                      }
+                                    }
+                                  ]
+                                },
+                                "function": {
+                                  "parameters": [
+                                    {
+                                      "id": "n",
+                                      "typeInfo": {
+                                        "type": 2,
+                                        "required": true
+                                      },
+                                      "pointer": {
+                                        "type": "value",
+                                        "value": {
+                                          "typeInfo": {
+                                            "type": 2,
+                                            "required": true
+                                          },
+                                          "value": 0
+                                        }
+                                      }
+                                    }
+                                  ],
+                                  "typeInfo": {
+                                    "type": 1,
+                                    "required": true
+                                  },
+                                  "instructions": [
+                                    {
+                                      "type": "return",
+                                      "pointer": {
+                                        "type": "operation",
+                                        "operation": {
+                                          "type": "boolean",
+                                          "expression": {
+                                            "condition": {
+                                              "type": "doesNotEqual",
+                                              "operand1": {
+                                                "type": "variable",
+                                                "variableId": "n"
+                                              },
+                                              "operand2": {
+                                                "type": "value",
+                                                "value": {
+                                                  "typeInfo": {
+                                                    "type": 2,
+                                                    "required": true
+                                                  },
+                                                  "value": 0
+                                                }
+                                              }
+                                            }
+                                          }
+                                        }
+                                      }
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ],
+            "else": [
+              {
+                "type": "throw",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "type": 3,
+                      "required": true
+                    },
+                    "value": "bad"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            "type": "return",
+            "pointer": null
+          }
+        ]
+      }
+    },
+    "attr-manifest": {
+      "_id": "c331165a-72e0-4217-8e33-656a34579d66",
+      "id": "attr-manifest",
+      "name": "Manifest",
+      "type": 10,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "code": "// see compiled getter",
+      "returnTypeInfo": {
+        "type": 3,
+        "required": true
+      },
+      "getter": {
+        "parameters": [],
+        "typeInfo": {
+          "type": 3,
+          "required": true
+        },
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "stringify",
+              "pointer": {
+                "type": "dictLiteral",
+                "typeInfo": {
+                  "type": 5,
+                  "required": true,
+                  "entryTypeInfo": {
+                    "type": 2,
+                    "required": true
+                  }
+                },
+                "entries": [
+                  {
+                    "key": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "k1"
+                      }
+                    },
+                    "value": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 2,
+                          "required": true
+                        },
+                        "value": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              "sourceType": {
+                "type": 5,
+                "required": true,
+                "entryTypeInfo": {
+                  "type": 2,
+                  "required": true
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "attr-active": {
+      "_id": "2546eb53-8f0c-435c-b8ff-6dcd49f4bea5",
+      "id": "attr-active",
+      "name": "Active",
+      "type": 10,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "code": "// see compiled getter",
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "getter": {
+        "parameters": [],
+        "typeInfo": {
+          "type": 1,
+          "required": true
+        },
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "toBool",
+              "pointer": {
+                "type": "callGetter",
+                "attributeId": "attr-score",
+                "thisPointer": {
+                  "type": "variable",
+                  "variableId": "__this__"
+                },
+                "optional": false
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "enums": {
+    "enum-element": {
+      "_id": "enum-element",
+      "id": "enum-element",
+      "name": "Element",
+      "options": {
+        "fire": {
+          "text": "Fire"
+        },
+        "ice": {
+          "text": "Ice"
+        }
+      },
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    }
+  },
+  "types": {
+    "type-hero": {
+      "_id": "type-hero",
+      "id": "type-hero",
+      "name": "Hero",
+      "schema": {
+        "Name": "attr-name",
+        "Health": "attr-health"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    }
+  },
+  "values": {
+    "v-num": {
+      "_id": "v-num",
+      "id": "v-num",
+      "projectId": "p-1",
+      "value": 42,
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "v-str": {
+      "_id": "v-str",
+      "id": "v-str",
+      "projectId": "p-1",
+      "value": "hello",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "v-flag": {
+      "_id": "v-flag",
+      "id": "v-flag",
+      "projectId": "p-1",
+      "value": true,
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "v-float": {
+      "_id": "v-float",
+      "id": "v-float",
+      "projectId": "p-1",
+      "value": 3.14,
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "v-list": {
+      "_id": "v-list",
+      "id": "v-list",
+      "projectId": "p-1",
+      "value": [
+        "wood",
+        "stone"
+      ],
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "v-dict": {
+      "_id": "v-dict",
+      "id": "v-dict",
+      "projectId": "p-1",
+      "value": {
+        "Name": "v-name",
+        "Level": "v-level"
+      },
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "typeId": "type-hero"
+    },
+    "v-null": {
+      "_id": "v-null",
+      "id": "v-null",
+      "projectId": "p-1",
+      "value": null,
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    }
+  }
+}

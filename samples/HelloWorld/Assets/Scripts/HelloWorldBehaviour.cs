@@ -1,7 +1,7 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
-// using NeoCompose;
+// using NeoCompose.Runtime
 using UnityEngine;
 
 namespace HelloWorld
@@ -13,11 +13,11 @@ namespace HelloWorld
     /// </summary>
     public class HelloWorldBehaviour : MonoBehaviour
     {
-        // private NeoComposeCore _core;
+        // private NeoLoader _core;
 
         // private void Start()
         // {
-        //     _core = new NeoComposeCore();
+        //     _core = new NeoLoader();
         //     Debug.Log(_core.message);
         // }
     }

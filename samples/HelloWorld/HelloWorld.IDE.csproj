@@ -6,7 +6,7 @@
     <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
     <!-- Hand-authored IDE shim. The actual sample compile is driven by Unity
          via the asmdefs under `Assets/`. This csproj exists so VSCode / Rider
-         can resolve `using UnityEngine;` and `using NeoCompose;` when the
+         can resolve `using UnityEngine;` and `using NeoCompose.Runtime` when the
          monorepo is opened outside Unity. The `.IDE.csproj` suffix prevents
          collision with the `HelloWorld.csproj` that Unity generates from the
          `Assets/Scripts/HelloWorld.asmdef` whenever the sample is opened in
