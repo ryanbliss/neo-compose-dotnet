@@ -78,8 +78,9 @@ namespace NeoCompose.Tests
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
             var name = export.attributes["attr-name"];
+            Assert.IsInstanceOf<StringAttribute>(name);
             Assert.AreEqual(AttributeType.String, name.type);
-            // Polymorphic value rides as JToken — extract via Value<T>.
+            // Polymorphic value rides as JToken — extract via ToObject<T>.
             Assert.AreEqual("Hero", name.defaultValue.value.ToObject<string>());
         }
 
@@ -88,7 +89,7 @@ namespace NeoCompose.Tests
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
             var health = export.attributes["attr-health"];
-            Assert.AreEqual(AttributeType.Int, health.type);
+            Assert.IsInstanceOf<IntAttribute>(health);
             Assert.AreEqual(100, health.defaultValue.value.ToObject<int>());
         }
 
@@ -97,7 +98,7 @@ namespace NeoCompose.Tests
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
             var speed = export.attributes["attr-speed"];
-            Assert.AreEqual(AttributeType.Float, speed.type);
+            Assert.IsInstanceOf<FloatAttribute>(speed);
             Assert.AreEqual(7.5f, speed.defaultValue.value.ToObject<float>(), 0.0001f);
         }
 
@@ -106,7 +107,7 @@ namespace NeoCompose.Tests
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
             var alive = export.attributes["attr-isalive"];
-            Assert.AreEqual(AttributeType.Bool, alive.type);
+            Assert.IsInstanceOf<BoolAttribute>(alive);
             Assert.IsTrue(alive.defaultValue.value.ToObject<bool>());
         }
 
@@ -114,34 +115,33 @@ namespace NeoCompose.Tests
         public void SynthFixture_DictionaryAttribute_DefaultValueIsRecord()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var inv = export.attributes["attr-inventory"];
-            Assert.AreEqual(AttributeType.Dictionary, inv.type);
+            var inv = (DictionaryAttribute)export.attributes["attr-inventory"];
             // Custom / Dictionary attribute values are JSON objects keyed
             // by schema-key → valueId. Extract via JToken.ToObject.
             var dict = inv.defaultValue.value
                 .ToObject<System.Collections.Generic.Dictionary<string, string>>();
             Assert.AreEqual("v-sword", dict["sword"]);
             Assert.AreEqual("v-shield", dict["shield"]);
+            Assert.AreEqual("attr-name", inv.entryAttributeId);
         }
 
         [Test]
         public void SynthFixture_ListAttribute_DefaultValueIsStringArray()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var tags = export.attributes["attr-tags"];
-            Assert.AreEqual(AttributeType.List, tags.type);
+            var tags = (ListAttribute)export.attributes["attr-tags"];
             var list = tags.defaultValue.value.ToObject<string[]>();
             CollectionAssert.AreEqual(new[] { "v-a", "v-b" }, list);
+            Assert.AreEqual("attr-name", tags.entryAttributeId);
         }
 
         [Test]
         public void SynthFixture_NSGetterReturnTypeInfo_IsCollectionTypeInfo()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = export.attributes["attr-score"];
-            Assert.AreEqual(AttributeType.NSGetter, score.type);
+            var score = (NSGetterAttribute)export.attributes["attr-score"];
             // The synth fixture's Score returns Int, so returnTypeInfo is
-            // PrimitiveTypeInfo. Custom subtype assertion via `is`.
+            // PrimitiveTypeInfo. Subclass assertion via `is`.
             Assert.IsInstanceOf<PrimitiveTypeInfo>(score.returnTypeInfo);
             Assert.AreEqual(AttributeType.Int, score.returnTypeInfo.type);
             Assert.IsTrue(score.returnTypeInfo.required);
@@ -151,7 +151,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterCompiledIR_DispatchesAllInstructionKinds()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = export.attributes["attr-score"];
+            var score = (NSGetterAttribute)export.attributes["attr-score"];
             var getter = score.getter;
             Assert.IsNotNull(getter);
             Assert.IsNotEmpty(getter.instructions);
@@ -181,7 +181,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesArithmeticOperationPointer()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = export.attributes["attr-score"];
+            var score = (NSGetterAttribute)export.attributes["attr-score"];
 
             // First instruction: `local int x = 1 + 2;`
             var firstVar = ((VariableInstruction)score.getter.instructions[0]).variable;
@@ -195,7 +195,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesForceUnwrapCoalesceKeyOfChain()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = export.attributes["attr-score"];
+            var score = (NSGetterAttribute)export.attributes["attr-score"];
 
             // Second instruction's pointer chain:
             // forceUnwrap(coalesce(keyOf, "Unknown"))
@@ -214,7 +214,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesFunctionAndListLiteralChain()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = export.attributes["attr-score"];
+            var score = (NSGetterAttribute)export.attributes["attr-score"];
 
             // Inside the if branch:
             //   return [1, 2, 3].Where((n) => n != 0).Count();
@@ -242,7 +242,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesStringifyAndDictLiteral()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var manifest = export.attributes["attr-manifest"];
+            var manifest = (NSGetterAttribute)export.attributes["attr-manifest"];
             var ret = (ReturnInstruction)manifest.getter.instructions[0];
             var stringify = (StringifyPointer)ret.pointer;
             var dictLit = (DictLiteralPointer)stringify.pointer;
@@ -255,7 +255,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesCallGetterAndToBool()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var active = export.attributes["attr-active"];
+            var active = (NSGetterAttribute)export.attributes["attr-active"];
             var ret = (ReturnInstruction)active.getter.instructions[0];
             var toBool = (ToBoolPointer)ret.pointer;
             var callGetter = (CallGetterPointer)toBool.pointer;
@@ -330,19 +330,23 @@ namespace NeoCompose.Tests
         {
             var export = Deserialize(LoadFixture("project-example.json"));
             int nsGetterCount = 0;
+            // C# 7+ pattern-match each Dictionary value against the
+            // NSGetterAttribute subclass — the converter dispatch made
+            // this typed, so iterating the typed projection beats
+            // re-reading the discriminator + casting at every site.
             foreach (var pair in export.attributes)
             {
-                if (pair.Value.type != AttributeType.NSGetter) continue;
+                if (!(pair.Value is NSGetterAttribute nsGetter)) continue;
                 nsGetterCount++;
                 Assert.IsNotNull(
-                    pair.Value.getter,
-                    $"NSGetter {pair.Value.id} ({pair.Value.name}) lost its compiled getter");
+                    nsGetter.getter,
+                    $"NSGetter {nsGetter.id} ({nsGetter.name}) lost its compiled getter");
                 Assert.IsNotEmpty(
-                    pair.Value.getter.instructions,
-                    $"NSGetter {pair.Value.id} ({pair.Value.name}) has no instructions");
+                    nsGetter.getter.instructions,
+                    $"NSGetter {nsGetter.id} ({nsGetter.name}) has no instructions");
                 Assert.IsNotNull(
-                    pair.Value.getter.typeInfo,
-                    $"NSGetter {pair.Value.id} ({pair.Value.name}) lost its typeInfo");
+                    nsGetter.getter.typeInfo,
+                    $"NSGetter {nsGetter.id} ({nsGetter.name}) lost its typeInfo");
             }
             Assert.Greater(nsGetterCount, 0,
                 "Real-world fixture should contain at least one NSGetter");
