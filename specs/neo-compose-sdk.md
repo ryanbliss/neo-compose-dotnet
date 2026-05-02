@@ -412,6 +412,51 @@ Inherited fields should be available through normal C# inheritance. A derived cl
 
 When a runtime value row has `typeId` set to a more-derived type than the attribute's declared `customTypeId`, factory creation should return the generated class matching the runtime type id. This is required for lists/dictionaries of an abstract or base type to expose derived members when the concrete row uses a derived `typeId`.
 
+### Generated custom type factories
+
+Each generated custom type should expose a factory method for constructing new generated values in game code. This is the ergonomic path for:
+
+- Setting a save-backed custom attribute to a new object.
+- Adding a new custom object to a `NeoList<T>`.
+- Assigning a dictionary entry in `NeoDictionary<T>`.
+- Creating a derived object for a base/abstract collection.
+
+Factory shape:
+
+```csharp
+public class ToolItem : InventoryItem
+{
+    public static ToolItem factory(
+        NeoClient client,
+        string name,
+        int miningPower,
+        Material material)
+    {
+        // Builds a save-side ObjectAttributeValue graph using the
+        // generated schema, registers child values, sets typeId to
+        // ToolItem's custom type id, and returns the generated wrapper.
+    }
+}
+```
+
+The method name is intentionally `factory` (lowercase) so it follows the same schema-key-as-code style as generated properties and stays visually distinct from constructors.
+
+Factories should:
+
+- Accept one argument per settable generated field owned by the type and its inherited base types, using generated C# property names.
+- Omit NSGetter fields because they are computed.
+- Accept nullable arguments for optional attributes.
+- Use generated enum wrapper types for enum fields.
+- Use `IEnumerable<T>` / dictionary-friendly shapes for list and dictionary fields.
+- Set `typeId` on the created custom value row to the generated type's custom type id.
+- Create all required child value rows.
+- Register created rows through `NeoClient` / SDK helper APIs rather than mutating `ProjectSaveData` directly.
+- Return the generated wrapper bound to the newly-created value row.
+
+Factories should be generated for abstract custom types only when they are useful for base initialization. An abstract type factory must not instantiate that abstract type directly; it may expose protected/shared helper logic used by derived factories.
+
+Generated constructors remain wrapper constructors around existing `NeoAttributeCustom` nodes. Generated factories are separate creation helpers that materialize new save-side value graphs.
+
 ### Static vs saved custom wrappers
 
 Generated classes should distinguish read-only and saved contexts:
@@ -584,6 +629,7 @@ Collection wrappers are responsible for:
 - Calling SDK saved methods (`Add`, `Set`, `RemoveAt`, `Remove`) rather than mutating DTOs directly.
 - Raising change notifications when their shape changes.
 - Preserving runtime `typeId` for custom entries.
+- Accepting generated custom type instances produced by `TypeName.factory(...)` for add/set operations.
 
 Do not ask generated code to duplicate child-cache synchronization.
 
@@ -681,6 +727,7 @@ Unity-side tests should include:
 - Generated read-only asset properties read expected values.
 - Generated save properties call saved setters and observe updated values.
 - Generated lists/dictionaries expose count/index/key access and mutation.
+- Generated custom type factories create new object graphs that can be assigned to save fields and added to lists/dictionaries.
 - Generated enum wrappers support known static members and unknown ids.
 - Generated inherited custom types expose inherited members through C# inheritance.
 - Abstract custom types generate `abstract class` and cannot be directly instantiated by generated factories.
@@ -723,6 +770,7 @@ Verification policy:
 4. **Generated saved/read-only split**
    - Generate save-backed setters and read-only asset properties.
    - Generate collection properties using the new runtime collection classes.
+   - Generate custom type factories for new object creation.
    - Generate lookup access and selection helpers.
 
 5. **Generated inheritance and runtime type dispatch**
