@@ -43,7 +43,9 @@ namespace NeoCompose.Runtime
             Attribute childAttribute,
             string? overrideValueId)
         {
-            return Create(client, childAttribute, overrideValueId);
+            var child = Create(client, childAttribute, overrideValueId);
+            child.parent = this;
+            return child;
         }
 
         public NeoAttribute this[string key] => childAttributes[key];
@@ -129,7 +131,9 @@ namespace NeoCompose.Runtime
             Attribute childAttribute,
             string? overrideValueId)
         {
-            return CreateSaved(client, childAttribute, overrideValueId);
+            var child = CreateSaved(client, childAttribute, overrideValueId);
+            child.parent = this;
+            return child;
         }
 
         /// <summary>

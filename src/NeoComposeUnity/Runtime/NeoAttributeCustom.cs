@@ -63,14 +63,18 @@ namespace NeoCompose.Runtime
         /// Hook for child instantiation — returns the read-only kind.
         /// <see cref="NeoAttributeCustomSaved"/> overrides this to
         /// return Saved kinds so descendants of a writeable Custom are
-        /// also writeable.
+        /// also writeable. Sets <see cref="NeoAttribute.parent"/> on
+        /// the constructed child so consumers (e.g.,
+        /// <see cref="NeoAttributeNSGetter.Compute"/>) can walk up.
         /// </summary>
         protected virtual NeoAttribute CreateChild(
             NeoClient client,
             Attribute childAttribute,
             string? overrideValueId)
         {
-            return Create(client, childAttribute, overrideValueId);
+            var child = Create(client, childAttribute, overrideValueId);
+            child.parent = this;
+            return child;
         }
 
         public NeoAttribute this[string key]
@@ -280,7 +284,9 @@ namespace NeoCompose.Runtime
             Attribute childAttribute,
             string? overrideValueId)
         {
-            return CreateSaved(client, childAttribute, overrideValueId);
+            var child = CreateSaved(client, childAttribute, overrideValueId);
+            child.parent = this;
+            return child;
         }
 
         /// <summary>

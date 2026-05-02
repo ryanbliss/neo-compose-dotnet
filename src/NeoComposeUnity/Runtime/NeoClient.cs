@@ -35,6 +35,21 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, NeoAttribute> nodesInternal = new();
 
         /// <summary>
+        /// Read-only views over the underlying project + save maps.
+        /// Exposed for evaluators / inspectors that need to enumerate
+        /// the full set rather than fetch one-at-a-time via
+        /// <see cref="TryGetAttribute{T}"/> et al. The returned
+        /// dictionaries are the same instances the client reads from
+        /// internally — mutations through these views propagate.
+        /// </summary>
+        public IReadOnlyDictionary<string, Attribute> attributes => data.attributes;
+        public IReadOnlyDictionary<string, AttributeValue> values => data.values;
+        public IReadOnlyDictionary<string, CustomType> types => data.types;
+        public IReadOnlyDictionary<string, Enum> enums => data.enums;
+        public IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
+        public IReadOnlyDictionary<string, string> saveOverrides => saveData.attributeValueOverrides;
+
+        /// <summary>
         /// Fired when the entry for <c>attributeId</c> in
         /// <see cref="ProjectSaveData.attributeValueOverrides"/> is
         /// added, replaced, or removed. Subscribers (notably

@@ -47,6 +47,23 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// Pair returned by <see cref="CustomTypeInheritance.FindSchemaPlacement"/>:
+    /// which Custom type's schema lists the attribute, and the schema key
+    /// it's listed under. Mirrors TS-side <c>ISchemaPlacement</c>.
+    /// </summary>
+    public class SchemaPlacement
+    {
+        public CustomType ownerType { get; }
+        public string schemaKey { get; }
+
+        public SchemaPlacement(CustomType ownerType, string schemaKey)
+        {
+            this.ownerType = ownerType;
+            this.schemaKey = schemaKey;
+        }
+    }
+
+    /// <summary>
     /// Static helpers for resolving Custom-type inheritance chains and
     /// merging their schemas. Mirrors the TS-side
     /// <c>resolveInheritanceChain</c> / <c>mergeSchemas</c> helpers in
@@ -120,6 +137,90 @@ namespace NeoCompose.Runtime.Json
                 result.Add(map[key]);
             }
             return result;
+        }
+
+        /// <summary>
+        /// Scans <paramref name="types"/> for the first Custom type whose
+        /// schema maps any key to <paramref name="attributeId"/>. Returns
+        /// the owning type and the key it's listed under, or <c>null</c>
+        /// when no schema references the attribute. Mirrors TS-side
+        /// <c>findSchemaPlacement</c>.
+        ///
+        /// <para>Single source of truth for "which Custom type's schema
+        /// lists this attribute, and under what key?" — used by the
+        /// NSGetter evaluator to recover the schema key a callGetter
+        /// pointer was bound under so it can re-resolve the dispatch
+        /// target via the runtime row's typeId merged schema.</para>
+        ///
+        /// <para>Returns the *first* match. An attribute id appearing in
+        /// multiple types' schemas would be a project-data inconsistency
+        /// (each schema entry owns a distinct attribute id), so no
+        /// disambiguation is attempted.</para>
+        /// </summary>
+        public static SchemaPlacement? FindSchemaPlacement(
+            string attributeId,
+            IEnumerable<CustomType> types)
+        {
+            foreach (var t in types)
+            {
+                if (t.schema is null) continue;
+                foreach (var kvp in t.schema)
+                {
+                    if (kvp.Value == attributeId)
+                    {
+                        return new SchemaPlacement(t, kvp.Key);
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Walks the <c>extendsAttributeId</c> chain from
+        /// <paramref name="startId"/>, returning the first non-null value
+        /// <paramref name="picker"/> produces along the way. Mirrors
+        /// TS-side <c>walkExtendsAttributeChain</c>.
+        ///
+        /// <para>Stops when:
+        /// <list type="bullet">
+        ///   <item><description><paramref name="picker"/> returns a
+        ///   non-null value (returns it),</description></item>
+        ///   <item><description>the cursor is missing or has no
+        ///   <c>extendsAttributeId</c> (returns
+        ///   <c>default(T)</c>),</description></item>
+        ///   <item><description>a non-matching type appears in the chain
+        ///   when <paramref name="requireType"/> is set (returns
+        ///   <c>default(T)</c>),</description></item>
+        ///   <item><description>the iteration cap
+        ///   <paramref name="maxHops"/> (default 16) is exceeded —
+        ///   defends against accidental cycles.</description></item>
+        /// </list></para>
+        ///
+        /// <para>Used by the NSGetter evaluator to find an inherited
+        /// compiled <c>getter</c> or <c>returnTypeInfo</c> on
+        /// override-form NSGetter rows that don't carry their own.</para>
+        /// </summary>
+        public static T? WalkExtendsAttributeChain<T>(
+            string startId,
+            Func<string, Attribute?> attributeLookup,
+            Func<Attribute, T?> picker,
+            AttributeType? requireType = null,
+            int maxHops = 16)
+            where T : class
+        {
+            var cursor = attributeLookup(startId);
+            for (int i = 0; cursor is not null && i < maxHops; i++)
+            {
+                if (requireType.HasValue && cursor.type != requireType.Value)
+                {
+                    return null;
+                }
+                var picked = picker(cursor);
+                if (picked is not null) return picked;
+                if (string.IsNullOrEmpty(cursor.extendsAttributeId)) return null;
+                cursor = attributeLookup(cursor.extendsAttributeId!);
+            }
+            return null;
         }
     }
 }

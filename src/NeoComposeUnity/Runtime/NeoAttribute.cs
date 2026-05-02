@@ -40,6 +40,18 @@ namespace NeoCompose.Runtime
         public string? overrideValueId { get; }
         public AttributeValue? value { get; protected set; }
         /// <summary>
+        /// Parent <see cref="NeoAttribute"/> in the wrapper tree, or
+        /// null at the root. Set by collection types
+        /// (<see cref="NeoAttributeCustom"/> /
+        /// <see cref="NeoAttributeDictionary"/> /
+        /// <see cref="NeoAttributeList"/>) when they construct child
+        /// nodes; consumers (notably
+        /// <see cref="NeoAttributeNSGetter.Compute"/>) walk this chain
+        /// to resolve <c>__this__</c> from the nearest Custom-shaped
+        /// ancestor.
+        /// </summary>
+        public NeoAttribute? parent { get; internal set; }
+        /// <summary>
         /// True after <see cref="Dispose"/> has run. Subclasses must
         /// short-circuit further work (events, setter mutations) when
         /// disposed; consumers holding stale references shouldn't expect
