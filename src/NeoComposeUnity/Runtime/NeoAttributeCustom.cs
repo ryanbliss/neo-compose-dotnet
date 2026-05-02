@@ -1,62 +1,86 @@
+// Copyright (c) Ryan Bliss and contributors. All rights reserved.
+// Licensed under the MIT License.
+
+#nullable enable
+
 using System.Collections;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 
-#nullable enable
-
 namespace NeoCompose.Runtime
 {
-    public class NeoAttributeCustom : NeoAttribute<CustomAttribute, ObjectAttributeValue>, IEnumerable<KeyValuePair<string, NeoAttribute<Attribute, AttributeValue>>>
+    /// <summary>
+    /// Wrapper for a Custom-typed attribute. Children are keyed by
+    /// the schema field name (from <see cref="CustomType.schema"/>);
+    /// each value is a <see cref="NeoAttribute"/> for that schema's
+    /// underlying attribute id, bound to the value referenced from the
+    /// parent record's value-map entry.
+    /// </summary>
+    public class NeoAttributeCustom
+        : NeoAttribute<CustomAttribute, ObjectAttributeValue>,
+          IEnumerable<KeyValuePair<string, NeoAttribute>>
     {
         protected CustomType type;
-        protected Dictionary<string, NeoAttribute<Attribute, AttributeValue>> childAttributes = new();
+        protected Dictionary<string, NeoAttribute> childAttributes = new();
 
-        public NeoAttributeCustom(NeoClient client, string attributeId, string? overrideValueId) : base(client, attributeId, overrideValueId)
+        public NeoAttributeCustom(NeoClient client, string attributeId, string? overrideValueId)
+            : base(client, attributeId, overrideValueId)
         {
-            if (!client.TryGetType(attribute.customTypeId, out CustomType match))
-            {
-                throw new System.ArgumentOutOfRangeException(
-                    nameof(attribute.customTypeId),
-                    $"No custom type for {nameof(attribute)}.{nameof(attribute.customTypeId)} {attribute.customTypeId}"
-                );
-            }
-            type = match;
+            type = ResolveCustomType();
+            // Schema-driven init runs after `type` is wired so child
+            // attribute lookups via `type.schema` resolve correctly;
+            // the base ctor's value-driven Initialize ran without
+            // walking children because `type` was null then. We
+            // re-walk now.
+            ReinitializeChildren();
         }
 
-        public NeoAttributeCustom(NeoClient client, CustomAttribute attribute, string? overrideValueId) : base(client, attribute, overrideValueId)
+        public NeoAttributeCustom(NeoClient client, CustomAttribute attribute, string? overrideValueId)
+            : base(client, attribute, overrideValueId)
         {
-            if (!client.TryGetType(attribute.customTypeId, out CustomType match))
-            {
-                throw new System.ArgumentOutOfRangeException(
-                    nameof(attribute.customTypeId),
-                    $"No custom type for {nameof(attribute)}.{nameof(attribute.customTypeId)} {attribute.customTypeId}"
-                );
-            }
-            type = match;
+            type = ResolveCustomType();
+            ReinitializeChildren();
         }
 
-        protected TNeoAttribute Get<TNeoAttribute>(string key) where TNeoAttribute : NeoAttribute<Attribute, AttributeValue>
+        /// <summary>
+        /// Hook for child instantiation — returns the read-only kind.
+        /// <see cref="NeoAttributeCustomSaved"/> overrides this to
+        /// return Saved kinds so descendants of a writeable Custom are
+        /// also writeable.
+        /// </summary>
+        protected virtual NeoAttribute CreateChild(
+            NeoClient client,
+            Attribute childAttribute,
+            string? overrideValueId)
         {
-            if (!TryGetValue(key, out TNeoAttribute attribute))
-            {
-                throw new System.NullReferenceException($"attribute for {nameof(key)} not found");
-            }
-            return attribute;
+            return Create(client, childAttribute, overrideValueId);
         }
 
-        public bool TryGetValue<TNeoAttribute>(string key, out TNeoAttribute outAttribute) where TNeoAttribute : NeoAttribute<Attribute, AttributeValue>
+        public NeoAttribute this[string key]
         {
-            if (childAttributes.TryGetValue(key, out NeoAttribute<Attribute, AttributeValue> check))
+            get => Get<NeoAttribute>(key);
+        }
+
+        public TNeoAttribute Get<TNeoAttribute>(string key)
+            where TNeoAttribute : NeoAttribute
+        {
+            if (!TryGet(key, out TNeoAttribute attr))
             {
-                if (check is TNeoAttribute match)
-                {
-                    outAttribute = match;
-                    return true;
-                }
+                throw new System.Collections.Generic.KeyNotFoundException(
+                    $"No child {nameof(NeoAttribute)} for {nameof(key)} '{key}' on {nameof(NeoAttributeCustom)} {attribute.id}");
             }
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-            outAttribute = null;
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+            return attr;
+        }
+
+        public bool TryGet<TNeoAttribute>(string key, out TNeoAttribute outAttribute)
+            where TNeoAttribute : NeoAttribute
+        {
+            if (childAttributes.TryGetValue(key, out NeoAttribute check) && check is TNeoAttribute match)
+            {
+                outAttribute = match;
+                return true;
+            }
+            outAttribute = null!;
             return false;
         }
 
@@ -66,73 +90,73 @@ namespace NeoCompose.Runtime
             {
                 if (attribute.required)
                 {
-                    throw new System.NullReferenceException($"{attribute.required} is true, but value not found");
+                    throw new System.NullReferenceException(
+                        $"{attribute.required} is true, but value not found");
                 }
                 return null;
             }
             return value;
         }
 
-        protected bool TryGetValueData<TValue>(string key, out TValue outValue) where TValue : AttributeValue
+        protected bool TryGetValueData<TValue>(string key, out TValue outValue)
+            where TValue : AttributeValue
         {
             if (value?.value is not null && value.value.TryGetValue(key, out string valueIdForKey))
             {
                 return client.TryGetValue(valueIdForKey, out outValue);
             }
-
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-            outValue = null;
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+            outValue = null!;
             return false;
         }
 
-        protected TAttribute GetAttribute<TAttribute>(string key) where TAttribute : Attribute
+        protected TAttribute GetAttribute<TAttribute>(string key)
+            where TAttribute : Attribute
         {
             if (!TryGetAttribute(key, out TAttribute childAttribute))
             {
-                throw new System.NullReferenceException($"attribute for {nameof(key)} not found");
+                throw new System.NullReferenceException(
+                    $"attribute for {nameof(key)} '{key}' not found");
             }
-
             return childAttribute;
         }
 
-        protected bool TryGetAttribute<TAttribute>(string key, out TAttribute outAttribute) where TAttribute : Attribute
+        protected bool TryGetAttribute<TAttribute>(string key, out TAttribute outAttribute)
+            where TAttribute : Attribute
         {
             if (type.schema.TryGetValue(key, out string attributeIdForKey))
             {
                 return client.TryGetAttribute(attributeIdForKey, out outAttribute);
             }
-
-#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
-            outAttribute = null;
-#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
+            outAttribute = null!;
             return false;
         }
 
-        override protected void Initialize(ObjectAttributeValue value)
+        protected override void Initialize(ObjectAttributeValue value)
         {
             base.Initialize(value);
-            if (value.value is null)
-            {
-                return;
-            }
+            // Children are walked from ReinitializeChildren — `type`
+            // isn't set yet on the first base-ctor pass.
+        }
+
+        /// <summary>
+        /// Walks <c>value.value</c> and rebuilds the
+        /// <see cref="childAttributes"/> dict from scratch using the
+        /// current <see cref="type"/>'s schema. Called after the
+        /// schema is wired (post-base-ctor), and again whenever a
+        /// Saved mutation invalidates the cached children.
+        /// </summary>
+        protected void ReinitializeChildren()
+        {
+            childAttributes.Clear();
+            if (value?.value is null) return;
             foreach (var kvp in value.value)
             {
-                var childAttribute = GetAttribute<Attribute>(kvp.Key);
-                if (childAttribute is CustomAttribute customChildAttribute)
-                {
-                    NeoAttributeCustom customChild = new(client, customChildAttribute, kvp.Value);
-                    childAttributes.Add(kvp.Key, customChild);
-                }
-                else if (childAttribute is StringAttribute stringAttribute)
-                {
-                    NeoAttributeString customChild = new(client, stringAttribute, kvp.Value);
-                    childAttributes.Add(kvp.Key, customChild);
-                }
+                if (!TryGetAttribute(kvp.Key, out Attribute childAttribute)) continue;
+                childAttributes[kvp.Key] = CreateChild(client, childAttribute, kvp.Value);
             }
         }
 
-        public IEnumerator<KeyValuePair<string, NeoAttribute<Attribute, AttributeValue>>> GetEnumerator()
+        public IEnumerator<KeyValuePair<string, NeoAttribute>> GetEnumerator()
         {
             return childAttributes.GetEnumerator();
         }
@@ -141,86 +165,109 @@ namespace NeoCompose.Runtime
         {
             return GetEnumerator();
         }
+
+        private CustomType ResolveCustomType()
+        {
+            if (!client.TryGetType(attribute.customTypeId, out CustomType match))
+            {
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(attribute.customTypeId),
+                    $"No custom type for {nameof(attribute)}.{nameof(attribute.customTypeId)} {attribute.customTypeId}");
+            }
+            return match;
+        }
     }
 
+    /// <summary>
+    /// Writeable variant of <see cref="NeoAttributeCustom"/>. All
+    /// descendants are also Saved (the
+    /// <see cref="CreateChild"/> override returns
+    /// <see cref="NeoAttribute.CreateSaved"/> kinds).
+    /// </summary>
     public class NeoAttributeCustomSaved : NeoAttributeCustom
     {
-        public NeoAttributeCustomSaved(NeoClient client, string attributeId, string? overrideValueId) : base(client, attributeId, overrideValueId)
-        { }
+        public NeoAttributeCustomSaved(NeoClient client, string attributeId, string? overrideValueId)
+            : base(client, attributeId, overrideValueId) { }
 
-        public void Set<TValue>(string key, TValue? setValue)
+        public NeoAttributeCustomSaved(NeoClient client, CustomAttribute attribute, string? overrideValueId)
+            : base(client, attribute, overrideValueId) { }
+
+        protected override NeoAttribute CreateChild(
+            NeoClient client,
+            Attribute childAttribute,
+            string? overrideValueId)
         {
-            System.DateTime currentTime = new();
-            string currentTimeString = currentTime.ToString();
+            return CreateSaved(client, childAttribute, overrideValueId);
+        }
 
-            // We need to create a new value
+        /// <summary>
+        /// Sets the schema-keyed child to <paramref name="setValue"/>.
+        /// Updates the existing entry in place when one exists; otherwise
+        /// creates a fresh value row, registers it under
+        /// <c>attributeValueOverrides</c>, and links it into the parent
+        /// record's value-map.
+        /// </summary>
+        public void Set<TChildValue>(string key, TChildValue? setValue)
+        {
+            string nowIso = System.DateTime.UtcNow.ToString("o");
+
             if (!type.schema.TryGetValue(key, out string schemaKeyedAttributeId))
             {
-                throw new System.Exception($"schema does not contain an attribute for {nameof(key)} {key}");
+                throw new System.Collections.Generic.KeyNotFoundException(
+                    $"Schema for type {type.id} does not contain key '{key}'");
             }
             if (!client.TryGetAttribute(schemaKeyedAttributeId, out Attribute childAttribute))
             {
-                throw new System.Exception($"no attribute for {nameof(schemaKeyedAttributeId)} {schemaKeyedAttributeId}");
+                throw new System.Exception(
+                    $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
             }
             if (childAttribute.required && setValue is null)
             {
-                throw new System.ArgumentNullException(nameof(value), $"Cannot be null when {nameof(attribute)}.{nameof(attribute.required)} is true");
+                throw new System.ArgumentNullException(
+                    nameof(setValue),
+                    $"Cannot be null when child attribute '{key}' is required");
             }
 
-            if (TryGetValueData(key, out AttributeValue<TValue> existing))
+            if (TryGetValueData(key, out AttributeValue<TChildValue?> existing))
             {
-                // Should also set to NeoAttribute, since that stores reference to AttributeValue
                 existing.value = setValue;
-                existing.updatedAt = currentTimeString;
+                existing.updatedAt = nowIso;
                 client.SetSaveValue(existing);
                 return;
             }
 
-            
-            string newValueId = new System.Guid().ToString();
+            // No existing value row — create one + link it under the
+            // parent record. The new child row goes into saveData.values
+            // directly; the parent's value-map gets the new id appended;
+            // the parent itself is re-saved so the new key/id pair
+            // persists.
+            string newValueId = System.Guid.NewGuid().ToString();
+            AttributeValue newValueRow = AttributeValueFactory.Create(
+                childAttribute, setValue, newValueId, nowIso, nowIso);
+            client.SetSaveValue(newValueRow);
 
-            if (childAttribute is CustomAttribute customChildAttribute)
+            // Make sure the parent has a value to link into. If we're
+            // setting on a Custom that has never had a value, we need
+            // to materialize one first.
+            if (value is null)
             {
-                if (setValue is not Dictionary<string, string> setDictValue)
+                ObjectAttributeValue parentRow = new()
                 {
-                    if (!childAttribute.required && setValue is not null)
-                    {
-                        throw new System.Exception($"Invalid type of {nameof(setValue)}. Expected {typeof(Dictionary<string, string>)} or null");
-                    }
-                    throw new System.Exception($"Invalid type of {nameof(setValue)}. Expected {typeof(Dictionary<string, string>)}.");
-                }
-                ObjectAttributeValue value = new()
-                {
-                    id = newValueId,
-                    createdAt = currentTimeString,
-                    updatedAt = currentTimeString,
-                    value = setDictValue
+                    id = System.Guid.NewGuid().ToString(),
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = new Dictionary<string, string>(),
                 };
-                client.AddSaveValue(customChildAttribute.id, value);
-                NeoAttributeCustom customChild = new(client, customChildAttribute, newValueId);
-                childAttributes.Add(key, customChild);
+                client.AddSaveValue(attribute.id, parentRow);
+                RefreshFromValueData();
             }
-            else if (childAttribute is StringAttribute stringAttribute)
-            {
-                if (setValue is not string setText)
-                {
-                    if (!childAttribute.required && setValue is not null)
-                    {
-                        throw new System.Exception($"Invalid type of {nameof(setValue)}. Expected {typeof(string)} or null");
-                    }
-                    throw new System.Exception($"Invalid type of {nameof(setValue)}. Expected {typeof(string)}.");
-                }
-                StringAttributeValue value = new()
-                {
-                    id = newValueId,
-                    createdAt = currentTimeString,
-                    updatedAt = currentTimeString,
-                    value = setText
-                };
-                client.AddSaveValue(stringAttribute.id, value);
-                NeoAttributeString customChild = new(client, stringAttribute, newValueId);
-                childAttributes.Add(key, customChild);
-            }
+
+            value!.value ??= new Dictionary<string, string>();
+            value.value[key] = newValueId;
+            value.updatedAt = nowIso;
+            client.SetSaveValue(value);
+
+            childAttributes[key] = CreateChild(client, childAttribute, newValueId);
         }
     }
 }

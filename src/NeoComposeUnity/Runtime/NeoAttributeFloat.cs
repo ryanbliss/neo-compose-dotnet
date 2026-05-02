@@ -8,36 +8,29 @@ using NeoCompose.Runtime.Json;
 namespace NeoCompose.Runtime
 {
     /// <summary>
-    /// Wrapper for a String-typed attribute. Read-only — use
-    /// <see cref="NeoAttributeStringSaved"/> to mutate.
+    /// Wrapper for a Float-typed attribute. Shares the underlying
+    /// <see cref="NumberAttributeValue"/> with Int — disambiguate via
+    /// <c>attribute.type</c> when needed.
     /// </summary>
-    public class NeoAttributeString
-        : NeoAttribute<StringAttribute, StringAttributeValue>
+    public class NeoAttributeFloat
+        : NeoAttribute<FloatAttribute, NumberAttributeValue>
     {
-        public NeoAttributeString(NeoClient client, string attributeId, string? overrideValueId)
+        public NeoAttributeFloat(NeoClient client, string attributeId, string? overrideValueId)
             : base(client, attributeId, overrideValueId) { }
 
-        public NeoAttributeString(NeoClient client, StringAttribute attribute, string? overrideValueId)
+        public NeoAttributeFloat(NeoClient client, FloatAttribute attribute, string? overrideValueId)
             : base(client, attribute, overrideValueId) { }
     }
 
-    /// <summary>
-    /// Writeable variant of <see cref="NeoAttributeString"/>.
-    /// </summary>
-    public class NeoAttributeStringSaved : NeoAttributeString
+    public class NeoAttributeFloatSaved : NeoAttributeFloat
     {
-        public NeoAttributeStringSaved(NeoClient client, string attributeId, string? overrideValueId)
+        public NeoAttributeFloatSaved(NeoClient client, string attributeId, string? overrideValueId)
             : base(client, attributeId, overrideValueId) { }
 
-        public NeoAttributeStringSaved(NeoClient client, StringAttribute attribute, string? overrideValueId)
+        public NeoAttributeFloatSaved(NeoClient client, FloatAttribute attribute, string? overrideValueId)
             : base(client, attribute, overrideValueId) { }
 
-        /// <summary>
-        /// Sets the underlying string. Updates an existing value row in
-        /// place when one exists; otherwise creates a fresh row and
-        /// registers it under the save's <c>attributeValueOverrides</c>.
-        /// </summary>
-        public void Set(string? newValue)
+        public void Set(float? newValue)
         {
             if (attribute.required && newValue is null)
             {
@@ -46,22 +39,23 @@ namespace NeoCompose.Runtime
                     $"Cannot be null when {nameof(attribute)}.{nameof(attribute.required)} is true");
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
+            double? doubleValue = newValue.HasValue ? newValue.Value : (double?)null;
 
-            if (value is StringAttributeValue existing)
+            if (value is NumberAttributeValue existing)
             {
-                existing.value = newValue;
+                existing.value = doubleValue;
                 existing.updatedAt = nowIso;
                 client.SetSaveValue(existing);
                 return;
             }
 
             string newValueId = System.Guid.NewGuid().ToString();
-            StringAttributeValue newRow = new()
+            NumberAttributeValue newRow = new()
             {
                 id = newValueId,
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = newValue,
+                value = doubleValue,
             };
             client.AddSaveValue(attribute.id, newRow);
             RefreshFromValueData();

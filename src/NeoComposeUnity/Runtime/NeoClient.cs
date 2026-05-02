@@ -90,6 +90,17 @@ namespace NeoCompose.Runtime
             saveData.values[value.id] = value;
         }
 
+        /// <summary>
+        /// Returns the save's override value-id for the given attribute,
+        /// or null if no override is registered. Used by
+        /// <see cref="NeoAttribute"/> to resolve `valueId` after a Set
+        /// creates a new top-level save row.
+        /// </summary>
+        public bool TryGetSaveOverrideValueId(string attributeId, out string valueId)
+        {
+            return saveData.attributeValueOverrides.TryGetValue(attributeId, out valueId);
+        }
+
         public bool TryGetEnum<TEnum>(string id, out TEnum enumInfo) where TEnum : Enum
         {
             if (data.enums.TryGetValue(id, out Enum idMatch))
@@ -135,9 +146,18 @@ namespace NeoCompose.Runtime
 
         protected void LoadOrCreateSafe()
         {
+            string saveJson = "";
             try
             {
-                string saveJson = loadSave.Invoke();
+                saveJson = loadSave.Invoke();
+            }
+            catch (System.Exception)
+            {
+                // Host couldn't supply a save file at all — fall through to default.
+            }
+
+            if (!string.IsNullOrEmpty(saveJson))
+            {
                 try
                 {
                     saveData = DeserializeSaveData(saveJson);
@@ -147,7 +167,11 @@ namespace NeoCompose.Runtime
                     Debug.LogError(exception);
                 }
             }
-            catch (System.Exception)
+
+            // `DeserializeSaveData` returns null on an empty / whitespace
+            // string without throwing, so a successful-but-empty load
+            // still needs the default-build fallback.
+            if (saveData == null)
             {
                 saveData = BuildDefaultSaveData();
                 EmitHandleSave();

@@ -53,14 +53,16 @@ namespace HelloWorld.Assets.Tests
             // surface lands.
             var instance = new NeoLoader();
             Assert.IsNotNull(instance);
-            static string loadSave()
-            {
-                return "";
-            }
-            static void handleSave(string file)
-            {
-                return;
-            }
+            // In-memory save round-trip: `handleSave` writes to a
+            // closed-over string; `loadSave` reads it back. Mimics what
+            // a real host (PlayerPrefs, file I/O, etc.) does, so
+            // NeoClient's bootstrap (BuildDefaultSaveData →
+            // EmitHandleSave → LoadUnsafe) round-trips correctly
+            // instead of reading "" back and wiping its in-memory
+            // saveData.
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
             var client = instance.Load(
                 LoadFixture("synth-example.json"),
                 loadSave,

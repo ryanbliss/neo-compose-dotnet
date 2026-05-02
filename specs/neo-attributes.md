@@ -66,26 +66,43 @@ NeoAttributeLookup     ← NeoAttributeLookupSaved     (Set(string[]?) — selec
 
 C# generics are invariant. `NeoAttribute<CustomAttribute, ObjectAttributeValue>` is **not** assignable to `NeoAttribute<Attribute, AttributeValue>` even though `CustomAttribute : Attribute` and `ObjectAttributeValue : AttributeValue`. So a heterogeneous container of children can't use the typed intermediate as its element type — it has to use the non-generic root.
 
-The non-generic `NeoAttribute` declares two abstract properties (`attribute`, `value`) so any consumer holding a non-generic reference can still reach the underlying DTO. The typed intermediate overrides these with **covariant return types** (C# 9+) so subclasses get strongly-typed access for free:
+The non-generic `NeoAttribute` exposes two concrete properties (`attribute`, `value`) so any consumer holding a non-generic reference can still reach the underlying DTO. The typed intermediate **shadows** these (via `new`) with strongly-typed wrappers that route through the base storage:
 
 ```csharp
+public abstract class NeoAttribute : NeoNode
+{
+    public Attribute attribute { get; protected set; } = null!;
+    public AttributeValue? value { get; protected set; }
+}
+
 public abstract class NeoAttribute<TAttribute, TValue> : NeoAttribute
     where TAttribute : Attribute
     where TValue : AttributeValue
 {
-    public override TAttribute attribute => _attribute;   // covariant — narrows `Attribute` to `TAttribute`
-    public override TValue? value => _value;              // covariant — narrows `AttributeValue?` to `TValue?`
+    public new TAttribute attribute
+    {
+        get => (TAttribute)base.attribute;
+        protected set => base.attribute = value;
+    }
+    public new TValue? value
+    {
+        get => (TValue?)base.value;
+        protected set => base.value = value;
+    }
 }
 ```
+
+Why shadowing rather than covariant return types? Covariant returns require runtime support (.NET 5+). Unity's Mono target on `netstandard2.1` doesn't have it, so the override path doesn't compile. Shadowing achieves the same caller-side ergonomics — a pattern-matched typed reference resolves to the typed property; a plain `NeoAttribute` reference resolves to the base — without needing runtime covariance.
 
 Consumers iterating a `Dictionary<string, NeoAttribute>` use pattern-matching to recover the typed view:
 
 ```csharp
 foreach (var (key, child) in custom) {
     if (child is NeoAttributeString s) {
-        s.Value();   // string?
+        // s.attribute is StringAttribute (typed via the shadowed property)
+        // s.value is StringAttributeValue?
     } else if (child is NeoAttributeCustom c) {
-        // c.attribute.customTypeId — typed via covariant override
+        // c.attribute.customTypeId is reachable directly
     }
 }
 ```

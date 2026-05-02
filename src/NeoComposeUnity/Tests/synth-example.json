@@ -9,8 +9,32 @@
     "updatedAt": "1970-01-01T00:00:00.000Z"
   },
   "attributes": {
+    "root-assets": {
+      "_id": "0cb1239c-b814-49de-afc9-74d70103b419",
+      "id": "root-assets",
+      "name": "Assets",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-root"
+    },
+    "root-save": {
+      "_id": "62e864cd-9b30-4959-84bb-9a016b32db23",
+      "id": "root-save",
+      "name": "Save",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-root"
+    },
     "attr-name": {
-      "_id": "350285dc-02b5-46b7-b47f-5f6cba85a1fe",
+      "_id": "4f1813ea-785a-486d-9a0c-faad4925f7de",
       "id": "attr-name",
       "name": "Name",
       "type": 3,
@@ -24,7 +48,7 @@
       }
     },
     "attr-health": {
-      "_id": "16c69294-8b64-4a5d-8547-de1eb9302ab9",
+      "_id": "39e2f5ae-94b1-460a-8690-490b6d7fa891",
       "id": "attr-health",
       "name": "Health",
       "type": 2,
@@ -38,7 +62,7 @@
       }
     },
     "attr-speed": {
-      "_id": "d0e94a56-571e-452e-bf47-f9f3aca4da4f",
+      "_id": "cd86575b-22fc-400a-92f1-549460bd4760",
       "id": "attr-speed",
       "name": "Speed",
       "type": 4,
@@ -52,7 +76,7 @@
       }
     },
     "attr-isalive": {
-      "_id": "4790ade0-b8d0-421a-92df-9d947e66aea5",
+      "_id": "a36c96f5-2aac-46e1-8f18-7cf7c02d4044",
       "id": "attr-isalive",
       "name": "IsAlive",
       "type": 1,
@@ -66,7 +90,7 @@
       }
     },
     "attr-hero": {
-      "_id": "b389fd94-bc07-45dc-8246-cf328e4a329b",
+      "_id": "281a2c48-432b-448c-8c6d-9b442bef5c91",
       "id": "attr-hero",
       "name": "Hero",
       "type": 7,
@@ -84,7 +108,7 @@
       }
     },
     "attr-inventory": {
-      "_id": "dd4abf8c-6d3c-4908-b092-dfde0a15c914",
+      "_id": "62181e1f-9ffa-4a4f-b26a-a1f2a5ddf5d6",
       "id": "attr-inventory",
       "name": "Inventory",
       "type": 5,
@@ -102,7 +126,7 @@
       }
     },
     "attr-tags": {
-      "_id": "d09980fb-86af-41fb-9347-8c1e450ee32e",
+      "_id": "3668db27-945f-4065-8e54-348eb0b7a8c0",
       "id": "attr-tags",
       "name": "Tags",
       "type": 6,
@@ -120,7 +144,7 @@
       }
     },
     "attr-element": {
-      "_id": "223776b5-c3c2-4870-a9cd-a8ebb4a6ea73",
+      "_id": "eb41ebc8-81eb-414a-a081-93e7664352d0",
       "id": "attr-element",
       "name": "Element",
       "type": 8,
@@ -133,7 +157,7 @@
       "multiselect": false
     },
     "attr-choice": {
-      "_id": "cc20f254-c6e1-42be-9821-e0c47226f130",
+      "_id": "6bca8eaa-d225-4bf8-8afe-e1b4b951258f",
       "id": "attr-choice",
       "name": "Choice",
       "type": 9,
@@ -146,7 +170,7 @@
       "multiselect": true
     },
     "attr-score": {
-      "_id": "b1421cd8-d4d5-4355-9f8c-c90e008c0749",
+      "_id": "a1cbf2af-0a0f-4a62-b1ae-e3f2428e7207",
       "id": "attr-score",
       "name": "Score",
       "type": 10,
@@ -471,7 +495,7 @@
       }
     },
     "attr-manifest": {
-      "_id": "c331165a-72e0-4217-8e33-656a34579d66",
+      "_id": "9f33704a-44ad-4250-b75c-8eb24317e1de",
       "id": "attr-manifest",
       "name": "Manifest",
       "type": 10,
@@ -545,7 +569,7 @@
       }
     },
     "attr-active": {
-      "_id": "2546eb53-8f0c-435c-b8ff-6dcd49f4bea5",
+      "_id": "b38d4c1b-6238-4d27-906f-d5e572030645",
       "id": "attr-active",
       "name": "Active",
       "type": 10,
@@ -612,6 +636,17 @@
         "Name": "attr-name",
         "Health": "attr-health"
       },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "type-root": {
+      "_id": "type-root",
+      "id": "type-root",
+      "name": "Root",
+      "schema": {},
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
