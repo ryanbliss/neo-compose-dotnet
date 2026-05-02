@@ -73,7 +73,7 @@ namespace NeoCompose.Runtime
 
         private Attribute ResolveEntryAttribute()
         {
-            if (!client.TryGetAttribute(attribute.entryAttributeId, out Attribute match))
+            if (!client.TryGetAttribute(attribute.entryAttributeId, out Attribute? match))
             {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(attribute.entryAttributeId),
@@ -138,7 +138,7 @@ namespace NeoCompose.Runtime
             string nowIso = System.DateTime.UtcNow.ToString("o");
             string entryValueId = value.value[index];
 
-            if (client.TryGetValue(entryValueId, out AttributeValue<TEntryValue?> existing))
+            if (client.TryGetValue(entryValueId, out AttributeValue<TEntryValue?>? existing))
             {
                 existing.value = entryValue;
                 existing.updatedAt = nowIso;

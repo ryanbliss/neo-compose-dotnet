@@ -29,22 +29,39 @@ namespace NeoCompose.Runtime
     /// </summary>
     public abstract class NeoAttribute : NeoNode
     {
-        public Attribute attribute { get; protected set; } = null!;
+        public Attribute attribute { get; }
         public AttributeValue? value { get; protected set; }
 
-        protected NeoAttribute(NeoClient client) : base(client) { }
+        protected NeoAttribute(NeoClient client, Attribute attribute) : base(client)
+        {
+            this.attribute = attribute;
+        }
 
         /// <summary>
         /// Read-only factory — instantiates the matching
         /// <c>NeoAttribute{Kind}</c> for the given attribute. Use
         /// <see cref="CreateSaved"/> when constructing a writeable
         /// sub-tree (e.g., descendants of <c>NeoClient.save</c>).
+        ///
+        /// <para>Returns the registry-cached instance for
+        /// <paramref name="attribute"/> + <paramref name="overrideValueId"/>
+        /// when one already exists — see
+        /// <see cref="NeoClient.TryGetNode"/>. Construction is the
+        /// fallback when nothing is cached. Mixing
+        /// <see cref="Create"/> / <see cref="CreateSaved"/> for the same
+        /// key returns whichever was first; callers wanting the
+        /// writeable variant should bootstrap their sub-tree through
+        /// <see cref="CreateSaved"/> from the root down.</para>
         /// </summary>
         public static NeoAttribute Create(
             NeoClient client,
             Attribute attribute,
             string? overrideValueId)
         {
+            if (client.TryGetNode(attribute.id, overrideValueId, out NeoAttribute? existing))
+            {
+                return existing;
+            }
             return attribute switch
             {
                 NullAttribute n => new NeoAttributeNull(client, n, overrideValueId),
@@ -68,12 +85,22 @@ namespace NeoCompose.Runtime
         /// for kinds that support write-back, falling through to the
         /// read-only variant for Null and NSGetter (which have no
         /// stored value to set).
+        ///
+        /// <para>Same registry-first semantics as
+        /// <see cref="Create"/>: if a node is already registered for
+        /// <paramref name="attribute"/> + <paramref name="overrideValueId"/>
+        /// it's returned as-is, even if it's a read-only kind from a
+        /// prior <see cref="Create"/> call.</para>
         /// </summary>
         public static NeoAttribute CreateSaved(
             NeoClient client,
             Attribute attribute,
             string? overrideValueId)
         {
+            if (client.TryGetNode(attribute.id, overrideValueId, out NeoAttribute? existing))
+            {
+                return existing;
+            }
             return attribute switch
             {
                 NullAttribute n => new NeoAttributeNull(client, n, overrideValueId),
@@ -120,14 +147,10 @@ namespace NeoCompose.Runtime
         /// pattern-matched typed reference resolve here; calls
         /// through a plain <see cref="NeoAttribute"/> reference resolve
         /// to the base's untyped property. Both return the same
-        /// underlying instance (the typed setter routes through the
-        /// base setter).
+        /// underlying instance — the value is set once via the base
+        /// ctor (get-only), no setter shadow needed.
         /// </summary>
-        public new TAttribute attribute
-        {
-            get => (TAttribute)base.attribute;
-            protected set => base.attribute = value;
-        }
+        public new TAttribute attribute => (TAttribute)base.attribute;
 
         /// <summary>
         /// Typed accessor for <see cref="NeoAttribute.value"/>.
@@ -151,7 +174,7 @@ namespace NeoCompose.Runtime
             get
             {
                 if (overrideValueId is not null) return overrideValueId;
-                if (client.TryGetSaveOverrideValueId(attribute.id, out string saveValId))
+                if (client.TryGetSaveOverrideValueId(attribute.id, out string? saveValId))
                 {
                     return saveValId;
                 }
@@ -170,31 +193,47 @@ namespace NeoCompose.Runtime
             get
             {
                 if (valueId is null) return null;
-                if (!client.TryGetValue(valueId, out TValue match)) return null;
+                if (!client.TryGetValue(valueId, out TValue? match)) return null;
                 return match;
             }
         }
 
         public NeoAttribute(NeoClient client, TAttribute attribute, string? overrideValueId)
-            : base(client)
+            : base(client, attribute)
         {
-            this.attribute = attribute;
             this.overrideValueId = overrideValueId;
             InitFromValueData();
+            // Last step in the base ctor — children walked from a
+            // collection-type derived ctor body run after this, but they
+            // register under their own keys, so registration order is
+            // parent-then-children which is what consumers expect when
+            // walking the registry.
+            client.RegisterNode(this, overrideValueId);
         }
 
         public NeoAttribute(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client)
+            : base(client, ResolveAttribute(client, attributeId))
         {
-            if (!client.TryGetAttribute(attributeId, out TAttribute resolved))
+            this.overrideValueId = overrideValueId;
+            InitFromValueData();
+            client.RegisterNode(this, overrideValueId);
+        }
+
+        /// <summary>
+        /// Static helper for the attributeId-based ctor — resolves the
+        /// <typeparamref name="TAttribute"/> from the client up-front so
+        /// it can be passed to the base ctor (which initializes the
+        /// get-only <see cref="NeoAttribute.attribute"/> property).
+        /// </summary>
+        private static TAttribute ResolveAttribute(NeoClient client, string attributeId)
+        {
+            if (!client.TryGetAttribute(attributeId, out TAttribute? resolved))
             {
                 throw new System.ArgumentException(
                     $"No {typeof(TAttribute).Name} for attribute {attributeId}",
                     nameof(attributeId));
             }
-            this.attribute = resolved;
-            this.overrideValueId = overrideValueId;
-            InitFromValueData();
+            return resolved;
         }
 
         private void InitFromValueData()

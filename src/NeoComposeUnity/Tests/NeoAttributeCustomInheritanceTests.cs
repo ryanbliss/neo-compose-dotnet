@@ -47,9 +47,11 @@ namespace NeoCompose.Tests
 
         private static NeoAttributeCustom CreateCustom(NeoClient client, string attributeId)
         {
-            Assert.IsTrue(
-                client.TryGetAttribute(attributeId, out CustomAttribute attr),
-                $"Fixture is missing CustomAttribute '{attributeId}'");
+            if (!client.TryGetAttribute(attributeId, out CustomAttribute? attr))
+            {
+                Assert.Fail($"Fixture is missing CustomAttribute '{attributeId}'");
+                throw new System.InvalidOperationException("unreachable");
+            }
             return new NeoAttributeCustom(client, attr, null);
         }
 

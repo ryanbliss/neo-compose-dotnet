@@ -55,7 +55,7 @@ namespace NeoCompose.Runtime
 
         private JsonEnum ResolveEnum()
         {
-            if (!client.TryGetEnum(attribute.enumId, out JsonEnum match))
+            if (!client.TryGetEnum(attribute.enumId, out JsonEnum? match))
             {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(attribute.enumId),

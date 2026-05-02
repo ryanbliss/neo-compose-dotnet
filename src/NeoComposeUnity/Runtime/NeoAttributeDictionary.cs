@@ -5,6 +5,7 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
@@ -47,15 +48,15 @@ namespace NeoCompose.Runtime
 
         public NeoAttribute this[string key] => childAttributes[key];
 
-        public bool TryGet<TNeoAttribute>(string key, out TNeoAttribute outAttribute)
+        public bool TryGet<TNeoAttribute>(string key, [NotNullWhen(true)] out TNeoAttribute? outAttribute)
             where TNeoAttribute : NeoAttribute
         {
-            if (childAttributes.TryGetValue(key, out NeoAttribute check) && check is TNeoAttribute match)
+            if (childAttributes.TryGetValue(key, out NeoAttribute? check) && check is TNeoAttribute match)
             {
                 outAttribute = match;
                 return true;
             }
-            outAttribute = null!;
+            outAttribute = null;
             return false;
         }
 
@@ -83,7 +84,7 @@ namespace NeoCompose.Runtime
 
         private Attribute ResolveEntryAttribute()
         {
-            if (!client.TryGetAttribute(attribute.entryAttributeId, out Attribute match))
+            if (!client.TryGetAttribute(attribute.entryAttributeId, out Attribute? match))
             {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(attribute.entryAttributeId),
@@ -128,7 +129,7 @@ namespace NeoCompose.Runtime
 
             if (value?.value is not null
                 && value.value.TryGetValue(key, out string existingValueId)
-                && client.TryGetValue(existingValueId, out AttributeValue<TEntryValue?> existing))
+                && client.TryGetValue(existingValueId, out AttributeValue<TEntryValue?>? existing))
             {
                 existing.value = setValue;
                 existing.updatedAt = nowIso;

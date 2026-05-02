@@ -46,7 +46,7 @@ namespace NeoCompose.Runtime
             string[] selectedIds = Selected();
             if (selectedIds.Length == 0) return resolved;
 
-            if (!client.TryGetAttribute(attribute.collectionAttributeId, out Attribute targetAttribute))
+            if (!client.TryGetAttribute(attribute.collectionAttributeId, out Attribute? targetAttribute))
             {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(attribute.collectionAttributeId),
@@ -61,7 +61,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Lookup target {attribute.collectionAttributeId} has no bound value");
             }
-            if (!client.TryGetValue(targetValueId, out AttributeValue targetValue))
+            if (!client.TryGetValue(targetValueId, out AttributeValue? targetValue))
             {
                 throw new System.InvalidOperationException(
                     $"Lookup target value {targetValueId} not found");
@@ -89,7 +89,7 @@ namespace NeoCompose.Runtime
                 _ => throw new System.NotSupportedException(
                     $"Lookup target must be List or Dictionary; got {targetAttribute.GetType().Name}"),
             };
-            if (!client.TryGetAttribute(entryAttributeId, out Attribute entryAttr))
+            if (!client.TryGetAttribute(entryAttributeId, out Attribute? entryAttr))
             {
                 throw new System.InvalidOperationException(
                     $"Lookup entry attribute {entryAttributeId} not found");

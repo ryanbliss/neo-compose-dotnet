@@ -5,6 +5,7 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using NeoCompose.Runtime.Json;
 using UnityEngine;
 
@@ -80,7 +81,7 @@ namespace NeoCompose.Runtime
         public TNeoAttribute Get<TNeoAttribute>(string key)
             where TNeoAttribute : NeoAttribute
         {
-            if (!TryGet(key, out TNeoAttribute attr))
+            if (!TryGet(key, out TNeoAttribute? attr))
             {
                 throw new System.Collections.Generic.KeyNotFoundException(
                     $"No child {nameof(NeoAttribute)} for {nameof(key)} '{key}' on {nameof(NeoAttributeCustom)} {attribute.id}");
@@ -88,21 +89,21 @@ namespace NeoCompose.Runtime
             return attr;
         }
 
-        public bool TryGet<TNeoAttribute>(string key, out TNeoAttribute outAttribute)
+        public bool TryGet<TNeoAttribute>(string key, [NotNullWhen(true)] out TNeoAttribute? outAttribute)
             where TNeoAttribute : NeoAttribute
         {
-            if (childAttributes.TryGetValue(key, out NeoAttribute check) && check is TNeoAttribute match)
+            if (childAttributes.TryGetValue(key, out NeoAttribute? check) && check is TNeoAttribute match)
             {
                 outAttribute = match;
                 return true;
             }
-            outAttribute = null!;
+            outAttribute = null;
             return false;
         }
 
         protected TValue? GetValueData<TValue>(string key) where TValue : AttributeValue
         {
-            if (!TryGetValueData(key, out TValue value))
+            if (!TryGetValueData(key, out TValue? value))
             {
                 if (attribute.required)
                 {
@@ -114,21 +115,21 @@ namespace NeoCompose.Runtime
             return value;
         }
 
-        protected bool TryGetValueData<TValue>(string key, out TValue outValue)
+        protected bool TryGetValueData<TValue>(string key, [NotNullWhen(true)] out TValue? outValue)
             where TValue : AttributeValue
         {
             if (value?.value is not null && value.value.TryGetValue(key, out string valueIdForKey))
             {
                 return client.TryGetValue(valueIdForKey, out outValue);
             }
-            outValue = null!;
+            outValue = null;
             return false;
         }
 
         protected TAttribute GetAttribute<TAttribute>(string key)
             where TAttribute : Attribute
         {
-            if (!TryGetAttribute(key, out TAttribute childAttribute))
+            if (!TryGetAttribute(key, out TAttribute? childAttribute))
             {
                 throw new System.NullReferenceException(
                     $"attribute for {nameof(key)} '{key}' not found");
@@ -136,7 +137,7 @@ namespace NeoCompose.Runtime
             return childAttribute;
         }
 
-        protected bool TryGetAttribute<TAttribute>(string key, out TAttribute outAttribute)
+        protected bool TryGetAttribute<TAttribute>(string key, [NotNullWhen(true)] out TAttribute? outAttribute)
             where TAttribute : Attribute
         {
             // Walks the merged schema rather than `type.schema` directly
@@ -147,7 +148,7 @@ namespace NeoCompose.Runtime
             {
                 return client.TryGetAttribute(attributeIdForKey, out outAttribute);
             }
-            outAttribute = null!;
+            outAttribute = null;
             return false;
         }
 
@@ -185,7 +186,7 @@ namespace NeoCompose.Runtime
             if (value?.value is null) return;
             foreach (var kvp in value.value)
             {
-                if (!TryGetAttribute(kvp.Key, out Attribute childAttribute)) continue;
+                if (!TryGetAttribute(kvp.Key, out Attribute? childAttribute)) continue;
                 childAttributes[kvp.Key] = CreateChild(client, childAttribute, kvp.Value);
             }
         }
@@ -202,7 +203,7 @@ namespace NeoCompose.Runtime
 
         private CustomType ResolveCustomType()
         {
-            if (!client.TryGetType(attribute.customTypeId, out CustomType match))
+            if (!client.TryGetType(attribute.customTypeId, out CustomType? match))
             {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(attribute.customTypeId),
@@ -280,7 +281,7 @@ namespace NeoCompose.Runtime
                 throw new System.Collections.Generic.KeyNotFoundException(
                     $"Merged schema for type {type.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
             }
-            if (!client.TryGetAttribute(schemaKeyedAttributeId, out Attribute childAttribute))
+            if (!client.TryGetAttribute(schemaKeyedAttributeId, out Attribute? childAttribute))
             {
                 throw new System.Exception(
                     $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
@@ -292,7 +293,7 @@ namespace NeoCompose.Runtime
                     $"Cannot be null when child attribute '{key}' is required");
             }
 
-            if (TryGetValueData(key, out AttributeValue<TChildValue?> existing))
+            if (TryGetValueData(key, out AttributeValue<TChildValue?>? existing))
             {
                 existing.value = setValue;
                 existing.updatedAt = nowIso;
