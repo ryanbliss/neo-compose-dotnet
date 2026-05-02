@@ -86,7 +86,31 @@ namespace NeoCompose.Runtime
         /// explicit value to override (e.g., for tests or for
         /// project-root NSGetters with no Custom parent).</para>
         /// </summary>
-        public NSGetterResult Compute(object? thisValue = null)
+        public NSGetterResult Compute(object? thisValue = null) =>
+            ComputeInternal(thisValue, /*thisRow*/ null);
+
+        /// <summary>
+        /// Convenience overload that takes a value-id string and
+        /// looks up the corresponding row internally. Unlike the
+        /// <see cref="Compute(object?)"/> overload, this routes the
+        /// <c>__this__</c> binding through the evaluator's
+        /// per-context cache + reverse index — so <c>is</c>-checks
+        /// against Custom types and runtime-override dispatch on
+        /// <c>this</c> itself work correctly. Prefer this overload
+        /// when the receiver is a known stored row; the object-only
+        /// overload is for ad-hoc / synthesized records.
+        /// </summary>
+        public NSGetterResult Compute(string thisValueId)
+        {
+            if (!client.TryGetValue(thisValueId, out AttributeValue? row))
+            {
+                return NSGetterResult.Error(
+                    $"thisValueId '{thisValueId}' not found in client values");
+            }
+            return ComputeInternal(null, row);
+        }
+
+        private NSGetterResult ComputeInternal(object? thisValue, AttributeValue? thisRow)
         {
             var getter = resolvedGetter;
             if (getter is null)
@@ -94,13 +118,39 @@ namespace NeoCompose.Runtime
                 return NSGetterResult.Error(
                     "Compiled `getter` not yet available — save the code to compile it.");
             }
-            object? boundThis = thisValue ?? ResolveThisFromParentChain();
-            object? rootValue = ResolveRootValue();
+
+            // Build the Context first so we can unwrap row-based
+            // bindings through its cache. Both `__root__` and
+            // `__this__` need to participate in the cache so dispatch
+            // on `root.assets.X` and `this.foo` rounds-trips through
+            // reference equality.
+            var ctx = new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null);
+            object? rootValue = ResolveRootValue(ctx);
+            ctx = ctx.WithRoot(rootValue);
+
+            object? boundThis = thisValue;
+            if (boundThis is null && thisRow is not null)
+            {
+                boundThis = NSGetterEvaluator.UnwrapRow(thisRow, ctx);
+            }
+            if (boundThis is null)
+            {
+                // Walk parent chain for a row to unwrap through the cache.
+                NeoAttribute? cursor = parent;
+                for (int i = 0; cursor is not null && i < 32; i++)
+                {
+                    if (cursor.value is ObjectAttributeValue obj)
+                    {
+                        boundThis = NSGetterEvaluator.UnwrapRow(obj, ctx);
+                        if (boundThis is not null) break;
+                    }
+                    cursor = cursor.parent;
+                }
+            }
 
             try
             {
-                var ctx = new NSGetterEvaluator.Context(client, boundThis, rootValue);
-                var value = NSGetterEvaluator.Evaluate(getter, ctx);
+                var value = NSGetterEvaluator.Evaluate(getter, ctx.WithThis(boundThis));
                 return NSGetterResult.Ok(value);
             }
             catch (NSGetterRuntimeError ex)
@@ -114,60 +164,25 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Walks <see cref="NeoAttribute.parent"/> looking for the
-        /// nearest ancestor whose value resolves to a Custom record
-        /// (an <see cref="ObjectAttributeValue"/> with non-null
-        /// content). That record's content map becomes
-        /// <c>__this__</c>. Returns null if no Custom ancestor is
-        /// found — caller binds <c>__this__</c> to null and any
-        /// <c>this.foo</c> reference in the user's NeoScript surfaces
-        /// as a runtime error.
-        ///
-        /// <para>32-hop cap defends against accidental cycles in the
-        /// parent chain (none should exist by construction, but the
-        /// SDK is defensive).</para>
-        /// </summary>
-        private object? ResolveThisFromParentChain()
-        {
-            NeoAttribute? cursor = parent;
-            for (int i = 0; cursor is not null && i < 32; i++)
-            {
-                if (cursor.value is ObjectAttributeValue obj && obj.value is not null)
-                {
-                    // Wrap as Dictionary<string, object?> for the
-                    // evaluator (which wants object? values for
-                    // schema-key lookups).
-                    var record = new Dictionary<string, object?>(obj.value.Count);
-                    foreach (var kvp in obj.value) record[kvp.Key] = kvp.Value;
-                    return record;
-                }
-                cursor = cursor.parent;
-            }
-            return null;
-        }
-
-        /// <summary>
         /// Synthesizes the runtime <c>__root__</c> value:
         /// <c>{ assets: &lt;assets-record&gt;, save: &lt;save-record&gt; }</c>.
         /// The two roots come from <see cref="NeoClient.assets"/> /
         /// <see cref="NeoClient.save"/>'s underlying value records;
         /// either entry is null when the corresponding root attribute
-        /// has no stored value.
+        /// has no stored value. Both records are unwrapped through
+        /// the evaluator's cache so chains like <c>root.assets.X</c>
+        /// participate in reference-equality dispatch.
         /// </summary>
-        private object? ResolveRootValue()
+        private object? ResolveRootValue(NSGetterEvaluator.Context ctx)
         {
             var root = new Dictionary<string, object?>(2);
-            root["assets"] = ExtractRecord(client.assets.value);
-            root["save"] = ExtractRecord(client.save.value);
+            root["assets"] = client.assets.value is ObjectAttributeValue a
+                ? NSGetterEvaluator.UnwrapRow(a, ctx)
+                : null;
+            root["save"] = client.save.value is ObjectAttributeValue s
+                ? NSGetterEvaluator.UnwrapRow(s, ctx)
+                : null;
             return root;
-        }
-
-        private static IDictionary<string, object?>? ExtractRecord(ObjectAttributeValue? row)
-        {
-            if (row?.value is null) return null;
-            var record = new Dictionary<string, object?>(row.value.Count);
-            foreach (var kvp in row.value) record[kvp.Key] = kvp.Value;
-            return record;
         }
     }
 }

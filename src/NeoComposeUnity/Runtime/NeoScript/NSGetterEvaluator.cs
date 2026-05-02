@@ -51,28 +51,90 @@ namespace NeoCompose.Runtime.NeoScript
             /// </summary>
             public IReadOnlyCollection<string> getterCallStack { get; }
 
+            /// <summary>
+            /// Caches <c>valueId → unwrapped</c> CLR shape for every
+            /// row touched during evaluation. Critical for two
+            /// behaviors that the TS evaluator gets for free (because
+            /// JS objects round-trip by reference):
+            ///
+            /// <list type="bullet">
+            ///   <item><description><c>resolveValueIfId</c> returning the
+            ///   *same* heap object for the same id, so chains like
+            ///   <c>this.foo.bar</c> read through one receiver
+            ///   instance.</description></item>
+            ///   <item><description>Reference-equality lookups in
+            ///   <see cref="FindRowTypeIdByReference"/> /
+            ///   <see cref="FindRowIdByReference"/> matching the
+            ///   receiver back to its source row — needed for
+            ///   <c>is</c>-checks against Custom types and for
+            ///   stringification of Custom / List / Dictionary results.
+            ///   </description></item>
+            /// </list>
+            ///
+            /// Shared across the parent Context and every child built
+            /// via <see cref="WithGetterPushed"/> / <see cref="WithThis"/>
+            /// so a callGetter's inner evaluation sees the same row
+            /// identities the outer evaluation built up.
+            /// </summary>
+            internal Dictionary<string, object?> rowUnwrapCache { get; }
+
+            /// <summary>
+            /// Reverse index of <see cref="rowUnwrapCache"/>: maps an
+            /// unwrapped object back to the <c>valueId</c> that
+            /// produced it. Built lazily as rows are unwrapped — only
+            /// populated for object-shaped values (records, arrays)
+            /// where reference equality is meaningful. Primitives
+            /// (string / number / bool) skip the index because
+            /// reference equality on boxed primitives would
+            /// false-positive.
+            /// </summary>
+            internal Dictionary<object, string> rowReverseIndex { get; }
+
             public Context(
                 NeoClient client,
                 object? thisValue,
                 object? rootValue,
-                IReadOnlyCollection<string>? getterCallStack = null)
+                IReadOnlyCollection<string>? getterCallStack = null,
+                Dictionary<string, object?>? rowUnwrapCache = null,
+                Dictionary<object, string>? rowReverseIndex = null)
             {
                 this.client = client;
                 this.thisValue = thisValue;
                 this.rootValue = rootValue;
                 this.getterCallStack = getterCallStack ?? System.Array.Empty<string>();
+                this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<string, object?>();
+                this.rowReverseIndex = rowReverseIndex
+                    ?? new Dictionary<object, string>(ReferenceEqualityComparer.Instance);
             }
 
             internal Context WithGetterPushed(string attributeId)
             {
                 var next = new HashSet<string>(getterCallStack) { attributeId };
-                return new Context(client, thisValue, rootValue, next);
+                return new Context(client, thisValue, rootValue, next, rowUnwrapCache, rowReverseIndex);
             }
 
             internal Context WithThis(object? newThisValue)
             {
-                return new Context(client, newThisValue, rootValue, getterCallStack);
+                return new Context(client, newThisValue, rootValue, getterCallStack, rowUnwrapCache, rowReverseIndex);
             }
+
+            internal Context WithRoot(object? newRootValue)
+            {
+                return new Context(client, thisValue, newRootValue, getterCallStack, rowUnwrapCache, rowReverseIndex);
+            }
+        }
+
+        /// <summary>
+        /// Reference-only equality comparer for the
+        /// <see cref="Context.rowReverseIndex"/>. .NET 5+ has this in
+        /// the BCL; we polyfill for netstandard2.1.
+        /// </summary>
+        private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
+        {
+            public static readonly ReferenceEqualityComparer Instance = new();
+            bool IEqualityComparer<object>.Equals(object? x, object? y) => ReferenceEquals(x, y);
+            int IEqualityComparer<object>.GetHashCode(object obj) =>
+                System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
         }
 
         // ---------------------------------------------------------------
@@ -95,6 +157,18 @@ namespace NeoCompose.Runtime.NeoScript
             if (result.kind == InstructionResultKind.Return) return result.value;
             throw new NSGetterRuntimeError("Function ended without a return statement");
         }
+
+        /// <summary>
+        /// Materialises the unwrapped CLR shape for an
+        /// <see cref="AttributeValue"/> row through the per-context
+        /// cache + reverse index. Public so external callers (notably
+        /// <see cref="NeoAttributeNSGetter.Compute"/>) can pre-warm the
+        /// cache when binding <c>__this__</c> to a known row — without
+        /// going through the cache, <c>is</c>-checks against Custom
+        /// types and runtime-override dispatch on the receiver wouldn't
+        /// fire because reference equality would never round-trip.
+        /// </summary>
+        public static object? UnwrapRow(AttributeValue row, Context ctx) => UnwrapCached(row, ctx);
 
         // ---------------------------------------------------------------
         // Instructions
@@ -198,7 +272,7 @@ namespace NeoCompose.Runtime.NeoScript
                         throw new NSGetterRuntimeError(
                             $"Missing value reference: {rp.valueId}");
                     }
-                    return ExtractWireValue(row);
+                    return UnwrapCached(row, ctx);
                 }
                 case KeyOfPointer kop:
                     return EvalKeyOf(kop.keyOf, scope, ctx, kop.optional == true);
@@ -892,17 +966,19 @@ namespace NeoCompose.Runtime.NeoScript
         /// returns the row's value. Single-select Lookup arrays
         /// (<c>string[]</c> of length 1) get one extra unwrap so
         /// <c>this.equipped.name</c> works on a single-select Lookup.
+        /// Routes through <see cref="UnwrapCached"/> so the same heap
+        /// object round-trips for the same id within a Compute call.
         /// </summary>
         private static object? ResolveValueIfId(object? at, Context ctx)
         {
             if (at is not string id) return at;
             if (!ctx.client.TryGetValue(id, out AttributeValue? row)) return at;
-            var v = ExtractWireValue(row);
+            var v = UnwrapCached(row, ctx);
             if (v is object?[] arr && arr.Length == 1 && arr[0] is string singleId)
             {
                 if (ctx.client.TryGetValue(singleId, out AttributeValue? next))
                 {
-                    return ExtractWireValue(next);
+                    return UnwrapCached(next, ctx);
                 }
             }
             return v;
@@ -930,6 +1006,40 @@ namespace NeoCompose.Runtime.NeoScript
                 NullAttributeValue _ => null,
                 _ => null,
             };
+        }
+
+        /// <summary>
+        /// Unwraps a row through the per-context cache so the same
+        /// heap object round-trips across calls for the same id —
+        /// matching the TS evaluator's "JS row.value is the heap
+        /// object" reference-stability. First call materialises +
+        /// caches; subsequent calls return the cached instance.
+        ///
+        /// <para>For object-shaped values (records, arrays) also
+        /// populates the reverse index so
+        /// <see cref="FindRowIdByReference"/> /
+        /// <see cref="FindRowTypeIdByReference"/> can recover the
+        /// source row from the unwrapped value. Skipped for
+        /// primitives because boxed-primitive reference equality
+        /// would false-positive across rows that share a value.</para>
+        /// </summary>
+        private static object? UnwrapCached(AttributeValue row, Context ctx)
+        {
+            if (ctx.rowUnwrapCache.TryGetValue(row.id, out var cached)) return cached;
+            var unwrapped = ExtractWireValue(row);
+            ctx.rowUnwrapCache[row.id] = unwrapped;
+            // Reverse-index only object-shaped unwraps. Primitive
+            // boxes don't have meaningful reference identity for our
+            // lookups (two rows with `value = "hi"` would share a
+            // boxed string; two rows with `value = 5` would share a
+            // boxed double after JIT folding). The TS reference-
+            // equality lookup only ever fires for record / array
+            // values where this is a non-issue.
+            if (unwrapped is IDictionary<string, object?> || unwrapped is object?[])
+            {
+                ctx.rowReverseIndex[unwrapped!] = row.id;
+            }
+            return unwrapped;
         }
 
         private static object?[] ToObjectArray(string[] arr)
@@ -1034,35 +1144,13 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static string? FindRowTypeIdByReference(object? value, Context ctx)
         {
-            // Iterate every value the client knows about (saveData first
-            // wins, then data). Reference equality: the unwrapped value
-            // we hold should be the same dict instance the row exposes.
-            // Note that we unwrap each row's value lazily via ExtractWireValue,
-            // which builds new objects each call — so reference equality
-            // here only works against rows that were the source of the
-            // value via a prior ExtractWireValue + memoized unwrap. In
-            // practice the evaluator's KeyOf chain reads
-            // resolveValueIfId(stringId) -> ExtractWireValue(row) -> the
-            // returned object. Two calls produce two different objects.
-            //
-            // To make the reference-lookup work the same as TS (where
-            // row.value IS the heap object), we'd need to cache unwrapped
-            // values per row. Defer that optimization — for now scan all
-            // rows by unwrapping each and checking reference equality.
-            // This works correctly for runtime override dispatch in
-            // most cases because the receiver was just freshly unwrapped
-            // from the row in the immediately-previous evaluator hop.
-            //
-            // TODO: cache UnwrappedValueRow → object? per Context to
-            // make this O(1) and reference-stable.
-            foreach (var pair in EnumerateAllValues(ctx.client))
-            {
-                if (ReferenceEquals(ExtractWireValue(pair.Value), value))
-                {
-                    return pair.Value.typeId;
-                }
-            }
-            return null;
+            if (value is null) return null;
+            // O(1) reverse lookup against the per-context unwrap cache.
+            // Only object-shaped values are indexed (see UnwrapCached);
+            // primitives correctly miss because reference identity isn't
+            // meaningful for them.
+            if (!ctx.rowReverseIndex.TryGetValue(value, out string? rowId)) return null;
+            return ctx.client.TryGetValue(rowId, out AttributeValue? row) ? row.typeId : null;
         }
 
         // ---------------------------------------------------------------
@@ -1223,11 +1311,8 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static string? FindRowIdByReference(object? value, Context ctx)
         {
-            foreach (var pair in EnumerateAllValues(ctx.client))
-            {
-                if (ReferenceEquals(ExtractWireValue(pair.Value), value)) return pair.Value.id;
-            }
-            return null;
+            if (value is null) return null;
+            return ctx.rowReverseIndex.TryGetValue(value, out string? id) ? id : null;
         }
 
         private static string StringifyForInterp(object? v)
