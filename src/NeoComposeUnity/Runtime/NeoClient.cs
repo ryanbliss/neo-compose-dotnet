@@ -34,6 +34,22 @@ namespace NeoCompose.Runtime
         public IReadOnlyDictionary<string, NeoAttribute> nodes => nodesInternal;
         private readonly Dictionary<string, NeoAttribute> nodesInternal = new();
 
+        /// <summary>
+        /// Fired when the entry for <c>attributeId</c> in
+        /// <see cref="ProjectSaveData.attributeValueOverrides"/> is
+        /// added, replaced, or removed. Subscribers (notably
+        /// <see cref="NeoAttribute"/>) recompute their resolved
+        /// <c>valueId</c> chain and refresh their <c>value</c>.
+        ///
+        /// <para>The second argument is the *new* value id (or
+        /// <c>null</c> if removed). Wire mutations of
+        /// <see cref="Attribute.valueId"/> directly on the DTO
+        /// don't fire here — those are out of band; consumers that
+        /// mutate the wire DTO should call the affected node's
+        /// refresh hook manually.</para>
+        /// </summary>
+        public event System.Action<string, string?>? OnSaveOverrideChanged;
+
         protected ProjectData data;
         protected ProjectSaveData saveData;
         protected LoadSave loadSave;
@@ -100,11 +116,79 @@ namespace NeoCompose.Runtime
         {
             saveData.attributeValueOverrides[attributeId] = value.id;
             SetSaveValue(value);
+            OnSaveOverrideChanged?.Invoke(attributeId, value.id);
         }
 
         public void SetSaveValue<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
         {
             saveData.values[value.id] = value;
+        }
+
+        /// <summary>
+        /// Removes the save-side override for <paramref name="attributeId"/>
+        /// (i.e., the entry in
+        /// <see cref="ProjectSaveData.attributeValueOverrides"/>). Fires
+        /// <see cref="OnSaveOverrideChanged"/> with a null value id so
+        /// subscribers refresh accordingly. Returns true if an entry
+        /// was actually removed; false if nothing was registered.
+        ///
+        /// <para>Note: this only removes the override mapping. The
+        /// underlying value row in <see cref="ProjectSaveData.values"/>
+        /// stays — call
+        /// <see cref="RemoveSaveValueAndDescendants"/> if you also want
+        /// to GC it (and any nested values).</para>
+        /// </summary>
+        public bool RemoveSaveOverride(string attributeId)
+        {
+            if (!saveData.attributeValueOverrides.Remove(attributeId)) return false;
+            OnSaveOverrideChanged?.Invoke(attributeId, null);
+            return true;
+        }
+
+        /// <summary>
+        /// Recursively deletes <paramref name="valueId"/> and every
+        /// value referenced by its content from
+        /// <see cref="ProjectSaveData.values"/>. Walks
+        /// <see cref="ObjectAttributeValue"/> (Custom / Dictionary
+        /// records — values are nested value-ids) and
+        /// <see cref="ArrayAttributeValue"/> (List / Enum / Lookup —
+        /// entries may be nested value-ids); leaves and primitives have
+        /// no nested ids so the recursion bottoms out cleanly.
+        ///
+        /// <para>Used by collection <c>*Saved</c> Remove operations to
+        /// keep the save file lean — when a parent removes a child
+        /// reference, the child's value (and any descendants it owned)
+        /// becomes unreachable and shouldn't sit in the save forever.</para>
+        ///
+        /// <para>Only mutates <see cref="ProjectSaveData.values"/> —
+        /// <see cref="ProjectData"/> (the authored asset tree) is
+        /// never touched. Values that exist only in the asset tree
+        /// (no save override) won't be in <c>saveData.values</c> in the
+        /// first place, so the recursion safely skips them.</para>
+        /// </summary>
+        public void RemoveSaveValueAndDescendants(string valueId)
+        {
+            if (!saveData.values.TryGetValue(valueId, out AttributeValue val)) return;
+            // Recurse first so children are pruned before we drop the
+            // parent. Order doesn't strictly matter (no cycles in a
+            // valid save) but doing it depth-first matches the
+            // bottom-up nature of GC.
+            switch (val)
+            {
+                case ObjectAttributeValue obj when obj.value is not null:
+                    foreach (var nestedId in obj.value.Values)
+                    {
+                        RemoveSaveValueAndDescendants(nestedId);
+                    }
+                    break;
+                case ArrayAttributeValue arr when arr.value is not null:
+                    foreach (var nestedId in arr.value)
+                    {
+                        RemoveSaveValueAndDescendants(nestedId);
+                    }
+                    break;
+            }
+            saveData.values.Remove(valueId);
         }
 
         /// <summary>
@@ -135,16 +219,38 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Adds <paramref name="node"/> to the flat registry under the
-        /// composed key. Called by the <see cref="NeoAttribute"/>
-        /// base ctor at the end of construction; callers shouldn't need
-        /// to call directly. Last-write-wins — direct
-        /// <c>new NeoAttributeXyz(…)</c> construction overrides any
-        /// previously-cached instance for the same key.
+        /// composed key (computed from the node's own
+        /// <see cref="NeoAttribute.attribute"/>.id and
+        /// <see cref="NeoAttribute.overrideValueId"/>). Called by the
+        /// <see cref="NeoAttribute"/> base ctor at the end of
+        /// construction; callers shouldn't need to call directly.
+        /// Last-write-wins — direct <c>new NeoAttributeXyz(…)</c>
+        /// construction overrides any previously-cached instance for
+        /// the same key.
         /// </summary>
-        public void RegisterNode(NeoAttribute node, string? overrideValueId)
+        public void RegisterNode(NeoAttribute node)
         {
-            string key = MakeNodeKey(node.attribute.id, overrideValueId);
+            string key = MakeNodeKey(node.attribute.id, node.overrideValueId);
             nodesInternal[key] = node;
+        }
+
+        /// <summary>
+        /// Removes <paramref name="node"/> from the registry. Called
+        /// by <see cref="NeoAttribute.Dispose"/>; idempotent — a key
+        /// that's already absent (or that points at a different
+        /// instance, e.g. a same-key replacement) is left alone.
+        /// </summary>
+        public void UnregisterNode(NeoAttribute node)
+        {
+            string key = MakeNodeKey(node.attribute.id, node.overrideValueId);
+            // Only remove if the registered instance is the one we're
+            // unregistering — guards against the "I disposed an
+            // instance that was already replaced in the registry by a
+            // newer ctor call for the same key" race.
+            if (nodesInternal.TryGetValue(key, out NeoAttribute existing) && existing == node)
+            {
+                nodesInternal.Remove(key);
+            }
         }
 
         /// <summary>

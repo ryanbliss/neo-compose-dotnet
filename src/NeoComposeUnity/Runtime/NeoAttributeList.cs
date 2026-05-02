@@ -61,8 +61,27 @@ namespace NeoCompose.Runtime
             // ReinitializeChildren runs after the derived ctor wires it.
         }
 
+        protected override void OnValueIdChainChanged()
+        {
+            base.OnValueIdChainChanged();
+            ReinitializeChildren();
+        }
+
+        public override void Dispose()
+        {
+            if (isDisposed) return;
+            foreach (var child in childAttributes) child.Dispose();
+            childAttributes.Clear();
+            base.Dispose();
+        }
+
         protected void ReinitializeChildren()
         {
+            // Dispose existing children before clearing — they may have
+            // been bound to value-ids that aren't in the new value
+            // graph; leaving them registered would leak them in
+            // client.nodes.
+            foreach (var child in childAttributes) child.Dispose();
             childAttributes.Clear();
             if (value?.value is null) return;
             foreach (var entryValueId in value.value)
@@ -150,9 +169,10 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Removes the entry at <paramref name="index"/>. Re-saves the
-        /// parent value so the array shrinks. The orphaned value row
-        /// stays in saveData (no GC pass yet).
+        /// Removes the entry at <paramref name="index"/>. Disposes the
+        /// child <see cref="NeoAttribute"/> bound to that slot,
+        /// re-saves the parent so the array shrinks, and cascade-deletes
+        /// the orphaned value graph from <see cref="ProjectSaveData.values"/>.
         /// </summary>
         public void RemoveAt(int index)
         {
@@ -161,7 +181,9 @@ namespace NeoCompose.Runtime
                 throw new System.ArgumentOutOfRangeException(nameof(index));
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
+            string removedValueId = value.value[index];
 
+            // Build the new array without the removed slot + persist.
             string[] currentArr = value.value;
             string[] nextArr = new string[currentArr.Length - 1];
             for (int i = 0, j = 0; i < currentArr.Length; i++)
@@ -173,7 +195,15 @@ namespace NeoCompose.Runtime
             value.updatedAt = nowIso;
             client.SetSaveValue(value);
 
+            // Dispose the child node + drop our reference. Its own
+            // Dispose recursively disposes any descendants the entry
+            // owned in the wrapper tree.
+            NeoAttribute removedChild = childAttributes[index];
+            removedChild.Dispose();
             childAttributes.RemoveAt(index);
+
+            // GC the orphaned value graph from the save file.
+            client.RemoveSaveValueAndDescendants(removedValueId);
         }
 
         private void EnsureParentExists(string nowIso)

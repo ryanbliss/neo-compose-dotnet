@@ -27,14 +27,46 @@ namespace NeoCompose.Runtime
     /// returns because the netstandard2.1 / Mono target Unity uses
     /// doesn't support runtime covariance.)</para>
     /// </summary>
-    public abstract class NeoAttribute : NeoNode
+    public abstract class NeoAttribute : NeoNode, System.IDisposable
     {
         public Attribute attribute { get; }
+        /// <summary>
+        /// The override-value-id passed to the ctor — together with
+        /// <see cref="Attribute.id"/> it composes the registry key
+        /// (<see cref="NeoClient.MakeNodeKey"/>). Lifted to the base so
+        /// <see cref="Dispose"/> can compute the unregister key without
+        /// reaching into the typed intermediate.
+        /// </summary>
+        public string? overrideValueId { get; }
         public AttributeValue? value { get; protected set; }
+        /// <summary>
+        /// True after <see cref="Dispose"/> has run. Subclasses must
+        /// short-circuit further work (events, setter mutations) when
+        /// disposed; consumers holding stale references shouldn't expect
+        /// further updates.
+        /// </summary>
+        public bool isDisposed { get; private set; }
 
-        protected NeoAttribute(NeoClient client, Attribute attribute) : base(client)
+        protected NeoAttribute(NeoClient client, Attribute attribute, string? overrideValueId) : base(client)
         {
             this.attribute = attribute;
+            this.overrideValueId = overrideValueId;
+        }
+
+        /// <summary>
+        /// Releases this node from the client's flat registry and marks
+        /// it disposed. Idempotent. Subclasses override to release
+        /// additional state (event subscriptions on the typed
+        /// intermediate; child <see cref="NeoAttribute"/>s on
+        /// collection types) — they should still call
+        /// <c>base.Dispose()</c> last so this method's bookkeeping
+        /// runs after their cleanup.
+        /// </summary>
+        public virtual void Dispose()
+        {
+            if (isDisposed) return;
+            isDisposed = true;
+            client.UnregisterNode(this);
         }
 
         /// <summary>
@@ -139,8 +171,6 @@ namespace NeoCompose.Runtime
         where TAttribute : Attribute
         where TValue : AttributeValue
     {
-        protected string? overrideValueId;
-
         /// <summary>
         /// Typed accessor for <see cref="NeoAttribute.attribute"/>.
         /// Shadows the base via <c>new</c> — calls through a
@@ -199,24 +229,65 @@ namespace NeoCompose.Runtime
         }
 
         public NeoAttribute(NeoClient client, TAttribute attribute, string? overrideValueId)
-            : base(client, attribute)
+            : base(client, attribute, overrideValueId)
         {
-            this.overrideValueId = overrideValueId;
             InitFromValueData();
+            // Subscribe before registering so the first save-override
+            // change is observable from the moment the node exists.
+            client.OnSaveOverrideChanged += HandleSaveOverrideChanged;
             // Last step in the base ctor — children walked from a
             // collection-type derived ctor body run after this, but they
             // register under their own keys, so registration order is
             // parent-then-children which is what consumers expect when
             // walking the registry.
-            client.RegisterNode(this, overrideValueId);
+            client.RegisterNode(this);
         }
 
         public NeoAttribute(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, ResolveAttribute(client, attributeId))
+            : base(client, ResolveAttribute(client, attributeId), overrideValueId)
         {
-            this.overrideValueId = overrideValueId;
             InitFromValueData();
-            client.RegisterNode(this, overrideValueId);
+            client.OnSaveOverrideChanged += HandleSaveOverrideChanged;
+            client.RegisterNode(this);
+        }
+
+        public override void Dispose()
+        {
+            if (isDisposed) return;
+            client.OnSaveOverrideChanged -= HandleSaveOverrideChanged;
+            base.Dispose();
+        }
+
+        /// <summary>
+        /// Subscribed to <see cref="NeoClient.OnSaveOverrideChanged"/>;
+        /// short-circuits if the changed attribute isn't this node's,
+        /// otherwise forwards to the overridable
+        /// <see cref="OnValueIdChainChanged"/> so collection types can
+        /// also re-walk children.
+        /// </summary>
+        private void HandleSaveOverrideChanged(string changedAttributeId, string? newValueId)
+        {
+            if (changedAttributeId != attribute.id) return;
+            OnValueIdChainChanged();
+        }
+
+        /// <summary>
+        /// Called when the resolved <see cref="valueId"/> chain changes
+        /// for this node — typically because
+        /// <c>attributeValueOverrides[attribute.id]</c> in
+        /// <see cref="ProjectSaveData"/> was added or removed. Default
+        /// implementation refreshes <see cref="value"/> from
+        /// <see cref="valueData"/> (so it tracks the new id, including
+        /// becoming null when nothing is bound). Collection-type
+        /// subclasses override to also re-walk their children.
+        /// </summary>
+        protected virtual void OnValueIdChainChanged()
+        {
+            // valueData reads through the resolution chain; if nothing
+            // is bound any more, we end up with `value = null` —
+            // matching the user-visible "valueId becomes null → value
+            // becomes null" semantic.
+            value = valueData;
         }
 
         /// <summary>

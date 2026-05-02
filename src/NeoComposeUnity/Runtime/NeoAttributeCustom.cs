@@ -173,6 +173,23 @@ namespace NeoCompose.Runtime
             // isn't set yet on the first base-ctor pass.
         }
 
+        protected override void OnValueIdChainChanged()
+        {
+            base.OnValueIdChainChanged();
+            // The new value's record may carry a different keyset —
+            // re-walk so disposed-orphans get released and any new
+            // schema-keys get nodes.
+            ReinitializeChildren();
+        }
+
+        public override void Dispose()
+        {
+            if (isDisposed) return;
+            foreach (var child in childAttributes.Values) child.Dispose();
+            childAttributes.Clear();
+            base.Dispose();
+        }
+
         /// <summary>
         /// Walks <c>value.value</c> and rebuilds the
         /// <see cref="childAttributes"/> dict from scratch using the
@@ -182,6 +199,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         protected void ReinitializeChildren()
         {
+            // Dispose existing children before clearing — they may have
+            // been bound to value-ids that aren't in the new value
+            // graph; leaving them registered would leak them in
+            // client.nodes.
+            foreach (var child in childAttributes.Values) child.Dispose();
             childAttributes.Clear();
             if (value?.value is null) return;
             foreach (var kvp in value.value)
@@ -333,6 +355,33 @@ namespace NeoCompose.Runtime
             client.SetSaveValue(value);
 
             childAttributes[key] = CreateChild(client, childAttribute, newValueId);
+        }
+
+        /// <summary>
+        /// Removes the schema-keyed child under <paramref name="key"/>.
+        /// Disposes the child <see cref="NeoAttribute"/>, drops the
+        /// key from the parent record, persists, and cascade-deletes
+        /// the orphaned value graph from
+        /// <see cref="ProjectSaveData.values"/>.
+        /// No-op if the key isn't present.
+        /// </summary>
+        public void Remove(string key)
+        {
+            if (value?.value is null) return;
+            if (!value.value.TryGetValue(key, out string removedValueId)) return;
+            string nowIso = System.DateTime.UtcNow.ToString("o");
+
+            value.value.Remove(key);
+            value.updatedAt = nowIso;
+            client.SetSaveValue(value);
+
+            if (childAttributes.TryGetValue(key, out NeoAttribute? child))
+            {
+                child.Dispose();
+                childAttributes.Remove(key);
+            }
+
+            client.RemoveSaveValueAndDescendants(removedValueId);
         }
     }
 }
