@@ -1,6 +1,6 @@
 ﻿<Solution>
   <Project Path="NeoCompose.Unity.csproj" />
-  <Project Path="HelloWorld.Tests.csproj" />
+  <Project Path="Tests.csproj" />
   <Project Path="HelloWorld.csproj" />
   <Project Path="NeoCompose.Unity.Tests.csproj" />
 </Solution>

@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System.Collections.Generic;
 
 namespace NeoCompose.Runtime.Json
@@ -13,17 +15,22 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class CustomType
     {
-        public string id;
-        public string _id;
-        public string projectId;
-        public string name;
-        public Dictionary<string, string> schema;
-        public string extendsTypeId;
+        public string id = null!;
+        public string _id = null!;
+        public string projectId = null!;
+        public string name = null!;
+        public Dictionary<string, string> schema = null!;
+        /// <summary>
+        /// Optional inheritance — when set, names another custom-type id
+        /// whose schema is extended by this type. Mirrors the TS-side
+        /// <c>extendsTypeId?</c>.
+        /// </summary>
+        public string? extendsTypeId;
         public bool hiddenInAttributeSelector;
         public bool isAbstract;
         [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt;
+        public string createdAt = null!;
         [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt;
+        public string updatedAt = null!;
     }
 }

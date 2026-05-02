@@ -1,6 +1,6 @@
 {
-    "name": "HelloWorld.Tests",
-    "rootNamespace": "HelloWorld.Tests",
+    "name": "Tests",
+    "rootNamespace": "HelloWorld.Assets.Tests",
     "references": [
         "HelloWorld",
         "NeoCompose.Unity",

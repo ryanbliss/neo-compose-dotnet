@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -20,7 +22,7 @@ namespace NeoCompose.Runtime.Json
     public abstract class Function
     {
         /// <summary>One of <see cref="FunctionKind"/>.</summary>
-        public string type;
+        public string type = null!;
     }
 
     // ---------- Per-info shapes ----------
@@ -32,8 +34,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionCollectionSelectInfo
     {
-        public Pointer collectionPointer;
-        public FunctionWithReturnType function;
+        public Pointer collectionPointer = null!;
+        public FunctionWithReturnType function = null!;
     }
 
     /// <summary>
@@ -42,19 +44,21 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionCollectionBoolInfo
     {
-        public Pointer collectionPointer;
-        public FunctionWithReturnType function;
+        public Pointer collectionPointer = null!;
+        public FunctionWithReturnType function = null!;
     }
 
     /// <summary>
     /// Info shape for <c>first</c> / <c>firstOrDefault</c>: collection +
     /// optional Bool predicate. Mirrors TS-side
     /// <c>INSFunctionCollectionOptionalBoolInfo</c>.
+    /// <see cref="function"/> is <c>... | null | undefined</c> on the
+    /// wire — nullable here; absent / null both mean "no predicate".
     /// </summary>
     public class FunctionCollectionOptionalBoolInfo
     {
-        public Pointer collectionPointer;
-        public FunctionWithReturnType function;
+        public Pointer collectionPointer = null!;
+        public FunctionWithReturnType? function;
     }
 
     /// <summary>
@@ -64,8 +68,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionCollectionContainsInfo
     {
-        public Pointer collectionPointer;
-        public Pointer valuePointer;
+        public Pointer collectionPointer = null!;
+        public Pointer valuePointer = null!;
     }
 
     /// <summary>
@@ -74,44 +78,44 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionCollectionInfo
     {
-        public Pointer collectionPointer;
+        public Pointer collectionPointer = null!;
     }
 
     // ---------- Per-function variants ----------
 
     public class SelectFunction : Function
     {
-        public FunctionCollectionSelectInfo info;
+        public FunctionCollectionSelectInfo info = null!;
     }
 
     public class FirstFunction : Function
     {
-        public FunctionCollectionOptionalBoolInfo info;
+        public FunctionCollectionOptionalBoolInfo info = null!;
     }
 
     public class FirstOrDefaultFunction : Function
     {
-        public FunctionCollectionOptionalBoolInfo info;
+        public FunctionCollectionOptionalBoolInfo info = null!;
     }
 
     public class WhereFunction : Function
     {
-        public FunctionCollectionBoolInfo info;
+        public FunctionCollectionBoolInfo info = null!;
     }
 
     public class ContainsFunction : Function
     {
-        public FunctionCollectionContainsInfo info;
+        public FunctionCollectionContainsInfo info = null!;
     }
 
     public class CountFunction : Function
     {
-        public FunctionCollectionInfo info;
+        public FunctionCollectionInfo info = null!;
     }
 
     public class FunctionConverter : DiscriminatedConverter<Function>
     {
-        protected override Type ResolveSubclass(JToken discriminator)
+        protected override Type? ResolveSubclass(JToken discriminator)
         {
             switch (discriminator.Value<string>())
             {

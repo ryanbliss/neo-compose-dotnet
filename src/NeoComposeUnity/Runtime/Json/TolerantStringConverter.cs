@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -26,19 +28,19 @@ namespace NeoCompose.Runtime.Json
     /// on null). Don't apply to fields whose contents drive logic —
     /// those should fail loudly on bad data.
     /// </summary>
-    public class TolerantStringConverter : JsonConverter<string>
+    public class TolerantStringConverter : JsonConverter<string?>
     {
-        public override string ReadJson(
+        public override string? ReadJson(
             JsonReader reader,
             Type objectType,
-            string existingValue,
+            string? existingValue,
             bool hasExistingValue,
             JsonSerializer serializer)
         {
             switch (reader.TokenType)
             {
                 case JsonToken.String:
-                    return (string)reader.Value;
+                    return (string?)reader.Value;
                 case JsonToken.Null:
                     return null;
                 case JsonToken.StartObject:
@@ -61,7 +63,7 @@ namespace NeoCompose.Runtime.Json
 
         public override void WriteJson(
             JsonWriter writer,
-            string value,
+            string? value,
             JsonSerializer serializer)
         {
             if (value == null) writer.WriteNull();

@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.Json
@@ -87,13 +89,13 @@ namespace NeoCompose.Runtime.Json
 
     /// <summary>
     /// Variable bound into a function's scope. Mirrors TS-side
-    /// <c>INSVariable</c>.
+    /// <c>INSVariable</c>. All fields required.
     /// </summary>
     public class Variable
     {
-        public string id;
-        public TypeInfo typeInfo;
-        public Pointer pointer;
+        public string id = null!;
+        public TypeInfo typeInfo = null!;
+        public Pointer pointer = null!;
     }
 
     /// <summary>
@@ -101,12 +103,14 @@ namespace NeoCompose.Runtime.Json
     /// inner <see cref="value"/> is the polymorphic primitive payload
     /// (bool / int / float / string / null) — surfaced as
     /// <see cref="JToken"/> so callers dispatch on
-    /// <see cref="typeInfo"/>.
+    /// <see cref="typeInfo"/>. The TS-side <c>value: TValue</c> is
+    /// required, but the wire payload may legitimately be JSON
+    /// <c>null</c> (for Null-typed values), so the JToken is nullable.
     /// </summary>
     public class Value
     {
-        public TypeInfo typeInfo;
-        public JToken value;
+        public TypeInfo typeInfo = null!;
+        public JToken? value;
     }
 
     /// <summary>
@@ -114,8 +118,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class KeyOf
     {
-        public Pointer pointer;
-        public Pointer key;
+        public Pointer pointer = null!;
+        public Pointer key = null!;
     }
 
     /// <summary>
@@ -125,8 +129,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class DictLiteralPair
     {
-        public Pointer key;
-        public Pointer value;
+        public Pointer key = null!;
+        public Pointer value = null!;
     }
 
     /// <summary>
@@ -136,8 +140,8 @@ namespace NeoCompose.Runtime.Json
     public class ArithmeticOpInfo
     {
         /// <summary>One of <see cref="ArithmeticOpKind"/>.</summary>
-        public string type;
-        public Pointer[] pointers;
+        public string type = null!;
+        public Pointer[] pointers = null!;
     }
 
     /// <summary>
@@ -146,9 +150,9 @@ namespace NeoCompose.Runtime.Json
     public class Condition
     {
         /// <summary>One of <see cref="OperatorKind"/>.</summary>
-        public string type;
-        public Pointer operand1;
-        public Pointer operand2;
+        public string type = null!;
+        public Pointer operand1 = null!;
+        public Pointer operand2 = null!;
     }
 
     /// <summary>
@@ -158,19 +162,21 @@ namespace NeoCompose.Runtime.Json
     public class LogicalConnective
     {
         /// <summary>One of <see cref="LogicalOpKind"/>.</summary>
-        public string type;
-        public BooleanExpression to;
+        public string type = null!;
+        public BooleanExpression to = null!;
     }
 
     /// <summary>
     /// Top-level boolean expression — a single condition plus an
     /// optional linked-list tail. Mirrors TS-side
-    /// <c>INSBooleanExpression</c>.
+    /// <c>INSBooleanExpression</c>. <see cref="connective"/> is
+    /// <c>connective?: INSLogicalConnective | null</c> on the wire —
+    /// nullable here.
     /// </summary>
     public class BooleanExpression
     {
-        public Condition condition;
-        public LogicalConnective connective;
+        public Condition condition = null!;
+        public LogicalConnective? connective;
     }
 
     /// <summary>
@@ -179,8 +185,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class ConditionalBranch
     {
-        public BooleanExpression expression;
-        public Instruction[] instructions;
+        public BooleanExpression expression = null!;
+        public Instruction[] instructions = null!;
     }
 
     /// <summary>
@@ -191,8 +197,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionWithReturnType
     {
-        public Variable[] parameters;
-        public Instruction[] instructions;
-        public TypeInfo typeInfo;
+        public Variable[] parameters = null!;
+        public Instruction[] instructions = null!;
+        public TypeInfo typeInfo = null!;
     }
 }

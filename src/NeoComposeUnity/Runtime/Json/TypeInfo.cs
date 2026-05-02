@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -35,7 +37,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class CustomTypeInfo : TypeInfo
     {
-        public string typeId;
+        public string typeId = null!;
     }
 
     /// <summary>
@@ -44,7 +46,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class EnumTypeInfo : TypeInfo
     {
-        public string enumId;
+        public string enumId = null!;
     }
 
     /// <summary>
@@ -53,12 +55,12 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class CollectionTypeInfo : TypeInfo
     {
-        public TypeInfo entryTypeInfo;
+        public TypeInfo entryTypeInfo = null!;
     }
 
     public class TypeInfoConverter : DiscriminatedConverter<TypeInfo>
     {
-        protected override Type ResolveSubclass(JToken discriminator)
+        protected override Type? ResolveSubclass(JToken discriminator)
         {
             // TS-side `AttributeType` is a numeric enum on the wire.
             // Newtonsoft surfaces the JSON number as a long; cast through

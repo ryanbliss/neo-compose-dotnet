@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System.Collections.Generic;
 
 namespace NeoCompose.Runtime.Json
@@ -11,7 +13,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class EnumOption
     {
-        public string text;
+        public string text = null!;
     }
 
     /// <summary>
@@ -23,14 +25,14 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class Enum
     {
-        public string id;
-        public string _id;
-        public string projectId;
-        public string name;
-        public Dictionary<string, EnumOption> options;
+        public string id = null!;
+        public string _id = null!;
+        public string projectId = null!;
+        public string name = null!;
+        public Dictionary<string, EnumOption> options = null!;
         [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt;
+        public string createdAt = null!;
         [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt;
+        public string updatedAt = null!;
     }
 }

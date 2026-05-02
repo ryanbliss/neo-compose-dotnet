@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -17,19 +19,19 @@ namespace NeoCompose.Runtime.Json
     public abstract class Pointer
     {
         /// <summary>One of <see cref="PointerKind"/>.</summary>
-        public string type;
+        public string type = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerReference</c>.</summary>
     public class ReferencePointer : Pointer
     {
-        public string valueId;
+        public string valueId = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerVariable</c>.</summary>
     public class VariablePointer : Pointer
     {
-        public string variableId;
+        public string variableId = null!;
     }
 
     /// <summary>
@@ -38,31 +40,34 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class ValuePointer : Pointer
     {
-        public Value value;
+        public Value value = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerOperation</c>.</summary>
     public class OperationPointer : Pointer
     {
-        public Operation operation;
+        public Operation operation = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerFunction</c>.</summary>
     public class FunctionPointer : Pointer
     {
-        public Function function;
+        public Function function = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerKeyOf</c>.</summary>
     public class KeyOfPointer : Pointer
     {
-        public KeyOf keyOf;
+        public KeyOf keyOf = null!;
         /// <summary>
         /// `true` when the source used optional chaining (`?.` /
-        /// `?.[i]`). Defaults to <c>false</c>; absent on the wire when
-        /// not authored.
+        /// `?.[i]`). TS field is <c>optional?: boolean</c> — absent on
+        /// the wire when not authored. Nullable here so callers can
+        /// distinguish "explicitly false" from "absent" if needed;
+        /// `null` is functionally equivalent to `false` for the
+        /// evaluator.
         /// </summary>
-        public bool optional;
+        public bool? optional;
     }
 
     /// <summary>
@@ -72,8 +77,8 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class ListLiteralPointer : Pointer
     {
-        public CollectionTypeInfo typeInfo;
-        public Pointer[] entries;
+        public CollectionTypeInfo typeInfo = null!;
+        public Pointer[] entries = null!;
     }
 
     /// <summary>
@@ -86,54 +91,60 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class DictLiteralPointer : Pointer
     {
-        public CollectionTypeInfo typeInfo;
-        public DictLiteralPair[] entries;
+        public CollectionTypeInfo typeInfo = null!;
+        public DictLiteralPair[] entries = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerForceUnwrap</c>.</summary>
     public class ForceUnwrapPointer : Pointer
     {
-        public Pointer pointer;
+        public Pointer pointer = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerIsCheck</c>.</summary>
     public class IsCheckPointer : Pointer
     {
-        public Pointer pointer;
-        public TypeInfo checkType;
+        public Pointer pointer = null!;
+        public TypeInfo checkType = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerCallGetter</c>.</summary>
     public class CallGetterPointer : Pointer
     {
-        public string attributeId;
-        public Pointer thisPointer;
-        public bool optional;
+        public string attributeId = null!;
+        public Pointer thisPointer = null!;
+        /// <summary>
+        /// `true` when the source used `?.` chaining. TS field is
+        /// <c>optional?: boolean</c> — absent on the wire when not
+        /// authored. Nullable here; `null` is functionally equivalent
+        /// to `false`.
+        /// </summary>
+        public bool? optional;
     }
 
     /// <summary>Mirror of <c>INSPointerCoalesce</c>.</summary>
     public class CoalescePointer : Pointer
     {
-        public Pointer left;
-        public Pointer right;
+        public Pointer left = null!;
+        public Pointer right = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerToBool</c>.</summary>
     public class ToBoolPointer : Pointer
     {
-        public Pointer pointer;
+        public Pointer pointer = null!;
     }
 
     /// <summary>Mirror of <c>INSPointerStringify</c>.</summary>
     public class StringifyPointer : Pointer
     {
-        public Pointer pointer;
-        public TypeInfo sourceType;
+        public Pointer pointer = null!;
+        public TypeInfo sourceType = null!;
     }
 
     public class PointerConverter : DiscriminatedConverter<Pointer>
     {
-        protected override Type ResolveSubclass(JToken discriminator)
+        protected override Type? ResolveSubclass(JToken discriminator)
         {
             switch (discriminator.Value<string>())
             {

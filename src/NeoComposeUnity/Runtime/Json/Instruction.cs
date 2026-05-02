@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -19,7 +21,7 @@ namespace NeoCompose.Runtime.Json
     public abstract class Instruction
     {
         /// <summary>One of <see cref="InstructionKind"/>.</summary>
-        public string type;
+        public string type = null!;
     }
 
     /// <summary>
@@ -28,21 +30,22 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class VariableInstruction : Instruction
     {
-        public Variable variable;
+        public Variable variable = null!;
     }
 
     /// <summary>
     /// Mirror of <c>INSInstructionIfBranch</c>. The TS-side field
     /// <c>else</c> is a C# reserved word; <see cref="JsonPropertyAttribute"/>
     /// keeps the wire form unchanged while exposing it under
-    /// <see cref="elseInstructions"/> on the C# side.
+    /// <see cref="elseInstructions"/> on the C# side. The TS field is
+    /// <c>else?: TNSInstructions | null</c> — nullable here.
     /// </summary>
     public class IfInstruction : Instruction
     {
-        public ConditionalBranch[] branches;
+        public ConditionalBranch[] branches = null!;
 
         [JsonProperty("else")]
-        public Instruction[] elseInstructions;
+        public Instruction[]? elseInstructions;
     }
 
     /// <summary>
@@ -55,22 +58,22 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class ReturnInstruction : Instruction
     {
-        public Pointer pointer;
+        public Pointer? pointer;
     }
 
     /// <summary>
     /// Mirror of <c>INSInstructionThrow</c>. The TS-side
     /// <c>pointer</c> is the message to surface as the cell's error
-    /// string at runtime.
+    /// string at runtime — required, never null.
     /// </summary>
     public class ThrowInstruction : Instruction
     {
-        public Pointer pointer;
+        public Pointer pointer = null!;
     }
 
     public class InstructionConverter : DiscriminatedConverter<Instruction>
     {
-        protected override Type ResolveSubclass(JToken discriminator)
+        protected override Type? ResolveSubclass(JToken discriminator)
         {
             switch (discriminator.Value<string>())
             {

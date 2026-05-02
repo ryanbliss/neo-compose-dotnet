@@ -77,38 +77,43 @@ namespace NeoCompose.Tests
         public void SynthFixture_StringAttribute_DefaultValueIsString()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var name = export.attributes["attr-name"];
-            Assert.IsInstanceOf<StringAttribute>(name);
+            // Cast to the concrete typed subclass — `defaultValue`
+            // lives on Attribute<TValue>, so the typed view is
+            // `AttributeValueBase<string?>?` directly.
+            var name = (StringAttribute)export.attributes["attr-name"];
             Assert.AreEqual(AttributeType.String, name.type);
-            // Polymorphic value rides as JToken — extract via ToObject<T>.
-            Assert.AreEqual("Hero", name.defaultValue.value.ToObject<string>());
+            // Context dispatch resolves the typed subclass directly.
+            var def = (StringAttributeValueBase)name.defaultValue!;
+            Assert.AreEqual("Hero", def.value);
         }
 
         [Test]
         public void SynthFixture_IntAttribute_DefaultValueIsInt()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var health = export.attributes["attr-health"];
-            Assert.IsInstanceOf<IntAttribute>(health);
-            Assert.AreEqual(100, health.defaultValue.value.ToObject<int>());
+            var health = (IntAttribute)export.attributes["attr-health"];
+            // Int and Float share AttributeValueBase<double?>;
+            // disambiguate via the parent attribute's type when needed.
+            var def = (NumberAttributeValueBase)health.defaultValue!;
+            Assert.AreEqual(100, (int)def.value!.Value);
         }
 
         [Test]
         public void SynthFixture_FloatAttribute_DefaultValueIsFloat()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var speed = export.attributes["attr-speed"];
-            Assert.IsInstanceOf<FloatAttribute>(speed);
-            Assert.AreEqual(7.5f, speed.defaultValue.value.ToObject<float>(), 0.0001f);
+            var speed = (FloatAttribute)export.attributes["attr-speed"];
+            var def = (NumberAttributeValueBase)speed.defaultValue!;
+            Assert.AreEqual(7.5f, (float)def.value!.Value, 0.0001f);
         }
 
         [Test]
         public void SynthFixture_BoolAttribute_DefaultValueIsBool()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var alive = export.attributes["attr-isalive"];
-            Assert.IsInstanceOf<BoolAttribute>(alive);
-            Assert.IsTrue(alive.defaultValue.value.ToObject<bool>());
+            var alive = (BoolAttribute)export.attributes["attr-isalive"];
+            var def = (BoolAttributeValueBase)alive.defaultValue!;
+            Assert.AreEqual(true, def.value);
         }
 
         [Test]
@@ -116,12 +121,9 @@ namespace NeoCompose.Tests
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
             var inv = (DictionaryAttribute)export.attributes["attr-inventory"];
-            // Custom / Dictionary attribute values are JSON objects keyed
-            // by schema-key → valueId. Extract via JToken.ToObject.
-            var dict = inv.defaultValue.value
-                .ToObject<System.Collections.Generic.Dictionary<string, string>>();
-            Assert.AreEqual("v-sword", dict["sword"]);
-            Assert.AreEqual("v-shield", dict["shield"]);
+            var def = (ObjectAttributeValueBase)inv.defaultValue!;
+            Assert.AreEqual("v-sword", def.value!["sword"]);
+            Assert.AreEqual("v-shield", def.value["shield"]);
             Assert.AreEqual("attr-name", inv.entryAttributeId);
         }
 
@@ -130,8 +132,8 @@ namespace NeoCompose.Tests
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
             var tags = (ListAttribute)export.attributes["attr-tags"];
-            var list = tags.defaultValue.value.ToObject<string[]>();
-            CollectionAssert.AreEqual(new[] { "v-a", "v-b" }, list);
+            var def = (ArrayAttributeValueBase)tags.defaultValue!;
+            CollectionAssert.AreEqual(new[] { "v-a", "v-b" }, def.value);
             Assert.AreEqual("attr-name", tags.entryAttributeId);
         }
 
@@ -203,7 +205,10 @@ namespace NeoCompose.Tests
             var force = (ForceUnwrapPointer)secondVar.pointer;
             var coalesce = (CoalescePointer)force.pointer;
             var keyOfPtr = (KeyOfPointer)coalesce.left;
-            Assert.IsTrue(keyOfPtr.optional);
+            // `optional` is `bool?` to mirror TS-side `optional?: boolean`.
+            // Compare against the boxed value rather than via Assert.IsTrue
+            // (which only accepts `bool`).
+            Assert.AreEqual(true, keyOfPtr.optional);
             // keyOf wraps a KeyOf body — `pointer.key` is the key
             // expression.
             Assert.IsNotNull(keyOfPtr.keyOf.pointer);
@@ -260,7 +265,9 @@ namespace NeoCompose.Tests
             var toBool = (ToBoolPointer)ret.pointer;
             var callGetter = (CallGetterPointer)toBool.pointer;
             Assert.AreEqual("attr-score", callGetter.attributeId);
-            Assert.IsFalse(callGetter.optional);
+            // `optional` is `bool?` — absent on the wire means "non-optional";
+            // GetValueOrDefault collapses absent / explicit-false to false.
+            Assert.IsFalse(callGetter.optional.GetValueOrDefault());
             Assert.IsInstanceOf<VariablePointer>(callGetter.thisPointer);
         }
 
@@ -270,24 +277,28 @@ namespace NeoCompose.Tests
             var export = Deserialize(LoadFixture("synth-example.json"));
             var values = export.values;
 
-            Assert.AreEqual(42, values["v-num"].value.ToObject<int>());
-            Assert.AreEqual("hello", values["v-str"].value.ToObject<string>());
-            Assert.IsTrue(values["v-flag"].value.ToObject<bool>());
-            Assert.AreEqual(3.14f, values["v-float"].value.ToObject<float>(), 0.0001f);
+            // Each value dispatches to a polymorphic subclass via
+            // AttributeValueConverter — typed `value` fields drop the
+            // JToken hop. Per-subclass `value` is nullable (a
+            // not-required attribute admits a null payload), so unwrap
+            // via .Value for value-typed payloads.
+            Assert.AreEqual(42, (int)((NumberAttributeValue)values["v-num"]).value!.Value);
+            Assert.AreEqual("hello", ((StringAttributeValue)values["v-str"]).value);
+            Assert.AreEqual(true, ((BoolAttributeValue)values["v-flag"]).value);
+            Assert.AreEqual(
+                3.14f,
+                (float)((NumberAttributeValue)values["v-float"]).value!.Value,
+                0.0001f);
 
-            var listVal = values["v-list"].value.ToObject<string[]>();
-            CollectionAssert.AreEqual(new[] { "wood", "stone" }, listVal);
+            var listVal = (ArrayAttributeValue)values["v-list"];
+            CollectionAssert.AreEqual(new[] { "wood", "stone" }, listVal.value);
 
-            var dictVal = values["v-dict"].value
-                .ToObject<System.Collections.Generic.Dictionary<string, string>>();
-            Assert.AreEqual("v-name", dictVal["Name"]);
-            Assert.AreEqual("type-hero", values["v-dict"].typeId);
+            var dictVal = (ObjectAttributeValue)values["v-dict"];
+            Assert.AreEqual("v-name", dictVal.value!["Name"]);
+            Assert.AreEqual("type-hero", dictVal.typeId);
 
-            // Null values come through as a null-typed JToken or null
-            // reference — Newtonsoft preserves the distinction.
-            var nullToken = values["v-null"].value;
-            Assert.IsTrue(nullToken == null
-                || nullToken.Type == Newtonsoft.Json.Linq.JTokenType.Null);
+            // Null wire shape (or absent value field) → NullAttributeValue.
+            Assert.IsInstanceOf<NullAttributeValue>(values["v-null"]);
         }
 
         [Test]
@@ -371,6 +382,152 @@ namespace NeoCompose.Tests
             Assert.AreEqual(first.values.Count, second.values.Count);
             Assert.AreEqual(first.types.Count, second.types.Count);
             Assert.AreEqual(first.enums.Count, second.enums.Count);
+        }
+
+        // --------------------------------------------------------------
+        // Null-value paths.
+        //
+        // The shape-dispatch converter routes wire `value: null` to a
+        // *Null* concrete (NullAttributeValue / NullAttributeValueBase),
+        // never to a typed subclass with a null payload. The typed
+        // subclasses' `value` properties are still nullable for type-
+        // system honesty (the domain admits null when an attribute is
+        // not required, and you can construct a typed instance with
+        // `value = null` in C# code), but on the wire null is always a
+        // Null* concrete. These tests pin both behaviors down so future
+        // refactors don't accidentally regress either side.
+        //
+        // The tests also confirm `default!` initialization on the
+        // generic `TValue value { get; set; } = default!;` doesn't
+        // force-unwrap — `default!` is a compile-time annotation only
+        // (the `!` is the null-forgiving operator), and at runtime the
+        // property reads as null / HasValue=false depending on TValue.
+        // --------------------------------------------------------------
+
+        [Test]
+        public void TypedSubclass_DefaultInitialization_DoesNotForceUnwrap()
+        {
+            // For nullable value-type TValues (bool? / double?) the
+            // property reads as HasValue=false; for nullable
+            // reference-type TValues (string? / string[]? / Dictionary?)
+            // it reads as null. Either way: no NullReferenceException,
+            // no InvalidOperationException, no "force-unwrap of
+            // default" landmine.
+            Assert.IsFalse(new BoolAttributeValueBase().value.HasValue);
+            Assert.IsFalse(new NumberAttributeValueBase().value.HasValue);
+            Assert.IsNull(new StringAttributeValueBase().value);
+            Assert.IsNull(new ArrayAttributeValueBase().value);
+            Assert.IsNull(new ObjectAttributeValueBase().value);
+
+            // Same on the stored-row side — confirms the parallel
+            // AttributeValue<TValue> intermediate also default-inits
+            // cleanly.
+            Assert.IsFalse(new BoolAttributeValue().value.HasValue);
+            Assert.IsFalse(new NumberAttributeValue().value.HasValue);
+            Assert.IsNull(new StringAttributeValue().value);
+            Assert.IsNull(new ArrayAttributeValue().value);
+            Assert.IsNull(new ObjectAttributeValue().value);
+        }
+
+        [Test]
+        public void NullValueOnWire_DispatchesToNullAttributeValue_AndPopulatesMetadata()
+        {
+            var export = Deserialize(LoadFixture("synth-example.json"));
+            var v = export.values["v-null"];
+            Assert.IsInstanceOf<NullAttributeValue>(v);
+            // Metadata still flows through Populate even when the shape
+            // dispatches to the Null subclass — id / timestamps were
+            // present on the wire, so they must be present on the
+            // deserialized object.
+            Assert.AreEqual("v-null", v.id);
+            Assert.IsNotNull(v.createdAt);
+            Assert.IsNotNull(v.updatedAt);
+        }
+
+        [Test]
+        public void Attribute_AbsentDefaultValue_FieldIsNull()
+        {
+            var export = Deserialize(LoadFixture("synth-example.json"));
+            // attr-score is an NSGetter — the synth fixture doesn't
+            // emit a defaultValue for it. Cast first because
+            // `defaultValue` lives on the typed Attribute<TValue>.
+            var score = (NSGetterAttribute)export.attributes["attr-score"];
+            Assert.IsNull(score.defaultValue);
+        }
+
+        [Test]
+        public void Attribute_DefaultValueWithWireNullValue_DispatchesToTypedConcrete()
+        {
+            // Context-aware dispatch: a typed StringAttribute (TValue =
+            // string?) with wire `defaultValue: { value: null }` should
+            // produce a StringAttributeValueBase carrying value=null —
+            // NOT a NullAttributeValueBase. The converter resolves the
+            // concrete from the field's closed-generic type, ignoring
+            // the wire's null shape. This preserves type-system
+            // identity even when the payload is missing.
+            const string json = @"{
+                ""_id"": ""attr-x"",
+                ""id"": ""attr-x"",
+                ""projectId"": ""p"",
+                ""name"": ""X"",
+                ""type"": 3,
+                ""locked"": false,
+                ""required"": false,
+                ""defaultValue"": { ""value"": null, ""typeId"": ""carrier-type"" },
+                ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+                ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+            }";
+            var attr = (StringAttribute)JsonConvert.DeserializeObject<Attribute>(json)!;
+            Assert.IsInstanceOf<StringAttributeValueBase>(attr.defaultValue);
+            var def = (StringAttributeValueBase)attr.defaultValue!;
+            Assert.IsNull(def.value);
+            Assert.AreEqual("carrier-type", def.typeId);
+        }
+
+        [Test]
+        public void TypedSubclass_RoundTripWithNullValue_DispatchesToNullSubclass()
+        {
+            // Document and pin the shape-dispatch behavior: a typed
+            // subclass with `value = null` serializes as
+            // `"value": null`, and on read the converter shape-dispatches
+            // that to a Null* concrete — NOT a typed subclass with null
+            // payload. Metadata still survives the round-trip.
+            var src = new StringAttributeValue
+            {
+                id = "v-x",
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-01T00:00:00.000Z",
+                value = null,
+            };
+            var json = JsonConvert.SerializeObject(src);
+            var deser = JsonConvert.DeserializeObject<AttributeValue>(json);
+            Assert.IsInstanceOf<NullAttributeValue>(deser);
+            Assert.AreEqual("v-x", deser.id);
+        }
+
+        [Test]
+        public void GenericInterface_BridgesEmbeddedAndStoredForms()
+        {
+            // IAttributeValueBase<TValue> is the contract that lets one
+            // helper reach into either a defaultValue carrier or a
+            // values-map row for the same shape. Confirms typed get +
+            // set work on both sides, including assigning null.
+            IAttributeValueBase<double?> carrier =
+                new NumberAttributeValueBase { value = 42.0 };
+            IAttributeValueBase<double?> row = new NumberAttributeValue
+            {
+                id = "v",
+                createdAt = "x",
+                updatedAt = "x",
+                value = 42.0,
+            };
+            Assert.AreEqual(42.0, carrier.value);
+            Assert.AreEqual(42.0, row.value);
+
+            carrier.value = null;
+            row.value = null;
+            Assert.IsNull(carrier.value);
+            Assert.IsNull(row.value);
         }
     }
 }

@@ -14,6 +14,8 @@ namespace NeoCompose.Runtime
     {
         public delegate string LoadSave();
         public delegate void HandleSave(string content);
+        public NeoAttributeCustom assets { get; protected set; }
+        public NeoAttributeCustomSaved save { get; protected set; }
 
         protected ProjectData data;
         protected ProjectSaveData saveData;
@@ -26,6 +28,80 @@ namespace NeoCompose.Runtime
             this.loadSave = loadSave;
             this.handleSave = handleSave;
             LoadOrCreateSafe();
+            assets = new(this, data.project.rootAssetsAttributeId, null);
+            save = new(this, data.project.rootSaveFileAttributeId, null);
+        }
+
+        public bool TryGetAttribute<TAttribute>(string id, out TAttribute attribute) where TAttribute : Attribute
+        {
+            if (data.attributes.TryGetValue(id, out Attribute idMatch))
+            {
+                if (idMatch is TAttribute match)
+                {
+                    attribute = match;
+                    return true;
+                }
+            }
+            attribute = null;
+            return false;
+        }
+
+        public bool TryGetType(string id, out CustomType type)
+        {
+            if (data.types.TryGetValue(id, out CustomType idMatch))
+            {
+                type = idMatch;
+                return true;
+            }
+            type = null;
+            return false;
+        }
+
+        public bool TryGetValue<TValue>(string id, out TValue value) where TValue : AttributeValue
+        {
+            if (saveData.values.TryGetValue(id, out AttributeValue saveIdMatch))
+            {
+                if (saveIdMatch is TValue match)
+                {
+                    value = match;
+                    return true;
+                }
+            }
+            if (data.values.TryGetValue(id, out AttributeValue idMatch))
+            {
+                if (idMatch is TValue match)
+                {
+                    value = match;
+                    return true;
+                }
+            }
+            value = null;
+            return false;
+        }
+
+        public void AddSaveValue<TAttributeValue>(string attributeId, TAttributeValue value) where TAttributeValue : AttributeValue
+        {
+            saveData.attributeValueOverrides[attributeId] = value.id;
+            SetSaveValue(value);
+        }
+
+        public void SetSaveValue<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
+        {
+            saveData.values[value.id] = value;
+        }
+
+        public bool TryGetEnum<TEnum>(string id, out TEnum enumInfo) where TEnum : Enum
+        {
+            if (data.enums.TryGetValue(id, out Enum idMatch))
+            {
+                if (idMatch is TEnum match)
+                {
+                    enumInfo = match;
+                    return true;
+                }
+            }
+            enumInfo = null;
+            return false;
         }
 
         protected ProjectSaveData BuildDefaultSaveData()

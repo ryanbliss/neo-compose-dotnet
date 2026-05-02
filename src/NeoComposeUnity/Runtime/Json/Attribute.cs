@@ -1,25 +1,15 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.Json
 {
-    /// <summary>
-    /// Default-value carrier on an <see cref="Attribute"/>. Mirrors the
-    /// TS-side <c>IAttributeValueBase</c>. Same payload shape as
-    /// <see cref="AttributeValue"/> minus id / timestamp metadata. The
-    /// polymorphic <see cref="value"/> field rides as <see cref="JToken"/>
-    /// so callers dispatch on the parent attribute's <c>type</c>.
-    /// </summary>
-    public class AttributeValueBase
-    {
-        public JToken value;
-        public string typeId;
-    }
-
     /// <summary>
     /// Abstract base for the TS-side <c>IAttribute&lt;TType, TValue&gt;</c>
     /// discriminated union. Eleven concrete variants — one per
@@ -28,123 +18,164 @@ namespace NeoCompose.Runtime.Json
     /// dispatches on the numeric <see cref="type"/> via
     /// {@link AttributeConverter}.
     ///
-    /// Common fields (id, name, timestamps, defaultValue, etc.) live
-    /// here; per-type extras (`customTypeId`, `enumId`,
-    /// `entryAttributeId`, etc.) live on the subclass that needs them.
+    /// Common fields (id, name, timestamps, etc.) live here; per-type
+    /// extras (`customTypeId`, `enumId`, `entryAttributeId`, etc.) live
+    /// on the concrete subclass that needs them. <c>defaultValue</c>
+    /// lives on the typed <see cref="Attribute{TValue}"/> intermediate
+    /// — typed access is per concrete subclass via <c>TValue</c>.
     /// </summary>
     [JsonConverter(typeof(AttributeConverter))]
     public abstract class Attribute
     {
-        public string id;
-        public string _id;
-        public string projectId;
-        public string name;
+        public string id = null!;
+        public string _id = null!;
+        public string projectId = null!;
+        public string name = null!;
         public AttributeType type;
         public bool locked;
         public bool required;
-        public AttributeValueBase defaultValue;
         /// <summary>
         /// When set, this attribute is an *override* of the referenced
         /// attribute. Most other fields may be absent on overrides;
         /// missing fields resolve from the inherited attribute via the
-        /// chain.
+        /// chain. Optional on the TS side.
         /// </summary>
-        public string extendsAttributeId;
-        public string valueId;
+        public string? extendsAttributeId;
+        /// <summary>
+        /// Optional value id pointing to this attribute's stored value.
+        /// Mirrors TS-side <c>valueId?</c>. Unset for template-only
+        /// attributes (e.g., a List's entryAttribute is a template, not
+        /// itself a stored value).
+        /// </summary>
+        public string? valueId;
         [JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt;
+        public string createdAt = null!;
         [JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt;
-    }
-
-    /// <summary>Mirror of TS-side <c>TAttributeNull</c>. No extra fields.</summary>
-    public class NullAttribute : Attribute { }
-
-    /// <summary>Mirror of TS-side <c>TAttributeBool</c>. No extra fields.</summary>
-    public class BoolAttribute : Attribute { }
-
-    /// <summary>
-    /// Mirror of TS-side <c>TAttributeInt</c>. Optional range
-    /// constraints; `0` is the type-default and indistinguishable from
-    /// "not set" — callers that need true presence checking should
-    /// validate downstream.
-    /// </summary>
-    public class IntAttribute : Attribute
-    {
-        public float minValue;
-        public float maxValue;
+        public string updatedAt = null!;
     }
 
     /// <summary>
-    /// Mirror of TS-side <c>TAttributeFloat</c>. Same range-constraint
-    /// caveat as <see cref="IntAttribute"/>. <see cref="decimalPoints"/>
-    /// is `0` when unset — the validator treats `0` as "no rounding".
+    /// Typed attribute intermediate — mirrors TS-side
+    /// <c>IAttribute&lt;TType, TValue&gt;</c>. Concrete subclasses
+    /// extend this with the already-nullable <typeparamref name="TValue"/>
+    /// matching the attribute's stored payload type — e.g.
+    /// <c>BoolAttribute : Attribute&lt;bool?&gt;</c>. Hosts the typed
+    /// <see cref="defaultValue"/> field, which the
+    /// {@link AttributeValueBaseConverter} resolves to the matching
+    /// <see cref="AttributeValueBase{TValue}"/> concrete via context
+    /// dispatch (so a wire <c>{value: null}</c> on a typed attribute
+    /// produces the typed concrete with <c>value = null</c> rather than
+    /// the shape-dispatched <see cref="NullAttributeValueBase"/>).
     /// </summary>
-    public class FloatAttribute : Attribute
+    public abstract class Attribute<TValue> : Attribute
     {
-        public float minValue;
-        public float maxValue;
-        public int decimalPoints;
+        /// <summary>
+        /// Default value for the attribute. Optional on the TS side
+        /// (<c>defaultValue?: IAttributeValueBase&lt;TValue&gt;</c>).
+        /// Strongly typed — accessing <c>.value</c> returns
+        /// <typeparamref name="TValue"/>.
+        /// </summary>
+        public AttributeValueBase<TValue>? defaultValue;
+    }
+
+    /// <summary>
+    /// Mirror of TS-side <c>TAttributeNull</c>. <c>TValue</c> is
+    /// <c>object?</c> — TS uses the literal <c>null</c> type which has
+    /// no direct C# analog; <c>object?</c> with the implicit invariant
+    /// "always null" is the practical equivalent.
+    /// </summary>
+    public class NullAttribute : Attribute<object?> { }
+
+    /// <summary>Mirror of TS-side <c>TAttributeBool</c>.</summary>
+    public class BoolAttribute : Attribute<bool?> { }
+
+    /// <summary>
+    /// Mirror of TS-side <c>TAttributeInt</c>. Stored as <c>double?</c>
+    /// (parallel to <see cref="NumberAttributeValueBase"/>) so Int and
+    /// Float share the wire numeric shape. <see cref="minValue"/> and
+    /// <see cref="maxValue"/> are <c>number?</c> on the TS side —
+    /// nullable here so absence is distinguishable from "explicitly 0".
+    /// </summary>
+    public class IntAttribute : Attribute<double?>
+    {
+        public float? minValue;
+        public float? maxValue;
+    }
+
+    /// <summary>
+    /// Mirror of TS-side <c>TAttributeFloat</c>. All three constraint
+    /// fields are <c>number?</c> on the wire — nullable here.
+    /// <see cref="decimalPoints"/> as <c>null</c> means "no rounding";
+    /// <c>0</c> would be "round to integer".
+    /// </summary>
+    public class FloatAttribute : Attribute<double?>
+    {
+        public float? minValue;
+        public float? maxValue;
+        public int? decimalPoints;
     }
 
     /// <summary>Mirror of TS-side <c>TAttributeString</c>.</summary>
-    public class StringAttribute : Attribute { }
+    public class StringAttribute : Attribute<string?> { }
 
     /// <summary>Mirror of TS-side <c>TAttributeDictionary</c>.</summary>
-    public class DictionaryAttribute : Attribute
+    public class DictionaryAttribute : Attribute<Dictionary<string, string>?>
     {
-        public string entryAttributeId;
+        public string entryAttributeId = null!;
     }
 
     /// <summary>Mirror of TS-side <c>TAttributeList</c>.</summary>
-    public class ListAttribute : Attribute
+    public class ListAttribute : Attribute<string[]?>
     {
-        public string entryAttributeId;
+        public string entryAttributeId = null!;
     }
 
     /// <summary>Mirror of TS-side <c>TAttributeCustom</c>.</summary>
-    public class CustomAttribute : Attribute
+    public class CustomAttribute : Attribute<Dictionary<string, string>?>
     {
-        public string customTypeId;
+        public string customTypeId = null!;
     }
 
     /// <summary>Mirror of TS-side <c>TAttributeEnum</c>.</summary>
-    public class EnumAttribute : Attribute
+    public class EnumAttribute : Attribute<string[]?>
     {
-        public string enumId;
+        public string enumId = null!;
         public bool multiselect;
     }
 
     /// <summary>
     /// Mirror of TS-side <c>TAttributeLookup</c>.
-    /// <see cref="collectionValueId"/> accepts an explicit <c>null</c>
-    /// on the wire (distinct from absent — see the TS-side docs).
-    /// Newtonsoft preserves the difference because the C# field is a
-    /// reference type.
+    /// <see cref="collectionValueId"/> is <c>string | null | undefined</c>
+    /// on the wire (distinct from absent — see the TS-side docs):
+    /// <c>null</c> means "use the parent collection's valueId";
+    /// a present id means "drill into that specific entry". Nullable
+    /// here preserves both cases.
     /// </summary>
-    public class LookupAttribute : Attribute
+    public class LookupAttribute : Attribute<string[]?>
     {
-        public string collectionAttributeId;
-        public string collectionValueId;
+        public string collectionAttributeId = null!;
+        public string? collectionValueId;
         public bool multiselect;
     }
 
     /// <summary>
-    /// Mirror of TS-side <c>TAttributeNSGetter</c>. <see cref="code"/>
-    /// is client-authored NeoScript; <see cref="returnTypeInfo"/> is
-    /// the declared return type; <see cref="getter"/> is the
-    /// server-compiled IR (`null` until the first compile lands).
+    /// Mirror of TS-side <c>TAttributeNSGetter</c>. The stored value is
+    /// always null (the runtime computes it via <c>getter</c>), so
+    /// <c>TValue</c> is <c>object?</c>. <see cref="code"/> is
+    /// client-authored NeoScript; <see cref="returnTypeInfo"/> is the
+    /// declared return type; <see cref="getter"/> is the server-compiled
+    /// IR.
     /// </summary>
-    public class NSGetterAttribute : Attribute
+    public class NSGetterAttribute : Attribute<object?>
     {
-        public string code;
-        public TypeInfo returnTypeInfo;
-        public FunctionWithReturnType getter;
+        public string code = null!;
+        public TypeInfo returnTypeInfo = null!;
+        public FunctionWithReturnType getter = null!;
     }
 
     public class AttributeConverter : DiscriminatedConverter<Attribute>
     {
-        protected override Type ResolveSubclass(JToken discriminator)
+        protected override Type? ResolveSubclass(JToken discriminator)
         {
             // The TS-side `AttributeType` is a numeric enum on the
             // wire. Newtonsoft surfaces the JSON number as a long; cast

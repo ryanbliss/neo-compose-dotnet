@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 namespace NeoCompose.Runtime.Json
 {
     /// <summary>
@@ -17,17 +19,24 @@ namespace NeoCompose.Runtime.Json
     /// gracefully skips occasional malformed dates (an empty <c>{}</c>
     /// from upstream BSON corruption, etc.) instead of failing the
     /// whole export.
+    ///
+    /// All fields are required on the wire (TS-side <c>IProject</c> has
+    /// no optionals). The <c>= null!</c> initializer is the canonical
+    /// Newtonsoft + NRT pattern: silences the "non-nullable field
+    /// uninitialized" warning while preserving the type-system claim
+    /// that downstream readers can rely on the field being non-null
+    /// after deserialization populates it.
     /// </summary>
     public class Project
     {
-        public string id;
-        public string _id;
-        public string name;
-        public string rootAssetsAttributeId;
-        public string rootSaveFileAttributeId;
+        public string id = null!;
+        public string _id = null!;
+        public string name = null!;
+        public string rootAssetsAttributeId = null!;
+        public string rootSaveFileAttributeId = null!;
         [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt;
+        public string createdAt = null!;
         [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt;
+        public string updatedAt = null!;
     }
 }

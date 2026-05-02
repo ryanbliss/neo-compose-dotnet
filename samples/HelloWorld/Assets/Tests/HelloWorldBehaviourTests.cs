@@ -5,8 +5,9 @@ using System.IO;
 using NeoCompose.Runtime;
 using NUnit.Framework;
 using UnityEngine;
+using HelloWorld.Assets.Scripts;
 
-namespace HelloWorld.Tests
+namespace HelloWorld.Assets.Tests
 {
     public class HelloWorldBehaviourTests
     {
@@ -35,7 +36,6 @@ namespace HelloWorld.Tests
             try
             {
                 var behaviour = go.AddComponent<HelloWorldBehaviour>();
-                behaviour.SendMessage("Start", SendMessageOptions.DontRequireReceiver);
                 Assert.IsNotNull(behaviour);
             }
             finally

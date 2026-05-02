@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -39,9 +41,11 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// Map a discriminator value to the concrete subclass type, or
-        /// return <c>null</c> if the value is unknown.
+        /// return <c>null</c> if the value is unknown — the caller
+        /// throws <see cref="JsonSerializationException"/> on null so
+        /// downstream code never sees an unknown variant.
         /// </summary>
-        protected abstract Type ResolveSubclass(JToken discriminator);
+        protected abstract Type? ResolveSubclass(JToken discriminator);
 
         public override bool CanConvert(Type objectType)
         {
@@ -50,10 +54,10 @@ namespace NeoCompose.Runtime.Json
 
         public override bool CanWrite => false;
 
-        public override object ReadJson(
+        public override object? ReadJson(
             JsonReader reader,
             Type objectType,
-            object existingValue,
+            object? existingValue,
             JsonSerializer serializer)
         {
             if (reader.TokenType == JsonToken.Null) return null;
@@ -92,7 +96,7 @@ namespace NeoCompose.Runtime.Json
 
         public override void WriteJson(
             JsonWriter writer,
-            object value,
+            object? value,
             JsonSerializer serializer)
         {
             // CanWrite=false routes serialization through Newtonsoft's

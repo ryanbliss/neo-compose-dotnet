@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -17,7 +19,7 @@ namespace NeoCompose.Runtime.Json
     public abstract class Operation
     {
         /// <summary>One of <see cref="OperationKind"/>.</summary>
-        public string type;
+        public string type = null!;
     }
 
     /// <summary>
@@ -26,7 +28,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class ArithmeticOperation : Operation
     {
-        public ArithmeticOpInfo arithmetic;
+        public ArithmeticOpInfo arithmetic = null!;
     }
 
     /// <summary>
@@ -36,12 +38,12 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class BooleanOperation : Operation
     {
-        public BooleanExpression expression;
+        public BooleanExpression expression = null!;
     }
 
     public class OperationConverter : DiscriminatedConverter<Operation>
     {
-        protected override Type ResolveSubclass(JToken discriminator)
+        protected override Type? ResolveSubclass(JToken discriminator)
         {
             switch (discriminator.Value<string>())
             {

@@ -1,6 +1,8 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System.Collections.Generic;
 
 namespace NeoCompose.Runtime.Json
@@ -26,10 +28,10 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class ProjectData
     {
-        public Project project;
-        public Dictionary<string, Attribute> attributes;
-        public Dictionary<string, AttributeValue> values;
-        public Dictionary<string, CustomType> types;
-        public Dictionary<string, Enum> enums;
+        public Project project = null!;
+        public Dictionary<string, Attribute> attributes = null!;
+        public Dictionary<string, AttributeValue> values = null!;
+        public Dictionary<string, CustomType> types = null!;
+        public Dictionary<string, Enum> enums = null!;
     }
 }

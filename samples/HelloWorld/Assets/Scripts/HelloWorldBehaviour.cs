@@ -1,10 +1,11 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
-// using NeoCompose.Runtime
+using System.IO;
+using NeoCompose.Runtime;
 using UnityEngine;
 
-namespace HelloWorld
+namespace HelloWorld.Assets.Scripts
 {
     /// <summary>
     /// Minimal MonoBehaviour that proves the sample can reference and
@@ -13,12 +14,46 @@ namespace HelloWorld
     /// </summary>
     public class HelloWorldBehaviour : MonoBehaviour
     {
-        // private NeoLoader _core;
+        protected NeoClient client;
 
-        // private void Start()
-        // {
-        //     _core = new NeoLoader();
-        //     Debug.Log(_core.message);
-        // }
+        protected void Start()
+        {
+            var loader = new NeoLoader();
+            client = loader.Load(
+                File.ReadAllText(NeoAssetsFilePath),
+                OnLoadSave,
+                OnHandleSave
+            );
+        }
+
+        protected string OnLoadSave()
+        {
+            return File.ReadAllText(SaveFilePath);
+        }
+        protected void OnHandleSave(string content)
+        {
+            File.WriteAllText(SaveFilePath, content);
+        }
+
+        // ──────────────────────────────────────────────
+        // Static file loading
+        // ──────────────────────────────────────────────
+
+        private static readonly string FixturesRoot = "Assets/Neo";
+        private static readonly string FileName = "project-example.json";
+
+        private static string NeoAssetsFilePath
+        {
+            get => Path.Combine(FixturesRoot, FileName);
+        }
+
+        private static string SaveFilePath
+        {
+            get
+            {
+                string fileName = "/save1.json";
+                return Application.persistentDataPath + fileName;
+            }
+        }
     }
 }
