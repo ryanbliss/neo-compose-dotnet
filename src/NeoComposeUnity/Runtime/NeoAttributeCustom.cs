@@ -6,6 +6,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
+using UnityEngine;
 
 namespace NeoCompose.Runtime
 {
@@ -21,17 +22,31 @@ namespace NeoCompose.Runtime
           IEnumerable<KeyValuePair<string, NeoAttribute>>
     {
         protected CustomType type;
+        /// <summary>
+        /// Inheritance chain (child-first) for the row's effective
+        /// type. Empty when the chain is cyclic — see
+        /// <see cref="ResolveTypeContext"/>.
+        /// </summary>
+        public IList<CustomType> inheritanceChain { get; private set; } = new List<CustomType>();
+        /// <summary>
+        /// Schema entries merged across <see cref="inheritanceChain"/>
+        /// (base-first; child overrides win at the same key). Replaces
+        /// direct <c>type.schema</c> access so descendants see fields
+        /// inherited from ancestor Custom types.
+        /// </summary>
+        public IList<MergedSchemaEntry> mergedSchema { get; private set; } = new List<MergedSchemaEntry>();
         protected Dictionary<string, NeoAttribute> childAttributes = new();
 
         public NeoAttributeCustom(NeoClient client, string attributeId, string? overrideValueId)
             : base(client, attributeId, overrideValueId)
         {
             type = ResolveCustomType();
-            // Schema-driven init runs after `type` is wired so child
-            // attribute lookups via `type.schema` resolve correctly;
-            // the base ctor's value-driven Initialize ran without
-            // walking children because `type` was null then. We
-            // re-walk now.
+            ResolveTypeContext();
+            // Schema-driven init runs after `type` + merged schema are
+            // wired so child attribute lookups via the merged schema
+            // resolve correctly; the base ctor's value-driven
+            // Initialize ran without walking children because the
+            // schema was empty then. We re-walk now.
             ReinitializeChildren();
         }
 
@@ -39,6 +54,7 @@ namespace NeoCompose.Runtime
             : base(client, attribute, overrideValueId)
         {
             type = ResolveCustomType();
+            ResolveTypeContext();
             ReinitializeChildren();
         }
 
@@ -123,12 +139,30 @@ namespace NeoCompose.Runtime
         protected bool TryGetAttribute<TAttribute>(string key, out TAttribute outAttribute)
             where TAttribute : Attribute
         {
-            if (type.schema.TryGetValue(key, out string attributeIdForKey))
+            // Walks the merged schema rather than `type.schema` directly
+            // so a descendant Custom row sees keys inherited from
+            // ancestor types in its `extendsTypeId` chain.
+            string? attributeIdForKey = LookupMergedAttributeId(key);
+            if (attributeIdForKey is not null)
             {
                 return client.TryGetAttribute(attributeIdForKey, out outAttribute);
             }
             outAttribute = null!;
             return false;
+        }
+
+        /// <summary>
+        /// Returns the resolved attribute id for <paramref name="key"/>
+        /// according to the merged schema (child overrides win), or null
+        /// when the key isn't in any ancestor's schema.
+        /// </summary>
+        protected string? LookupMergedAttributeId(string key)
+        {
+            foreach (var entry in mergedSchema)
+            {
+                if (entry.schemaKey == key) return entry.attributeId;
+            }
+            return null;
         }
 
         protected override void Initialize(ObjectAttributeValue value)
@@ -176,6 +210,32 @@ namespace NeoCompose.Runtime
             }
             return match;
         }
+
+        /// <summary>
+        /// Walks the <c>extendsTypeId</c> chain from <see cref="type"/>
+        /// upward and computes the merged schema. Cycles are caught and
+        /// degrade to an empty chain / schema (matching the TS-side
+        /// CustomValueNodeVM behavior — UI shows no fields rather than
+        /// throwing an unrecoverable error). Computed once at
+        /// construction; the wire DTOs are read-mostly so we don't
+        /// invalidate on type-graph changes.
+        /// </summary>
+        private void ResolveTypeContext()
+        {
+            try
+            {
+                inheritanceChain = CustomTypeInheritance.ResolveChain(
+                    type.id,
+                    id => client.TryGetType(id, out var t) ? t : null);
+                mergedSchema = CustomTypeInheritance.MergeSchemas(inheritanceChain);
+            }
+            catch (CircularInheritanceError ex)
+            {
+                Debug.LogError(ex);
+                inheritanceChain = new List<CustomType>();
+                mergedSchema = new List<MergedSchemaEntry>();
+            }
+        }
     }
 
     /// <summary>
@@ -211,10 +271,14 @@ namespace NeoCompose.Runtime
         {
             string nowIso = System.DateTime.UtcNow.ToString("o");
 
-            if (!type.schema.TryGetValue(key, out string schemaKeyedAttributeId))
+            // Resolution flows through the merged schema (inheritance
+            // chain), so a Set against a key inherited from an ancestor
+            // type still resolves the right child attribute.
+            string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
+            if (schemaKeyedAttributeId is null)
             {
                 throw new System.Collections.Generic.KeyNotFoundException(
-                    $"Schema for type {type.id} does not contain key '{key}'");
+                    $"Merged schema for type {type.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
             }
             if (!client.TryGetAttribute(schemaKeyedAttributeId, out Attribute childAttribute))
             {

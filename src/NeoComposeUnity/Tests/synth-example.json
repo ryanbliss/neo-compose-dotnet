@@ -10,7 +10,7 @@
   },
   "attributes": {
     "root-assets": {
-      "_id": "0cb1239c-b814-49de-afc9-74d70103b419",
+      "_id": "87f7aec5-dc7a-432d-a5ec-c07bef8450bd",
       "id": "root-assets",
       "name": "Assets",
       "type": 7,
@@ -22,7 +22,7 @@
       "customTypeId": "type-root"
     },
     "root-save": {
-      "_id": "62e864cd-9b30-4959-84bb-9a016b32db23",
+      "_id": "4c47be18-5567-4695-b667-7190136d417d",
       "id": "root-save",
       "name": "Save",
       "type": 7,
@@ -34,7 +34,7 @@
       "customTypeId": "type-root"
     },
     "attr-name": {
-      "_id": "4f1813ea-785a-486d-9a0c-faad4925f7de",
+      "_id": "e410efd1-3c6b-4b6c-bde1-a37473167149",
       "id": "attr-name",
       "name": "Name",
       "type": 3,
@@ -47,8 +47,22 @@
         "value": "Hero"
       }
     },
+    "attr-altname": {
+      "_id": "b6481b8b-5b69-4ea5-b016-5d107cad0aa8",
+      "id": "attr-altname",
+      "name": "AltName",
+      "type": 3,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "defaultValue": {
+        "value": "AltHero"
+      }
+    },
     "attr-health": {
-      "_id": "39e2f5ae-94b1-460a-8690-490b6d7fa891",
+      "_id": "b644e7fd-1264-4329-8e1d-8048ae023f67",
       "id": "attr-health",
       "name": "Health",
       "type": 2,
@@ -62,7 +76,7 @@
       }
     },
     "attr-speed": {
-      "_id": "cd86575b-22fc-400a-92f1-549460bd4760",
+      "_id": "8bd8043f-2c07-4e7c-be36-96ee9c086551",
       "id": "attr-speed",
       "name": "Speed",
       "type": 4,
@@ -76,7 +90,7 @@
       }
     },
     "attr-isalive": {
-      "_id": "a36c96f5-2aac-46e1-8f18-7cf7c02d4044",
+      "_id": "408d777c-4ca1-4bc4-bf23-5bc80a8b7d1c",
       "id": "attr-isalive",
       "name": "IsAlive",
       "type": 1,
@@ -90,7 +104,7 @@
       }
     },
     "attr-hero": {
-      "_id": "281a2c48-432b-448c-8c6d-9b442bef5c91",
+      "_id": "8b6063c7-dd73-4dd3-bb4c-bcd23236b77f",
       "id": "attr-hero",
       "name": "Hero",
       "type": 7,
@@ -108,7 +122,7 @@
       }
     },
     "attr-inventory": {
-      "_id": "62181e1f-9ffa-4a4f-b26a-a1f2a5ddf5d6",
+      "_id": "6a72cbe9-804f-43db-bbfe-94d4c15b5f3f",
       "id": "attr-inventory",
       "name": "Inventory",
       "type": 5,
@@ -126,7 +140,7 @@
       }
     },
     "attr-tags": {
-      "_id": "3668db27-945f-4065-8e54-348eb0b7a8c0",
+      "_id": "00fcfb5e-d287-4e6e-a186-fe0bc91a781d",
       "id": "attr-tags",
       "name": "Tags",
       "type": 6,
@@ -144,7 +158,7 @@
       }
     },
     "attr-element": {
-      "_id": "eb41ebc8-81eb-414a-a081-93e7664352d0",
+      "_id": "e556da87-6bb6-471e-b245-c46edebeec28",
       "id": "attr-element",
       "name": "Element",
       "type": 8,
@@ -157,7 +171,7 @@
       "multiselect": false
     },
     "attr-choice": {
-      "_id": "6bca8eaa-d225-4bf8-8afe-e1b4b951258f",
+      "_id": "78247f77-5cba-4da5-bc31-7d28f27b23d7",
       "id": "attr-choice",
       "name": "Choice",
       "type": 9,
@@ -170,7 +184,7 @@
       "multiselect": true
     },
     "attr-score": {
-      "_id": "a1cbf2af-0a0f-4a62-b1ae-e3f2428e7207",
+      "_id": "23bf760a-0d13-4182-b6e8-a95b5f199e38",
       "id": "attr-score",
       "name": "Score",
       "type": 10,
@@ -495,7 +509,7 @@
       }
     },
     "attr-manifest": {
-      "_id": "9f33704a-44ad-4250-b75c-8eb24317e1de",
+      "_id": "ca95e4c5-4d13-4e6c-816f-cfd4767cb257",
       "id": "attr-manifest",
       "name": "Manifest",
       "type": 10,
@@ -569,7 +583,7 @@
       }
     },
     "attr-active": {
-      "_id": "b38d4c1b-6238-4d27-906f-d5e572030645",
+      "_id": "52d87cc1-f099-4ad0-87fd-326db5f1840b",
       "id": "attr-active",
       "name": "Active",
       "type": 10,
@@ -607,6 +621,42 @@
           }
         ]
       }
+    },
+    "attr-base": {
+      "_id": "2151f0c8-70aa-4044-bea3-1c8ec367f34d",
+      "id": "attr-base",
+      "name": "BaseRecord",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-base"
+    },
+    "attr-derived": {
+      "_id": "9cccb4b0-1927-4beb-8c33-8a3bd71ea3a4",
+      "id": "attr-derived",
+      "name": "DerivedRecord",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-derived"
+    },
+    "attr-override": {
+      "_id": "595a69ca-b7c5-4ac9-9859-334b493fc931",
+      "id": "attr-override",
+      "name": "OverrideRecord",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-override"
     }
   },
   "enums": {
@@ -649,6 +699,47 @@
       "schema": {},
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "type-base": {
+      "_id": "type-base",
+      "id": "type-base",
+      "name": "Base",
+      "schema": {
+        "Name": "attr-name"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "type-derived": {
+      "_id": "type-derived",
+      "id": "type-derived",
+      "name": "Derived",
+      "schema": {
+        "Health": "attr-health"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-base",
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "type-override": {
+      "_id": "type-override",
+      "id": "type-override",
+      "name": "Override",
+      "schema": {
+        "Name": "attr-altname"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-base",
       "projectId": "test-project",
       "createdAt": "1970-01-01T00:00:00.000Z",
       "updatedAt": "1970-01-01T00:00:00.000Z"
