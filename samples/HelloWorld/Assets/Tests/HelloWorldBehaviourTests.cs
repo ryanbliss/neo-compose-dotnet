@@ -20,6 +20,7 @@ namespace HelloWorld.Assets.Tests
         // where the fixtures live inside the package — different file
         // tree, different prefix.)
         private const string FixturesRoot = "Assets/Tests";
+        private const string SampleScriptsRoot = "Assets/Scripts";
 
         private static string LoadFixture(string fileName)
         {
@@ -69,6 +70,147 @@ namespace HelloWorld.Assets.Tests
                 handleSave
             );
             Assert.IsNotNull(client);
+        }
+
+        [Test]
+        public void GeneratedSampleTypes_ComputeNSGetterFromSampleProject()
+        {
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
+
+            var client = HelloWorldNeo.Load(
+                File.ReadAllText(Path.Combine(SampleScriptsRoot, "project.json")),
+                loadSave,
+                handleSave);
+
+            Assert.AreEqual(Planet.earth, client.Save.world?.optionId);
+            Assert.AreEqual("Hello", client.Assets.computed.baseText);
+
+            Assert.AreEqual("Hello Earth!", client.Assets.computed.fullText);
+        }
+
+        [Test]
+        public void Behaviour_VisitPlanet_UpdatesGeneratedTextAndVisitedList()
+        {
+            string savePath = Path.Combine(Application.persistentDataPath, "save1.json");
+            if (File.Exists(savePath))
+            {
+                File.Delete(savePath);
+            }
+
+            var go = new GameObject("HelloWorld");
+            try
+            {
+                var behaviour = go.AddComponent<HelloWorldBehaviour>();
+                behaviour.LoadClient();
+
+                Assert.AreEqual("Hello Earth!", behaviour.HelloWorldText);
+                Assert.AreEqual(Planet.earth, behaviour.World?.optionId);
+                CollectionAssert.AreEqual(
+                    new[] { Planet.earth },
+                    VisitedPlanetIds(behaviour));
+
+                behaviour.Visit(Planet.mars);
+
+                Assert.AreEqual("Hello Mars!", behaviour.HelloWorldText);
+                Assert.AreEqual(Planet.mars, behaviour.World?.optionId);
+                CollectionAssert.AreEqual(
+                    new[] { Planet.earth, Planet.mars },
+                    VisitedPlanetIds(behaviour));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                if (File.Exists(savePath))
+                {
+                    File.Delete(savePath);
+                }
+            }
+        }
+
+        [Test]
+        public void Behaviour_ResetSave_DiscardsUnsavedVisit()
+        {
+            string savePath = Path.Combine(Application.persistentDataPath, "save1.json");
+            if (File.Exists(savePath))
+            {
+                File.Delete(savePath);
+            }
+
+            var go = new GameObject("HelloWorld");
+            try
+            {
+                var behaviour = go.AddComponent<HelloWorldBehaviour>();
+                behaviour.LoadClient();
+
+                behaviour.Visit(Planet.mars);
+                Assert.AreEqual("Hello Mars!", behaviour.HelloWorldText);
+
+                behaviour.ResetSave();
+
+                Assert.AreEqual("Hello Earth!", behaviour.HelloWorldText);
+                Assert.AreEqual(Planet.earth, behaviour.World?.optionId);
+                CollectionAssert.AreEqual(
+                    new[] { Planet.earth },
+                    VisitedPlanetIds(behaviour));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                if (File.Exists(savePath))
+                {
+                    File.Delete(savePath);
+                }
+            }
+        }
+
+        [Test]
+        public void Behaviour_Save_PersistsVisit()
+        {
+            string savePath = Path.Combine(Application.persistentDataPath, "save1.json");
+            if (File.Exists(savePath))
+            {
+                File.Delete(savePath);
+            }
+
+            var first = new GameObject("HelloWorld");
+            var second = new GameObject("HelloWorldReloaded");
+            try
+            {
+                var behaviour = first.AddComponent<HelloWorldBehaviour>();
+                behaviour.LoadClient();
+                behaviour.Visit(Planet.mars);
+                behaviour.Save();
+
+                var reloaded = second.AddComponent<HelloWorldBehaviour>();
+                reloaded.LoadClient();
+
+                Assert.AreEqual("Hello Mars!", reloaded.HelloWorldText);
+                Assert.AreEqual(Planet.mars, reloaded.World?.optionId);
+                CollectionAssert.AreEqual(
+                    new[] { Planet.earth, Planet.mars },
+                    VisitedPlanetIds(reloaded));
+            }
+            finally
+            {
+                Object.DestroyImmediate(first);
+                Object.DestroyImmediate(second);
+                if (File.Exists(savePath))
+                {
+                    File.Delete(savePath);
+                }
+            }
+        }
+
+        private static string[] VisitedPlanetIds(HelloWorldBehaviour behaviour)
+        {
+            var ids = new System.Collections.Generic.List<string>();
+            foreach (var planet in behaviour.VisitedPlanets())
+            {
+                ids.Add(planet.optionId);
+            }
+            return ids.ToArray();
         }
     }
 }

@@ -32,7 +32,15 @@ namespace NeoCompose.Runtime
             string createdAt,
             string updatedAt)
         {
-            return attribute switch
+            object? rawPayload = payload;
+            string? typeId = null;
+            if (rawPayload is NeoValuePayload wrapped)
+            {
+                rawPayload = wrapped.value;
+                typeId = wrapped.typeId;
+            }
+
+            AttributeValue created = attribute switch
             {
                 NullAttribute => new NullAttributeValue
                 {
@@ -41,27 +49,27 @@ namespace NeoCompose.Runtime
                 BoolAttribute => new BoolAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
-                    value = Cast<TPayload, bool?>(payload, attribute),
+                    value = Cast<bool?>(rawPayload, attribute),
                 },
                 IntAttribute or FloatAttribute => new NumberAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
-                    value = Cast<TPayload, double?>(payload, attribute),
+                    value = Cast<double?>(rawPayload, attribute),
                 },
                 StringAttribute => new StringAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
-                    value = Cast<TPayload, string?>(payload, attribute),
+                    value = Cast<string?>(rawPayload, attribute),
                 },
                 DictionaryAttribute or CustomAttribute => new ObjectAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
-                    value = Cast<TPayload, Dictionary<string, string>?>(payload, attribute),
+                    value = Cast<Dictionary<string, string>?>(rawPayload, attribute),
                 },
                 ListAttribute or EnumAttribute or LookupAttribute => new ArrayAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
-                    value = Cast<TPayload, string[]?>(payload, attribute),
+                    value = Cast<string[]?>(rawPayload, attribute),
                 },
                 NSGetterAttribute => new NullAttributeValue
                 {
@@ -71,17 +79,25 @@ namespace NeoCompose.Runtime
                     $"Unknown attribute type {attribute.GetType().Name}",
                     nameof(attribute)),
             };
+            created.typeId = typeId;
+            return created;
         }
 
-        private static TExpected Cast<TPayload, TExpected>(TPayload? payload, Attribute attribute)
+        private static TExpected Cast<TExpected>(object? payload, Attribute attribute)
         {
             // Allow null when TExpected admits it (Nullable<T> for value
             // types, or any reference type).
             if (payload is null) return default!;
             if (payload is TExpected match) return match;
+            if (typeof(TExpected) == typeof(double?))
+            {
+                if (payload is int i) return (TExpected)(object)(double?)i;
+                if (payload is float f) return (TExpected)(object)(double?)f;
+                if (payload is double d) return (TExpected)(object)(double?)d;
+            }
             throw new System.ArgumentException(
                 $"Cannot set {attribute.GetType().Name} {attribute.id} from " +
-                $"{typeof(TPayload).Name}; expected {typeof(TExpected).Name}",
+                $"{payload.GetType().Name}; expected {typeof(TExpected).Name}",
                 nameof(payload));
         }
     }

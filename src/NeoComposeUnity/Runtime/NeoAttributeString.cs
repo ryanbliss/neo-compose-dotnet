@@ -52,6 +52,7 @@ namespace NeoCompose.Runtime
                 existing.value = newValue;
                 existing.updatedAt = nowIso;
                 client.SetSaveValue(existing);
+                NotifyChanged();
                 return;
             }
 
@@ -65,6 +66,7 @@ namespace NeoCompose.Runtime
             };
             client.AddSaveValue(attribute.id, newRow);
             RefreshFromValueData();
+            NotifyChanged();
         }
     }
 }

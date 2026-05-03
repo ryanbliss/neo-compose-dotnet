@@ -209,11 +209,14 @@ namespace NeoCompose.Runtime
             // client.nodes.
             foreach (var child in childAttributes.Values) child.Dispose();
             childAttributes.Clear();
-            if (value?.value is null) return;
-            foreach (var kvp in value.value)
+            foreach (var entry in mergedSchema)
             {
-                if (!TryGetAttribute(kvp.Key, out Attribute? childAttribute)) continue;
-                childAttributes[kvp.Key] = CreateChild(client, childAttribute, kvp.Value);
+                if (!client.TryGetAttribute(entry.attributeId, out Attribute? childAttribute)) continue;
+                string? childValueId = value?.value is not null
+                    && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey)
+                        ? valueIdForKey
+                        : null;
+                childAttributes[entry.schemaKey] = CreateChild(client, childAttribute, childValueId);
             }
         }
 
@@ -298,6 +301,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set<TChildValue>(string key, TChildValue? setValue)
         {
+            SetValue(key, setValue);
+        }
+
+        public void SetValue(string key, object? setValue)
+        {
             string nowIso = System.DateTime.UtcNow.ToString("o");
 
             // Resolution flows through the merged schema (inheritance
@@ -321,11 +329,24 @@ namespace NeoCompose.Runtime
                     $"Cannot be null when child attribute '{key}' is required");
             }
 
-            if (TryGetValueData(key, out AttributeValue<TChildValue?>? existing))
+            if (value?.value is not null
+                && value.value.TryGetValue(key, out string existingValueId)
+                && client.TryGetValue(existingValueId, out AttributeValue? existing))
             {
-                existing.value = setValue;
-                existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
+                AttributeValue next = AttributeValueFactory.Create(
+                    childAttribute,
+                    setValue,
+                    existingValueId,
+                    existing.createdAt,
+                    nowIso);
+                client.SetSavePayloadRows(setValue);
+                client.SetSaveValue(next);
+                if (childAttributes.TryGetValue(key, out NeoAttribute? oldChild))
+                {
+                    oldChild.Dispose();
+                }
+                childAttributes[key] = CreateChild(client, childAttribute, existingValueId);
+                NotifyChanged();
                 return;
             }
 
@@ -337,6 +358,7 @@ namespace NeoCompose.Runtime
             string newValueId = System.Guid.NewGuid().ToString();
             AttributeValue newValueRow = AttributeValueFactory.Create(
                 childAttribute, setValue, newValueId, nowIso, nowIso);
+            client.SetSavePayloadRows(setValue);
             client.SetSaveValue(newValueRow);
 
             // Make sure the parent has a value to link into. If we're
@@ -361,6 +383,7 @@ namespace NeoCompose.Runtime
             client.SetSaveValue(value);
 
             childAttributes[key] = CreateChild(client, childAttribute, newValueId);
+            NotifyChanged();
         }
 
         /// <summary>
@@ -388,6 +411,7 @@ namespace NeoCompose.Runtime
             }
 
             client.RemoveSaveValueAndDescendants(removedValueId);
+            NotifyChanged();
         }
     }
 }

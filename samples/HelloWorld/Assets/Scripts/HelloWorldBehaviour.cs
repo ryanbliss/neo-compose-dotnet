@@ -1,35 +1,79 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using NeoCompose.Runtime;
 using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts
 {
     /// <summary>
-    /// Minimal MonoBehaviour that proves the sample can reference and
-    /// instantiate types from the `com.ryanbliss.neocompose` package.
-    /// Drop on a GameObject and watch for the Start log line.
+    /// Minimal MonoBehaviour that loads generated Neo Compose types and
+    /// renders a tiny immediate-mode UI for the sample project.
     /// </summary>
     public class HelloWorldBehaviour : MonoBehaviour
     {
-        protected NeoClient client;
+        protected HelloWorldNeo neo;
+        private readonly HelloWorldUi ui = new();
 
         protected void Start()
         {
-            var loader = new NeoLoader();
-            client = loader.Load(
-                File.ReadAllText(NeoAssetsFilePath),
-                OnLoadSave,
-                OnHandleSave
+            LoadClient();
+        }
+
+        public void LoadClient()
+        {
+            string json = File.ReadAllText(NeoAssetsFilePath);
+            neo = HelloWorldNeo.Load(json, OnLoadSave, OnHandleSave);
+        }
+
+        public string HelloWorldText => neo.Assets.computed.fullText;
+        public Planet World => neo.Save.world;
+
+        public IReadOnlyList<Planet> VisitedPlanets()
+        {
+            return neo.Save.visited
+                .Select((visit) => visit.world)
+                .Where((planet) => planet is not null)
+                .ToList();
+        }
+
+        public void Visit(Planet planet)
+        {
+            neo.Save.world = planet;
+            neo.Save.visited.AddValue(
+                PlanetVisit.factory(
+                    neo.Runtime,
+                    planet,
+                    CurrentUnixTime
+                )
             );
+        }
+
+        public void Save()
+        {
+            neo.Runtime.Save();
+        }
+
+        public void ResetSave()
+        {
+            if (File.Exists(SaveFilePath)) File.Delete(SaveFilePath);
+            LoadClient();
+        }
+
+        protected void OnGUI()
+        {
+            if (neo is null) return;
+            ui.Render(HelloWorldText, World, VisitedPlanets(), Visit, Save, ResetSave);
         }
 
         protected string OnLoadSave()
         {
             return File.ReadAllText(SaveFilePath);
         }
+
         protected void OnHandleSave(string content)
         {
             File.WriteAllText(SaveFilePath, content);
@@ -39,21 +83,13 @@ namespace HelloWorld.Assets.Scripts
         // Static file loading
         // ──────────────────────────────────────────────
 
-        private static readonly string FixturesRoot = "Assets/Neo";
-        private static readonly string FileName = "project-example.json";
+        private static readonly string FixturesRoot = "Assets/Scripts";
+        private static readonly string FileName = "project.json";
 
-        private static string NeoAssetsFilePath
-        {
-            get => Path.Combine(FixturesRoot, FileName);
-        }
+        private static string NeoAssetsFilePath => Path.Combine(FixturesRoot, FileName);
 
-        private static string SaveFilePath
-        {
-            get
-            {
-                string fileName = "/save1.json";
-                return Application.persistentDataPath + fileName;
-            }
-        }
+        private static string SaveFilePath => $"{Application.persistentDataPath}/save1.json";
+
+        private static int CurrentUnixTime => (int)System.DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 }

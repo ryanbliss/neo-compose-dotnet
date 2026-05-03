@@ -10,7 +10,7 @@
   },
   "attributes": {
     "root-assets": {
-      "_id": "87f7aec5-dc7a-432d-a5ec-c07bef8450bd",
+      "_id": "bc0e8e4c-3289-499f-b239-adde0ff96dd9",
       "id": "root-assets",
       "name": "Assets",
       "type": 7,
@@ -22,7 +22,7 @@
       "customTypeId": "type-root"
     },
     "root-save": {
-      "_id": "4c47be18-5567-4695-b667-7190136d417d",
+      "_id": "8fd6b2d6-497d-47a6-8b3e-a8702063e9df",
       "id": "root-save",
       "name": "Save",
       "type": 7,
@@ -34,7 +34,7 @@
       "customTypeId": "type-root"
     },
     "attr-name": {
-      "_id": "e410efd1-3c6b-4b6c-bde1-a37473167149",
+      "_id": "e96d04b0-2c00-48d3-9cf8-b8d111b0d7a3",
       "id": "attr-name",
       "name": "Name",
       "type": 3,
@@ -48,7 +48,7 @@
       }
     },
     "attr-altname": {
-      "_id": "b6481b8b-5b69-4ea5-b016-5d107cad0aa8",
+      "_id": "3368907d-e5ac-4b36-bc20-1c04f5c8e51b",
       "id": "attr-altname",
       "name": "AltName",
       "type": 3,
@@ -62,7 +62,7 @@
       }
     },
     "attr-health": {
-      "_id": "b644e7fd-1264-4329-8e1d-8048ae023f67",
+      "_id": "65d0e268-9443-4862-a882-6f51bda6a673",
       "id": "attr-health",
       "name": "Health",
       "type": 2,
@@ -76,7 +76,7 @@
       }
     },
     "attr-speed": {
-      "_id": "8bd8043f-2c07-4e7c-be36-96ee9c086551",
+      "_id": "e7633563-f439-4985-a223-0e449c25c7a0",
       "id": "attr-speed",
       "name": "Speed",
       "type": 4,
@@ -90,7 +90,7 @@
       }
     },
     "attr-isalive": {
-      "_id": "408d777c-4ca1-4bc4-bf23-5bc80a8b7d1c",
+      "_id": "d400991a-6c31-4c9c-8110-35356f8c53b6",
       "id": "attr-isalive",
       "name": "IsAlive",
       "type": 1,
@@ -104,7 +104,7 @@
       }
     },
     "attr-hero": {
-      "_id": "8b6063c7-dd73-4dd3-bb4c-bcd23236b77f",
+      "_id": "71232961-057e-40b1-acb8-a695ba8f4183",
       "id": "attr-hero",
       "name": "Hero",
       "type": 7,
@@ -122,7 +122,7 @@
       }
     },
     "attr-inventory": {
-      "_id": "6a72cbe9-804f-43db-bbfe-94d4c15b5f3f",
+      "_id": "94dc98be-fa49-46cd-8692-8846a66519b8",
       "id": "attr-inventory",
       "name": "Inventory",
       "type": 5,
@@ -140,7 +140,7 @@
       }
     },
     "attr-tags": {
-      "_id": "00fcfb5e-d287-4e6e-a186-fe0bc91a781d",
+      "_id": "f824c683-705d-4170-a5f3-11ff3567300d",
       "id": "attr-tags",
       "name": "Tags",
       "type": 6,
@@ -157,8 +157,20 @@
         ]
       }
     },
+    "attr-heroes": {
+      "_id": "219965ee-f668-4ec0-b8f0-6e414160d027",
+      "id": "attr-heroes",
+      "name": "Heroes",
+      "type": 6,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "entryAttributeId": "attr-hero"
+    },
     "attr-element": {
-      "_id": "e556da87-6bb6-471e-b245-c46edebeec28",
+      "_id": "988dff6b-c5a3-4b34-b8f8-ec9d5757b15f",
       "id": "attr-element",
       "name": "Element",
       "type": 8,
@@ -171,7 +183,7 @@
       "multiselect": false
     },
     "attr-choice": {
-      "_id": "78247f77-5cba-4da5-bc31-7d28f27b23d7",
+      "_id": "7bddf541-478a-469d-b884-466b0f17f613",
       "id": "attr-choice",
       "name": "Choice",
       "type": 9,
@@ -184,7 +196,7 @@
       "multiselect": true
     },
     "attr-score": {
-      "_id": "23bf760a-0d13-4182-b6e8-a95b5f199e38",
+      "_id": "2eef311e-a17b-4aff-adf7-1d8bfee5936f",
       "id": "attr-score",
       "name": "Score",
       "type": 10,
@@ -509,7 +521,7 @@
       }
     },
     "attr-manifest": {
-      "_id": "ca95e4c5-4d13-4e6c-816f-cfd4767cb257",
+      "_id": "09d833cc-f9fc-4657-af2f-859ec2c50861",
       "id": "attr-manifest",
       "name": "Manifest",
       "type": 10,
@@ -583,7 +595,7 @@
       }
     },
     "attr-active": {
-      "_id": "52d87cc1-f099-4ad0-87fd-326db5f1840b",
+      "_id": "1ff93ea6-ea99-45cc-a126-3beff3d10921",
       "id": "attr-active",
       "name": "Active",
       "type": 10,
@@ -623,7 +635,7 @@
       }
     },
     "attr-base": {
-      "_id": "2151f0c8-70aa-4044-bea3-1c8ec367f34d",
+      "_id": "4fa1b2a3-ea26-42a6-89a6-5b98843a0748",
       "id": "attr-base",
       "name": "BaseRecord",
       "type": 7,
@@ -635,7 +647,7 @@
       "customTypeId": "type-base"
     },
     "attr-derived": {
-      "_id": "9cccb4b0-1927-4beb-8c33-8a3bd71ea3a4",
+      "_id": "e9aaa1b1-0e05-402f-8225-247d34de001e",
       "id": "attr-derived",
       "name": "DerivedRecord",
       "type": 7,
@@ -647,7 +659,7 @@
       "customTypeId": "type-derived"
     },
     "attr-override": {
-      "_id": "595a69ca-b7c5-4ac9-9859-334b493fc931",
+      "_id": "95cf33e6-7a61-4513-aa39-c8c0d6112a59",
       "id": "attr-override",
       "name": "OverrideRecord",
       "type": 7,
@@ -696,7 +708,10 @@
       "_id": "type-root",
       "id": "type-root",
       "name": "Root",
-      "schema": {},
+      "schema": {
+        "Heroes": "attr-heroes",
+        "Manifest": "attr-manifest"
+      },
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "projectId": "test-project",

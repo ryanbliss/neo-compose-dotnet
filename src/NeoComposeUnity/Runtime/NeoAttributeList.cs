@@ -128,12 +128,18 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Add<TEntryValue>(TEntryValue? entryValue)
         {
+            AddValue(entryValue);
+        }
+
+        public void AddValue(object? entryValue)
+        {
             string nowIso = System.DateTime.UtcNow.ToString("o");
             EnsureParentExists(nowIso);
 
             string newValueId = System.Guid.NewGuid().ToString();
             AttributeValue newValueRow = AttributeValueFactory.Create(
                 entryAttribute, entryValue, newValueId, nowIso, nowIso);
+            client.SetSavePayloadRows(entryValue);
             client.SetSaveValue(newValueRow);
 
             string[] currentArr = value!.value ?? System.Array.Empty<string>();
@@ -145,6 +151,7 @@ namespace NeoCompose.Runtime
             client.SetSaveValue(value);
 
             childAttributes.Add(CreateChild(client, entryAttribute, newValueId));
+            NotifyChanged();
         }
 
         /// <summary>
@@ -154,6 +161,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set<TEntryValue>(int index, TEntryValue? entryValue)
         {
+            SetValue(index, entryValue);
+        }
+
+        public void SetValue(int index, object? entryValue)
+        {
             if (value?.value is null || index < 0 || index >= value.value.Length)
             {
                 throw new System.ArgumentOutOfRangeException(nameof(index));
@@ -161,15 +173,23 @@ namespace NeoCompose.Runtime
             string nowIso = System.DateTime.UtcNow.ToString("o");
             string entryValueId = value.value[index];
 
-            if (client.TryGetValue(entryValueId, out AttributeValue<TEntryValue?>? existing))
+            if (!client.TryGetValue(entryValueId, out AttributeValue? existing))
             {
-                existing.value = entryValue;
-                existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
-                return;
+                throw new System.InvalidOperationException(
+                    $"List entry value '{entryValueId}' at index {index} not found");
             }
-            throw new System.InvalidOperationException(
-                $"List entry value '{entryValueId}' at index {index} not found");
+
+            AttributeValue next = AttributeValueFactory.Create(
+                entryAttribute,
+                entryValue,
+                entryValueId,
+                existing.createdAt,
+                nowIso);
+            client.SetSavePayloadRows(entryValue);
+            client.SetSaveValue(next);
+            childAttributes[index].Dispose();
+            childAttributes[index] = CreateChild(client, entryAttribute, entryValueId);
+            NotifyChanged();
         }
 
         /// <summary>
@@ -208,6 +228,7 @@ namespace NeoCompose.Runtime
 
             // GC the orphaned value graph from the save file.
             client.RemoveSaveValueAndDescendants(removedValueId);
+            NotifyChanged();
         }
 
         private void EnsureParentExists(string nowIso)

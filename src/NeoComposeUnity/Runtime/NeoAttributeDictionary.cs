@@ -50,6 +50,10 @@ namespace NeoCompose.Runtime
 
         public NeoAttribute this[string key] => childAttributes[key];
 
+        public int Count => childAttributes.Count;
+
+        public bool ContainsKey(string key) => childAttributes.ContainsKey(key);
+
         public bool TryGet<TNeoAttribute>(string key, [NotNullWhen(true)] out TNeoAttribute? outAttribute)
             where TNeoAttribute : NeoAttribute
         {
@@ -145,6 +149,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set<TEntryValue>(string key, TEntryValue? setValue)
         {
+            SetValue(key, setValue);
+        }
+
+        public void SetValue(string key, object? setValue)
+        {
             if (entryAttribute.required && setValue is null)
             {
                 throw new System.ArgumentNullException(
@@ -155,17 +164,29 @@ namespace NeoCompose.Runtime
 
             if (value?.value is not null
                 && value.value.TryGetValue(key, out string existingValueId)
-                && client.TryGetValue(existingValueId, out AttributeValue<TEntryValue?>? existing))
+                && client.TryGetValue(existingValueId, out AttributeValue? existing))
             {
-                existing.value = setValue;
-                existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
+                AttributeValue next = AttributeValueFactory.Create(
+                    entryAttribute,
+                    setValue,
+                    existingValueId,
+                    existing.createdAt,
+                    nowIso);
+                client.SetSavePayloadRows(setValue);
+                client.SetSaveValue(next);
+                if (childAttributes.TryGetValue(key, out NeoAttribute? oldChild))
+                {
+                    oldChild.Dispose();
+                }
+                childAttributes[key] = CreateChild(client, entryAttribute, existingValueId);
+                NotifyChanged();
                 return;
             }
 
             string newValueId = System.Guid.NewGuid().ToString();
             AttributeValue newValueRow = AttributeValueFactory.Create(
                 entryAttribute, setValue, newValueId, nowIso, nowIso);
+            client.SetSavePayloadRows(setValue);
             client.SetSaveValue(newValueRow);
 
             if (value is null)
@@ -187,6 +208,7 @@ namespace NeoCompose.Runtime
             client.SetSaveValue(value);
 
             childAttributes[key] = CreateChild(client, entryAttribute, newValueId);
+            NotifyChanged();
         }
 
         public void Remove(string key)
@@ -213,6 +235,7 @@ namespace NeoCompose.Runtime
             // (e.g., the entry was a Custom record); RemoveSaveValueAndDescendants
             // walks them.
             client.RemoveSaveValueAndDescendants(removedValueId);
+            NotifyChanged();
         }
     }
 }

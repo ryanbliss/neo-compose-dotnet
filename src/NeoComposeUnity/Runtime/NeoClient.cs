@@ -64,6 +64,13 @@ namespace NeoCompose.Runtime
         /// refresh hook manually.</para>
         /// </summary>
         public event System.Action<string, string?>? OnSaveOverrideChanged;
+        /// <summary>
+        /// Fired whenever a save-side value row is added, replaced, or
+        /// removed. The argument is the affected value id.
+        /// Generated wrappers and runtime collection helpers use this as a
+        /// coarse invalidation signal after <c>*Saved</c> mutations.
+        /// </summary>
+        public event System.Action<string>? OnSaveValueChanged;
 
         protected ProjectData data;
         protected ProjectSaveData saveData;
@@ -137,6 +144,16 @@ namespace NeoCompose.Runtime
         public void SetSaveValue<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
         {
             saveData.values[value.id] = value;
+            OnSaveValueChanged?.Invoke(value.id);
+        }
+
+        internal void SetSavePayloadRows(object? payload)
+        {
+            if (payload is not NeoValuePayload wrapped) return;
+            foreach (var row in wrapped.valueRows)
+            {
+                SetSaveValue(row);
+            }
         }
 
         /// <summary>
@@ -203,7 +220,10 @@ namespace NeoCompose.Runtime
                     }
                     break;
             }
-            saveData.values.Remove(valueId);
+            if (saveData.values.Remove(valueId))
+            {
+                OnSaveValueChanged?.Invoke(valueId);
+            }
         }
 
         /// <summary>
@@ -314,9 +334,14 @@ namespace NeoCompose.Runtime
             return JsonConvert.DeserializeObject<ProjectSaveData>(json);
         }
 
-        protected string SerializeSaveData()
+        public string SerializeSaveData()
         {
             return JsonConvert.SerializeObject(saveData);
+        }
+
+        public void Save()
+        {
+            EmitHandleSave();
         }
 
         protected void EmitHandleSave()

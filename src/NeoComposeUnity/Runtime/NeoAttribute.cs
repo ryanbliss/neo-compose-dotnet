@@ -51,6 +51,8 @@ namespace NeoCompose.Runtime
         /// ancestor.
         /// </summary>
         public NeoAttribute? parent { get; internal set; }
+        public event System.Action<NeoAttribute>? OnChanged;
+        public event System.Action<NeoAttribute>? OnDisposed;
         /// <summary>
         /// True after <see cref="Dispose"/> has run. Subclasses must
         /// short-circuit further work (events, setter mutations) when
@@ -78,7 +80,14 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed) return;
             isDisposed = true;
+            OnDisposed?.Invoke(this);
             client.UnregisterNode(this);
+        }
+
+        protected void NotifyChanged()
+        {
+            if (isDisposed) return;
+            OnChanged?.Invoke(this);
         }
 
         /// <summary>
@@ -300,6 +309,7 @@ namespace NeoCompose.Runtime
             // matching the user-visible "valueId becomes null → value
             // becomes null" semantic.
             value = valueData;
+            NotifyChanged();
         }
 
         /// <summary>
@@ -356,6 +366,7 @@ namespace NeoCompose.Runtime
         virtual protected void Initialize(TValue value)
         {
             this.value = value;
+            NotifyChanged();
         }
     }
 }

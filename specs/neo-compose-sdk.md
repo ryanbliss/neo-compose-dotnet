@@ -19,7 +19,7 @@ types / attributes / values (default):
         computedText: ComputedText (Custom)
             baseText: String = "Hello"
             optionalSuffix: String? = null
-            fullText: NSGetter = $"return {this.BaseText} {root.save.Enum}{this.optionalSuffix ?? ""}"
+            fullText: NSGetter = $"return "{this.BaseText} {root.save.world}{this.optionalSuffix ?? ""}"
     Save
         world: Planet (Enum) = [Planet.earth]
         visited: List<VisitedPlanet> = [
