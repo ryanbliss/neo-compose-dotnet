@@ -36,7 +36,6 @@ namespace HelloWorld.Assets.Scripts
         {
             return neo.Save.visited
                 .Select((visit) => visit.world)
-                .Where((planet) => planet is not null)
                 .ToList();
         }
 

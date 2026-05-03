@@ -301,12 +301,12 @@ namespace HelloWorld.Assets.Scripts
             };
         }
 
-        public Planet? world
+        public Planet world
         {
             get
             {
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("world"));
-                return selected is null ? null : Planet.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'world' has no selected option.") : Planet.FromOptionId(selected);
             }
         }
 
@@ -337,16 +337,16 @@ namespace HelloWorld.Assets.Scripts
             };
         }
 
-        public new Planet? world
+        public new Planet world
         {
             get
             {
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("world"));
-                return selected is null ? null : Planet.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'world' has no selected option.") : Planet.FromOptionId(selected);
             }
             set
             {
-                savedNode.SetValue("world", value is null ? null : new[] { value.optionId });
+                savedNode.SetValue("world", new[] { value.optionId });
             }
         }
 
@@ -612,12 +612,12 @@ namespace HelloWorld.Assets.Scripts
             };
         }
 
-        public Planet? world
+        public Planet world
         {
             get
             {
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("world"));
-                return selected is null ? null : Planet.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'world' has no selected option.") : Planet.FromOptionId(selected);
             }
         }
 
@@ -648,16 +648,16 @@ namespace HelloWorld.Assets.Scripts
             };
         }
 
-        public new Planet? world
+        public new Planet world
         {
             get
             {
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("world"));
-                return selected is null ? null : Planet.FromOptionId(selected);
+                return selected is null ? throw new InvalidOperationException("Required enum 'world' has no selected option.") : Planet.FromOptionId(selected);
             }
             set
             {
-                savedNode.SetValue("world", value is null ? null : new[] { value.optionId });
+                savedNode.SetValue("world", new[] { value.optionId });
             }
         }
 
