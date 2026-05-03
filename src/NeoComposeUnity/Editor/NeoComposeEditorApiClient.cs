@@ -13,6 +13,11 @@ namespace NeoCompose.Unity.Editor
     public interface INeoComposeEditorApiClient
     {
         Task<NeoComposeProjectListResponse> ListProjectsAsync(string apiBaseUrl, string? query);
+        Task<NeoComposeProjectEditResponse> UpdateProjectExportSettingsAsync(
+            string apiBaseUrl,
+            string projectId,
+            string namespaceForGeneratedTypes);
+
         Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId);
     }
 
@@ -36,6 +41,37 @@ namespace NeoCompose.Unity.Editor
             return response;
         }
 
+        public async Task<NeoComposeProjectEditResponse> UpdateProjectExportSettingsAsync(
+            string apiBaseUrl,
+            string projectId,
+            string namespaceForGeneratedTypes)
+        {
+            if (string.IsNullOrWhiteSpace(projectId))
+            {
+                throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
+            }
+
+            var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/edit");
+            var request = new NeoComposeProjectEditRequest
+            {
+                exportSettings = new NeoComposeProjectExportSettings
+                {
+                    unity = new NeoComposeUnityExportSettings
+                    {
+                        namespaceForGeneratedTypes = namespaceForGeneratedTypes,
+                    },
+                },
+            };
+            var json = await PostAsync(url, JsonConvert.SerializeObject(request));
+            var response = JsonConvert.DeserializeObject<NeoComposeProjectEditResponse>(json);
+            if (response == null)
+            {
+                throw new InvalidOperationException("Neo Compose project edit response was empty.");
+            }
+
+            return response;
+        }
+
         public async Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId)
         {
             if (string.IsNullOrWhiteSpace(projectId))
@@ -44,7 +80,7 @@ namespace NeoCompose.Unity.Editor
             }
 
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export");
-            var json = await PostAsync(url);
+            var json = await PostAsync(url, "");
             var response = JsonConvert.DeserializeObject<NeoComposeUnityExportResponse>(json);
             if (response == null)
             {
@@ -64,11 +100,11 @@ namespace NeoCompose.Unity.Editor
             return apiBaseUrl.Trim().TrimEnd('/') + path;
         }
 
-        private static async Task<string> PostAsync(string url)
+        private static async Task<string> PostAsync(string url, string body = "")
         {
             using var request = new UnityWebRequest(url, "POST");
             request.downloadHandler = new DownloadHandlerBuffer();
-            request.uploadHandler = new UploadHandlerRaw(Array.Empty<byte>());
+            request.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(body));
             request.SetRequestHeader("Content-Type", "application/json");
 
             await SendAsync(request);

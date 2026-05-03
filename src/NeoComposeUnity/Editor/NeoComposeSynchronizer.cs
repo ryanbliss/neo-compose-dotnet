@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -122,6 +123,7 @@ namespace NeoCompose.Unity.Editor
                 assets.WriteAllText(projectJsonPath, exportResponse.projectJson);
                 assets.RefreshAsset(generatedTypesPath);
                 assets.RefreshAsset(projectJsonPath);
+                config.namespaceForGeneratedTypes = ReadUnityNamespaceOrDefault(exportResponse.projectJson);
                 assets.SaveConfig(config);
 
                 return NeoComposeSyncResult.Success("Neo Compose files synchronized.", exportResponse);
@@ -200,6 +202,22 @@ namespace NeoCompose.Unity.Editor
         {
             var path = string.IsNullOrWhiteSpace(diagnostic.path) ? "" : $"{diagnostic.path}: ";
             return $"{diagnostic.severity.ToUpperInvariant()}: {path}{diagnostic.message}";
+        }
+
+        private static string ReadUnityNamespaceOrDefault(string projectJson)
+        {
+            try
+            {
+                var root = JObject.Parse(projectJson);
+                var namespaceForGeneratedTypes = root["project"]?["exportSettings"]?["unity"]?["namespaceForGeneratedTypes"]?.Value<string>();
+                return string.IsNullOrWhiteSpace(namespaceForGeneratedTypes)
+                    ? NeoComposeDefaults.NamespaceForGeneratedTypes
+                    : namespaceForGeneratedTypes;
+            }
+            catch
+            {
+                return NeoComposeDefaults.NamespaceForGeneratedTypes;
+            }
         }
     }
 

@@ -10,5 +10,6 @@ namespace NeoCompose.Runtime
         public const string ApiBaseUrl = "http://localhost:3000";
         public const string GeneratedTypesDirectory = "Assets/Scripts/Neo";
         public const string ProjectJsonDirectory = "Assets/Resources/Neo";
+        public const string NamespaceForGeneratedTypes = "Assets.Scripts.Neo";
     }
 }

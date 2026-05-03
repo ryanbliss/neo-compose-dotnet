@@ -17,11 +17,13 @@ namespace NeoCompose.Unity.Editor
         private NeoComposeConfig? config;
         private INeoComposeEditorApiClient apiClient = new NeoComposeEditorApiClient();
         private NeoComposeSynchronizer? synchronizer;
+        private NeoComposeProjectSettingsUpdater? projectSettingsUpdater;
         private readonly List<NeoComposeProjectSummary> projects = new();
         private Vector2 scroll;
         private string searchText = "";
         private string status = "";
         private bool loading;
+        private bool clearKeyboardFocusNextGui;
         private const float ContentPadding = 12f;
         private const float LabelWidth = 132f;
         private const float ProjectLabelWidth = 84f;
@@ -42,6 +44,9 @@ namespace NeoCompose.Unity.Editor
                 apiClient,
                 new NeoComposeEditorDialogConfirmationService(),
                 new NeoComposeEditorAssetService());
+            projectSettingsUpdater = new NeoComposeProjectSettingsUpdater(
+                apiClient,
+                new NeoComposeEditorAssetService());
         }
 
         private void OnGUI()
@@ -52,6 +57,8 @@ namespace NeoCompose.Unity.Editor
                 if (GUILayout.Button("Retry")) OnEnable();
                 return;
             }
+
+            ClearKeyboardFocusIfRequested();
 
             EditorGUILayout.Space(8);
             EditorGUILayout.BeginHorizontal();
@@ -157,6 +164,33 @@ namespace NeoCompose.Unity.Editor
             EditorGUILayout.EndHorizontal();
             EndSection();
 
+            BeginSection("Export Settings");
+            using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
+            {
+                EditorGUI.BeginChangeCheck();
+                config.namespaceForGeneratedTypes = EditorGUILayout.TextField(
+                    "Unity Namespace",
+                    config.namespaceForGeneratedTypes);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    NeoComposeConfigProvider.Save(config);
+                }
+            }
+
+            EditorGUILayout.Space(3);
+            EditorGUILayout.BeginHorizontal();
+            using (new EditorGUI.DisabledScope(loading))
+            {
+                if (GUILayout.Button("Save to web", GUILayout.Width(120), GUILayout.Height(24)))
+                {
+                    _ = SaveUnityNamespaceAsync();
+                }
+            }
+
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+            EndSection();
+
             BeginSection("Output");
             using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
             {
@@ -235,7 +269,7 @@ namespace NeoCompose.Unity.Editor
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Select", GUILayout.Width(72)))
             {
-                config.SelectProject(project.id, project.name);
+                config.SelectProject(project.id, project.name, project.UnityNamespaceOrDefault());
                 NeoComposeConfigProvider.Save(config);
             }
 
@@ -376,9 +410,41 @@ namespace NeoCompose.Unity.Editor
             Repaint();
 
             var result = await synchronizer.SynchronizeAsync(config);
+            RefreshConfigForDisplay();
             status = result.message;
             loading = false;
+            clearKeyboardFocusNextGui = true;
             Repaint();
+        }
+
+        private async Task SaveUnityNamespaceAsync()
+        {
+            if (config == null || projectSettingsUpdater == null) return;
+            loading = true;
+            status = "Saving Unity export settings...";
+            Repaint();
+
+            var result = await projectSettingsUpdater.UpdateUnityNamespaceAsync(config);
+            RefreshConfigForDisplay();
+            status = result.message;
+            loading = false;
+            clearKeyboardFocusNextGui = true;
+            Repaint();
+        }
+
+        private void RefreshConfigForDisplay()
+        {
+            config = NeoComposeConfigProvider.LoadOrCreate();
+        }
+
+        private void ClearKeyboardFocusIfRequested()
+        {
+            if (!clearKeyboardFocusNextGui) return;
+
+            clearKeyboardFocusNextGui = false;
+            GUI.FocusControl(null);
+            GUIUtility.keyboardControl = 0;
+            EditorGUIUtility.editingTextField = false;
         }
 
         private static string BuildProjectSchemaUrl(string apiBaseUrl, string projectId)

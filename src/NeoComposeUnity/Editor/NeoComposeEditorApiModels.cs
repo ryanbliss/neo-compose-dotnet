@@ -11,11 +11,32 @@ namespace NeoCompose.Unity.Editor
     {
         public string id = "";
         public string name = "";
+        public NeoComposeProjectExportSettings? exportSettings;
     }
 
     public sealed class NeoComposeProjectListResponse
     {
         public List<NeoComposeProjectSummary> projects = new();
+    }
+
+    public sealed class NeoComposeProjectEditResponse
+    {
+        public NeoComposeProjectSummary project = new();
+    }
+
+    public sealed class NeoComposeProjectEditRequest
+    {
+        public NeoComposeProjectExportSettings? exportSettings;
+    }
+
+    public sealed class NeoComposeProjectExportSettings
+    {
+        public NeoComposeUnityExportSettings? unity;
+    }
+
+    public sealed class NeoComposeUnityExportSettings
+    {
+        public string? namespaceForGeneratedTypes;
     }
 
     public sealed class NeoComposeCodegenDiagnostic
