@@ -8,7 +8,7 @@ using System;
 namespace NeoCompose.Runtime
 {
     public abstract class NeoGeneratedCustomValue
-        : NeoNode, IDisposable, INeoValuePayloadProvider
+        : NeoNode, IDisposable, INeoValuePayloadProvider, INeoValueReference
     {
         protected readonly NeoAttributeCustom node;
         private readonly string fallbackTypeId;

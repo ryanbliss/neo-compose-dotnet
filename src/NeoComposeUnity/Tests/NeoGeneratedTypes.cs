@@ -83,38 +83,6 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public static NeoValuePayload factory(NeoClient client, string? Name = null, int? Health = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                });
-            }
-            if (Health is not null)
-            {
-                var HealthValueId = Guid.NewGuid().ToString();
-                value["Health"] = HealthValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = HealthValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Health.HasValue ? Health.Value : (double?)null,
-                });
-            }
-            return new NeoValuePayload(value, "type-hero", valueRows);
-        }
-
         internal static Hero Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -150,6 +118,38 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static HeroSaved factory(NeoClient client, string? Name = null, int? Health = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                });
+            }
+            if (Health is not null)
+            {
+                var HealthValueId = Guid.NewGuid().ToString();
+                value["Health"] = HealthValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = HealthValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Health.HasValue ? Health.Value : (double?)null,
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-hero", value, valueRows));
+        }
+
         internal static HeroSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -167,7 +167,7 @@ namespace Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("Name", value);
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -179,7 +179,7 @@ namespace Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("Health", value);
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Health", NeoGeneratedTypesSupport.Value(value));
             }
         }
     }
@@ -188,41 +188,6 @@ namespace Assets.Scripts.Neo
         public Root(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "type-root")
         {
-        }
-
-        public static NeoValuePayload factory(NeoClient client, IEnumerable<NeoValuePayload>? Heroes = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Heroes is not null)
-            {
-                var HeroesValueId = Guid.NewGuid().ToString();
-                value["Heroes"] = HeroesValueId;
-                var HeroesIds = new List<string>();
-                foreach (var entry in Heroes)
-                {
-                    var entryValueId = Guid.NewGuid().ToString();
-                    HeroesIds.Add(entryValueId);
-                    foreach (var row in entry.valueRows) valueRows.Add(row);
-                    valueRows.Add(new ObjectAttributeValue
-                    {
-                        id = entryValueId,
-                        createdAt = nowIso,
-                        updatedAt = nowIso,
-                        value = entry.value as Dictionary<string, string>,
-                        typeId = entry.typeId,
-                    });
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = HeroesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = HeroesIds.ToArray(),
-                });
-            }
-            return new NeoValuePayload(value, "type-root", valueRows);
         }
 
         internal static Root Create(NeoClient client, NeoAttributeCustom node)
@@ -262,6 +227,31 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static RootSaved factory(NeoClient client, IEnumerable<HeroSaved>? Heroes = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Heroes is not null)
+            {
+                var HeroesValueId = Guid.NewGuid().ToString();
+                value["Heroes"] = HeroesValueId;
+                var HeroesIds = new List<string>();
+                foreach (var entry in Heroes)
+                {
+                    HeroesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = HeroesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = HeroesIds.ToArray(),
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-root", value, valueRows));
+        }
+
         internal static RootSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -275,13 +265,8 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<HeroSaved>(client, node.Get<NeoAttributeListSaved>("Heroes"), (client, child) => HeroSaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValuePayload(item));
+                return new NeoList<HeroSaved>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("Heroes"), (client, child) => HeroSaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
-        }
-
-        public void SetHeroesValue(object? value)
-        {
-            savedNode.SetValue("Heroes", value);
         }
 
         public new string Manifest
@@ -299,26 +284,6 @@ namespace Assets.Scripts.Neo
         public Base(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "type-base")
         {
-        }
-
-        public static NeoValuePayload factory(NeoClient client, string? Name = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                });
-            }
-            return new NeoValuePayload(value, "type-base", valueRows);
         }
 
         internal static Base Create(NeoClient client, NeoAttributeCustom node)
@@ -350,6 +315,26 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static BaseSaved factory(NeoClient client, string? Name = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-base", value, valueRows));
+        }
+
         internal static BaseSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -369,7 +354,7 @@ namespace Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("Name", value);
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
     }
@@ -378,38 +363,6 @@ namespace Assets.Scripts.Neo
         public Derived(NeoClient client, NeoAttributeCustom node)
             : base(client, node)
         {
-        }
-
-        public static NeoValuePayload factory(NeoClient client, string? Name = null, int? Health = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                });
-            }
-            if (Health is not null)
-            {
-                var HealthValueId = Guid.NewGuid().ToString();
-                value["Health"] = HealthValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = HealthValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Health.HasValue ? Health.Value : (double?)null,
-                });
-            }
-            return new NeoValuePayload(value, "type-derived", valueRows);
         }
 
         internal static Derived Create(NeoClient client, NeoAttributeCustom node)
@@ -439,6 +392,38 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static DerivedSaved factory(NeoClient client, string? Name = null, int? Health = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                });
+            }
+            if (Health is not null)
+            {
+                var HealthValueId = Guid.NewGuid().ToString();
+                value["Health"] = HealthValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = HealthValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Health.HasValue ? Health.Value : (double?)null,
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-derived", value, valueRows));
+        }
+
         internal static DerivedSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -456,7 +441,7 @@ namespace Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("Name", value);
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -468,7 +453,7 @@ namespace Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("Health", value);
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Health", NeoGeneratedTypesSupport.Value(value));
             }
         }
     }
@@ -477,26 +462,6 @@ namespace Assets.Scripts.Neo
         public Override(NeoClient client, NeoAttributeCustom node)
             : base(client, node)
         {
-        }
-
-        public static NeoValuePayload factory(NeoClient client, string? Name = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                });
-            }
-            return new NeoValuePayload(value, "type-override", valueRows);
         }
 
         internal static Override Create(NeoClient client, NeoAttributeCustom node)
@@ -526,6 +491,26 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static OverrideSaved factory(NeoClient client, string? Name = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-override", value, valueRows));
+        }
+
         internal static OverrideSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -543,7 +528,7 @@ namespace Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("Name", value);
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
     }

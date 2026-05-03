@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
 {
@@ -15,6 +16,89 @@ namespace NeoCompose.Runtime
     /// </summary>
     public static class NeoGeneratedTypesSupport
     {
+        public static NeoValueWritePayload? Value<T>(T? value)
+        {
+            return NeoValueWritePayload.FromValue(value);
+        }
+
+        public static NeoValueWritePayload? ValueReference(
+            INeoValueReference? value)
+        {
+            return value is null
+                ? null
+                : NeoValueWritePayload.FromValueReference(
+                    LookupSelectionId(value.valueId));
+        }
+
+        public static void SetValue(
+            NeoAttributeCustomSaved node,
+            string key,
+            NeoValueWritePayload? value)
+        {
+            node.SetSerializedValue(key, value);
+        }
+
+        public static void SetValue(
+            NeoAttributeDictionarySaved node,
+            string key,
+            NeoValueWritePayload? value)
+        {
+            node.SetSerialized(key, value);
+        }
+
+        public static void AddValue(
+            NeoAttributeListSaved node,
+            NeoValueWritePayload? value)
+        {
+            node.AddSerialized(value);
+        }
+
+        public static void SetValue(
+            NeoAttributeListSaved node,
+            int index,
+            NeoValueWritePayload? value)
+        {
+            node.SetSerialized(index, value);
+        }
+
+        public static NeoAttributeCustomSaved CreateSavedCustomValue(
+            NeoClient client,
+            string customTypeId,
+            Dictionary<string, string> value,
+            IReadOnlyList<AttributeValue> valueRows)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            foreach (var row in valueRows)
+            {
+                client.SetSaveValue(row);
+            }
+
+            var parentRow = new ObjectAttributeValue
+            {
+                id = Guid.NewGuid().ToString(),
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = value,
+                typeId = customTypeId,
+            };
+            client.SetSaveValue(parentRow);
+
+            var factoryAttribute = new CustomAttribute
+            {
+                id = $"__neo_factory_custom_{customTypeId}",
+                _id = $"__neo_factory_custom_{customTypeId}",
+                name = "Factory",
+                type = AttributeType.Custom,
+                customTypeId = customTypeId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+            };
+            return new NeoAttributeCustomSaved(
+                client,
+                factoryAttribute,
+                parentRow.id);
+        }
+
         public static NeoValuePayload? ValuePayload(
             INeoValuePayloadProvider? value)
         {

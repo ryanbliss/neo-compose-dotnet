@@ -341,7 +341,62 @@ namespace NeoCompose.Runtime
 
         public void Save()
         {
+            var unlinkedValueIds = FindUnlinkedSaveValueIds();
+            if (unlinkedValueIds.Count > 0)
+            {
+                Debug.LogWarning(
+                    $"NeoCompose save contains {unlinkedValueIds.Count} unlinked value(s). " +
+                    "This can happen when generated factory values are created but never assigned. " +
+                    "Call Runtime.RunGarbageCollector() before Save() to delete unlinked values.");
+            }
             EmitHandleSave();
+        }
+
+        public int RunGarbageCollector()
+        {
+            var unlinkedValueIds = FindUnlinkedSaveValueIds();
+            foreach (var valueId in unlinkedValueIds)
+            {
+                RemoveSaveValueAndDescendants(valueId);
+            }
+            return unlinkedValueIds.Count;
+        }
+
+        public IReadOnlyList<string> FindUnlinkedSaveValueIds()
+        {
+            var reachable = new HashSet<string>();
+            foreach (var valueId in saveData.attributeValueOverrides.Values)
+            {
+                MarkReachableSaveValue(valueId, reachable);
+            }
+
+            var unlinked = new List<string>();
+            foreach (var valueId in saveData.values.Keys)
+            {
+                if (!reachable.Contains(valueId)) unlinked.Add(valueId);
+            }
+            return unlinked;
+        }
+
+        private void MarkReachableSaveValue(string valueId, HashSet<string> reachable)
+        {
+            if (!reachable.Add(valueId)) return;
+            if (!saveData.values.TryGetValue(valueId, out AttributeValue? val)) return;
+            switch (val)
+            {
+                case ObjectAttributeValue obj when obj.value is not null:
+                    foreach (var nestedId in obj.value.Values)
+                    {
+                        MarkReachableSaveValue(nestedId, reachable);
+                    }
+                    break;
+                case ArrayAttributeValue arr when arr.value is not null:
+                    foreach (var nestedId in arr.value)
+                    {
+                        MarkReachableSaveValue(nestedId, reachable);
+                    }
+                    break;
+            }
         }
 
         protected void EmitHandleSave()

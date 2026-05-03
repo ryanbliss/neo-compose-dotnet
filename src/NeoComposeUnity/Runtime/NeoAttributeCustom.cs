@@ -292,6 +292,34 @@ namespace NeoCompose.Runtime
             return child;
         }
 
+        public TNeoAttribute GetOrCreateCollection<TNeoAttribute>(string key)
+            where TNeoAttribute : NeoAttribute
+        {
+            if (TryGet(key, out TNeoAttribute? existing)) return existing;
+
+            string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
+            if (schemaKeyedAttributeId is null)
+            {
+                throw new System.Collections.Generic.KeyNotFoundException(
+                    $"Merged schema for type {type.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
+            }
+            if (!client.TryGetAttribute(schemaKeyedAttributeId, out Attribute? childAttribute))
+            {
+                throw new System.Exception(
+                    $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
+            }
+
+            NeoValueWritePayload initialValue = childAttribute switch
+            {
+                ListAttribute => NeoValueWritePayload.FromValue(System.Array.Empty<string>()),
+                DictionaryAttribute => NeoValueWritePayload.FromValue(new Dictionary<string, string>()),
+                _ => throw new System.InvalidOperationException(
+                    $"Attribute '{key}' is not a collection attribute."),
+            };
+            SetSerializedValue(key, initialValue);
+            return Get<TNeoAttribute>(key);
+        }
+
         /// <summary>
         /// Sets the schema-keyed child to <paramref name="setValue"/>.
         /// Updates the existing entry in place when one exists; otherwise
@@ -299,12 +327,7 @@ namespace NeoCompose.Runtime
         /// <c>attributeValueOverrides</c>, and links it into the parent
         /// record's value-map.
         /// </summary>
-        public void Set<TChildValue>(string key, TChildValue? setValue)
-        {
-            SetValue(key, setValue);
-        }
-
-        public void SetValue(string key, object? setValue)
+        internal void SetSerializedValue(string key, NeoValueWritePayload? setValue)
         {
             string nowIso = System.DateTime.UtcNow.ToString("o");
 
@@ -322,7 +345,7 @@ namespace NeoCompose.Runtime
                 throw new System.Exception(
                     $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
             }
-            if (childAttribute.required && setValue is null)
+            if (childAttribute.required && (setValue is null || setValue.isNull))
             {
                 throw new System.ArgumentNullException(
                     nameof(setValue),
@@ -333,13 +356,27 @@ namespace NeoCompose.Runtime
                 && value.value.TryGetValue(key, out string existingValueId)
                 && client.TryGetValue(existingValueId, out AttributeValue? existing))
             {
+                if (setValue?.isValueReference == true)
+                {
+                    client.RemoveSaveValueAndDescendants(existingValueId);
+                    value.value[key] = setValue.valueId!;
+                    value.updatedAt = nowIso;
+                    client.SetSaveValue(value);
+                    if (childAttributes.TryGetValue(key, out NeoAttribute? linkedOldChild))
+                    {
+                        linkedOldChild.Dispose();
+                    }
+                    childAttributes[key] = CreateChild(client, childAttribute, setValue.valueId);
+                    NotifyChanged();
+                    return;
+                }
                 AttributeValue next = AttributeValueFactory.Create(
                     childAttribute,
-                    setValue,
+                    setValue?.value,
                     existingValueId,
                     existing.createdAt,
                     nowIso);
-                client.SetSavePayloadRows(setValue);
+                client.SetSavePayloadRows(setValue?.value);
                 client.SetSaveValue(next);
                 if (childAttributes.TryGetValue(key, out NeoAttribute? oldChild))
                 {
@@ -355,11 +392,19 @@ namespace NeoCompose.Runtime
             // directly; the parent's value-map gets the new id appended;
             // the parent itself is re-saved so the new key/id pair
             // persists.
-            string newValueId = System.Guid.NewGuid().ToString();
-            AttributeValue newValueRow = AttributeValueFactory.Create(
-                childAttribute, setValue, newValueId, nowIso, nowIso);
-            client.SetSavePayloadRows(setValue);
-            client.SetSaveValue(newValueRow);
+            string newValueId;
+            if (setValue?.isValueReference == true)
+            {
+                newValueId = setValue.valueId!;
+            }
+            else
+            {
+                newValueId = System.Guid.NewGuid().ToString();
+                AttributeValue newValueRow = AttributeValueFactory.Create(
+                    childAttribute, setValue?.value, newValueId, nowIso, nowIso);
+                client.SetSavePayloadRows(setValue?.value);
+                client.SetSaveValue(newValueRow);
+            }
 
             // Make sure the parent has a value to link into. If we're
             // setting on a Custom that has never had a value, we need

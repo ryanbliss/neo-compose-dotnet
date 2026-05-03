@@ -8,6 +8,7 @@ using System.IO;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NUnit.Framework;
+using UnityEngine.TestTools;
 
 namespace NeoCompose.Tests
 {
@@ -52,7 +53,7 @@ namespace NeoCompose.Tests
                 client,
                 tagsNode,
                 (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
-                value => value);
+                NeoGeneratedTypesSupport.Value);
 
             int changed = 0;
             tags.OnChanged += () => changed++;
@@ -85,7 +86,7 @@ namespace NeoCompose.Tests
                 client,
                 inventoryNode,
                 (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
-                value => value);
+                NeoGeneratedTypesSupport.Value);
 
             int changed = 0;
             inventory.OnChanged += () => changed++;
@@ -107,21 +108,14 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoValuePayload_CarriesTypeIdIntoCreatedRows()
+        public void NeoList_DoesNotExposeUntypedAddOverload()
         {
-            var client = LoadClient(out _);
-            var tagsAttr = RequireAttribute<ListAttribute>(client, "attr-tags");
-            var tags = (NeoAttributeListSaved)NeoAttribute.CreateSaved(client, tagsAttr, null);
-
-            tags.Add((object)new NeoValuePayload("typed-tag", "type-special"));
-
-            var child = (NeoAttributeString)tags[0];
-            Assert.IsNotNull(child.overrideValueId);
-            Assert.IsTrue(client.TryGetValue<StringAttributeValue>(
-                child.overrideValueId!,
-                out StringAttributeValue? row));
-            Assert.AreEqual("typed-tag", row!.value);
-            Assert.AreEqual("type-special", row.typeId);
+            Assert.IsNull(typeof(NeoList<string>).GetMethod(
+                "Add",
+                new[] { typeof(object) }));
+            Assert.IsNull(typeof(NeoList<string>).GetMethod(
+                "SetValue",
+                new[] { typeof(int), typeof(object) }));
         }
 
         [Test]
@@ -144,6 +138,10 @@ namespace NeoCompose.Tests
             StringAssert.Contains("manual-save-value", json);
             Assert.AreEqual(1, changed);
 
+            LogAssert.Expect(
+                UnityEngine.LogType.Warning,
+                new System.Text.RegularExpressions.Regex(
+                    "NeoCompose save contains 1 unlinked value"));
             Assert.DoesNotThrow(() => client.Save());
         }
     }

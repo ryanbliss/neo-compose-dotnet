@@ -65,8 +65,9 @@ namespace NeoCompose.Tests
                 derivedAttr,
                 null);
 
-            derivedNode.SetValue("Name", "Ancestor Name");
-            derivedNode.SetValue("Health", 33);
+            var generatedSaved = new DerivedSaved(app.Runtime, derivedNode);
+            generatedSaved.Name = "Ancestor Name";
+            generatedSaved.Health = 33;
 
             var generated = new Derived(app.Runtime, derivedNode);
             Base asBase = generated;
@@ -108,12 +109,13 @@ namespace NeoCompose.Tests
             int changes = 0;
             generated.OnChanged += () => changes++;
 
-            derivedNode.SetValue("Name", "Before Dispose");
+            var generatedSaved = new DerivedSaved(app.Runtime, derivedNode);
+            generatedSaved.Name = "Before Dispose";
             Assert.Greater(changes, 0);
 
             int beforeDispose = changes;
             generated.Dispose();
-            derivedNode.SetValue("Name", "After Dispose");
+            generatedSaved.Name = "After Dispose";
             Assert.AreEqual(beforeDispose, changes);
         }
 
@@ -122,9 +124,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            app.Save.SetHeroesValue(System.Array.Empty<string>());
-
-            app.Save.Heroes.Add(Hero.factory(app.Runtime, Name: "Ada", Health: 7));
+            app.Save.Heroes.Add(HeroSaved.factory(app.Runtime, Name: "Ada", Health: 7));
 
             Assert.AreEqual(1, app.Save.Heroes.Count);
             var hero = app.Save.Heroes[0];
@@ -146,13 +146,34 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            app.Runtime.save.SetValue("Manifest", null);
+            NeoGeneratedTypesSupport.SetValue(
+                app.Runtime.save,
+                "Manifest",
+                NeoGeneratedTypesSupport.Value<object?>(null));
 
             var result = app.Save.Manifest;
             var direct = app.Runtime.save.Get<NeoAttributeNSGetter>("Manifest").Compute();
 
             Assert.IsTrue(direct.ok, direct.error);
             Assert.AreEqual(direct.value?.ToString(), result);
+        }
+
+        [Test]
+        public void GeneratedFactory_CreatesCollectableUnlinkedSavedValue()
+        {
+            var app = LoadGeneratedClient(out _);
+
+            var orphan = HeroSaved.factory(app.Runtime, Name: "Orphan", Health: 1);
+            Assert.IsNotNull(orphan.valueId);
+            CollectionAssert.Contains(
+                new System.Collections.Generic.List<string>(
+                    app.Runtime.FindUnlinkedSaveValueIds()),
+                orphan.valueId);
+
+            Assert.GreaterOrEqual(app.Runtime.RunGarbageCollector(), 1);
+            Assert.IsFalse(app.Runtime.TryGetValue<ObjectAttributeValue>(
+                orphan.valueId!,
+                out _));
         }
     }
 }

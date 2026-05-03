@@ -147,14 +147,9 @@ namespace NeoCompose.Runtime
         /// and re-saves the parent. If the parent itself has no
         /// stored value yet, materialises one first.
         /// </summary>
-        public void Set<TEntryValue>(string key, TEntryValue? setValue)
+        internal void SetSerialized(string key, NeoValueWritePayload? setValue)
         {
-            Set(key, (object?)setValue);
-        }
-
-        public void Set(string key, object? setValue)
-        {
-            if (entryAttribute.required && setValue is null)
+            if (entryAttribute.required && (setValue is null || setValue.isNull))
             {
                 throw new System.ArgumentNullException(
                     nameof(setValue),
@@ -166,13 +161,27 @@ namespace NeoCompose.Runtime
                 && value.value.TryGetValue(key, out string existingValueId)
                 && client.TryGetValue(existingValueId, out AttributeValue? existing))
             {
+                if (setValue?.isValueReference == true)
+                {
+                    client.RemoveSaveValueAndDescendants(existingValueId);
+                    value.value[key] = setValue.valueId!;
+                    value.updatedAt = nowIso;
+                    client.SetSaveValue(value);
+                    if (childAttributes.TryGetValue(key, out NeoAttribute? linkedOldChild))
+                    {
+                        linkedOldChild.Dispose();
+                    }
+                    childAttributes[key] = CreateChild(client, entryAttribute, setValue.valueId);
+                    NotifyChanged();
+                    return;
+                }
                 AttributeValue next = AttributeValueFactory.Create(
                     entryAttribute,
-                    setValue,
+                    setValue?.value,
                     existingValueId,
                     existing.createdAt,
                     nowIso);
-                client.SetSavePayloadRows(setValue);
+                client.SetSavePayloadRows(setValue?.value);
                 client.SetSaveValue(next);
                 if (childAttributes.TryGetValue(key, out NeoAttribute? oldChild))
                 {
@@ -183,11 +192,19 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            string newValueId = System.Guid.NewGuid().ToString();
-            AttributeValue newValueRow = AttributeValueFactory.Create(
-                entryAttribute, setValue, newValueId, nowIso, nowIso);
-            client.SetSavePayloadRows(setValue);
-            client.SetSaveValue(newValueRow);
+            string newValueId;
+            if (setValue?.isValueReference == true)
+            {
+                newValueId = setValue.valueId!;
+            }
+            else
+            {
+                newValueId = System.Guid.NewGuid().ToString();
+                AttributeValue newValueRow = AttributeValueFactory.Create(
+                    entryAttribute, setValue?.value, newValueId, nowIso, nowIso);
+                client.SetSavePayloadRows(setValue?.value);
+                client.SetSaveValue(newValueRow);
+            }
 
             if (value is null)
             {

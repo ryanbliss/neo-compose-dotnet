@@ -240,7 +240,10 @@ namespace NeoCompose.Tests
             // creates the parent + child rows in saveData.values.
             var inv = (NeoAttributeDictionarySaved)NeoAttribute.CreateSaved(
                 client, inventoryAttr, null);
-            inv.Set<string>("sword", "Excalibur");
+            NeoGeneratedTypesSupport.SetValue(
+                inv,
+                "sword",
+                NeoGeneratedTypesSupport.Value("Excalibur"));
 
             // Capture the registered child + its valueId before removal.
             Assert.IsTrue(inv.TryGet<NeoAttributeString>("sword", out NeoAttributeString? childBefore));
@@ -264,8 +267,12 @@ namespace NeoCompose.Tests
             var client = LoadClient();
             var tagsAttr = RequireAttribute<ListAttribute>(client, "attr-tags");
             var tags = (NeoAttributeListSaved)NeoAttribute.CreateSaved(client, tagsAttr, null);
-            tags.Add<string>("first");
-            tags.Add<string>("second");
+            NeoGeneratedTypesSupport.AddValue(
+                tags,
+                NeoGeneratedTypesSupport.Value("first"));
+            NeoGeneratedTypesSupport.AddValue(
+                tags,
+                NeoGeneratedTypesSupport.Value("second"));
 
             var firstChild = (NeoAttributeString)tags[0];
             string firstValueId = firstChild.overrideValueId!;
@@ -287,7 +294,10 @@ namespace NeoCompose.Tests
             var client = LoadClient();
             var heroAttr = RequireAttribute<CustomAttribute>(client, "attr-hero");
             var hero = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(client, heroAttr, null);
-            hero.Set<string>("Name", "Aragorn");
+            NeoGeneratedTypesSupport.SetValue(
+                hero,
+                "Name",
+                NeoGeneratedTypesSupport.Value("Aragorn"));
 
             var nameChild = (NeoAttributeString)hero["Name"];
             string nameValueId = nameChild.overrideValueId!;

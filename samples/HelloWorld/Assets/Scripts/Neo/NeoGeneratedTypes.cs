@@ -89,42 +89,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public static NeoValuePayload factory(NeoClient client, NeoValuePayload? computed = null, NeoValuePayload? LookupContainer = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (computed is not null)
-            {
-                var computedValueId = Guid.NewGuid().ToString();
-                value["computed"] = computedValueId;
-                foreach (var row in computed.valueRows) valueRows.Add(row);
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = computedValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = computed.value as Dictionary<string, string>,
-                    typeId = computed.typeId,
-                });
-            }
-            if (LookupContainer is not null)
-            {
-                var LookupContainerValueId = Guid.NewGuid().ToString();
-                value["LookupContainer"] = LookupContainerValueId;
-                foreach (var row in LookupContainer.valueRows) valueRows.Add(row);
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = LookupContainerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = LookupContainer.value as Dictionary<string, string>,
-                    typeId = LookupContainer.typeId,
-                });
-            }
-            return new NeoValuePayload(value, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", valueRows);
-        }
-
         internal static Assets Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -160,6 +124,22 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static AssetsSaved factory(NeoClient client, ComputedTextSaved? computed = null, LookupContainerSaved? LookupContainer = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (computed is not null)
+            {
+                value["computed"] = NeoGeneratedTypesSupport.LookupSelectionId(computed.valueId);
+            }
+            if (LookupContainer is not null)
+            {
+                value["LookupContainer"] = NeoGeneratedTypesSupport.LookupSelectionId(LookupContainer.valueId);
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows));
+        }
+
         internal static AssetsSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -177,13 +157,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("computed", NeoGeneratedTypesSupport.ValuePayload(value));
+                NeoGeneratedTypesSupport.SetValue(savedNode, "computed", NeoGeneratedTypesSupport.ValueReference(value));
             }
-        }
-
-        public void Setcomputed(NeoValuePayload? value)
-        {
-            savedNode.SetValue("computed", value);
         }
 
         public new LookupContainerSaved LookupContainer
@@ -194,13 +169,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("LookupContainer", NeoGeneratedTypesSupport.ValuePayload(value));
+                NeoGeneratedTypesSupport.SetValue(savedNode, "LookupContainer", NeoGeneratedTypesSupport.ValueReference(value));
             }
-        }
-
-        public void SetLookupContainer(NeoValuePayload? value)
-        {
-            savedNode.SetValue("LookupContainer", value);
         }
     }
     public partial class Save : NeoGeneratedCustomValue
@@ -208,53 +178,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         public Save(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "96e8284d-ae43-4e91-919d-86c25ce098e0")
         {
-        }
-
-        public static NeoValuePayload factory(NeoClient client, Planet? world = null, IEnumerable<NeoValuePayload>? visited = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (world is not null)
-            {
-                var worldValueId = Guid.NewGuid().ToString();
-                value["world"] = worldValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = worldValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = world is null ? null : new[] { world.optionId },
-                });
-            }
-            if (visited is not null)
-            {
-                var visitedValueId = Guid.NewGuid().ToString();
-                value["visited"] = visitedValueId;
-                var visitedIds = new List<string>();
-                foreach (var entry in visited)
-                {
-                    var entryValueId = Guid.NewGuid().ToString();
-                    visitedIds.Add(entryValueId);
-                    foreach (var row in entry.valueRows) valueRows.Add(row);
-                    valueRows.Add(new ObjectAttributeValue
-                    {
-                        id = entryValueId,
-                        createdAt = nowIso,
-                        updatedAt = nowIso,
-                        value = entry.value as Dictionary<string, string>,
-                        typeId = entry.typeId,
-                    });
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = visitedValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = visitedIds.ToArray(),
-                });
-            }
-            return new NeoValuePayload(value, "96e8284d-ae43-4e91-919d-86c25ce098e0", valueRows);
         }
 
         internal static Save Create(NeoClient client, NeoAttributeCustom node)
@@ -293,6 +216,43 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static SaveSaved factory(NeoClient client, Planet? world = null, IEnumerable<PlanetVisitSaved>? visited = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (world is not null)
+            {
+                var worldValueId = Guid.NewGuid().ToString();
+                value["world"] = worldValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = worldValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = world is null ? null : new[] { world.optionId },
+                });
+            }
+            if (visited is not null)
+            {
+                var visitedValueId = Guid.NewGuid().ToString();
+                value["visited"] = visitedValueId;
+                var visitedIds = new List<string>();
+                foreach (var entry in visited)
+                {
+                    visitedIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = visitedValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = visitedIds.ToArray(),
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows));
+        }
+
         internal static SaveSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -311,7 +271,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("world", new[] { value.optionId });
+                NeoGeneratedTypesSupport.SetValue(savedNode, "world", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -319,13 +279,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<PlanetVisitSaved>(client, node.Get<NeoAttributeListSaved>("visited"), (client, child) => PlanetVisitSaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValuePayload(item));
+                return new NeoList<PlanetVisitSaved>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("visited"), (client, child) => PlanetVisitSaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
-        }
-
-        public void SetvisitedValue(object? value)
-        {
-            savedNode.SetValue("visited", value);
         }
     }
     public partial class ComputedText : NeoGeneratedCustomValue
@@ -333,38 +288,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         public ComputedText(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "2ab1bc07-da0b-47fc-b77b-54cc511575bb")
         {
-        }
-
-        public static NeoValuePayload factory(NeoClient client, string? baseText = null, string? optionalSuffix = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (baseText is not null)
-            {
-                var baseTextValueId = Guid.NewGuid().ToString();
-                value["baseText"] = baseTextValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = baseTextValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = baseText,
-                });
-            }
-            if (optionalSuffix is not null)
-            {
-                var optionalSuffixValueId = Guid.NewGuid().ToString();
-                value["optionalSuffix"] = optionalSuffixValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = optionalSuffixValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = optionalSuffix,
-                });
-            }
-            return new NeoValuePayload(value, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", valueRows);
         }
 
         internal static ComputedText Create(NeoClient client, NeoAttributeCustom node)
@@ -412,6 +335,38 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static ComputedTextSaved factory(NeoClient client, string? baseText = null, string? optionalSuffix = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (baseText is not null)
+            {
+                var baseTextValueId = Guid.NewGuid().ToString();
+                value["baseText"] = baseTextValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = baseTextValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = baseText,
+                });
+            }
+            if (optionalSuffix is not null)
+            {
+                var optionalSuffixValueId = Guid.NewGuid().ToString();
+                value["optionalSuffix"] = optionalSuffixValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = optionalSuffixValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = optionalSuffix,
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", value, valueRows));
+        }
+
         internal static ComputedTextSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -429,7 +384,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("baseText", value);
+                NeoGeneratedTypesSupport.SetValue(savedNode, "baseText", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -441,7 +396,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("optionalSuffix", value);
+                NeoGeneratedTypesSupport.SetValue(savedNode, "optionalSuffix", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -460,38 +415,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         public PlanetVisit(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042")
         {
-        }
-
-        public static NeoValuePayload factory(NeoClient client, Planet? world = null, int? dateUnix = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (world is not null)
-            {
-                var worldValueId = Guid.NewGuid().ToString();
-                value["world"] = worldValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = worldValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = world is null ? null : new[] { world.optionId },
-                });
-            }
-            if (dateUnix is not null)
-            {
-                var dateUnixValueId = Guid.NewGuid().ToString();
-                value["dateUnix"] = dateUnixValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = dateUnixValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = dateUnix.HasValue ? dateUnix.Value : (double?)null,
-                });
-            }
-            return new NeoValuePayload(value, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", valueRows);
         }
 
         internal static PlanetVisit Create(NeoClient client, NeoAttributeCustom node)
@@ -530,6 +453,38 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static PlanetVisitSaved factory(NeoClient client, Planet? world = null, int? dateUnix = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (world is not null)
+            {
+                var worldValueId = Guid.NewGuid().ToString();
+                value["world"] = worldValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = worldValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = world is null ? null : new[] { world.optionId },
+                });
+            }
+            if (dateUnix is not null)
+            {
+                var dateUnixValueId = Guid.NewGuid().ToString();
+                value["dateUnix"] = dateUnixValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = dateUnixValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = dateUnix.HasValue ? dateUnix.Value : (double?)null,
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", value, valueRows));
+        }
+
         internal static PlanetVisitSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -548,7 +503,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("world", new[] { value.optionId });
+                NeoGeneratedTypesSupport.SetValue(savedNode, "world", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -560,7 +515,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("dateUnix", value);
+                NeoGeneratedTypesSupport.SetValue(savedNode, "dateUnix", NeoGeneratedTypesSupport.Value(value));
             }
         }
     }
@@ -569,53 +524,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         public LookupContainer(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "77558d64-4fcc-46ac-8351-893093ee0002")
         {
-        }
-
-        public static NeoValuePayload factory(NeoClient client, IDictionary<string, NeoValuePayload>? LookupList = null, NeoLookupSelection? Lookup = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (LookupList is not null)
-            {
-                var LookupListValueId = Guid.NewGuid().ToString();
-                value["LookupList"] = LookupListValueId;
-                var LookupListIds = new Dictionary<string, string>();
-                foreach (var pair in LookupList)
-                {
-                    var entryValueId = Guid.NewGuid().ToString();
-                    LookupListIds[pair.Key] = entryValueId;
-                    foreach (var row in pair.Value.valueRows) valueRows.Add(row);
-                    valueRows.Add(new ObjectAttributeValue
-                    {
-                        id = entryValueId,
-                        createdAt = nowIso,
-                        updatedAt = nowIso,
-                        value = pair.Value.value as Dictionary<string, string>,
-                        typeId = pair.Value.typeId,
-                    });
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = LookupListValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = LookupListIds,
-                });
-            }
-            if (Lookup is not null)
-            {
-                var LookupValueId = Guid.NewGuid().ToString();
-                value["Lookup"] = LookupValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = LookupValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Lookup.HasValue ? new[] { Lookup.Value.valueId } : null,
-                });
-            }
-            return new NeoValuePayload(value, "77558d64-4fcc-46ac-8351-893093ee0002", valueRows);
         }
 
         internal static LookupContainer Create(NeoClient client, NeoAttributeCustom node)
@@ -654,6 +562,43 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static LookupContainerSaved factory(NeoClient client, IDictionary<string, LookupEntrySaved>? LookupList = null, NeoLookupSelection? Lookup = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (LookupList is not null)
+            {
+                var LookupListValueId = Guid.NewGuid().ToString();
+                value["LookupList"] = LookupListValueId;
+                var LookupListIds = new Dictionary<string, string>();
+                foreach (var pair in LookupList)
+                {
+                    LookupListIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(pair.Value.valueId);
+                }
+                valueRows.Add(new ObjectAttributeValue
+                {
+                    id = LookupListValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = LookupListIds,
+                });
+            }
+            if (Lookup is not null)
+            {
+                var LookupValueId = Guid.NewGuid().ToString();
+                value["Lookup"] = LookupValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = LookupValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Lookup.HasValue ? new[] { Lookup.Value.valueId } : null,
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "77558d64-4fcc-46ac-8351-893093ee0002", value, valueRows));
+        }
+
         internal static LookupContainerSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -667,13 +612,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<LookupEntrySaved>(client, node.Get<NeoAttributeDictionarySaved>("LookupList"), (client, child) => LookupEntrySaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValuePayload(item));
+                return new NeoDictionary<LookupEntrySaved>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("LookupList"), (client, child) => LookupEntrySaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
-        }
-
-        public void SetLookupListValue(object? value)
-        {
-            savedNode.SetValue("LookupList", value);
         }
 
         public new LookupEntrySaved Lookup
@@ -685,13 +625,13 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("Lookup", new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) });
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Lookup", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
             }
         }
 
         public void SetLookupSelection(NeoLookupSelection? selection)
         {
-            savedNode.SetValue("Lookup", selection.HasValue ? new[] { selection.Value.valueId } : null);
+            NeoGeneratedTypesSupport.SetValue(savedNode, "Lookup", NeoGeneratedTypesSupport.Value(selection.HasValue ? new[] { selection.Value.valueId } : null));
         }
     }
     public partial class LookupEntry : NeoGeneratedCustomValue
@@ -699,26 +639,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         public LookupEntry(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "9296e4be-bd27-44e3-9823-77fbeaa60665")
         {
-        }
-
-        public static NeoValuePayload factory(NeoClient client, string? Name = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                });
-            }
-            return new NeoValuePayload(value, "9296e4be-bd27-44e3-9823-77fbeaa60665", valueRows);
         }
 
         internal static LookupEntry Create(NeoClient client, NeoAttributeCustom node)
@@ -748,6 +668,26 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
+        public static LookupEntrySaved factory(NeoClient client, string? Name = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "9296e4be-bd27-44e3-9823-77fbeaa60665", value, valueRows));
+        }
+
         internal static LookupEntrySaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
@@ -765,7 +705,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("Name", value);
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
     }

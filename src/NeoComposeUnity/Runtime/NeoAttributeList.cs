@@ -126,21 +126,30 @@ namespace NeoCompose.Runtime
         /// Appends a new entry to the end of the list. If the parent
         /// list itself has no stored value yet, materialises one first.
         /// </summary>
-        public void Add<TEntryValue>(TEntryValue? entryValue)
+        internal void AddSerialized(NeoValueWritePayload? entryValue)
         {
-            Add((object?)entryValue);
-        }
-
-        public void Add(object? entryValue)
-        {
+            if (entryAttribute.required && (entryValue is null || entryValue.isNull))
+            {
+                throw new System.ArgumentNullException(
+                    nameof(entryValue),
+                    "Cannot be null when entry attribute is required");
+            }
             string nowIso = System.DateTime.UtcNow.ToString("o");
             EnsureParentExists(nowIso);
 
-            string newValueId = System.Guid.NewGuid().ToString();
-            AttributeValue newValueRow = AttributeValueFactory.Create(
-                entryAttribute, entryValue, newValueId, nowIso, nowIso);
-            client.SetSavePayloadRows(entryValue);
-            client.SetSaveValue(newValueRow);
+            string newValueId;
+            if (entryValue?.isValueReference == true)
+            {
+                newValueId = entryValue.valueId!;
+            }
+            else
+            {
+                newValueId = System.Guid.NewGuid().ToString();
+                AttributeValue newValueRow = AttributeValueFactory.Create(
+                    entryAttribute, entryValue?.value, newValueId, nowIso, nowIso);
+                client.SetSavePayloadRows(entryValue?.value);
+                client.SetSaveValue(newValueRow);
+            }
 
             string[] currentArr = value!.value ?? System.Array.Empty<string>();
             string[] nextArr = new string[currentArr.Length + 1];
@@ -159,13 +168,14 @@ namespace NeoCompose.Runtime
         /// existing value row in place rather than swapping ids, so
         /// any other references to that value see the change.
         /// </summary>
-        public void Set<TEntryValue>(int index, TEntryValue? entryValue)
+        internal void SetSerialized(int index, NeoValueWritePayload? entryValue)
         {
-            Set(index, (object?)entryValue);
-        }
-
-        public void Set(int index, object? entryValue)
-        {
+            if (entryAttribute.required && (entryValue is null || entryValue.isNull))
+            {
+                throw new System.ArgumentNullException(
+                    nameof(entryValue),
+                    "Cannot be null when entry attribute is required");
+            }
             if (value?.value is null || index < 0 || index >= value.value.Length)
             {
                 throw new System.ArgumentOutOfRangeException(nameof(index));
@@ -173,19 +183,30 @@ namespace NeoCompose.Runtime
             string nowIso = System.DateTime.UtcNow.ToString("o");
             string entryValueId = value.value[index];
 
+            if (entryValue?.isValueReference == true)
+            {
+                client.RemoveSaveValueAndDescendants(entryValueId);
+                value.value[index] = entryValue.valueId!;
+                value.updatedAt = nowIso;
+                client.SetSaveValue(value);
+                childAttributes[index].Dispose();
+                childAttributes[index] = CreateChild(client, entryAttribute, entryValue.valueId);
+                NotifyChanged();
+                return;
+            }
+
             if (!client.TryGetValue(entryValueId, out AttributeValue? existing))
             {
                 throw new System.InvalidOperationException(
                     $"List entry value '{entryValueId}' at index {index} not found");
             }
-
             AttributeValue next = AttributeValueFactory.Create(
                 entryAttribute,
-                entryValue,
+                entryValue?.value,
                 entryValueId,
                 existing.createdAt,
                 nowIso);
-            client.SetSavePayloadRows(entryValue);
+            client.SetSavePayloadRows(entryValue?.value);
             client.SetSaveValue(next);
             childAttributes[index].Dispose();
             childAttributes[index] = CreateChild(client, entryAttribute, entryValueId);

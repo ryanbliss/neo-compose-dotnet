@@ -51,13 +51,13 @@ namespace NeoCompose.Runtime
     public class NeoList<T> : NeoReadOnlyList<T>, IList<T>
     {
         private readonly NeoAttributeListSaved savedNode;
-        private readonly Func<T, object?> serializeItem;
+        private readonly Func<T, NeoValueWritePayload?> serializeItem;
 
         public NeoList(
             NeoClient client,
             NeoAttributeListSaved node,
             Func<NeoClient, NeoAttribute, T> createItem,
-            Func<T, object?> serializeItem)
+            Func<T, NeoValueWritePayload?> serializeItem)
             : base(client, node, createItem)
         {
             savedNode = node;
@@ -67,16 +67,12 @@ namespace NeoCompose.Runtime
         public new T this[int index]
         {
             get => base[index];
-            set => savedNode.Set(index, serializeItem(value));
+            set => savedNode.SetSerialized(index, serializeItem(value));
         }
-
-        public void SetValue(int index, object? value) => savedNode.Set(index, value);
 
         public bool IsReadOnly => false;
 
-        public void Add(T item) => savedNode.Add(serializeItem(item));
-
-        public void Add(object? item) => savedNode.Add(item);
+        public void Add(T item) => savedNode.AddSerialized(serializeItem(item));
 
         public void Clear()
         {
@@ -203,13 +199,13 @@ namespace NeoCompose.Runtime
     public class NeoDictionary<T> : NeoReadOnlyDictionary<T>, IDictionary<string, T>
     {
         private readonly NeoAttributeDictionarySaved savedNode;
-        private readonly Func<T, object?> serializeItem;
+        private readonly Func<T, NeoValueWritePayload?> serializeItem;
 
         public NeoDictionary(
             NeoClient client,
             NeoAttributeDictionarySaved node,
             Func<NeoClient, NeoAttribute, T> createItem,
-            Func<T, object?> serializeItem)
+            Func<T, NeoValueWritePayload?> serializeItem)
             : base(client, node, createItem)
         {
             savedNode = node;
@@ -219,10 +215,8 @@ namespace NeoCompose.Runtime
         public new T this[string key]
         {
             get => base[key];
-            set => savedNode.Set(key, serializeItem(value));
+            set => savedNode.SetSerialized(key, serializeItem(value));
         }
-
-        public void SetValue(string key, object? value) => savedNode.Set(key, value);
 
         public new ICollection<string> Keys
         {
@@ -247,10 +241,7 @@ namespace NeoCompose.Runtime
         public bool IsReadOnly => false;
 
         public void Add(string key, T value) =>
-            savedNode.Set(key, serializeItem(value));
-
-        public void AddValue(string key, object? value) =>
-            savedNode.Set(key, value);
+            savedNode.SetSerialized(key, serializeItem(value));
 
         public void Add(KeyValuePair<string, T> item) => Add(item.Key, item.Value);
 
