@@ -448,11 +448,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public string? baseText
+        public string baseText
         {
             get
             {
-                return node.Get<NeoAttributeString>("baseText").value?.value;
+                return node.Get<NeoAttributeString>("baseText").value?.value ?? throw new InvalidOperationException("Required string 'baseText' has no value.");
             }
         }
 
@@ -493,11 +493,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? baseText
+        public new string baseText
         {
             get
             {
-                return node.Get<NeoAttributeString>("baseText").value?.value;
+                return node.Get<NeoAttributeString>("baseText").value?.value ?? throw new InvalidOperationException("Required string 'baseText' has no value.");
             }
             set
             {
@@ -621,11 +621,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public int? dateUnix
+        public int dateUnix
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("dateUnix"));
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("dateUnix")) ?? throw new InvalidOperationException("Required int 'dateUnix' has no value.");
             }
         }
     }
@@ -661,11 +661,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new int? dateUnix
+        public new int dateUnix
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("dateUnix"));
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("dateUnix")) ?? throw new InvalidOperationException("Required int 'dateUnix' has no value.");
             }
             set
             {
