@@ -15,6 +15,21 @@ namespace NeoCompose.Runtime
     /// </summary>
     public static class NeoGeneratedTypesSupport
     {
+        public static NeoValuePayload? ValuePayload(
+            INeoValuePayloadProvider? value)
+        {
+            return value?.ToNeoValuePayload();
+        }
+
+        public static NeoValuePayload ValuePayload(
+            NeoAttributeCustom node,
+            string fallbackTypeId)
+        {
+            return new NeoValuePayload(
+                node.value?.value,
+                node.value?.typeId ?? fallbackTypeId);
+        }
+
         public static int? ReadInt(NeoAttributeInt attribute)
         {
             var value = attribute.value?.value;
@@ -92,6 +107,16 @@ namespace NeoCompose.Runtime
             var ids = new List<string>();
             foreach (var selection in selections) ids.Add(selection.valueId);
             return ids.ToArray();
+        }
+
+        public static string LookupSelectionId(string? valueId)
+        {
+            if (string.IsNullOrWhiteSpace(valueId))
+            {
+                throw new InvalidOperationException(
+                    "Generated value is not bound to a lookup-selectable value id.");
+            }
+            return valueId;
         }
     }
 }

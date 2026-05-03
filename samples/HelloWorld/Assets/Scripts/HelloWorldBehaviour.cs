@@ -28,6 +28,7 @@ namespace HelloWorld.Assets.Scripts
         {
             string json = File.ReadAllText(NeoAssetsFilePath);
             neo = HelloWorldNeo.Load(json, OnLoadSave, OnHandleSave);
+            Debug.Log(neo.Assets.LookupContainer.Lookup.Name);
         }
 
         public string HelloWorldText => neo.Assets.computed.fullText;

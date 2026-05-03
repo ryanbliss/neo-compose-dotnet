@@ -76,48 +76,11 @@ namespace Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
     }
 
-    public partial class Hero : NeoNode, IDisposable
+    public partial class Hero : NeoGeneratedCustomValue
     {
-        protected readonly NeoAttributeCustom node;
-        private bool isDisposed;
-        public event Action? OnChanged;
-        public string? valueId => node.overrideValueId ?? node.value?.id;
-
         public Hero(NeoClient client, NeoAttributeCustom node)
-            : base(client)
+            : base(client, node, "type-hero")
         {
-            this.node = node;
-            this.node.OnChanged += HandleNodeChanged;
-            this.node.OnDisposed += HandleNodeDisposed;
-        }
-
-        public NeoLookupSelection ToLookupSelection()
-        {
-            if (valueId is null) throw new InvalidOperationException("This generated value is not bound to a lookup-selectable value id.");
-            return new NeoLookupSelection(valueId);
-        }
-
-        public NeoValuePayload ToNeoValuePayload()
-        {
-            return new NeoValuePayload(node.value?.value, node.value?.typeId ?? "type-hero");
-        }
-
-        public virtual void Dispose()
-        {
-            if (isDisposed) return;
-            isDisposed = true;
-            node.OnChanged -= HandleNodeChanged;
-            node.OnDisposed -= HandleNodeDisposed;
-        }
-
-        private void HandleNodeChanged(NeoAttribute changed)
-        {
-            OnChanged?.Invoke();
-        }
-
-        private void HandleNodeDisposed(NeoAttribute disposed)
-        {
-            Dispose();
         }
 
         public static NeoValuePayload factory(NeoClient client, string? Name = null, int? Health = null)
@@ -220,48 +183,11 @@ namespace Assets.Scripts.Neo
             }
         }
     }
-    public partial class Root : NeoNode, IDisposable
+    public partial class Root : NeoGeneratedCustomValue
     {
-        protected readonly NeoAttributeCustom node;
-        private bool isDisposed;
-        public event Action? OnChanged;
-        public string? valueId => node.overrideValueId ?? node.value?.id;
-
         public Root(NeoClient client, NeoAttributeCustom node)
-            : base(client)
+            : base(client, node, "type-root")
         {
-            this.node = node;
-            this.node.OnChanged += HandleNodeChanged;
-            this.node.OnDisposed += HandleNodeDisposed;
-        }
-
-        public NeoLookupSelection ToLookupSelection()
-        {
-            if (valueId is null) throw new InvalidOperationException("This generated value is not bound to a lookup-selectable value id.");
-            return new NeoLookupSelection(valueId);
-        }
-
-        public NeoValuePayload ToNeoValuePayload()
-        {
-            return new NeoValuePayload(node.value?.value, node.value?.typeId ?? "type-root");
-        }
-
-        public virtual void Dispose()
-        {
-            if (isDisposed) return;
-            isDisposed = true;
-            node.OnChanged -= HandleNodeChanged;
-            node.OnDisposed -= HandleNodeDisposed;
-        }
-
-        private void HandleNodeChanged(NeoAttribute changed)
-        {
-            OnChanged?.Invoke();
-        }
-
-        private void HandleNodeDisposed(NeoAttribute disposed)
-        {
-            Dispose();
         }
 
         public static NeoValuePayload factory(NeoClient client, IEnumerable<NeoValuePayload>? Heroes = null)
@@ -349,7 +275,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<HeroSaved>(client, node.Get<NeoAttributeListSaved>("Heroes"), (client, child) => HeroSaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => item.ToNeoValuePayload());
+                return new NeoList<HeroSaved>(client, node.Get<NeoAttributeListSaved>("Heroes"), (client, child) => HeroSaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValuePayload(item));
             }
         }
 
@@ -368,48 +294,11 @@ namespace Assets.Scripts.Neo
             }
         }
     }
-    public partial class Base : NeoNode, IDisposable
+    public partial class Base : NeoGeneratedCustomValue
     {
-        protected readonly NeoAttributeCustom node;
-        private bool isDisposed;
-        public event Action? OnChanged;
-        public string? valueId => node.overrideValueId ?? node.value?.id;
-
         public Base(NeoClient client, NeoAttributeCustom node)
-            : base(client)
+            : base(client, node, "type-base")
         {
-            this.node = node;
-            this.node.OnChanged += HandleNodeChanged;
-            this.node.OnDisposed += HandleNodeDisposed;
-        }
-
-        public NeoLookupSelection ToLookupSelection()
-        {
-            if (valueId is null) throw new InvalidOperationException("This generated value is not bound to a lookup-selectable value id.");
-            return new NeoLookupSelection(valueId);
-        }
-
-        public NeoValuePayload ToNeoValuePayload()
-        {
-            return new NeoValuePayload(node.value?.value, node.value?.typeId ?? "type-base");
-        }
-
-        public virtual void Dispose()
-        {
-            if (isDisposed) return;
-            isDisposed = true;
-            node.OnChanged -= HandleNodeChanged;
-            node.OnDisposed -= HandleNodeDisposed;
-        }
-
-        private void HandleNodeChanged(NeoAttribute changed)
-        {
-            OnChanged?.Invoke();
-        }
-
-        private void HandleNodeDisposed(NeoAttribute disposed)
-        {
-            Dispose();
         }
 
         public static NeoValuePayload factory(NeoClient client, string? Name = null)

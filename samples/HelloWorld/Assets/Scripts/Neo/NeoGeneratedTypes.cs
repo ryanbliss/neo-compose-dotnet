@@ -82,51 +82,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
     }
 
-    public partial class Assets : NeoNode, IDisposable
+    public partial class Assets : NeoGeneratedCustomValue
     {
-        protected readonly NeoAttributeCustom node;
-        private bool isDisposed;
-        public event Action? OnChanged;
-        public string? valueId => node.overrideValueId ?? node.value?.id;
-
         public Assets(NeoClient client, NeoAttributeCustom node)
-            : base(client)
+            : base(client, node, "dd0bbe5a-47ef-4164-9421-caea07f6f56f")
         {
-            this.node = node;
-            this.node.OnChanged += HandleNodeChanged;
-            this.node.OnDisposed += HandleNodeDisposed;
         }
 
-        public NeoLookupSelection ToLookupSelection()
-        {
-            if (valueId is null) throw new InvalidOperationException("This generated value is not bound to a lookup-selectable value id.");
-            return new NeoLookupSelection(valueId);
-        }
-
-        public NeoValuePayload ToNeoValuePayload()
-        {
-            return new NeoValuePayload(node.value?.value, node.value?.typeId ?? "dd0bbe5a-47ef-4164-9421-caea07f6f56f");
-        }
-
-        public virtual void Dispose()
-        {
-            if (isDisposed) return;
-            isDisposed = true;
-            node.OnChanged -= HandleNodeChanged;
-            node.OnDisposed -= HandleNodeDisposed;
-        }
-
-        private void HandleNodeChanged(NeoAttribute changed)
-        {
-            OnChanged?.Invoke();
-        }
-
-        private void HandleNodeDisposed(NeoAttribute disposed)
-        {
-            Dispose();
-        }
-
-        public static NeoValuePayload factory(NeoClient client, NeoValuePayload? computed = null)
+        public static NeoValuePayload factory(NeoClient client, NeoValuePayload? computed = null, NeoValuePayload? LookupContainer = null)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
@@ -143,6 +106,20 @@ namespace HelloWorld.Assets.Scripts.Neo
                     updatedAt = nowIso,
                     value = computed.value as Dictionary<string, string>,
                     typeId = computed.typeId,
+                });
+            }
+            if (LookupContainer is not null)
+            {
+                var LookupContainerValueId = Guid.NewGuid().ToString();
+                value["LookupContainer"] = LookupContainerValueId;
+                foreach (var row in LookupContainer.valueRows) valueRows.Add(row);
+                valueRows.Add(new ObjectAttributeValue
+                {
+                    id = LookupContainerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = LookupContainer.value as Dictionary<string, string>,
+                    typeId = LookupContainer.typeId,
                 });
             }
             return new NeoValuePayload(value, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", valueRows);
@@ -162,6 +139,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 return ComputedText.Create(client, node.Get<NeoAttributeCustom>("computed"));
+            }
+        }
+
+        public LookupContainer LookupContainer
+        {
+            get
+            {
+                return LookupContainer.Create(client, node.Get<NeoAttributeCustom>("LookupContainer"));
             }
         }
     }
@@ -192,7 +177,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                savedNode.SetValue("computed", value?.ToNeoValuePayload());
+                savedNode.SetValue("computed", NeoGeneratedTypesSupport.ValuePayload(value));
             }
         }
 
@@ -200,49 +185,29 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             savedNode.SetValue("computed", value);
         }
+
+        public new LookupContainerSaved LookupContainer
+        {
+            get
+            {
+                return LookupContainerSaved.CreateSaved(client, node.Get<NeoAttributeCustomSaved>("LookupContainer"));
+            }
+            set
+            {
+                savedNode.SetValue("LookupContainer", NeoGeneratedTypesSupport.ValuePayload(value));
+            }
+        }
+
+        public void SetLookupContainer(NeoValuePayload? value)
+        {
+            savedNode.SetValue("LookupContainer", value);
+        }
     }
-    public partial class Save : NeoNode, IDisposable
+    public partial class Save : NeoGeneratedCustomValue
     {
-        protected readonly NeoAttributeCustom node;
-        private bool isDisposed;
-        public event Action? OnChanged;
-        public string? valueId => node.overrideValueId ?? node.value?.id;
-
         public Save(NeoClient client, NeoAttributeCustom node)
-            : base(client)
+            : base(client, node, "96e8284d-ae43-4e91-919d-86c25ce098e0")
         {
-            this.node = node;
-            this.node.OnChanged += HandleNodeChanged;
-            this.node.OnDisposed += HandleNodeDisposed;
-        }
-
-        public NeoLookupSelection ToLookupSelection()
-        {
-            if (valueId is null) throw new InvalidOperationException("This generated value is not bound to a lookup-selectable value id.");
-            return new NeoLookupSelection(valueId);
-        }
-
-        public NeoValuePayload ToNeoValuePayload()
-        {
-            return new NeoValuePayload(node.value?.value, node.value?.typeId ?? "96e8284d-ae43-4e91-919d-86c25ce098e0");
-        }
-
-        public virtual void Dispose()
-        {
-            if (isDisposed) return;
-            isDisposed = true;
-            node.OnChanged -= HandleNodeChanged;
-            node.OnDisposed -= HandleNodeDisposed;
-        }
-
-        private void HandleNodeChanged(NeoAttribute changed)
-        {
-            OnChanged?.Invoke();
-        }
-
-        private void HandleNodeDisposed(NeoAttribute disposed)
-        {
-            Dispose();
         }
 
         public static NeoValuePayload factory(NeoClient client, Planet? world = null, IEnumerable<NeoValuePayload>? visited = null)
@@ -354,7 +319,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<PlanetVisitSaved>(client, node.Get<NeoAttributeListSaved>("visited"), (client, child) => PlanetVisitSaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => item.ToNeoValuePayload());
+                return new NeoList<PlanetVisitSaved>(client, node.Get<NeoAttributeListSaved>("visited"), (client, child) => PlanetVisitSaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValuePayload(item));
             }
         }
 
@@ -363,48 +328,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             savedNode.SetValue("visited", value);
         }
     }
-    public partial class ComputedText : NeoNode, IDisposable
+    public partial class ComputedText : NeoGeneratedCustomValue
     {
-        protected readonly NeoAttributeCustom node;
-        private bool isDisposed;
-        public event Action? OnChanged;
-        public string? valueId => node.overrideValueId ?? node.value?.id;
-
         public ComputedText(NeoClient client, NeoAttributeCustom node)
-            : base(client)
+            : base(client, node, "2ab1bc07-da0b-47fc-b77b-54cc511575bb")
         {
-            this.node = node;
-            this.node.OnChanged += HandleNodeChanged;
-            this.node.OnDisposed += HandleNodeDisposed;
-        }
-
-        public NeoLookupSelection ToLookupSelection()
-        {
-            if (valueId is null) throw new InvalidOperationException("This generated value is not bound to a lookup-selectable value id.");
-            return new NeoLookupSelection(valueId);
-        }
-
-        public NeoValuePayload ToNeoValuePayload()
-        {
-            return new NeoValuePayload(node.value?.value, node.value?.typeId ?? "2ab1bc07-da0b-47fc-b77b-54cc511575bb");
-        }
-
-        public virtual void Dispose()
-        {
-            if (isDisposed) return;
-            isDisposed = true;
-            node.OnChanged -= HandleNodeChanged;
-            node.OnDisposed -= HandleNodeDisposed;
-        }
-
-        private void HandleNodeChanged(NeoAttribute changed)
-        {
-            OnChanged?.Invoke();
-        }
-
-        private void HandleNodeDisposed(NeoAttribute disposed)
-        {
-            Dispose();
         }
 
         public static NeoValuePayload factory(NeoClient client, string? baseText = null, string? optionalSuffix = null)
@@ -527,48 +455,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
     }
-    public partial class PlanetVisit : NeoNode, IDisposable
+    public partial class PlanetVisit : NeoGeneratedCustomValue
     {
-        protected readonly NeoAttributeCustom node;
-        private bool isDisposed;
-        public event Action? OnChanged;
-        public string? valueId => node.overrideValueId ?? node.value?.id;
-
         public PlanetVisit(NeoClient client, NeoAttributeCustom node)
-            : base(client)
+            : base(client, node, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042")
         {
-            this.node = node;
-            this.node.OnChanged += HandleNodeChanged;
-            this.node.OnDisposed += HandleNodeDisposed;
-        }
-
-        public NeoLookupSelection ToLookupSelection()
-        {
-            if (valueId is null) throw new InvalidOperationException("This generated value is not bound to a lookup-selectable value id.");
-            return new NeoLookupSelection(valueId);
-        }
-
-        public NeoValuePayload ToNeoValuePayload()
-        {
-            return new NeoValuePayload(node.value?.value, node.value?.typeId ?? "7755a905-f2a1-4e5d-8b60-78cbdd2b2042");
-        }
-
-        public virtual void Dispose()
-        {
-            if (isDisposed) return;
-            isDisposed = true;
-            node.OnChanged -= HandleNodeChanged;
-            node.OnDisposed -= HandleNodeDisposed;
-        }
-
-        private void HandleNodeChanged(NeoAttribute changed)
-        {
-            OnChanged?.Invoke();
-        }
-
-        private void HandleNodeDisposed(NeoAttribute disposed)
-        {
-            Dispose();
         }
 
         public static NeoValuePayload factory(NeoClient client, Planet? world = null, int? dateUnix = null)
@@ -670,6 +561,211 @@ namespace HelloWorld.Assets.Scripts.Neo
             set
             {
                 savedNode.SetValue("dateUnix", value);
+            }
+        }
+    }
+    public partial class LookupContainer : NeoGeneratedCustomValue
+    {
+        public LookupContainer(NeoClient client, NeoAttributeCustom node)
+            : base(client, node, "77558d64-4fcc-46ac-8351-893093ee0002")
+        {
+        }
+
+        public static NeoValuePayload factory(NeoClient client, IDictionary<string, NeoValuePayload>? LookupList = null, NeoLookupSelection? Lookup = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (LookupList is not null)
+            {
+                var LookupListValueId = Guid.NewGuid().ToString();
+                value["LookupList"] = LookupListValueId;
+                var LookupListIds = new Dictionary<string, string>();
+                foreach (var pair in LookupList)
+                {
+                    var entryValueId = Guid.NewGuid().ToString();
+                    LookupListIds[pair.Key] = entryValueId;
+                    foreach (var row in pair.Value.valueRows) valueRows.Add(row);
+                    valueRows.Add(new ObjectAttributeValue
+                    {
+                        id = entryValueId,
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = pair.Value.value as Dictionary<string, string>,
+                        typeId = pair.Value.typeId,
+                    });
+                }
+                valueRows.Add(new ObjectAttributeValue
+                {
+                    id = LookupListValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = LookupListIds,
+                });
+            }
+            if (Lookup is not null)
+            {
+                var LookupValueId = Guid.NewGuid().ToString();
+                value["Lookup"] = LookupValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = LookupValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Lookup.HasValue ? new[] { Lookup.Value.valueId } : null,
+                });
+            }
+            return new NeoValuePayload(value, "77558d64-4fcc-46ac-8351-893093ee0002", valueRows);
+        }
+
+        internal static LookupContainer Create(NeoClient client, NeoAttributeCustom node)
+        {
+            var runtimeTypeId = node.value?.typeId;
+            return runtimeTypeId switch
+            {
+                _ => new LookupContainer(client, node),
+            };
+        }
+
+        public NeoReadOnlyDictionary<LookupEntry> LookupList
+        {
+            get
+            {
+                return new NeoReadOnlyDictionary<LookupEntry>(client, node.Get<NeoAttributeDictionary>("LookupList"), (client, child) => LookupEntry.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public LookupEntry Lookup
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("Lookup").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : LookupEntry.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+        }
+    }
+
+    public partial class LookupContainerSaved : LookupContainer
+    {
+        public LookupContainerSaved(NeoClient client, NeoAttributeCustomSaved node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+
+        internal static LookupContainerSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        {
+            var runtimeTypeId = node.value?.typeId;
+            return runtimeTypeId switch
+            {
+                _ => new LookupContainerSaved(client, node),
+            };
+        }
+
+        public new NeoDictionary<LookupEntrySaved> LookupList
+        {
+            get
+            {
+                return new NeoDictionary<LookupEntrySaved>(client, node.Get<NeoAttributeDictionarySaved>("LookupList"), (client, child) => LookupEntrySaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValuePayload(item));
+            }
+        }
+
+        public void SetLookupListValue(object? value)
+        {
+            savedNode.SetValue("LookupList", value);
+        }
+
+        public new LookupEntrySaved Lookup
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("Lookup").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : LookupEntrySaved.CreateSaved(client, (NeoAttributeCustomSaved)selected[0]);
+            }
+            set
+            {
+                savedNode.SetValue("Lookup", new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) });
+            }
+        }
+
+        public void SetLookupSelection(NeoLookupSelection? selection)
+        {
+            savedNode.SetValue("Lookup", selection.HasValue ? new[] { selection.Value.valueId } : null);
+        }
+    }
+    public partial class LookupEntry : NeoGeneratedCustomValue
+    {
+        public LookupEntry(NeoClient client, NeoAttributeCustom node)
+            : base(client, node, "9296e4be-bd27-44e3-9823-77fbeaa60665")
+        {
+        }
+
+        public static NeoValuePayload factory(NeoClient client, string? Name = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                });
+            }
+            return new NeoValuePayload(value, "9296e4be-bd27-44e3-9823-77fbeaa60665", valueRows);
+        }
+
+        internal static LookupEntry Create(NeoClient client, NeoAttributeCustom node)
+        {
+            var runtimeTypeId = node.value?.typeId;
+            return runtimeTypeId switch
+            {
+                _ => new LookupEntry(client, node),
+            };
+        }
+
+        public string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+        }
+    }
+
+    public partial class LookupEntrySaved : LookupEntry
+    {
+        public LookupEntrySaved(NeoClient client, NeoAttributeCustomSaved node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+
+        internal static LookupEntrySaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        {
+            var runtimeTypeId = node.value?.typeId;
+            return runtimeTypeId switch
+            {
+                _ => new LookupEntrySaved(client, node),
+            };
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                savedNode.SetValue("Name", value);
             }
         }
     }

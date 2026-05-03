@@ -122,6 +122,31 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedTypesSupport_LookupSelectionId_ReturnsBoundValueId()
+        {
+            Assert.AreEqual("value-1", NeoGeneratedTypesSupport.LookupSelectionId("value-1"));
+        }
+
+        [Test]
+        public void GeneratedTypesSupport_LookupSelectionId_RejectsMissingValueId()
+        {
+            Assert.Throws<System.InvalidOperationException>(
+                () => NeoGeneratedTypesSupport.LookupSelectionId(null));
+        }
+
+        [Test]
+        public void GeneratedTypesSupport_ValuePayload_ReadsProvider()
+        {
+            var payload = new NeoValuePayload("value", "type-id");
+
+            Assert.AreSame(
+                payload,
+                NeoGeneratedTypesSupport.ValuePayload(
+                    new TestPayloadProvider(payload)));
+            Assert.IsNull(NeoGeneratedTypesSupport.ValuePayload(null));
+        }
+
+        [Test]
         public async Task Synchronizer_WritesGeneratedTypesAndProjectJson()
         {
             var config = MakeConfig();
@@ -140,6 +165,21 @@ namespace NeoCompose.Tests
             Assert.Contains("Assets/Scripts/Neo", assets.createdDirectories);
             Assert.Contains("Assets/Resources/Neo", assets.createdDirectories);
             Assert.IsTrue(assets.savedConfig);
+        }
+
+        private sealed class TestPayloadProvider : INeoValuePayloadProvider
+        {
+            private readonly NeoValuePayload payload;
+
+            public TestPayloadProvider(NeoValuePayload payload)
+            {
+                this.payload = payload;
+            }
+
+            public NeoValuePayload ToNeoValuePayload()
+            {
+                return payload;
+            }
         }
 
         [Test]
