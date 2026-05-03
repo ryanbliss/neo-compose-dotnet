@@ -149,10 +149,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set<TEntryValue>(string key, TEntryValue? setValue)
         {
-            SetValue(key, setValue);
+            Set(key, (object?)setValue);
         }
 
-        public void SetValue(string key, object? setValue)
+        public void Set(string key, object? setValue)
         {
             if (entryAttribute.required && setValue is null)
             {

@@ -124,7 +124,7 @@ namespace NeoCompose.Tests
 
             app.Save.SetHeroesValue(System.Array.Empty<string>());
 
-            app.Save.Heroes.AddValue(Hero.factory(app.Runtime, Name: "Ada", Health: 7));
+            app.Save.Heroes.Add(Hero.factory(app.Runtime, Name: "Ada", Health: 7));
 
             Assert.AreEqual(1, app.Save.Heroes.Count);
             var hero = app.Save.Heroes[0];

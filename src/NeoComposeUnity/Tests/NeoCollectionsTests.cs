@@ -113,7 +113,7 @@ namespace NeoCompose.Tests
             var tagsAttr = RequireAttribute<ListAttribute>(client, "attr-tags");
             var tags = (NeoAttributeListSaved)NeoAttribute.CreateSaved(client, tagsAttr, null);
 
-            tags.AddValue(new NeoValuePayload("typed-tag", "type-special"));
+            tags.Add((object)new NeoValuePayload("typed-tag", "type-special"));
 
             var child = (NeoAttributeString)tags[0];
             Assert.IsNotNull(child.overrideValueId);

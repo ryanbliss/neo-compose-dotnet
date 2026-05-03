@@ -36,7 +36,7 @@ namespace HelloWorld.Assets.Scripts
         public void Visit(Planet planet)
         {
             neo.Save.world = planet;
-            neo.Save.visited.AddValue(
+            neo.Save.visited.Add(
                 PlanetVisit.factory(
                     neo.Runtime,
                     planet,

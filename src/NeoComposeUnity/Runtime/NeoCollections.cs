@@ -67,16 +67,16 @@ namespace NeoCompose.Runtime
         public new T this[int index]
         {
             get => base[index];
-            set => savedNode.SetValue(index, serializeItem(value));
+            set => savedNode.Set(index, serializeItem(value));
         }
 
-        public void SetValue(int index, object? value) => savedNode.SetValue(index, value);
+        public void SetValue(int index, object? value) => savedNode.Set(index, value);
 
         public bool IsReadOnly => false;
 
-        public void Add(T item) => savedNode.AddValue(serializeItem(item));
+        public void Add(T item) => savedNode.Add(serializeItem(item));
 
-        public void AddValue(object? item) => savedNode.AddValue(item);
+        public void Add(object? item) => savedNode.Add(item);
 
         public void Clear()
         {
@@ -219,10 +219,10 @@ namespace NeoCompose.Runtime
         public new T this[string key]
         {
             get => base[key];
-            set => savedNode.SetValue(key, serializeItem(value));
+            set => savedNode.Set(key, serializeItem(value));
         }
 
-        public void SetValue(string key, object? value) => savedNode.SetValue(key, value);
+        public void SetValue(string key, object? value) => savedNode.Set(key, value);
 
         public new ICollection<string> Keys
         {
@@ -247,10 +247,10 @@ namespace NeoCompose.Runtime
         public bool IsReadOnly => false;
 
         public void Add(string key, T value) =>
-            savedNode.SetValue(key, serializeItem(value));
+            savedNode.Set(key, serializeItem(value));
 
         public void AddValue(string key, object? value) =>
-            savedNode.SetValue(key, value);
+            savedNode.Set(key, value);
 
         public void Add(KeyValuePair<string, T> item) => Add(item.Key, item.Value);
 

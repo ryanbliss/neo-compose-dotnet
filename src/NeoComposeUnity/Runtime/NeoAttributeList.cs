@@ -128,10 +128,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Add<TEntryValue>(TEntryValue? entryValue)
         {
-            AddValue(entryValue);
+            Add((object?)entryValue);
         }
 
-        public void AddValue(object? entryValue)
+        public void Add(object? entryValue)
         {
             string nowIso = System.DateTime.UtcNow.ToString("o");
             EnsureParentExists(nowIso);
@@ -161,10 +161,10 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set<TEntryValue>(int index, TEntryValue? entryValue)
         {
-            SetValue(index, entryValue);
+            Set(index, (object?)entryValue);
         }
 
-        public void SetValue(int index, object? entryValue)
+        public void Set(int index, object? entryValue)
         {
             if (value?.value is null || index < 0 || index >= value.value.Length)
             {
