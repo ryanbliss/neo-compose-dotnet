@@ -206,9 +206,9 @@ namespace HelloWorld.Assets.Tests
         private static string[] VisitedPlanetIds(HelloWorldBehaviour behaviour)
         {
             var ids = new System.Collections.Generic.List<string>();
-            foreach (var planet in behaviour.VisitedPlanets())
+            foreach (var visit in behaviour.VisitedPlanets)
             {
-                ids.Add(planet.optionId);
+                ids.Add(visit.world.optionId);
             }
             return ids.ToArray();
         }

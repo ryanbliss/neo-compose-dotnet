@@ -31,13 +31,7 @@ namespace HelloWorld.Assets.Scripts
 
         public string HelloWorldText => neo.Assets.computed.fullText;
         public Planet World => neo.Save.world;
-
-        public IReadOnlyList<Planet> VisitedPlanets()
-        {
-            return neo.Save.visited
-                .Select((visit) => visit.world)
-                .ToList();
-        }
+        public IReadOnlyList<PlanetVisitSaved> VisitedPlanets => neo.Save.visited;
 
         public void Visit(Planet planet)
         {
@@ -65,7 +59,7 @@ namespace HelloWorld.Assets.Scripts
         protected void OnGUI()
         {
             if (neo is null) return;
-            ui.Render(HelloWorldText, World, VisitedPlanets(), Visit, Save, ResetSave);
+            ui.Render(HelloWorldText, World, VisitedPlanets, Visit, Save, ResetSave);
         }
 
         protected string OnLoadSave()

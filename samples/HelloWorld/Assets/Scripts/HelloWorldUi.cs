@@ -26,8 +26,8 @@ namespace HelloWorld.Assets.Scripts
 
         public void Render(
             string fullText,
-            Planet? currentPlanet,
-            IReadOnlyList<Planet> visitedPlanets,
+            Planet currentPlanet,
+            IReadOnlyList<PlanetVisitSaved> visitedPlanets,
             Action<Planet> visitPlanet,
             Action save,
             Action reset)
@@ -64,9 +64,9 @@ namespace HelloWorld.Assets.Scripts
             }
             else
             {
-                foreach (var planet in visitedPlanets)
+                foreach (var visit in visitedPlanets)
                 {
-                    GUILayout.Label(DisplayName(planet));
+                    GUILayout.Label(DisplayName(visit.world));
                 }
             }
 
