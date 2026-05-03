@@ -6,6 +6,7 @@ using NeoCompose.Runtime;
 using NUnit.Framework;
 using UnityEngine;
 using HelloWorld.Assets.Scripts;
+using HelloWorld.Assets.Scripts.Neo;
 
 namespace HelloWorld.Assets.Tests
 {
@@ -20,7 +21,7 @@ namespace HelloWorld.Assets.Tests
         // where the fixtures live inside the package — different file
         // tree, different prefix.)
         private const string FixturesRoot = "Assets/Tests";
-        private const string SampleScriptsRoot = "Assets/Scripts";
+        private const string SampleProjectRoot = "Assets/Resources/Neo";
 
         private static string LoadFixture(string fileName)
         {
@@ -80,7 +81,7 @@ namespace HelloWorld.Assets.Tests
             void handleSave(string file) => saveBuffer = file;
 
             var client = HelloWorldNeo.Load(
-                File.ReadAllText(Path.Combine(SampleScriptsRoot, "project.json")),
+                File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
                 loadSave,
                 handleSave);
 

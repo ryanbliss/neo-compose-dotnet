@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using UnityEngine;
 
@@ -76,10 +77,10 @@ namespace HelloWorld.Assets.Scripts
         // Static file loading
         // ──────────────────────────────────────────────
 
-        private static readonly string FixturesRoot = "Assets/Scripts";
+        private static readonly string NeoResourcesRoot = "Assets/Resources/Neo";
         private static readonly string FileName = "project.json";
 
-        private static string NeoAssetsFilePath => Path.Combine(FixturesRoot, FileName);
+        private static string NeoAssetsFilePath => Path.Combine(NeoResourcesRoot, FileName);
 
         private static string SaveFilePath => $"{Application.persistentDataPath}/save1.json";
 

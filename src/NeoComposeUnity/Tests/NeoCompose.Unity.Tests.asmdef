@@ -3,6 +3,7 @@
     "rootNamespace": "NeoCompose.Tests",
     "references": [
         "NeoCompose.Unity",
+        "NeoCompose.Unity.Editor",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],

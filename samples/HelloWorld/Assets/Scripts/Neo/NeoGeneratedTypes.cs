@@ -7,7 +7,7 @@ using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
 
-namespace HelloWorld.Assets.Scripts
+namespace HelloWorld.Assets.Scripts.Neo
 {
     public sealed class HelloWorldNeo
     {

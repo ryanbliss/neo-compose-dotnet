@@ -1,0 +1,273 @@
+// Copyright (c) Ryan Bliss and contributors. All rights reserved.
+// Licensed under the MIT License.
+
+#nullable enable
+
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using NeoCompose.Runtime;
+using NeoCompose.Unity.Editor;
+using NUnit.Framework;
+using UnityEditor;
+using UnityEngine;
+
+namespace NeoCompose.Tests
+{
+    public class NeoComposeEditorTests
+    {
+        private const string TempRoot = "Assets/NeoComposeEditorTestsTemp";
+
+        [SetUp]
+        public void SetUp()
+        {
+            CleanupTempRoot();
+            AssetDatabase.CreateFolder("Assets", "NeoComposeEditorTestsTemp");
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            CleanupTempRoot();
+        }
+
+        [Test]
+        public void PathUtility_AcceptsExpectedAssetDirectories()
+        {
+            Assert.IsTrue(NeoComposePathUtility.TryNormalizeAssetDirectory(
+                "Assets/Scripts/Neo/",
+                out var scripts,
+                out var scriptsError));
+            Assert.AreEqual("", scriptsError);
+            Assert.AreEqual("Assets/Scripts/Neo", scripts);
+
+            Assert.IsTrue(NeoComposePathUtility.TryNormalizeAssetDirectory(
+                "Assets\\Resources\\Neo",
+                out var resources,
+                out var resourcesError));
+            Assert.AreEqual("", resourcesError);
+            Assert.AreEqual("Assets/Resources/Neo", resources);
+        }
+
+        [Test]
+        public void PathUtility_RejectsPathsOutsideAssets()
+        {
+            Assert.IsFalse(NeoComposePathUtility.TryNormalizeAssetDirectory(
+                "/tmp/Neo",
+                out _,
+                out var absoluteError));
+            Assert.IsTrue(absoluteError.Contains("project-relative"));
+
+            Assert.IsFalse(NeoComposePathUtility.TryNormalizeAssetDirectory(
+                "Packages/com.example",
+                out _,
+                out var packageError));
+            Assert.IsTrue(packageError.Contains("Assets/"));
+
+            Assert.IsFalse(NeoComposePathUtility.TryNormalizeAssetDirectory(
+                "Assets/../ProjectSettings",
+                out _,
+                out var parentError));
+            Assert.IsTrue(parentError.Contains(".."));
+        }
+
+        [Test]
+        public void ConfigProvider_CreatesDefaultConfigInResourcesFolder()
+        {
+            var path = $"{TempRoot}/Resources/Neo/NeoComposeConfig.asset";
+
+            var config = NeoComposeConfigProvider.LoadOrCreate(path, new[] { TempRoot });
+
+            Assert.IsNotNull(config);
+            Assert.AreEqual(path, AssetDatabase.GetAssetPath(config));
+            Assert.AreEqual(NeoComposeDefaults.ApiBaseUrl, config.apiBaseUrl);
+            Assert.AreEqual(NeoComposeDefaults.GeneratedTypesDirectory, config.generatedTypesDirectory);
+            Assert.AreEqual(NeoComposeDefaults.ProjectJsonDirectory, config.projectJsonDirectory);
+        }
+
+        [Test]
+        public void ConfigProvider_FindsMovedConfigByType()
+        {
+            AssetDatabase.CreateFolder(TempRoot, "Moved");
+            var path = $"{TempRoot}/Moved/NeoComposeConfig.asset";
+            var moved = ScriptableObject.CreateInstance<NeoComposeConfig>();
+            moved.apiBaseUrl = "http://localhost:4000";
+            AssetDatabase.CreateAsset(moved, path);
+            AssetDatabase.SaveAssets();
+
+            var config = NeoComposeConfigProvider.LoadOrCreate(
+                $"{TempRoot}/Resources/Neo/NeoComposeConfig.asset",
+                new[] { TempRoot });
+
+            Assert.AreSame(moved, config);
+            Assert.AreEqual("http://localhost:4000", config.apiBaseUrl);
+        }
+
+        [Test]
+        public void Config_ClearProject_OnlyUnlinksProjectFields()
+        {
+            var config = ScriptableObject.CreateInstance<NeoComposeConfig>();
+            config.SelectProject("project-1", "Project One");
+            config.generatedTypesDirectory = "Assets/CustomTypes";
+            config.projectJsonDirectory = "Assets/CustomJson";
+
+            config.ClearProject();
+
+            Assert.AreEqual("", config.projectId);
+            Assert.AreEqual("", config.projectName);
+            Assert.AreEqual("Assets/CustomTypes", config.generatedTypesDirectory);
+            Assert.AreEqual("Assets/CustomJson", config.projectJsonDirectory);
+        }
+
+        [Test]
+        public async Task Synchronizer_WritesGeneratedTypesAndProjectJson()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.generatedTypes = "// generated";
+            api.exportResponse.projectJson = "{ \"project\": true }";
+            var assets = new FakeAssetService();
+            var confirmations = new FakeConfirmationService(true);
+            var synchronizer = new NeoComposeSynchronizer(api, confirmations, assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual("// generated", assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+            Assert.AreEqual("{ \"project\": true }", assets.files["Assets/Resources/Neo/project.json"]);
+            Assert.Contains("Assets/Scripts/Neo", assets.createdDirectories);
+            Assert.Contains("Assets/Resources/Neo", assets.createdDirectories);
+            Assert.IsTrue(assets.savedConfig);
+        }
+
+        [Test]
+        public async Task Synchronizer_RequiresConfirmationBeforeOverwritingFiles()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.generatedTypes = "new";
+            var assets = new FakeAssetService();
+            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "existing";
+            var confirmations = new FakeConfirmationService(false);
+            var synchronizer = new NeoComposeSynchronizer(api, confirmations, assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsFalse(result.success);
+            Assert.AreEqual("existing", assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+            Assert.AreEqual(1, confirmations.calls.Count);
+            Assert.IsTrue(confirmations.calls[0].Contains("Replace"));
+        }
+
+        [Test]
+        public async Task Synchronizer_RequiresConfirmationBeforeWritingErroredGeneratedCode()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.diagnostics.Add(new NeoComposeCodegenDiagnostic
+            {
+                severity = "error",
+                path = "types.bad",
+                message = "Bad generated type.",
+            });
+            var assets = new FakeAssetService();
+            var confirmations = new FakeConfirmationService(false);
+            var synchronizer = new NeoComposeSynchronizer(api, confirmations, assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsFalse(result.success);
+            Assert.AreEqual(0, assets.files.Count);
+            Assert.AreEqual(1, confirmations.calls.Count);
+            Assert.IsTrue(confirmations.calls[0].Contains("generated C#"));
+        }
+
+        private static NeoComposeConfig MakeConfig()
+        {
+            var config = ScriptableObject.CreateInstance<NeoComposeConfig>();
+            config.apiBaseUrl = "http://localhost:3000";
+            config.SelectProject("project-1", "Project One");
+            return config;
+        }
+
+        private static void CleanupTempRoot()
+        {
+            if (AssetDatabase.IsValidFolder(TempRoot))
+            {
+                AssetDatabase.DeleteAsset(TempRoot);
+            }
+        }
+
+        private sealed class FakeApiClient : INeoComposeEditorApiClient
+        {
+            public readonly NeoComposeUnityExportResponse exportResponse = new()
+            {
+                projectId = "project-1",
+                projectName = "Project One",
+                projectJson = "{}",
+                generatedTypes = "",
+            };
+
+            public Task<NeoComposeProjectListResponse> ListProjectsAsync(string apiBaseUrl, string? query)
+            {
+                return Task.FromResult(new NeoComposeProjectListResponse());
+            }
+
+            public Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId)
+            {
+                return Task.FromResult(exportResponse);
+            }
+        }
+
+        private sealed class FakeConfirmationService : INeoComposeConfirmationService
+        {
+            private readonly Queue<bool> responses = new();
+            public readonly List<string> calls = new();
+
+            public FakeConfirmationService(params bool[] responses)
+            {
+                foreach (var response in responses)
+                {
+                    this.responses.Enqueue(response);
+                }
+            }
+
+            public bool Confirm(string title, string message, string ok, string cancel)
+            {
+                calls.Add(title);
+                if (responses.Count == 0) return true;
+                return responses.Dequeue();
+            }
+        }
+
+        private sealed class FakeAssetService : INeoComposeEditorAssetService
+        {
+            public readonly Dictionary<string, string> files = new();
+            public readonly List<string> createdDirectories = new();
+            public bool savedConfig;
+
+            public bool FileExists(string assetPath)
+            {
+                return files.ContainsKey(assetPath);
+            }
+
+            public void EnsureDirectory(string assetDirectory)
+            {
+                createdDirectories.Add(assetDirectory);
+            }
+
+            public void WriteAllText(string assetPath, string content)
+            {
+                files[assetPath] = content;
+            }
+
+            public void RefreshAsset(string assetPath)
+            {
+            }
+
+            public void SaveConfig(NeoComposeConfig config)
+            {
+                savedConfig = true;
+            }
+        }
+    }
+}
