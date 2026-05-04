@@ -347,7 +347,7 @@ namespace NeoCompose.Runtime
                 Debug.LogWarning(
                     $"NeoCompose save contains {unlinkedValueIds.Count} unlinked value(s). " +
                     "This can happen when generated factory values are created but never assigned. " +
-                    "Call Runtime.RunGarbageCollector() before Save() to delete unlinked values.");
+                    "Call NeoClient.RunGarbageCollector() before Save() to delete unlinked values.");
             }
             EmitHandleSave();
         }

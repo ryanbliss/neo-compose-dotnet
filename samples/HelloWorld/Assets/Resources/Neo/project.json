@@ -51,7 +51,7 @@
         "04d5e145-412b-4499-a253-b03496a065f0": {
             "_id": "69f691a3529ef76bc7538046",
             "id": "04d5e145-412b-4499-a253-b03496a065f0",
-            "name": "world",
+            "name": "World",
             "type": 8,
             "locked": false,
             "required": true,
@@ -64,14 +64,14 @@
             "valueId": "0c3f01df-9b8d-4a15-aa58-d6a3cf8c5ca4",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:06:59.815Z",
-            "updatedAt": "2026-05-03T00:06:59.815Z",
+            "updatedAt": "2026-05-03T23:59:33.254Z",
             "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23",
             "multiselect": false
         },
         "14d38a73-5732-4348-8fde-e81554a1a497": {
             "_id": "69f69235529ef76bc7538048",
             "id": "14d38a73-5732-4348-8fde-e81554a1a497",
-            "name": "dateUnix",
+            "name": "DateUnix",
             "type": 2,
             "locked": false,
             "required": true,
@@ -82,7 +82,7 @@
             "valueId": "e8d29cb9-066c-412f-b9ac-c78371636617",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:09:25.200Z",
-            "updatedAt": "2026-05-03T00:09:25.200Z"
+            "updatedAt": "2026-05-04T00:00:12.760Z"
         },
         "29659610-fc70-4b9c-833e-a6185f745c04": {
             "_id": "69f6924d529ef76bc753804a",
@@ -124,8 +124,8 @@
             "extendsAttributeId": null,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:10:24.481Z",
-            "updatedAt": "2026-05-03T00:14:50.145Z",
-            "code": "\tPlanet world = root.save.world;\n\tstring suffix = this.optionalSuffix ?? \"\";\n\treturn $\"{this.baseText} {world}{suffix}\";",
+            "updatedAt": "2026-05-04T00:00:45.751Z",
+            "code": "\tPlanet world = root.save.World;\n\tstring suffix = this.optionalSuffix ?? \"\";\n\treturn $\"{this.baseText} {world}{suffix}\";",
             "returnTypeInfo": {
                 "type": 3,
                 "required": true
@@ -210,7 +210,7 @@
                                                 "type": 3,
                                                 "required": true
                                             },
-                                            "value": "world"
+                                            "value": "World"
                                         }
                                     }
                                 }
@@ -328,7 +328,7 @@
         "ebab06a2-98e9-4a30-bb13-cfea8f910462": {
             "_id": "69f69339529ef76bc7538051",
             "id": "ebab06a2-98e9-4a30-bb13-cfea8f910462",
-            "name": "world",
+            "name": "World",
             "type": 8,
             "locked": false,
             "required": true,
@@ -341,14 +341,14 @@
             "valueId": "aefec66f-44bb-4c8e-931c-54897d4918ec",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:13:45.733Z",
-            "updatedAt": "2026-05-03T00:14:18.834Z",
+            "updatedAt": "2026-05-03T23:59:07.433Z",
             "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23",
             "multiselect": false
         },
         "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca": {
             "_id": "69f693a4529ef76bc7538055",
             "id": "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca",
-            "name": "computed",
+            "name": "Computed",
             "type": 7,
             "locked": false,
             "required": true,
@@ -359,7 +359,7 @@
             "valueId": "f048262e-5a44-4a7d-b548-5aa24158fde3",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:15:32.524Z",
-            "updatedAt": "2026-05-03T00:15:32.524Z",
+            "updatedAt": "2026-05-03T23:58:48.691Z",
             "customTypeId": "2ab1bc07-da0b-47fc-b77b-54cc511575bb"
         },
         "659589fe-95b2-472f-a53b-e305db97450f": {
@@ -382,7 +382,7 @@
         "c151eda4-ecce-4edf-988d-25a97c657146": {
             "_id": "69f69416529ef76bc753805e",
             "id": "c151eda4-ecce-4edf-988d-25a97c657146",
-            "name": "visited",
+            "name": "Visited",
             "type": 6,
             "locked": false,
             "required": true,
@@ -393,7 +393,7 @@
             "valueId": "8ed8c9f9-ea7a-4aa4-9b58-8454cb4db68e",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:17:26.748Z",
-            "updatedAt": "2026-05-03T00:17:26.748Z",
+            "updatedAt": "2026-05-03T23:59:20.546Z",
             "entryAttributeId": "659589fe-95b2-472f-a53b-e305db97450f"
         },
         "2c57948b-7479-47e0-b97c-242f6d543ae0": {
@@ -515,7 +515,7 @@
             "id": "dd0bbe5a-47ef-4164-9421-caea07f6f56f",
             "name": "Assets",
             "schema": {
-                "computed": "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca",
+                "Computed": "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca",
                 "LookupContainer": "2c57948b-7479-47e0-b97c-242f6d543ae0"
             },
             "extendsTypeId": null,
@@ -523,22 +523,22 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": true,
             "createdAt": "2026-05-03T00:02:45.121Z",
-            "updatedAt": "2026-05-03T22:15:54.523Z"
+            "updatedAt": "2026-05-03T23:58:46.209Z"
         },
         "96e8284d-ae43-4e91-919d-86c25ce098e0": {
             "_id": "69f690a5529ef76bc753803c",
             "id": "96e8284d-ae43-4e91-919d-86c25ce098e0",
             "name": "Save",
             "schema": {
-                "world": "ebab06a2-98e9-4a30-bb13-cfea8f910462",
-                "visited": "c151eda4-ecce-4edf-988d-25a97c657146"
+                "World": "ebab06a2-98e9-4a30-bb13-cfea8f910462",
+                "Visited": "c151eda4-ecce-4edf-988d-25a97c657146"
             },
             "extendsTypeId": null,
             "isAbstract": false,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": true,
             "createdAt": "2026-05-03T00:02:45.123Z",
-            "updatedAt": "2026-05-03T00:17:26.850Z"
+            "updatedAt": "2026-05-03T23:59:18.207Z"
         },
         "2ab1bc07-da0b-47fc-b77b-54cc511575bb": {
             "_id": "69f690fb529ef76bc7538042",
@@ -561,15 +561,15 @@
             "id": "7755a905-f2a1-4e5d-8b60-78cbdd2b2042",
             "name": "PlanetVisit",
             "schema": {
-                "world": "04d5e145-412b-4499-a253-b03496a065f0",
-                "dateUnix": "14d38a73-5732-4348-8fde-e81554a1a497"
+                "World": "04d5e145-412b-4499-a253-b03496a065f0",
+                "DateUnix": "14d38a73-5732-4348-8fde-e81554a1a497"
             },
             "extendsTypeId": null,
             "isAbstract": false,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-03T00:06:13.540Z",
-            "updatedAt": "2026-05-03T00:09:25.301Z"
+            "updatedAt": "2026-05-04T00:00:09.936Z"
         },
         "77558d64-4fcc-46ac-8351-893093ee0002": {
             "_id": "69f7c91a6c966743b317b2a4",
@@ -606,24 +606,24 @@
             "_id": "69f690a5529ef76bc753803d",
             "id": "393c69b8-ceb2-4405-9a0f-28516913f7b6",
             "value": {
-                "computed": "ee2e703d-a56e-4ccc-850d-abda636d6840",
+                "Computed": "ee2e703d-a56e-4ccc-850d-abda636d6840",
                 "LookupContainer": "52e8e972-60f5-44ed-80e6-eb0f5a472ca0"
             },
             "typeId": null,
             "createdAt": "2026-05-03T00:02:45.230Z",
-            "updatedAt": "2026-05-03T22:15:54.836Z",
+            "updatedAt": "2026-05-03T23:58:46.480Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "299b23d6-4ea0-4475-94f5-f59c4d18d9cd": {
             "_id": "69f690a5529ef76bc753803f",
             "id": "299b23d6-4ea0-4475-94f5-f59c4d18d9cd",
             "value": {
-                "world": "4e783b54-c992-40c0-8036-dbaafe6ecb65",
-                "visited": "1b54d5cc-0437-4997-95db-7ea690b88837"
+                "World": "4e783b54-c992-40c0-8036-dbaafe6ecb65",
+                "Visited": "1b54d5cc-0437-4997-95db-7ea690b88837"
             },
             "typeId": null,
             "createdAt": "2026-05-03T00:02:45.482Z",
-            "updatedAt": "2026-05-03T00:17:27.128Z",
+            "updatedAt": "2026-05-03T23:59:19.494Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "0c3f01df-9b8d-4a15-aa58-d6a3cf8c5ca4": {
@@ -751,12 +751,12 @@
             "_id": "69f69416529ef76bc753805b",
             "id": "77561c95-0c3f-4291-a79b-7e5562d8ee30",
             "value": {
-                "world": "a156a90f-c09b-4485-96a6-352b81c88cab",
-                "dateUnix": "cc1e54b4-01bf-4f69-9b3a-6c9efed6bb87"
+                "World": "a156a90f-c09b-4485-96a6-352b81c88cab",
+                "DateUnix": "cc1e54b4-01bf-4f69-9b3a-6c9efed6bb87"
             },
             "typeId": null,
             "createdAt": "2026-05-03T00:17:26.579Z",
-            "updatedAt": "2026-05-03T00:17:26.579Z",
+            "updatedAt": "2026-05-04T00:00:12.068Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "8ed8c9f9-ea7a-4aa4-9b58-8454cb4db68e": {
@@ -803,12 +803,12 @@
             "_id": "69f6941c529ef76bc7538062",
             "id": "9aa19862-e2df-4423-9fe0-1cfe24255436",
             "value": {
-                "world": "e14e53d6-7ef2-4f61-bfb1-98f9d114a301",
-                "dateUnix": "ee20ee52-6ef0-4831-ad9e-fdf50e859815"
+                "World": "e14e53d6-7ef2-4f61-bfb1-98f9d114a301",
+                "DateUnix": "ee20ee52-6ef0-4831-ad9e-fdf50e859815"
             },
             "typeId": null,
             "createdAt": "2026-05-03T00:17:32.112Z",
-            "updatedAt": "2026-05-03T00:17:32.112Z",
+            "updatedAt": "2026-05-04T00:00:11.556Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "9d559f55-d80f-442a-a964-766b3d45780d": {

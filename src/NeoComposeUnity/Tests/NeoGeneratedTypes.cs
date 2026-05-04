@@ -12,14 +12,14 @@ namespace Assets.Scripts.Neo
     public sealed class TestProjectNeo
     {
         public NeoClient Runtime { get; }
-        public Root Assets { get; }
-        public RootSaved Save { get; }
+        public ReadOnlyRoot Assets { get; }
+        public Root Save { get; }
 
         public TestProjectNeo(NeoClient runtime)
         {
             Runtime = runtime;
-            Assets = new Root(runtime, runtime.assets);
-            Save = new RootSaved(runtime, runtime.save);
+            Assets = new ReadOnlyRoot(runtime, runtime.assets);
+            Save = new Root(runtime, runtime.save);
         }
 
         public static TestProjectNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave)
@@ -76,19 +76,19 @@ namespace Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
     }
 
-    public partial class Hero : NeoGeneratedCustomValue
+    public partial class ReadOnlyHero : NeoGeneratedCustomValue
     {
-        public Hero(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlyHero(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "type-hero")
         {
         }
 
-        internal static Hero Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlyHero Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new Hero(client, node),
+                _ => new ReadOnlyHero(client, node),
             };
         }
 
@@ -109,16 +109,16 @@ namespace Assets.Scripts.Neo
         }
     }
 
-    public partial class HeroSaved : Hero
+    public partial class Hero : ReadOnlyHero
     {
-        public HeroSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal Hero(NeoClient client, NeoAttributeCustomSaved node)
             : base(client, node)
         {
         }
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static HeroSaved factory(NeoClient client, string? Name = null, int? Health = null)
+        public static Hero factory(NeoClient client, string? Name = null, int? Health = null)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
@@ -150,12 +150,12 @@ namespace Assets.Scripts.Neo
             return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-hero", value, valueRows));
         }
 
-        internal static HeroSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static Hero CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new HeroSaved(client, node),
+                _ => new Hero(client, node),
             };
         }
 
@@ -183,27 +183,27 @@ namespace Assets.Scripts.Neo
             }
         }
     }
-    public partial class Root : NeoGeneratedCustomValue
+    public partial class ReadOnlyRoot : NeoGeneratedCustomValue
     {
-        public Root(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlyRoot(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "type-root")
         {
         }
 
-        internal static Root Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlyRoot Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new Root(client, node),
+                _ => new ReadOnlyRoot(client, node),
             };
         }
 
-        public NeoReadOnlyList<Hero> Heroes
+        public NeoReadOnlyList<ReadOnlyHero> Heroes
         {
             get
             {
-                return new NeoReadOnlyList<Hero>(client, node.Get<NeoAttributeList>("Heroes"), (client, child) => Hero.Create(client, (NeoAttributeCustom)child));
+                return new NeoReadOnlyList<ReadOnlyHero>(client, node.Get<NeoAttributeList>("Heroes"), (client, child) => ReadOnlyHero.Create(client, (NeoAttributeCustom)child));
             }
         }
 
@@ -218,16 +218,16 @@ namespace Assets.Scripts.Neo
         }
     }
 
-    public partial class RootSaved : Root
+    public partial class Root : ReadOnlyRoot
     {
-        public RootSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal Root(NeoClient client, NeoAttributeCustomSaved node)
             : base(client, node)
         {
         }
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static RootSaved factory(NeoClient client, IEnumerable<HeroSaved>? Heroes = null)
+        public static Root factory(NeoClient client, IEnumerable<Hero>? Heroes = null)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
@@ -252,20 +252,20 @@ namespace Assets.Scripts.Neo
             return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-root", value, valueRows));
         }
 
-        internal static RootSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static Root CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new RootSaved(client, node),
+                _ => new Root(client, node),
             };
         }
 
-        public new NeoList<HeroSaved> Heroes
+        public new NeoList<Hero> Heroes
         {
             get
             {
-                return new NeoList<HeroSaved>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("Heroes"), (client, child) => HeroSaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoList<Hero>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("Heroes"), (client, child) => Hero.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -279,21 +279,21 @@ namespace Assets.Scripts.Neo
             }
         }
     }
-    public partial class Base : NeoGeneratedCustomValue
+    public partial class ReadOnlyBase : NeoGeneratedCustomValue
     {
-        public Base(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlyBase(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "type-base")
         {
         }
 
-        internal static Base Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlyBase Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                "type-derived" => new Derived(client, node),
-                "type-override" => new Override(client, node),
-                _ => new Base(client, node),
+                "type-derived" => new ReadOnlyDerived(client, node),
+                "type-override" => new ReadOnlyOverride(client, node),
+                _ => new ReadOnlyBase(client, node),
             };
         }
 
@@ -306,16 +306,16 @@ namespace Assets.Scripts.Neo
         }
     }
 
-    public partial class BaseSaved : Base
+    public partial class Base : ReadOnlyBase
     {
-        public BaseSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal Base(NeoClient client, NeoAttributeCustomSaved node)
             : base(client, node)
         {
         }
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static BaseSaved factory(NeoClient client, string? Name = null)
+        public static Base factory(NeoClient client, string? Name = null)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
@@ -335,14 +335,14 @@ namespace Assets.Scripts.Neo
             return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-base", value, valueRows));
         }
 
-        internal static BaseSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static Base CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                "type-derived" => new DerivedSaved(client, node),
-                "type-override" => new OverrideSaved(client, node),
-                _ => new BaseSaved(client, node),
+                "type-derived" => new Derived(client, node),
+                "type-override" => new Override(client, node),
+                _ => new Base(client, node),
             };
         }
 
@@ -358,19 +358,19 @@ namespace Assets.Scripts.Neo
             }
         }
     }
-    public partial class Derived : Base
+    public partial class ReadOnlyDerived : ReadOnlyBase
     {
-        public Derived(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlyDerived(NeoClient client, NeoAttributeCustom node)
             : base(client, node)
         {
         }
 
-        internal static Derived Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlyDerived Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new Derived(client, node),
+                _ => new ReadOnlyDerived(client, node),
             };
         }
 
@@ -383,16 +383,16 @@ namespace Assets.Scripts.Neo
         }
     }
 
-    public partial class DerivedSaved : BaseSaved
+    public partial class Derived : Base
     {
-        public DerivedSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal Derived(NeoClient client, NeoAttributeCustomSaved node)
             : base(client, node)
         {
         }
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static DerivedSaved factory(NeoClient client, string? Name = null, int? Health = null)
+        public static Derived factory(NeoClient client, string? Name = null, int? Health = null)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
@@ -424,12 +424,12 @@ namespace Assets.Scripts.Neo
             return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-derived", value, valueRows));
         }
 
-        internal static DerivedSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static Derived CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new DerivedSaved(client, node),
+                _ => new Derived(client, node),
             };
         }
 
@@ -457,19 +457,19 @@ namespace Assets.Scripts.Neo
             }
         }
     }
-    public partial class Override : Base
+    public partial class ReadOnlyOverride : ReadOnlyBase
     {
-        public Override(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlyOverride(NeoClient client, NeoAttributeCustom node)
             : base(client, node)
         {
         }
 
-        internal static Override Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlyOverride Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new Override(client, node),
+                _ => new ReadOnlyOverride(client, node),
             };
         }
 
@@ -482,16 +482,16 @@ namespace Assets.Scripts.Neo
         }
     }
 
-    public partial class OverrideSaved : BaseSaved
+    public partial class Override : Base
     {
-        public OverrideSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal Override(NeoClient client, NeoAttributeCustomSaved node)
             : base(client, node)
         {
         }
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static OverrideSaved factory(NeoClient client, string? Name = null)
+        public static Override factory(NeoClient client, string? Name = null)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
@@ -511,12 +511,12 @@ namespace Assets.Scripts.Neo
             return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-override", value, valueRows));
         }
 
-        internal static OverrideSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static Override CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new OverrideSaved(client, node),
+                _ => new Override(client, node),
             };
         }
 

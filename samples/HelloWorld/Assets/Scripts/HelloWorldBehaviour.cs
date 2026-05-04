@@ -31,15 +31,15 @@ namespace HelloWorld.Assets.Scripts
             Debug.Log(neo.Assets.LookupContainer.Lookup.Name);
         }
 
-        public string HelloWorldText => neo.Assets.computed.fullText;
-        public Planet World => neo.Save.world;
-        public IReadOnlyList<PlanetVisitSaved> VisitedPlanets => neo.Save.visited;
+        public string HelloWorldText => neo.Assets.Computed.fullText;
+        public Planet World => neo.Save.World;
+        public NeoList<PlanetVisit> VisitedPlanets => neo.Save.Visited;
 
         public void Visit(Planet planet)
         {
-            neo.Save.world = planet;
-            neo.Save.visited.Add(
-                PlanetVisitSaved.factory(
+            neo.Save.World = planet;
+            neo.Save.Visited.Add(
+                PlanetVisit.factory(
                     neo.Runtime,
                     planet,
                     CurrentUnixTime

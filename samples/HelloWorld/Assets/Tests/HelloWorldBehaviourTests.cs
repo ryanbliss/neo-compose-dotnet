@@ -85,10 +85,10 @@ namespace HelloWorld.Assets.Tests
                 loadSave,
                 handleSave);
 
-            Assert.AreEqual(Planet.earth, client.Save.world?.optionId);
-            Assert.AreEqual("Hello", client.Assets.computed.baseText);
+            Assert.AreEqual(Planet.earth, client.Save.World?.optionId);
+            Assert.AreEqual("Hello", client.Assets.Computed.baseText);
 
-            Assert.AreEqual("Hello Earth!", client.Assets.computed.fullText);
+            Assert.AreEqual("Hello Earth!", client.Assets.Computed.fullText);
         }
 
         [Test]
@@ -209,7 +209,7 @@ namespace HelloWorld.Assets.Tests
             var ids = new System.Collections.Generic.List<string>();
             foreach (var visit in behaviour.VisitedPlanets)
             {
-                ids.Add(visit.world.optionId);
+                ids.Add(visit.World.optionId);
             }
             return ids.ToArray();
         }

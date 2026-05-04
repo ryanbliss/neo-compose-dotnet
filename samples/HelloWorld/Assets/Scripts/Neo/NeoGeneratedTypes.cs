@@ -12,14 +12,14 @@ namespace HelloWorld.Assets.Scripts.Neo
     public sealed class HelloWorldNeo
     {
         public NeoClient Runtime { get; }
-        public Assets Assets { get; }
-        public SaveSaved Save { get; }
+        public ReadOnlyAssets Assets { get; }
+        public Save Save { get; }
 
         public HelloWorldNeo(NeoClient runtime)
         {
             Runtime = runtime;
-            Assets = new Assets(runtime, runtime.assets);
-            Save = new SaveSaved(runtime, runtime.save);
+            Assets = new ReadOnlyAssets(runtime, runtime.assets);
+            Save = new Save(runtime, runtime.save);
         }
 
         public static HelloWorldNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave)
@@ -82,56 +82,56 @@ namespace HelloWorld.Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
     }
 
-    public partial class Assets : NeoGeneratedCustomValue
+    public partial class ReadOnlyAssets : NeoGeneratedCustomValue
     {
-        public Assets(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlyAssets(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "dd0bbe5a-47ef-4164-9421-caea07f6f56f")
         {
         }
 
-        internal static Assets Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlyAssets Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new Assets(client, node),
+                _ => new ReadOnlyAssets(client, node),
             };
         }
 
-        public ComputedText computed
+        public ReadOnlyComputedText Computed
         {
             get
             {
-                return ComputedText.Create(client, node.Get<NeoAttributeCustom>("computed"));
+                return ReadOnlyComputedText.Create(client, node.Get<NeoAttributeCustom>("Computed"));
             }
         }
 
-        public LookupContainer LookupContainer
+        public ReadOnlyLookupContainer LookupContainer
         {
             get
             {
-                return LookupContainer.Create(client, node.Get<NeoAttributeCustom>("LookupContainer"));
+                return ReadOnlyLookupContainer.Create(client, node.Get<NeoAttributeCustom>("LookupContainer"));
             }
         }
     }
 
-    public partial class AssetsSaved : Assets
+    public partial class Assets : ReadOnlyAssets
     {
-        public AssetsSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal Assets(NeoClient client, NeoAttributeCustomSaved node)
             : base(client, node)
         {
         }
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static AssetsSaved factory(NeoClient client, ComputedTextSaved? computed = null, LookupContainerSaved? LookupContainer = null)
+        public static Assets factory(NeoClient client, ComputedText? Computed = null, LookupContainer? LookupContainer = null)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            if (computed is not null)
+            if (Computed is not null)
             {
-                value["computed"] = NeoGeneratedTypesSupport.LookupSelectionId(computed.valueId);
+                value["Computed"] = NeoGeneratedTypesSupport.LookupSelectionId(Computed.valueId);
             }
             if (LookupContainer is not null)
             {
@@ -140,32 +140,32 @@ namespace HelloWorld.Assets.Scripts.Neo
             return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows));
         }
 
-        internal static AssetsSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static Assets CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new AssetsSaved(client, node),
+                _ => new Assets(client, node),
             };
         }
 
-        public new ComputedTextSaved computed
+        public new ComputedText Computed
         {
             get
             {
-                return ComputedTextSaved.CreateSaved(client, node.Get<NeoAttributeCustomSaved>("computed"));
+                return ComputedText.CreateSaved(client, node.Get<NeoAttributeCustomSaved>("Computed"));
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "computed", NeoGeneratedTypesSupport.ValueReference(value));
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Computed", NeoGeneratedTypesSupport.ValueReference(value));
             }
         }
 
-        public new LookupContainerSaved LookupContainer
+        public new LookupContainer LookupContainer
         {
             get
             {
-                return LookupContainerSaved.CreateSaved(client, node.Get<NeoAttributeCustomSaved>("LookupContainer"));
+                return LookupContainer.CreateSaved(client, node.Get<NeoAttributeCustomSaved>("LookupContainer"));
             }
             set
             {
@@ -173,14 +173,87 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
     }
-    public partial class Save : NeoGeneratedCustomValue
+    public partial class ReadOnlySave : NeoGeneratedCustomValue
     {
-        public Save(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlySave(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "96e8284d-ae43-4e91-919d-86c25ce098e0")
         {
         }
 
-        internal static Save Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlySave Create(NeoClient client, NeoAttributeCustom node)
+        {
+            var runtimeTypeId = node.value?.typeId;
+            return runtimeTypeId switch
+            {
+                _ => new ReadOnlySave(client, node),
+            };
+        }
+
+        public Planet World
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("World"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : Planet.FromOptionId(selected);
+            }
+        }
+
+        public NeoReadOnlyList<ReadOnlyPlanetVisit> Visited
+        {
+            get
+            {
+                return new NeoReadOnlyList<ReadOnlyPlanetVisit>(client, node.Get<NeoAttributeList>("Visited"), (client, child) => ReadOnlyPlanetVisit.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+    }
+
+    public partial class Save : ReadOnlySave
+    {
+        internal Save(NeoClient client, NeoAttributeCustomSaved node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+
+        public static Save factory(NeoClient client, Planet? World = null, IEnumerable<PlanetVisit>? Visited = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (World is not null)
+            {
+                var WorldValueId = Guid.NewGuid().ToString();
+                value["World"] = WorldValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = WorldValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = World is null ? null : new[] { World.optionId },
+                });
+            }
+            if (Visited is not null)
+            {
+                var VisitedValueId = Guid.NewGuid().ToString();
+                value["Visited"] = VisitedValueId;
+                var VisitedIds = new List<string>();
+                foreach (var entry in Visited)
+                {
+                    VisitedIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = VisitedValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = VisitedIds.ToArray(),
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows));
+        }
+
+        internal static Save CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
@@ -189,113 +262,40 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public Planet world
+        public new Planet World
         {
             get
             {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("world"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'world' has no selected option.") : Planet.FromOptionId(selected);
-            }
-        }
-
-        public NeoReadOnlyList<PlanetVisit> visited
-        {
-            get
-            {
-                return new NeoReadOnlyList<PlanetVisit>(client, node.Get<NeoAttributeList>("visited"), (client, child) => PlanetVisit.Create(client, (NeoAttributeCustom)child));
-            }
-        }
-    }
-
-    public partial class SaveSaved : Save
-    {
-        public SaveSaved(NeoClient client, NeoAttributeCustomSaved node)
-            : base(client, node)
-        {
-        }
-
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
-
-        public static SaveSaved factory(NeoClient client, Planet? world = null, IEnumerable<PlanetVisitSaved>? visited = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (world is not null)
-            {
-                var worldValueId = Guid.NewGuid().ToString();
-                value["world"] = worldValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = worldValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = world is null ? null : new[] { world.optionId },
-                });
-            }
-            if (visited is not null)
-            {
-                var visitedValueId = Guid.NewGuid().ToString();
-                value["visited"] = visitedValueId;
-                var visitedIds = new List<string>();
-                foreach (var entry in visited)
-                {
-                    visitedIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = visitedValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = visitedIds.ToArray(),
-                });
-            }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows));
-        }
-
-        internal static SaveSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
-        {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
-            {
-                _ => new SaveSaved(client, node),
-            };
-        }
-
-        public new Planet world
-        {
-            get
-            {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("world"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'world' has no selected option.") : Planet.FromOptionId(selected);
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("World"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : Planet.FromOptionId(selected);
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "world", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(savedNode, "World", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
-        public new NeoList<PlanetVisitSaved> visited
+        public new NeoList<PlanetVisit> Visited
         {
             get
             {
-                return new NeoList<PlanetVisitSaved>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("visited"), (client, child) => PlanetVisitSaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoList<PlanetVisit>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("Visited"), (client, child) => PlanetVisit.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
     }
-    public partial class ComputedText : NeoGeneratedCustomValue
+    public partial class ReadOnlyComputedText : NeoGeneratedCustomValue
     {
-        public ComputedText(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlyComputedText(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "2ab1bc07-da0b-47fc-b77b-54cc511575bb")
         {
         }
 
-        internal static ComputedText Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlyComputedText Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new ComputedText(client, node),
+                _ => new ReadOnlyComputedText(client, node),
             };
         }
 
@@ -326,16 +326,16 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
-    public partial class ComputedTextSaved : ComputedText
+    public partial class ComputedText : ReadOnlyComputedText
     {
-        public ComputedTextSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal ComputedText(NeoClient client, NeoAttributeCustomSaved node)
             : base(client, node)
         {
         }
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static ComputedTextSaved factory(NeoClient client, string? baseText = null, string? optionalSuffix = null)
+        public static ComputedText factory(NeoClient client, string? baseText = null, string? optionalSuffix = null)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
@@ -367,12 +367,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", value, valueRows));
         }
 
-        internal static ComputedTextSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static ComputedText CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new ComputedTextSaved(client, node),
+                _ => new ComputedText(client, node),
             };
         }
 
@@ -410,14 +410,82 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
     }
-    public partial class PlanetVisit : NeoGeneratedCustomValue
+    public partial class ReadOnlyPlanetVisit : NeoGeneratedCustomValue
     {
-        public PlanetVisit(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlyPlanetVisit(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042")
         {
         }
 
-        internal static PlanetVisit Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlyPlanetVisit Create(NeoClient client, NeoAttributeCustom node)
+        {
+            var runtimeTypeId = node.value?.typeId;
+            return runtimeTypeId switch
+            {
+                _ => new ReadOnlyPlanetVisit(client, node),
+            };
+        }
+
+        public Planet World
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("World"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : Planet.FromOptionId(selected);
+            }
+        }
+
+        public int DateUnix
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("DateUnix")) ?? throw new InvalidOperationException("Required int 'DateUnix' has no value.");
+            }
+        }
+    }
+
+    public partial class PlanetVisit : ReadOnlyPlanetVisit
+    {
+        internal PlanetVisit(NeoClient client, NeoAttributeCustomSaved node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+
+        public static PlanetVisit factory(NeoClient client, Planet? World = null, int? DateUnix = null)
+        {
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (World is not null)
+            {
+                var WorldValueId = Guid.NewGuid().ToString();
+                value["World"] = WorldValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = WorldValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = World is null ? null : new[] { World.optionId },
+                });
+            }
+            if (DateUnix is not null)
+            {
+                var DateUnixValueId = Guid.NewGuid().ToString();
+                value["DateUnix"] = DateUnixValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = DateUnixValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DateUnix.HasValue ? DateUnix.Value : (double?)null,
+                });
+            }
+            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", value, valueRows));
+        }
+
+        internal static PlanetVisit CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
@@ -426,143 +494,75 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public Planet world
+        public new Planet World
         {
             get
             {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("world"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'world' has no selected option.") : Planet.FromOptionId(selected);
-            }
-        }
-
-        public int dateUnix
-        {
-            get
-            {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("dateUnix")) ?? throw new InvalidOperationException("Required int 'dateUnix' has no value.");
-            }
-        }
-    }
-
-    public partial class PlanetVisitSaved : PlanetVisit
-    {
-        public PlanetVisitSaved(NeoClient client, NeoAttributeCustomSaved node)
-            : base(client, node)
-        {
-        }
-
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
-
-        public static PlanetVisitSaved factory(NeoClient client, Planet? world = null, int? dateUnix = null)
-        {
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (world is not null)
-            {
-                var worldValueId = Guid.NewGuid().ToString();
-                value["world"] = worldValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = worldValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = world is null ? null : new[] { world.optionId },
-                });
-            }
-            if (dateUnix is not null)
-            {
-                var dateUnixValueId = Guid.NewGuid().ToString();
-                value["dateUnix"] = dateUnixValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = dateUnixValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = dateUnix.HasValue ? dateUnix.Value : (double?)null,
-                });
-            }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", value, valueRows));
-        }
-
-        internal static PlanetVisitSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
-        {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
-            {
-                _ => new PlanetVisitSaved(client, node),
-            };
-        }
-
-        public new Planet world
-        {
-            get
-            {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("world"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'world' has no selected option.") : Planet.FromOptionId(selected);
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("World"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : Planet.FromOptionId(selected);
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "world", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(savedNode, "World", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
-        public new int dateUnix
+        public new int DateUnix
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("dateUnix")) ?? throw new InvalidOperationException("Required int 'dateUnix' has no value.");
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("DateUnix")) ?? throw new InvalidOperationException("Required int 'DateUnix' has no value.");
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "dateUnix", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(savedNode, "DateUnix", NeoGeneratedTypesSupport.Value(value));
             }
         }
     }
-    public partial class LookupContainer : NeoGeneratedCustomValue
+    public partial class ReadOnlyLookupContainer : NeoGeneratedCustomValue
     {
-        public LookupContainer(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlyLookupContainer(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "77558d64-4fcc-46ac-8351-893093ee0002")
         {
         }
 
-        internal static LookupContainer Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlyLookupContainer Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new LookupContainer(client, node),
+                _ => new ReadOnlyLookupContainer(client, node),
             };
         }
 
-        public NeoReadOnlyDictionary<LookupEntry> LookupList
+        public NeoReadOnlyDictionary<ReadOnlyLookupEntry> LookupList
         {
             get
             {
-                return new NeoReadOnlyDictionary<LookupEntry>(client, node.Get<NeoAttributeDictionary>("LookupList"), (client, child) => LookupEntry.Create(client, (NeoAttributeCustom)child));
+                return new NeoReadOnlyDictionary<ReadOnlyLookupEntry>(client, node.Get<NeoAttributeDictionary>("LookupList"), (client, child) => ReadOnlyLookupEntry.Create(client, (NeoAttributeCustom)child));
             }
         }
 
-        public LookupEntry Lookup
+        public ReadOnlyLookupEntry Lookup
         {
             get
             {
                 var selected = node.Get<NeoAttributeLookup>("Lookup").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : LookupEntry.Create(client, (NeoAttributeCustom)selected[0]);
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : ReadOnlyLookupEntry.Create(client, (NeoAttributeCustom)selected[0]);
             }
         }
     }
 
-    public partial class LookupContainerSaved : LookupContainer
+    public partial class LookupContainer : ReadOnlyLookupContainer
     {
-        public LookupContainerSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal LookupContainer(NeoClient client, NeoAttributeCustomSaved node)
             : base(client, node)
         {
         }
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static LookupContainerSaved factory(NeoClient client, IDictionary<string, LookupEntrySaved>? LookupList = null, NeoLookupSelection? Lookup = null)
+        public static LookupContainer factory(NeoClient client, IDictionary<string, LookupEntry>? LookupList = null, NeoLookupSelection? Lookup = null)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
@@ -599,29 +599,29 @@ namespace HelloWorld.Assets.Scripts.Neo
             return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "77558d64-4fcc-46ac-8351-893093ee0002", value, valueRows));
         }
 
-        internal static LookupContainerSaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static LookupContainer CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new LookupContainerSaved(client, node),
+                _ => new LookupContainer(client, node),
             };
         }
 
-        public new NeoDictionary<LookupEntrySaved> LookupList
+        public new NeoDictionary<LookupEntry> LookupList
         {
             get
             {
-                return new NeoDictionary<LookupEntrySaved>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("LookupList"), (client, child) => LookupEntrySaved.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoDictionary<LookupEntry>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("LookupList"), (client, child) => LookupEntry.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
-        public new LookupEntrySaved Lookup
+        public new LookupEntry Lookup
         {
             get
             {
                 var selected = node.Get<NeoAttributeLookup>("Lookup").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : LookupEntrySaved.CreateSaved(client, (NeoAttributeCustomSaved)selected[0]);
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : LookupEntry.CreateSaved(client, (NeoAttributeCustomSaved)selected[0]);
             }
             set
             {
@@ -634,19 +634,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             NeoGeneratedTypesSupport.SetValue(savedNode, "Lookup", NeoGeneratedTypesSupport.Value(selection.HasValue ? new[] { selection.Value.valueId } : null));
         }
     }
-    public partial class LookupEntry : NeoGeneratedCustomValue
+    public partial class ReadOnlyLookupEntry : NeoGeneratedCustomValue
     {
-        public LookupEntry(NeoClient client, NeoAttributeCustom node)
+        internal ReadOnlyLookupEntry(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "9296e4be-bd27-44e3-9823-77fbeaa60665")
         {
         }
 
-        internal static LookupEntry Create(NeoClient client, NeoAttributeCustom node)
+        internal static ReadOnlyLookupEntry Create(NeoClient client, NeoAttributeCustom node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new LookupEntry(client, node),
+                _ => new ReadOnlyLookupEntry(client, node),
             };
         }
 
@@ -659,16 +659,16 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
-    public partial class LookupEntrySaved : LookupEntry
+    public partial class LookupEntry : ReadOnlyLookupEntry
     {
-        public LookupEntrySaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal LookupEntry(NeoClient client, NeoAttributeCustomSaved node)
             : base(client, node)
         {
         }
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static LookupEntrySaved factory(NeoClient client, string? Name = null)
+        public static LookupEntry factory(NeoClient client, string? Name = null)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
@@ -688,12 +688,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "9296e4be-bd27-44e3-9823-77fbeaa60665", value, valueRows));
         }
 
-        internal static LookupEntrySaved CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static LookupEntry CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var runtimeTypeId = node.value?.typeId;
             return runtimeTypeId switch
             {
-                _ => new LookupEntrySaved(client, node),
+                _ => new LookupEntry(client, node),
             };
         }
 

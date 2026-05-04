@@ -65,12 +65,12 @@ namespace NeoCompose.Tests
                 derivedAttr,
                 null);
 
-            var generatedSaved = new DerivedSaved(app.Runtime, derivedNode);
+            var generatedSaved = new Derived(app.Runtime, derivedNode);
             generatedSaved.Name = "Ancestor Name";
             generatedSaved.Health = 33;
 
-            var generated = new Derived(app.Runtime, derivedNode);
-            Base asBase = generated;
+            var generated = new ReadOnlyDerived(app.Runtime, derivedNode);
+            ReadOnlyBase asBase = generated;
 
             Assert.AreEqual("Ancestor Name", asBase.Name);
             Assert.AreEqual(33, generated.Health);
@@ -86,7 +86,7 @@ namespace NeoCompose.Tests
                 derivedAttr,
                 null);
 
-            var generated = new DerivedSaved(app.Runtime, derivedNode);
+            var generated = new Derived(app.Runtime, derivedNode);
 
             generated.Name = "Saved Name";
             generated.Health = 44;
@@ -105,11 +105,11 @@ namespace NeoCompose.Tests
                 app.Runtime,
                 derivedAttr,
                 null);
-            var generated = new Derived(app.Runtime, derivedNode);
+            var generated = new ReadOnlyDerived(app.Runtime, derivedNode);
             int changes = 0;
             generated.OnChanged += () => changes++;
 
-            var generatedSaved = new DerivedSaved(app.Runtime, derivedNode);
+            var generatedSaved = new Derived(app.Runtime, derivedNode);
             generatedSaved.Name = "Before Dispose";
             Assert.Greater(changes, 0);
 
@@ -124,7 +124,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            app.Save.Heroes.Add(HeroSaved.factory(app.Runtime, Name: "Ada", Health: 7));
+            app.Save.Heroes.Add(Hero.factory(app.Runtime, Name: "Ada", Health: 7));
 
             Assert.AreEqual(1, app.Save.Heroes.Count);
             var hero = app.Save.Heroes[0];
@@ -163,7 +163,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            var orphan = HeroSaved.factory(app.Runtime, Name: "Orphan", Health: 1);
+            var orphan = Hero.factory(app.Runtime, Name: "Orphan", Health: 1);
             Assert.IsNotNull(orphan.valueId);
             CollectionAssert.Contains(
                 new System.Collections.Generic.List<string>(
