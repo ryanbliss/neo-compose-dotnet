@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.IO;
+using System.Collections.Generic;
 using Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -139,6 +140,55 @@ namespace NeoCompose.Tests
                 out ObjectAttributeValue? row));
             Assert.AreEqual("type-hero", row!.typeId);
             Assert.IsTrue(app.Runtime.SerializeSaveData().Contains("Ada"));
+        }
+
+        [Test]
+        public void GeneratedFactory_UsesAttributeDefaultsForOmittedFactoryArguments()
+        {
+            var app = LoadGeneratedClient(out _);
+            RequireAttribute<StringAttribute>(app.Runtime, "attr-name").required = true;
+            RequireAttribute<IntAttribute>(app.Runtime, "attr-health").required = true;
+
+            var hero = Hero.factory(app.Runtime);
+
+            Assert.AreEqual("Hero", hero.Name);
+            Assert.AreEqual(100, hero.Health);
+        }
+
+        [Test]
+        public void GeneratedFactory_RecursivelyCreatesNestedCustomDefaults()
+        {
+            var app = LoadGeneratedClient(out _);
+            RequireAttribute<StringAttribute>(app.Runtime, "attr-name").required = true;
+            RequireAttribute<IntAttribute>(app.Runtime, "attr-health").required = true;
+            var heroAttribute = RequireAttribute<CustomAttribute>(app.Runtime, "attr-hero");
+            heroAttribute.required = true;
+            heroAttribute.defaultValue!.value = new Dictionary<string, string>();
+            var types = (Dictionary<string, CustomType>)app.Runtime.types;
+            types["type-default-holder"] = new CustomType
+            {
+                id = "type-default-holder",
+                _id = "type-default-holder",
+                name = "DefaultHolder",
+                schema = new Dictionary<string, string> { ["Hero"] = "attr-hero" },
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-01T00:00:00.000Z",
+            };
+
+            var holder = NeoGeneratedTypesSupport.CreateSavedCustomValue(
+                app.Runtime,
+                "type-default-holder",
+                new Dictionary<string, string>(),
+                System.Array.Empty<AttributeValue>());
+            var hero = holder.Get<NeoAttributeCustomSaved>("Hero");
+
+            Assert.AreEqual(
+                "Hero",
+                hero.Get<NeoAttributeString>("Name").value?.value);
+            Assert.AreEqual(
+                100,
+                NeoGeneratedTypesSupport.ReadInt(
+                    hero.Get<NeoAttributeInt>("Health")));
         }
 
         [Test]
