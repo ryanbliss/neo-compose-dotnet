@@ -11,21 +11,21 @@ namespace HelloWorld.Assets.Scripts.Neo
 {
     public sealed class HelloWorldNeo
     {
-        public NeoClient Runtime { get; }
+        public NeoClient Client { get; }
         public ReadOnlyAssets Assets { get; }
         public Save Save { get; }
 
-        public HelloWorldNeo(NeoClient runtime)
+        public HelloWorldNeo(NeoClient client)
         {
-            Runtime = runtime;
-            Assets = new ReadOnlyAssets(runtime, runtime.assets);
-            Save = new Save(runtime, runtime.save);
+            Client = client;
+            Assets = new ReadOnlyAssets(client, client.assets);
+            Save = new Save(client, client.save);
         }
 
         public static HelloWorldNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave)
         {
-            var runtime = new NeoLoader().Load(projectJson, loadSave, handleSave);
-            return new HelloWorldNeo(runtime);
+            var client = new NeoLoader().Load(projectJson, loadSave, handleSave);
+            return new HelloWorldNeo(client);
         }
     }
 
@@ -91,8 +91,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyAssets Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ReadOnlyAssets(client, node),
             };
@@ -142,8 +142,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Assets CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new Assets(client, node),
             };
@@ -182,8 +182,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlySave Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ReadOnlySave(client, node),
             };
@@ -255,8 +255,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Save CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new Save(client, node),
             };
@@ -292,8 +292,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyComputedText Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ReadOnlyComputedText(client, node),
             };
@@ -369,8 +369,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ComputedText CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ComputedText(client, node),
             };
@@ -419,8 +419,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyPlanetVisit Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ReadOnlyPlanetVisit(client, node),
             };
@@ -481,8 +481,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static PlanetVisit CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new PlanetVisit(client, node),
             };
@@ -522,8 +522,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyLookupContainer Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ReadOnlyLookupContainer(client, node),
             };
@@ -595,8 +595,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static LookupContainer CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new LookupContainer(client, node),
             };
@@ -637,8 +637,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyLookupEntry Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ReadOnlyLookupEntry(client, node),
             };
@@ -684,8 +684,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static LookupEntry CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new LookupEntry(client, node),
             };

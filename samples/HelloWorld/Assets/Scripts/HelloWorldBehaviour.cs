@@ -40,7 +40,7 @@ namespace HelloWorld.Assets.Scripts
             neo.Save.World = planet;
             neo.Save.Visited.Add(
                 PlanetVisit.factory(
-                    neo.Runtime,
+                    neo.Client,
                     planet,
                     CurrentUnixTime
                 )
@@ -49,7 +49,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void Save()
         {
-            neo.Runtime.Save();
+            neo.Client.Save();
         }
 
         public void ResetSave()

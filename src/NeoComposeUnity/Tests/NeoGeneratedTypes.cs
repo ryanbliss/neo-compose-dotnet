@@ -11,21 +11,21 @@ namespace Assets.Scripts.Neo
 {
     public sealed class TestProjectNeo
     {
-        public NeoClient Runtime { get; }
+        public NeoClient Client { get; }
         public ReadOnlyRoot Assets { get; }
         public Root Save { get; }
 
-        public TestProjectNeo(NeoClient runtime)
+        public TestProjectNeo(NeoClient client)
         {
-            Runtime = runtime;
-            Assets = new ReadOnlyRoot(runtime, runtime.assets);
-            Save = new Root(runtime, runtime.save);
+            Client = client;
+            Assets = new ReadOnlyRoot(client, client.assets);
+            Save = new Root(client, client.save);
         }
 
         public static TestProjectNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave)
         {
-            var runtime = new NeoLoader().Load(projectJson, loadSave, handleSave);
-            return new TestProjectNeo(runtime);
+            var client = new NeoLoader().Load(projectJson, loadSave, handleSave);
+            return new TestProjectNeo(client);
         }
     }
 
@@ -85,8 +85,8 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyHero Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ReadOnlyHero(client, node),
             };
@@ -152,8 +152,8 @@ namespace Assets.Scripts.Neo
 
         internal static Hero CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new Hero(client, node),
             };
@@ -192,8 +192,8 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyRoot Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ReadOnlyRoot(client, node),
             };
@@ -254,8 +254,8 @@ namespace Assets.Scripts.Neo
 
         internal static Root CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new Root(client, node),
             };
@@ -288,8 +288,8 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyBase Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 "type-derived" => new ReadOnlyDerived(client, node),
                 "type-override" => new ReadOnlyOverride(client, node),
@@ -337,8 +337,8 @@ namespace Assets.Scripts.Neo
 
         internal static Base CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 "type-derived" => new Derived(client, node),
                 "type-override" => new Override(client, node),
@@ -367,8 +367,8 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyDerived Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ReadOnlyDerived(client, node),
             };
@@ -426,8 +426,8 @@ namespace Assets.Scripts.Neo
 
         internal static Derived CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new Derived(client, node),
             };
@@ -466,8 +466,8 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyOverride Create(NeoClient client, NeoAttributeCustom node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new ReadOnlyOverride(client, node),
             };
@@ -513,8 +513,8 @@ namespace Assets.Scripts.Neo
 
         internal static Override CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var runtimeTypeId = node.value?.typeId;
-            return runtimeTypeId switch
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
             {
                 _ => new Override(client, node),
             };

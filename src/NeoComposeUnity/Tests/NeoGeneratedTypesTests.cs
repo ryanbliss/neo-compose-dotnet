@@ -44,11 +44,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedRootClient_WrapsRuntimeAndEnumHelpersSupportUnknownIds()
+        public void GeneratedRootClient_WrapsClientAndEnumHelpersSupportUnknownIds()
         {
             var app = LoadGeneratedClient(out _);
 
-            Assert.IsNotNull(app.Runtime);
+            Assert.IsNotNull(app.Client);
             Assert.IsNotNull(app.Assets);
             Assert.IsNotNull(app.Save);
             Assert.AreEqual(Element.fire, "fire");
@@ -60,17 +60,17 @@ namespace NeoCompose.Tests
         public void GeneratedInheritance_ReadsInheritedAndOwnedMembers()
         {
             var app = LoadGeneratedClient(out _);
-            var derivedAttr = RequireAttribute<CustomAttribute>(app.Runtime, "attr-derived");
+            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
             var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
-                app.Runtime,
+                app.Client,
                 derivedAttr,
                 null);
 
-            var generatedSaved = new Derived(app.Runtime, derivedNode);
+            var generatedSaved = new Derived(app.Client, derivedNode);
             generatedSaved.Name = "Ancestor Name";
             generatedSaved.Health = 33;
 
-            var generated = new ReadOnlyDerived(app.Runtime, derivedNode);
+            var generated = new ReadOnlyDerived(app.Client, derivedNode);
             ReadOnlyBase asBase = generated;
 
             Assert.AreEqual("Ancestor Name", asBase.Name);
@@ -81,36 +81,36 @@ namespace NeoCompose.Tests
         public void GeneratedSavedInheritance_SettersUpdateRuntimeValues()
         {
             var app = LoadGeneratedClient(out _);
-            var derivedAttr = RequireAttribute<CustomAttribute>(app.Runtime, "attr-derived");
+            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
             var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
-                app.Runtime,
+                app.Client,
                 derivedAttr,
                 null);
 
-            var generated = new Derived(app.Runtime, derivedNode);
+            var generated = new Derived(app.Client, derivedNode);
 
             generated.Name = "Saved Name";
             generated.Health = 44;
 
             Assert.AreEqual("Saved Name", generated.Name);
             Assert.AreEqual(44, generated.Health);
-            Assert.IsTrue(app.Runtime.SerializeSaveData().Contains("Saved Name"));
+            Assert.IsTrue(app.Client.SerializeSaveData().Contains("Saved Name"));
         }
 
         [Test]
         public void GeneratedWrapper_DisposeUnsubscribesFromAttributeChanges()
         {
             var app = LoadGeneratedClient(out _);
-            var derivedAttr = RequireAttribute<CustomAttribute>(app.Runtime, "attr-derived");
+            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
             var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
-                app.Runtime,
+                app.Client,
                 derivedAttr,
                 null);
-            var generated = new ReadOnlyDerived(app.Runtime, derivedNode);
+            var generated = new ReadOnlyDerived(app.Client, derivedNode);
             int changes = 0;
             generated.OnChanged += () => changes++;
 
-            var generatedSaved = new Derived(app.Runtime, derivedNode);
+            var generatedSaved = new Derived(app.Client, derivedNode);
             generatedSaved.Name = "Before Dispose";
             Assert.Greater(changes, 0);
 
@@ -125,31 +125,31 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            app.Save.Heroes.Add(Hero.factory(app.Runtime, Name: "Ada", Health: 7));
+            app.Save.Heroes.Add(Hero.factory(app.Client, Name: "Ada", Health: 7));
 
             Assert.AreEqual(1, app.Save.Heroes.Count);
             var hero = app.Save.Heroes[0];
             Assert.AreEqual("Ada", hero.Name);
             Assert.AreEqual(7, hero.Health);
 
-            var heroesNode = app.Runtime.save.Get<NeoAttributeListSaved>("Heroes");
+            var heroesNode = app.Client.save.Get<NeoAttributeListSaved>("Heroes");
             var childNode = (NeoAttributeCustom)heroesNode[0];
             Assert.IsNotNull(childNode.overrideValueId);
-            Assert.IsTrue(app.Runtime.TryGetValue<ObjectAttributeValue>(
+            Assert.IsTrue(app.Client.TryGetValue<ObjectAttributeValue>(
                 childNode.overrideValueId!,
                 out ObjectAttributeValue? row));
             Assert.AreEqual("type-hero", row!.typeId);
-            Assert.IsTrue(app.Runtime.SerializeSaveData().Contains("Ada"));
+            Assert.IsTrue(app.Client.SerializeSaveData().Contains("Ada"));
         }
 
         [Test]
         public void GeneratedFactory_UsesAttributeDefaultsForOmittedFactoryArguments()
         {
             var app = LoadGeneratedClient(out _);
-            RequireAttribute<StringAttribute>(app.Runtime, "attr-name").required = true;
-            RequireAttribute<IntAttribute>(app.Runtime, "attr-health").required = true;
+            RequireAttribute<StringAttribute>(app.Client, "attr-name").required = true;
+            RequireAttribute<IntAttribute>(app.Client, "attr-health").required = true;
 
-            var hero = Hero.factory(app.Runtime);
+            var hero = Hero.factory(app.Client);
 
             Assert.AreEqual("Hero", hero.Name);
             Assert.AreEqual(100, hero.Health);
@@ -159,12 +159,12 @@ namespace NeoCompose.Tests
         public void GeneratedFactory_RecursivelyCreatesNestedCustomDefaults()
         {
             var app = LoadGeneratedClient(out _);
-            RequireAttribute<StringAttribute>(app.Runtime, "attr-name").required = true;
-            RequireAttribute<IntAttribute>(app.Runtime, "attr-health").required = true;
-            var heroAttribute = RequireAttribute<CustomAttribute>(app.Runtime, "attr-hero");
+            RequireAttribute<StringAttribute>(app.Client, "attr-name").required = true;
+            RequireAttribute<IntAttribute>(app.Client, "attr-health").required = true;
+            var heroAttribute = RequireAttribute<CustomAttribute>(app.Client, "attr-hero");
             heroAttribute.required = true;
             heroAttribute.defaultValue!.value = new Dictionary<string, string>();
-            var types = (Dictionary<string, CustomType>)app.Runtime.types;
+            var types = (Dictionary<string, CustomType>)app.Client.types;
             types["type-default-holder"] = new CustomType
             {
                 id = "type-default-holder",
@@ -176,7 +176,7 @@ namespace NeoCompose.Tests
             };
 
             var holder = NeoGeneratedTypesSupport.CreateSavedCustomValue(
-                app.Runtime,
+                app.Client,
                 "type-default-holder",
                 new Dictionary<string, string>(),
                 System.Array.Empty<AttributeValue>());
@@ -197,12 +197,12 @@ namespace NeoCompose.Tests
             var app = LoadGeneratedClient(out _);
 
             NeoGeneratedTypesSupport.SetValue(
-                app.Runtime.save,
+                app.Client.save,
                 "Manifest",
                 NeoGeneratedTypesSupport.Value<object?>(null));
 
             var result = app.Save.Manifest;
-            var direct = app.Runtime.save.Get<NeoAttributeNSGetter>("Manifest").Compute();
+            var direct = app.Client.save.Get<NeoAttributeNSGetter>("Manifest").Compute();
 
             Assert.IsTrue(direct.ok, direct.error);
             Assert.AreEqual(direct.value?.ToString(), result);
@@ -213,15 +213,15 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            var orphan = Hero.factory(app.Runtime, Name: "Orphan", Health: 1);
+            var orphan = Hero.factory(app.Client, Name: "Orphan", Health: 1);
             Assert.IsNotNull(orphan.valueId);
             CollectionAssert.Contains(
                 new System.Collections.Generic.List<string>(
-                    app.Runtime.FindUnlinkedSaveValueIds()),
+                    app.Client.FindUnlinkedSaveValueIds()),
                 orphan.valueId);
 
-            Assert.GreaterOrEqual(app.Runtime.RunGarbageCollector(), 1);
-            Assert.IsFalse(app.Runtime.TryGetValue<ObjectAttributeValue>(
+            Assert.GreaterOrEqual(app.Client.RunGarbageCollector(), 1);
+            Assert.IsFalse(app.Client.TryGetValue<ObjectAttributeValue>(
                 orphan.valueId!,
                 out _));
         }
