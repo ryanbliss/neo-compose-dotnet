@@ -665,11 +665,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(savedNode, "Lookup", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
             }
         }
-
-        public void SetLookupSelection(NeoLookupSelection? selection)
-        {
-            NeoGeneratedTypesSupport.SetValue(savedNode, "Lookup", NeoGeneratedTypesSupport.Value(selection.HasValue ? new[] { selection.Value.valueId } : null));
-        }
     }
     public partial class ReadOnlyLookupEntry : NeoGeneratedCustomValue
     {

@@ -25,7 +25,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void LoadClient()
         {
-            string json = File.ReadAllText(NeoAssetsFilePath);
+            string json = File.ReadAllText(ProjectJsonPath);
             neo = HelloWorldNeo.Load(json, OnLoadSave, OnCommitSave);
             // reference lookup to one of the "Hello World" outputs in `neo.Assets.LookupContainer.LookupList`
             Debug.Log(neo.Assets.LookupContainer.Lookup.Name);
@@ -48,7 +48,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void OnResetSave()
         {
-            if (File.Exists(SaveFilePath)) File.Delete(SaveFilePath);
+            if (File.Exists(SaveJsonPath)) File.Delete(SaveJsonPath);
             LoadClient();
         }
 
@@ -60,28 +60,28 @@ namespace HelloWorld.Assets.Scripts
             );
         }
 
-        protected void OnDestroy()
-        {
-            ui?.Dispose();
-        }
-
         protected string OnLoadSave()
         {
-            return File.ReadAllText(SaveFilePath);
+            return File.ReadAllText(SaveJsonPath);
         }
 
         protected void OnCommitSave(string content)
         {
-            File.WriteAllText(SaveFilePath, content);
+            File.WriteAllText(SaveJsonPath, content);
+        }
+
+        protected void OnDestroy()
+        {
+            ui?.Dispose();
         }
 
         // ──────────────────────────────────────────────
         // Static file loading
         // ──────────────────────────────────────────────
 
-        private static readonly string NeoAssetsFilePath = Path.Combine("Assets/Resources/Neo", "project.json");
+        private static readonly string ProjectJsonPath = Path.Combine("Assets/Resources/Neo", "project.json");
 
-        private static string SaveFilePath => $"{Application.persistentDataPath}/save1.json";
+        private static string SaveJsonPath => $"{Application.persistentDataPath}/save1.json";
 
         private static int CurrentUnixTime => (int)System.DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
