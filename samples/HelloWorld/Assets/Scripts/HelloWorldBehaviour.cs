@@ -39,11 +39,7 @@ namespace HelloWorld.Assets.Scripts
         {
             neo.Save.World = planet;
             neo.Save.Visited.Add(
-                PlanetVisit.factory(
-                    neo,
-                    planet,
-                    CurrentUnixTime
-                )
+                new PlanetVisit(neo, planet, CurrentUnixTime)
             );
         }
 

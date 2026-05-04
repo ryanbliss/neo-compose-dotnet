@@ -123,11 +123,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedFactory_AddsCustomListEntryReadableThroughGeneratedRoot()
+        public void GeneratedConstructor_AddsCustomListEntryReadableThroughGeneratedRoot()
         {
             var app = LoadGeneratedClient(out _);
 
-            app.Save.Heroes.Add(Hero.factory(app, Name: "Ada", Health: 7));
+            app.Save.Heroes.Add(new Hero(app, Name: "Ada", Health: 7));
 
             Assert.AreEqual(1, app.Save.Heroes.Count);
             var hero = app.Save.Heroes[0];
@@ -145,20 +145,20 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedFactory_UsesAttributeDefaultsForOmittedFactoryArguments()
+        public void GeneratedConstructor_UsesAttributeDefaultsForOmittedArguments()
         {
             var app = LoadGeneratedClient(out _);
             RequireAttribute<StringAttribute>(app.Client, "attr-name").required = true;
             RequireAttribute<IntAttribute>(app.Client, "attr-health").required = true;
 
-            var hero = Hero.factory(app);
+            var hero = new Hero(app);
 
             Assert.AreEqual("Hero", hero.Name);
             Assert.AreEqual(100, hero.Health);
         }
 
         [Test]
-        public void GeneratedFactory_RecursivelyCreatesNestedCustomDefaults()
+        public void GeneratedConstructor_RecursivelyCreatesNestedCustomDefaults()
         {
             var app = LoadGeneratedClient(out _);
             RequireAttribute<StringAttribute>(app.Client, "attr-name").required = true;
@@ -211,11 +211,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedFactory_CreatesCollectableUnlinkedSavedValue()
+        public void GeneratedConstructor_CreatesCollectableUnlinkedSavedValue()
         {
             var app = LoadGeneratedClient(out _);
 
-            var orphan = Hero.factory(app, Name: "Orphan", Health: 1);
+            var orphan = new Hero(app, Name: "Orphan", Health: 1);
             Assert.IsNotNull(orphan.valueId);
             CollectionAssert.Contains(
                 new System.Collections.Generic.List<string>(

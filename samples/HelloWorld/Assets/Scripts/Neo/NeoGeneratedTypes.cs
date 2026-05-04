@@ -132,7 +132,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Assets factory(HelloWorldNeo project, ComputedText? Computed = null, LookupContainer? LookupContainer = null)
+        public Assets(HelloWorldNeo project, ComputedText? Computed = null, LookupContainer? LookupContainer = null)
+            : this(project.Client, CreateFactoryNode(project, Computed, LookupContainer))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(HelloWorldNeo project, ComputedText? Computed = null, LookupContainer? LookupContainer = null)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -146,7 +151,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 value["LookupContainer"] = NeoGeneratedTypesSupport.LookupSelectionId(LookupContainer.valueId);
             }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows);
         }
 
         internal static Assets CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
@@ -225,7 +230,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Save factory(HelloWorldNeo project, Planet? World = null, IEnumerable<PlanetVisit>? Visited = null)
+        public Save(HelloWorldNeo project, Planet? World = null, IEnumerable<PlanetVisit>? Visited = null)
+            : this(project.Client, CreateFactoryNode(project, World, Visited))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(HelloWorldNeo project, Planet? World = null, IEnumerable<PlanetVisit>? Visited = null)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -260,7 +270,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = VisitedIds.ToArray(),
                 });
             }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows);
         }
 
         internal static Save CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
@@ -345,7 +355,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static ComputedText factory(HelloWorldNeo project, string? baseText = null, string? optionalSuffix = null)
+        public ComputedText(HelloWorldNeo project, string? baseText = null, string? optionalSuffix = null)
+            : this(project.Client, CreateFactoryNode(project, baseText, optionalSuffix))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(HelloWorldNeo project, string? baseText = null, string? optionalSuffix = null)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -375,7 +390,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = optionalSuffix,
                 });
             }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", value, valueRows);
         }
 
         internal static ComputedText CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
@@ -464,7 +479,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static PlanetVisit factory(HelloWorldNeo project, Planet World, int DateUnix)
+        public PlanetVisit(HelloWorldNeo project, Planet World, int DateUnix)
+            : this(project.Client, CreateFactoryNode(project, World, DateUnix))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(HelloWorldNeo project, Planet World, int DateUnix)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -488,7 +508,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 updatedAt = nowIso,
                 value = DateUnix,
             });
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", value, valueRows);
         }
 
         internal static PlanetVisit CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
@@ -568,7 +588,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static LookupContainer factory(HelloWorldNeo project, IDictionary<string, LookupEntry>? LookupList = null, NeoLookupSelection? Lookup = null)
+        public LookupContainer(HelloWorldNeo project, IDictionary<string, LookupEntry>? LookupList = null, NeoLookupSelection? Lookup = null)
+            : this(project.Client, CreateFactoryNode(project, LookupList, Lookup))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(HelloWorldNeo project, IDictionary<string, LookupEntry>? LookupList = null, NeoLookupSelection? Lookup = null)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -603,7 +628,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = Lookup.HasValue ? new[] { Lookup.Value.valueId } : null,
                 });
             }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "77558d64-4fcc-46ac-8351-893093ee0002", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "77558d64-4fcc-46ac-8351-893093ee0002", value, valueRows);
         }
 
         internal static LookupContainer CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
@@ -675,7 +700,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static LookupEntry factory(HelloWorldNeo project, string? Name = null)
+        public LookupEntry(HelloWorldNeo project, string? Name = null)
+            : this(project.Client, CreateFactoryNode(project, Name))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(HelloWorldNeo project, string? Name = null)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -693,7 +723,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = Name,
                 });
             }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "9296e4be-bd27-44e3-9823-77fbeaa60665", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "9296e4be-bd27-44e3-9823-77fbeaa60665", value, valueRows);
         }
 
         internal static LookupEntry CreateSaved(NeoClient client, NeoAttributeCustomSaved node)

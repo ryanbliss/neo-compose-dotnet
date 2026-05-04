@@ -126,7 +126,12 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Hero factory(TestProjectNeo project, string? Name = null, int? Health = null)
+        public Hero(TestProjectNeo project, string? Name = null, int? Health = null)
+            : this(project.Client, CreateFactoryNode(project, Name, Health))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(TestProjectNeo project, string? Name = null, int? Health = null)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -156,7 +161,7 @@ namespace Assets.Scripts.Neo
                     value = Health.HasValue ? Health.Value : (double?)null,
                 });
             }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-hero", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-hero", value, valueRows);
         }
 
         internal static Hero CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
@@ -236,7 +241,12 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Root factory(TestProjectNeo project, IEnumerable<Hero>? Heroes = null)
+        public Root(TestProjectNeo project, IEnumerable<Hero>? Heroes = null)
+            : this(project.Client, CreateFactoryNode(project, Heroes))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(TestProjectNeo project, IEnumerable<Hero>? Heroes = null)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -259,7 +269,7 @@ namespace Assets.Scripts.Neo
                     value = HeroesIds.ToArray(),
                 });
             }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-root", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-root", value, valueRows);
         }
 
         internal static Root CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
@@ -325,7 +335,12 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Base factory(TestProjectNeo project, string? Name = null)
+        public Base(TestProjectNeo project, string? Name = null)
+            : this(project.Client, CreateFactoryNode(project, Name))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(TestProjectNeo project, string? Name = null)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -343,7 +358,7 @@ namespace Assets.Scripts.Neo
                     value = Name,
                 });
             }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-base", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-base", value, valueRows);
         }
 
         internal static Base CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
@@ -403,7 +418,12 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Derived factory(TestProjectNeo project, string? Name = null, int? Health = null)
+        public Derived(TestProjectNeo project, string? Name = null, int? Health = null)
+            : this(project.Client, CreateFactoryNode(project, Name, Health))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(TestProjectNeo project, string? Name = null, int? Health = null)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -433,7 +453,7 @@ namespace Assets.Scripts.Neo
                     value = Health.HasValue ? Health.Value : (double?)null,
                 });
             }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-derived", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-derived", value, valueRows);
         }
 
         internal static Derived CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
@@ -503,7 +523,12 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Override factory(TestProjectNeo project, string? Name = null)
+        public Override(TestProjectNeo project, string? Name = null)
+            : this(project.Client, CreateFactoryNode(project, Name))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(TestProjectNeo project, string? Name = null)
         {
             var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -521,7 +546,7 @@ namespace Assets.Scripts.Neo
                     value = Name,
                 });
             }
-            return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-override", value, valueRows));
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-override", value, valueRows);
         }
 
         internal static Override CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
