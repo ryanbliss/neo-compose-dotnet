@@ -55,12 +55,8 @@ namespace HelloWorld.Assets.Scripts
         protected void Update()
         {
             ui.Render(
-                HelloWorldText,
-                World,
-                VisitedPlanets,
-                OnVisit,
-                OnSave,
-                OnResetSave
+                HelloWorldText, World, VisitedPlanets,
+                OnVisit, OnSave, OnResetSave
             );
         }
 
