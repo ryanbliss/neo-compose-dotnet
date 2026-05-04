@@ -453,35 +453,29 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static PlanetVisit factory(NeoClient client, Planet? World = null, int? DateUnix = null)
+        public static PlanetVisit factory(NeoClient client, Planet World, int DateUnix)
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            if (World is not null)
+            var WorldValueId = Guid.NewGuid().ToString();
+            value["World"] = WorldValueId;
+            valueRows.Add(new ArrayAttributeValue
             {
-                var WorldValueId = Guid.NewGuid().ToString();
-                value["World"] = WorldValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = WorldValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = World is null ? null : new[] { World.optionId },
-                });
-            }
-            if (DateUnix is not null)
+                id = WorldValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { World.optionId },
+            });
+            var DateUnixValueId = Guid.NewGuid().ToString();
+            value["DateUnix"] = DateUnixValueId;
+            valueRows.Add(new NumberAttributeValue
             {
-                var DateUnixValueId = Guid.NewGuid().ToString();
-                value["DateUnix"] = DateUnixValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = DateUnixValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DateUnix.HasValue ? DateUnix.Value : (double?)null,
-                });
-            }
+                id = DateUnixValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = DateUnix,
+            });
             return CreateSaved(client, NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", value, valueRows));
         }
 
