@@ -14,7 +14,7 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// NeoClient owns a live save file instance.
     /// </summary>
-    public class NeoClient
+    public class NeoClient : INeoClient
     {
         public delegate string LoadSave();
         public delegate void HandleSave(string content);
@@ -31,7 +31,7 @@ namespace NeoCompose.Runtime
         /// existing instances and reuse them rather than constructing
         /// duplicates that share the same wire identity.
         /// </summary>
-        public IReadOnlyDictionary<string, NeoAttribute> nodes => nodesInternal;
+        internal IReadOnlyDictionary<string, NeoAttribute> nodes => nodesInternal;
         private readonly Dictionary<string, NeoAttribute> nodesInternal = new();
 
         /// <summary>
@@ -42,12 +42,12 @@ namespace NeoCompose.Runtime
         /// dictionaries are the same instances the client reads from
         /// internally — mutations through these views propagate.
         /// </summary>
-        public IReadOnlyDictionary<string, Attribute> attributes => data.attributes;
-        public IReadOnlyDictionary<string, AttributeValue> values => data.values;
-        public IReadOnlyDictionary<string, CustomType> types => data.types;
-        public IReadOnlyDictionary<string, Enum> enums => data.enums;
-        public IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
-        public IReadOnlyDictionary<string, string> saveOverrides => saveData.attributeValueOverrides;
+        internal IReadOnlyDictionary<string, Attribute> attributes => data.attributes;
+        internal IReadOnlyDictionary<string, AttributeValue> values => data.values;
+        internal IReadOnlyDictionary<string, CustomType> types => data.types;
+        internal IReadOnlyDictionary<string, Enum> enums => data.enums;
+        internal IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
+        internal IReadOnlyDictionary<string, string> saveOverrides => saveData.attributeValueOverrides;
 
         /// <summary>
         /// Fired when the entry for <c>attributeId</c> in
@@ -63,14 +63,14 @@ namespace NeoCompose.Runtime
         /// mutate the wire DTO should call the affected node's
         /// refresh hook manually.</para>
         /// </summary>
-        public event System.Action<string, string?>? OnSaveOverrideChanged;
+        internal event System.Action<string, string?>? OnSaveOverrideChanged;
         /// <summary>
         /// Fired whenever a save-side value row is added, replaced, or
         /// removed. The argument is the affected value id.
         /// Generated wrappers and runtime collection helpers use this as a
         /// coarse invalidation signal after <c>*Saved</c> mutations.
         /// </summary>
-        public event System.Action<string>? OnSaveValueChanged;
+        internal event System.Action<string>? OnSaveValueChanged;
 
         protected ProjectData data;
         protected ProjectSaveData saveData;
@@ -87,7 +87,7 @@ namespace NeoCompose.Runtime
             save = new(this, data.project.rootSaveFileAttributeId, null);
         }
 
-        public bool TryGetAttribute<TAttribute>(string id, [NotNullWhen(true)] out TAttribute? attribute) where TAttribute : Attribute
+        internal bool TryGetAttribute<TAttribute>(string id, [NotNullWhen(true)] out TAttribute? attribute) where TAttribute : Attribute
         {
             if (data.attributes.TryGetValue(id, out Attribute idMatch))
             {
@@ -101,7 +101,7 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        public bool TryGetType(string id, [NotNullWhen(true)] out CustomType? type)
+        internal bool TryGetType(string id, [NotNullWhen(true)] out CustomType? type)
         {
             if (data.types.TryGetValue(id, out CustomType idMatch))
             {
@@ -112,7 +112,7 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        public bool TryGetValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : AttributeValue
+        internal bool TryGetValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : AttributeValue
         {
             if (saveData.values.TryGetValue(id, out AttributeValue saveIdMatch))
             {
@@ -134,14 +134,14 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        public void AddSaveValue<TAttributeValue>(string attributeId, TAttributeValue value) where TAttributeValue : AttributeValue
+        internal void AddSaveValue<TAttributeValue>(string attributeId, TAttributeValue value) where TAttributeValue : AttributeValue
         {
             saveData.attributeValueOverrides[attributeId] = value.id;
             SetSaveValue(value);
             OnSaveOverrideChanged?.Invoke(attributeId, value.id);
         }
 
-        public void SetSaveValue<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
+        internal void SetSaveValue<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
         {
             saveData.values[value.id] = value;
             OnSaveValueChanged?.Invoke(value.id);
@@ -170,7 +170,7 @@ namespace NeoCompose.Runtime
         /// <see cref="RemoveSaveValueAndDescendants"/> if you also want
         /// to GC it (and any nested values).</para>
         /// </summary>
-        public bool RemoveSaveOverride(string attributeId)
+        internal bool RemoveSaveOverride(string attributeId)
         {
             if (!saveData.attributeValueOverrides.Remove(attributeId)) return false;
             OnSaveOverrideChanged?.Invoke(attributeId, null);
@@ -198,7 +198,7 @@ namespace NeoCompose.Runtime
         /// (no save override) won't be in <c>saveData.values</c> in the
         /// first place, so the recursion safely skips them.</para>
         /// </summary>
-        public void RemoveSaveValueAndDescendants(string valueId)
+        internal void RemoveSaveValueAndDescendants(string valueId)
         {
             if (!saveData.values.TryGetValue(valueId, out AttributeValue val)) return;
             // Recurse first so children are pruned before we drop the
@@ -232,7 +232,7 @@ namespace NeoCompose.Runtime
         /// <see cref="NeoAttribute"/> to resolve `valueId` after a Set
         /// creates a new top-level save row.
         /// </summary>
-        public bool TryGetSaveOverrideValueId(string attributeId, [NotNullWhen(true)] out string? valueId)
+        internal bool TryGetSaveOverrideValueId(string attributeId, [NotNullWhen(true)] out string? valueId)
         {
             return saveData.attributeValueOverrides.TryGetValue(attributeId, out valueId);
         }
@@ -246,7 +246,7 @@ namespace NeoCompose.Runtime
         /// <see cref="NeoAttribute.CreateSaved"/> instead — those check
         /// here automatically before constructing.
         /// </summary>
-        public bool TryGetNode(string attributeId, string? overrideValueId, [NotNullWhen(true)] out NeoAttribute? node)
+        internal bool TryGetNode(string attributeId, string? overrideValueId, [NotNullWhen(true)] out NeoAttribute? node)
         {
             string key = MakeNodeKey(attributeId, overrideValueId);
             return nodesInternal.TryGetValue(key, out node);
@@ -263,7 +263,7 @@ namespace NeoCompose.Runtime
         /// construction overrides any previously-cached instance for
         /// the same key.
         /// </summary>
-        public void RegisterNode(NeoAttribute node)
+        internal void RegisterNode(NeoAttribute node)
         {
             string key = MakeNodeKey(node.attribute.id, node.overrideValueId);
             nodesInternal[key] = node;
@@ -275,7 +275,7 @@ namespace NeoCompose.Runtime
         /// that's already absent (or that points at a different
         /// instance, e.g. a same-key replacement) is left alone.
         /// </summary>
-        public void UnregisterNode(NeoAttribute node)
+        internal void UnregisterNode(NeoAttribute node)
         {
             string key = MakeNodeKey(node.attribute.id, node.overrideValueId);
             // Only remove if the registered instance is the one we're
@@ -295,14 +295,14 @@ namespace NeoCompose.Runtime
         ///   - <c>attributeId</c> when no override
         ///   - <c>$"{attributeId}_{overrideValueId}"</c> when an override is set
         /// </summary>
-        public static string MakeNodeKey(string attributeId, string? overrideValueId)
+        internal static string MakeNodeKey(string attributeId, string? overrideValueId)
         {
             return string.IsNullOrEmpty(overrideValueId)
                 ? attributeId
                 : $"{attributeId}_{overrideValueId}";
         }
 
-        public bool TryGetEnum<TEnum>(string id, [NotNullWhen(true)] out TEnum? enumInfo) where TEnum : Enum
+        internal bool TryGetEnum<TEnum>(string id, [NotNullWhen(true)] out TEnum? enumInfo) where TEnum : Enum
         {
             if (data.enums.TryGetValue(id, out Enum idMatch))
             {
@@ -339,7 +339,7 @@ namespace NeoCompose.Runtime
             return JsonConvert.SerializeObject(saveData);
         }
 
-        public void Save()
+        public void Commit()
         {
             var unlinkedValueIds = FindUnlinkedSaveValueIds();
             if (unlinkedValueIds.Count > 0)
@@ -347,7 +347,7 @@ namespace NeoCompose.Runtime
                 Debug.LogWarning(
                     $"NeoCompose save contains {unlinkedValueIds.Count} unlinked value(s). " +
                     "This can happen when generated factory values are created but never assigned. " +
-                    "Call NeoClient.RunGarbageCollector() before Save() to delete unlinked values.");
+                    "Call RunGarbageCollector() before Commit() to delete unlinked values.");
             }
             EmitHandleSave();
         }

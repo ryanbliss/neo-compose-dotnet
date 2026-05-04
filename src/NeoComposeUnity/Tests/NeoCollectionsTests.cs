@@ -119,9 +119,10 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoClient_SaveAndSerializeSaveData_ArePublicHostSurface()
+        public void NeoClient_INeoClientSurface_CommitsAndSerializesSaveData()
         {
             var client = LoadClient(out string initialSave);
+            INeoClient host = client;
             Assert.IsNotEmpty(initialSave);
 
             int changed = 0;
@@ -134,7 +135,7 @@ namespace NeoCompose.Tests
                 value = "stored",
             });
 
-            string json = client.SerializeSaveData();
+            string json = host.SerializeSaveData();
             StringAssert.Contains("manual-save-value", json);
             Assert.AreEqual(1, changed);
 
@@ -142,7 +143,7 @@ namespace NeoCompose.Tests
                 UnityEngine.LogType.Warning,
                 new System.Text.RegularExpressions.Regex(
                     "NeoCompose save contains 1 unlinked value"));
-            Assert.DoesNotThrow(() => client.Save());
+            Assert.DoesNotThrow(() => host.Commit());
         }
     }
 }

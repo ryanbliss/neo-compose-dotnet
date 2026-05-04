@@ -47,10 +47,12 @@ namespace NeoCompose.Tests
         public void GeneratedRootClient_WrapsClientAndEnumHelpersSupportUnknownIds()
         {
             var app = LoadGeneratedClient(out _);
+            INeoClient host = app;
 
             Assert.IsNotNull(app.Client);
             Assert.IsNotNull(app.Assets);
             Assert.IsNotNull(app.Save);
+            Assert.IsNotNull(host.FindUnlinkedSaveValueIds());
             Assert.AreEqual(Element.fire, "fire");
             Assert.IsTrue(Element.IsKnown("fire"));
             Assert.IsFalse(Element.IsKnown("modded-element"));
@@ -94,7 +96,7 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual("Saved Name", generated.Name);
             Assert.AreEqual(44, generated.Health);
-            Assert.IsTrue(app.Client.SerializeSaveData().Contains("Saved Name"));
+            Assert.IsTrue(app.SerializeSaveData().Contains("Saved Name"));
         }
 
         [Test]
@@ -125,7 +127,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            app.Save.Heroes.Add(Hero.factory(app.Client, Name: "Ada", Health: 7));
+            app.Save.Heroes.Add(Hero.factory(app, Name: "Ada", Health: 7));
 
             Assert.AreEqual(1, app.Save.Heroes.Count);
             var hero = app.Save.Heroes[0];
@@ -139,7 +141,7 @@ namespace NeoCompose.Tests
                 childNode.overrideValueId!,
                 out ObjectAttributeValue? row));
             Assert.AreEqual("type-hero", row!.typeId);
-            Assert.IsTrue(app.Client.SerializeSaveData().Contains("Ada"));
+            Assert.IsTrue(app.SerializeSaveData().Contains("Ada"));
         }
 
         [Test]
@@ -149,7 +151,7 @@ namespace NeoCompose.Tests
             RequireAttribute<StringAttribute>(app.Client, "attr-name").required = true;
             RequireAttribute<IntAttribute>(app.Client, "attr-health").required = true;
 
-            var hero = Hero.factory(app.Client);
+            var hero = Hero.factory(app);
 
             Assert.AreEqual("Hero", hero.Name);
             Assert.AreEqual(100, hero.Health);
@@ -213,14 +215,14 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            var orphan = Hero.factory(app.Client, Name: "Orphan", Health: 1);
+            var orphan = Hero.factory(app, Name: "Orphan", Health: 1);
             Assert.IsNotNull(orphan.valueId);
             CollectionAssert.Contains(
                 new System.Collections.Generic.List<string>(
-                    app.Client.FindUnlinkedSaveValueIds()),
+                    app.FindUnlinkedSaveValueIds()),
                 orphan.valueId);
 
-            Assert.GreaterOrEqual(app.Client.RunGarbageCollector(), 1);
+            Assert.GreaterOrEqual(app.RunGarbageCollector(), 1);
             Assert.IsFalse(app.Client.TryGetValue<ObjectAttributeValue>(
                 orphan.valueId!,
                 out _));

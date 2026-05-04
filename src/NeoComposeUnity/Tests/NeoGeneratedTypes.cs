@@ -9,7 +9,7 @@ using NeoCompose.Runtime.NeoScript;
 
 namespace Assets.Scripts.Neo
 {
-    public sealed class TestProjectNeo
+    public sealed class TestProjectNeo : INeoClient
     {
         public NeoClient Client { get; }
         public ReadOnlyRoot Assets { get; }
@@ -27,6 +27,14 @@ namespace Assets.Scripts.Neo
             var client = new NeoLoader().Load(projectJson, loadSave, handleSave);
             return new TestProjectNeo(client);
         }
+
+        public string SerializeSaveData() => Client.SerializeSaveData();
+
+        public void Commit() => Client.Commit();
+
+        public int RunGarbageCollector() => Client.RunGarbageCollector();
+
+        public IReadOnlyList<string> FindUnlinkedSaveValueIds() => Client.FindUnlinkedSaveValueIds();
     }
 
     public sealed class Element : IEquatable<Element>
@@ -118,8 +126,9 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Hero factory(NeoClient client, string? Name = null, int? Health = null)
+        public static Hero factory(TestProjectNeo project, string? Name = null, int? Health = null)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -227,8 +236,9 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Root factory(NeoClient client, IEnumerable<Hero>? Heroes = null)
+        public static Root factory(TestProjectNeo project, IEnumerable<Hero>? Heroes = null)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -315,8 +325,9 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Base factory(NeoClient client, string? Name = null)
+        public static Base factory(TestProjectNeo project, string? Name = null)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -392,8 +403,9 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Derived factory(NeoClient client, string? Name = null, int? Health = null)
+        public static Derived factory(TestProjectNeo project, string? Name = null, int? Health = null)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -491,8 +503,9 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Override factory(NeoClient client, string? Name = null)
+        public static Override factory(TestProjectNeo project, string? Name = null)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();

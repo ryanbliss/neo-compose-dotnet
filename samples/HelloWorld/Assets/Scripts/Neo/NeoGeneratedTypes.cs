@@ -9,7 +9,7 @@ using NeoCompose.Runtime.NeoScript;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public sealed class HelloWorldNeo
+    public sealed class HelloWorldNeo : INeoClient
     {
         public NeoClient Client { get; }
         public ReadOnlyAssets Assets { get; }
@@ -27,6 +27,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             var client = new NeoLoader().Load(projectJson, loadSave, handleSave);
             return new HelloWorldNeo(client);
         }
+
+        public string SerializeSaveData() => Client.SerializeSaveData();
+
+        public void Commit() => Client.Commit();
+
+        public int RunGarbageCollector() => Client.RunGarbageCollector();
+
+        public IReadOnlyList<string> FindUnlinkedSaveValueIds() => Client.FindUnlinkedSaveValueIds();
     }
 
     public sealed class Planet : IEquatable<Planet>
@@ -124,8 +132,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Assets factory(NeoClient client, ComputedText? Computed = null, LookupContainer? LookupContainer = null)
+        public static Assets factory(HelloWorldNeo project, ComputedText? Computed = null, LookupContainer? LookupContainer = null)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -216,8 +225,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static Save factory(NeoClient client, Planet? World = null, IEnumerable<PlanetVisit>? Visited = null)
+        public static Save factory(HelloWorldNeo project, Planet? World = null, IEnumerable<PlanetVisit>? Visited = null)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -335,8 +345,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static ComputedText factory(NeoClient client, string? baseText = null, string? optionalSuffix = null)
+        public static ComputedText factory(HelloWorldNeo project, string? baseText = null, string? optionalSuffix = null)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -453,8 +464,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static PlanetVisit factory(NeoClient client, Planet World, int DateUnix)
+        public static PlanetVisit factory(HelloWorldNeo project, Planet World, int DateUnix)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -556,8 +568,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static LookupContainer factory(NeoClient client, IDictionary<string, LookupEntry>? LookupList = null, NeoLookupSelection? Lookup = null)
+        public static LookupContainer factory(HelloWorldNeo project, IDictionary<string, LookupEntry>? LookupList = null, NeoLookupSelection? Lookup = null)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -662,8 +675,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public static LookupEntry factory(NeoClient client, string? Name = null)
+        public static LookupEntry factory(HelloWorldNeo project, string? Name = null)
         {
+            var client = project.Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
