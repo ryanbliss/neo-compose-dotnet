@@ -1,9 +1,7 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using UnityEngine;
@@ -17,17 +15,19 @@ namespace HelloWorld.Assets.Scripts
     public class HelloWorldBehaviour : MonoBehaviour
     {
         protected HelloWorldNeo neo;
-        private readonly HelloWorldUi ui = new();
+        private HelloWorldUi ui;
 
-        protected void Start()
+        protected void Awake()
         {
             LoadClient();
+            ui = new();
         }
 
         public void LoadClient()
         {
             string json = File.ReadAllText(NeoAssetsFilePath);
             neo = HelloWorldNeo.Load(json, OnLoadSave, OnHandleSave);
+            // reference lookup to one of two "Hello World" outputs in `neo.Assets.LookupContainer.LookupList`
             Debug.Log(neo.Assets.LookupContainer.Lookup.Name);
         }
 
@@ -35,20 +35,20 @@ namespace HelloWorld.Assets.Scripts
         public Planet World => neo.Save.World;
         public NeoList<PlanetVisit> VisitedPlanets => neo.Save.Visited;
 
-        public void Visit(Planet planet)
+        public void OnVisit(Planet planet)
         {
             neo.Save.World = planet;
             neo.Save.Visited.Add(
-                new PlanetVisit(neo, planet, CurrentUnixTime)
+                new PlanetVisit(planet, CurrentUnixTime)
             );
         }
 
-        public void Save()
+        public void OnSave()
         {
             neo.Commit();
         }
 
-        public void ResetSave()
+        public void OnResetSave()
         {
             if (File.Exists(SaveFilePath)) File.Delete(SaveFilePath);
             LoadClient();
@@ -56,8 +56,14 @@ namespace HelloWorld.Assets.Scripts
 
         protected void OnGUI()
         {
-            if (neo is null) return;
-            ui.Render(HelloWorldText, World, VisitedPlanets, Visit, Save, ResetSave);
+            ui.Render(
+                HelloWorldText, 
+                World, 
+                VisitedPlanets, 
+                OnVisit, 
+                OnSave, 
+                OnResetSave
+            );
         }
 
         protected string OnLoadSave()
@@ -74,10 +80,7 @@ namespace HelloWorld.Assets.Scripts
         // Static file loading
         // ──────────────────────────────────────────────
 
-        private static readonly string NeoResourcesRoot = "Assets/Resources/Neo";
-        private static readonly string FileName = "project.json";
-
-        private static string NeoAssetsFilePath => Path.Combine(NeoResourcesRoot, FileName);
+        private static readonly string NeoAssetsFilePath = Path.Combine("Assets/Resources/Neo", "project.json");
 
         private static string SaveFilePath => $"{Application.persistentDataPath}/save1.json";
 

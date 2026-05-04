@@ -18,3 +18,4 @@ MonoBehaviour:
   generatedTypesDirectory: Assets/Scripts/Neo
   projectJsonDirectory: Assets/Resources/Neo
   namespaceForGeneratedTypes: HelloWorld.Assets.Scripts.Neo
+  singleton: 1

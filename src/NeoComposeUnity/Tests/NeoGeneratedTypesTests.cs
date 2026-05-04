@@ -127,7 +127,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            app.Save.Heroes.Add(new Hero(app, Name: "Ada", Health: 7));
+            app.Save.Heroes.Add(new Hero(Name: "Ada", Health: 7));
 
             Assert.AreEqual(1, app.Save.Heroes.Count);
             var hero = app.Save.Heroes[0];
@@ -151,7 +151,7 @@ namespace NeoCompose.Tests
             RequireAttribute<StringAttribute>(app.Client, "attr-name").required = true;
             RequireAttribute<IntAttribute>(app.Client, "attr-health").required = true;
 
-            var hero = new Hero(app);
+            var hero = new Hero();
 
             Assert.AreEqual("Hero", hero.Name);
             Assert.AreEqual(100, hero.Health);
@@ -215,7 +215,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            var orphan = new Hero(app, Name: "Orphan", Health: 1);
+            var orphan = new Hero(Name: "Orphan", Health: 1);
             Assert.IsNotNull(orphan.valueId);
             CollectionAssert.Contains(
                 new System.Collections.Generic.List<string>(

@@ -11,6 +11,10 @@ namespace Assets.Scripts.Neo
 {
     public sealed class TestProjectNeo : INeoClient
     {
+        public static TestProjectNeo Instance { get; private set; } = null!;
+
+        internal static TestProjectNeo RequireInstance() => Instance ?? throw new InvalidOperationException("TestProjectNeo.Instance has not been initialized.");
+
         public NeoClient Client { get; }
         public ReadOnlyRoot Assets { get; }
         public Root Save { get; }
@@ -18,6 +22,7 @@ namespace Assets.Scripts.Neo
         public TestProjectNeo(NeoClient client)
         {
             Client = client;
+            Instance = this;
             Assets = new ReadOnlyRoot(client, client.assets);
             Save = new Root(client, client.save);
         }
@@ -126,14 +131,14 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Hero(TestProjectNeo project, string? Name = null, int? Health = null)
-            : this(project.Client, CreateFactoryNode(project, Name, Health))
+        public Hero(string? Name = null, int? Health = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Health))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(TestProjectNeo project, string? Name = null, int? Health = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(string? Name = null, int? Health = null)
         {
-            var client = project.Client;
+            var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -241,14 +246,14 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Root(TestProjectNeo project, IEnumerable<Hero>? Heroes = null)
-            : this(project.Client, CreateFactoryNode(project, Heroes))
+        public Root(IEnumerable<Hero>? Heroes = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(TestProjectNeo project, IEnumerable<Hero>? Heroes = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(IEnumerable<Hero>? Heroes = null)
         {
-            var client = project.Client;
+            var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -335,14 +340,14 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Base(TestProjectNeo project, string? Name = null)
-            : this(project.Client, CreateFactoryNode(project, Name))
+        public Base(string? Name = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(TestProjectNeo project, string? Name = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(string? Name = null)
         {
-            var client = project.Client;
+            var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -418,14 +423,14 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Derived(TestProjectNeo project, string? Name = null, int? Health = null)
-            : this(project.Client, CreateFactoryNode(project, Name, Health))
+        public Derived(string? Name = null, int? Health = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Health))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(TestProjectNeo project, string? Name = null, int? Health = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(string? Name = null, int? Health = null)
         {
-            var client = project.Client;
+            var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
@@ -523,14 +528,14 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Override(TestProjectNeo project, string? Name = null)
-            : this(project.Client, CreateFactoryNode(project, Name))
+        public Override(string? Name = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(TestProjectNeo project, string? Name = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(string? Name = null)
         {
-            var client = project.Client;
+            var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();

@@ -16,7 +16,8 @@ namespace NeoCompose.Unity.Editor
         Task<NeoComposeProjectEditResponse> UpdateProjectExportSettingsAsync(
             string apiBaseUrl,
             string projectId,
-            string namespaceForGeneratedTypes);
+            string namespaceForGeneratedTypes,
+            bool singleton);
 
         Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId);
     }
@@ -44,7 +45,8 @@ namespace NeoCompose.Unity.Editor
         public async Task<NeoComposeProjectEditResponse> UpdateProjectExportSettingsAsync(
             string apiBaseUrl,
             string projectId,
-            string namespaceForGeneratedTypes)
+            string namespaceForGeneratedTypes,
+            bool singleton)
         {
             if (string.IsNullOrWhiteSpace(projectId))
             {
@@ -59,6 +61,7 @@ namespace NeoCompose.Unity.Editor
                     unity = new NeoComposeUnityExportSettings
                     {
                         namespaceForGeneratedTypes = namespaceForGeneratedTypes,
+                        singleton = singleton,
                     },
                 },
             };

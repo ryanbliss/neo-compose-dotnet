@@ -11,5 +11,6 @@ namespace NeoCompose.Runtime
         public const string GeneratedTypesDirectory = "Assets/Scripts/Neo";
         public const string ProjectJsonDirectory = "Assets/Resources/Neo";
         public const string NamespaceForGeneratedTypes = "Assets.Scripts.Neo";
+        public const bool Singleton = true;
     }
 }

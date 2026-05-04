@@ -4,12 +4,13 @@
         "id": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
         "name": "HelloWorld",
         "createdAt": "2026-05-03T00:02:45.598Z",
-        "updatedAt": "2026-05-03T22:00:08.676Z",
+        "updatedAt": "2026-05-04T04:07:17.652Z",
         "rootAssetsAttributeId": "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684",
         "rootSaveFileAttributeId": "4a1a7058-e5ba-4479-9f2f-7686a649a6b5",
         "exportSettings": {
             "unity": {
-                "namespaceForGeneratedTypes": "HelloWorld.Assets.Scripts.Neo"
+                "namespaceForGeneratedTypes": "HelloWorld.Assets.Scripts.Neo",
+                "singleton": true
             }
         }
     },

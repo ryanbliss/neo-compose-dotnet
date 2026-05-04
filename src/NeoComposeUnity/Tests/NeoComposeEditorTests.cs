@@ -83,6 +83,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(NeoComposeDefaults.GeneratedTypesDirectory, config.generatedTypesDirectory);
             Assert.AreEqual(NeoComposeDefaults.ProjectJsonDirectory, config.projectJsonDirectory);
             Assert.AreEqual(NeoComposeDefaults.NamespaceForGeneratedTypes, config.namespaceForGeneratedTypes);
+            Assert.AreEqual(NeoComposeDefaults.Singleton, config.singleton);
         }
 
         [Test]
@@ -111,6 +112,7 @@ namespace NeoCompose.Tests
             config.generatedTypesDirectory = "Assets/CustomTypes";
             config.projectJsonDirectory = "Assets/CustomJson";
             config.namespaceForGeneratedTypes = "Game.Generated";
+            config.singleton = false;
 
             config.ClearProject();
 
@@ -119,6 +121,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Assets/CustomTypes", config.generatedTypesDirectory);
             Assert.AreEqual("Assets/CustomJson", config.projectJsonDirectory);
             Assert.AreEqual("Game.Generated", config.namespaceForGeneratedTypes);
+            Assert.IsFalse(config.singleton);
         }
 
         [Test]
@@ -183,13 +186,14 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public async Task Synchronizer_UpdatesConfigNamespaceFromExportedProjectJson()
+        public async Task Synchronizer_UpdatesConfigUnitySettingsFromExportedProjectJson()
         {
             var config = MakeConfig();
             config.namespaceForGeneratedTypes = NeoComposeDefaults.NamespaceForGeneratedTypes;
+            config.singleton = true;
             var api = new FakeApiClient();
             api.exportResponse.projectJson =
-                "{ \"project\": { \"exportSettings\": { \"unity\": { \"namespaceForGeneratedTypes\": \"HelloWorld.Assets.Scripts.Neo\" } } } }";
+                "{ \"project\": { \"exportSettings\": { \"unity\": { \"namespaceForGeneratedTypes\": \"HelloWorld.Assets.Scripts.Neo\", \"singleton\": false } } } }";
             var assets = new FakeAssetService();
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
 
@@ -197,6 +201,7 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(result.success, result.message);
             Assert.AreEqual("HelloWorld.Assets.Scripts.Neo", config.namespaceForGeneratedTypes);
+            Assert.IsFalse(config.singleton);
             Assert.IsTrue(assets.savedConfig);
         }
 
@@ -243,10 +248,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public async Task ProjectSettingsUpdater_SavesOnlyUnityNamespaceExportSettings()
+        public async Task ProjectSettingsUpdater_SavesUnityExportSettings()
         {
             var config = MakeConfig();
             config.namespaceForGeneratedTypes = "Game.Generated";
+            config.singleton = false;
             var api = new FakeApiClient();
             api.editResponse.project.id = config.projectId;
             api.editResponse.project.name = config.projectName;
@@ -255,18 +261,21 @@ namespace NeoCompose.Tests
                 unity = new NeoComposeUnityExportSettings
                 {
                     namespaceForGeneratedTypes = "Game.Generated",
+                    singleton = false,
                 },
             };
             var assets = new FakeAssetService();
             var updater = new NeoComposeProjectSettingsUpdater(api, assets);
 
-            var result = await updater.UpdateUnityNamespaceAsync(config);
+            var result = await updater.UpdateUnityExportSettingsAsync(config);
 
             Assert.IsTrue(result.success, result.message);
             Assert.AreEqual("http://localhost:3000", api.lastEditApiBaseUrl);
             Assert.AreEqual("project-1", api.lastEditProjectId);
             Assert.AreEqual("Game.Generated", api.lastEditNamespace);
+            Assert.AreEqual(false, api.lastEditSingleton);
             Assert.AreEqual("Game.Generated", config.namespaceForGeneratedTypes);
+            Assert.IsFalse(config.singleton);
             Assert.IsTrue(assets.savedConfig);
         }
 
@@ -299,6 +308,7 @@ namespace NeoCompose.Tests
             public string? lastEditApiBaseUrl;
             public string? lastEditProjectId;
             public string? lastEditNamespace;
+            public bool? lastEditSingleton;
 
             public Task<NeoComposeProjectListResponse> ListProjectsAsync(string apiBaseUrl, string? query)
             {
@@ -308,11 +318,13 @@ namespace NeoCompose.Tests
             public Task<NeoComposeProjectEditResponse> UpdateProjectExportSettingsAsync(
                 string apiBaseUrl,
                 string projectId,
-                string namespaceForGeneratedTypes)
+                string namespaceForGeneratedTypes,
+                bool singleton)
             {
                 lastEditApiBaseUrl = apiBaseUrl;
                 lastEditProjectId = projectId;
                 lastEditNamespace = namespaceForGeneratedTypes;
+                lastEditSingleton = singleton;
                 return Task.FromResult(editResponse);
             }
 

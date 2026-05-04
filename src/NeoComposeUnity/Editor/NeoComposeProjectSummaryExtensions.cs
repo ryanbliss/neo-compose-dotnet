@@ -15,5 +15,10 @@ namespace NeoCompose.Unity.Editor
                 ? NeoComposeDefaults.NamespaceForGeneratedTypes
                 : project.exportSettings.unity.namespaceForGeneratedTypes!;
         }
+
+        public static bool UnitySingletonOrDefault(this NeoComposeProjectSummary project)
+        {
+            return project.exportSettings?.unity?.singleton ?? NeoComposeDefaults.Singleton;
+        }
     }
 }

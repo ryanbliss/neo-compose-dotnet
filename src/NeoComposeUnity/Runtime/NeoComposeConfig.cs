@@ -15,16 +15,22 @@ namespace NeoCompose.Runtime
         public string generatedTypesDirectory = NeoComposeDefaults.GeneratedTypesDirectory;
         public string projectJsonDirectory = NeoComposeDefaults.ProjectJsonDirectory;
         public string namespaceForGeneratedTypes = NeoComposeDefaults.NamespaceForGeneratedTypes;
+        public bool singleton = NeoComposeDefaults.Singleton;
 
         public bool HasProject => !string.IsNullOrWhiteSpace(projectId);
 
-        public void SelectProject(string id, string name, string? namespaceForGeneratedTypes = null)
+        public void SelectProject(
+            string id,
+            string name,
+            string? namespaceForGeneratedTypes = null,
+            bool singleton = NeoComposeDefaults.Singleton)
         {
             projectId = id;
             projectName = name;
             this.namespaceForGeneratedTypes = string.IsNullOrWhiteSpace(namespaceForGeneratedTypes)
                 ? NeoComposeDefaults.NamespaceForGeneratedTypes
                 : namespaceForGeneratedTypes;
+            this.singleton = singleton;
         }
 
         public void ClearProject()

@@ -171,6 +171,7 @@ namespace NeoCompose.Unity.Editor
                 config.namespaceForGeneratedTypes = EditorGUILayout.TextField(
                     "Unity Namespace",
                     config.namespaceForGeneratedTypes);
+                config.singleton = EditorGUILayout.Toggle("Singleton", config.singleton);
                 if (EditorGUI.EndChangeCheck())
                 {
                     NeoComposeConfigProvider.Save(config);
@@ -183,7 +184,7 @@ namespace NeoCompose.Unity.Editor
             {
                 if (GUILayout.Button("Save to web", GUILayout.Width(120), GUILayout.Height(24)))
                 {
-                    _ = SaveUnityNamespaceAsync();
+                    _ = SaveUnityExportSettingsAsync();
                 }
             }
 
@@ -269,7 +270,11 @@ namespace NeoCompose.Unity.Editor
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Select", GUILayout.Width(72)))
             {
-                config.SelectProject(project.id, project.name, project.UnityNamespaceOrDefault());
+                config.SelectProject(
+                    project.id,
+                    project.name,
+                    project.UnityNamespaceOrDefault(),
+                    project.UnitySingletonOrDefault());
                 NeoComposeConfigProvider.Save(config);
             }
 
@@ -417,14 +422,14 @@ namespace NeoCompose.Unity.Editor
             Repaint();
         }
 
-        private async Task SaveUnityNamespaceAsync()
+        private async Task SaveUnityExportSettingsAsync()
         {
             if (config == null || projectSettingsUpdater == null) return;
             loading = true;
             status = "Saving Unity export settings...";
             Repaint();
 
-            var result = await projectSettingsUpdater.UpdateUnityNamespaceAsync(config);
+            var result = await projectSettingsUpdater.UpdateUnityExportSettingsAsync(config);
             RefreshConfigForDisplay();
             status = result.message;
             loading = false;

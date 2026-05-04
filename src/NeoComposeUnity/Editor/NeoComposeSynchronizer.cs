@@ -124,6 +124,7 @@ namespace NeoCompose.Unity.Editor
                 assets.RefreshAsset(generatedTypesPath);
                 assets.RefreshAsset(projectJsonPath);
                 config.namespaceForGeneratedTypes = ReadUnityNamespaceOrDefault(exportResponse.projectJson);
+                config.singleton = ReadUnitySingletonOrDefault(exportResponse.projectJson);
                 assets.SaveConfig(config);
 
                 return NeoComposeSyncResult.Success("Neo Compose files synchronized.", exportResponse);
@@ -217,6 +218,20 @@ namespace NeoCompose.Unity.Editor
             catch
             {
                 return NeoComposeDefaults.NamespaceForGeneratedTypes;
+            }
+        }
+
+        private static bool ReadUnitySingletonOrDefault(string projectJson)
+        {
+            try
+            {
+                var root = JObject.Parse(projectJson);
+                return root["project"]?["exportSettings"]?["unity"]?["singleton"]?.Value<bool?>()
+                    ?? NeoComposeDefaults.Singleton;
+            }
+            catch
+            {
+                return NeoComposeDefaults.Singleton;
             }
         }
     }

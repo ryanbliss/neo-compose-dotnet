@@ -46,7 +46,7 @@ namespace NeoCompose.Unity.Editor
             this.assets = assets;
         }
 
-        public async Task<NeoComposeProjectSettingsUpdateResult> UpdateUnityNamespaceAsync(NeoComposeConfig config)
+        public async Task<NeoComposeProjectSettingsUpdateResult> UpdateUnityExportSettingsAsync(NeoComposeConfig config)
         {
             if (string.IsNullOrWhiteSpace(config.apiBaseUrl))
             {
@@ -63,12 +63,14 @@ namespace NeoCompose.Unity.Editor
                 var response = await apiClient.UpdateProjectExportSettingsAsync(
                     config.apiBaseUrl,
                     config.projectId,
-                    config.namespaceForGeneratedTypes);
+                    config.namespaceForGeneratedTypes,
+                    config.singleton);
 
                 config.SelectProject(
                     response.project.id,
                     response.project.name,
-                    response.project.UnityNamespaceOrDefault());
+                    response.project.UnityNamespaceOrDefault(),
+                    response.project.UnitySingletonOrDefault());
                 assets.SaveConfig(config);
                 return NeoComposeProjectSettingsUpdateResult.Success("Unity export settings saved.");
             }

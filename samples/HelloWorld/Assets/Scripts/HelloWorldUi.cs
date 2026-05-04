@@ -26,12 +26,13 @@ namespace HelloWorld.Assets.Scripts
         private Vector2 scrollPosition;
 
         public void Render(
-            string fullText,
-            Planet currentPlanet,
+            string text,
+            Planet world,
             IReadOnlyList<PlanetVisit> visitedPlanets,
-            Action<Planet> visitPlanet,
-            Action save,
-            Action reset)
+            Action<Planet> onVisitPlanet,
+            Action onSave,
+            Action onReset
+        )
         {
             const float margin = 24f;
             GUILayout.BeginArea(new Rect(
@@ -44,18 +45,18 @@ namespace HelloWorld.Assets.Scripts
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Save", GUILayout.Width(96f), GUILayout.Height(32f)))
             {
-                save();
+                onSave();
             }
             if (GUILayout.Button("Reset", GUILayout.Width(96f), GUILayout.Height(32f)))
             {
-                reset();
+                onReset();
             }
             GUILayout.EndHorizontal();
             GUILayout.Space(12f);
 
             scrollPosition = GUILayout.BeginScrollView(scrollPosition);
 
-            GUILayout.Label(fullText, HeaderStyle());
+            GUILayout.Label(text, HeaderStyle());
             GUILayout.Space(12f);
 
             GUILayout.Label("Visited planets", SectionStyle());
@@ -75,13 +76,13 @@ namespace HelloWorld.Assets.Scripts
             GUILayout.Label("Travel", SectionStyle());
             foreach (var planet in AllPlanets)
             {
-                if (planet.Equals(currentPlanet))
+                if (planet.Equals(world))
                 {
                     continue;
                 }
                 if (GUILayout.Button($"Visit {DisplayName(planet)}", GUILayout.Height(36f)))
                 {
-                    visitPlanet(planet);
+                    onVisitPlanet(planet);
                 }
             }
 

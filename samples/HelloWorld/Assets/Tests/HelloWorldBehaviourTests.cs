@@ -112,7 +112,7 @@ namespace HelloWorld.Assets.Tests
                     new[] { Planet.earth },
                     VisitedPlanetIds(behaviour));
 
-                behaviour.Visit(Planet.mars);
+                behaviour.OnVisit(Planet.mars);
 
                 Assert.AreEqual("Hello Mars!", behaviour.HelloWorldText);
                 Assert.AreEqual(Planet.mars, behaviour.World?.optionId);
@@ -145,10 +145,10 @@ namespace HelloWorld.Assets.Tests
                 var behaviour = go.AddComponent<HelloWorldBehaviour>();
                 behaviour.LoadClient();
 
-                behaviour.Visit(Planet.mars);
+                behaviour.OnVisit(Planet.mars);
                 Assert.AreEqual("Hello Mars!", behaviour.HelloWorldText);
 
-                behaviour.ResetSave();
+                behaviour.OnResetSave();
 
                 Assert.AreEqual("Hello Earth!", behaviour.HelloWorldText);
                 Assert.AreEqual(Planet.earth, behaviour.World?.optionId);
@@ -181,8 +181,8 @@ namespace HelloWorld.Assets.Tests
             {
                 var behaviour = first.AddComponent<HelloWorldBehaviour>();
                 behaviour.LoadClient();
-                behaviour.Visit(Planet.mars);
-                behaviour.Save();
+                behaviour.OnVisit(Planet.mars);
+                behaviour.OnSave();
 
                 var reloaded = second.AddComponent<HelloWorldBehaviour>();
                 reloaded.LoadClient();

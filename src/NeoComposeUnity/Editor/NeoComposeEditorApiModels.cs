@@ -37,6 +37,7 @@ namespace NeoCompose.Unity.Editor
     public sealed class NeoComposeUnityExportSettings
     {
         public string? namespaceForGeneratedTypes;
+        public bool? singleton;
     }
 
     public sealed class NeoComposeCodegenDiagnostic
