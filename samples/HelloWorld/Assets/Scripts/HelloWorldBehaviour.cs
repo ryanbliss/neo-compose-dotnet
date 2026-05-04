@@ -26,8 +26,8 @@ namespace HelloWorld.Assets.Scripts
         public void LoadClient()
         {
             string json = File.ReadAllText(NeoAssetsFilePath);
-            neo = HelloWorldNeo.Load(json, OnLoadSave, OnHandleSave);
-            // reference lookup to one of two "Hello World" outputs in `neo.Assets.LookupContainer.LookupList`
+            neo = HelloWorldNeo.Load(json, OnLoadSave, OnCommitSave);
+            // reference lookup to one of the "Hello World" outputs in `neo.Assets.LookupContainer.LookupList`
             Debug.Log(neo.Assets.LookupContainer.Lookup.Name);
         }
 
@@ -38,9 +38,7 @@ namespace HelloWorld.Assets.Scripts
         public void OnVisit(Planet planet)
         {
             neo.Save.World = planet;
-            neo.Save.Visited.Add(
-                new PlanetVisit(planet, CurrentUnixTime)
-            );
+            neo.Save.Visited.Add(new PlanetVisit(planet, CurrentUnixTime));
         }
 
         public void OnSave()
@@ -54,16 +52,21 @@ namespace HelloWorld.Assets.Scripts
             LoadClient();
         }
 
-        protected void OnGUI()
+        protected void Update()
         {
             ui.Render(
-                HelloWorldText, 
-                World, 
-                VisitedPlanets, 
-                OnVisit, 
-                OnSave, 
+                HelloWorldText,
+                World,
+                VisitedPlanets,
+                OnVisit,
+                OnSave,
                 OnResetSave
             );
+        }
+
+        protected void OnDestroy()
+        {
+            ui?.Dispose();
         }
 
         protected string OnLoadSave()
@@ -71,7 +74,7 @@ namespace HelloWorld.Assets.Scripts
             return File.ReadAllText(SaveFilePath);
         }
 
-        protected void OnHandleSave(string content)
+        protected void OnCommitSave(string content)
         {
             File.WriteAllText(SaveFilePath, content);
         }

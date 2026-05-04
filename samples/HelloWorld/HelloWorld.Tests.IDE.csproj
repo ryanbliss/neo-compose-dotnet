@@ -4,6 +4,7 @@
     <LangVersion>9.0</LangVersion>
     <RootNamespace>HelloWorld.Tests</RootNamespace>
     <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+    <UnityScriptAssembliesDir Condition="'$(UnityScriptAssembliesDir)' == ''">Library/ScriptAssemblies</UnityScriptAssembliesDir>
     <!-- IDE shim for the sample's test sources — see HelloWorld.IDE.csproj
          for the rationale. -->
   </PropertyGroup>
@@ -18,10 +19,13 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
+    <!-- Mirror Unity's generated csproj surface for IDE analysis: editor
+         modules plus package assemblies compiled into the sample Library. -->
+    <Reference Include="$(UnityManagedDir)/*.dll" Private="false" />
+    <Reference
+      Include="$(UnityScriptAssembliesDir)/*.dll"
+      Exclude="$(UnityScriptAssembliesDir)/HelloWorld.dll;$(UnityScriptAssembliesDir)/Tests.dll;$(UnityScriptAssembliesDir)/NeoCompose.Unity*.dll"
+      Private="false" />
   </ItemGroup>
 
   <ItemGroup>

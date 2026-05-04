@@ -4,6 +4,7 @@
     <LangVersion>9.0</LangVersion>
     <RootNamespace>HelloWorld</RootNamespace>
     <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+    <UnityScriptAssembliesDir Condition="'$(UnityScriptAssembliesDir)' == ''">Library/ScriptAssemblies</UnityScriptAssembliesDir>
     <!-- Hand-authored IDE shim. The actual sample compile is driven by Unity
          via the asmdefs under `Assets/`. This csproj exists so VSCode / Rider
          can resolve `using UnityEngine;` and `using NeoCompose.Runtime` when the
@@ -28,9 +29,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
+    <!-- Mirror Unity's generated csproj surface for IDE analysis: editor
+         modules plus package assemblies compiled into the sample Library. -->
+    <Reference Include="$(UnityManagedDir)/*.dll" Private="false" />
+    <Reference
+      Include="$(UnityScriptAssembliesDir)/*.dll"
+      Exclude="$(UnityScriptAssembliesDir)/HelloWorld.dll;$(UnityScriptAssembliesDir)/Tests.dll;$(UnityScriptAssembliesDir)/NeoCompose.Unity*.dll"
+      Private="false" />
   </ItemGroup>
 </Project>
