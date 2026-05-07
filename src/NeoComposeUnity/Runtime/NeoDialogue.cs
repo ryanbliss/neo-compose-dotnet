@@ -24,6 +24,7 @@ namespace NeoCompose.Runtime
         private readonly INeoDialogueLogger logger;
         private readonly NeoDialogueRuntimeOptions options;
         private readonly INeoDialogueMemoryStore? memoryStore;
+        private readonly NeoDialogueValueResolver? valueResolver;
         private bool started;
         private bool disposed;
 
@@ -45,6 +46,7 @@ namespace NeoCompose.Runtime
             INeoDialogueLogger logger,
             NeoDialogueRuntimeOptions options,
             INeoDialogueMemoryStore? memoryStore,
+            NeoDialogueValueResolver? valueResolver,
             string? groupId = null)
         {
             this.client = client;
@@ -53,6 +55,7 @@ namespace NeoCompose.Runtime
             this.logger = logger;
             this.options = options;
             this.memoryStore = memoryStore;
+            this.valueResolver = valueResolver;
             id = data.id;
             this.groupId = groupId;
         }
@@ -96,7 +99,7 @@ namespace NeoCompose.Runtime
             }
 
             context.nodeId = nodeId;
-            context.primary = context.trigger;
+            context.primary = ResolvePrimary(node.primaryLinkedValueId);
             switch (node)
             {
                 case DialogueTextNodeModel textNode:
@@ -262,6 +265,15 @@ namespace NeoCompose.Runtime
             {
                 memory.AddChoice(optionId);
             }
+        }
+
+        private object? ResolvePrimary(string? nodePrimaryLinkedValueId)
+        {
+            string? primaryLinkedValueId = string.IsNullOrEmpty(nodePrimaryLinkedValueId)
+                ? data.primaryLinkedValueId
+                : nodePrimaryLinkedValueId;
+            if (string.IsNullOrEmpty(primaryLinkedValueId)) return context.trigger;
+            return valueResolver?.Invoke(primaryLinkedValueId!);
         }
 
         private string CurrentUtcIso()

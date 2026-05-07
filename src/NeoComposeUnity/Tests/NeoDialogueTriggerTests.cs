@@ -161,6 +161,42 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void TryTrigger_DirectLookupDialogueResolvesStoredLookupValue()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+
+            Assert.IsTrue(root.TryTrigger("dialogue-lookup-direct", out NeoDialogueTriggerResult result));
+
+            Assert.IsTrue(result.ok);
+            Assert.IsNotNull(result.dialogue);
+            Assert.IsInstanceOf<TestLookupValue>(result.dialogue!.context.trigger);
+            Assert.AreEqual("lookup-value-direct", ((TestLookupValue)result.dialogue.context.trigger!).valueId);
+            Assert.AreSame(result.dialogue.context.trigger, result.dialogue.context.primary);
+        }
+
+        [Test]
+        public void TryTrigger_ResolvesLinkedValues()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+
+            Assert.IsTrue(root.TryTrigger("dialogue-linked-values", out NeoDialogueTriggerResult result));
+
+            Assert.IsTrue(result.ok);
+            Assert.IsNotNull(result.dialogue);
+            Assert.IsTrue(result.dialogue!.context.linkedValues.TryGetValue(
+                "linked-value-a",
+                out object? linked));
+            Assert.IsInstanceOf<TestLookupValue>(linked);
+            Assert.AreEqual("linked-value-a", ((TestLookupValue)linked!).valueId);
+        }
+
+        [Test]
         public void TryTrigger_WithNonBoolCondition_ReturnsError()
         {
             var client = CreateClient();
@@ -234,6 +270,28 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(textMemory);
             Assert.AreEqual(1, textMemory!.VisitCount);
             Assert.AreEqual("2026-05-07T12:34:56.0000000Z", textMemory.LastVisitedAt);
+        }
+
+        [Test]
+        public void Start_UsesBodyNodePrimaryOverride()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-node-primary", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.ShowText += node => shown = node;
+
+            Assert.IsInstanceOf<TestLookupValue>(dialogue.context.primary);
+            Assert.AreEqual("primary-dialogue", ((TestLookupValue)dialogue.context.primary!).valueId);
+
+            dialogue.Start();
+
+            Assert.IsNotNull(shown);
+            Assert.IsInstanceOf<TestLookupValue>(shown!.Primary);
+            Assert.AreEqual("primary-text", ((TestLookupValue)shown.Primary!).valueId);
         }
 
         [Test]
@@ -570,6 +628,13 @@ namespace NeoCompose.Tests
                         updatedAt = Now,
                         value = 3,
                     },
+                    ["lookup-value-direct"] = new ObjectAttributeValue
+                    {
+                        id = "lookup-value-direct",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        value = new Dictionary<string, string>(),
+                    },
                 },
                 types = new Dictionary<string, CustomType>
                 {
@@ -833,11 +898,27 @@ namespace NeoCompose.Tests
                         "dialogue-parent-condition",
                         "Parent Condition",
                         "group-child-of-false"),
+                    ["dialogue-node-primary"] = Dialogue(
+                        "dialogue-node-primary",
+                        "Node Primary",
+                        "group-standard",
+                        primaryLinkedValueId: "primary-dialogue",
+                        textPrimaryLinkedValueId: "primary-text"),
+                    ["dialogue-linked-values"] = Dialogue(
+                        "dialogue-linked-values",
+                        "Linked Values",
+                        "group-standard",
+                        linkedValueIds: new[] { "linked-value-a" }),
                     ["dialogue-lookup-a"] = Dialogue(
                         "dialogue-lookup-a",
                         "Lookup A",
                         "group-lookup",
                         "lookup-value-a"),
+                    ["dialogue-lookup-direct"] = Dialogue(
+                        "dialogue-lookup-direct",
+                        "Lookup Direct",
+                        "group-lookup",
+                        "lookup-value-direct"),
                     ["dialogue-lookup-b"] = Dialogue(
                         "dialogue-lookup-b",
                         "Lookup B",
@@ -898,7 +979,10 @@ namespace NeoCompose.Tests
             LogicCondition[]? conditions = null,
             string? priorityTypeId = null,
             int? relativeOrder = null,
-            int? occurrenceLimit = null)
+            int? occurrenceLimit = null,
+            string? primaryLinkedValueId = null,
+            string? textPrimaryLinkedValueId = null,
+            string[]? linkedValueIds = null)
         {
             return new Dialogue
             {
@@ -907,9 +991,9 @@ namespace NeoCompose.Tests
                 projectId = ProjectId,
                 name = name,
                 description = null,
-                linkedValues = new DialogueLinkedValue[0],
+                linkedValues = LinkedValues(linkedValueIds),
                 settings = new DialogueSettings(),
-                primaryLinkedValueId = null,
+                primaryLinkedValueId = primaryLinkedValueId,
                 triggerNode = new DialogueTriggerNode
                 {
                     id = $"{id}-trigger",
@@ -937,11 +1021,29 @@ namespace NeoCompose.Tests
                 },
                 nodes = new Dictionary<string, DialogueBodyNode>
                 {
-                    ["text-start"] = TextNode("text-start", "Hello there."),
+                    ["text-start"] = TextNode(
+                        "text-start",
+                        "Hello there.",
+                        primaryLinkedValueId: textPrimaryLinkedValueId),
                 },
                 createdAt = Now,
                 updatedAt = Now,
             };
+        }
+
+        private static DialogueLinkedValue[] LinkedValues(string[]? valueIds)
+        {
+            if (valueIds == null) return new DialogueLinkedValue[0];
+            var result = new DialogueLinkedValue[valueIds.Length];
+            for (int i = 0; i < valueIds.Length; i++)
+            {
+                result[i] = new DialogueLinkedValue
+                {
+                    valueId = valueIds[i],
+                    source = DialogueLinkedValueSource.Manual,
+                };
+            }
+            return result;
         }
 
         private static Dialogue ActionDialogue(
@@ -1355,7 +1457,8 @@ namespace NeoCompose.Tests
         private static DialogueTextNode TextNode(
             string id,
             string text,
-            NeoCompose.Runtime.Json.DialogueTextOption[]? options = null)
+            NeoCompose.Runtime.Json.DialogueTextOption[]? options = null,
+            string? primaryLinkedValueId = null)
         {
             return new DialogueTextNode
             {
@@ -1363,6 +1466,7 @@ namespace NeoCompose.Tests
                 type = DialogueNodeType.Text,
                 layout = new DialogueNodeLayout(),
                 text = text,
+                primaryLinkedValueId = primaryLinkedValueId,
                 linkedValues = new DialogueLinkedValue[0],
                 optionSettings = options == null
                     ? null
@@ -1378,8 +1482,9 @@ namespace NeoCompose.Tests
             public TestDialogues(
                 NeoClient client,
                 NeoDialogueRuntimeOptions? options = null,
-                INeoDialogueMemoryStore? memoryStore = null)
-                : base(client, options, memoryStore) { }
+                INeoDialogueMemoryStore? memoryStore = null,
+                NeoDialogueValueResolver? valueResolver = null)
+                : base(client, options, memoryStore, valueResolver) { }
         }
 
         private sealed class TestStandardDialogueGroup : NeoStandardDialogueGroup

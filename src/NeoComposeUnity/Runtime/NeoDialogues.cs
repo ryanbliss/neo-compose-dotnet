@@ -21,18 +21,21 @@ namespace NeoCompose.Runtime
         protected NeoDialogueRuntimeOptions options { get; }
         protected INeoDialogueLogger logger { get; }
         protected INeoDialogueMemoryStore? memoryStore { get; }
+        protected NeoDialogueValueResolver? valueResolver { get; }
 
         public event Action<NeoDialogueEligibilityError>? OnEligibleError;
 
         protected NeoDialoguesBase(
             NeoClient client,
             NeoDialogueRuntimeOptions? options = null,
-            INeoDialogueMemoryStore? memoryStore = null)
+            INeoDialogueMemoryStore? memoryStore = null,
+            NeoDialogueValueResolver? valueResolver = null)
         {
             this.client = client;
             this.options = options ?? new NeoDialogueRuntimeOptions();
             logger = this.options.ResolveLogger();
             this.memoryStore = memoryStore;
+            this.valueResolver = valueResolver;
         }
 
         public virtual bool TryTrigger(string dialogueId, out NeoDialogue dialogue)
@@ -70,7 +73,8 @@ namespace NeoCompose.Runtime
             }
 
             var groupId = data.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
-            var context = CreateContext(data, null, null);
+            var trigger = ResolveDirectTrigger(data);
+            var context = CreateContext(data, trigger);
             try
             {
                 if (!EvaluateGroupConditionChain(groupId, context))
@@ -155,7 +159,7 @@ namespace NeoCompose.Runtime
                         return false;
                     }
                     if (!PassesOccurrenceLimit(dialogue)) return false;
-                    var context = CreateContext(dialogue, trigger, trigger);
+                    var context = CreateContext(dialogue, trigger);
                     try
                     {
                         return NeoDialogueConditionEvaluator.EvaluateAll(
@@ -182,7 +186,7 @@ namespace NeoCompose.Runtime
 
             var selected = SelectRankedCandidate(candidates, groupId, warnings);
             result = NeoDialogueTriggerResult.Success(
-                CreateDialogue(selected, CreateContext(selected, trigger, trigger)),
+                CreateDialogue(selected, CreateContext(selected, trigger)),
                 warnings);
             return true;
         }
@@ -221,21 +225,33 @@ namespace NeoCompose.Runtime
             NeoDialogueContext context)
         {
             string? groupId = data.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
-            return new NeoDialogue(client, data, context, logger, options, memoryStore, groupId);
+            return new NeoDialogue(
+                client,
+                data,
+                context,
+                logger,
+                options,
+                memoryStore,
+                valueResolver,
+                groupId);
         }
 
         protected NeoDialogueContext CreateContext(
             DialogueModel data,
-            object? trigger = null,
-            object? primary = null)
+            object? trigger = null)
         {
             string? groupId = data.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
             return new NeoDialogueContext(
                 data.id,
                 groupId,
                 trigger,
-                primary,
-                new Dictionary<string, object?>());
+                ResolvePrimary(data.primaryLinkedValueId, trigger),
+                ResolveLinkedValues(data.linkedValues));
+        }
+
+        protected object? ResolveValue(string valueId)
+        {
+            return valueResolver?.Invoke(valueId);
         }
 
         internal static string? GetValueId(object? value)
@@ -293,8 +309,45 @@ namespace NeoCompose.Runtime
                     return new InvalidOperationException(
                         $"Lookup dialogue '{dialogue.id}' references missing lookup value '{lookupValueId}'.");
                 }
+                if (ResolveValue(lookupValueId!) == null)
+                {
+                    return new InvalidOperationException(
+                        $"Lookup dialogue '{dialogue.id}' could not resolve lookup value '{lookupValueId}'.");
+                }
             }
             return null;
+        }
+
+        private object? ResolveDirectTrigger(DialogueModel dialogue)
+        {
+            string? groupId = dialogue.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
+            if (groupId == null
+                || !client.dialogueGroups.TryGetValue(groupId, out DialogueGroupModel group)
+                || group is not NeoCompose.Runtime.Json.LookupDialogueGroup)
+            {
+                return null;
+            }
+            string? lookupValueId = dialogue.triggerNode?.dialogueGroupSettings?.lookupValueId;
+            return string.IsNullOrEmpty(lookupValueId) ? null : ResolveValue(lookupValueId!);
+        }
+
+        private object? ResolvePrimary(string? primaryLinkedValueId, object? trigger)
+        {
+            if (string.IsNullOrEmpty(primaryLinkedValueId)) return trigger;
+            return ResolveValue(primaryLinkedValueId!);
+        }
+
+        private IReadOnlyDictionary<string, object?> ResolveLinkedValues(
+            NeoCompose.Runtime.Json.DialogueLinkedValue[]? linkedValues)
+        {
+            var result = new Dictionary<string, object?>();
+            if (linkedValues == null) return result;
+            foreach (var linkedValue in linkedValues)
+            {
+                if (string.IsNullOrEmpty(linkedValue.valueId)) continue;
+                result[linkedValue.valueId] = ResolveValue(linkedValue.valueId);
+            }
+            return result;
         }
 
         private bool EvaluateGroupConditionChain(
