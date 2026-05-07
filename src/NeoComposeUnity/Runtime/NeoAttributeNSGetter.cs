@@ -122,7 +122,7 @@ namespace NeoCompose.Runtime
             // Build the Context first so we can unwrap row-based
             // bindings through its cache. Both `__root__` and
             // `__this__` need to participate in the cache so dispatch
-            // on `root.assets.X` and `this.foo` rounds-trips through
+            // on `root.Assets.X` and `this.foo` rounds-trips through
             // reference equality.
             var ctx = new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null);
             object? rootValue = ResolveRootValue(ctx);
@@ -165,21 +165,21 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Synthesizes the runtime <c>__root__</c> value:
-        /// <c>{ assets: &lt;assets-record&gt;, save: &lt;save-record&gt; }</c>.
+        /// <c>{ Assets: &lt;assets-record&gt;, Save: &lt;save-record&gt; }</c>.
         /// The two roots come from <see cref="NeoClient.assets"/> /
         /// <see cref="NeoClient.save"/>'s underlying value records;
         /// either entry is null when the corresponding root attribute
         /// has no stored value. Both records are unwrapped through
-        /// the evaluator's cache so chains like <c>root.assets.X</c>
+        /// the evaluator's cache so chains like <c>root.Assets.X</c>
         /// participate in reference-equality dispatch.
         /// </summary>
         private object? ResolveRootValue(NSGetterEvaluator.Context ctx)
         {
             var root = new Dictionary<string, object?>(2);
-            root["assets"] = client.assets.value is ObjectAttributeValue a
+            root["Assets"] = client.assets.value is ObjectAttributeValue a
                 ? NSGetterEvaluator.UnwrapRow(a, ctx)
                 : null;
-            root["save"] = client.save.value is ObjectAttributeValue s
+            root["Save"] = client.save.value is ObjectAttributeValue s
                 ? NSGetterEvaluator.UnwrapRow(s, ctx)
                 : null;
             return root;

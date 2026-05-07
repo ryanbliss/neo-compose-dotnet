@@ -75,10 +75,10 @@ namespace NeoCompose.Runtime
         {
             var root = new Dictionary<string, object?>(2)
             {
-                ["assets"] = client.assets.value is ObjectAttributeValue assets
+                ["Assets"] = client.assets.value is ObjectAttributeValue assets
                     ? NSGetterEvaluator.UnwrapRow(assets, ctx)
                     : null,
-                ["save"] = client.save.value is ObjectAttributeValue save
+                ["Save"] = client.save.value is ObjectAttributeValue save
                     ? NSGetterEvaluator.UnwrapRow(save, ctx)
                     : null,
             };

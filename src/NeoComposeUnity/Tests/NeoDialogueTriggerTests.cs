@@ -1019,7 +1019,7 @@ namespace NeoCompose.Tests
                     ["dialogue-action-default-save-write"] = ActionDialogue(
                         "dialogue-action-default-save-write",
                         AssignAction(
-                            RootKeyPointer("save", "Score"),
+                            RootKeyPointer("Save", "Score"),
                             IntTypeInfo(),
                             NumberPointer(22))),
                     ["dialogue-action-list-add"] = ActionDialogue(

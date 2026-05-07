@@ -120,7 +120,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:10:24.481Z",
             "updatedAt": "2026-05-03T00:14:50.145Z",
-            "code": "\tPlanet world = root.save.world;\n\tstring suffix = this.optionalSuffix ?? \"\";\n\treturn $\"{this.baseText} {world}{suffix}\";",
+            "code": "\tPlanet world = root.Save.world;\n\tstring suffix = this.optionalSuffix ?? \"\";\n\treturn $\"{this.baseText} {world}{suffix}\";",
             "returnTypeInfo": {
                 "type": 3,
                 "required": true
@@ -193,7 +193,7 @@
                                                         "type": 3,
                                                         "required": true
                                                     },
-                                                    "value": "save"
+                                                    "value": "Save"
                                                 }
                                             }
                                         }
