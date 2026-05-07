@@ -1095,190 +1095,6 @@
             "updatedAt": "2026-05-07T17:59:37.998Z",
             "entryAttributeId": "42d3d49d-3ba8-4672-ad54-53dc109697fc"
         },
-        "ff133f1c-2c7e-487a-9750-c7f1d947d7a0": {
-            "_id": "69fcd7bf21f8b0238d0f67f6",
-            "id": "ff133f1c-2c7e-487a-9750-c7f1d947d7a0",
-            "name": "Save",
-            "type": 10,
-            "locked": false,
-            "required": false,
-            "extendsAttributeId": null,
-            "system": null,
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "createdAt": "2026-05-07T18:19:43.993Z",
-            "updatedAt": "2026-05-07T18:54:35.869Z",
-            "code": "\treturn root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });",
-            "returnTypeInfo": {
-                "type": 7,
-                "required": false,
-                "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
-            },
-            "getter": {
-                "parameters": [
-                    {
-                        "id": "__this__",
-                        "typeInfo": {
-                            "type": 7,
-                            "required": true,
-                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
-                        },
-                        "pointer": {
-                            "type": "value",
-                            "value": {
-                                "typeInfo": {
-                                    "type": 7,
-                                    "required": true,
-                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
-                                },
-                                "value": null
-                            }
-                        }
-                    },
-                    {
-                        "id": "__root__",
-                        "typeInfo": {
-                            "type": 7,
-                            "required": true,
-                            "typeId": "__root__"
-                        },
-                        "pointer": {
-                            "type": "value",
-                            "value": {
-                                "typeInfo": {
-                                    "type": 7,
-                                    "required": true,
-                                    "typeId": "__root__"
-                                },
-                                "value": null
-                            }
-                        }
-                    }
-                ],
-                "instructions": [
-                    {
-                        "type": "return",
-                        "pointer": {
-                            "type": "function",
-                            "function": {
-                                "type": "firstOrDefault",
-                                "info": {
-                                    "collectionPointer": {
-                                        "type": "keyOf",
-                                        "keyOf": {
-                                            "pointer": {
-                                                "type": "keyOf",
-                                                "keyOf": {
-                                                    "pointer": {
-                                                        "type": "variable",
-                                                        "variableId": "__root__"
-                                                    },
-                                                    "key": {
-                                                        "type": "value",
-                                                        "value": {
-                                                            "typeInfo": {
-                                                                "type": 3,
-                                                                "required": true
-                                                            },
-                                                            "value": "Save"
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            "key": {
-                                                "type": "value",
-                                                "value": {
-                                                    "typeInfo": {
-                                                        "type": 3,
-                                                        "required": true
-                                                    },
-                                                    "value": "OutpostSaveMap"
-                                                }
-                                            }
-                                        }
-                                    },
-                                    "function": {
-                                        "parameters": [
-                                            {
-                                                "id": "key",
-                                                "typeInfo": {
-                                                    "type": 3,
-                                                    "required": true
-                                                },
-                                                "pointer": {
-                                                    "type": "variable",
-                                                    "variableId": "key"
-                                                }
-                                            },
-                                            {
-                                                "id": "value",
-                                                "typeInfo": {
-                                                    "type": 7,
-                                                    "required": true,
-                                                    "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
-                                                },
-                                                "pointer": {
-                                                    "type": "variable",
-                                                    "variableId": "value"
-                                                }
-                                            }
-                                        ],
-                                        "instructions": [
-                                            {
-                                                "type": "return",
-                                                "pointer": {
-                                                    "type": "operation",
-                                                    "operation": {
-                                                        "type": "boolean",
-                                                        "expression": {
-                                                            "condition": {
-                                                                "type": "equalTo",
-                                                                "operand1": {
-                                                                    "type": "variable",
-                                                                    "variableId": "key"
-                                                                },
-                                                                "operand2": {
-                                                                    "type": "keyOf",
-                                                                    "keyOf": {
-                                                                        "pointer": {
-                                                                            "type": "variable",
-                                                                            "variableId": "__this__"
-                                                                        },
-                                                                        "key": {
-                                                                            "type": "value",
-                                                                            "value": {
-                                                                                "typeInfo": {
-                                                                                    "type": 3,
-                                                                                    "required": true
-                                                                                },
-                                                                                "value": "Id"
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            },
-                                                            "connective": null
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        ],
-                                        "typeInfo": {
-                                            "type": 1,
-                                            "required": true
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                ],
-                "typeInfo": {
-                    "type": 7,
-                    "required": false,
-                    "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
-                }
-            }
-        },
         "9619809a-f7f0-4605-8f79-d1617b339819": {
             "_id": "69fcd8af21f8b0238d0f67fa",
             "id": "9619809a-f7f0-4605-8f79-d1617b339819",
@@ -1552,6 +1368,272 @@
                 "typeInfo": {
                     "type": 1,
                     "required": true
+                }
+            }
+        },
+        "f66fba24-44d4-467c-98ac-4db1539910df": {
+            "_id": "69fcf00021f8b0238d0f684e",
+            "id": "f66fba24-44d4-467c-98ac-4db1539910df",
+            "name": "SaveUnsafe",
+            "type": 10,
+            "locked": false,
+            "required": false,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T20:03:12.413Z",
+            "updatedAt": "2026-05-07T20:03:22.018Z",
+            "code": "\treturn root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });",
+            "returnTypeInfo": {
+                "type": 7,
+                "required": false,
+                "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+            },
+            "getter": {
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                },
+                                "value": null
+                            }
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "__root__"
+                                },
+                                "value": null
+                            }
+                        }
+                    }
+                ],
+                "instructions": [
+                    {
+                        "type": "return",
+                        "pointer": {
+                            "type": "function",
+                            "function": {
+                                "type": "firstOrDefault",
+                                "info": {
+                                    "collectionPointer": {
+                                        "type": "keyOf",
+                                        "keyOf": {
+                                            "pointer": {
+                                                "type": "keyOf",
+                                                "keyOf": {
+                                                    "pointer": {
+                                                        "type": "variable",
+                                                        "variableId": "__root__"
+                                                    },
+                                                    "key": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 3,
+                                                                "required": true
+                                                            },
+                                                            "value": "Save"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "key": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "type": 3,
+                                                        "required": true
+                                                    },
+                                                    "value": "OutpostSaveMap"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "function": {
+                                        "parameters": [
+                                            {
+                                                "id": "key",
+                                                "typeInfo": {
+                                                    "type": 3,
+                                                    "required": true
+                                                },
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "key"
+                                                }
+                                            },
+                                            {
+                                                "id": "value",
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+                                                },
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "value"
+                                                }
+                                            }
+                                        ],
+                                        "instructions": [
+                                            {
+                                                "type": "return",
+                                                "pointer": {
+                                                    "type": "operation",
+                                                    "operation": {
+                                                        "type": "boolean",
+                                                        "expression": {
+                                                            "condition": {
+                                                                "type": "equalTo",
+                                                                "operand1": {
+                                                                    "type": "variable",
+                                                                    "variableId": "key"
+                                                                },
+                                                                "operand2": {
+                                                                    "type": "keyOf",
+                                                                    "keyOf": {
+                                                                        "pointer": {
+                                                                            "type": "variable",
+                                                                            "variableId": "__this__"
+                                                                        },
+                                                                        "key": {
+                                                                            "type": "value",
+                                                                            "value": {
+                                                                                "typeInfo": {
+                                                                                    "type": 3,
+                                                                                    "required": true
+                                                                                },
+                                                                                "value": "Id"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "connective": null
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ],
+                                        "typeInfo": {
+                                            "type": 1,
+                                            "required": true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "typeInfo": {
+                    "type": 7,
+                    "required": false,
+                    "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+                }
+            }
+        },
+        "cccadaa5-0623-4a0f-9197-7175726c0e8b": {
+            "_id": "69fcf01d21f8b0238d0f684f",
+            "id": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+            "name": "Save",
+            "type": 10,
+            "locked": false,
+            "required": false,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T20:03:41.229Z",
+            "updatedAt": "2026-05-07T20:03:50.860Z",
+            "code": "\treturn this.SaveUnsafe!;",
+            "returnTypeInfo": {
+                "type": 7,
+                "required": true,
+                "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+            },
+            "getter": {
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                },
+                                "value": null
+                            }
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "__root__"
+                                },
+                                "value": null
+                            }
+                        }
+                    }
+                ],
+                "instructions": [
+                    {
+                        "type": "return",
+                        "pointer": {
+                            "type": "forceUnwrap",
+                            "pointer": {
+                                "type": "callGetter",
+                                "attributeId": "f66fba24-44d4-467c-98ac-4db1539910df",
+                                "thisPointer": {
+                                    "type": "variable",
+                                    "variableId": "__this__"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "typeInfo": {
+                    "type": 7,
+                    "required": true,
+                    "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
                 }
             }
         }
@@ -1829,7 +1911,8 @@
             "schema": {
                 "Planet": "3166fd08-4bdb-4df9-b100-ecccec859443",
                 "Name": "b56410b3-b2da-4681-897f-a25ce0a0ceb1",
-                "Save": "ff133f1c-2c7e-487a-9750-c7f1d947d7a0"
+                "SaveUnsafe": "f66fba24-44d4-467c-98ac-4db1539910df",
+                "Save": "cccadaa5-0623-4a0f-9197-7175726c0e8b"
             },
             "extendsTypeId": null,
             "isAbstract": false,
@@ -1837,7 +1920,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-07T17:52:15.777Z",
-            "updatedAt": "2026-05-07T18:19:44.145Z"
+            "updatedAt": "2026-05-07T20:03:41.389Z"
         },
         "8ccfe860-309f-428b-b74c-76a873bdea8a": {
             "_id": "69fcd25321f8b0238d0f67ef",

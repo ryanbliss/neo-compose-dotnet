@@ -1735,13 +1735,23 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public OutpostSaveData? Save
+        public OutpostSaveData? SaveUnsafe
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute();
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+
+        public OutpostSaveData Save
         {
             get
             {
                 var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
             }
         }
     }
@@ -1823,13 +1833,23 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new OutpostSaveData? Save
+        public new OutpostSaveData? SaveUnsafe
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute();
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+
+        public new OutpostSaveData Save
         {
             get
             {
                 var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
             }
         }
     }
@@ -2088,13 +2108,23 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new OutpostSaveData? Save
+        public new OutpostSaveData? SaveUnsafe
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute();
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+
+        public new OutpostSaveData Save
         {
             get
             {
                 var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
             }
         }
 
@@ -2233,13 +2263,23 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new OutpostSaveData? Save
+        public new OutpostSaveData? SaveUnsafe
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute();
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+
+        public new OutpostSaveData Save
         {
             get
             {
                 var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
             }
         }
 

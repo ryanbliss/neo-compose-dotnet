@@ -736,6 +736,28 @@ namespace NeoCompose.Runtime
                 new NeoAttributeCustom(client, attribute, valueId));
         }
 
+        public static T ReadRequiredNSGetterCustom<T>(
+            NeoClient client,
+            object? value,
+            bool saved,
+            Func<NeoClient, NeoAttributeCustom, T>? readOnlyFactory,
+            Func<NeoClient, NeoAttributeCustomSaved, T> savedFactory)
+        {
+            T? resolved = ReadNSGetterCustom(
+                client,
+                value,
+                true,
+                saved,
+                readOnlyFactory,
+                savedFactory);
+            if (resolved is null)
+            {
+                throw new InvalidOperationException(
+                    "NSGetter returned null for a required custom value.");
+            }
+            return resolved;
+        }
+
         public static string? ValueId(object? value)
         {
             return value is INeoValueReference reference

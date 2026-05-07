@@ -7,7 +7,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         protected override void LazyInitialize()
         {
             base.LazyInitialize();
-            if (Save is not null) return;
+            if (SaveUnsafe is not null) return;
             HelloWorldNeo.Instance.Save.OutpostSaveMap.Add(valueId, new());
         }
     }
