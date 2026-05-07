@@ -17,9 +17,58 @@ namespace NeoCompose.Runtime
     /// </summary>
     public static class NeoGeneratedTypesSupport
     {
+        public delegate object ReadOnlyCustomFactory(
+            NeoClient client,
+            NeoAttributeCustom node);
+
+        public delegate object SavedCustomFactory(
+            NeoClient client,
+            NeoAttributeCustomSaved node);
+
         public static NeoValueWritePayload? Value<T>(T? value)
         {
             return NeoValueWritePayload.FromValue(value);
+        }
+
+        public static object? ResolveCustomValue(
+            NeoClient client,
+            string valueId,
+            IReadOnlyDictionary<string, ReadOnlyCustomFactory> readOnlyFactories,
+            IReadOnlyDictionary<string, SavedCustomFactory> savedFactories)
+        {
+            if (!client.TryGetValue(valueId, out ObjectAttributeValue? value)
+                || string.IsNullOrEmpty(value.typeId))
+            {
+                return null;
+            }
+
+            var attribute = new CustomAttribute
+            {
+                id = $"__neo_resolved_custom_{value.typeId}",
+                _id = $"__neo_resolved_custom_{value.typeId}",
+                name = "ResolvedCustomValue",
+                type = AttributeType.Custom,
+                customTypeId = value.typeId,
+                createdAt = value.createdAt,
+                updatedAt = value.updatedAt,
+            };
+
+            if (client.saveValues.ContainsKey(valueId)
+                && savedFactories.TryGetValue(value.typeId, out var savedFactory))
+            {
+                return savedFactory(
+                    client,
+                    new NeoAttributeCustomSaved(client, attribute, valueId));
+            }
+
+            if (readOnlyFactories.TryGetValue(value.typeId, out var readOnlyFactory))
+            {
+                return readOnlyFactory(
+                    client,
+                    new NeoAttributeCustom(client, attribute, valueId));
+            }
+
+            return null;
         }
 
         public static NeoValueWritePayload? ValueReference(

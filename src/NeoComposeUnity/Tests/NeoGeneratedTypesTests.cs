@@ -211,6 +211,24 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedDialogueValueResolver_ReturnsRichGeneratedWrappers()
+        {
+            var app = LoadGeneratedClient(out _);
+
+            var assetResolved = app.ResolveDialogueValue("v-dict");
+
+            Assert.IsInstanceOf<ReadOnlyHero>(assetResolved);
+            Assert.IsNotInstanceOf<Hero>(assetResolved);
+            Assert.AreEqual("v-dict", ((ReadOnlyHero)assetResolved!).valueId);
+
+            var savedHero = new Hero(Name: "Saved Hero", Health: 9);
+            var savedResolved = app.ResolveDialogueValue(savedHero.valueId!);
+
+            Assert.IsInstanceOf<Hero>(savedResolved);
+            Assert.AreEqual("Saved Hero", ((Hero)savedResolved!).Name);
+        }
+
+        [Test]
         public void GeneratedConstructor_CreatesCollectableUnlinkedSavedValue()
         {
             var app = LoadGeneratedClient(out _);

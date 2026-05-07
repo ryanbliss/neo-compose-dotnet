@@ -20,6 +20,33 @@ namespace Assets.Scripts.Neo
         public Root Save { get; }
         public NeoDialogues Dialogues { get; }
 
+        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> DialogueReadOnlyValueFactories =
+            new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            {
+                ["type-base"] = (client, node) => ReadOnlyBase.Create(client, node),
+                ["type-derived"] = (client, node) => ReadOnlyDerived.Create(client, node),
+                ["type-hero"] = (client, node) => ReadOnlyHero.Create(client, node),
+                ["type-override"] = (client, node) => ReadOnlyOverride.Create(client, node),
+                ["type-root"] = (client, node) => ReadOnlyRoot.Create(client, node),
+            };
+
+        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.SavedCustomFactory> DialogueSavedValueFactories =
+            new Dictionary<string, NeoGeneratedTypesSupport.SavedCustomFactory>
+            {
+                ["type-base"] = (client, node) => Base.CreateSaved(client, node),
+                ["type-derived"] = (client, node) => Derived.CreateSaved(client, node),
+                ["type-hero"] = (client, node) => Hero.CreateSaved(client, node),
+                ["type-override"] = (client, node) => Override.CreateSaved(client, node),
+                ["type-root"] = (client, node) => Root.CreateSaved(client, node),
+            };
+
+        internal object? ResolveDialogueValue(string valueId) =>
+            NeoGeneratedTypesSupport.ResolveCustomValue(
+                Client,
+                valueId,
+                DialogueReadOnlyValueFactories,
+                DialogueSavedValueFactories);
+
         public TestProjectNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             Client = client;
@@ -47,7 +74,7 @@ namespace Assets.Scripts.Neo
     public sealed class NeoDialogues : NeoDialoguesBase
     {
         internal NeoDialogues(TestProjectNeo project, NeoDialogueRuntimeOptions? options)
-            : base(project.Client, options)
+            : base(project.Client, options, null, project.ResolveDialogueValue)
         {
         }
     }
