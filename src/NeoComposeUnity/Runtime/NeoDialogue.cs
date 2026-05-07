@@ -16,6 +16,7 @@ namespace NeoCompose.Runtime
 {
     public sealed class NeoDialogue : IDisposable
     {
+        private readonly NeoClient client;
         private readonly INeoDialogueLogger logger;
         private bool started;
         private bool disposed;
@@ -32,11 +33,13 @@ namespace NeoCompose.Runtime
         public event Action<Exception>? OnError;
 
         public NeoDialogue(
+            NeoClient client,
             DialogueModel data,
             NeoDialogueContext context,
             INeoDialogueLogger logger,
             string? groupId = null)
         {
+            this.client = client;
             this.data = data;
             this.context = context;
             this.logger = logger;
@@ -148,12 +151,20 @@ namespace NeoCompose.Runtime
         {
             foreach (var outcome in node.outcomes ?? Array.Empty<DialogueOutcomeModel>())
             {
-                if (outcome.conditions != null && outcome.conditions.Length > 0)
+                bool matched;
+                try
                 {
-                    Fail(new NotSupportedException(
-                        $"Dialogue '{id}' condition execution is not implemented yet."));
+                    matched = NeoDialogueConditionEvaluator.EvaluateAll(
+                        client,
+                        outcome.conditions,
+                        context);
+                }
+                catch (Exception ex)
+                {
+                    Fail(ex);
                     return;
                 }
+                if (!matched) continue;
                 EnterNode(outcome.toNodeId);
                 return;
             }

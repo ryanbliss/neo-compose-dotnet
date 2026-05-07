@@ -43,6 +43,7 @@ namespace NeoCompose.Runtime.NeoScript
             public NeoClient client { get; }
             public object? thisValue { get; }
             public object? rootValue { get; }
+            public object? contextValue { get; }
             /// <summary>
             /// Stack of NSGetter attribute ids currently in-flight. Threaded
             /// through callGetter recursion via fresh-copy children so a
@@ -94,6 +95,7 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoClient client,
                 object? thisValue,
                 object? rootValue,
+                object? contextValue = null,
                 IReadOnlyCollection<string>? getterCallStack = null,
                 Dictionary<string, object?>? rowUnwrapCache = null,
                 Dictionary<object, string>? rowReverseIndex = null)
@@ -101,6 +103,7 @@ namespace NeoCompose.Runtime.NeoScript
                 this.client = client;
                 this.thisValue = thisValue;
                 this.rootValue = rootValue;
+                this.contextValue = contextValue;
                 this.getterCallStack = getterCallStack ?? System.Array.Empty<string>();
                 this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<string, object?>();
                 this.rowReverseIndex = rowReverseIndex
@@ -110,17 +113,50 @@ namespace NeoCompose.Runtime.NeoScript
             internal Context WithGetterPushed(string attributeId)
             {
                 var next = new HashSet<string>(getterCallStack) { attributeId };
-                return new Context(client, thisValue, rootValue, next, rowUnwrapCache, rowReverseIndex);
+                return new Context(
+                    client,
+                    thisValue,
+                    rootValue,
+                    contextValue,
+                    next,
+                    rowUnwrapCache,
+                    rowReverseIndex);
             }
 
             internal Context WithThis(object? newThisValue)
             {
-                return new Context(client, newThisValue, rootValue, getterCallStack, rowUnwrapCache, rowReverseIndex);
+                return new Context(
+                    client,
+                    newThisValue,
+                    rootValue,
+                    contextValue,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex);
             }
 
             internal Context WithRoot(object? newRootValue)
             {
-                return new Context(client, thisValue, newRootValue, getterCallStack, rowUnwrapCache, rowReverseIndex);
+                return new Context(
+                    client,
+                    thisValue,
+                    newRootValue,
+                    contextValue,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex);
+            }
+
+            internal Context WithContext(object? newContextValue)
+            {
+                return new Context(
+                    client,
+                    thisValue,
+                    rootValue,
+                    newContextValue,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex);
             }
         }
 
@@ -152,6 +188,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 ["__this__"] = ctx.thisValue,
                 ["__root__"] = ctx.rootValue,
+                ["__context__"] = ctx.contextValue,
             };
             var result = EvalInstructions(getter.instructions, scope, ctx);
             if (result.kind == InstructionResultKind.Return) return result.value;

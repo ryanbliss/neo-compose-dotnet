@@ -38,6 +38,10 @@ namespace NeoCompose.Runtime
             {
                 logger.LogException(result.error);
             }
+            foreach (var warning in result.warnings)
+            {
+                logger.LogWarning(warning.message);
+            }
             dialogue = null!;
             return false;
         }
@@ -50,7 +54,25 @@ namespace NeoCompose.Runtime
                 return false;
             }
 
-            result = NeoDialogueTriggerResult.Success(CreateDialogue(data, null, null));
+            var context = CreateContext(data, null, null);
+            try
+            {
+                if (!NeoDialogueConditionEvaluator.EvaluateAll(
+                    client,
+                    data.triggerNode?.conditions,
+                    context))
+                {
+                    result = NeoDialogueTriggerResult.NotFound();
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                result = NeoDialogueTriggerResult.Failed(ex);
+                return false;
+            }
+
+            result = NeoDialogueTriggerResult.Success(CreateDialogue(data, context));
             return true;
         }
 
@@ -71,20 +93,66 @@ namespace NeoCompose.Runtime
                 return false;
             }
 
+            var triggerContext = new NeoDialogueContext(
+                dialogueId: "",
+                groupId: groupId,
+                trigger: trigger,
+                primary: trigger,
+                linkedValues: new Dictionary<string, object?>());
+            try
+            {
+                if (client.dialogueGroups.TryGetValue(groupId, out var group)
+                    && !NeoDialogueConditionEvaluator.EvaluateAll(
+                        client,
+                        group.conditions,
+                        triggerContext))
+                {
+                    result = NeoDialogueTriggerResult.NotFound();
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                result = NeoDialogueTriggerResult.Failed(ex);
+                return false;
+            }
+
+            var warnings = new List<NeoDialogueTriggerWarning>();
             var candidates = client.dialogues.Values
                 .Where(dialogue => IsDialogueInGroup(dialogue, groupId, lookupValueId))
                 .OrderBy(dialogue => dialogue.name)
                 .ThenBy(dialogue => dialogue.id)
+                .Where(dialogue =>
+                {
+                    var context = CreateContext(dialogue, trigger, trigger);
+                    try
+                    {
+                        return NeoDialogueConditionEvaluator.EvaluateAll(
+                            client,
+                            dialogue.triggerNode?.conditions,
+                            context);
+                    }
+                    catch (Exception ex)
+                    {
+                        warnings.Add(new NeoDialogueTriggerWarning(
+                            ex.Message,
+                            dialogueId: dialogue.id,
+                            groupId: groupId));
+                        return false;
+                    }
+                })
                 .ToArray();
 
             if (candidates.Length == 0)
             {
-                result = NeoDialogueTriggerResult.NotFound();
+                result = NeoDialogueTriggerResult.NotFound(warnings);
                 return false;
             }
 
+            var selected = candidates[0];
             result = NeoDialogueTriggerResult.Success(
-                CreateDialogue(candidates[0], trigger, trigger));
+                CreateDialogue(selected, CreateContext(selected, trigger, trigger)),
+                warnings);
             return true;
         }
 
@@ -119,17 +187,24 @@ namespace NeoCompose.Runtime
 
         protected NeoDialogue CreateDialogue(
             DialogueModel data,
+            NeoDialogueContext context)
+        {
+            string? groupId = data.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
+            return new NeoDialogue(client, data, context, logger, groupId);
+        }
+
+        protected NeoDialogueContext CreateContext(
+            DialogueModel data,
             object? trigger = null,
             object? primary = null)
         {
             string? groupId = data.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
-            var context = new NeoDialogueContext(
+            return new NeoDialogueContext(
                 data.id,
                 groupId,
                 trigger,
                 primary,
                 new Dictionary<string, object?>());
-            return new NeoDialogue(data, context, logger, groupId);
         }
 
         internal static string? GetValueId(object? value)

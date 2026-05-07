@@ -6,6 +6,7 @@
 using System.Collections.Generic;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace NeoCompose.Tests
@@ -76,6 +77,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void TryTrigger_WithFalseCondition_ReturnsNotFound()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+
+            Assert.IsFalse(root.TryTrigger("dialogue-condition-false", out NeoDialogueTriggerResult result));
+
+            Assert.IsFalse(result.ok);
+            Assert.IsNull(result.dialogue);
+            Assert.IsNull(result.error);
+        }
+
+        [Test]
+        public void TryTrigger_WithNonBoolCondition_ReturnsError()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+
+            Assert.IsFalse(root.TryTrigger("dialogue-condition-error", out NeoDialogueTriggerResult result));
+
+            Assert.IsFalse(result.ok);
+            Assert.IsNotNull(result.error);
+            StringAssert.Contains("expected bool", result.error!.Message);
+        }
+
+        [Test]
         public void Start_EmitsTextNode_AndFinishesOnNext()
         {
             var client = CreateClient();
@@ -134,6 +161,23 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(finished);
             Assert.IsTrue(dialogue.isDisposed);
+        }
+
+        [Test]
+        public void ConditionsNode_SelectsFirstMatchingOutcome()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-conditions-node", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.ShowText += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(shown);
+            Assert.AreEqual("text-true", shown!.id);
+            Assert.AreEqual("The true branch.", shown.text);
         }
 
         private static NeoClient CreateClient()
@@ -201,6 +245,17 @@ namespace NeoCompose.Tests
                         "A Direct Dialogue",
                         "group-standard"),
                     ["dialogue-options"] = OptionsDialogue(),
+                    ["dialogue-condition-false"] = Dialogue(
+                        "dialogue-condition-false",
+                        "Condition False",
+                        "group-standard",
+                        conditions: new[] { Condition(BoolGetter(false)) }),
+                    ["dialogue-condition-error"] = Dialogue(
+                        "dialogue-condition-error",
+                        "Condition Error",
+                        "group-standard",
+                        conditions: new[] { Condition(StringGetter("not bool")) }),
+                    ["dialogue-conditions-node"] = ConditionsNodeDialogue(),
                     ["dialogue-lookup-a"] = Dialogue(
                         "dialogue-lookup-a",
                         "Lookup A",
@@ -238,7 +293,8 @@ namespace NeoCompose.Tests
             string id,
             string name,
             string groupId,
-            string? lookupValueId = null)
+            string? lookupValueId = null,
+            LogicCondition[]? conditions = null)
         {
             return new Dialogue
             {
@@ -257,7 +313,7 @@ namespace NeoCompose.Tests
                     layout = new DialogueNodeLayout(),
                     toNodeId = "text-start",
                     linkedValues = new DialogueLinkedValue[0],
-                    conditions = new LogicCondition[0],
+                    conditions = conditions ?? new LogicCondition[0],
                     dialogueGroupSettings = new DialogueGroupSettings
                     {
                         dialogueGroupId = groupId,
@@ -268,6 +324,66 @@ namespace NeoCompose.Tests
                 nodes = new Dictionary<string, DialogueBodyNode>
                 {
                     ["text-start"] = TextNode("text-start", "Hello there."),
+                },
+                createdAt = Now,
+                updatedAt = Now,
+            };
+        }
+
+        private static Dialogue ConditionsNodeDialogue()
+        {
+            return new Dialogue
+            {
+                id = "dialogue-conditions-node",
+                _id = "dialogue-conditions-node",
+                projectId = ProjectId,
+                name = "Conditions Node Dialogue",
+                description = null,
+                linkedValues = new DialogueLinkedValue[0],
+                settings = new DialogueSettings(),
+                primaryLinkedValueId = null,
+                triggerNode = new DialogueTriggerNode
+                {
+                    id = "dialogue-conditions-node-trigger",
+                    type = DialogueNodeType.Trigger,
+                    layout = new DialogueNodeLayout(),
+                    toNodeId = "conditions-start",
+                    linkedValues = new DialogueLinkedValue[0],
+                    conditions = new LogicCondition[0],
+                    dialogueGroupSettings = new DialogueGroupSettings
+                    {
+                        dialogueGroupId = "group-standard",
+                        priority = new DialogueGroupPrioritySettings(),
+                    },
+                },
+                nodes = new Dictionary<string, DialogueBodyNode>
+                {
+                    ["conditions-start"] = new DialogueConditionsNode
+                    {
+                        id = "conditions-start",
+                        type = DialogueNodeType.Conditions,
+                        layout = new DialogueNodeLayout(),
+                        linkedValues = new DialogueLinkedValue[0],
+                        outcomes = new[]
+                        {
+                            new DialogueOutcome
+                            {
+                                id = "false-outcome",
+                                name = "False",
+                                toNodeId = "text-false",
+                                conditions = new[] { Condition(BoolGetter(false)) },
+                            },
+                            new DialogueOutcome
+                            {
+                                id = "true-outcome",
+                                name = "True",
+                                toNodeId = "text-true",
+                                conditions = new[] { Condition(BoolGetter(true)) },
+                            },
+                        },
+                    },
+                    ["text-false"] = TextNode("text-false", "The false branch."),
+                    ["text-true"] = TextNode("text-true", "The true branch."),
                 },
                 createdAt = Now,
                 updatedAt = Now,
@@ -323,6 +439,62 @@ namespace NeoCompose.Tests
                 },
                 createdAt = Now,
                 updatedAt = Now,
+            };
+        }
+
+        private static LogicCondition Condition(FunctionWithReturnType getter)
+        {
+            return new UILogicCondition
+            {
+                type = LogicType.UI,
+                getter = getter,
+            };
+        }
+
+        private static FunctionWithReturnType BoolGetter(bool value)
+        {
+            return Getter(
+                new PrimitiveTypeInfo
+                {
+                    type = AttributeType.Bool,
+                    required = true,
+                },
+                JToken.FromObject(value));
+        }
+
+        private static FunctionWithReturnType StringGetter(string value)
+        {
+            return Getter(
+                new PrimitiveTypeInfo
+                {
+                    type = AttributeType.String,
+                    required = true,
+                },
+                JToken.FromObject(value));
+        }
+
+        private static FunctionWithReturnType Getter(TypeInfo typeInfo, JToken value)
+        {
+            return new FunctionWithReturnType
+            {
+                typeInfo = typeInfo,
+                parameters = new Variable[0],
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new ValuePointer
+                        {
+                            type = PointerKind.Value,
+                            value = new Value
+                            {
+                                typeInfo = typeInfo,
+                                value = value,
+                            },
+                        },
+                    },
+                },
             };
         }
 
