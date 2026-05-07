@@ -27,6 +27,7 @@ namespace NeoCompose.Runtime
             this.fallbackTypeId = fallbackTypeId;
             this.node.OnChanged += HandleNodeChanged;
             this.node.OnDisposed += HandleNodeDisposed;
+            LazyInitialize();
         }
 
         public virtual void Dispose()
@@ -35,6 +36,15 @@ namespace NeoCompose.Runtime
             isDisposed = true;
             node.OnChanged -= HandleNodeChanged;
             node.OnDisposed -= HandleNodeDisposed;
+        }
+
+        /// <summary>
+        /// Optionally use to lazy initialize class data.
+        /// Useful for non-generated partial class members to do their own initialization even when internal constructor is used.
+        /// </summary>
+        protected virtual void LazyInitialize()
+        {
+            // Do nothing by default
         }
 
         NeoValuePayload INeoValuePayloadProvider.ToNeoValuePayload()
