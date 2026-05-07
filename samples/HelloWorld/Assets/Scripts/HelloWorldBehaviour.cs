@@ -29,7 +29,7 @@ namespace HelloWorld.Assets.Scripts
             neo = HelloWorldNeo.Load(json, OnLoadSave, OnCommitSave);
             // reference lookup to one of the "Hello World" outputs in `neo.Assets.LookupContainer.LookupList`
             Debug.Log(neo.Assets.LookupContainer.Lookup.Name);
-            Wow();
+            TriggerDialogue();
         }
 
         public string HelloWorldText => neo.Assets.Computed.fullText;
@@ -42,7 +42,7 @@ namespace HelloWorld.Assets.Scripts
             neo.Save.Visited.Add(new PlanetVisit(planet, CurrentUnixTime));
         }
 
-        public void Wow()
+        public void TriggerDialogue()
         {
             Debug.Log($"Triggering dialogue with ID: 6efd8f7b-7491-4646-b4cc-05589bca92ab");
             Debug.Log($"Start Dead: {neo.Save.Dead}");
@@ -72,9 +72,6 @@ namespace HelloWorld.Assets.Scripts
             }
             else
             {
-                // throws when node.Options > 0
-                // processes transition to `node.toNodeId`, if set
-                // otherwise, if there is no `node.toNodeId`, `node.OnFinish` invokes
                 node.Next();
             }
         }
@@ -87,7 +84,7 @@ namespace HelloWorld.Assets.Scripts
             if (shouldRepeat)
             {
                 shouldRepeat = false;
-                Wow();
+                TriggerDialogue();
             }
         }
 
