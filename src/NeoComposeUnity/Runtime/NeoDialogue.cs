@@ -174,6 +174,7 @@ namespace NeoCompose.Runtime
                 node.text,
                 node.name,
                 context.primary,
+                ResolveLinkedValues(node.linkedValues),
                 saveChoice,
                 options,
                 () => EnterNode(node.toNodeId),
@@ -276,6 +277,19 @@ namespace NeoCompose.Runtime
             return valueResolver?.Invoke(primaryLinkedValueId!);
         }
 
+        private IReadOnlyList<object?> ResolveLinkedValues(
+            NeoCompose.Runtime.Json.DialogueLinkedValue[]? linkedValues)
+        {
+            if (linkedValues == null || linkedValues.Length == 0) return Array.Empty<object?>();
+            var result = new List<object?>(linkedValues.Length);
+            foreach (var linkedValue in linkedValues)
+            {
+                if (string.IsNullOrEmpty(linkedValue.valueId)) continue;
+                result.Add(valueResolver?.Invoke(linkedValue.valueId));
+            }
+            return result;
+        }
+
         private string CurrentUtcIso()
         {
             return options.ResolveUtcNow().ToString("o");
@@ -329,6 +343,7 @@ namespace NeoCompose.Runtime
         public string text { get; }
         public string? name { get; }
         public object? Primary { get; }
+        public IReadOnlyList<object?> LinkedValues { get; }
         public bool saveChoice { get; }
         public IReadOnlyList<NeoDialogueTextOption> Options { get; }
 
@@ -337,6 +352,7 @@ namespace NeoCompose.Runtime
             string text,
             string? name,
             object? primary,
+            IReadOnlyList<object?> linkedValues,
             bool saveChoice,
             IReadOnlyList<NeoDialogueTextOption> options,
             Action next,
@@ -346,6 +362,7 @@ namespace NeoCompose.Runtime
             this.text = text;
             this.name = name;
             Primary = primary;
+            LinkedValues = linkedValues;
             this.saveChoice = saveChoice;
             Options = options;
             this.next = next;

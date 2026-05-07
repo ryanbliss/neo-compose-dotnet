@@ -197,6 +197,19 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void TryTrigger_ExposesDialogueMetadataToContextConditions()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+
+            Assert.IsTrue(root.TryTrigger("dialogue-context-condition", out NeoDialogueTriggerResult result));
+
+            Assert.IsTrue(result.ok);
+            Assert.IsNotNull(result.dialogue);
+            Assert.AreEqual("dialogue-context-condition", result.dialogue!.id);
+        }
+
+        [Test]
         public void TryTrigger_WithNonBoolCondition_ReturnsError()
         {
             var client = CreateClient();
@@ -292,6 +305,26 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(shown);
             Assert.IsInstanceOf<TestLookupValue>(shown!.Primary);
             Assert.AreEqual("primary-text", ((TestLookupValue)shown.Primary!).valueId);
+        }
+
+        [Test]
+        public void Start_ExposesTextNodeLinkedValues()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-text-linked-values", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.ShowText += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(shown);
+            Assert.AreEqual(1, shown!.LinkedValues.Count);
+            Assert.IsInstanceOf<TestLookupValue>(shown.LinkedValues[0]);
+            Assert.AreEqual("text-linked-value-a", ((TestLookupValue)shown.LinkedValues[0]!).valueId);
         }
 
         [Test]
@@ -909,6 +942,19 @@ namespace NeoCompose.Tests
                         "Linked Values",
                         "group-standard",
                         linkedValueIds: new[] { "linked-value-a" }),
+                    ["dialogue-context-condition"] = Dialogue(
+                        "dialogue-context-condition",
+                        "Context Condition",
+                        "group-standard",
+                        conditions: new[]
+                        {
+                            Condition(ContextEquals("dialogueId", "dialogue-context-condition")),
+                        }),
+                    ["dialogue-text-linked-values"] = Dialogue(
+                        "dialogue-text-linked-values",
+                        "Text Linked Values",
+                        "group-standard",
+                        textLinkedValueIds: new[] { "text-linked-value-a" }),
                     ["dialogue-lookup-a"] = Dialogue(
                         "dialogue-lookup-a",
                         "Lookup A",
@@ -982,7 +1028,8 @@ namespace NeoCompose.Tests
             int? occurrenceLimit = null,
             string? primaryLinkedValueId = null,
             string? textPrimaryLinkedValueId = null,
-            string[]? linkedValueIds = null)
+            string[]? linkedValueIds = null,
+            string[]? textLinkedValueIds = null)
         {
             return new Dialogue
             {
@@ -1024,7 +1071,8 @@ namespace NeoCompose.Tests
                     ["text-start"] = TextNode(
                         "text-start",
                         "Hello there.",
-                        primaryLinkedValueId: textPrimaryLinkedValueId),
+                        primaryLinkedValueId: textPrimaryLinkedValueId,
+                        linkedValueIds: textLinkedValueIds),
                 },
                 createdAt = Now,
                 updatedAt = Now,
@@ -1272,6 +1320,60 @@ namespace NeoCompose.Tests
             };
         }
 
+        private static FunctionWithReturnType ContextEquals(string key, string value)
+        {
+            return new FunctionWithReturnType
+            {
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = AttributeType.Bool,
+                    required = true,
+                },
+                parameters = new Variable[0],
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new OperationPointer
+                        {
+                            type = PointerKind.Operation,
+                            operation = new BooleanOperation
+                            {
+                                type = OperationKind.Boolean,
+                                expression = new BooleanExpression
+                                {
+                                    condition = new Condition
+                                    {
+                                        type = OperatorKind.EqualTo,
+                                        operand1 = ContextKeyPointer(key),
+                                        operand2 = StringPointer(value),
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+        }
+
+        private static Pointer ContextKeyPointer(string key)
+        {
+            return new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf
+                {
+                    pointer = new VariablePointer
+                    {
+                        type = PointerKind.Variable,
+                        variableId = "__context__",
+                    },
+                    key = StringPointer(key),
+                },
+            };
+        }
+
         private static FunctionWithReturnType AssignAction(
             Pointer target,
             TypeInfo typeInfo,
@@ -1458,7 +1560,8 @@ namespace NeoCompose.Tests
             string id,
             string text,
             NeoCompose.Runtime.Json.DialogueTextOption[]? options = null,
-            string? primaryLinkedValueId = null)
+            string? primaryLinkedValueId = null,
+            string[]? linkedValueIds = null)
         {
             return new DialogueTextNode
             {
@@ -1467,7 +1570,7 @@ namespace NeoCompose.Tests
                 layout = new DialogueNodeLayout(),
                 text = text,
                 primaryLinkedValueId = primaryLinkedValueId,
-                linkedValues = new DialogueLinkedValue[0],
+                linkedValues = LinkedValues(linkedValueIds),
                 optionSettings = options == null
                     ? null
                     : new DialogueOptionSettings

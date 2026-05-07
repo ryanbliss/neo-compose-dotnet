@@ -55,8 +55,13 @@ namespace NeoCompose.Runtime
             object? rootValue = ResolveRootValue(client, ctx);
             object contextValue = new Dictionary<string, object?>
             {
+                ["dialogueId"] = dialogueContext.dialogueId,
+                ["groupId"] = dialogueContext.groupId,
+                ["nodeId"] = dialogueContext.nodeId,
+                ["optionId"] = dialogueContext.optionId,
                 ["primary"] = dialogueContext.primary,
                 ["trigger"] = dialogueContext.trigger,
+                ["linkedValues"] = dialogueContext.linkedValues,
             };
             return ctx
                 .WithRoot(rootValue)
