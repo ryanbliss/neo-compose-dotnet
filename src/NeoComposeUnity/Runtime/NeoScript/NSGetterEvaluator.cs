@@ -1063,7 +1063,7 @@ namespace NeoCompose.Runtime.NeoScript
                     : ToObjectArray(a.value),
                 ObjectAttributeValue o => o.value is null
                     ? null
-                    : ToObjectDict(o.value),
+                    : ToObjectDict(row.id, o.value),
                 NullAttributeValue _ => null,
                 _ => null,
             };
@@ -1110,9 +1110,23 @@ namespace NeoCompose.Runtime.NeoScript
             return result;
         }
 
-        private static IDictionary<string, object?> ToObjectDict(IDictionary<string, string> dict)
+        private sealed class NeoObjectRecord
+            : Dictionary<string, object?>, INeoValueReference
         {
-            var result = new Dictionary<string, object?>(dict.Count);
+            public string? valueId { get; }
+
+            public NeoObjectRecord(string valueId, int capacity)
+                : base(capacity)
+            {
+                this.valueId = valueId;
+            }
+        }
+
+        private static IDictionary<string, object?> ToObjectDict(
+            string rowId,
+            IDictionary<string, string> dict)
+        {
+            var result = new NeoObjectRecord(rowId, dict.Count);
             foreach (var kvp in dict) result[kvp.Key] = kvp.Value;
             return result;
         }

@@ -66,6 +66,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Lookup target value {targetValueId} not found");
             }
+            bool targetIsSaveOwned = client.saveValues.ContainsKey(targetValueId);
 
             // The entry attribute defines the type of each selected
             // entry. List/Lookup → entryAttributeId; Dictionary →
@@ -75,7 +76,9 @@ namespace NeoCompose.Runtime
 
             foreach (var id in selectedIds)
             {
-                resolved.Add(Create(client, entryAttr, id));
+                resolved.Add(targetIsSaveOwned
+                    ? CreateSaved(client, entryAttr, id)
+                    : Create(client, entryAttr, id));
             }
             return resolved;
         }

@@ -25,12 +25,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyComputedText.Create(client, node),
                 ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoDialogueMemory.Create(client, node),
+                ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyOutpost.Create(client, node),
                 ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoTextNodeMemory.Create(client, node),
                 ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoMemory.Create(client, node),
                 ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyLookupContainer.Create(client, node),
                 ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyPlanetVisit.Create(client, node),
+                ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyOutpostSaveData.Create(client, node),
                 ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyLookupEntry.Create(client, node),
+                ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlySaturnOutpost.Create(client, node),
                 ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlySave.Create(client, node),
+                ["a50efb7e-58f6-4342-906e-0b01f98b15af"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyJupiterOutpost.Create(client, node),
                 ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoChoiceLog.Create(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAssets.Create(client, node),
             };
@@ -40,12 +44,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateSaved(client, node),
                 ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateSaved(client, node),
+                ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateSaved(client, node),
                 ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateSaved(client, node),
                 ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateSaved(client, node),
                 ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateSaved(client, node),
                 ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateSaved(client, node),
+                ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.CreateSaved(client, node),
                 ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.CreateSaved(client, node),
+                ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SaturnOutpost.CreateSaved(client, node),
                 ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Save.CreateSaved(client, node),
+                ["a50efb7e-58f6-4342-906e-0b01f98b15af"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.JupiterOutpost.CreateSaved(client, node),
                 ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateSaved(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.CreateSaved(client, node),
             };
@@ -83,10 +91,38 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public sealed class NeoDialogues : NeoDialoguesBase
     {
+        public OutpostsDialogues Outposts { get; }
+
         internal NeoDialogues(HelloWorldNeo project, NeoDialogueRuntimeOptions? options)
             : base(project.Client, options, project.Save.NeoMemory, project.ResolveDialogueValue)
         {
+            Outposts = new OutpostsDialogues(this, "9acf9982-4b14-4cc1-bc26-5aba3dfa3f9a");
         }
+    }
+
+    public sealed class OutpostsDialogues : NeoFolderDialogueGroup
+    {
+        public IntroductionsDialogues Introductions { get; }
+
+        internal OutpostsDialogues(NeoDialogues root, string groupId)
+            : base(root, groupId)
+        {
+            Introductions = new IntroductionsDialogues(root, "9b1c8f42-18fc-4e34-9b46-3e1c138874bc");
+        }
+    }
+
+    public sealed class IntroductionsDialogues : NeoLookupDialogueGroup<Outpost>
+    {
+        internal IntroductionsDialogues(NeoDialogues root, string groupId)
+            : base(root, groupId)
+        {
+        }
+
+        public bool TryTrigger(Outpost value, out NeoDialogue dialogue) =>
+            TryTriggerLookup(value, out dialogue);
+
+        public bool TryTrigger(Outpost value, out NeoDialogueTriggerResult result) =>
+            TryTriggerLookup(value, out result);
     }
 
     public partial class NeoMemory : INeoDialogueMemoryStore
@@ -187,6 +223,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         public const string earth = "earth";
         public const string mars = "mars";
         public const string jupiter = "jupiter";
+        public const string saturn = "saturn";
+        public const string uranus = "uranus";
+        public const string neptune = "neptune";
+        public const string pluto = "pluto";
 
         public static Planet FromOptionId(string optionId)
         {
@@ -213,6 +253,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 earth => true,
                 mars => true,
                 jupiter => true,
+                saturn => true,
+                uranus => true,
+                neptune => true,
+                pluto => true,
                 _ => false,
             };
         }
@@ -222,6 +266,102 @@ namespace HelloWorld.Assets.Scripts.Neo
         public override string ToString() => optionId;
         public bool Equals(Planet? other) => other is not null && optionId == other.optionId;
         public override bool Equals(object? obj) => Equals(obj as Planet);
+        public override int GetHashCode() => optionId.GetHashCode();
+    }
+    public sealed class JupiterMoon : IEquatable<JupiterMoon>
+    {
+        private static readonly Dictionary<string, JupiterMoon> values = new Dictionary<string, JupiterMoon>();
+        public string optionId { get; }
+
+        private JupiterMoon(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public const string io = "io";
+        public const string europa = "europa";
+        public const string ganymede = "ganymede";
+        public const string callisto = "callisto";
+
+        public static JupiterMoon FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new JupiterMoon(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<JupiterMoon>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                io => true,
+                europa => true,
+                ganymede => true,
+                callisto => true,
+                _ => false,
+            };
+        }
+
+        public static implicit operator string(JupiterMoon value) => value.optionId;
+        public static implicit operator JupiterMoon(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(JupiterMoon? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as JupiterMoon);
+        public override int GetHashCode() => optionId.GetHashCode();
+    }
+    public sealed class SaturnMoon : IEquatable<SaturnMoon>
+    {
+        private static readonly Dictionary<string, SaturnMoon> values = new Dictionary<string, SaturnMoon>();
+        public string optionId { get; }
+
+        private SaturnMoon(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public const string titan = "titan";
+        public const string enceladus = "enceladus";
+
+        public static SaturnMoon FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new SaturnMoon(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<SaturnMoon>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                titan => true,
+                enceladus => true,
+                _ => false,
+            };
+        }
+
+        public static implicit operator string(SaturnMoon value) => value.optionId;
+        public static implicit operator SaturnMoon(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(SaturnMoon? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as SaturnMoon);
         public override int GetHashCode() => optionId.GetHashCode();
     }
 
@@ -256,6 +396,14 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return ReadOnlyLookupContainer.Create(client, node.Get<NeoAttributeCustom>("LookupContainer"));
             }
         }
+
+        public NeoReadOnlyList<ReadOnlyOutpost> Outposts
+        {
+            get
+            {
+                return new NeoReadOnlyList<ReadOnlyOutpost>(client, node.Get<NeoAttributeList>("Outposts"), (client, child) => ReadOnlyOutpost.Create(client, (NeoAttributeCustom)child));
+            }
+        }
     }
 
     public partial class Assets : ReadOnlyAssets
@@ -267,12 +415,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Assets(ComputedText? Computed = null, LookupContainer? LookupContainer = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Computed, LookupContainer))
+        public Assets(ComputedText? Computed = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Computed, LookupContainer, Outposts))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(ComputedText? Computed = null, LookupContainer? LookupContainer = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(ComputedText? Computed = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -285,6 +433,23 @@ namespace HelloWorld.Assets.Scripts.Neo
             if (LookupContainer is not null)
             {
                 value["LookupContainer"] = NeoGeneratedTypesSupport.LookupSelectionId(LookupContainer.valueId);
+            }
+            if (Outposts is not null)
+            {
+                var OutpostsValueId = Guid.NewGuid().ToString();
+                value["Outposts"] = OutpostsValueId;
+                var OutpostsIds = new List<string>();
+                foreach (var entry in Outposts)
+                {
+                    OutpostsIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = OutpostsValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = OutpostsIds.ToArray(),
+                });
             }
             return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows);
         }
@@ -319,6 +484,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             set
             {
                 NeoGeneratedTypesSupport.SetValue(savedNode, "LookupContainer", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        public new NeoList<Outpost> Outposts
+        {
+            get
+            {
+                return new NeoList<Outpost>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("Outposts"), (client, child) => Outpost.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
     }
@@ -370,6 +543,23 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return node.Get<NeoAttributeBool>("Dead").value?.value ?? throw new InvalidOperationException("Required bool 'Dead' has no value.");
             }
         }
+
+        public NeoReadOnlyDictionary<ReadOnlyOutpostSaveData> OutpostSaveMap
+        {
+            get
+            {
+                return new NeoReadOnlyDictionary<ReadOnlyOutpostSaveData>(client, node.Get<NeoAttributeDictionary>("OutpostSaveMap"), (client, child) => ReadOnlyOutpostSaveData.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public ReadOnlyOutpost Location
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("Location").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : ReadOnlyOutpost.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+        }
     }
 
     public partial class Save : ReadOnlySave
@@ -381,12 +571,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Save(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(World, Visited, NeoMemory, Dead))
+        public Save(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null, IDictionary<string, OutpostSaveData>? OutpostSaveMap = null, NeoLookupSelection? Location = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(World, Visited, NeoMemory, Dead, OutpostSaveMap, Location))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null, IDictionary<string, OutpostSaveData>? OutpostSaveMap = null, NeoLookupSelection? Location = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -435,6 +625,35 @@ namespace HelloWorld.Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = Dead,
+                });
+            }
+            if (OutpostSaveMap is not null)
+            {
+                var OutpostSaveMapValueId = Guid.NewGuid().ToString();
+                value["OutpostSaveMap"] = OutpostSaveMapValueId;
+                var OutpostSaveMapIds = new Dictionary<string, string>();
+                foreach (var pair in OutpostSaveMap)
+                {
+                    OutpostSaveMapIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(pair.Value.valueId);
+                }
+                valueRows.Add(new ObjectAttributeValue
+                {
+                    id = OutpostSaveMapValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = OutpostSaveMapIds,
+                });
+            }
+            if (Location is not null)
+            {
+                var LocationValueId = Guid.NewGuid().ToString();
+                value["Location"] = LocationValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = LocationValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Location.HasValue ? new[] { Location.Value.valueId } : null,
                 });
             }
             return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows);
@@ -491,6 +710,27 @@ namespace HelloWorld.Assets.Scripts.Neo
             set
             {
                 NeoGeneratedTypesSupport.SetValue(savedNode, "Dead", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new NeoDictionary<OutpostSaveData> OutpostSaveMap
+        {
+            get
+            {
+                return new NeoDictionary<OutpostSaveData>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("OutpostSaveMap"), (client, child) => OutpostSaveData.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+            }
+        }
+
+        public new ReadOnlyOutpost Location
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("Location").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : ReadOnlyOutpost.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Location", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
             }
         }
     }
@@ -839,12 +1079,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new LookupEntry Lookup
+        public new ReadOnlyLookupEntry Lookup
         {
             get
             {
                 var selected = node.Get<NeoAttributeLookup>("Lookup").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : LookupEntry.CreateSaved(client, (NeoAttributeCustomSaved)selected[0]);
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : ReadOnlyLookupEntry.Create(client, (NeoAttributeCustom)selected[0]);
             }
             set
             {
@@ -1457,6 +1697,562 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 return new NeoDictionary<NeoDialogueMemory>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("DialogueMemories"), (client, child) => NeoDialogueMemory.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+            }
+        }
+    }
+    public partial class ReadOnlyOutpost : NeoGeneratedCustomValue
+    {
+        internal ReadOnlyOutpost(NeoClient client, NeoAttributeCustom node)
+            : base(client, node, "4c196697-4e08-4aeb-823f-322b353071ac")
+        {
+        }
+
+        internal static ReadOnlyOutpost Create(NeoClient client, NeoAttributeCustom node)
+        {
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
+            {
+                "96818dab-90e5-4ab9-8f69-cce66e39e370" => new ReadOnlySaturnOutpost(client, node),
+                "a50efb7e-58f6-4342-906e-0b01f98b15af" => new ReadOnlyJupiterOutpost(client, node),
+                _ => new ReadOnlyOutpost(client, node),
+            };
+        }
+
+        public Planet Planet
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Planet"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
+            }
+        }
+
+        public string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+        }
+
+        public OutpostSaveData? Save
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+    }
+
+    public partial class Outpost : ReadOnlyOutpost
+    {
+        internal Outpost(NeoClient client, NeoAttributeCustomSaved node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+
+        public Outpost(Planet Planet, string Name)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Planet, Name))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(Planet Planet, string Name)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var PlanetValueId = Guid.NewGuid().ToString();
+            value["Planet"] = PlanetValueId;
+            valueRows.Add(new ArrayAttributeValue
+            {
+                id = PlanetValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { Planet.optionId },
+            });
+            var NameValueId = Guid.NewGuid().ToString();
+            value["Name"] = NameValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = NameValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Name,
+            });
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "4c196697-4e08-4aeb-823f-322b353071ac", value, valueRows);
+        }
+
+        internal static Outpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        {
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
+            {
+                "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(client, node),
+                "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(client, node),
+                _ => new Outpost(client, node),
+            };
+        }
+
+        public new Planet Planet
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Planet"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new OutpostSaveData? Save
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+    }
+    public partial class ReadOnlyOutpostSaveData : NeoGeneratedCustomValue
+    {
+        internal ReadOnlyOutpostSaveData(NeoClient client, NeoAttributeCustom node)
+            : base(client, node, "8ccfe860-309f-428b-b74c-76a873bdea8a")
+        {
+        }
+
+        internal static ReadOnlyOutpostSaveData Create(NeoClient client, NeoAttributeCustom node)
+        {
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
+            {
+                _ => new ReadOnlyOutpostSaveData(client, node),
+            };
+        }
+
+        public bool Unlocked
+        {
+            get
+            {
+                return node.Get<NeoAttributeBool>("Unlocked").value?.value ?? throw new InvalidOperationException("Required bool 'Unlocked' has no value.");
+            }
+        }
+
+        public int VisitCount
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
+            }
+        }
+
+        public bool Visited
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute();
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return (bool)result.value!;
+            }
+        }
+    }
+
+    public partial class OutpostSaveData : ReadOnlyOutpostSaveData
+    {
+        internal OutpostSaveData(NeoClient client, NeoAttributeCustomSaved node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+
+        public OutpostSaveData(bool? Unlocked = null, int? VisitCount = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Unlocked, VisitCount))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(bool? Unlocked = null, int? VisitCount = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Unlocked is not null)
+            {
+                var UnlockedValueId = Guid.NewGuid().ToString();
+                value["Unlocked"] = UnlockedValueId;
+                valueRows.Add(new BoolAttributeValue
+                {
+                    id = UnlockedValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Unlocked,
+                });
+            }
+            if (VisitCount is not null)
+            {
+                var VisitCountValueId = Guid.NewGuid().ToString();
+                value["VisitCount"] = VisitCountValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = VisitCountValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = VisitCount.HasValue ? VisitCount.Value : (double?)null,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "8ccfe860-309f-428b-b74c-76a873bdea8a", value, valueRows);
+        }
+
+        internal static OutpostSaveData CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        {
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
+            {
+                _ => new OutpostSaveData(client, node),
+            };
+        }
+
+        public new bool Unlocked
+        {
+            get
+            {
+                return node.Get<NeoAttributeBool>("Unlocked").value?.value ?? throw new InvalidOperationException("Required bool 'Unlocked' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Unlocked", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new int VisitCount
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "VisitCount", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new bool Visited
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute();
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return (bool)result.value!;
+            }
+        }
+    }
+    public partial class ReadOnlyJupiterOutpost : ReadOnlyOutpost
+    {
+        internal ReadOnlyJupiterOutpost(NeoClient client, NeoAttributeCustom node)
+            : base(client, node)
+        {
+        }
+
+        internal static ReadOnlyJupiterOutpost Create(NeoClient client, NeoAttributeCustom node)
+        {
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
+            {
+                _ => new ReadOnlyJupiterOutpost(client, node),
+            };
+        }
+
+        public JupiterMoon Moon
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Moon"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : JupiterMoon.FromOptionId(selected);
+            }
+        }
+
+        public Planet Planet
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Planet"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
+            }
+        }
+    }
+
+    public partial class JupiterOutpost : Outpost
+    {
+        internal JupiterOutpost(NeoClient client, NeoAttributeCustomSaved node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+
+        public JupiterOutpost(string Name, JupiterMoon Moon, Planet? Planet = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, Planet))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, JupiterMoon Moon, Planet? Planet = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Planet is not null)
+            {
+                var PlanetValueId = Guid.NewGuid().ToString();
+                value["Planet"] = PlanetValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = PlanetValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Planet is null ? null : new[] { Planet.optionId },
+                });
+            }
+            var NameValueId = Guid.NewGuid().ToString();
+            value["Name"] = NameValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = NameValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Name,
+            });
+            var MoonValueId = Guid.NewGuid().ToString();
+            value["Moon"] = MoonValueId;
+            valueRows.Add(new ArrayAttributeValue
+            {
+                id = MoonValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { Moon.optionId },
+            });
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "a50efb7e-58f6-4342-906e-0b01f98b15af", value, valueRows);
+        }
+
+        internal static JupiterOutpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        {
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
+            {
+                _ => new JupiterOutpost(client, node),
+            };
+        }
+
+        public new Planet Planet
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Planet"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new OutpostSaveData? Save
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+
+        public new JupiterMoon Moon
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Moon"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : JupiterMoon.FromOptionId(selected);
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Moon", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+            }
+        }
+    }
+    public partial class ReadOnlySaturnOutpost : ReadOnlyOutpost
+    {
+        internal ReadOnlySaturnOutpost(NeoClient client, NeoAttributeCustom node)
+            : base(client, node)
+        {
+        }
+
+        internal static ReadOnlySaturnOutpost Create(NeoClient client, NeoAttributeCustom node)
+        {
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
+            {
+                _ => new ReadOnlySaturnOutpost(client, node),
+            };
+        }
+
+        public Planet Planet
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Planet"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
+            }
+        }
+
+        public SaturnMoon Moon
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Moon"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : SaturnMoon.FromOptionId(selected);
+            }
+        }
+    }
+
+    public partial class SaturnOutpost : Outpost
+    {
+        internal SaturnOutpost(NeoClient client, NeoAttributeCustomSaved node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+
+        public SaturnOutpost(string Name, SaturnMoon Moon, Planet? Planet = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, Planet))
+        {
+        }
+
+        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, SaturnMoon Moon, Planet? Planet = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Planet is not null)
+            {
+                var PlanetValueId = Guid.NewGuid().ToString();
+                value["Planet"] = PlanetValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = PlanetValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Planet is null ? null : new[] { Planet.optionId },
+                });
+            }
+            var NameValueId = Guid.NewGuid().ToString();
+            value["Name"] = NameValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = NameValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Name,
+            });
+            var MoonValueId = Guid.NewGuid().ToString();
+            value["Moon"] = MoonValueId;
+            valueRows.Add(new ArrayAttributeValue
+            {
+                id = MoonValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { Moon.optionId },
+            });
+            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96818dab-90e5-4ab9-8f69-cce66e39e370", value, valueRows);
+        }
+
+        internal static SaturnOutpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        {
+            var clientTypeId = node.value?.typeId;
+            return clientTypeId switch
+            {
+                _ => new SaturnOutpost(client, node),
+            };
+        }
+
+        public new Planet Planet
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Planet"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new OutpostSaveData? Save
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+
+        public new SaturnMoon Moon
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Moon"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : SaturnMoon.FromOptionId(selected);
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Moon", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
     }

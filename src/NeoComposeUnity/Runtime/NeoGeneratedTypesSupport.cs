@@ -672,6 +672,77 @@ namespace NeoCompose.Runtime
             return result.value;
         }
 
+        public static T? ReadNSGetterCustom<T>(
+            NeoClient client,
+            object? value,
+            bool required,
+            bool saved,
+            Func<NeoClient, NeoAttributeCustom, T>? readOnlyFactory,
+            Func<NeoClient, NeoAttributeCustomSaved, T> savedFactory)
+        {
+            if (value is null)
+            {
+                if (required)
+                {
+                    throw new InvalidOperationException(
+                        "NSGetter returned null for a required custom value.");
+                }
+                return default;
+            }
+
+            if (value is T typed) return typed;
+
+            string? valueId = ValueId(value);
+            if (string.IsNullOrEmpty(valueId)
+                || !client.TryGetValue(valueId, out ObjectAttributeValue? row)
+                || string.IsNullOrEmpty(row.typeId))
+            {
+                throw new InvalidOperationException(
+                    "NSGetter returned a custom value without a resolvable backing value id.");
+            }
+
+            var attribute = new CustomAttribute
+            {
+                id = $"__neo_nsg_custom_{row.typeId}",
+                _id = $"__neo_nsg_custom_{row.typeId}",
+                name = "NSGetterCustomValue",
+                type = AttributeType.Custom,
+                customTypeId = row.typeId,
+                createdAt = row.createdAt,
+                updatedAt = row.updatedAt,
+            };
+
+            if (saved)
+            {
+                if (!client.saveValues.ContainsKey(valueId))
+                {
+                    throw new InvalidOperationException(
+                        "NSGetter returned an asset-owned custom value where a saved value was expected.");
+                }
+
+                return savedFactory(
+                    client,
+                    new NeoAttributeCustomSaved(client, attribute, valueId));
+            }
+
+            if (readOnlyFactory is null)
+            {
+                throw new InvalidOperationException(
+                    "NSGetter custom value requires a read-only factory.");
+            }
+
+            return readOnlyFactory(
+                client,
+                new NeoAttributeCustom(client, attribute, valueId));
+        }
+
+        public static string? ValueId(object? value)
+        {
+            return value is INeoValueReference reference
+                ? reference.valueId
+                : null;
+        }
+
         public static string[] ToStringArray(object? value)
         {
             if (value is null) return Array.Empty<string>();

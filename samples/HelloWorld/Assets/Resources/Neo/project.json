@@ -114,7 +114,7 @@
             "extendsAttributeId": null,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:10:24.481Z",
-            "updatedAt": "2026-05-05T22:18:03.520Z",
+            "updatedAt": "2026-05-07T18:54:47.701Z",
             "code": "\tPlanet planet = root.Save.World;\n\tstring suffix = this.optionalSuffix ?? \"\";\n\treturn $\"{this.baseText} {planet}{suffix}\";",
             "returnTypeInfo": {
                 "type": 3,
@@ -313,7 +313,8 @@
                     "type": 3,
                     "required": true
                 }
-            }
+            },
+            "system": null
         },
         "ebab06a2-98e9-4a30-bb13-cfea8f910462": {
             "_id": "69f69339529ef76bc7538051",
@@ -1027,6 +1028,532 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T11:47:21.360Z",
             "updatedAt": "2026-05-07T11:47:21.360Z"
+        },
+        "3166fd08-4bdb-4df9-b100-ecccec859443": {
+            "_id": "69fcd16921f8b0238d0f67ed",
+            "id": "3166fd08-4bdb-4df9-b100-ecccec859443",
+            "name": "Planet",
+            "type": 8,
+            "locked": false,
+            "required": true,
+            "defaultValue": null,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T17:52:41.843Z",
+            "updatedAt": "2026-05-07T17:52:41.843Z",
+            "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23",
+            "multiselect": false
+        },
+        "b56410b3-b2da-4681-897f-a25ce0a0ceb1": {
+            "_id": "69fcd1b821f8b0238d0f67ee",
+            "id": "b56410b3-b2da-4681-897f-a25ce0a0ceb1",
+            "name": "Name",
+            "type": 3,
+            "locked": false,
+            "required": true,
+            "defaultValue": null,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T17:54:00.439Z",
+            "updatedAt": "2026-05-07T17:54:00.439Z"
+        },
+        "42d3d49d-3ba8-4672-ad54-53dc109697fc": {
+            "_id": "69fcd30921f8b0238d0f67f1",
+            "id": "42d3d49d-3ba8-4672-ad54-53dc109697fc",
+            "name": "OutpostSaveData",
+            "type": 7,
+            "locked": false,
+            "required": false,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "e621365a-edd1-43a7-b36a-18c35b515057",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T17:59:37.884Z",
+            "updatedAt": "2026-05-07T17:59:37.884Z",
+            "customTypeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+        },
+        "f977a94e-aa40-414c-9812-dacdd50110a8": {
+            "_id": "69fcd30921f8b0238d0f67f3",
+            "id": "f977a94e-aa40-414c-9812-dacdd50110a8",
+            "name": "OutpostSaveMap",
+            "type": 5,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "439c4651-7e63-47b8-923e-6969781a2551",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T17:59:37.998Z",
+            "updatedAt": "2026-05-07T17:59:37.998Z",
+            "entryAttributeId": "42d3d49d-3ba8-4672-ad54-53dc109697fc"
+        },
+        "ff133f1c-2c7e-487a-9750-c7f1d947d7a0": {
+            "_id": "69fcd7bf21f8b0238d0f67f6",
+            "id": "ff133f1c-2c7e-487a-9750-c7f1d947d7a0",
+            "name": "Save",
+            "type": 10,
+            "locked": false,
+            "required": false,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T18:19:43.993Z",
+            "updatedAt": "2026-05-07T18:54:35.869Z",
+            "code": "\treturn root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });",
+            "returnTypeInfo": {
+                "type": 7,
+                "required": false,
+                "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+            },
+            "getter": {
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                },
+                                "value": null
+                            }
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "__root__"
+                                },
+                                "value": null
+                            }
+                        }
+                    }
+                ],
+                "instructions": [
+                    {
+                        "type": "return",
+                        "pointer": {
+                            "type": "function",
+                            "function": {
+                                "type": "firstOrDefault",
+                                "info": {
+                                    "collectionPointer": {
+                                        "type": "keyOf",
+                                        "keyOf": {
+                                            "pointer": {
+                                                "type": "keyOf",
+                                                "keyOf": {
+                                                    "pointer": {
+                                                        "type": "variable",
+                                                        "variableId": "__root__"
+                                                    },
+                                                    "key": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 3,
+                                                                "required": true
+                                                            },
+                                                            "value": "Save"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "key": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "type": 3,
+                                                        "required": true
+                                                    },
+                                                    "value": "OutpostSaveMap"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "function": {
+                                        "parameters": [
+                                            {
+                                                "id": "key",
+                                                "typeInfo": {
+                                                    "type": 3,
+                                                    "required": true
+                                                },
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "key"
+                                                }
+                                            },
+                                            {
+                                                "id": "value",
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+                                                },
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "value"
+                                                }
+                                            }
+                                        ],
+                                        "instructions": [
+                                            {
+                                                "type": "return",
+                                                "pointer": {
+                                                    "type": "operation",
+                                                    "operation": {
+                                                        "type": "boolean",
+                                                        "expression": {
+                                                            "condition": {
+                                                                "type": "equalTo",
+                                                                "operand1": {
+                                                                    "type": "variable",
+                                                                    "variableId": "key"
+                                                                },
+                                                                "operand2": {
+                                                                    "type": "keyOf",
+                                                                    "keyOf": {
+                                                                        "pointer": {
+                                                                            "type": "variable",
+                                                                            "variableId": "__this__"
+                                                                        },
+                                                                        "key": {
+                                                                            "type": "value",
+                                                                            "value": {
+                                                                                "typeInfo": {
+                                                                                    "type": 3,
+                                                                                    "required": true
+                                                                                },
+                                                                                "value": "Id"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "connective": null
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ],
+                                        "typeInfo": {
+                                            "type": 1,
+                                            "required": true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ],
+                "typeInfo": {
+                    "type": 7,
+                    "required": false,
+                    "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+                }
+            }
+        },
+        "9619809a-f7f0-4605-8f79-d1617b339819": {
+            "_id": "69fcd8af21f8b0238d0f67fa",
+            "id": "9619809a-f7f0-4605-8f79-d1617b339819",
+            "name": "Outpost",
+            "type": 7,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "0a5924c6-5603-49d5-9c2d-a83cdb68b790",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T18:23:43.515Z",
+            "updatedAt": "2026-05-07T18:23:43.515Z",
+            "customTypeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+        },
+        "2827aefd-7f57-48ea-994c-c5c39ec659e3": {
+            "_id": "69fcd8af21f8b0238d0f67fc",
+            "id": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
+            "name": "Outposts",
+            "type": 6,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": []
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "0e0cdfcc-86c6-43a5-bcbd-aa8c325e1a25",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T18:23:43.619Z",
+            "updatedAt": "2026-05-07T18:23:43.619Z",
+            "entryAttributeId": "9619809a-f7f0-4605-8f79-d1617b339819"
+        },
+        "c91791ff-8b41-47b2-ba12-81a84e595f42": {
+            "_id": "69fcdb4c21f8b0238d0f6815",
+            "id": "c91791ff-8b41-47b2-ba12-81a84e595f42",
+            "name": "Moon",
+            "type": 8,
+            "locked": false,
+            "required": true,
+            "defaultValue": null,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T18:34:52.946Z",
+            "updatedAt": "2026-05-07T18:34:52.946Z",
+            "enumId": "a2d44a04-35a6-4529-8fd2-f54a55cf518b",
+            "multiselect": false
+        },
+        "54c74f99-f949-44f6-bc1c-37a80888e32f": {
+            "_id": "69fcdbb221f8b0238d0f681f",
+            "id": "54c74f99-f949-44f6-bc1c-37a80888e32f",
+            "name": "Planet",
+            "type": 8,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": [
+                    "jupiter"
+                ]
+            },
+            "extendsAttributeId": "3166fd08-4bdb-4df9-b100-ecccec859443",
+            "system": null,
+            "valueId": "0eb04da7-480b-4bdb-a04e-eba6f58ffcc8",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T18:36:34.613Z",
+            "updatedAt": "2026-05-07T18:36:34.613Z",
+            "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23",
+            "multiselect": false
+        },
+        "08cc78f5-3f90-43cc-89d7-9ec8d58e8dd0": {
+            "_id": "69fcde9021f8b0238d0f682e",
+            "id": "08cc78f5-3f90-43cc-89d7-9ec8d58e8dd0",
+            "name": "Planet",
+            "type": 8,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": [
+                    "saturn"
+                ]
+            },
+            "extendsAttributeId": "3166fd08-4bdb-4df9-b100-ecccec859443",
+            "system": null,
+            "valueId": "2b63dd9f-df25-460d-84c3-67b8fdefcd07",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T18:48:48.106Z",
+            "updatedAt": "2026-05-07T18:48:48.106Z",
+            "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23",
+            "multiselect": false
+        },
+        "a804bead-3d5b-4c68-a733-94e85e1e79b6": {
+            "_id": "69fcdea521f8b0238d0f682f",
+            "id": "a804bead-3d5b-4c68-a733-94e85e1e79b6",
+            "name": "Moon",
+            "type": 8,
+            "locked": false,
+            "required": true,
+            "defaultValue": null,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T18:49:09.948Z",
+            "updatedAt": "2026-05-07T18:49:09.948Z",
+            "enumId": "9d3ef3f4-0823-412b-a2b6-97874739072d",
+            "multiselect": false
+        },
+        "5a4d8d10-9fef-4197-a7a1-1dc1b112677b": {
+            "_id": "69fce41021f8b0238d0f6843",
+            "id": "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
+            "name": "Unlocked",
+            "type": 1,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": false
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "41864bd4-c129-4353-b868-3e9a7cca257f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T19:12:16.287Z",
+            "updatedAt": "2026-05-07T19:12:16.287Z"
+        },
+        "82a12a52-95ac-453a-9353-24c11a63c530": {
+            "_id": "69fce52721f8b0238d0f6846",
+            "id": "82a12a52-95ac-453a-9353-24c11a63c530",
+            "name": "Location",
+            "type": 9,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": [
+                    "913fd757-d6ee-488e-866f-c7af41aa544b"
+                ]
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "3918da79-ae6d-4da7-a61f-e39d559f2faf",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T19:16:55.652Z",
+            "updatedAt": "2026-05-07T19:19:15.579Z",
+            "multiselect": false,
+            "collectionAttributeId": "2827aefd-7f57-48ea-994c-c5c39ec659e3"
+        },
+        "68cd6fe1-7683-4c67-8030-acd6334f77a2": {
+            "_id": "69fce7f221f8b0238d0f684b",
+            "id": "68cd6fe1-7683-4c67-8030-acd6334f77a2",
+            "name": "VisitCount",
+            "type": 2,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": 0
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "88ce44e7-34c5-4dea-a2a2-ed0fd450a934",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T19:28:50.537Z",
+            "updatedAt": "2026-05-07T19:28:50.537Z",
+            "minValue": 0
+        },
+        "0c02e45d-bb5b-44c3-8b48-91fa75171ff2": {
+            "_id": "69fce80d21f8b0238d0f684d",
+            "id": "0c02e45d-bb5b-44c3-8b48-91fa75171ff2",
+            "name": "Visited",
+            "type": 10,
+            "locked": false,
+            "required": false,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T19:29:17.702Z",
+            "updatedAt": "2026-05-07T19:29:29.578Z",
+            "code": "\treturn this.VisitCount > 0;",
+            "returnTypeInfo": {
+                "type": 1,
+                "required": true
+            },
+            "getter": {
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+                                },
+                                "value": null
+                            }
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "__root__"
+                                },
+                                "value": null
+                            }
+                        }
+                    }
+                ],
+                "instructions": [
+                    {
+                        "type": "return",
+                        "pointer": {
+                            "type": "operation",
+                            "operation": {
+                                "type": "boolean",
+                                "expression": {
+                                    "condition": {
+                                        "type": "greaterThan",
+                                        "operand1": {
+                                            "type": "keyOf",
+                                            "keyOf": {
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                },
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 3,
+                                                            "required": true
+                                                        },
+                                                        "value": "VisitCount"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "operand2": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 2,
+                                                    "required": true
+                                                },
+                                                "value": 0
+                                            }
+                                        }
+                                    },
+                                    "connective": null
+                                }
+                            }
+                        }
+                    }
+                ],
+                "typeInfo": {
+                    "type": 1,
+                    "required": true
+                }
+            }
         }
     },
     "enums": {
@@ -1049,11 +1576,61 @@
                 },
                 "jupiter": {
                     "text": "Jupiter"
+                },
+                "saturn": {
+                    "text": "Saturn"
+                },
+                "uranus": {
+                    "text": "Uranus"
+                },
+                "neptune": {
+                    "text": "Neptune"
+                },
+                "pluto": {
+                    "text": "Pluto"
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:04:35.438Z",
-            "updatedAt": "2026-05-03T01:16:17.412Z"
+            "updatedAt": "2026-05-07T18:46:44.183Z"
+        },
+        "a2d44a04-35a6-4529-8fd2-f54a55cf518b": {
+            "_id": "69fcdad321f8b0238d0f6813",
+            "id": "a2d44a04-35a6-4529-8fd2-f54a55cf518b",
+            "name": "JupiterMoon",
+            "options": {
+                "io": {
+                    "text": "Io"
+                },
+                "europa": {
+                    "text": "Europa"
+                },
+                "ganymede": {
+                    "text": "Ganymede"
+                },
+                "callisto": {
+                    "text": "Callisto"
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T18:32:51.572Z",
+            "updatedAt": "2026-05-07T18:33:48.320Z"
+        },
+        "9d3ef3f4-0823-412b-a2b6-97874739072d": {
+            "_id": "69fcde3e21f8b0238d0f682b",
+            "id": "9d3ef3f4-0823-412b-a2b6-97874739072d",
+            "name": "SaturnMoon",
+            "options": {
+                "titan": {
+                    "text": "Titan"
+                },
+                "enceladus": {
+                    "text": "Enceladus"
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T18:47:26.588Z",
+            "updatedAt": "2026-05-07T18:47:55.026Z"
         }
     },
     "types": {
@@ -1063,14 +1640,16 @@
             "name": "Assets",
             "schema": {
                 "Computed": "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca",
-                "LookupContainer": "2c57948b-7479-47e0-b97c-242f6d543ae0"
+                "LookupContainer": "2c57948b-7479-47e0-b97c-242f6d543ae0",
+                "Outposts": "2827aefd-7f57-48ea-994c-c5c39ec659e3"
             },
             "extendsTypeId": null,
             "isAbstract": false,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": true,
             "createdAt": "2026-05-03T00:02:45.121Z",
-            "updatedAt": "2026-05-03T23:58:46.209Z"
+            "updatedAt": "2026-05-07T18:23:43.826Z",
+            "system": null
         },
         "96e8284d-ae43-4e91-919d-86c25ce098e0": {
             "_id": "69f690a5529ef76bc753803c",
@@ -1080,14 +1659,16 @@
                 "World": "ebab06a2-98e9-4a30-bb13-cfea8f910462",
                 "Visited": "c151eda4-ecce-4edf-988d-25a97c657146",
                 "NeoMemory": "99b07db1-f732-437e-a903-98183edca96b",
-                "Dead": "5155954d-ca1d-441e-b9ee-1837b0a08e05"
+                "Dead": "5155954d-ca1d-441e-b9ee-1837b0a08e05",
+                "OutpostSaveMap": "f977a94e-aa40-414c-9812-dacdd50110a8",
+                "Location": "82a12a52-95ac-453a-9353-24c11a63c530"
             },
             "extendsTypeId": null,
             "isAbstract": false,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": true,
             "createdAt": "2026-05-03T00:02:45.123Z",
-            "updatedAt": "2026-05-07T11:47:21.605Z",
+            "updatedAt": "2026-05-07T19:16:55.861Z",
             "system": null
         },
         "2ab1bc07-da0b-47fc-b77b-54cc511575bb": {
@@ -1240,6 +1821,72 @@
             "hiddenInAttributeSelector": true,
             "createdAt": "2026-05-05T22:49:54.905Z",
             "updatedAt": "2026-05-05T23:07:29.287Z"
+        },
+        "4c196697-4e08-4aeb-823f-322b353071ac": {
+            "_id": "69fcd14f21f8b0238d0f67ec",
+            "id": "4c196697-4e08-4aeb-823f-322b353071ac",
+            "name": "Outpost",
+            "schema": {
+                "Planet": "3166fd08-4bdb-4df9-b100-ecccec859443",
+                "Name": "b56410b3-b2da-4681-897f-a25ce0a0ceb1",
+                "Save": "ff133f1c-2c7e-487a-9750-c7f1d947d7a0"
+            },
+            "extendsTypeId": null,
+            "isAbstract": false,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "hiddenInAttributeSelector": false,
+            "createdAt": "2026-05-07T17:52:15.777Z",
+            "updatedAt": "2026-05-07T18:19:44.145Z"
+        },
+        "8ccfe860-309f-428b-b74c-76a873bdea8a": {
+            "_id": "69fcd25321f8b0238d0f67ef",
+            "id": "8ccfe860-309f-428b-b74c-76a873bdea8a",
+            "name": "OutpostSaveData",
+            "schema": {
+                "Unlocked": "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
+                "VisitCount": "68cd6fe1-7683-4c67-8030-acd6334f77a2",
+                "Visited": "0c02e45d-bb5b-44c3-8b48-91fa75171ff2"
+            },
+            "extendsTypeId": null,
+            "isAbstract": false,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "hiddenInAttributeSelector": false,
+            "createdAt": "2026-05-07T17:56:35.256Z",
+            "updatedAt": "2026-05-07T19:29:17.856Z"
+        },
+        "a50efb7e-58f6-4342-906e-0b01f98b15af": {
+            "_id": "69fcdb3221f8b0238d0f6814",
+            "id": "a50efb7e-58f6-4342-906e-0b01f98b15af",
+            "name": "JupiterOutpost",
+            "schema": {
+                "Moon": "c91791ff-8b41-47b2-ba12-81a84e595f42",
+                "Planet": "54c74f99-f949-44f6-bc1c-37a80888e32f"
+            },
+            "extendsTypeId": "4c196697-4e08-4aeb-823f-322b353071ac",
+            "isAbstract": false,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "hiddenInAttributeSelector": false,
+            "createdAt": "2026-05-07T18:34:26.484Z",
+            "updatedAt": "2026-05-07T18:36:34.830Z"
+        },
+        "96818dab-90e5-4ab9-8f69-cce66e39e370": {
+            "_id": "69fcde8721f8b0238d0f682c",
+            "id": "96818dab-90e5-4ab9-8f69-cce66e39e370",
+            "name": "SaturnOutpost",
+            "schema": {
+                "Planet": "08cc78f5-3f90-43cc-89d7-9ec8d58e8dd0",
+                "Moon": "a804bead-3d5b-4c68-a733-94e85e1e79b6"
+            },
+            "extendsTypeId": "4c196697-4e08-4aeb-823f-322b353071ac",
+            "isAbstract": false,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "hiddenInAttributeSelector": false,
+            "createdAt": "2026-05-07T18:48:39.421Z",
+            "updatedAt": "2026-05-07T18:49:10.162Z"
         }
     },
     "values": {
@@ -1248,11 +1895,12 @@
             "id": "393c69b8-ceb2-4405-9a0f-28516913f7b6",
             "value": {
                 "Computed": "ee2e703d-a56e-4ccc-850d-abda636d6840",
-                "LookupContainer": "52e8e972-60f5-44ed-80e6-eb0f5a472ca0"
+                "LookupContainer": "52e8e972-60f5-44ed-80e6-eb0f5a472ca0",
+                "Outposts": "75c7623a-dcdb-4ca1-b5e5-a809da678766"
             },
             "typeId": null,
             "createdAt": "2026-05-03T00:02:45.230Z",
-            "updatedAt": "2026-05-03T23:58:46.480Z",
+            "updatedAt": "2026-05-07T18:23:44.271Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "299b23d6-4ea0-4475-94f5-f59c4d18d9cd": {
@@ -1262,11 +1910,13 @@
                 "World": "4e783b54-c992-40c0-8036-dbaafe6ecb65",
                 "Visited": "1b54d5cc-0437-4997-95db-7ea690b88837",
                 "NeoMemory": "621fbd4b-05f0-4da6-af3f-1260abc02228",
-                "Dead": "086ec638-a35e-4148-8dcd-2c111c9afe15"
+                "Dead": "086ec638-a35e-4148-8dcd-2c111c9afe15",
+                "OutpostSaveMap": "f04cad13-4429-4c9a-a564-5d203c1d939f",
+                "Location": "502df925-c8d8-4310-86a5-a0e80e954e88"
             },
             "typeId": null,
             "createdAt": "2026-05-03T00:02:45.482Z",
-            "updatedAt": "2026-05-07T11:47:22.000Z",
+            "updatedAt": "2026-05-07T19:16:56.332Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "a6d9f87b-91d2-4203-92bb-c3e0ebf5d521": {
@@ -1772,6 +2422,679 @@
             "createdAt": "2026-05-07T11:47:21.770Z",
             "updatedAt": "2026-05-07T11:47:21.770Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "e621365a-edd1-43a7-b36a-18c35b515057": {
+            "_id": "69fcd30921f8b0238d0f67f0",
+            "id": "e621365a-edd1-43a7-b36a-18c35b515057",
+            "value": {},
+            "typeId": null,
+            "createdAt": "2026-05-07T17:59:37.825Z",
+            "updatedAt": "2026-05-07T17:59:37.825Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "439c4651-7e63-47b8-923e-6969781a2551": {
+            "_id": "69fcd30921f8b0238d0f67f2",
+            "id": "439c4651-7e63-47b8-923e-6969781a2551",
+            "value": {},
+            "typeId": null,
+            "createdAt": "2026-05-07T17:59:37.945Z",
+            "updatedAt": "2026-05-07T17:59:37.945Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "f04cad13-4429-4c9a-a564-5d203c1d939f": {
+            "_id": "69fcd30a21f8b0238d0f67f4",
+            "id": "f04cad13-4429-4c9a-a564-5d203c1d939f",
+            "value": {
+                "913fd757-d6ee-488e-866f-c7af41aa544b": "fb0766b1-8b3d-4a39-8b94-60de16a09079"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-07T17:59:38.368Z",
+            "updatedAt": "2026-05-07T19:11:38.697Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "e0a46d9e-5318-493b-965f-8463d071641d": {
+            "_id": "69fcd8af21f8b0238d0f67f7",
+            "id": "e0a46d9e-5318-493b-965f-8463d071641d",
+            "value": [
+                "mercury"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:23:43.256Z",
+            "updatedAt": "2026-05-07T18:23:43.256Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "efffc5dd-267d-46bc-a46d-f4da843c84d8": {
+            "_id": "69fcd8af21f8b0238d0f67f8",
+            "id": "efffc5dd-267d-46bc-a46d-f4da843c84d8",
+            "value": "",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:23:43.361Z",
+            "updatedAt": "2026-05-07T18:23:43.361Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "0a5924c6-5603-49d5-9c2d-a83cdb68b790": {
+            "_id": "69fcd8af21f8b0238d0f67f9",
+            "id": "0a5924c6-5603-49d5-9c2d-a83cdb68b790",
+            "value": {
+                "Planet": "e0a46d9e-5318-493b-965f-8463d071641d",
+                "Name": "efffc5dd-267d-46bc-a46d-f4da843c84d8"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-07T18:23:43.463Z",
+            "updatedAt": "2026-05-07T18:23:43.463Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "0e0cdfcc-86c6-43a5-bcbd-aa8c325e1a25": {
+            "_id": "69fcd8af21f8b0238d0f67fb",
+            "id": "0e0cdfcc-86c6-43a5-bcbd-aa8c325e1a25",
+            "value": [],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:23:43.569Z",
+            "updatedAt": "2026-05-07T18:23:43.569Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "75c7623a-dcdb-4ca1-b5e5-a809da678766": {
+            "_id": "69fcd8af21f8b0238d0f67fd",
+            "id": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
+            "value": [
+                "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                "f09149db-7cab-4963-aa87-aa0f8cd03673",
+                "913fd757-d6ee-488e-866f-c7af41aa544b",
+                "424019cd-8b46-4dd9-9aac-3721331179bb",
+                "7a91f55f-a90e-4a80-80f4-43ad6386891a",
+                "83cc2935-5a85-4d71-9e50-4e4496f00631",
+                "1c9e473a-3616-4c1c-82f7-461e080c9785",
+                "b81df7d3-be41-4685-9111-3cdc1821e693",
+                "c9cbef1c-4660-432c-83e1-0e9c10c897e0",
+                "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f",
+                "0bfa8e27-27e0-41b2-b90b-6d3c9442905a",
+                "763b50d2-c0b2-4346-b8fb-a092e7337af3",
+                "18154c7e-8f9a-4767-b44c-a25b0e1ca234"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:23:43.984Z",
+            "updatedAt": "2026-05-07T19:09:12.303Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "5a1c9596-8e35-4b74-8fc7-b3d4d9f70789": {
+            "_id": "69fcd8ba21f8b0238d0f67fe",
+            "id": "5a1c9596-8e35-4b74-8fc7-b3d4d9f70789",
+            "value": [
+                "mercury"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:23:54.879Z",
+            "updatedAt": "2026-05-07T18:23:54.879Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "7c0281ff-9423-4e2b-8d0e-f12f43304977": {
+            "_id": "69fcd8ba21f8b0238d0f67ff",
+            "id": "7c0281ff-9423-4e2b-8d0e-f12f43304977",
+            "value": "Mercurial",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:23:54.987Z",
+            "updatedAt": "2026-05-07T18:28:08.004Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "6ef339e8-7d1d-423c-8fde-ec02a570e307": {
+            "_id": "69fcd8bb21f8b0238d0f6800",
+            "id": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+            "value": {
+                "Planet": "5a1c9596-8e35-4b74-8fc7-b3d4d9f70789",
+                "Name": "7c0281ff-9423-4e2b-8d0e-f12f43304977"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-07T18:23:55.101Z",
+            "updatedAt": "2026-05-07T18:23:55.101Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "84f0fbd8-48c5-4d7c-9546-d7a2642c844f": {
+            "_id": "69fcd8fc21f8b0238d0f6801",
+            "id": "84f0fbd8-48c5-4d7c-9546-d7a2642c844f",
+            "value": [
+                "venus"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:25:00.752Z",
+            "updatedAt": "2026-05-07T18:25:04.352Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "295d4238-cbd1-47db-b4f4-4dd1bd760bc7": {
+            "_id": "69fcd8fc21f8b0238d0f6802",
+            "id": "295d4238-cbd1-47db-b4f4-4dd1bd760bc7",
+            "value": "Venusian",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:25:00.868Z",
+            "updatedAt": "2026-05-07T18:28:41.756Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "f09149db-7cab-4963-aa87-aa0f8cd03673": {
+            "_id": "69fcd8fc21f8b0238d0f6803",
+            "id": "f09149db-7cab-4963-aa87-aa0f8cd03673",
+            "value": {
+                "Planet": "84f0fbd8-48c5-4d7c-9546-d7a2642c844f",
+                "Name": "295d4238-cbd1-47db-b4f4-4dd1bd760bc7"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-07T18:25:00.975Z",
+            "updatedAt": "2026-05-07T18:25:00.975Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "1d30eb20-e75a-4a34-bd68-91cb0b1e6da0": {
+            "_id": "69fcd95c21f8b0238d0f6804",
+            "id": "1d30eb20-e75a-4a34-bd68-91cb0b1e6da0",
+            "value": [
+                "earth"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:26:36.768Z",
+            "updatedAt": "2026-05-07T18:26:39.849Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "f06fcc73-bf85-4534-9357-a1fe88bbe445": {
+            "_id": "69fcd95c21f8b0238d0f6805",
+            "id": "f06fcc73-bf85-4534-9357-a1fe88bbe445",
+            "value": "Capitol OG",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:26:36.876Z",
+            "updatedAt": "2026-05-07T18:45:01.463Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "913fd757-d6ee-488e-866f-c7af41aa544b": {
+            "_id": "69fcd95c21f8b0238d0f6806",
+            "id": "913fd757-d6ee-488e-866f-c7af41aa544b",
+            "value": {
+                "Planet": "1d30eb20-e75a-4a34-bd68-91cb0b1e6da0",
+                "Name": "f06fcc73-bf85-4534-9357-a1fe88bbe445"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-07T18:26:36.985Z",
+            "updatedAt": "2026-05-07T18:26:36.985Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "bc796fbb-3022-4b7d-a334-2f62c48b4e5e": {
+            "_id": "69fcd97c21f8b0238d0f6807",
+            "id": "bc796fbb-3022-4b7d-a334-2f62c48b4e5e",
+            "value": [
+                "mars"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:27:08.021Z",
+            "updatedAt": "2026-05-07T18:27:11.705Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "07666e99-93aa-4013-9cd2-836059f81964": {
+            "_id": "69fcd97c21f8b0238d0f6808",
+            "id": "07666e99-93aa-4013-9cd2-836059f81964",
+            "value": "Olympic Mons",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:27:08.128Z",
+            "updatedAt": "2026-05-07T18:28:00.383Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "424019cd-8b46-4dd9-9aac-3721331179bb": {
+            "_id": "69fcd97c21f8b0238d0f6809",
+            "id": "424019cd-8b46-4dd9-9aac-3721331179bb",
+            "value": {
+                "Planet": "bc796fbb-3022-4b7d-a334-2f62c48b4e5e",
+                "Name": "07666e99-93aa-4013-9cd2-836059f81964"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-07T18:27:08.233Z",
+            "updatedAt": "2026-05-07T18:27:08.233Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "e6309726-3213-4c8d-9748-734408e2c8ca": {
+            "_id": "69fcdb6121f8b0238d0f6816",
+            "id": "e6309726-3213-4c8d-9748-734408e2c8ca",
+            "value": [
+                "jupiter"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:35:13.272Z",
+            "updatedAt": "2026-05-07T18:36:16.973Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "5074d845-82de-4a1a-a3ef-6c81d3faa17f": {
+            "_id": "69fcdb6121f8b0238d0f6817",
+            "id": "5074d845-82de-4a1a-a3ef-6c81d3faa17f",
+            "value": "Iowan",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:35:13.379Z",
+            "updatedAt": "2026-05-07T18:35:22.587Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "85c13b6a-1805-4fcb-bc54-6226af2a99ad": {
+            "_id": "69fcdb6121f8b0238d0f6818",
+            "id": "85c13b6a-1805-4fcb-bc54-6226af2a99ad",
+            "value": [
+                "io"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:35:13.590Z",
+            "updatedAt": "2026-05-07T18:35:13.590Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "7a91f55f-a90e-4a80-80f4-43ad6386891a": {
+            "_id": "69fcdb6121f8b0238d0f6819",
+            "id": "7a91f55f-a90e-4a80-80f4-43ad6386891a",
+            "value": {
+                "Planet": "e6309726-3213-4c8d-9748-734408e2c8ca",
+                "Name": "5074d845-82de-4a1a-a3ef-6c81d3faa17f",
+                "Moon": "85c13b6a-1805-4fcb-bc54-6226af2a99ad"
+            },
+            "typeId": "a50efb7e-58f6-4342-906e-0b01f98b15af",
+            "createdAt": "2026-05-07T18:35:13.643Z",
+            "updatedAt": "2026-05-07T18:35:13.643Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "96a5f27d-ca5c-44bf-8d53-67e2d5c48144": {
+            "_id": "69fcdb7a21f8b0238d0f681a",
+            "id": "96a5f27d-ca5c-44bf-8d53-67e2d5c48144",
+            "value": [
+                "jupiter"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:35:38.052Z",
+            "updatedAt": "2026-05-07T18:36:20.564Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "700d2fa9-9aa0-4958-88a7-12a476bdd2c9": {
+            "_id": "69fcdb7a21f8b0238d0f681b",
+            "id": "700d2fa9-9aa0-4958-88a7-12a476bdd2c9",
+            "value": "Europapas",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:35:38.158Z",
+            "updatedAt": "2026-05-07T18:35:43.627Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "2f760c73-d627-46de-8714-428d8a37ec23": {
+            "_id": "69fcdb7a21f8b0238d0f681c",
+            "id": "2f760c73-d627-46de-8714-428d8a37ec23",
+            "value": [
+                "europa"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:35:38.365Z",
+            "updatedAt": "2026-05-07T18:35:58.114Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "83cc2935-5a85-4d71-9e50-4e4496f00631": {
+            "_id": "69fcdb7a21f8b0238d0f681d",
+            "id": "83cc2935-5a85-4d71-9e50-4e4496f00631",
+            "value": {
+                "Planet": "96a5f27d-ca5c-44bf-8d53-67e2d5c48144",
+                "Name": "700d2fa9-9aa0-4958-88a7-12a476bdd2c9",
+                "Moon": "2f760c73-d627-46de-8714-428d8a37ec23"
+            },
+            "typeId": "a50efb7e-58f6-4342-906e-0b01f98b15af",
+            "createdAt": "2026-05-07T18:35:38.418Z",
+            "updatedAt": "2026-05-07T18:35:38.418Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "0eb04da7-480b-4bdb-a04e-eba6f58ffcc8": {
+            "_id": "69fcdbb221f8b0238d0f681e",
+            "id": "0eb04da7-480b-4bdb-a04e-eba6f58ffcc8",
+            "value": [
+                "jupiter"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:36:34.560Z",
+            "updatedAt": "2026-05-07T18:36:34.560Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "1cc7ae4b-68d9-472f-8429-bfaeb62c494c": {
+            "_id": "69fcdbb721f8b0238d0f6820",
+            "id": "1cc7ae4b-68d9-472f-8429-bfaeb62c494c",
+            "value": [
+                "jupiter"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:36:39.423Z",
+            "updatedAt": "2026-05-07T18:36:39.423Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "41f3c04b-c82d-483a-a118-0adad9808b0e": {
+            "_id": "69fcdbb721f8b0238d0f6821",
+            "id": "41f3c04b-c82d-483a-a118-0adad9808b0e",
+            "value": "Pour Lords",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:36:39.528Z",
+            "updatedAt": "2026-05-07T18:40:13.153Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "c01a9d64-e67f-4476-8fc6-ee1fd1e72df4": {
+            "_id": "69fcdbb721f8b0238d0f6822",
+            "id": "c01a9d64-e67f-4476-8fc6-ee1fd1e72df4",
+            "value": [
+                "ganymede"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:36:39.746Z",
+            "updatedAt": "2026-05-07T18:36:47.412Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "1c9e473a-3616-4c1c-82f7-461e080c9785": {
+            "_id": "69fcdbb721f8b0238d0f6823",
+            "id": "1c9e473a-3616-4c1c-82f7-461e080c9785",
+            "value": {
+                "Planet": "1cc7ae4b-68d9-472f-8429-bfaeb62c494c",
+                "Name": "41f3c04b-c82d-483a-a118-0adad9808b0e",
+                "Moon": "c01a9d64-e67f-4476-8fc6-ee1fd1e72df4"
+            },
+            "typeId": "a50efb7e-58f6-4342-906e-0b01f98b15af",
+            "createdAt": "2026-05-07T18:36:39.799Z",
+            "updatedAt": "2026-05-07T18:36:39.799Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "2cb35794-38ee-4e11-9f5d-5a7a67e8986c": {
+            "_id": "69fcdc9d21f8b0238d0f6824",
+            "id": "2cb35794-38ee-4e11-9f5d-5a7a67e8986c",
+            "value": [
+                "jupiter"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:40:29.330Z",
+            "updatedAt": "2026-05-07T18:40:29.330Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "0580c103-0694-4d6b-b60b-c13ab3e0badc": {
+            "_id": "69fcdc9d21f8b0238d0f6825",
+            "id": "0580c103-0694-4d6b-b60b-c13ab3e0badc",
+            "value": "Ursa Major",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:40:29.437Z",
+            "updatedAt": "2026-05-07T18:42:17.286Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "eeb149d0-682f-4471-af7a-172779f9fbf4": {
+            "_id": "69fcdc9d21f8b0238d0f6826",
+            "id": "eeb149d0-682f-4471-af7a-172779f9fbf4",
+            "value": [
+                "callisto"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:40:29.655Z",
+            "updatedAt": "2026-05-07T18:40:34.750Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "b81df7d3-be41-4685-9111-3cdc1821e693": {
+            "_id": "69fcdc9d21f8b0238d0f6827",
+            "id": "b81df7d3-be41-4685-9111-3cdc1821e693",
+            "value": {
+                "Planet": "2cb35794-38ee-4e11-9f5d-5a7a67e8986c",
+                "Name": "0580c103-0694-4d6b-b60b-c13ab3e0badc",
+                "Moon": "eeb149d0-682f-4471-af7a-172779f9fbf4"
+            },
+            "typeId": "a50efb7e-58f6-4342-906e-0b01f98b15af",
+            "createdAt": "2026-05-07T18:40:29.708Z",
+            "updatedAt": "2026-05-07T18:40:29.708Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "2b63dd9f-df25-460d-84c3-67b8fdefcd07": {
+            "_id": "69fcde9021f8b0238d0f682d",
+            "id": "2b63dd9f-df25-460d-84c3-67b8fdefcd07",
+            "value": [
+                "saturn"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:48:48.048Z",
+            "updatedAt": "2026-05-07T18:48:48.048Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "6e6c4676-1f9f-4723-af84-e7b5dbdb3fa6": {
+            "_id": "69fcdeae21f8b0238d0f6830",
+            "id": "6e6c4676-1f9f-4723-af84-e7b5dbdb3fa6",
+            "value": [
+                "saturn"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:49:18.039Z",
+            "updatedAt": "2026-05-07T18:49:18.039Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "6c30c617-0402-442b-801c-6c4aa560d92e": {
+            "_id": "69fcdeae21f8b0238d0f6831",
+            "id": "6c30c617-0402-442b-801c-6c4aa560d92e",
+            "value": "Titans",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:49:18.148Z",
+            "updatedAt": "2026-05-07T18:49:47.158Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "3a284dad-7529-448a-8aed-493a5f904fb4": {
+            "_id": "69fcdeae21f8b0238d0f6832",
+            "id": "3a284dad-7529-448a-8aed-493a5f904fb4",
+            "value": [
+                "titan"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:49:18.365Z",
+            "updatedAt": "2026-05-07T18:49:33.626Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "c9cbef1c-4660-432c-83e1-0e9c10c897e0": {
+            "_id": "69fcdeae21f8b0238d0f6833",
+            "id": "c9cbef1c-4660-432c-83e1-0e9c10c897e0",
+            "value": {
+                "Planet": "6e6c4676-1f9f-4723-af84-e7b5dbdb3fa6",
+                "Name": "6c30c617-0402-442b-801c-6c4aa560d92e",
+                "Moon": "3a284dad-7529-448a-8aed-493a5f904fb4"
+            },
+            "typeId": "96818dab-90e5-4ab9-8f69-cce66e39e370",
+            "createdAt": "2026-05-07T18:49:18.419Z",
+            "updatedAt": "2026-05-07T18:49:18.419Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "a31a428c-9260-4309-85a5-e4f8382bac43": {
+            "_id": "69fcded121f8b0238d0f6834",
+            "id": "a31a428c-9260-4309-85a5-e4f8382bac43",
+            "value": [
+                "saturn"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:49:53.411Z",
+            "updatedAt": "2026-05-07T18:49:53.411Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "76455b88-8ff4-4da7-9bce-8444965ced99": {
+            "_id": "69fcded121f8b0238d0f6835",
+            "id": "76455b88-8ff4-4da7-9bce-8444965ced99",
+            "value": "Etna Diadem",
+            "typeId": null,
+            "createdAt": "2026-05-07T18:49:53.520Z",
+            "updatedAt": "2026-05-07T19:01:08.779Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "97bed353-8d38-407b-9274-861eab97d948": {
+            "_id": "69fcded121f8b0238d0f6836",
+            "id": "97bed353-8d38-407b-9274-861eab97d948",
+            "value": [
+                "enceladus"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T18:49:53.735Z",
+            "updatedAt": "2026-05-07T18:50:00.857Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f": {
+            "_id": "69fcded121f8b0238d0f6837",
+            "id": "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f",
+            "value": {
+                "Planet": "a31a428c-9260-4309-85a5-e4f8382bac43",
+                "Name": "76455b88-8ff4-4da7-9bce-8444965ced99",
+                "Moon": "97bed353-8d38-407b-9274-861eab97d948"
+            },
+            "typeId": "96818dab-90e5-4ab9-8f69-cce66e39e370",
+            "createdAt": "2026-05-07T18:49:53.791Z",
+            "updatedAt": "2026-05-07T18:49:53.791Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "3c34d333-c67f-4457-b299-9457eb00c61c": {
+            "_id": "69fce23921f8b0238d0f6838",
+            "id": "3c34d333-c67f-4457-b299-9457eb00c61c",
+            "value": [
+                "uranus"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T19:04:25.841Z",
+            "updatedAt": "2026-05-07T19:04:37.695Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "8a0a6406-0c25-4a2f-a9cf-55b89fc7e22e": {
+            "_id": "69fce23921f8b0238d0f6839",
+            "id": "8a0a6406-0c25-4a2f-a9cf-55b89fc7e22e",
+            "value": "Caelus Anchorpoint",
+            "typeId": null,
+            "createdAt": "2026-05-07T19:04:25.952Z",
+            "updatedAt": "2026-05-07T19:08:23.060Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "0bfa8e27-27e0-41b2-b90b-6d3c9442905a": {
+            "_id": "69fce23a21f8b0238d0f683a",
+            "id": "0bfa8e27-27e0-41b2-b90b-6d3c9442905a",
+            "value": {
+                "Planet": "3c34d333-c67f-4457-b299-9457eb00c61c",
+                "Name": "8a0a6406-0c25-4a2f-a9cf-55b89fc7e22e"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-07T19:04:26.066Z",
+            "updatedAt": "2026-05-07T19:04:26.066Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "f9023084-e558-4f2b-9376-b1f982907a55": {
+            "_id": "69fce2fd21f8b0238d0f683b",
+            "id": "f9023084-e558-4f2b-9376-b1f982907a55",
+            "value": [
+                "neptune"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T19:07:41.891Z",
+            "updatedAt": "2026-05-07T19:07:49.032Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "25156663-5977-461a-8191-1f41b46f9366": {
+            "_id": "69fce2fe21f8b0238d0f683c",
+            "id": "25156663-5977-461a-8191-1f41b46f9366",
+            "value": "Gyre Collective",
+            "typeId": null,
+            "createdAt": "2026-05-07T19:07:42.003Z",
+            "updatedAt": "2026-05-07T19:08:55.566Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "763b50d2-c0b2-4346-b8fb-a092e7337af3": {
+            "_id": "69fce2fe21f8b0238d0f683d",
+            "id": "763b50d2-c0b2-4346-b8fb-a092e7337af3",
+            "value": {
+                "Planet": "f9023084-e558-4f2b-9376-b1f982907a55",
+                "Name": "25156663-5977-461a-8191-1f41b46f9366"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-07T19:07:42.111Z",
+            "updatedAt": "2026-05-07T19:07:42.111Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "a8c03000-9b4b-4a29-b588-295ac18e7641": {
+            "_id": "69fce35721f8b0238d0f683e",
+            "id": "a8c03000-9b4b-4a29-b588-295ac18e7641",
+            "value": [
+                "pluto"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T19:09:11.927Z",
+            "updatedAt": "2026-05-07T19:09:39.200Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "8fe29521-4991-491c-80db-f4fc99d7bfa1": {
+            "_id": "69fce35821f8b0238d0f683f",
+            "id": "8fe29521-4991-491c-80db-f4fc99d7bfa1",
+            "value": "Plutocracy",
+            "typeId": null,
+            "createdAt": "2026-05-07T19:09:12.038Z",
+            "updatedAt": "2026-05-07T19:10:28.263Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "18154c7e-8f9a-4767-b44c-a25b0e1ca234": {
+            "_id": "69fce35821f8b0238d0f6840",
+            "id": "18154c7e-8f9a-4767-b44c-a25b0e1ca234",
+            "value": {
+                "Planet": "a8c03000-9b4b-4a29-b588-295ac18e7641",
+                "Name": "8fe29521-4991-491c-80db-f4fc99d7bfa1"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-07T19:09:12.143Z",
+            "updatedAt": "2026-05-07T19:09:12.143Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "fb0766b1-8b3d-4a39-8b94-60de16a09079": {
+            "_id": "69fce3ea21f8b0238d0f6841",
+            "id": "fb0766b1-8b3d-4a39-8b94-60de16a09079",
+            "value": {
+                "Unlocked": "8cf66884-fb4a-4505-baea-fd2dfe40a5ff",
+                "VisitCount": "7f36cadb-6690-4b79-9be8-86fb82f8f743"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-07T19:11:38.552Z",
+            "updatedAt": "2026-05-07T19:28:55.697Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "41864bd4-c129-4353-b868-3e9a7cca257f": {
+            "_id": "69fce41021f8b0238d0f6842",
+            "id": "41864bd4-c129-4353-b868-3e9a7cca257f",
+            "value": false,
+            "typeId": null,
+            "createdAt": "2026-05-07T19:12:16.235Z",
+            "updatedAt": "2026-05-07T19:12:16.235Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "8cf66884-fb4a-4505-baea-fd2dfe40a5ff": {
+            "_id": "69fce41021f8b0238d0f6844",
+            "id": "8cf66884-fb4a-4505-baea-fd2dfe40a5ff",
+            "value": false,
+            "typeId": null,
+            "createdAt": "2026-05-07T19:12:16.655Z",
+            "updatedAt": "2026-05-07T19:12:16.655Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "3918da79-ae6d-4da7-a61f-e39d559f2faf": {
+            "_id": "69fce52721f8b0238d0f6845",
+            "id": "3918da79-ae6d-4da7-a61f-e39d559f2faf",
+            "value": [
+                "913fd757-d6ee-488e-866f-c7af41aa544b"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T19:16:55.595Z",
+            "updatedAt": "2026-05-07T19:16:55.595Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "502df925-c8d8-4310-86a5-a0e80e954e88": {
+            "_id": "69fce52821f8b0238d0f6847",
+            "id": "502df925-c8d8-4310-86a5-a0e80e954e88",
+            "value": [
+                "913fd757-d6ee-488e-866f-c7af41aa544b"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-07T19:16:56.017Z",
+            "updatedAt": "2026-05-07T19:27:26.160Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "88ce44e7-34c5-4dea-a2a2-ed0fd450a934": {
+            "_id": "69fce7f221f8b0238d0f684a",
+            "id": "88ce44e7-34c5-4dea-a2a2-ed0fd450a934",
+            "value": 0,
+            "typeId": null,
+            "createdAt": "2026-05-07T19:28:50.487Z",
+            "updatedAt": "2026-05-07T19:28:50.487Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "7f36cadb-6690-4b79-9be8-86fb82f8f743": {
+            "_id": "69fce7f721f8b0238d0f684c",
+            "id": "7f36cadb-6690-4b79-9be8-86fb82f8f743",
+            "value": 0,
+            "typeId": null,
+            "createdAt": "2026-05-07T19:28:55.550Z",
+            "updatedAt": "2026-05-07T19:28:55.550Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         }
     },
     "dialogues": {
@@ -2109,7 +3432,34 @@
             "updatedAt": "2026-05-07T12:10:25.263Z"
         }
     },
-    "dialogueGroups": {},
+    "dialogueGroups": {
+        "9acf9982-4b14-4cc1-bc26-5aba3dfa3f9a": {
+            "_id": "69fce6e521f8b0238d0f6848",
+            "name": "Outposts",
+            "type": 2,
+            "parentDialogueGroupId": null,
+            "conditions": [],
+            "priorityGroupIdOverride": null,
+            "id": "9acf9982-4b14-4cc1-bc26-5aba3dfa3f9a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T19:24:21.218Z",
+            "updatedAt": "2026-05-07T19:24:21.218Z"
+        },
+        "9b1c8f42-18fc-4e34-9b46-3e1c138874bc": {
+            "_id": "69fce72221f8b0238d0f6849",
+            "name": "Introductions",
+            "type": 1,
+            "parentDialogueGroupId": "9acf9982-4b14-4cc1-bc26-5aba3dfa3f9a",
+            "conditions": [],
+            "priorityGroupIdOverride": null,
+            "collectionAttributeId": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
+            "collectionValueId": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
+            "id": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T19:25:22.371Z",
+            "updatedAt": "2026-05-07T19:25:40.021Z"
+        }
+    },
     "priorityGroups": {
         "e8f566bf-e173-4634-bc74-d4bbc9685db4": {
             "_id": "69fa81fd79d03704a9be8095",
