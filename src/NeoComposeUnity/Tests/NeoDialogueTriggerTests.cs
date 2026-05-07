@@ -249,7 +249,7 @@ namespace NeoCompose.Tests
 
             NeoDialogueTextNode? shown = null;
             bool finished = false;
-            dialogue.ShowText += node => shown = node;
+            dialogue.OnShow += node => shown = node;
             dialogue.OnFinish += () => finished = true;
 
             dialogue.Start();
@@ -315,7 +315,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(root.TryTrigger("dialogue-node-primary", out NeoDialogue dialogue));
 
             NeoDialogueTextNode? shown = null;
-            dialogue.ShowText += node => shown = node;
+            dialogue.OnShow += node => shown = node;
 
             Assert.IsInstanceOf<TestLookupValue>(dialogue.Context.Primary);
             Assert.AreEqual("primary-dialogue", ((TestLookupValue)dialogue.Context.Primary!).valueId);
@@ -340,7 +340,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(root.TryTrigger("dialogue-text-linked-values", out NeoDialogue dialogue));
 
             NeoDialogueTextNode? shown = null;
-            dialogue.ShowText += node => shown = node;
+            dialogue.OnShow += node => shown = node;
 
             dialogue.Start();
 
@@ -360,7 +360,7 @@ namespace NeoCompose.Tests
 
             var shown = new List<NeoDialogueTextNode>();
             bool finished = false;
-            dialogue.ShowText += shown.Add;
+            dialogue.OnShow += shown.Add;
             dialogue.OnFinish += () => finished = true;
 
             dialogue.Start();
@@ -394,7 +394,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(root.TryTrigger("dialogue-options", out NeoDialogue dialogue));
 
             var shown = new List<NeoDialogueTextNode>();
-            dialogue.ShowText += shown.Add;
+            dialogue.OnShow += shown.Add;
 
             dialogue.Start();
             shown[0].Options[0].Select();
@@ -415,7 +415,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(root.TryTrigger("dialogue-conditions-node", out NeoDialogue dialogue));
 
             NeoDialogueTextNode? shown = null;
-            dialogue.ShowText += node => shown = node;
+            dialogue.OnShow += node => shown = node;
 
             dialogue.Start();
 
@@ -439,7 +439,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(root.TryTrigger("dialogue-action-assign", out NeoDialogue dialogue));
 
             NeoDialogueTextNode? shown = null;
-            dialogue.ShowText += node => shown = node;
+            dialogue.OnShow += node => shown = node;
 
             dialogue.Start();
 
@@ -485,6 +485,23 @@ namespace NeoCompose.Tests
             StringAssert.Contains("not save-owned", error!.Message);
             Assert.IsTrue(client.TryGetValue("asset-score-value", out NumberAttributeValue? assetScore));
             Assert.AreEqual(3, assetScore!.value);
+        }
+
+        [Test]
+        public void ActionsNode_Assign_MaterializesDefaultSaveRootBeforeMutating()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-default-save-write", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.IsTrue(client.TryGetValue("root-save-default-value", out ObjectAttributeValue? saveRoot));
+            Assert.AreEqual("score-default-value", saveRoot!.value!["Score"]);
+            Assert.IsTrue(client.TryGetValue("score-default-value", out NumberAttributeValue? score));
+            Assert.AreEqual(22, score!.value);
+            Assert.AreEqual("root-save-default-value", client.saveOverrides["root-save"]);
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
         }
 
         [Test]
@@ -784,7 +801,7 @@ namespace NeoCompose.Tests
 
             bool showedText = false;
             System.Exception? error = null;
-            dialogue.ShowText += _ => showedText = true;
+            dialogue.OnShow += _ => showedText = true;
             dialogue.OnError += ex => error = ex;
 
             dialogue.Start();
@@ -834,6 +851,24 @@ namespace NeoCompose.Tests
                         createdAt = Now,
                         updatedAt = Now,
                         value = 3,
+                    },
+                    ["root-save-default-value"] = new ObjectAttributeValue
+                    {
+                        id = "root-save-default-value",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        typeId = "type-root",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Score"] = "score-default-value",
+                        },
+                    },
+                    ["score-default-value"] = new NumberAttributeValue
+                    {
+                        id = "score-default-value",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        value = 1,
                     },
                     ["lookup-value-direct"] = new ObjectAttributeValue
                     {
@@ -981,6 +1016,12 @@ namespace NeoCompose.Tests
                             },
                             IntTypeInfo(),
                             NumberPointer(9))),
+                    ["dialogue-action-default-save-write"] = ActionDialogue(
+                        "dialogue-action-default-save-write",
+                        AssignAction(
+                            RootKeyPointer("save", "Score"),
+                            IntTypeInfo(),
+                            NumberPointer(22))),
                     ["dialogue-action-list-add"] = ActionDialogue(
                         "dialogue-action-list-add",
                         CollectionAction(
@@ -1226,6 +1267,7 @@ namespace NeoCompose.Tests
                 name = name,
                 type = AttributeType.Custom,
                 customTypeId = "type-root",
+                valueId = name == "Save" ? "root-save-default-value" : null,
                 createdAt = Now,
                 updatedAt = Now,
             };
@@ -1587,6 +1629,28 @@ namespace NeoCompose.Tests
                     key = StringPointer(key),
                 },
             };
+        }
+
+        private static Pointer RootKeyPointer(params string[] keys)
+        {
+            Pointer pointer = new VariablePointer
+            {
+                type = PointerKind.Variable,
+                variableId = "__root__",
+            };
+            foreach (var key in keys)
+            {
+                pointer = new KeyOfPointer
+                {
+                    type = PointerKind.KeyOf,
+                    keyOf = new KeyOf
+                    {
+                        pointer = pointer,
+                        key = StringPointer(key),
+                    },
+                };
+            }
+            return pointer;
         }
 
         private static FunctionWithReturnType AssignAction(

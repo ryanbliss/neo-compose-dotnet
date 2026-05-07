@@ -23,29 +23,29 @@ namespace Assets.Scripts.Neo
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> DialogueReadOnlyValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
             {
-                ["type-base"] = (client, node) => ReadOnlyBase.Create(client, node),
-                ["type-choice-log"] = (client, node) => ReadOnlyNeoChoiceLog.Create(client, node),
-                ["type-derived"] = (client, node) => ReadOnlyDerived.Create(client, node),
-                ["type-dialogue-memory"] = (client, node) => ReadOnlyNeoDialogueMemory.Create(client, node),
-                ["type-hero"] = (client, node) => ReadOnlyHero.Create(client, node),
-                ["type-neo-memory"] = (client, node) => ReadOnlyNeoMemory.Create(client, node),
-                ["type-override"] = (client, node) => ReadOnlyOverride.Create(client, node),
-                ["type-root"] = (client, node) => ReadOnlyRoot.Create(client, node),
-                ["type-text-node-memory"] = (client, node) => ReadOnlyNeoTextNodeMemory.Create(client, node),
+                ["type-base"] = (client, node) => global::Assets.Scripts.Neo.ReadOnlyBase.Create(client, node),
+                ["type-choice-log"] = (client, node) => global::Assets.Scripts.Neo.ReadOnlyNeoChoiceLog.Create(client, node),
+                ["type-derived"] = (client, node) => global::Assets.Scripts.Neo.ReadOnlyDerived.Create(client, node),
+                ["type-dialogue-memory"] = (client, node) => global::Assets.Scripts.Neo.ReadOnlyNeoDialogueMemory.Create(client, node),
+                ["type-hero"] = (client, node) => global::Assets.Scripts.Neo.ReadOnlyHero.Create(client, node),
+                ["type-neo-memory"] = (client, node) => global::Assets.Scripts.Neo.ReadOnlyNeoMemory.Create(client, node),
+                ["type-override"] = (client, node) => global::Assets.Scripts.Neo.ReadOnlyOverride.Create(client, node),
+                ["type-root"] = (client, node) => global::Assets.Scripts.Neo.ReadOnlyRoot.Create(client, node),
+                ["type-text-node-memory"] = (client, node) => global::Assets.Scripts.Neo.ReadOnlyNeoTextNodeMemory.Create(client, node),
             };
 
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.SavedCustomFactory> DialogueSavedValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.SavedCustomFactory>
             {
-                ["type-base"] = (client, node) => Base.CreateSaved(client, node),
-                ["type-choice-log"] = (client, node) => NeoChoiceLog.CreateSaved(client, node),
-                ["type-derived"] = (client, node) => Derived.CreateSaved(client, node),
-                ["type-dialogue-memory"] = (client, node) => NeoDialogueMemory.CreateSaved(client, node),
-                ["type-hero"] = (client, node) => Hero.CreateSaved(client, node),
-                ["type-neo-memory"] = (client, node) => NeoMemory.CreateSaved(client, node),
-                ["type-override"] = (client, node) => Override.CreateSaved(client, node),
-                ["type-root"] = (client, node) => Root.CreateSaved(client, node),
-                ["type-text-node-memory"] = (client, node) => NeoTextNodeMemory.CreateSaved(client, node),
+                ["type-base"] = (client, node) => global::Assets.Scripts.Neo.Base.CreateSaved(client, node),
+                ["type-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateSaved(client, node),
+                ["type-derived"] = (client, node) => global::Assets.Scripts.Neo.Derived.CreateSaved(client, node),
+                ["type-dialogue-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoDialogueMemory.CreateSaved(client, node),
+                ["type-hero"] = (client, node) => global::Assets.Scripts.Neo.Hero.CreateSaved(client, node),
+                ["type-neo-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoMemory.CreateSaved(client, node),
+                ["type-override"] = (client, node) => global::Assets.Scripts.Neo.Override.CreateSaved(client, node),
+                ["type-root"] = (client, node) => global::Assets.Scripts.Neo.Root.CreateSaved(client, node),
+                ["type-text-node-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoTextNodeMemory.CreateSaved(client, node),
             };
 
         internal object? ResolveDialogueValue(string valueId) =>

@@ -1010,6 +1010,23 @@
             "createdAt": "2026-05-05T22:49:55.169Z",
             "updatedAt": "2026-05-05T22:49:55.169Z",
             "customTypeId": "6c6f3bb8-30a0-4132-b0d4-cce75943aedd"
+        },
+        "5155954d-ca1d-441e-b9ee-1837b0a08e05": {
+            "_id": "69fc7bc9cc9b9a4048e0e53c",
+            "id": "5155954d-ca1d-441e-b9ee-1837b0a08e05",
+            "name": "Dead",
+            "type": 1,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": false
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "188eb9c2-7619-4564-a5f6-7124baf8cc15",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T11:47:21.360Z",
+            "updatedAt": "2026-05-07T11:47:21.360Z"
         }
     },
     "enums": {
@@ -1062,14 +1079,15 @@
             "schema": {
                 "World": "ebab06a2-98e9-4a30-bb13-cfea8f910462",
                 "Visited": "c151eda4-ecce-4edf-988d-25a97c657146",
-                "NeoMemory": "99b07db1-f732-437e-a903-98183edca96b"
+                "NeoMemory": "99b07db1-f732-437e-a903-98183edca96b",
+                "Dead": "5155954d-ca1d-441e-b9ee-1837b0a08e05"
             },
             "extendsTypeId": null,
             "isAbstract": false,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": true,
             "createdAt": "2026-05-03T00:02:45.123Z",
-            "updatedAt": "2026-05-05T23:01:02.423Z",
+            "updatedAt": "2026-05-07T11:47:21.605Z",
             "system": null
         },
         "2ab1bc07-da0b-47fc-b77b-54cc511575bb": {
@@ -1243,11 +1261,12 @@
             "value": {
                 "World": "4e783b54-c992-40c0-8036-dbaafe6ecb65",
                 "Visited": "1b54d5cc-0437-4997-95db-7ea690b88837",
-                "NeoMemory": "621fbd4b-05f0-4da6-af3f-1260abc02228"
+                "NeoMemory": "621fbd4b-05f0-4da6-af3f-1260abc02228",
+                "Dead": "086ec638-a35e-4148-8dcd-2c111c9afe15"
             },
             "typeId": null,
             "createdAt": "2026-05-03T00:02:45.482Z",
-            "updatedAt": "2026-05-05T23:01:02.006Z",
+            "updatedAt": "2026-05-07T11:47:22.000Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "a6d9f87b-91d2-4203-92bb-c3e0ebf5d521": {
@@ -1735,9 +1754,394 @@
             "createdAt": "2026-05-05T22:49:55.545Z",
             "updatedAt": "2026-05-05T22:49:55.545Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "188eb9c2-7619-4564-a5f6-7124baf8cc15": {
+            "_id": "69fc7bc9cc9b9a4048e0e53b",
+            "id": "188eb9c2-7619-4564-a5f6-7124baf8cc15",
+            "value": false,
+            "typeId": null,
+            "createdAt": "2026-05-07T11:47:21.302Z",
+            "updatedAt": "2026-05-07T11:47:21.302Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "086ec638-a35e-4148-8dcd-2c111c9afe15": {
+            "_id": "69fc7bc9cc9b9a4048e0e53d",
+            "id": "086ec638-a35e-4148-8dcd-2c111c9afe15",
+            "value": false,
+            "typeId": null,
+            "createdAt": "2026-05-07T11:47:21.770Z",
+            "updatedAt": "2026-05-07T11:47:21.770Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         }
     },
-    "dialogues": {},
+    "dialogues": {
+        "6efd8f7b-7491-4646-b4cc-05589bca92ab": {
+            "_id": "69fa8c3a7fe594e9e5fd7939",
+            "name": "New dialogue",
+            "description": null,
+            "nodes": {
+                "7af2e9ea-375b-48fa-83d0-44a388793cb4": {
+                    "id": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
+                    "type": 1,
+                    "layout": {
+                        "x": 331.0799127439652,
+                        "y": 294.5774836394935,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "linkedValues": [],
+                    "primaryLinkedValueId": null,
+                    "text": "What is your favorite color?",
+                    "name": "fav color",
+                    "optionSettings": {
+                        "options": [
+                            {
+                                "id": "cad38db0-e13d-4b5a-ac57-d7b732d32d62",
+                                "text": "Blue",
+                                "name": "Blue",
+                                "toNodeId": "f1ea2b09-de7a-42fd-95a8-a829a457bf71"
+                            },
+                            {
+                                "id": "f9e82eb4-756b-4763-9a34-c6e18dcfc858",
+                                "text": "Green",
+                                "name": "Green",
+                                "toNodeId": "e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf"
+                            }
+                        ],
+                        "saveChoice": null
+                    }
+                },
+                "f1ea2b09-de7a-42fd-95a8-a829a457bf71": {
+                    "id": "f1ea2b09-de7a-42fd-95a8-a829a457bf71",
+                    "type": 1,
+                    "layout": {
+                        "x": 259.0022119372818,
+                        "y": 776.0941737555494,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "linkedValues": [],
+                    "primaryLinkedValueId": null,
+                    "text": "Great, now I won't die!",
+                    "name": "Green",
+                    "optionSettings": null,
+                    "toNodeId": "302e7679-0e2d-4942-86b7-b8a1c694d095"
+                },
+                "e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf": {
+                    "id": "e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf",
+                    "type": 1,
+                    "layout": {
+                        "x": 549.0801014631863,
+                        "y": 779.4035830831622,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "linkedValues": [],
+                    "primaryLinkedValueId": null,
+                    "text": "I'm blue, if I were green I would die",
+                    "name": "Blue",
+                    "optionSettings": null,
+                    "toNodeId": "e21fadb4-7bfc-40ed-b216-a346251a36a9"
+                },
+                "302e7679-0e2d-4942-86b7-b8a1c694d095": {
+                    "id": "302e7679-0e2d-4942-86b7-b8a1c694d095",
+                    "type": 2,
+                    "layout": {
+                        "x": 259.0022119372818,
+                        "y": 979.0941737555494,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [],
+                    "primaryLinkedValueId": null,
+                    "actions": [],
+                    "toNodeId": "71534395-bb0a-4ae0-8d99-490699904b3a"
+                },
+                "e21fadb4-7bfc-40ed-b216-a346251a36a9": {
+                    "id": "e21fadb4-7bfc-40ed-b216-a346251a36a9",
+                    "type": 2,
+                    "layout": {
+                        "x": 549.0801014631863,
+                        "y": 982.4035830831622,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [],
+                    "primaryLinkedValueId": null,
+                    "actions": [
+                        {
+                            "id": "93425901-f81f-492f-b17c-ffc9870a8b4e",
+                            "type": 0,
+                            "logic": {
+                                "type": 0,
+                                "action": {
+                                    "parameters": [],
+                                    "typeInfo": {
+                                        "type": 0,
+                                        "required": true
+                                    },
+                                    "instructions": [
+                                        {
+                                            "type": "assign",
+                                            "target": {
+                                                "pointer": {
+                                                    "type": "keyOf",
+                                                    "keyOf": {
+                                                        "pointer": {
+                                                            "type": "keyOf",
+                                                            "keyOf": {
+                                                                "pointer": {
+                                                                    "type": "variable",
+                                                                    "variableId": "__root__"
+                                                                },
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "type": 3,
+                                                                            "required": true
+                                                                        },
+                                                                        "value": "save"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "key": {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": "Dead"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "typeInfo": {
+                                                    "type": 1,
+                                                    "required": true
+                                                }
+                                            },
+                                            "operator": "=",
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "type": 1,
+                                                        "required": true
+                                                    },
+                                                    "value": true
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                "71534395-bb0a-4ae0-8d99-490699904b3a": {
+                    "id": "71534395-bb0a-4ae0-8d99-490699904b3a",
+                    "type": 3,
+                    "layout": {
+                        "x": 259.0022119372818,
+                        "y": 1080.0941737555495,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [],
+                    "primaryLinkedValueId": null,
+                    "outcomes": [
+                        {
+                            "id": "1ec62031-80e4-4bba-9a98-df189e43983f",
+                            "name": "isDead",
+                            "conditions": [
+                                {
+                                    "type": 0,
+                                    "getter": {
+                                        "parameters": [],
+                                        "typeInfo": {
+                                            "type": 1,
+                                            "required": true
+                                        },
+                                        "instructions": [
+                                            {
+                                                "type": "return",
+                                                "pointer": {
+                                                    "type": "operation",
+                                                    "operation": {
+                                                        "type": "boolean",
+                                                        "expression": {
+                                                            "condition": {
+                                                                "type": "equalTo",
+                                                                "operand1": {
+                                                                    "type": "keyOf",
+                                                                    "keyOf": {
+                                                                        "pointer": {
+                                                                            "type": "keyOf",
+                                                                            "keyOf": {
+                                                                                "pointer": {
+                                                                                    "type": "variable",
+                                                                                    "variableId": "__root__"
+                                                                                },
+                                                                                "key": {
+                                                                                    "type": "value",
+                                                                                    "value": {
+                                                                                        "typeInfo": {
+                                                                                            "type": 3,
+                                                                                            "required": true
+                                                                                        },
+                                                                                        "value": "save"
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "key": {
+                                                                            "type": "value",
+                                                                            "value": {
+                                                                                "typeInfo": {
+                                                                                    "type": 3,
+                                                                                    "required": true
+                                                                                },
+                                                                                "value": "Dead"
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                },
+                                                                "operand2": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "type": 1,
+                                                                            "required": true
+                                                                        },
+                                                                        "value": true
+                                                                    }
+                                                                }
+                                                            },
+                                                            "connective": null
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ],
+                            "toNodeId": "7a077aef-98d5-42c5-b5a6-d0f5e23ce6bd"
+                        },
+                        {
+                            "id": "af6ddff3-4805-450f-8078-dd69308f9aa0",
+                            "name": "else",
+                            "conditions": [],
+                            "toNodeId": "22afb4c9-46b0-4ffa-a3a0-abc946721097"
+                        }
+                    ]
+                },
+                "7a077aef-98d5-42c5-b5a6-d0f5e23ce6bd": {
+                    "id": "7a077aef-98d5-42c5-b5a6-d0f5e23ce6bd",
+                    "type": 1,
+                    "layout": {
+                        "x": -12.9977880627182,
+                        "y": 1400.0941737555495,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [],
+                    "primaryLinkedValueId": null,
+                    "text": "Oh, wait....",
+                    "optionSettings": null
+                },
+                "22afb4c9-46b0-4ffa-a3a0-abc946721097": {
+                    "id": "22afb4c9-46b0-4ffa-a3a0-abc946721097",
+                    "type": 1,
+                    "layout": {
+                        "x": 531.0022119372818,
+                        "y": 1260.0941737555495,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [],
+                    "primaryLinkedValueId": null,
+                    "text": "Abi doo abi dah",
+                    "optionSettings": null
+                }
+            },
+            "linkedValues": [],
+            "primaryLinkedValueId": null,
+            "settings": {
+                "defaultSaveOptionChoices": true
+            },
+            "triggerNode": {
+                "id": "88d14e7a-6d38-448e-bb62-a4dd242dca4c",
+                "type": 0,
+                "layout": {
+                    "x": 360,
+                    "y": 80,
+                    "width": 320,
+                    "height": 160,
+                    "isOpen": true
+                },
+                "linkedValues": [],
+                "primaryLinkedValueId": null,
+                "conditions": [],
+                "dialogueGroupSettings": null,
+                "occurrenceLimitSettings": null,
+                "toNodeId": "7af2e9ea-375b-48fa-83d0-44a388793cb4"
+            },
+            "id": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-06T00:32:58.144Z",
+            "updatedAt": "2026-05-07T12:10:25.263Z"
+        }
+    },
     "dialogueGroups": {},
-    "priorityGroups": {}
+    "priorityGroups": {
+        "e8f566bf-e173-4634-bc74-d4bbc9685db4": {
+            "_id": "69fa81fd79d03704a9be8095",
+            "id": "e8f566bf-e173-4634-bc74-d4bbc9685db4",
+            "name": "Default",
+            "options": [
+                {
+                    "id": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
+                    "name": "Urgent"
+                },
+                {
+                    "id": "90a9ef4a-7555-46db-b639-f3876eb4d3e2",
+                    "name": "High"
+                },
+                {
+                    "id": "4a10ea58-0ba6-49a9-b4ad-179980fcb50c",
+                    "name": "Medium"
+                },
+                {
+                    "id": "b9198323-3c40-497b-b997-02d7d2b7b32a",
+                    "name": "Low"
+                }
+            ],
+            "system": {
+                "disallow": [
+                    "deleteRecord"
+                ],
+                "reason": "Every project needs a default dialogue priority group."
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T23:49:17.316Z",
+            "updatedAt": "2026-05-05T23:49:17.316Z"
+        }
+    }
 }

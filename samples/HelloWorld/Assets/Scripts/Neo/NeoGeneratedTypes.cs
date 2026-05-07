@@ -18,19 +18,58 @@ namespace HelloWorld.Assets.Scripts.Neo
         public NeoClient Client { get; }
         public ReadOnlyAssets Assets { get; }
         public Save Save { get; }
+        public NeoDialogues Dialogues { get; }
 
-        public HelloWorldNeo(NeoClient client)
+        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> DialogueReadOnlyValueFactories =
+            new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            {
+                ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyComputedText.Create(client, node),
+                ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoDialogueMemory.Create(client, node),
+                ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoTextNodeMemory.Create(client, node),
+                ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoMemory.Create(client, node),
+                ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyLookupContainer.Create(client, node),
+                ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyPlanetVisit.Create(client, node),
+                ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyLookupEntry.Create(client, node),
+                ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlySave.Create(client, node),
+                ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoChoiceLog.Create(client, node),
+                ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAssets.Create(client, node),
+            };
+
+        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.SavedCustomFactory> DialogueSavedValueFactories =
+            new Dictionary<string, NeoGeneratedTypesSupport.SavedCustomFactory>
+            {
+                ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateSaved(client, node),
+                ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateSaved(client, node),
+                ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateSaved(client, node),
+                ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateSaved(client, node),
+                ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateSaved(client, node),
+                ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateSaved(client, node),
+                ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.CreateSaved(client, node),
+                ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Save.CreateSaved(client, node),
+                ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateSaved(client, node),
+                ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.CreateSaved(client, node),
+            };
+
+        internal object? ResolveDialogueValue(string valueId) =>
+            NeoGeneratedTypesSupport.ResolveCustomValue(
+                Client,
+                valueId,
+                DialogueReadOnlyValueFactories,
+                DialogueSavedValueFactories);
+
+        public HelloWorldNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             Client = client;
             Instance = this;
             Assets = new ReadOnlyAssets(client, client.assets);
             Save = new Save(client, client.save);
+            Dialogues = new NeoDialogues(this, dialogueOptions);
         }
 
-        public static HelloWorldNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave)
+        public static HelloWorldNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             var client = new NeoLoader().Load(projectJson, loadSave, handleSave);
-            return new HelloWorldNeo(client);
+            return new HelloWorldNeo(client, dialogueOptions);
         }
 
         public string SerializeSaveData() => Client.SerializeSaveData();
@@ -40,6 +79,97 @@ namespace HelloWorld.Assets.Scripts.Neo
         public int RunGarbageCollector() => Client.RunGarbageCollector();
 
         public IReadOnlyList<string> FindUnlinkedSaveValueIds() => Client.FindUnlinkedSaveValueIds();
+    }
+
+    public sealed class NeoDialogues : NeoDialoguesBase
+    {
+        internal NeoDialogues(HelloWorldNeo project, NeoDialogueRuntimeOptions? options)
+            : base(project.Client, options, project.Save.NeoMemory, project.ResolveDialogueValue)
+        {
+        }
+    }
+
+    public partial class NeoMemory : INeoDialogueMemoryStore
+    {
+        public INeoDialogueMemory GetOrCreateDialogueMemory(string dialogueId)
+        {
+            if (DialogueMemories.TryGetValue(dialogueId, out var memory)) return memory;
+            memory = NeoDialogueMemory.CreateSaved(
+                client,
+                NeoGeneratedTypesSupport.CreateSavedCustomValue(
+                    client,
+                    "48f37cd8-69d2-4cd3-ae44-7cfed7912415",
+                    new Dictionary<string, string>(),
+                    Array.Empty<AttributeValue>()));
+            DialogueMemories[dialogueId] = memory;
+            return memory;
+        }
+
+        public INeoDialogueMemory? FindDialogueMemory(string dialogueId)
+        {
+            return DialogueMemories.TryGetValue(dialogueId, out var memory) ? memory : null;
+        }
+    }
+
+    public partial class NeoDialogueMemory : INeoDialogueMemory
+    {
+        public INeoTextNodeMemory GetOrCreateTextNodeMemory(string textNodeId)
+        {
+            if (TextNodeMemories.TryGetValue(textNodeId, out var memory)) return memory;
+            memory = NeoTextNodeMemory.CreateSaved(
+                client,
+                NeoGeneratedTypesSupport.CreateSavedCustomValue(
+                    client,
+                    "4cdf4a5b-b299-4253-854b-d25c0a4c7c20",
+                    new Dictionary<string, string>(),
+                    Array.Empty<AttributeValue>()));
+            TextNodeMemories[textNodeId] = memory;
+            return memory;
+        }
+
+        public INeoTextNodeMemory? FindTextNodeMemory(string textNodeId)
+        {
+            return TextNodeMemories.TryGetValue(textNodeId, out var memory) ? memory : null;
+        }
+    }
+
+    public partial class NeoTextNodeMemory : INeoTextNodeMemory
+    {
+        public bool HasChoice(string choiceId)
+        {
+            foreach (var choice in ChoiceHistory)
+            {
+                if (choice.ChoiceId == choiceId) return true;
+            }
+            return false;
+        }
+
+        public void AddChoice(string choiceId, string createdAt)
+        {
+            if (HasChoice(choiceId)) return;
+            var choiceIdValueId = Guid.NewGuid().ToString();
+            var value = new Dictionary<string, string>
+            {
+                ["ChoiceId"] = choiceIdValueId,
+            };
+            var valueRows = new List<AttributeValue>
+            {
+                new StringAttributeValue
+                {
+                    id = choiceIdValueId,
+                    createdAt = createdAt,
+                    updatedAt = createdAt,
+                    value = choiceId,
+                },
+            };
+            ChoiceHistory.Add(NeoChoiceLog.CreateSaved(
+                client,
+                NeoGeneratedTypesSupport.CreateSavedCustomValue(
+                    client,
+                    "af5795d0-e019-4776-8b7c-d0206f90d59f",
+                    value,
+                    valueRows)));
+        }
     }
 
     public sealed class Planet : IEquatable<Planet>
@@ -232,6 +362,14 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return ReadOnlyNeoMemory.Create(client, node.Get<NeoAttributeCustom>("NeoMemory"));
             }
         }
+
+        public bool Dead
+        {
+            get
+            {
+                return node.Get<NeoAttributeBool>("Dead").value?.value ?? throw new InvalidOperationException("Required bool 'Dead' has no value.");
+            }
+        }
     }
 
     public partial class Save : ReadOnlySave
@@ -243,12 +381,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Save(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(World, Visited, NeoMemory))
+        public Save(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(World, Visited, NeoMemory, Dead))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -286,6 +424,18 @@ namespace HelloWorld.Assets.Scripts.Neo
             if (NeoMemory is not null)
             {
                 value["NeoMemory"] = NeoGeneratedTypesSupport.LookupSelectionId(NeoMemory.valueId);
+            }
+            if (Dead is not null)
+            {
+                var DeadValueId = Guid.NewGuid().ToString();
+                value["Dead"] = DeadValueId;
+                valueRows.Add(new BoolAttributeValue
+                {
+                    id = DeadValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Dead,
+                });
             }
             return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows);
         }
@@ -329,6 +479,18 @@ namespace HelloWorld.Assets.Scripts.Neo
             set
             {
                 NeoGeneratedTypesSupport.SetValue(savedNode, "NeoMemory", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        public new bool Dead
+        {
+            get
+            {
+                return node.Get<NeoAttributeBool>("Dead").value?.value ?? throw new InvalidOperationException("Required bool 'Dead' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Dead", NeoGeneratedTypesSupport.Value(value));
             }
         }
     }

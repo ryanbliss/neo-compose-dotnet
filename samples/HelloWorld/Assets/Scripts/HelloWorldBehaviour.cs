@@ -29,6 +29,7 @@ namespace HelloWorld.Assets.Scripts
             neo = HelloWorldNeo.Load(json, OnLoadSave, OnCommitSave);
             // reference lookup to one of the "Hello World" outputs in `neo.Assets.LookupContainer.LookupList`
             Debug.Log(neo.Assets.LookupContainer.Lookup.Name);
+            Wow();
         }
 
         public string HelloWorldText => neo.Assets.Computed.fullText;
@@ -39,6 +40,60 @@ namespace HelloWorld.Assets.Scripts
         {
             neo.Save.World = planet;
             neo.Save.Visited.Add(new PlanetVisit(planet, CurrentUnixTime));
+        }
+
+        public void Wow()
+        {
+            Debug.Log($"Triggering dialogue with ID: 6efd8f7b-7491-4646-b4cc-05589bca92ab");
+            Debug.Log($"Start Dead: {neo.Save.Dead}");
+            if (neo.Dialogues.TryTrigger("6efd8f7b-7491-4646-b4cc-05589bca92ab", out NeoDialogue dialogue))
+            {
+                dialogue.OnShow += OnDialogueShow;
+                dialogue.OnError += OnError;
+                dialogue.OnFinish += OnFinish;
+                dialogue.Start();
+            }
+        }
+
+        public void OnDialogueShow(NeoDialogueTextNode node)
+        {
+            Debug.Log(node.Text);
+            if (node.Options.Count > 0)
+            {
+                foreach (NeoDialogueTextOption option in node.Options)
+                {
+                    if (option.Text == "Green" && !neo.Save.Dead || option.Text == "Blue" && neo.Save.Dead)
+                    {
+                        Debug.Log($"Selecting option: {option.Text}");
+                        option.Select();
+                        return;
+                    }
+                }
+            }
+            else
+            {
+                // throws when node.Options > 0
+                // processes transition to `node.toNodeId`, if set
+                // otherwise, if there is no `node.toNodeId`, `node.OnFinish` invokes
+                node.Next();
+            }
+        }
+
+        private bool shouldRepeat = true;
+
+        public void OnFinish()
+        {
+            Debug.Log($"OnFinish Dead: {neo.Save.Dead}");
+            if (shouldRepeat)
+            {
+                shouldRepeat = false;
+                Wow();
+            }
+        }
+
+        public void OnError(System.Exception exception)
+        {
+            Debug.LogError(exception);
         }
 
         public void OnSave()

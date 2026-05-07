@@ -40,7 +40,7 @@ namespace NeoCompose.Runtime
         public bool IsStarted => started;
         public bool IsDisposed => State == NeoDialogueState.Disposed;
 
-        public event Action<NeoDialogueTextNode>? ShowText;
+        public event Action<NeoDialogueTextNode>? OnShow;
         public event Action? OnFinish;
         public event Action<Exception>? OnError;
 
@@ -180,7 +180,7 @@ namespace NeoCompose.Runtime
                     EnsureActive));
             }
 
-            ShowText?.Invoke(new NeoDialogueTextNode(
+            OnShow?.Invoke(new NeoDialogueTextNode(
                 node.id,
                 node.text,
                 node.name,
@@ -345,7 +345,7 @@ namespace NeoCompose.Runtime
 
         private void ClearListeners()
         {
-            ShowText = null;
+            OnShow = null;
             OnFinish = null;
             OnError = null;
         }

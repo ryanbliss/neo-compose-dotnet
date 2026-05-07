@@ -261,7 +261,7 @@ namespace NeoCompose.Tests
             Assert.IsInstanceOf<ReadOnlyHero>(linked);
 
             NeoDialogueTextNode? shown = null;
-            dialogue.ShowText += node => shown = node;
+            dialogue.OnShow += node => shown = node;
 
             dialogue.Start();
 
