@@ -185,10 +185,10 @@ namespace NeoCompose.Runtime
 
             if (entryValue?.isValueReference == true)
             {
-                client.RemoveSaveValueAndDescendants(entryValueId);
                 value.value[index] = entryValue.valueId!;
                 value.updatedAt = nowIso;
                 client.SetSaveValue(value);
+                client.RemoveSaveValueAndDescendantsIfUnlinked(entryValueId);
                 childAttributes[index].Dispose();
                 childAttributes[index] = CreateChild(client, entryAttribute, entryValue.valueId);
                 NotifyChanged();
@@ -248,7 +248,7 @@ namespace NeoCompose.Runtime
             childAttributes.RemoveAt(index);
 
             // GC the orphaned value graph from the save file.
-            client.RemoveSaveValueAndDescendants(removedValueId);
+            client.RemoveSaveValueAndDescendantsIfUnlinked(removedValueId);
             NotifyChanged();
         }
 

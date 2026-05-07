@@ -230,6 +230,41 @@ namespace NeoCompose.Runtime
             }
         }
 
+        internal void RemoveSaveValueAndDescendantsIfUnlinked(string valueId)
+        {
+            RemoveSaveValueAndDescendantsIfUnlinked(
+                valueId,
+                BuildReachableSaveValueIds());
+        }
+
+        private void RemoveSaveValueAndDescendantsIfUnlinked(
+            string valueId,
+            HashSet<string> reachable)
+        {
+            if (reachable.Contains(valueId)) return;
+            if (!saveData.values.TryGetValue(valueId, out AttributeValue val)) return;
+
+            switch (val)
+            {
+                case ObjectAttributeValue obj when obj.value is not null:
+                    foreach (var nestedId in obj.value.Values)
+                    {
+                        RemoveSaveValueAndDescendantsIfUnlinked(nestedId, reachable);
+                    }
+                    break;
+                case ArrayAttributeValue arr when arr.value is not null:
+                    foreach (var nestedId in arr.value)
+                    {
+                        RemoveSaveValueAndDescendantsIfUnlinked(nestedId, reachable);
+                    }
+                    break;
+            }
+            if (saveData.values.Remove(valueId))
+            {
+                OnSaveValueChanged?.Invoke(valueId);
+            }
+        }
+
         /// <summary>
         /// Returns the save's override value-id for the given attribute,
         /// or null if no override is registered. Used by
@@ -368,11 +403,7 @@ namespace NeoCompose.Runtime
 
         public IReadOnlyList<string> FindUnlinkedSaveValueIds()
         {
-            var reachable = new HashSet<string>();
-            foreach (var valueId in saveData.attributeValueOverrides.Values)
-            {
-                MarkReachableSaveValue(valueId, reachable);
-            }
+            var reachable = BuildReachableSaveValueIds();
 
             var unlinked = new List<string>();
             foreach (var valueId in saveData.values.Keys)
@@ -380,6 +411,16 @@ namespace NeoCompose.Runtime
                 if (!reachable.Contains(valueId)) unlinked.Add(valueId);
             }
             return unlinked;
+        }
+
+        private HashSet<string> BuildReachableSaveValueIds()
+        {
+            var reachable = new HashSet<string>();
+            foreach (var valueId in saveData.attributeValueOverrides.Values)
+            {
+                MarkReachableSaveValue(valueId, reachable);
+            }
+            return reachable;
         }
 
         private void MarkReachableSaveValue(string valueId, HashSet<string> reachable)

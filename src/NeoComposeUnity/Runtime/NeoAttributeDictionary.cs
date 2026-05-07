@@ -163,10 +163,10 @@ namespace NeoCompose.Runtime
             {
                 if (setValue?.isValueReference == true)
                 {
-                    client.RemoveSaveValueAndDescendants(existingValueId);
                     value.value[key] = setValue.valueId!;
                     value.updatedAt = nowIso;
                     client.SetSaveValue(value);
+                    client.RemoveSaveValueAndDescendantsIfUnlinked(existingValueId);
                     if (childAttributes.TryGetValue(key, out NeoAttribute? linkedOldChild))
                     {
                         linkedOldChild.Dispose();
@@ -251,7 +251,7 @@ namespace NeoCompose.Runtime
             // removed valueId may itself reference more child values
             // (e.g., the entry was a Custom record); RemoveSaveValueAndDescendants
             // walks them.
-            client.RemoveSaveValueAndDescendants(removedValueId);
+            client.RemoveSaveValueAndDescendantsIfUnlinked(removedValueId);
             NotifyChanged();
         }
     }

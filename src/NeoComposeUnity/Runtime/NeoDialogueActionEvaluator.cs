@@ -276,7 +276,7 @@ namespace NeoCompose.Runtime
                 if (!string.IsNullOrEmpty(objectRow.typeId)
                     && TryResolveCustomMemberAttribute(client, objectRow.typeId!, keyString, out JsonAttribute? memberAttribute))
                 {
-                    return new NeoCustomMemberWriteTarget(receiverRowId, keyString, memberAttribute);
+                    return new NeoCustomMemberWriteTarget(receiverRowId, keyString, memberAttribute!);
                 }
                 return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType);
             }
@@ -376,7 +376,6 @@ namespace NeoCompose.Runtime
                     type = AttributeType.Enum,
                     required = attribute.required,
                     enumId = enumAttribute.enumId,
-                    multiselect = enumAttribute.multiselect,
                 },
                 _ => new PrimitiveTypeInfo { type = attribute.type, required = attribute.required },
             };
@@ -691,10 +690,10 @@ namespace NeoCompose.Runtime
                             AttributeTypeInfo(attribute),
                             out string? referenceId))
                     {
-                        client.RemoveSaveValueAndDescendants(existingId);
                         parent.value[key] = referenceId!;
                         parent.updatedAt = now;
                         client.SetSaveValue(parent);
+                        client.RemoveSaveValueAndDescendantsIfUnlinked(existingId);
                         return;
                     }
                     var next = CreateValueRow(client, attribute, value, existingId, existing.createdAt, now);
@@ -801,10 +800,10 @@ namespace NeoCompose.Runtime
                 var childId = parent.value[index];
                 if (TryGetCustomValueReferenceId(value, typeInfo, out string? referenceId))
                 {
-                    client.RemoveSaveValueAndDescendants(childId);
                     parent.value[index] = referenceId!;
                     parent.updatedAt = DateTime.UtcNow.ToString("o");
                     client.SetSaveValue(parent);
+                    client.RemoveSaveValueAndDescendantsIfUnlinked(childId);
                     return;
                 }
                 if (!client.TryGetValue(childId, out AttributeValue? existing))
@@ -916,14 +915,17 @@ namespace NeoCompose.Runtime
                         return;
                     }
                     case CollectionMutationKind.Clear:
-                        foreach (var childId in row.value)
-                        {
-                            client.RemoveSaveValueAndDescendants(childId);
-                        }
+                    {
+                        var removedIds = row.value;
                         row.value = Array.Empty<string>();
                         row.updatedAt = now;
                         client.SetSaveValue(row);
+                        foreach (var childId in removedIds)
+                        {
+                            client.RemoveSaveValueAndDescendantsIfUnlinked(childId);
+                        }
                         return;
+                    }
                     default:
                         throw new NSGetterRuntimeError($"Unsupported list mutation '{mutation}'.");
                 }
@@ -949,7 +951,7 @@ namespace NeoCompose.Runtime
                 row.value = next;
                 row.updatedAt = now;
                 client.SetSaveValue(row);
-                client.RemoveSaveValueAndDescendants(removedId);
+                client.RemoveSaveValueAndDescendantsIfUnlinked(removedId);
             }
         }
 
@@ -1000,10 +1002,10 @@ namespace NeoCompose.Runtime
                 {
                     if (TryGetCustomValueReferenceId(value, entryTypeInfo, out string? referenceId))
                     {
-                        client.RemoveSaveValueAndDescendants(existingId);
                         row.value[key] = referenceId!;
                         row.updatedAt = now;
                         client.SetSaveValue(row);
+                        client.RemoveSaveValueAndDescendantsIfUnlinked(existingId);
                         return;
                     }
                     var next = CreateValueRow(
@@ -1052,7 +1054,7 @@ namespace NeoCompose.Runtime
                 row.value.Remove(key);
                 row.updatedAt = DateTime.UtcNow.ToString("o");
                 client.SetSaveValue(row);
-                client.RemoveSaveValueAndDescendants(removedId);
+                client.RemoveSaveValueAndDescendantsIfUnlinked(removedId);
             }
 
             private void Clear(NeoClient client)
@@ -1063,13 +1065,14 @@ namespace NeoCompose.Runtime
                 {
                     return;
                 }
-                foreach (var childId in row.value.Values)
-                {
-                    client.RemoveSaveValueAndDescendants(childId);
-                }
+                var removedIds = new List<string>(row.value.Values);
                 row.value.Clear();
                 row.updatedAt = DateTime.UtcNow.ToString("o");
                 client.SetSaveValue(row);
+                foreach (var childId in removedIds)
+                {
+                    client.RemoveSaveValueAndDescendantsIfUnlinked(childId);
+                }
             }
         }
     }

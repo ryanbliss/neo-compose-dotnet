@@ -579,6 +579,39 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ActionsNode_CollectionCall_ClearDictionaryPreservesSharedSaveValue()
+        {
+            var client = CreateClient();
+            client.AddSaveValue("root-save", new ObjectAttributeValue
+            {
+                id = "root-save-value",
+                createdAt = Now,
+                updatedAt = Now,
+                typeId = "type-root",
+                value = new Dictionary<string, string>(),
+            });
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "dict-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new Dictionary<string, string>
+                {
+                    ["slot"] = "root-save-value",
+                },
+            });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-dict-clear", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectAttributeValue? dict));
+            Assert.AreEqual(0, dict!.value!.Count);
+            Assert.IsTrue(client.TryGetValue("root-save-value", out ObjectAttributeValue? rootRow));
+            Assert.AreEqual("type-root", rootRow!.typeId);
+        }
+
+        [Test]
         public void ActionsNode_Assign_CreatesCustomMemberSaveValue()
         {
             var client = CreateClient();
@@ -654,6 +687,67 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(client.TryGetValue("list-value", out ArrayAttributeValue? list));
             CollectionAssert.AreEqual(new[] { "root-save-value" }, list!.value);
+        }
+
+        [Test]
+        public void ActionsNode_CollectionCall_CanLinkGeneratedCustomDictionaryValue()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "dict-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new Dictionary<string, string>(),
+            });
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "root-save-value",
+                createdAt = Now,
+                updatedAt = Now,
+                typeId = "type-root",
+                value = new Dictionary<string, string>(),
+            });
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-action-dict-add-primary", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectAttributeValue? dict));
+            Assert.IsTrue(dict!.value!.TryGetValue("slot", out string valueId));
+            Assert.AreEqual("root-save-value", valueId);
+        }
+
+        [Test]
+        public void ActionsNode_CollectionCall_ClearPreservesSharedSaveValue()
+        {
+            var client = CreateClient();
+            client.AddSaveValue("root-save", new ObjectAttributeValue
+            {
+                id = "root-save-value",
+                createdAt = Now,
+                updatedAt = Now,
+                typeId = "type-root",
+                value = new Dictionary<string, string>(),
+            });
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "list-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new[] { "root-save-value" },
+            });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-list-clear", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.IsTrue(client.TryGetValue("list-value", out ArrayAttributeValue? list));
+            Assert.AreEqual(0, list!.value!.Length);
+            Assert.IsTrue(client.TryGetValue("root-save-value", out ObjectAttributeValue? rootRow));
+            Assert.AreEqual("type-root", rootRow!.typeId);
         }
 
         [Test]
@@ -986,6 +1080,19 @@ namespace NeoCompose.Tests
                             },
                             ListTypeInfo(CustomTypeInfo("type-root")),
                             CollectionMutationKind.Add,
+                            ContextKeyPointer("primary")),
+                        primaryLinkedValueId: "root-save-value"),
+                    ["dialogue-action-dict-add-primary"] = ActionDialogue(
+                        "dialogue-action-dict-add-primary",
+                        CollectionAction(
+                            new ReferencePointer
+                            {
+                                type = PointerKind.Reference,
+                                valueId = "dict-value",
+                            },
+                            DictionaryTypeInfo(CustomTypeInfo("type-root")),
+                            CollectionMutationKind.Add,
+                            StringPointer("slot"),
                             ContextKeyPointer("primary")),
                         primaryLinkedValueId: "root-save-value"),
                     ["dialogue-action-error"] = ActionDialogue(
