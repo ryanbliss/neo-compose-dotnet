@@ -602,6 +602,61 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ActionsNode_Assign_CanMutateGeneratedContextPrimary()
+        {
+            var client = CreateClient();
+            client.AddSaveValue("root-save", new ObjectAttributeValue
+            {
+                id = "root-save-value",
+                createdAt = Now,
+                updatedAt = Now,
+                typeId = "type-root",
+                value = new Dictionary<string, string>(),
+            });
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-action-primary-set", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.IsTrue(client.TryGetValue("root-save-value", out ObjectAttributeValue? rootRow));
+            Assert.IsTrue(rootRow!.value!.TryGetValue("Score", out string scoreValueId));
+            Assert.IsTrue(client.TryGetValue(scoreValueId, out NumberAttributeValue? score));
+            Assert.AreEqual(15, score!.value);
+        }
+
+        [Test]
+        public void ActionsNode_CollectionCall_CanLinkGeneratedCustomValue()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "list-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new string[0],
+            });
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "root-save-value",
+                createdAt = Now,
+                updatedAt = Now,
+                typeId = "type-root",
+                value = new Dictionary<string, string>(),
+            });
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-action-list-add-primary", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.IsTrue(client.TryGetValue("list-value", out ArrayAttributeValue? list));
+            CollectionAssert.AreEqual(new[] { "root-save-value" }, list!.value);
+        }
+
+        [Test]
         public void ActionsNode_Error_StopsTraversalAndEmitsError()
         {
             var client = CreateClient();
@@ -906,6 +961,33 @@ namespace NeoCompose.Tests
                             },
                             IntTypeInfo(),
                             NumberPointer(12))),
+                    ["dialogue-action-primary-set"] = ActionDialogue(
+                        "dialogue-action-primary-set",
+                        AssignAction(
+                            new KeyOfPointer
+                            {
+                                type = PointerKind.KeyOf,
+                                keyOf = new KeyOf
+                                {
+                                    pointer = ContextKeyPointer("primary"),
+                                    key = StringPointer("Score"),
+                                },
+                            },
+                            IntTypeInfo(),
+                            NumberPointer(15)),
+                        primaryLinkedValueId: "root-save-value"),
+                    ["dialogue-action-list-add-primary"] = ActionDialogue(
+                        "dialogue-action-list-add-primary",
+                        CollectionAction(
+                            new ReferencePointer
+                            {
+                                type = PointerKind.Reference,
+                                valueId = "list-value",
+                            },
+                            ListTypeInfo(CustomTypeInfo("type-root")),
+                            CollectionMutationKind.Add,
+                            ContextKeyPointer("primary")),
+                        primaryLinkedValueId: "root-save-value"),
                     ["dialogue-action-error"] = ActionDialogue(
                         "dialogue-action-error",
                         ThrowAction("boom")),
@@ -1096,7 +1178,8 @@ namespace NeoCompose.Tests
 
         private static Dialogue ActionDialogue(
             string id,
-            FunctionWithReturnType action)
+            FunctionWithReturnType action,
+            string? primaryLinkedValueId = null)
         {
             return new Dialogue
             {
@@ -1107,7 +1190,7 @@ namespace NeoCompose.Tests
                 description = null,
                 linkedValues = new DialogueLinkedValue[0],
                 settings = new DialogueSettings(),
-                primaryLinkedValueId = null,
+                primaryLinkedValueId = primaryLinkedValueId,
                 triggerNode = new DialogueTriggerNode
                 {
                     id = $"{id}-trigger",
@@ -1481,6 +1564,16 @@ namespace NeoCompose.Tests
                 type = AttributeType.Dictionary,
                 required = true,
                 entryTypeInfo = entryTypeInfo,
+            };
+        }
+
+        private static CustomTypeInfo CustomTypeInfo(string typeId)
+        {
+            return new CustomTypeInfo
+            {
+                type = AttributeType.Custom,
+                required = true,
+                typeId = typeId,
             };
         }
 

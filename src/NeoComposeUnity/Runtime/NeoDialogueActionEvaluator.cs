@@ -225,7 +225,7 @@ namespace NeoCompose.Runtime
         {
             EnsureWritable(target);
             object? value = Eval(target.pointer, scope, ctx);
-            string? rowId = NSGetterEvaluator.FindRowIdByReference(value, ctx);
+            string? rowId = FindValueId(value, ctx);
             if (rowId == null)
             {
                 throw new NSGetterRuntimeError("Collection mutation target is not backed by a Neo value row.");
@@ -255,7 +255,7 @@ namespace NeoCompose.Runtime
         {
             object? receiver = Eval(keyOf.pointer, scope, ctx);
             object? key = Eval(keyOf.key, scope, ctx);
-            string? receiverRowId = NSGetterEvaluator.FindRowIdByReference(receiver, ctx);
+            string? receiverRowId = FindValueId(receiver, ctx);
             if (receiverRowId == null)
             {
                 throw new NSGetterRuntimeError("Assignment receiver is not backed by a Neo value row.");
@@ -326,6 +326,60 @@ namespace NeoCompose.Runtime
                 return client.TryGetAttribute(entry.attributeId, out attribute);
             }
             return false;
+        }
+
+        private static string? FindValueId(
+            object? value,
+            NSGetterEvaluator.Context ctx)
+        {
+            if (value is INeoValueReference reference
+                && !string.IsNullOrEmpty(reference.valueId))
+            {
+                return reference.valueId;
+            }
+            return NSGetterEvaluator.FindRowIdByReference(value, ctx);
+        }
+
+        private static bool TryGetCustomValueReferenceId(
+            object? value,
+            TypeInfo typeInfo,
+            out string? valueId)
+        {
+            valueId = null;
+            if (typeInfo.type != AttributeType.Custom) return false;
+            if (value is not INeoValueReference reference
+                || string.IsNullOrEmpty(reference.valueId))
+            {
+                return false;
+            }
+            valueId = reference.valueId;
+            return true;
+        }
+
+        private static TypeInfo AttributeTypeInfo(JsonAttribute attribute)
+        {
+            return attribute switch
+            {
+                NullAttribute => new PrimitiveTypeInfo { type = AttributeType.Null, required = attribute.required },
+                BoolAttribute => new PrimitiveTypeInfo { type = AttributeType.Bool, required = attribute.required },
+                IntAttribute => new PrimitiveTypeInfo { type = AttributeType.Int, required = attribute.required },
+                FloatAttribute => new PrimitiveTypeInfo { type = AttributeType.Float, required = attribute.required },
+                StringAttribute => new PrimitiveTypeInfo { type = AttributeType.String, required = attribute.required },
+                CustomAttribute custom => new CustomTypeInfo
+                {
+                    type = AttributeType.Custom,
+                    required = attribute.required,
+                    typeId = custom.customTypeId,
+                },
+                EnumAttribute enumAttribute => new EnumTypeInfo
+                {
+                    type = AttributeType.Enum,
+                    required = attribute.required,
+                    enumId = enumAttribute.enumId,
+                    multiselect = enumAttribute.multiselect,
+                },
+                _ => new PrimitiveTypeInfo { type = attribute.type, required = attribute.required },
+            };
         }
 
         private static JsonAttribute AttributeFromTypeInfo(TypeInfo typeInfo)
@@ -399,15 +453,20 @@ namespace NeoCompose.Runtime
         }
 
         private static AttributeValue CreateValueRow(
+            NeoClient client,
             JsonAttribute attribute,
             object? value,
             string id,
             string createdAt,
             string updatedAt)
         {
+            var payload = value is INeoValuePayloadProvider provider
+                ? provider.ToNeoValuePayload()
+                : value;
+            client.SetSavePayloadRows(payload);
             return AttributeValueFactory.Create(
                 attribute,
-                value,
+                payload,
                 id,
                 createdAt,
                 updatedAt);
@@ -574,6 +633,7 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError($"Missing target row '{rowId}'.");
                 }
                 var next = CreateValueRow(
+                    client,
                     AttributeFromTypeInfo(typeInfo),
                     value,
                     rowId,
@@ -626,14 +686,35 @@ namespace NeoCompose.Runtime
                 if (parent.value.TryGetValue(key, out string existingId)
                     && client.TryGetValue(existingId, out AttributeValue? existing))
                 {
-                    var next = CreateValueRow(attribute, value, existingId, existing.createdAt, now);
+                    if (TryGetCustomValueReferenceId(
+                            value,
+                            AttributeTypeInfo(attribute),
+                            out string? referenceId))
+                    {
+                        client.RemoveSaveValueAndDescendants(existingId);
+                        parent.value[key] = referenceId!;
+                        parent.updatedAt = now;
+                        client.SetSaveValue(parent);
+                        return;
+                    }
+                    var next = CreateValueRow(client, attribute, value, existingId, existing.createdAt, now);
                     next.typeId = existing.typeId;
                     client.SetSaveValue(next);
                 }
                 else
                 {
+                    if (TryGetCustomValueReferenceId(
+                            value,
+                            AttributeTypeInfo(attribute),
+                            out string? referenceId))
+                    {
+                        parent.value[key] = referenceId!;
+                        parent.updatedAt = now;
+                        client.SetSaveValue(parent);
+                        return;
+                    }
                     var childId = Guid.NewGuid().ToString();
-                    var next = CreateValueRow(attribute, value, childId, now, now);
+                    var next = CreateValueRow(client, attribute, value, childId, now, now);
                     client.SetSaveValue(next);
                     parent.value[key] = childId;
                 }
@@ -718,11 +799,20 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError($"List index out of bounds: {index}");
                 }
                 var childId = parent.value[index];
+                if (TryGetCustomValueReferenceId(value, typeInfo, out string? referenceId))
+                {
+                    client.RemoveSaveValueAndDescendants(childId);
+                    parent.value[index] = referenceId!;
+                    parent.updatedAt = DateTime.UtcNow.ToString("o");
+                    client.SetSaveValue(parent);
+                    return;
+                }
                 if (!client.TryGetValue(childId, out AttributeValue? existing))
                 {
                     throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
                 }
                 var next = CreateValueRow(
+                    client,
                     AttributeFromTypeInfo(typeInfo),
                     value,
                     childId,
@@ -770,8 +860,22 @@ namespace NeoCompose.Runtime
                 {
                     case CollectionMutationKind.Add:
                     {
+                        if (TryGetCustomValueReferenceId(
+                                args[0],
+                                entryTypeInfo,
+                                out string? referenceId))
+                        {
+                            var referencedNext = new string[row.value.Length + 1];
+                            Array.Copy(row.value, referencedNext, row.value.Length);
+                            referencedNext[row.value.Length] = referenceId!;
+                            row.value = referencedNext;
+                            row.updatedAt = now;
+                            client.SetSaveValue(row);
+                            return;
+                        }
                         var childId = Guid.NewGuid().ToString();
                         var child = CreateValueRow(
+                            client,
                             AttributeFromTypeInfo(entryTypeInfo),
                             args[0],
                             childId,
@@ -791,8 +895,19 @@ namespace NeoCompose.Runtime
                         return;
                     case CollectionMutationKind.Remove:
                     {
+                        string? referenceId = TryGetCustomValueReferenceId(
+                            args[0],
+                            entryTypeInfo,
+                            out string? matchedReferenceId)
+                                ? matchedReferenceId
+                                : null;
                         for (int i = 0; i < row.value.Length; i++)
                         {
+                            if (referenceId != null && row.value[i] == referenceId)
+                            {
+                                RemoveAt(client, row, i, now);
+                                return;
+                            }
                             if (!client.TryGetValue(row.value[i], out AttributeValue? child)) continue;
                             if (!JsEqual(ReadRowValue(child), args[0])) continue;
                             RemoveAt(client, row, i, now);
@@ -883,7 +998,16 @@ namespace NeoCompose.Runtime
                 if (row.value.TryGetValue(key, out string existingId)
                     && client.TryGetValue(existingId, out AttributeValue? existing))
                 {
+                    if (TryGetCustomValueReferenceId(value, entryTypeInfo, out string? referenceId))
+                    {
+                        client.RemoveSaveValueAndDescendants(existingId);
+                        row.value[key] = referenceId!;
+                        row.updatedAt = now;
+                        client.SetSaveValue(row);
+                        return;
+                    }
                     var next = CreateValueRow(
+                        client,
                         AttributeFromTypeInfo(entryTypeInfo),
                         value,
                         existingId,
@@ -894,8 +1018,16 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
+                    if (TryGetCustomValueReferenceId(value, entryTypeInfo, out string? referenceId))
+                    {
+                        row.value[key] = referenceId!;
+                        row.updatedAt = now;
+                        client.SetSaveValue(row);
+                        return;
+                    }
                     var childId = Guid.NewGuid().ToString();
                     var next = CreateValueRow(
+                        client,
                         AttributeFromTypeInfo(entryTypeInfo),
                         value,
                         childId,
