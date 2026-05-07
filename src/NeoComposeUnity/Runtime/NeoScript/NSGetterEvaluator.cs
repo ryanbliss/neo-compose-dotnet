@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 using JsonAttribute = NeoCompose.Runtime.Json.Attribute;
@@ -430,10 +431,25 @@ namespace NeoCompose.Runtime.NeoScript
                 return ResolveValueIfId(arr[idx], ctx);
             }
 
+            string k = key?.ToString() ?? "null";
+            if (k == "Id")
+            {
+                if (receiver is INeoValueReference reference
+                    && !string.IsNullOrEmpty(reference.valueId))
+                {
+                    return reference.valueId;
+                }
+                string? rowId = FindRowIdByReference(receiver, ctx);
+                if (!string.IsNullOrEmpty(rowId))
+                {
+                    return rowId;
+                }
+                throw new NSGetterRuntimeError("Custom value has no backing row id.");
+            }
+
             // Dict / Custom record: receiver is Dictionary<string, ...>.
             if (TryAsObjectRecord(receiver, out IDictionary<string, object?>? record))
             {
-                string k = key?.ToString() ?? "null";
                 // Schema-dispatch if the receiver is a tracked Custom row.
                 var dispatched = DispatchSchemaMember(receiver, k, ctx);
                 if (dispatched.kind == DispatchKind.Ok) return dispatched.value;

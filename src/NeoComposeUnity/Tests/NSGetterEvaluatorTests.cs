@@ -9,6 +9,7 @@ using NUnit.Framework;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Tests
 {
@@ -140,6 +141,67 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(result.ok, $"Expected ok; got error: {result.error}");
             Assert.AreEqual(true, result.value);
+        }
+
+        [Test]
+        public void Evaluate_SyntheticCustomId_ReturnsBackingRowId()
+        {
+            var client = LoadClient();
+            var ctx = new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null);
+            var row = new ObjectAttributeValue
+            {
+                id = "outpost-row",
+                typeId = "type-hero",
+                createdAt = "x",
+                updatedAt = "x",
+                value = new Dictionary<string, string>(),
+            };
+            var thisValue = NSGetterEvaluator.UnwrapRow(row, ctx);
+            var getter = new FunctionWithReturnType
+            {
+                parameters = new Variable[0],
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = AttributeType.String,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new KeyOfPointer
+                        {
+                            type = PointerKind.KeyOf,
+                            keyOf = new KeyOf
+                            {
+                                pointer = new VariablePointer
+                                {
+                                    type = PointerKind.Variable,
+                                    variableId = "__this__",
+                                },
+                                key = new ValuePointer
+                                {
+                                    type = PointerKind.Value,
+                                    value = new Value
+                                    {
+                                        typeInfo = new PrimitiveTypeInfo
+                                        {
+                                            type = AttributeType.String,
+                                            required = true,
+                                        },
+                                        value = JToken.FromObject("Id"),
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+
+            var result = NSGetterEvaluator.Evaluate(getter, ctx.WithThis(thisValue));
+
+            Assert.AreEqual("outpost-row", result);
         }
 
         // ---------------------------------------------------------------
