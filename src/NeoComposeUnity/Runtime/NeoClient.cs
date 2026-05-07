@@ -46,6 +46,9 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, AttributeValue> values => data.values;
         internal IReadOnlyDictionary<string, CustomType> types => data.types;
         internal IReadOnlyDictionary<string, Enum> enums => data.enums;
+        internal IReadOnlyDictionary<string, Dialogue> dialogues => data.dialogues;
+        internal IReadOnlyDictionary<string, DialogueGroup> dialogueGroups => data.dialogueGroups;
+        internal IReadOnlyDictionary<string, PriorityGroup> priorityGroups => data.priorityGroups;
         internal IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
         internal IReadOnlyDictionary<string, string> saveOverrides => saveData.attributeValueOverrides;
 

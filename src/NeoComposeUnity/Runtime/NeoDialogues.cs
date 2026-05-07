@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DialogueModel = NeoCompose.Runtime.Json.Dialogue;
 
 namespace NeoCompose.Runtime
@@ -13,13 +14,15 @@ namespace NeoCompose.Runtime
     {
         private readonly List<Action<NeoDialogue>> eligibleHandlers = new();
 
+        protected NeoClient client { get; }
         protected NeoDialogueRuntimeOptions options { get; }
         protected INeoDialogueLogger logger { get; }
 
         public event Action<NeoDialogueEligibilityError>? OnEligibleError;
 
-        protected NeoDialoguesBase(NeoDialogueRuntimeOptions? options = null)
+        protected NeoDialoguesBase(NeoClient client, NeoDialogueRuntimeOptions? options = null)
         {
+            this.client = client;
             this.options = options ?? new NeoDialogueRuntimeOptions();
             logger = this.options.ResolveLogger();
         }
@@ -41,8 +44,48 @@ namespace NeoCompose.Runtime
 
         public virtual bool TryTrigger(string dialogueId, out NeoDialogueTriggerResult result)
         {
-            result = NeoDialogueTriggerResult.NotFound();
-            return false;
+            if (!client.dialogues.TryGetValue(dialogueId, out DialogueModel data))
+            {
+                result = NeoDialogueTriggerResult.NotFound();
+                return false;
+            }
+
+            result = NeoDialogueTriggerResult.Success(CreateDialogue(data, null, null));
+            return true;
+        }
+
+        internal bool TryTriggerGroup(
+            string groupId,
+            object? trigger,
+            string? lookupValueId,
+            out NeoDialogueTriggerResult result)
+        {
+            if (!client.dialogueGroups.ContainsKey(groupId))
+            {
+                result = NeoDialogueTriggerResult.NotFound(new[]
+                {
+                    new NeoDialogueTriggerWarning(
+                        $"Dialogue group '{groupId}' was not found.",
+                        groupId: groupId),
+                });
+                return false;
+            }
+
+            var candidates = client.dialogues.Values
+                .Where(dialogue => IsDialogueInGroup(dialogue, groupId, lookupValueId))
+                .OrderBy(dialogue => dialogue.name)
+                .ThenBy(dialogue => dialogue.id)
+                .ToArray();
+
+            if (candidates.Length == 0)
+            {
+                result = NeoDialogueTriggerResult.NotFound();
+                return false;
+            }
+
+            result = NeoDialogueTriggerResult.Success(
+                CreateDialogue(candidates[0], trigger, trigger));
+            return true;
         }
 
         public IDisposable OnEligible(Action<NeoDialogue> handler)
@@ -74,19 +117,37 @@ namespace NeoCompose.Runtime
             logger.LogException(error.exception);
         }
 
-        protected NeoDialogue CreatePlaceholderDialogue(
+        protected NeoDialogue CreateDialogue(
             DialogueModel data,
-            string? groupId,
             object? trigger = null,
             object? primary = null)
         {
+            string? groupId = data.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
             var context = new NeoDialogueContext(
                 data.id,
                 groupId,
                 trigger,
                 primary,
                 new Dictionary<string, object?>());
-            return new NeoDialogue(data, context, groupId);
+            return new NeoDialogue(data, context, logger, groupId);
+        }
+
+        internal static string? GetValueId(object? value)
+        {
+            return value is INeoValueReference reference
+                ? reference.valueId
+                : null;
+        }
+
+        private static bool IsDialogueInGroup(
+            DialogueModel dialogue,
+            string groupId,
+            string? lookupValueId)
+        {
+            var settings = dialogue.triggerNode?.dialogueGroupSettings;
+            if (settings?.dialogueGroupId != groupId) return false;
+            if (lookupValueId == null) return true;
+            return settings.lookupValueId == lookupValueId;
         }
     }
 
@@ -134,14 +195,22 @@ namespace NeoCompose.Runtime
 
         protected bool TryTriggerStandard(out NeoDialogue dialogue)
         {
+            if (TryTriggerStandard(out NeoDialogueTriggerResult result) && result.dialogue != null)
+            {
+                dialogue = result.dialogue;
+                return true;
+            }
+            if (result.error != null)
+            {
+                EmitEligibleError(new NeoDialogueEligibilityError(result.error, groupId: groupId));
+            }
             dialogue = null!;
             return false;
         }
 
         protected bool TryTriggerStandard(out NeoDialogueTriggerResult result)
         {
-            result = NeoDialogueTriggerResult.NotFound();
-            return false;
+            return root.TryTriggerGroup(groupId, null, null, out result);
         }
     }
 
@@ -154,6 +223,15 @@ namespace NeoCompose.Runtime
         protected bool TryTriggerLookup(TLookup lookup, out NeoDialogue dialogue)
         {
             if (lookup == null) throw new ArgumentNullException(nameof(lookup));
+            if (TryTriggerLookup(lookup, out NeoDialogueTriggerResult result) && result.dialogue != null)
+            {
+                dialogue = result.dialogue;
+                return true;
+            }
+            if (result.error != null)
+            {
+                EmitEligibleError(new NeoDialogueEligibilityError(result.error, groupId: groupId));
+            }
             dialogue = null!;
             return false;
         }
@@ -161,8 +239,15 @@ namespace NeoCompose.Runtime
         protected bool TryTriggerLookup(TLookup lookup, out NeoDialogueTriggerResult result)
         {
             if (lookup == null) throw new ArgumentNullException(nameof(lookup));
-            result = NeoDialogueTriggerResult.NotFound();
-            return false;
+            string? valueId = NeoDialoguesBase.GetValueId(lookup);
+            if (string.IsNullOrEmpty(valueId))
+            {
+                result = NeoDialogueTriggerResult.Failed(
+                    new InvalidOperationException(
+                        $"Lookup dialogue group '{groupId}' requires a value with a Neo value id."));
+                return false;
+            }
+            return root.TryTriggerGroup(groupId, lookup, valueId, out result);
         }
     }
 

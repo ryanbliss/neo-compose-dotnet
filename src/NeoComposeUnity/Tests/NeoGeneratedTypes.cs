@@ -47,9 +47,8 @@ namespace Assets.Scripts.Neo
     public sealed class NeoDialogues : NeoDialoguesBase
     {
         internal NeoDialogues(TestProjectNeo project, NeoDialogueRuntimeOptions? options)
-            : base(options)
+            : base(project.Client, options)
         {
-            var _ = project;
         }
     }
 
