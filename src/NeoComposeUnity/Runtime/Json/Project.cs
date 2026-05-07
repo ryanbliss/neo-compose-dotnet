@@ -34,6 +34,7 @@ namespace NeoCompose.Runtime.Json
         public string name = null!;
         public string rootAssetsAttributeId = null!;
         public string rootSaveFileAttributeId = null!;
+        public string? defaultPriorityGroupId;
         [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
         public string createdAt = null!;
         [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]

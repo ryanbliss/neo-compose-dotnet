@@ -26,7 +26,11 @@ namespace NeoCompose.Runtime
 
     public sealed class NeoDialogueRuntimeOptions
     {
+        private static readonly System.Random DefaultRandom = new();
+
         public Func<DateTime>? UtcNow { get; set; }
+        public Func<double>? RandomDouble { get; set; }
+        public TimeSpan? RecencyHalfLife { get; set; }
         public INeoDialogueLogger? Logger { get; set; }
         public int OnEligibleDebounceMilliseconds { get; set; } = 50;
         public bool OnEligibleEmitAll { get; set; }
@@ -39,6 +43,28 @@ namespace NeoCompose.Runtime
         internal DateTime ResolveUtcNow()
         {
             return (UtcNow ?? (() => DateTime.UtcNow))().ToUniversalTime();
+        }
+
+        internal double ResolveRandomDouble()
+        {
+            var value = (RandomDouble ?? DefaultNextDouble)();
+            if (double.IsNaN(value) || double.IsInfinity(value)) return 0;
+            if (value < 0) return 0;
+            if (value >= 1) return 0.999999999999;
+            return value;
+        }
+
+        internal TimeSpan ResolveRecencyHalfLife()
+        {
+            return RecencyHalfLife ?? TimeSpan.FromDays(1);
+        }
+
+        private static double DefaultNextDouble()
+        {
+            lock (DefaultRandom)
+            {
+                return DefaultRandom.NextDouble();
+            }
         }
     }
 

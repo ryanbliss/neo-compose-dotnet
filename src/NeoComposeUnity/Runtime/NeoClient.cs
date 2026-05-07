@@ -51,6 +51,7 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, PriorityGroup> priorityGroups => data.priorityGroups;
         internal IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
         internal IReadOnlyDictionary<string, string> saveOverrides => saveData.attributeValueOverrides;
+        internal Project project => data.project;
 
         /// <summary>
         /// Fired when the entry for <c>attributeId</c> in

@@ -47,6 +47,36 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void StandardGroupTryTrigger_PrefersHigherPriorityBucket()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            var group = new TestStandardDialogueGroup(root, "group-priority");
+
+            Assert.IsTrue(group.TryTrigger(out NeoDialogueTriggerResult result));
+
+            Assert.IsTrue(result.ok);
+            Assert.IsNotNull(result.dialogue);
+            Assert.AreEqual("dialogue-priority-high", result.dialogue!.id);
+        }
+
+        [Test]
+        public void StandardGroupTryTrigger_PrefersLowerVisitCount()
+        {
+            var client = CreateClient();
+            var memory = new TestMemoryStore();
+            memory.GetOrCreateTestDialogueMemory("dialogue-visit-a").VisitCount = 2;
+            var root = new TestDialogues(client, memoryStore: memory);
+            var group = new TestStandardDialogueGroup(root, "group-visits");
+
+            Assert.IsTrue(group.TryTrigger(out NeoDialogueTriggerResult result));
+
+            Assert.IsTrue(result.ok);
+            Assert.IsNotNull(result.dialogue);
+            Assert.AreEqual("dialogue-visit-b", result.dialogue!.id);
+        }
+
+        [Test]
         public void LookupGroupTryTrigger_FiltersByLookupValueId()
         {
             var client = CreateClient();
@@ -87,6 +117,47 @@ namespace NeoCompose.Tests
             Assert.IsFalse(result.ok);
             Assert.IsNull(result.dialogue);
             Assert.IsNull(result.error);
+        }
+
+        [Test]
+        public void TryTrigger_WithOccurrenceLimitAtVisitCount_ReturnsNotFound()
+        {
+            var client = CreateClient();
+            var memory = new TestMemoryStore();
+            memory.GetOrCreateTestDialogueMemory("dialogue-limited").VisitCount = 1;
+            var root = new TestDialogues(client, memoryStore: memory);
+
+            Assert.IsFalse(root.TryTrigger("dialogue-limited", out NeoDialogueTriggerResult result));
+
+            Assert.IsFalse(result.ok);
+            Assert.IsNull(result.dialogue);
+            Assert.IsNull(result.error);
+        }
+
+        [Test]
+        public void TryTrigger_EvaluatesInheritedGroupConditions()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+
+            Assert.IsFalse(root.TryTrigger("dialogue-parent-condition", out NeoDialogueTriggerResult result));
+
+            Assert.IsFalse(result.ok);
+            Assert.IsNull(result.dialogue);
+            Assert.IsNull(result.error);
+        }
+
+        [Test]
+        public void TryTrigger_DirectLookupDialogueRequiresStoredLookupValue()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+
+            Assert.IsFalse(root.TryTrigger("dialogue-lookup-a", out NeoDialogueTriggerResult result));
+
+            Assert.IsFalse(result.ok);
+            Assert.IsNotNull(result.error);
+            StringAssert.Contains("references missing lookup value", result.error!.Message);
         }
 
         [Test]
@@ -470,6 +541,7 @@ namespace NeoCompose.Tests
                     name = "Dialogue Project",
                     rootAssetsAttributeId = "root-assets",
                     rootSaveFileAttributeId = "root-save",
+                    defaultPriorityGroupId = "priority-default",
                     createdAt = Now,
                     updatedAt = Now,
                 },
@@ -539,19 +611,67 @@ namespace NeoCompose.Tests
                         createdAt = Now,
                         updatedAt = Now,
                     },
+                    ["group-priority"] = new StandardDialogueGroup
+                    {
+                        id = "group-priority",
+                        _id = "group-priority",
+                        projectId = ProjectId,
+                        name = "Priority",
+                        type = DialogueGroupType.Standard,
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
+                    ["group-visits"] = new StandardDialogueGroup
+                    {
+                        id = "group-visits",
+                        _id = "group-visits",
+                        projectId = ProjectId,
+                        name = "Visits",
+                        type = DialogueGroupType.Standard,
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
+                    ["group-folder-false"] = new FolderDialogueGroup
+                    {
+                        id = "group-folder-false",
+                        _id = "group-folder-false",
+                        projectId = ProjectId,
+                        name = "False Folder",
+                        type = DialogueGroupType.Folder,
+                        conditions = new[] { Condition(BoolGetter(false)) },
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
+                    ["group-child-of-false"] = new StandardDialogueGroup
+                    {
+                        id = "group-child-of-false",
+                        _id = "group-child-of-false",
+                        projectId = ProjectId,
+                        name = "Child Of False",
+                        type = DialogueGroupType.Standard,
+                        parentDialogueGroupId = "group-folder-false",
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
                 },
                 dialogues = new Dictionary<string, Dialogue>
                 {
                     ["dialogue-direct"] = Dialogue(
                         "dialogue-direct",
                         "A Direct Dialogue",
-                        "group-standard"),
+                        "group-standard",
+                        relativeOrder: 0),
                     ["dialogue-options"] = OptionsDialogue(),
                     ["dialogue-condition-false"] = Dialogue(
                         "dialogue-condition-false",
                         "Condition False",
                         "group-standard",
                         conditions: new[] { Condition(BoolGetter(false)) }),
+                    ["dialogue-limited"] = Dialogue(
+                        "dialogue-limited",
+                        "Limited",
+                        "group-standard",
+                        occurrenceLimit: 1),
                     ["dialogue-condition-error"] = Dialogue(
                         "dialogue-condition-error",
                         "Condition Error",
@@ -691,6 +811,28 @@ namespace NeoCompose.Tests
                     ["dialogue-action-error"] = ActionDialogue(
                         "dialogue-action-error",
                         ThrowAction("boom")),
+                    ["dialogue-priority-low"] = Dialogue(
+                        "dialogue-priority-low",
+                        "Priority Low",
+                        "group-priority",
+                        priorityTypeId: "priority-low"),
+                    ["dialogue-priority-high"] = Dialogue(
+                        "dialogue-priority-high",
+                        "Priority High",
+                        "group-priority",
+                        priorityTypeId: "priority-high"),
+                    ["dialogue-visit-a"] = Dialogue(
+                        "dialogue-visit-a",
+                        "Visit A",
+                        "group-visits"),
+                    ["dialogue-visit-b"] = Dialogue(
+                        "dialogue-visit-b",
+                        "Visit B",
+                        "group-visits"),
+                    ["dialogue-parent-condition"] = Dialogue(
+                        "dialogue-parent-condition",
+                        "Parent Condition",
+                        "group-child-of-false"),
                     ["dialogue-lookup-a"] = Dialogue(
                         "dialogue-lookup-a",
                         "Lookup A",
@@ -702,7 +844,31 @@ namespace NeoCompose.Tests
                         "group-lookup",
                         "lookup-value-b"),
                 },
-                priorityGroups = new Dictionary<string, PriorityGroup>(),
+                priorityGroups = new Dictionary<string, PriorityGroup>
+                {
+                    ["priority-default"] = new PriorityGroup
+                    {
+                        id = "priority-default",
+                        _id = "priority-default",
+                        projectId = ProjectId,
+                        name = "Default",
+                        options = new[]
+                        {
+                            new PriorityType
+                            {
+                                id = "priority-high",
+                                name = "High",
+                            },
+                            new PriorityType
+                            {
+                                id = "priority-low",
+                                name = "Low",
+                            },
+                        },
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
+                },
             };
 
             string buffer = "";
@@ -729,7 +895,10 @@ namespace NeoCompose.Tests
             string name,
             string groupId,
             string? lookupValueId = null,
-            LogicCondition[]? conditions = null)
+            LogicCondition[]? conditions = null,
+            string? priorityTypeId = null,
+            int? relativeOrder = null,
+            int? occurrenceLimit = null)
         {
             return new Dialogue
             {
@@ -749,11 +918,21 @@ namespace NeoCompose.Tests
                     toNodeId = "text-start",
                     linkedValues = new DialogueLinkedValue[0],
                     conditions = conditions ?? new LogicCondition[0],
+                    occurrenceLimitSettings = occurrenceLimit == null
+                        ? null
+                        : new OccurrenceLimitSettings
+                        {
+                            count = occurrenceLimit.Value,
+                        },
                     dialogueGroupSettings = new DialogueGroupSettings
                     {
                         dialogueGroupId = groupId,
                         lookupValueId = lookupValueId,
-                        priority = new DialogueGroupPrioritySettings(),
+                        priority = new DialogueGroupPrioritySettings
+                        {
+                            priorityTypeId = priorityTypeId,
+                            relativeOrder = relativeOrder,
+                        },
                     },
                 },
                 nodes = new Dictionary<string, DialogueBodyNode>
@@ -1238,6 +1417,11 @@ namespace NeoCompose.Tests
         private sealed class TestMemoryStore : INeoDialogueMemoryStore
         {
             private readonly Dictionary<string, TestDialogueMemory> dialogues = new();
+
+            public TestDialogueMemory GetOrCreateTestDialogueMemory(string dialogueId)
+            {
+                return (TestDialogueMemory)GetOrCreateDialogueMemory(dialogueId);
+            }
 
             public INeoDialogueMemory GetOrCreateDialogueMemory(string dialogueId)
             {

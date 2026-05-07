@@ -5,8 +5,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using DialogueModel = NeoCompose.Runtime.Json.Dialogue;
+using DialogueGroupModel = NeoCompose.Runtime.Json.DialogueGroup;
+using PriorityGroupModel = NeoCompose.Runtime.Json.PriorityGroup;
 
 namespace NeoCompose.Runtime
 {
@@ -59,9 +62,27 @@ namespace NeoCompose.Runtime
                 return false;
             }
 
+            var validationError = ValidateTriggerableDialogue(data, directTrigger: true);
+            if (validationError != null)
+            {
+                result = NeoDialogueTriggerResult.Failed(validationError);
+                return false;
+            }
+
+            var groupId = data.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
             var context = CreateContext(data, null, null);
             try
             {
+                if (!EvaluateGroupConditionChain(groupId, context))
+                {
+                    result = NeoDialogueTriggerResult.NotFound();
+                    return false;
+                }
+                if (!PassesOccurrenceLimit(data))
+                {
+                    result = NeoDialogueTriggerResult.NotFound();
+                    return false;
+                }
                 if (!NeoDialogueConditionEvaluator.EvaluateAll(
                     client,
                     data.triggerNode?.conditions,
@@ -98,19 +119,16 @@ namespace NeoCompose.Runtime
                 return false;
             }
 
-            var triggerContext = new NeoDialogueContext(
-                dialogueId: "",
-                groupId: groupId,
-                trigger: trigger,
-                primary: trigger,
-                linkedValues: new Dictionary<string, object?>());
             try
             {
-                if (client.dialogueGroups.TryGetValue(groupId, out var group)
-                    && !NeoDialogueConditionEvaluator.EvaluateAll(
-                        client,
-                        group.conditions,
-                        triggerContext))
+                if (!EvaluateGroupConditionChain(
+                    groupId,
+                    new NeoDialogueContext(
+                        dialogueId: "",
+                        groupId: groupId,
+                        trigger: trigger,
+                        primary: trigger,
+                        linkedValues: new Dictionary<string, object?>())))
                 {
                     result = NeoDialogueTriggerResult.NotFound();
                     return false;
@@ -125,10 +143,18 @@ namespace NeoCompose.Runtime
             var warnings = new List<NeoDialogueTriggerWarning>();
             var candidates = client.dialogues.Values
                 .Where(dialogue => IsDialogueInGroup(dialogue, groupId, lookupValueId))
-                .OrderBy(dialogue => dialogue.name)
-                .ThenBy(dialogue => dialogue.id)
                 .Where(dialogue =>
                 {
+                    var validationError = ValidateTriggerableDialogue(dialogue, directTrigger: false);
+                    if (validationError != null)
+                    {
+                        warnings.Add(new NeoDialogueTriggerWarning(
+                            validationError.Message,
+                            dialogueId: dialogue.id,
+                            groupId: groupId));
+                        return false;
+                    }
+                    if (!PassesOccurrenceLimit(dialogue)) return false;
                     var context = CreateContext(dialogue, trigger, trigger);
                     try
                     {
@@ -154,7 +180,7 @@ namespace NeoCompose.Runtime
                 return false;
             }
 
-            var selected = candidates[0];
+            var selected = SelectRankedCandidate(candidates, groupId, warnings);
             result = NeoDialogueTriggerResult.Success(
                 CreateDialogue(selected, CreateContext(selected, trigger, trigger)),
                 warnings);
@@ -228,6 +254,239 @@ namespace NeoCompose.Runtime
             if (settings?.dialogueGroupId != groupId) return false;
             if (lookupValueId == null) return true;
             return settings.lookupValueId == lookupValueId;
+        }
+
+        private Exception? ValidateTriggerableDialogue(
+            DialogueModel dialogue,
+            bool directTrigger)
+        {
+            if (dialogue.triggerNode == null)
+            {
+                return new InvalidOperationException(
+                    $"Dialogue '{dialogue.id}' is missing a trigger node.");
+            }
+            if (string.IsNullOrEmpty(dialogue.triggerNode.toNodeId))
+            {
+                return new InvalidOperationException(
+                    $"Dialogue '{dialogue.id}' trigger node does not point to a body node.");
+            }
+            if (dialogue.nodes == null || !dialogue.nodes.ContainsKey(dialogue.triggerNode.toNodeId!))
+            {
+                return new InvalidOperationException(
+                    $"Dialogue '{dialogue.id}' trigger node points to missing body node '{dialogue.triggerNode.toNodeId}'.");
+            }
+
+            var groupId = dialogue.triggerNode.dialogueGroupSettings?.dialogueGroupId;
+            if (groupId != null
+                && client.dialogueGroups.TryGetValue(groupId, out DialogueGroupModel group)
+                && group is NeoCompose.Runtime.Json.LookupDialogueGroup
+                && directTrigger)
+            {
+                string? lookupValueId = dialogue.triggerNode.dialogueGroupSettings?.lookupValueId;
+                if (string.IsNullOrEmpty(lookupValueId))
+                {
+                    return new InvalidOperationException(
+                        $"Lookup dialogue '{dialogue.id}' is missing lookupValueId.");
+                }
+                if (!client.TryGetValue(lookupValueId!, out NeoCompose.Runtime.Json.AttributeValue? _))
+                {
+                    return new InvalidOperationException(
+                        $"Lookup dialogue '{dialogue.id}' references missing lookup value '{lookupValueId}'.");
+                }
+            }
+            return null;
+        }
+
+        private bool EvaluateGroupConditionChain(
+            string? groupId,
+            NeoDialogueContext context)
+        {
+            foreach (var group in GetGroupChain(groupId))
+            {
+                if (!NeoDialogueConditionEvaluator.EvaluateAll(
+                    client,
+                    group.conditions,
+                    context))
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private IEnumerable<DialogueGroupModel> GetGroupChain(string? groupId)
+        {
+            var chain = new List<DialogueGroupModel>();
+            var seen = new HashSet<string>();
+            string? currentId = groupId;
+            while (!string.IsNullOrEmpty(currentId)
+                && seen.Add(currentId)
+                && client.dialogueGroups.TryGetValue(currentId, out DialogueGroupModel group))
+            {
+                chain.Add(group);
+                currentId = group.parentDialogueGroupId;
+            }
+            chain.Reverse();
+            return chain;
+        }
+
+        private bool PassesOccurrenceLimit(DialogueModel dialogue)
+        {
+            var limit = dialogue.triggerNode?.occurrenceLimitSettings;
+            if (limit == null) return true;
+            var visitCount = memoryStore
+                ?.FindDialogueMemory(dialogue.id)
+                ?.VisitCount
+                ?? 0;
+            return visitCount < limit.count;
+        }
+
+        private DialogueModel SelectRankedCandidate(
+            IReadOnlyList<DialogueModel> candidates,
+            string groupId,
+            List<NeoDialogueTriggerWarning> warnings)
+        {
+            var priorityGroup = ResolvePriorityGroup(groupId, warnings);
+            var priorityIndexes = candidates.ToDictionary(
+                dialogue => dialogue.id,
+                dialogue => PriorityIndex(dialogue, priorityGroup, warnings));
+            int topPriority = candidates.Min(dialogue => priorityIndexes[dialogue.id]);
+            var samePriority = candidates
+                .Where(dialogue => priorityIndexes[dialogue.id] == topPriority)
+                .ToArray();
+
+            var ordered = samePriority
+                .Where(dialogue => dialogue.triggerNode?.dialogueGroupSettings?.priority?.relativeOrder != null)
+                .ToArray();
+            if (ordered.Length > 0)
+            {
+                int bestOrder = ordered.Min(dialogue =>
+                    dialogue.triggerNode!.dialogueGroupSettings!.priority.relativeOrder!.Value);
+                var sameOrder = ordered
+                    .Where(dialogue =>
+                        dialogue.triggerNode!.dialogueGroupSettings!.priority.relativeOrder == bestOrder)
+                    .ToArray();
+                if (sameOrder.Length > 1)
+                {
+                    warnings.Add(new NeoDialogueTriggerWarning(
+                        $"Multiple dialogues share relativeOrder {bestOrder} in group '{groupId}'.",
+                        groupId: groupId));
+                }
+                return BreakVisitAndRecencyTie(sameOrder);
+            }
+
+            return BreakVisitAndRecencyTie(samePriority);
+        }
+
+        private PriorityGroupModel? ResolvePriorityGroup(
+            string groupId,
+            List<NeoDialogueTriggerWarning> warnings)
+        {
+            string? priorityGroupId = null;
+            foreach (var group in GetGroupChain(groupId).Reverse())
+            {
+                if (string.IsNullOrEmpty(group.priorityGroupIdOverride)) continue;
+                priorityGroupId = group.priorityGroupIdOverride;
+                break;
+            }
+            priorityGroupId ??= client.project.defaultPriorityGroupId;
+
+            if (string.IsNullOrEmpty(priorityGroupId)) return null;
+            if (client.priorityGroups.TryGetValue(priorityGroupId!, out PriorityGroupModel priorityGroup))
+            {
+                return priorityGroup;
+            }
+
+            warnings.Add(new NeoDialogueTriggerWarning(
+                $"Dialogue group '{groupId}' references missing priority group '{priorityGroupId}'.",
+                groupId: groupId));
+
+            string? fallbackId = client.project.defaultPriorityGroupId;
+            if (!string.IsNullOrEmpty(fallbackId)
+                && fallbackId != priorityGroupId
+                && client.priorityGroups.TryGetValue(fallbackId!, out PriorityGroupModel fallback))
+            {
+                return fallback;
+            }
+            return null;
+        }
+
+        private int PriorityIndex(
+            DialogueModel dialogue,
+            PriorityGroupModel? priorityGroup,
+            List<NeoDialogueTriggerWarning> warnings)
+        {
+            if (priorityGroup?.options == null || priorityGroup.options.Length == 0) return 0;
+            string? priorityTypeId = dialogue
+                .triggerNode
+                ?.dialogueGroupSettings
+                ?.priority
+                ?.priorityTypeId;
+            int lowest = priorityGroup.options.Length - 1;
+            if (string.IsNullOrEmpty(priorityTypeId)) return lowest;
+            for (int i = 0; i < priorityGroup.options.Length; i++)
+            {
+                if (priorityGroup.options[i].id == priorityTypeId) return i;
+            }
+            warnings.Add(new NeoDialogueTriggerWarning(
+                $"Dialogue '{dialogue.id}' references missing priority option '{priorityTypeId}'.",
+                dialogueId: dialogue.id,
+                groupId: dialogue.triggerNode?.dialogueGroupSettings?.dialogueGroupId));
+            return lowest;
+        }
+
+        private DialogueModel BreakVisitAndRecencyTie(IReadOnlyList<DialogueModel> candidates)
+        {
+            int lowestVisitCount = candidates.Min(VisitCount);
+            var sameVisitCount = candidates
+                .Where(dialogue => VisitCount(dialogue) == lowestVisitCount)
+                .ToArray();
+            if (sameVisitCount.Length == 1) return sameVisitCount[0];
+            return WeightedRandomByLastVisitedAt(sameVisitCount);
+        }
+
+        private int VisitCount(DialogueModel dialogue)
+        {
+            return memoryStore?.FindDialogueMemory(dialogue.id)?.VisitCount ?? 0;
+        }
+
+        private DialogueModel WeightedRandomByLastVisitedAt(IReadOnlyList<DialogueModel> candidates)
+        {
+            var now = options.ResolveUtcNow();
+            double total = 0;
+            var weights = new double[candidates.Count];
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                weights[i] = RecencyWeight(candidates[i], now);
+                total += weights[i];
+            }
+
+            double selected = options.ResolveRandomDouble() * total;
+            for (int i = 0; i < candidates.Count; i++)
+            {
+                selected -= weights[i];
+                if (selected <= 0) return candidates[i];
+            }
+            return candidates[candidates.Count - 1];
+        }
+
+        private double RecencyWeight(DialogueModel dialogue, DateTime now)
+        {
+            string? lastVisitedAt = memoryStore
+                ?.FindDialogueMemory(dialogue.id)
+                ?.LastVisitedAt;
+            if (string.IsNullOrEmpty(lastVisitedAt)) return 4;
+            if (!DateTime.TryParse(
+                    lastVisitedAt,
+                    CultureInfo.InvariantCulture,
+                    DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal,
+                    out DateTime parsed))
+            {
+                return 4;
+            }
+            double halfLifeSeconds = Math.Max(1, options.ResolveRecencyHalfLife().TotalSeconds);
+            double ageSeconds = Math.Max(0, (now - parsed.ToUniversalTime()).TotalSeconds);
+            return Math.Max(0.25, Math.Min(4, 1 + ageSeconds / halfLifeSeconds));
         }
     }
 
