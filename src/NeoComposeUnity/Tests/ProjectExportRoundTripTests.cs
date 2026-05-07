@@ -69,7 +69,23 @@ namespace NeoCompose.Tests
         [Test]
         public void MissingDialogueMaps_DeserializeToEmptyDictionaries()
         {
-            var export = Deserialize(LoadFixture("synth-example.json"));
+            var json = @"
+{
+  ""project"": {
+    ""_id"": ""project-a"",
+    ""id"": ""project-a"",
+    ""name"": ""Older Export"",
+    ""rootAssetsAttributeId"": ""assets-root"",
+    ""rootSaveFileAttributeId"": ""save-root"",
+    ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+    ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+  },
+  ""attributes"": {},
+  ""values"": {},
+  ""types"": {},
+  ""enums"": {}
+}";
+            var export = Deserialize(json);
             Assert.IsNotNull(export.dialogues);
             Assert.IsNotNull(export.dialogueGroups);
             Assert.IsNotNull(export.priorityGroups);

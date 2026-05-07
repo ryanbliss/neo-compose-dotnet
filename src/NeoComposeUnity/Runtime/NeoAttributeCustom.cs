@@ -366,7 +366,7 @@ namespace NeoCompose.Runtime
                     {
                         linkedOldChild.Dispose();
                     }
-                    childAttributes[key] = CreateChild(client, childAttribute, setValue.valueId);
+                    ReinitializeChildren();
                     NotifyChanged();
                     return;
                 }
@@ -382,7 +382,7 @@ namespace NeoCompose.Runtime
                 {
                     oldChild.Dispose();
                 }
-                childAttributes[key] = CreateChild(client, childAttribute, existingValueId);
+                ReinitializeChildren();
                 NotifyChanged();
                 return;
             }
@@ -427,7 +427,7 @@ namespace NeoCompose.Runtime
             value.updatedAt = nowIso;
             client.SetSaveValue(value);
 
-            childAttributes[key] = CreateChild(client, childAttribute, newValueId);
+            ReinitializeChildren();
             NotifyChanged();
         }
 

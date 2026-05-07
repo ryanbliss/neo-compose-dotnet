@@ -164,24 +164,23 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Create_FollowedByCreateSaved_ReturnsFirstInstance()
+        public void Create_FollowedByCreateSaved_ReplacesReadOnlyWithSavedInstance()
         {
-            // Pinned behavior: the cache is first-write-wins for the
-            // composed key. If a consumer mixes Create + CreateSaved
-            // for the same attribute they get whichever was first —
-            // there's no Saved-vs-read-only flag in the key. The right
-            // way to build a writeable sub-tree is to bootstrap from
-            // the root with CreateSaved.
+            // Assets are constructed before Save and can register
+            // read-only children for shared schema attributes. A later
+            // saved construction for the same key must upgrade the
+            // registry entry so save-side generated wrappers can get
+            // writeable child nodes.
             var client = LoadClient();
             var altAttr = RequireAttribute<StringAttribute>(client, "attr-altname");
 
             var first = NeoAttribute.Create(client, altAttr, null);
             var second = NeoAttribute.CreateSaved(client, altAttr, null);
 
-            Assert.AreSame(first, second);
+            Assert.AreNotSame(first, second);
             Assert.IsInstanceOf<NeoAttributeString>(first);
-            Assert.IsNotInstanceOf<NeoAttributeStringSaved>(first,
-                "First Create call wins — no Saved variant is constructed even though CreateSaved was the second call");
+            Assert.IsInstanceOf<NeoAttributeStringSaved>(second);
+            Assert.AreSame(second, RequireNode(client, "attr-altname", null));
         }
     }
 }

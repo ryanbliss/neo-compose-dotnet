@@ -150,7 +150,8 @@ namespace NeoCompose.Runtime
             Attribute attribute,
             string? overrideValueId)
         {
-            if (client.TryGetNode(attribute.id, overrideValueId, out NeoAttribute? existing))
+            if (client.TryGetNode(attribute.id, overrideValueId, out NeoAttribute? existing)
+                && IsSavedCompatible(attribute, existing))
             {
                 return existing;
             }
@@ -169,6 +170,25 @@ namespace NeoCompose.Runtime
                 NSGetterAttribute ng => new NeoAttributeNSGetter(client, ng, overrideValueId),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}", nameof(attribute)),
+            };
+        }
+
+        private static bool IsSavedCompatible(Attribute attribute, NeoAttribute existing)
+        {
+            return attribute switch
+            {
+                NullAttribute => existing is NeoAttributeNull,
+                BoolAttribute => existing is NeoAttributeBoolSaved,
+                IntAttribute => existing is NeoAttributeIntSaved,
+                FloatAttribute => existing is NeoAttributeFloatSaved,
+                StringAttribute => existing is NeoAttributeStringSaved,
+                DictionaryAttribute => existing is NeoAttributeDictionarySaved,
+                ListAttribute => existing is NeoAttributeListSaved,
+                CustomAttribute => existing is NeoAttributeCustomSaved,
+                EnumAttribute => existing is NeoAttributeEnumSaved,
+                LookupAttribute => existing is NeoAttributeLookupSaved,
+                NSGetterAttribute => existing is NeoAttributeNSGetter,
+                _ => false,
             };
         }
     }
@@ -256,6 +276,7 @@ namespace NeoCompose.Runtime
             // Subscribe before registering so the first save-override
             // change is observable from the moment the node exists.
             client.OnSaveOverrideChanged += HandleSaveOverrideChanged;
+            client.OnSaveValueChanged += HandleSaveValueChanged;
             // Last step in the base ctor — children walked from a
             // collection-type derived ctor body run after this, but they
             // register under their own keys, so registration order is
@@ -269,6 +290,7 @@ namespace NeoCompose.Runtime
         {
             InitFromValueData();
             client.OnSaveOverrideChanged += HandleSaveOverrideChanged;
+            client.OnSaveValueChanged += HandleSaveValueChanged;
             client.RegisterNode(this);
         }
 
@@ -276,6 +298,7 @@ namespace NeoCompose.Runtime
         {
             if (isDisposed) return;
             client.OnSaveOverrideChanged -= HandleSaveOverrideChanged;
+            client.OnSaveValueChanged -= HandleSaveValueChanged;
             base.Dispose();
         }
 
@@ -289,6 +312,17 @@ namespace NeoCompose.Runtime
         private void HandleSaveOverrideChanged(string changedAttributeId, string? newValueId)
         {
             if (changedAttributeId != attribute.id) return;
+            OnValueIdChainChanged();
+        }
+
+        private void HandleSaveValueChanged(string changedValueId)
+        {
+            if (changedValueId != valueId) return;
+            if (this is NeoAttributeDictionary
+                || this is NeoAttributeList)
+            {
+                return;
+            }
             OnValueIdChainChanged();
         }
 

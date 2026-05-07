@@ -5,12 +5,13 @@
     "name": "Test Project",
     "rootAssetsAttributeId": "root-assets",
     "rootSaveFileAttributeId": "root-save",
+    "defaultPriorityGroupId": "default-priority-group",
     "createdAt": "1970-01-01T00:00:00.000Z",
     "updatedAt": "1970-01-01T00:00:00.000Z"
   },
   "attributes": {
     "root-assets": {
-      "_id": "bc0e8e4c-3289-499f-b239-adde0ff96dd9",
+      "_id": "e090970a-7c7e-4628-8df2-053af2c929e6",
       "id": "root-assets",
       "name": "Assets",
       "type": 7,
@@ -22,7 +23,7 @@
       "customTypeId": "type-root"
     },
     "root-save": {
-      "_id": "8fd6b2d6-497d-47a6-8b3e-a8702063e9df",
+      "_id": "146c75c9-e13c-486a-9552-e3233bb46063",
       "id": "root-save",
       "name": "Save",
       "type": 7,
@@ -34,7 +35,7 @@
       "customTypeId": "type-root"
     },
     "attr-name": {
-      "_id": "e96d04b0-2c00-48d3-9cf8-b8d111b0d7a3",
+      "_id": "06fb3f6b-7e3e-4e21-b328-da378c6150fb",
       "id": "attr-name",
       "name": "Name",
       "type": 3,
@@ -48,7 +49,7 @@
       }
     },
     "attr-altname": {
-      "_id": "3368907d-e5ac-4b36-bc20-1c04f5c8e51b",
+      "_id": "2e6daacd-b7ac-422b-ba06-e5aefe0b1ad2",
       "id": "attr-altname",
       "name": "AltName",
       "type": 3,
@@ -62,7 +63,7 @@
       }
     },
     "attr-health": {
-      "_id": "65d0e268-9443-4862-a882-6f51bda6a673",
+      "_id": "1d40a852-6b0c-4269-b767-07193826c565",
       "id": "attr-health",
       "name": "Health",
       "type": 2,
@@ -76,7 +77,7 @@
       }
     },
     "attr-speed": {
-      "_id": "e7633563-f439-4985-a223-0e449c25c7a0",
+      "_id": "8607972c-44fc-46f4-80df-33cc6a72a1e7",
       "id": "attr-speed",
       "name": "Speed",
       "type": 4,
@@ -90,7 +91,7 @@
       }
     },
     "attr-isalive": {
-      "_id": "d400991a-6c31-4c9c-8110-35356f8c53b6",
+      "_id": "e2408ffd-60b0-4d01-8ca1-6c134266150f",
       "id": "attr-isalive",
       "name": "IsAlive",
       "type": 1,
@@ -104,7 +105,7 @@
       }
     },
     "attr-hero": {
-      "_id": "71232961-057e-40b1-acb8-a695ba8f4183",
+      "_id": "820f4248-eb0b-42c3-ba4b-66a792e8fffa",
       "id": "attr-hero",
       "name": "Hero",
       "type": 7,
@@ -122,7 +123,7 @@
       }
     },
     "attr-inventory": {
-      "_id": "94dc98be-fa49-46cd-8692-8846a66519b8",
+      "_id": "6d035b0c-96ec-4cf8-aa7c-05b3efae692f",
       "id": "attr-inventory",
       "name": "Inventory",
       "type": 5,
@@ -140,7 +141,7 @@
       }
     },
     "attr-tags": {
-      "_id": "f824c683-705d-4170-a5f3-11ff3567300d",
+      "_id": "4f69cb69-49b7-43ab-af72-28b746532fa9",
       "id": "attr-tags",
       "name": "Tags",
       "type": 6,
@@ -158,7 +159,7 @@
       }
     },
     "attr-heroes": {
-      "_id": "219965ee-f668-4ec0-b8f0-6e414160d027",
+      "_id": "003f2310-614e-4814-a8cd-a8890ed67fae",
       "id": "attr-heroes",
       "name": "Heroes",
       "type": 6,
@@ -170,7 +171,7 @@
       "entryAttributeId": "attr-hero"
     },
     "attr-element": {
-      "_id": "988dff6b-c5a3-4b34-b8f8-ec9d5757b15f",
+      "_id": "2c2de7c4-634d-4e2c-b99f-5593691f1cc7",
       "id": "attr-element",
       "name": "Element",
       "type": 8,
@@ -183,7 +184,7 @@
       "multiselect": false
     },
     "attr-choice": {
-      "_id": "7bddf541-478a-469d-b884-466b0f17f613",
+      "_id": "3375bf67-a859-4d70-86d8-fc947cf38a45",
       "id": "attr-choice",
       "name": "Choice",
       "type": 9,
@@ -196,7 +197,7 @@
       "multiselect": true
     },
     "attr-score": {
-      "_id": "2eef311e-a17b-4aff-adf7-1d8bfee5936f",
+      "_id": "48c4ffd4-e808-4eb6-a0bc-f46dc126bc8e",
       "id": "attr-score",
       "name": "Score",
       "type": 10,
@@ -521,7 +522,7 @@
       }
     },
     "attr-manifest": {
-      "_id": "09d833cc-f9fc-4657-af2f-859ec2c50861",
+      "_id": "dfb342e0-86c2-4fda-a80e-ad088fd91794",
       "id": "attr-manifest",
       "name": "Manifest",
       "type": 10,
@@ -595,7 +596,7 @@
       }
     },
     "attr-active": {
-      "_id": "1ff93ea6-ea99-45cc-a126-3beff3d10921",
+      "_id": "04639283-d5b5-4ffe-92c6-bb2536a074c3",
       "id": "attr-active",
       "name": "Active",
       "type": 10,
@@ -635,7 +636,7 @@
       }
     },
     "attr-base": {
-      "_id": "4fa1b2a3-ea26-42a6-89a6-5b98843a0748",
+      "_id": "aa6372ec-cde0-43b4-902e-345c319d8f9e",
       "id": "attr-base",
       "name": "BaseRecord",
       "type": 7,
@@ -647,7 +648,7 @@
       "customTypeId": "type-base"
     },
     "attr-derived": {
-      "_id": "e9aaa1b1-0e05-402f-8225-247d34de001e",
+      "_id": "09ef32e8-c043-441d-86ff-bbaedba25bae",
       "id": "attr-derived",
       "name": "DerivedRecord",
       "type": 7,
@@ -659,7 +660,7 @@
       "customTypeId": "type-derived"
     },
     "attr-override": {
-      "_id": "95cf33e6-7a61-4513-aa39-c8c0d6112a59",
+      "_id": "d56fe554-1166-4dc4-afb1-3d20c6d4ad21",
       "id": "attr-override",
       "name": "OverrideRecord",
       "type": 7,
@@ -669,6 +670,158 @@
       "createdAt": "1970-01-01T00:00:00.000Z",
       "updatedAt": "1970-01-01T00:00:00.000Z",
       "customTypeId": "type-override"
+    },
+    "attr-choice-id": {
+      "_id": "7d441724-4282-4dc6-b2b3-9e9eec5ac0a3",
+      "id": "attr-choice-id",
+      "name": "Choice ID",
+      "type": 3,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "attr-choice-log-entry": {
+      "_id": "a8bc25f9-fb76-4651-a073-d2c8d2fbabe6",
+      "id": "attr-choice-log-entry",
+      "name": "Choice Log Entry",
+      "type": 7,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-choice-log",
+      "defaultValue": {
+        "value": {}
+      }
+    },
+    "attr-choice-history": {
+      "_id": "b8f30e28-0e84-4d39-a537-3f8ad55da6be",
+      "id": "attr-choice-history",
+      "name": "Choice History",
+      "type": 6,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "entryAttributeId": "attr-choice-log-entry",
+      "defaultValue": {
+        "value": []
+      }
+    },
+    "attr-visit-count": {
+      "_id": "31d31294-815a-40c7-8191-776eef97ee3e",
+      "id": "attr-visit-count",
+      "name": "Visit Count",
+      "type": 2,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "defaultValue": {
+        "value": 0
+      }
+    },
+    "attr-last-visited-at": {
+      "_id": "2286bc19-b751-4d1b-8819-b3f6082a2d92",
+      "id": "attr-last-visited-at",
+      "name": "Last Visited At",
+      "type": 3,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "attr-most-recent-choice-id": {
+      "_id": "500f28b9-0f09-4451-b837-860655b195f9",
+      "id": "attr-most-recent-choice-id",
+      "name": "Most Recent Choice ID",
+      "type": 3,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "attr-text-node-memory-entry": {
+      "_id": "3c18ce89-1c12-4d64-a7f0-3cda774b72a0",
+      "id": "attr-text-node-memory-entry",
+      "name": "Text Node Memory Entry",
+      "type": 7,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-text-node-memory",
+      "defaultValue": {
+        "value": {}
+      }
+    },
+    "attr-text-node-memories": {
+      "_id": "9fb23304-ea31-4921-83fd-752c01b50be7",
+      "id": "attr-text-node-memories",
+      "name": "Text Node Memories",
+      "type": 5,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "entryAttributeId": "attr-text-node-memory-entry",
+      "defaultValue": {
+        "value": {}
+      }
+    },
+    "attr-dialogue-memory-entry": {
+      "_id": "bbcdea18-2696-4c79-8d4e-bdadb0503aba",
+      "id": "attr-dialogue-memory-entry",
+      "name": "Dialogue Memory Entry",
+      "type": 7,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-dialogue-memory",
+      "defaultValue": {
+        "value": {}
+      }
+    },
+    "attr-dialogue-memories": {
+      "_id": "182a6604-6248-428b-9f10-10b56c587217",
+      "id": "attr-dialogue-memories",
+      "name": "Dialogue Memories",
+      "type": 5,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "entryAttributeId": "attr-dialogue-memory-entry",
+      "defaultValue": {
+        "value": {}
+      }
+    },
+    "attr-neo-memory": {
+      "_id": "2a9c4061-4bb4-494a-b406-061ea28a31fc",
+      "id": "attr-neo-memory",
+      "name": "NeoMemory",
+      "type": 7,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-neo-memory",
+      "defaultValue": {
+        "value": {}
+      }
     }
   },
   "enums": {
@@ -710,7 +863,8 @@
       "name": "Root",
       "schema": {
         "Heroes": "attr-heroes",
-        "Manifest": "attr-manifest"
+        "Manifest": "attr-manifest",
+        "NeoMemory": "attr-neo-memory"
       },
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
@@ -755,6 +909,63 @@
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "extendsTypeId": "type-base",
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "type-choice-log": {
+      "_id": "type-choice-log",
+      "id": "type-choice-log",
+      "name": "NeoChoiceLog",
+      "schema": {
+        "ChoiceId": "attr-choice-id"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "type-text-node-memory": {
+      "_id": "type-text-node-memory",
+      "id": "type-text-node-memory",
+      "name": "NeoTextNodeMemory",
+      "schema": {
+        "VisitCount": "attr-visit-count",
+        "LastVisitedAt": "attr-last-visited-at",
+        "MostRecentChoiceId": "attr-most-recent-choice-id",
+        "ChoiceHistory": "attr-choice-history"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "type-dialogue-memory": {
+      "_id": "type-dialogue-memory",
+      "id": "type-dialogue-memory",
+      "name": "NeoDialogueMemory",
+      "schema": {
+        "VisitCount": "attr-visit-count",
+        "LastVisitedAt": "attr-last-visited-at",
+        "TextNodeMemories": "attr-text-node-memories"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "type-neo-memory": {
+      "_id": "type-neo-memory",
+      "id": "type-neo-memory",
+      "name": "NeoMemory",
+      "schema": {
+        "DialogueMemories": "attr-dialogue-memories"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
       "projectId": "test-project",
       "createdAt": "1970-01-01T00:00:00.000Z",
       "updatedAt": "1970-01-01T00:00:00.000Z"
@@ -821,6 +1032,112 @@
       "id": "v-null",
       "projectId": "p-1",
       "value": null,
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    }
+  },
+  "dialogues": {
+    "dialogue-linked-hero": {
+      "_id": "dialogue-linked-hero",
+      "id": "dialogue-linked-hero",
+      "projectId": "test-project",
+      "name": "Linked Hero",
+      "description": "Synthetic dialogue for generated Unity tests.",
+      "primaryLinkedValueId": "v-dict",
+      "linkedValues": [
+        {
+          "valueId": "v-dict",
+          "source": 0
+        }
+      ],
+      "settings": {
+        "defaultSaveOptionChoices": true
+      },
+      "triggerNode": {
+        "id": "dialogue-linked-hero-trigger",
+        "type": 0,
+        "layout": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 120,
+          "isOpen": true
+        },
+        "linkedValues": [],
+        "conditions": [],
+        "toNodeId": "dialogue-linked-hero-text",
+        "dialogueGroupSettings": {
+          "dialogueGroupId": "dialogue-group-standard",
+          "lookupValueId": null,
+          "priority": {
+            "priorityTypeId": "priority-low",
+            "relativeOrder": null
+          }
+        },
+        "occurrenceLimitSettings": null
+      },
+      "nodes": {
+        "dialogue-linked-hero-text": {
+          "id": "dialogue-linked-hero-text",
+          "type": 1,
+          "text": "Synthetic hello.",
+          "name": "Greeting",
+          "layout": {
+            "x": 240,
+            "y": 0,
+            "width": 240,
+            "height": 160,
+            "isOpen": true
+          },
+          "primaryLinkedValueId": "v-dict",
+          "linkedValues": [
+            {
+              "valueId": "v-dict",
+              "source": 0
+            }
+          ],
+          "optionSettings": {
+            "saveChoice": true,
+            "options": [
+              {
+                "id": "dialogue-linked-hero-option",
+                "text": "Continue",
+                "name": "Continue"
+              }
+            ]
+          }
+        }
+      },
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    }
+  },
+  "dialogueGroups": {
+    "dialogue-group-standard": {
+      "_id": "dialogue-group-standard",
+      "id": "dialogue-group-standard",
+      "projectId": "test-project",
+      "name": "Standard",
+      "type": 0,
+      "parentDialogueGroupId": null,
+      "conditions": [],
+      "priorityGroupIdOverride": null,
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    }
+  },
+  "priorityGroups": {
+    "default-priority-group": {
+      "_id": "default-priority-group",
+      "id": "default-priority-group",
+      "projectId": "test-project",
+      "name": "Default",
+      "options": [
+        {
+          "id": "priority-low",
+          "name": "Low"
+        }
+      ],
       "createdAt": "1970-01-01T00:00:00.000Z",
       "updatedAt": "1970-01-01T00:00:00.000Z"
     }

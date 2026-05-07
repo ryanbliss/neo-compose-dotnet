@@ -22,12 +22,18 @@ namespace NeoCompose.Tests
             return File.ReadAllText(Path.Combine(PackageRoot, fileName));
         }
 
-        private static TestProjectNeo LoadGeneratedClient(out string saveBuffer)
+        private static TestProjectNeo LoadGeneratedClient(
+            out string saveBuffer,
+            NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             string buffer = "";
             string loadSave() => buffer;
             void handleSave(string file) => buffer = file;
-            var app = TestProjectNeo.Load(LoadFixture("synth-example.json"), loadSave, handleSave);
+            var app = TestProjectNeo.Load(
+                LoadFixture("synth-example.json"),
+                loadSave,
+                handleSave,
+                dialogueOptions);
             saveBuffer = buffer;
             return app;
         }
@@ -226,6 +232,64 @@ namespace NeoCompose.Tests
 
             Assert.IsInstanceOf<Hero>(savedResolved);
             Assert.AreEqual("Saved Hero", ((Hero)savedResolved!).Name);
+        }
+
+        [Test]
+        public void GeneratedDialogueGroup_UsesGeneratedValueResolverAndMemoryStore()
+        {
+            var now = new System.DateTime(
+                2026,
+                5,
+                7,
+                12,
+                0,
+                0,
+                System.DateTimeKind.Utc);
+            var app = LoadGeneratedClient(
+                out _,
+                new NeoDialogueRuntimeOptions
+                {
+                    UtcNow = () => now,
+                    RandomDouble = () => 0,
+                });
+
+            Assert.IsTrue(app.Dialogues.Standard.TryTrigger(out NeoDialogue dialogue));
+
+            Assert.AreEqual("dialogue-linked-hero", dialogue.Id);
+            Assert.IsInstanceOf<ReadOnlyHero>(dialogue.Primary);
+            Assert.IsTrue(dialogue.LinkedValues.TryGetValue("v-dict", out object? linked));
+            Assert.IsInstanceOf<ReadOnlyHero>(linked);
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.ShowText += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(shown);
+            Assert.IsInstanceOf<ReadOnlyHero>(shown!.Primary);
+            Assert.IsTrue(shown.LinkedValues.TryGetValue("v-dict", out object? textLinked));
+            Assert.IsInstanceOf<ReadOnlyHero>(textLinked);
+            Assert.AreEqual(1, shown.Options.Count);
+
+            shown.Options[0].Select();
+
+            var memory = (NeoDialogueMemory)app.Save.NeoMemory
+                .FindDialogueMemory("dialogue-linked-hero")!;
+            Assert.AreEqual(1, memory.VisitCount);
+            Assert.AreEqual(now.ToString("o"), memory.LastVisitedAt);
+
+            var textMemory = (NeoTextNodeMemory)memory
+                .FindTextNodeMemory("dialogue-linked-hero-text")!;
+            Assert.AreEqual(1, textMemory.VisitCount);
+            Assert.AreEqual(now.ToString("o"), textMemory.LastVisitedAt);
+            Assert.AreEqual(
+                "dialogue-linked-hero-option",
+                textMemory.MostRecentChoiceId);
+            Assert.IsTrue(textMemory.HasChoice("dialogue-linked-hero-option"));
+            Assert.AreEqual(1, textMemory.ChoiceHistory.Count);
+            Assert.AreEqual(
+                "dialogue-linked-hero-option",
+                textMemory.ChoiceHistory[0].ChoiceId);
         }
 
         [Test]
