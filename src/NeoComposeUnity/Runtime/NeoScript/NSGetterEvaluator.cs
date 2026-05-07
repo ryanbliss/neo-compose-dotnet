@@ -207,6 +207,14 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         public static object? UnwrapRow(AttributeValue row, Context ctx) => UnwrapCached(row, ctx);
 
+        internal static object? EvaluatePointer(
+            Pointer pointer,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            return EvalPointer(pointer, scope, ctx);
+        }
+
         // ---------------------------------------------------------------
         // Instructions
         // ---------------------------------------------------------------
@@ -1346,7 +1354,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private static string? FindRowIdByReference(object? value, Context ctx)
+        internal static string? FindRowIdByReference(object? value, Context ctx)
         {
             if (value is null) return null;
             return ctx.rowReverseIndex.TryGetValue(value, out string? id) ? id : null;

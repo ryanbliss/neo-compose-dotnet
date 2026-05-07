@@ -26,6 +26,7 @@ namespace NeoCompose.Runtime
 
     public sealed class NeoDialogueRuntimeOptions
     {
+        public Func<DateTime>? UtcNow { get; set; }
         public INeoDialogueLogger? Logger { get; set; }
         public int OnEligibleDebounceMilliseconds { get; set; } = 50;
         public bool OnEligibleEmitAll { get; set; }
@@ -33,6 +34,11 @@ namespace NeoCompose.Runtime
         internal INeoDialogueLogger ResolveLogger()
         {
             return Logger ?? new UnityNeoDialogueLogger();
+        }
+
+        internal DateTime ResolveUtcNow()
+        {
+            return (UtcNow ?? (() => DateTime.UtcNow))().ToUniversalTime();
         }
     }
 

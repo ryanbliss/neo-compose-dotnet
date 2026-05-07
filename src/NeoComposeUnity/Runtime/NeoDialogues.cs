@@ -17,14 +17,19 @@ namespace NeoCompose.Runtime
         protected NeoClient client { get; }
         protected NeoDialogueRuntimeOptions options { get; }
         protected INeoDialogueLogger logger { get; }
+        protected INeoDialogueMemoryStore? memoryStore { get; }
 
         public event Action<NeoDialogueEligibilityError>? OnEligibleError;
 
-        protected NeoDialoguesBase(NeoClient client, NeoDialogueRuntimeOptions? options = null)
+        protected NeoDialoguesBase(
+            NeoClient client,
+            NeoDialogueRuntimeOptions? options = null,
+            INeoDialogueMemoryStore? memoryStore = null)
         {
             this.client = client;
             this.options = options ?? new NeoDialogueRuntimeOptions();
             logger = this.options.ResolveLogger();
+            this.memoryStore = memoryStore;
         }
 
         public virtual bool TryTrigger(string dialogueId, out NeoDialogue dialogue)
@@ -190,7 +195,7 @@ namespace NeoCompose.Runtime
             NeoDialogueContext context)
         {
             string? groupId = data.triggerNode?.dialogueGroupSettings?.dialogueGroupId;
-            return new NeoDialogue(client, data, context, logger, groupId);
+            return new NeoDialogue(client, data, context, logger, options, memoryStore, groupId);
         }
 
         protected NeoDialogueContext CreateContext(

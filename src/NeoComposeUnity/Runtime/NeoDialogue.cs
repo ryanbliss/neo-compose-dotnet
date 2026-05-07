@@ -6,11 +6,15 @@
 using System;
 using System.Collections.Generic;
 using DialogueActionsNodeModel = NeoCompose.Runtime.Json.DialogueActionsNode;
+using DialogueActionModel = NeoCompose.Runtime.Json.DialogueAction;
 using DialogueConditionsNodeModel = NeoCompose.Runtime.Json.DialogueConditionsNode;
+using DialogueLogicEditAttributeActionModel = NeoCompose.Runtime.Json.DialogueLogicEditAttributeAction;
 using DialogueModel = NeoCompose.Runtime.Json.Dialogue;
 using DialogueOutcomeModel = NeoCompose.Runtime.Json.DialogueOutcome;
 using DialogueTextNodeModel = NeoCompose.Runtime.Json.DialogueTextNode;
 using DialogueTextOptionModel = NeoCompose.Runtime.Json.DialogueTextOption;
+using CodeLogicActionModel = NeoCompose.Runtime.Json.CodeLogicAction;
+using UILogicActionModel = NeoCompose.Runtime.Json.UILogicAction;
 
 namespace NeoCompose.Runtime
 {
@@ -18,6 +22,8 @@ namespace NeoCompose.Runtime
     {
         private readonly NeoClient client;
         private readonly INeoDialogueLogger logger;
+        private readonly NeoDialogueRuntimeOptions options;
+        private readonly INeoDialogueMemoryStore? memoryStore;
         private bool started;
         private bool disposed;
 
@@ -37,12 +43,16 @@ namespace NeoCompose.Runtime
             DialogueModel data,
             NeoDialogueContext context,
             INeoDialogueLogger logger,
+            NeoDialogueRuntimeOptions options,
+            INeoDialogueMemoryStore? memoryStore,
             string? groupId = null)
         {
             this.client = client;
             this.data = data;
             this.context = context;
             this.logger = logger;
+            this.options = options;
+            this.memoryStore = memoryStore;
             id = data.id;
             this.groupId = groupId;
         }
@@ -58,6 +68,15 @@ namespace NeoCompose.Runtime
                 throw new ObjectDisposedException(nameof(NeoDialogue));
             }
             started = true;
+            try
+            {
+                RecordDialogueVisit();
+            }
+            catch (Exception ex)
+            {
+                Fail(ex);
+                return;
+            }
             EnterNode(data.triggerNode?.toNodeId);
         }
 
@@ -98,7 +117,21 @@ namespace NeoCompose.Runtime
 
         private void EnterTextNode(DialogueTextNodeModel node)
         {
+            try
+            {
+                RecordTextNodeVisit(node.id);
+            }
+            catch (Exception ex)
+            {
+                Fail(ex);
+                return;
+            }
+
             bool optionSelected = false;
+            bool saveChoice =
+                node.optionSettings?.saveChoice
+                ?? data.settings?.defaultSaveOptionChoices
+                ?? false;
             var optionModels = node.optionSettings?.options ?? Array.Empty<DialogueTextOptionModel>();
             var options = new List<NeoDialogueTextOption>(optionModels.Length);
             foreach (var optionModel in optionModels)
@@ -116,15 +149,23 @@ namespace NeoCompose.Runtime
                         }
                         optionSelected = true;
                         context.optionId = optionModel.id;
+                        if (saveChoice)
+                        {
+                            try
+                            {
+                                SaveTextNodeChoice(node.id, optionModel.id);
+                            }
+                            catch (Exception ex)
+                            {
+                                Fail(ex);
+                                return;
+                            }
+                        }
                         EnterNode(optionModel.toNodeId);
                     },
                     EnsureActive));
             }
 
-            bool saveChoice =
-                node.optionSettings?.saveChoice
-                ?? data.settings?.defaultSaveOptionChoices
-                ?? false;
             ShowText?.Invoke(new NeoDialogueTextNode(
                 node.id,
                 node.text,
@@ -138,10 +179,33 @@ namespace NeoCompose.Runtime
 
         private void EnterActionsNode(DialogueActionsNodeModel node)
         {
-            if (node.actions != null && node.actions.Length > 0)
+            try
             {
-                Fail(new NotSupportedException(
-                    $"Dialogue '{id}' action execution is not implemented yet."));
+                foreach (var action in node.actions ?? Array.Empty<DialogueActionModel>())
+                {
+                    if (action is DialogueLogicEditAttributeActionModel logicAction)
+                    {
+                        var compiled = logicAction.logic switch
+                        {
+                            UILogicActionModel ui => ui.action,
+                            CodeLogicActionModel code => code.action,
+                            _ => null,
+                        };
+                        if (compiled == null)
+                        {
+                            throw new InvalidOperationException(
+                                $"Dialogue action '{action.id}' has no compiled action.");
+                        }
+                        NeoDialogueActionEvaluator.Execute(client, compiled, context);
+                        continue;
+                    }
+                    throw new NotSupportedException(
+                        $"Dialogue action '{action.id}' has unsupported action type '{action.GetType().Name}'.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Fail(ex);
                 return;
             }
             EnterNode(node.toNodeId);
@@ -168,7 +232,41 @@ namespace NeoCompose.Runtime
                 EnterNode(outcome.toNodeId);
                 return;
             }
-            Finish();
+                Finish();
+        }
+
+        private void RecordDialogueVisit()
+        {
+            var memory = memoryStore?.GetOrCreateDialogueMemory(id);
+            if (memory == null) return;
+            memory.VisitCount += 1;
+            memory.LastVisitedAt = CurrentUtcIso();
+        }
+
+        private void RecordTextNodeVisit(string textNodeId)
+        {
+            var memory = memoryStore?.GetOrCreateDialogueMemory(id)
+                .GetOrCreateTextNodeMemory(textNodeId);
+            if (memory == null) return;
+            memory.VisitCount += 1;
+            memory.LastVisitedAt = CurrentUtcIso();
+        }
+
+        private void SaveTextNodeChoice(string textNodeId, string optionId)
+        {
+            var memory = memoryStore?.GetOrCreateDialogueMemory(id)
+                .GetOrCreateTextNodeMemory(textNodeId);
+            if (memory == null) return;
+            memory.MostRecentChoiceId = optionId;
+            if (!memory.HasChoice(optionId))
+            {
+                memory.AddChoice(optionId);
+            }
+        }
+
+        private string CurrentUtcIso()
+        {
+            return options.ResolveUtcNow().ToString("o");
         }
 
         private void EnsureActive()

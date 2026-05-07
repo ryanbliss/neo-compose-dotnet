@@ -47,7 +47,7 @@ namespace NeoCompose.Runtime
                 $"Dialogue condition returned {ResultTypeName(result)}; expected bool.");
         }
 
-        private static NSGetterEvaluator.Context BuildContext(
+        internal static NSGetterEvaluator.Context BuildContext(
             NeoClient client,
             NeoDialogueContext dialogueContext)
         {
