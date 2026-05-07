@@ -1993,7 +1993,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        internal static ReadOnlyJupiterOutpost Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ReadOnlyJupiterOutpost Create(NeoClient client, NeoAttributeCustom node)
         {
             var clientTypeId = node.value?.typeId;
             return clientTypeId switch
@@ -2011,7 +2011,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Planet Planet
+        public new Planet Planet
         {
             get
             {
@@ -2027,8 +2027,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             : base(client, node)
         {
         }
-
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
         public JupiterOutpost(string Name, JupiterMoon Moon, Planet? Planet = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, Planet))
@@ -2074,7 +2072,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "a50efb7e-58f6-4342-906e-0b01f98b15af", value, valueRows);
         }
 
-        internal static JupiterOutpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal new static JupiterOutpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var clientTypeId = node.value?.typeId;
             return clientTypeId switch
@@ -2128,7 +2126,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new JupiterMoon Moon
+        public JupiterMoon Moon
         {
             get
             {
@@ -2148,7 +2146,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        internal static ReadOnlySaturnOutpost Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ReadOnlySaturnOutpost Create(NeoClient client, NeoAttributeCustom node)
         {
             var clientTypeId = node.value?.typeId;
             return clientTypeId switch
@@ -2157,7 +2155,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public Planet Planet
+        public new Planet Planet
         {
             get
             {
@@ -2182,8 +2180,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             : base(client, node)
         {
         }
-
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
         public SaturnOutpost(string Name, SaturnMoon Moon, Planet? Planet = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, Planet))
@@ -2229,7 +2225,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96818dab-90e5-4ab9-8f69-cce66e39e370", value, valueRows);
         }
 
-        internal static SaturnOutpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal new static SaturnOutpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var clientTypeId = node.value?.typeId;
             return clientTypeId switch
@@ -2283,7 +2279,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new SaturnMoon Moon
+        public SaturnMoon Moon
         {
             get
             {
