@@ -25,6 +25,6 @@ namespace NeoCompose.Runtime
         string? LastVisitedAt { get; set; }
         string? MostRecentChoiceId { get; set; }
         bool HasChoice(string choiceId);
-        void AddChoice(string choiceId);
+        void AddChoice(string choiceId, string createdAt);
     }
 }

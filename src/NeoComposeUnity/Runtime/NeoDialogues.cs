@@ -40,18 +40,18 @@ namespace NeoCompose.Runtime
 
         public virtual bool TryTrigger(string dialogueId, out NeoDialogue dialogue)
         {
-            if (TryTrigger(dialogueId, out NeoDialogueTriggerResult result) && result.dialogue != null)
+            if (TryTrigger(dialogueId, out NeoDialogueTriggerResult result) && result.Dialogue != null)
             {
-                dialogue = result.dialogue;
+                dialogue = result.Dialogue;
                 return true;
             }
-            if (result.error != null)
+            if (result.Error != null)
             {
-                logger.LogException(result.error);
+                logger.LogException(result.Error);
             }
-            foreach (var warning in result.warnings)
+            foreach (var warning in result.Warnings)
             {
-                logger.LogWarning(warning.message);
+                logger.LogWarning(warning.Message);
             }
             dialogue = null!;
             return false;
@@ -191,15 +191,15 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        public IDisposable OnEligible(Action<NeoDialogue> handler)
+        public NeoDialogueWatcher OnEligible(Action<NeoDialogue> handler)
         {
             return OnEligible(handler, new NeoOnEligibleOptions());
         }
 
-        public IDisposable OnEligible(Action<NeoDialogue> handler, NeoOnEligibleOptions options)
+        public NeoDialogueWatcher OnEligible(Action<NeoDialogue> handler, NeoOnEligibleOptions options)
         {
             eligibleHandlers.Add(handler);
-            return new NeoDisposableAction(() => eligibleHandlers.Remove(handler));
+            return new NeoDialogueWatcher(() => eligibleHandlers.Remove(handler));
         }
 
         protected void EmitEligible(NeoDialogue dialogue)
@@ -217,7 +217,7 @@ namespace NeoCompose.Runtime
                 OnEligibleError.Invoke(error);
                 return;
             }
-            logger.LogException(error.exception);
+            logger.LogException(error.Exception);
         }
 
         protected NeoDialogue CreateDialogue(
@@ -546,24 +546,26 @@ namespace NeoCompose.Runtime
     public abstract class NeoDialogueGroupBase
     {
         protected NeoDialoguesBase root { get; }
-        public string groupId { get; }
+        protected string groupId { get; }
+        public string GroupId { get; }
 
         protected NeoDialogueGroupBase(NeoDialoguesBase root, string groupId)
         {
             this.root = root;
             this.groupId = groupId;
+            GroupId = groupId;
         }
 
-        public IDisposable OnEligible(Action<NeoDialogue> handler)
+        public NeoDialogueWatcher OnEligible(Action<NeoDialogue> handler)
         {
             return OnEligible(handler, new NeoOnEligibleOptions());
         }
 
-        public virtual IDisposable OnEligible(
+        public virtual NeoDialogueWatcher OnEligible(
             Action<NeoDialogue> handler,
             NeoOnEligibleOptions options)
         {
-            return new NeoDisposableAction(() => { });
+            return new NeoDialogueWatcher(() => { });
         }
     }
 
@@ -587,14 +589,14 @@ namespace NeoCompose.Runtime
 
         protected bool TryTriggerStandard(out NeoDialogue dialogue)
         {
-            if (TryTriggerStandard(out NeoDialogueTriggerResult result) && result.dialogue != null)
+            if (TryTriggerStandard(out NeoDialogueTriggerResult result) && result.Dialogue != null)
             {
-                dialogue = result.dialogue;
+                dialogue = result.Dialogue;
                 return true;
             }
-            if (result.error != null)
+            if (result.Error != null)
             {
-                EmitEligibleError(new NeoDialogueEligibilityError(result.error, groupId: groupId));
+                EmitEligibleError(new NeoDialogueEligibilityError(result.Error, groupId: groupId));
             }
             dialogue = null!;
             return false;
@@ -615,14 +617,14 @@ namespace NeoCompose.Runtime
         protected bool TryTriggerLookup(TLookup lookup, out NeoDialogue dialogue)
         {
             if (lookup == null) throw new ArgumentNullException(nameof(lookup));
-            if (TryTriggerLookup(lookup, out NeoDialogueTriggerResult result) && result.dialogue != null)
+            if (TryTriggerLookup(lookup, out NeoDialogueTriggerResult result) && result.Dialogue != null)
             {
-                dialogue = result.dialogue;
+                dialogue = result.Dialogue;
                 return true;
             }
-            if (result.error != null)
+            if (result.Error != null)
             {
-                EmitEligibleError(new NeoDialogueEligibilityError(result.error, groupId: groupId));
+                EmitEligibleError(new NeoDialogueEligibilityError(result.Error, groupId: groupId));
             }
             dialogue = null!;
             return false;

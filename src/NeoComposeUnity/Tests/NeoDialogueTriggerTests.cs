@@ -24,11 +24,14 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(root.TryTrigger("dialogue-direct", out NeoDialogueTriggerResult result));
 
-            Assert.IsTrue(result.ok);
-            Assert.IsNotNull(result.dialogue);
-            Assert.AreEqual("dialogue-direct", result.dialogue!.id);
-            Assert.AreEqual("group-standard", result.dialogue.groupId);
-            Assert.IsFalse(result.dialogue.isStarted);
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.AreEqual("dialogue-direct", result.Dialogue!.Id);
+            Assert.AreEqual("A Direct Dialogue", result.Dialogue.Name);
+            Assert.IsNull(result.Dialogue.Description);
+            Assert.AreEqual("group-standard", result.Dialogue.GroupId);
+            Assert.AreEqual(NeoDialogueState.Created, result.Dialogue.State);
+            Assert.IsFalse(result.Dialogue.IsStarted);
         }
 
         [Test]
@@ -40,10 +43,10 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(group.TryTrigger(out NeoDialogueTriggerResult result));
 
-            Assert.IsTrue(result.ok);
-            Assert.IsNotNull(result.dialogue);
-            Assert.AreEqual("dialogue-direct", result.dialogue!.id);
-            Assert.AreEqual("group-standard", result.dialogue.context.groupId);
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.AreEqual("dialogue-direct", result.Dialogue!.Id);
+            Assert.AreEqual("group-standard", result.Dialogue.Context.GroupId);
         }
 
         [Test]
@@ -55,9 +58,9 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(group.TryTrigger(out NeoDialogueTriggerResult result));
 
-            Assert.IsTrue(result.ok);
-            Assert.IsNotNull(result.dialogue);
-            Assert.AreEqual("dialogue-priority-high", result.dialogue!.id);
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.AreEqual("dialogue-priority-high", result.Dialogue!.Id);
         }
 
         [Test]
@@ -71,9 +74,9 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(group.TryTrigger(out NeoDialogueTriggerResult result));
 
-            Assert.IsTrue(result.ok);
-            Assert.IsNotNull(result.dialogue);
-            Assert.AreEqual("dialogue-visit-b", result.dialogue!.id);
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.AreEqual("dialogue-visit-b", result.Dialogue!.Id);
         }
 
         [Test]
@@ -85,11 +88,26 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(group.TryTrigger(new TestLookupValue("lookup-value-b"), out NeoDialogueTriggerResult result));
 
-            Assert.IsTrue(result.ok);
-            Assert.IsNotNull(result.dialogue);
-            Assert.AreEqual("dialogue-lookup-b", result.dialogue!.id);
-            Assert.AreEqual("lookup-value-b", ((TestLookupValue)result.dialogue.context.trigger!).valueId);
-            Assert.AreEqual(result.dialogue.context.trigger, result.dialogue.context.primary);
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.AreEqual("dialogue-lookup-b", result.Dialogue!.Id);
+            Assert.AreEqual("lookup-value-b", ((TestLookupValue)result.Dialogue.Context.Trigger!).valueId);
+            Assert.AreEqual(result.Dialogue.Context.Trigger, result.Dialogue.Context.Primary);
+        }
+
+        [Test]
+        public void LookupGroupTryTrigger_AcceptsDerivedLookupValue()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            var group = new TestLookupDialogueGroup(root, "group-lookup");
+
+            Assert.IsTrue(group.TryTrigger(new DerivedTestLookupValue("lookup-value-b"), out NeoDialogueTriggerResult result));
+
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.AreEqual("dialogue-lookup-b", result.Dialogue!.Id);
+            Assert.IsInstanceOf<DerivedTestLookupValue>(result.Dialogue.Context.Trigger);
         }
 
         [Test]
@@ -101,9 +119,9 @@ namespace NeoCompose.Tests
 
             Assert.IsFalse(group.TryTrigger(new TestLookupValue(null), out NeoDialogueTriggerResult result));
 
-            Assert.IsFalse(result.ok);
-            Assert.IsNotNull(result.error);
-            StringAssert.Contains("requires a value with a Neo value id", result.error!.Message);
+            Assert.IsFalse(result.Ok);
+            Assert.IsNotNull(result.Error);
+            StringAssert.Contains("requires a value with a Neo value id", result.Error!.Message);
         }
 
         [Test]
@@ -114,9 +132,9 @@ namespace NeoCompose.Tests
 
             Assert.IsFalse(root.TryTrigger("dialogue-condition-false", out NeoDialogueTriggerResult result));
 
-            Assert.IsFalse(result.ok);
-            Assert.IsNull(result.dialogue);
-            Assert.IsNull(result.error);
+            Assert.IsFalse(result.Ok);
+            Assert.IsNull(result.Dialogue);
+            Assert.IsNull(result.Error);
         }
 
         [Test]
@@ -129,9 +147,9 @@ namespace NeoCompose.Tests
 
             Assert.IsFalse(root.TryTrigger("dialogue-limited", out NeoDialogueTriggerResult result));
 
-            Assert.IsFalse(result.ok);
-            Assert.IsNull(result.dialogue);
-            Assert.IsNull(result.error);
+            Assert.IsFalse(result.Ok);
+            Assert.IsNull(result.Dialogue);
+            Assert.IsNull(result.Error);
         }
 
         [Test]
@@ -142,9 +160,9 @@ namespace NeoCompose.Tests
 
             Assert.IsFalse(root.TryTrigger("dialogue-parent-condition", out NeoDialogueTriggerResult result));
 
-            Assert.IsFalse(result.ok);
-            Assert.IsNull(result.dialogue);
-            Assert.IsNull(result.error);
+            Assert.IsFalse(result.Ok);
+            Assert.IsNull(result.Dialogue);
+            Assert.IsNull(result.Error);
         }
 
         [Test]
@@ -155,9 +173,9 @@ namespace NeoCompose.Tests
 
             Assert.IsFalse(root.TryTrigger("dialogue-lookup-a", out NeoDialogueTriggerResult result));
 
-            Assert.IsFalse(result.ok);
-            Assert.IsNotNull(result.error);
-            StringAssert.Contains("references missing lookup value", result.error!.Message);
+            Assert.IsFalse(result.Ok);
+            Assert.IsNotNull(result.Error);
+            StringAssert.Contains("references missing lookup value", result.Error!.Message);
         }
 
         [Test]
@@ -170,11 +188,11 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(root.TryTrigger("dialogue-lookup-direct", out NeoDialogueTriggerResult result));
 
-            Assert.IsTrue(result.ok);
-            Assert.IsNotNull(result.dialogue);
-            Assert.IsInstanceOf<TestLookupValue>(result.dialogue!.context.trigger);
-            Assert.AreEqual("lookup-value-direct", ((TestLookupValue)result.dialogue.context.trigger!).valueId);
-            Assert.AreSame(result.dialogue.context.trigger, result.dialogue.context.primary);
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.IsInstanceOf<TestLookupValue>(result.Dialogue!.Context.Trigger);
+            Assert.AreEqual("lookup-value-direct", ((TestLookupValue)result.Dialogue.Context.Trigger!).valueId);
+            Assert.AreSame(result.Dialogue.Context.Trigger, result.Dialogue.Context.Primary);
         }
 
         [Test]
@@ -187,9 +205,9 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(root.TryTrigger("dialogue-linked-values", out NeoDialogueTriggerResult result));
 
-            Assert.IsTrue(result.ok);
-            Assert.IsNotNull(result.dialogue);
-            Assert.IsTrue(result.dialogue!.context.linkedValues.TryGetValue(
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.IsTrue(result.Dialogue!.Context.LinkedValues.TryGetValue(
                 "linked-value-a",
                 out object? linked));
             Assert.IsInstanceOf<TestLookupValue>(linked);
@@ -204,9 +222,9 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(root.TryTrigger("dialogue-context-condition", out NeoDialogueTriggerResult result));
 
-            Assert.IsTrue(result.ok);
-            Assert.IsNotNull(result.dialogue);
-            Assert.AreEqual("dialogue-context-condition", result.dialogue!.id);
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.AreEqual("dialogue-context-condition", result.Dialogue!.Id);
         }
 
         [Test]
@@ -217,9 +235,9 @@ namespace NeoCompose.Tests
 
             Assert.IsFalse(root.TryTrigger("dialogue-condition-error", out NeoDialogueTriggerResult result));
 
-            Assert.IsFalse(result.ok);
-            Assert.IsNotNull(result.error);
-            StringAssert.Contains("expected bool", result.error!.Message);
+            Assert.IsFalse(result.Ok);
+            Assert.IsNotNull(result.Error);
+            StringAssert.Contains("expected bool", result.Error!.Message);
         }
 
         [Test]
@@ -236,16 +254,18 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(dialogue.isStarted);
+            Assert.IsTrue(dialogue.IsStarted);
+            Assert.AreEqual(NeoDialogueState.Started, dialogue.State);
             Assert.IsNotNull(shown);
-            Assert.AreEqual("text-start", shown!.id);
-            Assert.AreEqual("Hello there.", shown.text);
+            Assert.AreEqual("text-start", shown!.Id);
+            Assert.AreEqual("Hello there.", shown.Text);
             Assert.IsFalse(finished);
 
             shown.Next();
 
             Assert.IsTrue(finished);
-            Assert.IsTrue(dialogue.isDisposed);
+            Assert.AreEqual(NeoDialogueState.Finished, dialogue.State);
+            Assert.IsFalse(dialogue.IsDisposed);
             Assert.Throws<System.ObjectDisposedException>(() => shown.Next());
             Assert.Throws<System.InvalidOperationException>(() => dialogue.Start());
         }
@@ -297,12 +317,15 @@ namespace NeoCompose.Tests
             NeoDialogueTextNode? shown = null;
             dialogue.ShowText += node => shown = node;
 
-            Assert.IsInstanceOf<TestLookupValue>(dialogue.context.primary);
-            Assert.AreEqual("primary-dialogue", ((TestLookupValue)dialogue.context.primary!).valueId);
+            Assert.IsInstanceOf<TestLookupValue>(dialogue.Context.Primary);
+            Assert.AreEqual("primary-dialogue", ((TestLookupValue)dialogue.Context.Primary!).valueId);
+            Assert.AreSame(dialogue.Context.Primary, dialogue.Primary);
 
             dialogue.Start();
 
             Assert.IsNotNull(shown);
+            Assert.AreEqual("primary-dialogue", ((TestLookupValue)dialogue.Context.Primary!).valueId);
+            Assert.AreSame(dialogue.Primary, dialogue.Context.Primary);
             Assert.IsInstanceOf<TestLookupValue>(shown!.Primary);
             Assert.AreEqual("primary-text", ((TestLookupValue)shown.Primary!).valueId);
         }
@@ -323,8 +346,9 @@ namespace NeoCompose.Tests
 
             Assert.IsNotNull(shown);
             Assert.AreEqual(1, shown!.LinkedValues.Count);
-            Assert.IsInstanceOf<TestLookupValue>(shown.LinkedValues[0]);
-            Assert.AreEqual("text-linked-value-a", ((TestLookupValue)shown.LinkedValues[0]!).valueId);
+            Assert.IsTrue(shown.LinkedValues.TryGetValue("text-linked-value-a", out object? linked));
+            Assert.IsInstanceOf<TestLookupValue>(linked);
+            Assert.AreEqual("text-linked-value-a", ((TestLookupValue)linked!).valueId);
         }
 
         [Test]
@@ -342,22 +366,23 @@ namespace NeoCompose.Tests
             dialogue.Start();
 
             Assert.AreEqual(1, shown.Count);
-            Assert.AreEqual("text-choice", shown[0].id);
+            Assert.AreEqual("text-choice", shown[0].Id);
             Assert.AreEqual(2, shown[0].Options.Count);
-            Assert.IsTrue(shown[0].saveChoice);
+            Assert.IsTrue(shown[0].SaveChoice);
             Assert.Throws<System.InvalidOperationException>(() => shown[0].Next());
 
             shown[0].Options[0].Select();
 
             Assert.AreEqual(2, shown.Count);
-            Assert.AreEqual("text-after-choice", shown[1].id);
-            Assert.AreEqual("option-a", dialogue.context.optionId);
+            Assert.AreEqual("text-after-choice", shown[1].Id);
+            Assert.AreEqual("option-a", dialogue.Context.OptionId);
             Assert.Throws<System.InvalidOperationException>(() => shown[0].Options[1].Select());
 
             shown[1].Next();
 
             Assert.IsTrue(finished);
-            Assert.IsTrue(dialogue.isDisposed);
+            Assert.AreEqual(NeoDialogueState.Finished, dialogue.State);
+            Assert.IsFalse(dialogue.IsDisposed);
         }
 
         [Test]
@@ -395,8 +420,8 @@ namespace NeoCompose.Tests
             dialogue.Start();
 
             Assert.IsNotNull(shown);
-            Assert.AreEqual("text-true", shown!.id);
-            Assert.AreEqual("The true branch.", shown.text);
+            Assert.AreEqual("text-true", shown!.Id);
+            Assert.AreEqual("The true branch.", shown.Text);
         }
 
         [Test]
@@ -419,7 +444,7 @@ namespace NeoCompose.Tests
             dialogue.Start();
 
             Assert.IsNotNull(shown);
-            Assert.AreEqual("text-after-action", shown!.id);
+            Assert.AreEqual("text-after-action", shown!.Id);
             Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
             Assert.AreEqual(5, score!.value);
         }
@@ -767,7 +792,7 @@ namespace NeoCompose.Tests
             Assert.IsFalse(showedText);
             Assert.IsNotNull(error);
             Assert.AreEqual("boom", error!.Message);
-            Assert.IsTrue(dialogue.isDisposed);
+            Assert.IsTrue(dialogue.IsDisposed);
         }
 
         private static NeoClient CreateClient()
@@ -1812,7 +1837,7 @@ namespace NeoCompose.Tests
             }
         }
 
-        private sealed class TestLookupValue : INeoValueReference
+        private class TestLookupValue : INeoValueReference
         {
             public string? valueId { get; }
 
@@ -1820,6 +1845,12 @@ namespace NeoCompose.Tests
             {
                 this.valueId = valueId;
             }
+        }
+
+        private sealed class DerivedTestLookupValue : TestLookupValue
+        {
+            public DerivedTestLookupValue(string? valueId)
+                : base(valueId) { }
         }
 
         private sealed class TestMemoryStore : INeoDialogueMemoryStore
@@ -1887,7 +1918,7 @@ namespace NeoCompose.Tests
                 return choices.Contains(choiceId);
             }
 
-            public void AddChoice(string choiceId)
+            public void AddChoice(string choiceId, string createdAt)
             {
                 choices.Add(choiceId);
             }

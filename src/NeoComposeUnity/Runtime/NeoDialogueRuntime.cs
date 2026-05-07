@@ -74,29 +74,54 @@ namespace NeoCompose.Runtime
         public bool EmitAll { get; set; }
     }
 
+    public sealed class NeoDialogueWatcher : IDisposable
+    {
+        private Action? dispose;
+
+        internal NeoDialogueWatcher(Action dispose)
+        {
+            this.dispose = dispose;
+        }
+
+        public void Dispose()
+        {
+            var current = dispose;
+            dispose = null;
+            current?.Invoke();
+        }
+    }
+
+    public enum NeoDialogueState
+    {
+        Created,
+        Started,
+        Finished,
+        Disposed,
+    }
+
     public sealed class NeoDialogueTriggerWarning
     {
-        public string message { get; }
-        public string? dialogueId { get; }
-        public string? groupId { get; }
+        public string Message { get; }
+        public string? DialogueId { get; }
+        public string? GroupId { get; }
 
         public NeoDialogueTriggerWarning(
             string message,
             string? dialogueId = null,
             string? groupId = null)
         {
-            this.message = message;
-            this.dialogueId = dialogueId;
-            this.groupId = groupId;
+            Message = message;
+            DialogueId = dialogueId;
+            GroupId = groupId;
         }
     }
 
     public sealed class NeoDialogueTriggerResult
     {
-        public bool ok { get; }
-        public NeoDialogue? dialogue { get; }
-        public Exception? error { get; }
-        public IReadOnlyList<NeoDialogueTriggerWarning> warnings { get; }
+        public bool Ok { get; }
+        public NeoDialogue? Dialogue { get; }
+        public Exception? Error { get; }
+        public IReadOnlyList<NeoDialogueTriggerWarning> Warnings { get; }
 
         private NeoDialogueTriggerResult(
             bool ok,
@@ -104,10 +129,10 @@ namespace NeoCompose.Runtime
             Exception? error,
             IReadOnlyList<NeoDialogueTriggerWarning> warnings)
         {
-            this.ok = ok;
-            this.dialogue = dialogue;
-            this.error = error;
-            this.warnings = warnings;
+            Ok = ok;
+            Dialogue = dialogue;
+            Error = error;
+            Warnings = warnings;
         }
 
         public static NeoDialogueTriggerResult Success(
@@ -133,18 +158,18 @@ namespace NeoCompose.Runtime
 
     public sealed class NeoDialogueEligibilityError
     {
-        public Exception exception { get; }
-        public string? dialogueId { get; }
-        public string? groupId { get; }
+        public Exception Exception { get; }
+        public string? DialogueId { get; }
+        public string? GroupId { get; }
 
         public NeoDialogueEligibilityError(
             Exception exception,
             string? dialogueId = null,
             string? groupId = null)
         {
-            this.exception = exception;
-            this.dialogueId = dialogueId;
-            this.groupId = groupId;
+            Exception = exception;
+            DialogueId = dialogueId;
+            GroupId = groupId;
         }
     }
 
@@ -152,13 +177,15 @@ namespace NeoCompose.Runtime
 
     public sealed class NeoDialogueContext
     {
-        public string dialogueId { get; }
-        public string? groupId { get; }
-        public string? nodeId { get; internal set; }
-        public string? optionId { get; internal set; }
-        public object? trigger { get; }
-        public object? primary { get; internal set; }
-        public IReadOnlyDictionary<string, object?> linkedValues { get; }
+        internal object? CurrentPrimary { get; set; }
+
+        public string DialogueId { get; }
+        public string? GroupId { get; }
+        public string? NodeId { get; internal set; }
+        public string? OptionId { get; internal set; }
+        public object? Trigger { get; }
+        public object? Primary { get; }
+        public IReadOnlyDictionary<string, object?> LinkedValues { get; }
 
         public NeoDialogueContext(
             string dialogueId,
@@ -167,11 +194,12 @@ namespace NeoCompose.Runtime
             object? primary,
             IReadOnlyDictionary<string, object?> linkedValues)
         {
-            this.dialogueId = dialogueId;
-            this.groupId = groupId;
-            this.trigger = trigger;
-            this.primary = primary;
-            this.linkedValues = linkedValues;
+            DialogueId = dialogueId;
+            GroupId = groupId;
+            Trigger = trigger;
+            Primary = primary;
+            CurrentPrimary = primary;
+            LinkedValues = linkedValues;
         }
     }
 

@@ -26,14 +26,19 @@ namespace NeoCompose.Runtime
         private readonly INeoDialogueMemoryStore? memoryStore;
         private readonly NeoDialogueValueResolver? valueResolver;
         private bool started;
-        private bool disposed;
 
-        public string id { get; }
-        public string? groupId { get; }
-        public DialogueModel data { get; }
-        public NeoDialogueContext context { get; }
-        public bool isStarted => started;
-        public bool isDisposed => disposed;
+        public string Id { get; }
+        public string Name { get; }
+        public string? Description { get; }
+        public string? GroupId { get; }
+        public string? LookupValueId { get; }
+        public object? Primary { get; }
+        public IReadOnlyDictionary<string, object?> LinkedValues { get; }
+        public DialogueModel Data { get; }
+        public NeoDialogueContext Context { get; }
+        public NeoDialogueState State { get; private set; } = NeoDialogueState.Created;
+        public bool IsStarted => started;
+        public bool IsDisposed => State == NeoDialogueState.Disposed;
 
         public event Action<NeoDialogueTextNode>? ShowText;
         public event Action? OnFinish;
@@ -50,27 +55,33 @@ namespace NeoCompose.Runtime
             string? groupId = null)
         {
             this.client = client;
-            this.data = data;
-            this.context = context;
             this.logger = logger;
             this.options = options;
             this.memoryStore = memoryStore;
             this.valueResolver = valueResolver;
-            id = data.id;
-            this.groupId = groupId;
+            Data = data;
+            Context = context;
+            Id = data.id;
+            Name = data.name;
+            Description = data.description;
+            this.GroupId = groupId;
+            LookupValueId = data.triggerNode?.dialogueGroupSettings?.lookupValueId;
+            Primary = context.Primary;
+            LinkedValues = context.LinkedValues;
         }
 
         public void Start()
         {
-            if (started)
+            if (State != NeoDialogueState.Created)
             {
-                throw new InvalidOperationException($"Dialogue '{id}' has already started.");
-            }
-            if (disposed)
-            {
-                throw new ObjectDisposedException(nameof(NeoDialogue));
+                if (State == NeoDialogueState.Disposed)
+                {
+                    throw new ObjectDisposedException(nameof(NeoDialogue));
+                }
+                throw new InvalidOperationException($"Dialogue '{Id}' has already started.");
             }
             started = true;
+            State = NeoDialogueState.Started;
             try
             {
                 RecordDialogueVisit();
@@ -80,7 +91,7 @@ namespace NeoCompose.Runtime
                 Fail(ex);
                 return;
             }
-            EnterNode(data.triggerNode?.toNodeId);
+            EnterNode(Data.triggerNode?.toNodeId);
         }
 
         internal void EnterNode(string? nodeId)
@@ -91,15 +102,15 @@ namespace NeoCompose.Runtime
                 Finish();
                 return;
             }
-            if (data.nodes == null || !data.nodes.TryGetValue(nodeId, out var node))
+            if (Data.nodes == null || !Data.nodes.TryGetValue(nodeId, out var node))
             {
                 Fail(new KeyNotFoundException(
-                    $"Dialogue '{id}' points to missing node '{nodeId}'."));
+                    $"Dialogue '{Id}' points to missing node '{nodeId}'."));
                 return;
             }
 
-            context.nodeId = nodeId;
-            context.primary = ResolvePrimary(node.primaryLinkedValueId);
+            Context.NodeId = nodeId;
+            Context.CurrentPrimary = ResolvePrimary(node.primaryLinkedValueId);
             switch (node)
             {
                 case DialogueTextNodeModel textNode:
@@ -113,7 +124,7 @@ namespace NeoCompose.Runtime
                     break;
                 default:
                     Fail(new InvalidOperationException(
-                        $"Dialogue '{id}' has unsupported node type '{node.GetType().Name}'."));
+                        $"Dialogue '{Id}' has unsupported node type '{node.GetType().Name}'."));
                     break;
             }
         }
@@ -133,7 +144,7 @@ namespace NeoCompose.Runtime
             bool optionSelected = false;
             bool saveChoice =
                 node.optionSettings?.saveChoice
-                ?? data.settings?.defaultSaveOptionChoices
+                ?? Data.settings?.defaultSaveOptionChoices
                 ?? false;
             var optionModels = node.optionSettings?.options ?? Array.Empty<DialogueTextOptionModel>();
             var options = new List<NeoDialogueTextOption>(optionModels.Length);
@@ -151,7 +162,7 @@ namespace NeoCompose.Runtime
                                 $"Text node '{node.id}' has already selected an option.");
                         }
                         optionSelected = true;
-                        context.optionId = optionModel.id;
+                        Context.OptionId = optionModel.id;
                         if (saveChoice)
                         {
                             try
@@ -173,7 +184,7 @@ namespace NeoCompose.Runtime
                 node.id,
                 node.text,
                 node.name,
-                context.primary,
+                Context.CurrentPrimary,
                 ResolveLinkedValues(node.linkedValues),
                 saveChoice,
                 options,
@@ -200,7 +211,7 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"Dialogue action '{action.id}' has no compiled action.");
                         }
-                        NeoDialogueActionEvaluator.Execute(client, compiled, context);
+                        NeoDialogueActionEvaluator.Execute(client, compiled, Context);
                         continue;
                     }
                     throw new NotSupportedException(
@@ -225,7 +236,7 @@ namespace NeoCompose.Runtime
                     matched = NeoDialogueConditionEvaluator.EvaluateAll(
                         client,
                         outcome.conditions,
-                        context);
+                        Context);
                 }
                 catch (Exception ex)
                 {
@@ -236,12 +247,12 @@ namespace NeoCompose.Runtime
                 EnterNode(outcome.toNodeId);
                 return;
             }
-                Finish();
+            Finish();
         }
 
         private void RecordDialogueVisit()
         {
-            var memory = memoryStore?.GetOrCreateDialogueMemory(id);
+            var memory = memoryStore?.GetOrCreateDialogueMemory(Id);
             if (memory == null) return;
             memory.VisitCount += 1;
             memory.LastVisitedAt = CurrentUtcIso();
@@ -249,7 +260,7 @@ namespace NeoCompose.Runtime
 
         private void RecordTextNodeVisit(string textNodeId)
         {
-            var memory = memoryStore?.GetOrCreateDialogueMemory(id)
+            var memory = memoryStore?.GetOrCreateDialogueMemory(Id)
                 .GetOrCreateTextNodeMemory(textNodeId);
             if (memory == null) return;
             memory.VisitCount += 1;
@@ -258,34 +269,34 @@ namespace NeoCompose.Runtime
 
         private void SaveTextNodeChoice(string textNodeId, string optionId)
         {
-            var memory = memoryStore?.GetOrCreateDialogueMemory(id)
+            var memory = memoryStore?.GetOrCreateDialogueMemory(Id)
                 .GetOrCreateTextNodeMemory(textNodeId);
             if (memory == null) return;
             memory.MostRecentChoiceId = optionId;
             if (!memory.HasChoice(optionId))
             {
-                memory.AddChoice(optionId);
+                memory.AddChoice(optionId, CurrentUtcIso());
             }
         }
 
         private object? ResolvePrimary(string? nodePrimaryLinkedValueId)
         {
             string? primaryLinkedValueId = string.IsNullOrEmpty(nodePrimaryLinkedValueId)
-                ? data.primaryLinkedValueId
+                ? Data.primaryLinkedValueId
                 : nodePrimaryLinkedValueId;
-            if (string.IsNullOrEmpty(primaryLinkedValueId)) return context.trigger;
+            if (string.IsNullOrEmpty(primaryLinkedValueId)) return Context.Trigger;
             return valueResolver?.Invoke(primaryLinkedValueId!);
         }
 
-        private IReadOnlyList<object?> ResolveLinkedValues(
+        private IReadOnlyDictionary<string, object?> ResolveLinkedValues(
             NeoCompose.Runtime.Json.DialogueLinkedValue[]? linkedValues)
         {
-            if (linkedValues == null || linkedValues.Length == 0) return Array.Empty<object?>();
-            var result = new List<object?>(linkedValues.Length);
+            var result = new Dictionary<string, object?>();
+            if (linkedValues == null || linkedValues.Length == 0) return result;
             foreach (var linkedValue in linkedValues)
             {
                 if (string.IsNullOrEmpty(linkedValue.valueId)) continue;
-                result.Add(valueResolver?.Invoke(linkedValue.valueId));
+                result[linkedValue.valueId] = valueResolver?.Invoke(linkedValue.valueId);
             }
             return result;
         }
@@ -297,7 +308,7 @@ namespace NeoCompose.Runtime
 
         private void EnsureActive()
         {
-            if (disposed)
+            if (State == NeoDialogueState.Disposed || State == NeoDialogueState.Finished)
             {
                 throw new ObjectDisposedException(nameof(NeoDialogue));
             }
@@ -305,14 +316,15 @@ namespace NeoCompose.Runtime
 
         internal void Finish()
         {
-            if (disposed) return;
+            if (State == NeoDialogueState.Disposed || State == NeoDialogueState.Finished) return;
+            State = NeoDialogueState.Finished;
             OnFinish?.Invoke();
-            Dispose();
+            ClearListeners();
         }
 
         internal void Fail(Exception exception)
         {
-            if (disposed) return;
+            if (State == NeoDialogueState.Disposed || State == NeoDialogueState.Finished) return;
             if (OnError != null)
             {
                 OnError.Invoke(exception);
@@ -326,8 +338,13 @@ namespace NeoCompose.Runtime
 
         public void Dispose()
         {
-            if (disposed) return;
-            disposed = true;
+            if (State == NeoDialogueState.Disposed) return;
+            State = NeoDialogueState.Disposed;
+            ClearListeners();
+        }
+
+        private void ClearListeners()
+        {
             ShowText = null;
             OnFinish = null;
             OnError = null;
@@ -339,12 +356,12 @@ namespace NeoCompose.Runtime
         private readonly Action next;
         private readonly Action ensureActive;
 
-        public string id { get; }
-        public string text { get; }
-        public string? name { get; }
+        public string Id { get; }
+        public string Text { get; }
+        public string? Name { get; }
         public object? Primary { get; }
-        public IReadOnlyList<object?> LinkedValues { get; }
-        public bool saveChoice { get; }
+        public IReadOnlyDictionary<string, object?> LinkedValues { get; }
+        public bool SaveChoice { get; }
         public IReadOnlyList<NeoDialogueTextOption> Options { get; }
 
         public NeoDialogueTextNode(
@@ -352,18 +369,18 @@ namespace NeoCompose.Runtime
             string text,
             string? name,
             object? primary,
-            IReadOnlyList<object?> linkedValues,
+            IReadOnlyDictionary<string, object?> linkedValues,
             bool saveChoice,
             IReadOnlyList<NeoDialogueTextOption> options,
             Action next,
             Action ensureActive)
         {
-            this.id = id;
-            this.text = text;
-            this.name = name;
+            Id = id;
+            Text = text;
+            Name = name;
             Primary = primary;
             LinkedValues = linkedValues;
-            this.saveChoice = saveChoice;
+            SaveChoice = saveChoice;
             Options = options;
             this.next = next;
             this.ensureActive = ensureActive;
@@ -375,7 +392,7 @@ namespace NeoCompose.Runtime
             if (Options.Count > 0)
             {
                 throw new InvalidOperationException(
-                    $"Text node '{id}' has options; select an option instead of calling Next().");
+                    $"Text node '{Id}' has options; select an option instead of calling Next().");
             }
             next();
         }
@@ -387,9 +404,9 @@ namespace NeoCompose.Runtime
         private readonly Action ensureActive;
         private bool selected;
 
-        public string id { get; }
-        public string text { get; }
-        public string? name { get; }
+        public string Id { get; }
+        public string Text { get; }
+        public string? Name { get; }
 
         public NeoDialogueTextOption(
             string id,
@@ -398,9 +415,9 @@ namespace NeoCompose.Runtime
             Action select,
             Action ensureActive)
         {
-            this.id = id;
-            this.text = text;
-            this.name = name;
+            Id = id;
+            Text = text;
+            Name = name;
             this.select = select;
             this.ensureActive = ensureActive;
         }
@@ -410,7 +427,7 @@ namespace NeoCompose.Runtime
             ensureActive();
             if (selected)
             {
-                throw new InvalidOperationException($"Dialogue option '{id}' has already been selected.");
+                throw new InvalidOperationException($"Dialogue option '{Id}' has already been selected.");
             }
             selected = true;
             select();
