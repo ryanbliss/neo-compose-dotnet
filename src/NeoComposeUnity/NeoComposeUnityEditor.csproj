@@ -22,6 +22,14 @@
       <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEditor.CoreModule">
       <HintPath>$(UnityManagedDir)/UnityEditor.CoreModule.dll</HintPath>
       <Private>false</Private>

@@ -71,6 +71,28 @@ namespace NeoCompose.Runtime.Json
         public Pointer pointer = null!;
     }
 
+    /// <summary>
+    /// Mirror of <c>INSInstructionAssign</c>. The TS-side
+    /// <c>operator</c> field is a C# keyword; expose it as
+    /// <see cref="operatorValue"/> while keeping the wire name stable.
+    /// </summary>
+    public class AssignInstruction : Instruction
+    {
+        public WriteTarget target = null!;
+        [JsonProperty("operator")]
+        public string operatorValue = null!;
+        public Pointer pointer = null!;
+    }
+
+    /// <summary>Mirror of <c>INSInstructionCollectionCall</c>.</summary>
+    public class CollectionCallInstruction : Instruction
+    {
+        public WriteTarget target = null!;
+        /// <summary>One of <see cref="CollectionMutationKind"/>.</summary>
+        public string mutation = null!;
+        public Pointer[] args = null!;
+    }
+
     public class InstructionConverter : DiscriminatedConverter<Instruction>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -81,6 +103,8 @@ namespace NeoCompose.Runtime.Json
                 case InstructionKind.If: return typeof(IfInstruction);
                 case InstructionKind.Return: return typeof(ReturnInstruction);
                 case InstructionKind.Throw: return typeof(ThrowInstruction);
+                case InstructionKind.Assign: return typeof(AssignInstruction);
+                case InstructionKind.CollectionCall: return typeof(CollectionCallInstruction);
                 default: return null;
             }
         }

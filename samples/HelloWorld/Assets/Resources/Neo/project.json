@@ -4,7 +4,7 @@
         "id": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
         "name": "HelloWorld",
         "createdAt": "2026-05-03T00:02:45.598Z",
-        "updatedAt": "2026-05-04T04:07:17.652Z",
+        "updatedAt": "2026-05-05T23:49:17.373Z",
         "rootAssetsAttributeId": "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684",
         "rootSaveFileAttributeId": "4a1a7058-e5ba-4479-9f2f-7686a649a6b5",
         "exportSettings": {
@@ -12,7 +12,8 @@
                 "namespaceForGeneratedTypes": "HelloWorld.Assets.Scripts.Neo",
                 "singleton": true
             }
-        }
+        },
+        "defaultPriorityGroupId": "e8f566bf-e173-4634-bc74-d4bbc9685db4"
     },
     "attributes": {
         "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684": {
@@ -110,12 +111,11 @@
             "type": 10,
             "locked": false,
             "required": false,
-            "defaultValue": null,
             "extendsAttributeId": null,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:10:24.481Z",
-            "updatedAt": "2026-05-04T00:00:45.751Z",
-            "code": "\tPlanet world = root.save.World;\n\tstring suffix = this.optionalSuffix ?? \"\";\n\treturn $\"{this.baseText} {world}{suffix}\";",
+            "updatedAt": "2026-05-05T22:18:03.520Z",
+            "code": "\tPlanet planet = root.save.World;\n\tstring suffix = this.optionalSuffix ?? \"\";\n\treturn $\"{this.baseText} {planet}{suffix}\";",
             "returnTypeInfo": {
                 "type": 3,
                 "required": true
@@ -165,7 +165,7 @@
                     {
                         "type": "variable",
                         "variable": {
-                            "id": "world",
+                            "id": "planet",
                             "typeInfo": {
                                 "type": 8,
                                 "required": true,
@@ -291,7 +291,7 @@
                                             "type": "stringify",
                                             "pointer": {
                                                 "type": "variable",
-                                                "variableId": "world"
+                                                "variableId": "planet"
                                             },
                                             "sourceType": {
                                                 "type": 8,
@@ -470,6 +470,546 @@
             "updatedAt": "2026-05-03T22:19:04.892Z",
             "multiselect": false,
             "collectionAttributeId": "a65d4782-28cb-401f-8577-128dccca3d46"
+        },
+        "dd65f671-aedb-4c17-8849-1a3290b5c4d0": {
+            "_id": "69fa7410c7ff96bc9dd6ae7f",
+            "id": "dd65f671-aedb-4c17-8849-1a3290b5c4d0",
+            "name": "ChoiceId",
+            "type": 3,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": ""
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "555389b1-1a61-416e-9ba8-4f1b4b9a9acf",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:52.285Z",
+            "updatedAt": "2026-05-05T22:49:52.285Z"
+        },
+        "2bcf2b63-87aa-4c4a-99ea-590e2b555fa6": {
+            "_id": "69fa7410c7ff96bc9dd6ae82",
+            "id": "2bcf2b63-87aa-4c4a-99ea-590e2b555fa6",
+            "name": "VisitCount",
+            "type": 2,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": 0
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "9e6cbe6d-14f2-4d85-bd11-d99c0259b166",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:52.433Z",
+            "updatedAt": "2026-05-05T22:49:52.433Z"
+        },
+        "8f20c7ca-a552-4418-a355-6e35ee96639e": {
+            "_id": "69fa7410c7ff96bc9dd6ae84",
+            "id": "8f20c7ca-a552-4418-a355-6e35ee96639e",
+            "name": "LastVisitedAt",
+            "type": 3,
+            "locked": true,
+            "required": false,
+            "defaultValue": {
+                "value": null
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "0ccfb843-f35e-4afb-a5c9-01565c6f7edf",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:52.533Z",
+            "updatedAt": "2026-05-05T22:49:52.533Z"
+        },
+        "28beaf7f-a3d3-4e9c-9f31-325d6708bd66": {
+            "_id": "69fa7410c7ff96bc9dd6ae86",
+            "id": "28beaf7f-a3d3-4e9c-9f31-325d6708bd66",
+            "name": "MostRecentChoiceId",
+            "type": 3,
+            "locked": true,
+            "required": false,
+            "defaultValue": {
+                "value": null
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "5683bd1f-2afd-4b3d-805d-7abb06e1db67",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:52.633Z",
+            "updatedAt": "2026-05-05T22:49:52.633Z"
+        },
+        "f81b06c0-9dde-4674-b419-918f7cf23a4f": {
+            "_id": "69fa7410c7ff96bc9dd6ae89",
+            "id": "f81b06c0-9dde-4674-b419-918f7cf23a4f",
+            "name": "NeoChoiceLog",
+            "type": 7,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "11cd55b5-6d41-43be-9897-93ac91dd4777",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:52.883Z",
+            "updatedAt": "2026-05-05T22:49:52.883Z",
+            "customTypeId": "af5795d0-e019-4776-8b7c-d0206f90d59f"
+        },
+        "214c9215-b01d-463a-b5fb-cb21e14b1961": {
+            "_id": "69fa7410c7ff96bc9dd6ae8b",
+            "id": "214c9215-b01d-463a-b5fb-cb21e14b1961",
+            "name": "ChoiceHistory",
+            "type": 6,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": []
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "replaceValue"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "6624f779-20b7-4728-a313-4e4ac8929963",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:52.982Z",
+            "updatedAt": "2026-05-05T22:49:52.982Z",
+            "entryAttributeId": "f81b06c0-9dde-4674-b419-918f7cf23a4f"
+        },
+        "4042fd7d-88d4-4acf-81de-13052c70673e": {
+            "_id": "69fa7411c7ff96bc9dd6ae8d",
+            "id": "4042fd7d-88d4-4acf-81de-13052c70673e",
+            "name": "HasVisited",
+            "type": 10,
+            "locked": true,
+            "required": true,
+            "code": "return this.VisitCount > 0;",
+            "getter": {
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "4cdf4a5b-b299-4253-854b-d25c0a4c7c20"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "4cdf4a5b-b299-4253-854b-d25c0a4c7c20"
+                                },
+                                "value": null
+                            }
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "__root__"
+                                },
+                                "value": null
+                            }
+                        }
+                    }
+                ],
+                "instructions": [
+                    {
+                        "type": "return",
+                        "pointer": {
+                            "type": "operation",
+                            "operation": {
+                                "type": "boolean",
+                                "expression": {
+                                    "condition": {
+                                        "type": "greaterThan",
+                                        "operand1": {
+                                            "type": "keyOf",
+                                            "keyOf": {
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                },
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 3,
+                                                            "required": true
+                                                        },
+                                                        "value": "VisitCount"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "operand2": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 2,
+                                                    "required": true
+                                                },
+                                                "value": 0
+                                            }
+                                        }
+                                    },
+                                    "connective": null
+                                }
+                            }
+                        }
+                    }
+                ],
+                "typeInfo": {
+                    "type": 1,
+                    "required": true
+                }
+            },
+            "returnTypeInfo": {
+                "type": 1,
+                "required": true
+            },
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:53.139Z",
+            "updatedAt": "2026-05-05T22:49:53.139Z"
+        },
+        "504778e6-972f-4b04-8d64-ec038ff2414f": {
+            "_id": "69fa7411c7ff96bc9dd6ae8f",
+            "id": "504778e6-972f-4b04-8d64-ec038ff2414f",
+            "name": "VisitCount",
+            "type": 2,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": 0
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "fbb8c422-6dd5-4c4e-90b1-be262caeee79",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:53.339Z",
+            "updatedAt": "2026-05-05T22:49:53.339Z"
+        },
+        "defd7f67-7f35-4907-a75d-8da3b24b96f4": {
+            "_id": "69fa7411c7ff96bc9dd6ae91",
+            "id": "defd7f67-7f35-4907-a75d-8da3b24b96f4",
+            "name": "LastVisitedAt",
+            "type": 3,
+            "locked": true,
+            "required": false,
+            "defaultValue": {
+                "value": null
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "77d598df-148c-437e-bbb8-4a88ea916278",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:53.443Z",
+            "updatedAt": "2026-05-05T22:49:53.443Z"
+        },
+        "0d4e7b75-97f6-44f2-b42b-925dc3983341": {
+            "_id": "69fa7411c7ff96bc9dd6ae95",
+            "id": "0d4e7b75-97f6-44f2-b42b-925dc3983341",
+            "name": "NeoTextNodeMemory",
+            "type": 7,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "30cee785-a3ee-4bc4-8e11-50bf0d27af96",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:53.940Z",
+            "updatedAt": "2026-05-05T22:49:53.940Z",
+            "customTypeId": "4cdf4a5b-b299-4253-854b-d25c0a4c7c20"
+        },
+        "84960eeb-60ea-4241-a074-99a47a0d8dc1": {
+            "_id": "69fa7412c7ff96bc9dd6ae97",
+            "id": "84960eeb-60ea-4241-a074-99a47a0d8dc1",
+            "name": "TextNodeMemories",
+            "type": 5,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "replaceValue"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "cb814b03-88c8-482b-9fb2-d839b1f529ae",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:54.040Z",
+            "updatedAt": "2026-05-05T22:49:54.040Z",
+            "entryAttributeId": "0d4e7b75-97f6-44f2-b42b-925dc3983341"
+        },
+        "cd79c978-da95-4da3-8aa5-eea57f9e4f2c": {
+            "_id": "69fa7412c7ff96bc9dd6ae99",
+            "id": "cd79c978-da95-4da3-8aa5-eea57f9e4f2c",
+            "name": "HasVisited",
+            "type": 10,
+            "locked": true,
+            "required": true,
+            "code": "return this.VisitCount > 0;",
+            "getter": {
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "48f37cd8-69d2-4cd3-ae44-7cfed7912415"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "48f37cd8-69d2-4cd3-ae44-7cfed7912415"
+                                },
+                                "value": null
+                            }
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "__root__"
+                                },
+                                "value": null
+                            }
+                        }
+                    }
+                ],
+                "instructions": [
+                    {
+                        "type": "return",
+                        "pointer": {
+                            "type": "operation",
+                            "operation": {
+                                "type": "boolean",
+                                "expression": {
+                                    "condition": {
+                                        "type": "greaterThan",
+                                        "operand1": {
+                                            "type": "keyOf",
+                                            "keyOf": {
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                },
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 3,
+                                                            "required": true
+                                                        },
+                                                        "value": "VisitCount"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "operand2": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 2,
+                                                    "required": true
+                                                },
+                                                "value": 0
+                                            }
+                                        }
+                                    },
+                                    "connective": null
+                                }
+                            }
+                        }
+                    }
+                ],
+                "typeInfo": {
+                    "type": 1,
+                    "required": true
+                }
+            },
+            "returnTypeInfo": {
+                "type": 1,
+                "required": true
+            },
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:54.195Z",
+            "updatedAt": "2026-05-05T22:49:54.195Z"
+        },
+        "3611d8af-6bfe-4015-93c4-2b611b33f2b6": {
+            "_id": "69fa7412c7ff96bc9dd6ae9d",
+            "id": "3611d8af-6bfe-4015-93c4-2b611b33f2b6",
+            "name": "NeoDialogueMemory",
+            "type": 7,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "583ff4fa-2d0f-451e-8e37-fb47eee09a85",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:54.752Z",
+            "updatedAt": "2026-05-05T22:49:54.752Z",
+            "customTypeId": "48f37cd8-69d2-4cd3-ae44-7cfed7912415"
+        },
+        "6223e7c9-a37a-480d-820b-c70f53c6eb0d": {
+            "_id": "69fa7412c7ff96bc9dd6ae9f",
+            "id": "6223e7c9-a37a-480d-820b-c70f53c6eb0d",
+            "name": "DialogueMemories",
+            "type": 5,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "replaceValue"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "2831fdaa-9090-4bfc-aae3-c70c16a67151",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:54.854Z",
+            "updatedAt": "2026-05-05T22:49:54.854Z",
+            "entryAttributeId": "3611d8af-6bfe-4015-93c4-2b611b33f2b6"
+        },
+        "99b07db1-f732-437e-a903-98183edca96b": {
+            "_id": "69fa7413c7ff96bc9dd6aea3",
+            "id": "99b07db1-f732-437e-a903-98183edca96b",
+            "name": "NeoMemory",
+            "type": 7,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsAttributeId": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "replaceValue"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "valueId": "214298ea-871a-4597-87c6-6cae03eab504",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-05T22:49:55.169Z",
+            "updatedAt": "2026-05-05T22:49:55.169Z",
+            "customTypeId": "6c6f3bb8-30a0-4132-b0d4-cce75943aedd"
         }
     },
     "enums": {
@@ -521,14 +1061,16 @@
             "name": "Save",
             "schema": {
                 "World": "ebab06a2-98e9-4a30-bb13-cfea8f910462",
-                "Visited": "c151eda4-ecce-4edf-988d-25a97c657146"
+                "Visited": "c151eda4-ecce-4edf-988d-25a97c657146",
+                "NeoMemory": "99b07db1-f732-437e-a903-98183edca96b"
             },
             "extendsTypeId": null,
             "isAbstract": false,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": true,
             "createdAt": "2026-05-03T00:02:45.123Z",
-            "updatedAt": "2026-05-03T23:59:18.207Z"
+            "updatedAt": "2026-05-05T23:01:02.423Z",
+            "system": null
         },
         "2ab1bc07-da0b-47fc-b77b-54cc511575bb": {
             "_id": "69f690fb529ef76bc7538042",
@@ -589,6 +1131,97 @@
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-03T22:17:03.677Z",
             "updatedAt": "2026-05-03T22:17:29.801Z"
+        },
+        "af5795d0-e019-4776-8b7c-d0206f90d59f": {
+            "_id": "69fa7410c7ff96bc9dd6ae80",
+            "id": "af5795d0-e019-4776-8b7c-d0206f90d59f",
+            "name": "NeoChoiceLog",
+            "schema": {
+                "ChoiceId": "dd65f671-aedb-4c17-8849-1a3290b5c4d0"
+            },
+            "extendsTypeId": null,
+            "isAbstract": false,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "hiddenInAttributeSelector": true,
+            "createdAt": "2026-05-05T22:49:52.334Z",
+            "updatedAt": "2026-05-05T23:07:29.128Z"
+        },
+        "4cdf4a5b-b299-4253-854b-d25c0a4c7c20": {
+            "_id": "69fa7411c7ff96bc9dd6ae8c",
+            "id": "4cdf4a5b-b299-4253-854b-d25c0a4c7c20",
+            "name": "NeoTextNodeMemory",
+            "schema": {
+                "VisitCount": "2bcf2b63-87aa-4c4a-99ea-590e2b555fa6",
+                "LastVisitedAt": "8f20c7ca-a552-4418-a355-6e35ee96639e",
+                "MostRecentChoiceId": "28beaf7f-a3d3-4e9c-9f31-325d6708bd66",
+                "ChoiceHistory": "214c9215-b01d-463a-b5fb-cb21e14b1961",
+                "HasVisited": "4042fd7d-88d4-4acf-81de-13052c70673e"
+            },
+            "extendsTypeId": null,
+            "isAbstract": false,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "hiddenInAttributeSelector": true,
+            "createdAt": "2026-05-05T22:49:53.032Z",
+            "updatedAt": "2026-05-05T23:07:29.181Z"
+        },
+        "48f37cd8-69d2-4cd3-ae44-7cfed7912415": {
+            "_id": "69fa7412c7ff96bc9dd6ae98",
+            "id": "48f37cd8-69d2-4cd3-ae44-7cfed7912415",
+            "name": "NeoDialogueMemory",
+            "schema": {
+                "VisitCount": "504778e6-972f-4b04-8d64-ec038ff2414f",
+                "LastVisitedAt": "defd7f67-7f35-4907-a75d-8da3b24b96f4",
+                "TextNodeMemories": "84960eeb-60ea-4241-a074-99a47a0d8dc1",
+                "HasVisited": "cd79c978-da95-4da3-8aa5-eea57f9e4f2c"
+            },
+            "extendsTypeId": null,
+            "isAbstract": false,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "hiddenInAttributeSelector": true,
+            "createdAt": "2026-05-05T22:49:54.091Z",
+            "updatedAt": "2026-05-05T23:07:29.234Z"
+        },
+        "6c6f3bb8-30a0-4132-b0d4-cce75943aedd": {
+            "_id": "69fa7412c7ff96bc9dd6aea0",
+            "id": "6c6f3bb8-30a0-4132-b0d4-cce75943aedd",
+            "name": "NeoMemory",
+            "schema": {
+                "DialogueMemories": "6223e7c9-a37a-480d-820b-c70f53c6eb0d"
+            },
+            "extendsTypeId": null,
+            "isAbstract": false,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord"
+                ],
+                "reason": "Generated dialogue memory schema required by the Neo Compose dialogue runtime."
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "hiddenInAttributeSelector": true,
+            "createdAt": "2026-05-05T22:49:54.905Z",
+            "updatedAt": "2026-05-05T23:07:29.287Z"
         }
     },
     "values": {
@@ -609,11 +1242,12 @@
             "id": "299b23d6-4ea0-4475-94f5-f59c4d18d9cd",
             "value": {
                 "World": "4e783b54-c992-40c0-8036-dbaafe6ecb65",
-                "Visited": "1b54d5cc-0437-4997-95db-7ea690b88837"
+                "Visited": "1b54d5cc-0437-4997-95db-7ea690b88837",
+                "NeoMemory": "621fbd4b-05f0-4da6-af3f-1260abc02228"
             },
             "typeId": null,
             "createdAt": "2026-05-03T00:02:45.482Z",
-            "updatedAt": "2026-05-03T23:59:19.494Z",
+            "updatedAt": "2026-05-05T23:01:02.006Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "a6d9f87b-91d2-4203-92bb-c3e0ebf5d521": {
@@ -855,19 +1489,19 @@
         "0bd8e0e4-8f3d-4645-8312-c20b00444f49": {
             "_id": "69f7c9796c966743b317b2b1",
             "id": "0bd8e0e4-8f3d-4645-8312-c20b00444f49",
-            "value": "Value1",
+            "value": "Hello World!",
             "typeId": null,
             "createdAt": "2026-05-03T22:17:29.954Z",
-            "updatedAt": "2026-05-03T22:17:48.625Z",
+            "updatedAt": "2026-05-04T04:12:22.807Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "950a99ac-8141-4a41-8948-5af71f983df5": {
             "_id": "69f7c9896c966743b317b2b2",
             "id": "950a99ac-8141-4a41-8948-5af71f983df5",
-            "value": "Value2",
+            "value": "Hello Worlds!",
             "typeId": null,
             "createdAt": "2026-05-03T22:17:45.445Z",
-            "updatedAt": "2026-05-03T22:17:52.373Z",
+            "updatedAt": "2026-05-04T04:12:40.431Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "c2b3ee43-149a-46a4-8433-605b1f1cb896": {
@@ -900,6 +1534,210 @@
             "createdAt": "2026-05-03T22:19:05.314Z",
             "updatedAt": "2026-05-03T22:19:14.661Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "555389b1-1a61-416e-9ba8-4f1b4b9a9acf": {
+            "_id": "69fa7410c7ff96bc9dd6ae7e",
+            "id": "555389b1-1a61-416e-9ba8-4f1b4b9a9acf",
+            "value": "",
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:52.235Z",
+            "updatedAt": "2026-05-05T22:49:52.235Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "9e6cbe6d-14f2-4d85-bd11-d99c0259b166": {
+            "_id": "69fa7410c7ff96bc9dd6ae81",
+            "id": "9e6cbe6d-14f2-4d85-bd11-d99c0259b166",
+            "value": 0,
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:52.384Z",
+            "updatedAt": "2026-05-05T22:49:52.384Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "0ccfb843-f35e-4afb-a5c9-01565c6f7edf": {
+            "_id": "69fa7410c7ff96bc9dd6ae83",
+            "id": "0ccfb843-f35e-4afb-a5c9-01565c6f7edf",
+            "value": null,
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:52.484Z",
+            "updatedAt": "2026-05-05T22:49:52.484Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "5683bd1f-2afd-4b3d-805d-7abb06e1db67": {
+            "_id": "69fa7410c7ff96bc9dd6ae85",
+            "id": "5683bd1f-2afd-4b3d-805d-7abb06e1db67",
+            "value": null,
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:52.583Z",
+            "updatedAt": "2026-05-05T22:49:52.583Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "fc63774b-6b77-4a3b-b101-0aa84447967d": {
+            "_id": "69fa7410c7ff96bc9dd6ae87",
+            "id": "fc63774b-6b77-4a3b-b101-0aa84447967d",
+            "value": "",
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:52.782Z",
+            "updatedAt": "2026-05-05T22:49:52.782Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "11cd55b5-6d41-43be-9897-93ac91dd4777": {
+            "_id": "69fa7410c7ff96bc9dd6ae88",
+            "id": "11cd55b5-6d41-43be-9897-93ac91dd4777",
+            "value": {
+                "ChoiceId": "fc63774b-6b77-4a3b-b101-0aa84447967d"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:52.834Z",
+            "updatedAt": "2026-05-05T22:49:52.834Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "6624f779-20b7-4728-a313-4e4ac8929963": {
+            "_id": "69fa7410c7ff96bc9dd6ae8a",
+            "id": "6624f779-20b7-4728-a313-4e4ac8929963",
+            "value": [],
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:52.932Z",
+            "updatedAt": "2026-05-05T22:49:52.932Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "fbb8c422-6dd5-4c4e-90b1-be262caeee79": {
+            "_id": "69fa7411c7ff96bc9dd6ae8e",
+            "id": "fbb8c422-6dd5-4c4e-90b1-be262caeee79",
+            "value": 0,
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:53.289Z",
+            "updatedAt": "2026-05-05T22:49:53.289Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "77d598df-148c-437e-bbb8-4a88ea916278": {
+            "_id": "69fa7411c7ff96bc9dd6ae90",
+            "id": "77d598df-148c-437e-bbb8-4a88ea916278",
+            "value": null,
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:53.393Z",
+            "updatedAt": "2026-05-05T22:49:53.393Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "cbe8a085-9fc4-4437-bc11-41e2fef601d0": {
+            "_id": "69fa7411c7ff96bc9dd6ae92",
+            "id": "cbe8a085-9fc4-4437-bc11-41e2fef601d0",
+            "value": 0,
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:53.594Z",
+            "updatedAt": "2026-05-05T22:49:53.594Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "48a6f677-698c-4903-889e-46850e8bb1b5": {
+            "_id": "69fa7411c7ff96bc9dd6ae93",
+            "id": "48a6f677-698c-4903-889e-46850e8bb1b5",
+            "value": [],
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:53.790Z",
+            "updatedAt": "2026-05-05T22:49:53.790Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "30cee785-a3ee-4bc4-8e11-50bf0d27af96": {
+            "_id": "69fa7411c7ff96bc9dd6ae94",
+            "id": "30cee785-a3ee-4bc4-8e11-50bf0d27af96",
+            "value": {
+                "VisitCount": "cbe8a085-9fc4-4437-bc11-41e2fef601d0",
+                "ChoiceHistory": "48a6f677-698c-4903-889e-46850e8bb1b5"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:53.889Z",
+            "updatedAt": "2026-05-05T22:49:53.889Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "cb814b03-88c8-482b-9fb2-d839b1f529ae": {
+            "_id": "69fa7411c7ff96bc9dd6ae96",
+            "id": "cb814b03-88c8-482b-9fb2-d839b1f529ae",
+            "value": {},
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:53.990Z",
+            "updatedAt": "2026-05-05T22:49:53.990Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "93e4a60e-282e-41f3-932f-6775933902f7": {
+            "_id": "69fa7412c7ff96bc9dd6ae9a",
+            "id": "93e4a60e-282e-41f3-932f-6775933902f7",
+            "value": 0,
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:54.449Z",
+            "updatedAt": "2026-05-05T22:49:54.449Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "41c72cb7-ea20-4129-b796-50ff09b08fe2": {
+            "_id": "69fa7412c7ff96bc9dd6ae9b",
+            "id": "41c72cb7-ea20-4129-b796-50ff09b08fe2",
+            "value": {},
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:54.600Z",
+            "updatedAt": "2026-05-05T22:49:54.600Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "583ff4fa-2d0f-451e-8e37-fb47eee09a85": {
+            "_id": "69fa7412c7ff96bc9dd6ae9c",
+            "id": "583ff4fa-2d0f-451e-8e37-fb47eee09a85",
+            "value": {
+                "VisitCount": "93e4a60e-282e-41f3-932f-6775933902f7",
+                "TextNodeMemories": "41c72cb7-ea20-4129-b796-50ff09b08fe2"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:54.701Z",
+            "updatedAt": "2026-05-05T22:49:54.701Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "2831fdaa-9090-4bfc-aae3-c70c16a67151": {
+            "_id": "69fa7412c7ff96bc9dd6ae9e",
+            "id": "2831fdaa-9090-4bfc-aae3-c70c16a67151",
+            "value": {},
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:54.803Z",
+            "updatedAt": "2026-05-05T22:49:54.803Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "6d7a4952-163c-443f-b132-64dd89195f53": {
+            "_id": "69fa7413c7ff96bc9dd6aea1",
+            "id": "6d7a4952-163c-443f-b132-64dd89195f53",
+            "value": {},
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:55.060Z",
+            "updatedAt": "2026-05-05T22:49:55.060Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "214298ea-871a-4597-87c6-6cae03eab504": {
+            "_id": "69fa7413c7ff96bc9dd6aea2",
+            "id": "214298ea-871a-4597-87c6-6cae03eab504",
+            "value": {
+                "DialogueMemories": "6d7a4952-163c-443f-b132-64dd89195f53"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:55.118Z",
+            "updatedAt": "2026-05-05T22:49:55.118Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "e7f915b7-1db4-4f01-a8f1-f6bc54f0a827": {
+            "_id": "69fa7413c7ff96bc9dd6aea4",
+            "id": "e7f915b7-1db4-4f01-a8f1-f6bc54f0a827",
+            "value": {},
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:55.488Z",
+            "updatedAt": "2026-05-05T22:49:55.488Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "621fbd4b-05f0-4da6-af3f-1260abc02228": {
+            "_id": "69fa7413c7ff96bc9dd6aea5",
+            "id": "621fbd4b-05f0-4da6-af3f-1260abc02228",
+            "value": {
+                "DialogueMemories": "e7f915b7-1db4-4f01-a8f1-f6bc54f0a827"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-05T22:49:55.545Z",
+            "updatedAt": "2026-05-05T22:49:55.545Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         }
-    }
+    },
+    "dialogues": {},
+    "dialogueGroups": {},
+    "priorityGroups": {}
 }

@@ -18,19 +18,21 @@ namespace Assets.Scripts.Neo
         public NeoClient Client { get; }
         public ReadOnlyRoot Assets { get; }
         public Root Save { get; }
+        public NeoDialogues Dialogues { get; }
 
-        public TestProjectNeo(NeoClient client)
+        public TestProjectNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             Client = client;
             Instance = this;
             Assets = new ReadOnlyRoot(client, client.assets);
             Save = new Root(client, client.save);
+            Dialogues = new NeoDialogues(this, dialogueOptions);
         }
 
-        public static TestProjectNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave)
+        public static TestProjectNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             var client = new NeoLoader().Load(projectJson, loadSave, handleSave);
-            return new TestProjectNeo(client);
+            return new TestProjectNeo(client, dialogueOptions);
         }
 
         public string SerializeSaveData() => Client.SerializeSaveData();
@@ -40,6 +42,15 @@ namespace Assets.Scripts.Neo
         public int RunGarbageCollector() => Client.RunGarbageCollector();
 
         public IReadOnlyList<string> FindUnlinkedSaveValueIds() => Client.FindUnlinkedSaveValueIds();
+    }
+
+    public sealed class NeoDialogues : NeoDialoguesBase
+    {
+        internal NeoDialogues(TestProjectNeo project, NeoDialogueRuntimeOptions? options)
+            : base(options)
+        {
+            var _ = project;
+        }
     }
 
     public sealed class Element : IEquatable<Element>

@@ -38,6 +38,8 @@ namespace NeoCompose.Runtime.Json
         public const string If = "if";
         public const string Return = "return";
         public const string Throw = "throw";
+        public const string Assign = "assign";
+        public const string CollectionCall = "collectionCall";
     }
 
     public static class OperationKind
@@ -79,6 +81,23 @@ namespace NeoCompose.Runtime.Json
         public const string Where = "where";
         public const string Contains = "contains";
         public const string Count = "count";
+    }
+
+    public static class WritabilityKind
+    {
+        public const string Local = "local";
+        public const string Save = "save";
+        public const string Asset = "asset";
+        public const string AssetToSaveLookup = "assetToSaveLookup";
+        public const string ReadOnly = "readOnly";
+    }
+
+    public static class CollectionMutationKind
+    {
+        public const string Add = "Add";
+        public const string Remove = "Remove";
+        public const string RemoveAt = "RemoveAt";
+        public const string Clear = "Clear";
     }
 
     // -----------------------------------------------------------------------
@@ -187,6 +206,18 @@ namespace NeoCompose.Runtime.Json
     {
         public BooleanExpression expression = null!;
         public Instruction[] instructions = null!;
+    }
+
+    /// <summary>
+    /// Assignment / collection-call target. Mirrors TS-side
+    /// <c>INSWriteTarget</c>.
+    /// </summary>
+    public class WriteTarget
+    {
+        public Pointer pointer = null!;
+        public TypeInfo typeInfo = null!;
+        /// <summary>One of <see cref="WritabilityKind"/>.</summary>
+        public string? writability;
     }
 
     /// <summary>

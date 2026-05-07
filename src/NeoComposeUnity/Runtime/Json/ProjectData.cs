@@ -33,5 +33,8 @@ namespace NeoCompose.Runtime.Json
         public Dictionary<string, AttributeValue> values = null!;
         public Dictionary<string, CustomType> types = null!;
         public Dictionary<string, Enum> enums = null!;
+        public Dictionary<string, Dialogue> dialogues = new();
+        public Dictionary<string, DialogueGroup> dialogueGroups = new();
+        public Dictionary<string, PriorityGroup> priorityGroups = new();
     }
 }

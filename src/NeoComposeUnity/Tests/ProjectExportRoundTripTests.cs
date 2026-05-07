@@ -60,7 +60,240 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(export.values);
             Assert.IsNotNull(export.types);
             Assert.IsNotNull(export.enums);
+            Assert.IsNotNull(export.dialogues);
+            Assert.IsNotNull(export.dialogueGroups);
+            Assert.IsNotNull(export.priorityGroups);
             Assert.Greater(export.attributes.Count, 0);
+        }
+
+        [Test]
+        public void MissingDialogueMaps_DeserializeToEmptyDictionaries()
+        {
+            var export = Deserialize(LoadFixture("synth-example.json"));
+            Assert.IsNotNull(export.dialogues);
+            Assert.IsNotNull(export.dialogueGroups);
+            Assert.IsNotNull(export.priorityGroups);
+            Assert.AreEqual(0, export.dialogues.Count);
+            Assert.AreEqual(0, export.dialogueGroups.Count);
+            Assert.AreEqual(0, export.priorityGroups.Count);
+        }
+
+        [Test]
+        public void DialogueMaps_DeserializeDialogueGroupPriorityAndActionShapes()
+        {
+            var json = @"
+{
+  ""project"": {
+    ""_id"": ""project-a"",
+    ""id"": ""project-a"",
+    ""name"": ""Dialogue Project"",
+    ""rootAssetsAttributeId"": ""assets-root"",
+    ""rootSaveFileAttributeId"": ""save-root"",
+    ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+    ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+  },
+  ""attributes"": {},
+  ""enums"": {},
+  ""types"": {},
+  ""values"": {},
+  ""dialogues"": {
+    ""dialogue-a"": {
+      ""_id"": ""dialogue-a"",
+      ""id"": ""dialogue-a"",
+      ""projectId"": ""project-a"",
+      ""name"": ""Hello"",
+      ""description"": null,
+      ""nodes"": {
+        ""text-a"": {
+          ""id"": ""text-a"",
+          ""type"": 1,
+          ""layout"": { ""x"": 0, ""y"": 0, ""width"": 320, ""height"": 120, ""isOpen"": true },
+          ""linkedValues"": [],
+          ""text"": ""Hello there"",
+          ""optionSettings"": {
+            ""saveChoice"": true,
+            ""options"": [
+              { ""id"": ""option-a"", ""text"": ""Continue"", ""toNodeId"": ""actions-a"" }
+            ]
+          }
+        },
+        ""actions-a"": {
+          ""id"": ""actions-a"",
+          ""type"": 2,
+          ""layout"": { ""x"": 0, ""y"": 140, ""width"": 320, ""height"": 120, ""isOpen"": true },
+          ""linkedValues"": [],
+          ""actions"": [
+            {
+              ""id"": ""action-a"",
+              ""type"": 0,
+              ""logic"": {
+                ""type"": 1,
+                ""code"": ""Save.Score += 1;"",
+                ""action"": {
+                  ""parameters"": [],
+                  ""typeInfo"": { ""type"": 0, ""required"": true },
+                  ""instructions"": [
+                    {
+                      ""type"": ""assign"",
+                      ""target"": {
+                        ""pointer"": { ""type"": ""reference"", ""valueId"": ""score-value"" },
+                        ""typeInfo"": { ""type"": 2, ""required"": true },
+                        ""writability"": ""save""
+                      },
+                      ""operator"": ""+="",
+                      ""pointer"": {
+                        ""type"": ""value"",
+                        ""value"": {
+                          ""typeInfo"": { ""type"": 2, ""required"": true },
+                          ""value"": 1
+                        }
+                      }
+                    },
+                    {
+                      ""type"": ""collectionCall"",
+                      ""target"": {
+                        ""pointer"": { ""type"": ""reference"", ""valueId"": ""visited-value"" },
+                        ""typeInfo"": {
+                          ""type"": 8,
+                          ""required"": true,
+                          ""entryTypeInfo"": { ""type"": 4, ""required"": true }
+                        },
+                        ""writability"": ""save""
+                      },
+                      ""mutation"": ""Add"",
+                      ""args"": [
+                        {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": { ""type"": 4, ""required"": true },
+                            ""value"": ""Earth""
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        ""conditions-a"": {
+          ""id"": ""conditions-a"",
+          ""type"": 3,
+          ""layout"": { ""x"": 0, ""y"": 280, ""width"": 320, ""height"": 120, ""isOpen"": true },
+          ""linkedValues"": [],
+          ""outcomes"": [
+            {
+              ""id"": ""outcome-a"",
+              ""name"": ""Ready"",
+              ""conditions"": [
+                {
+                  ""type"": 0,
+                  ""getter"": {
+                    ""parameters"": [],
+                    ""typeInfo"": { ""type"": 1, ""required"": true },
+                    ""instructions"": [
+                      {
+                        ""type"": ""return"",
+                        ""pointer"": {
+                          ""type"": ""value"",
+                          ""value"": {
+                            ""typeInfo"": { ""type"": 1, ""required"": true },
+                            ""value"": true
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      },
+      ""linkedValues"": [
+        { ""valueId"": ""npc-value"", ""source"": 0 }
+      ],
+      ""settings"": { ""defaultSaveOptionChoices"": true },
+      ""triggerNode"": {
+        ""id"": ""trigger-a"",
+        ""type"": 0,
+        ""layout"": { ""x"": 0, ""y"": -140, ""width"": 320, ""height"": 120, ""isOpen"": true },
+        ""linkedValues"": [],
+        ""conditions"": [],
+        ""dialogueGroupSettings"": {
+          ""dialogueGroupId"": ""group-a"",
+          ""lookupValueId"": ""npc-value"",
+          ""priority"": { ""priorityTypeId"": ""urgent"", ""relativeOrder"": 1 }
+        }
+      },
+      ""primaryLinkedValueId"": ""npc-value"",
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+    }
+  },
+  ""dialogueGroups"": {
+    ""group-a"": {
+      ""_id"": ""group-a"",
+      ""id"": ""group-a"",
+      ""projectId"": ""project-a"",
+      ""name"": ""Talk"",
+      ""type"": 1,
+      ""parentDialogueGroupId"": null,
+      ""conditions"": [],
+      ""priorityGroupIdOverride"": ""priority-a"",
+      ""collectionAttributeId"": ""npcs-attribute"",
+      ""collectionValueId"": ""npcs-value"",
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+    }
+  },
+  ""priorityGroups"": {
+    ""priority-a"": {
+      ""_id"": ""priority-a"",
+      ""id"": ""priority-a"",
+      ""projectId"": ""project-a"",
+      ""name"": ""Default"",
+      ""options"": [
+        { ""id"": ""urgent"", ""name"": ""Urgent"" },
+        { ""id"": ""low"", ""name"": ""Low"" }
+      ],
+      ""system"": null,
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+    }
+  }
+}";
+
+            var export = Deserialize(json);
+            var dialogue = export.dialogues["dialogue-a"];
+            Assert.AreEqual("Hello", dialogue.name);
+            Assert.AreEqual(DialogueLinkedValueSource.Manual, dialogue.linkedValues[0].source);
+            Assert.AreEqual("npc-value", dialogue.primaryLinkedValueId);
+
+            var textNode = (DialogueTextNode)dialogue.nodes["text-a"];
+            Assert.AreEqual("Hello there", textNode.text);
+            Assert.AreEqual("Continue", textNode.optionSettings!.options[0].text);
+
+            var actionsNode = (DialogueActionsNode)dialogue.nodes["actions-a"];
+            var action = (DialogueLogicEditAttributeAction)actionsNode.actions[0];
+            var logic = (CodeLogicAction)action.logic;
+            Assert.AreEqual("Save.Score += 1;", logic.code);
+            Assert.IsInstanceOf<AssignInstruction>(logic.action.instructions[0]);
+            Assert.IsInstanceOf<CollectionCallInstruction>(logic.action.instructions[1]);
+            Assert.AreEqual("+=", ((AssignInstruction)logic.action.instructions[0]).operatorValue);
+
+            var conditionsNode = (DialogueConditionsNode)dialogue.nodes["conditions-a"];
+            var condition = (UILogicCondition)conditionsNode.outcomes[0].conditions[0];
+            var returnInstruction = (ReturnInstruction)condition.getter.instructions[0];
+            Assert.IsNotNull(returnInstruction.pointer);
+
+            var group = (LookupDialogueGroup)export.dialogueGroups["group-a"];
+            Assert.AreEqual("npcs-attribute", group.collectionAttributeId);
+            Assert.AreEqual("npcs-value", group.collectionValueId);
+
+            var priority = export.priorityGroups["priority-a"];
+            Assert.AreEqual("Urgent", priority.options[0].name);
         }
 
         [Test]
