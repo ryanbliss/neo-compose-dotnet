@@ -1,6 +1,7 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+using System;
 using System.IO;
 using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
@@ -15,20 +16,23 @@ namespace HelloWorld.Assets.Scripts
     public class HelloWorldBehaviour : MonoBehaviour
     {
         protected HelloWorldNeo neo;
-        private HelloWorldUi ui;
+        private HelloWorldUi CoreUI;
+        private DialogueUI DialogueUI;
+        private NeoDialogue activeDialogue;
 
         protected void Awake()
         {
+            PrepareUI();
             LoadClient();
-            ui = new();
         }
 
         public void LoadClient()
         {
+            ClearDialogue();
             string json = File.ReadAllText(ProjectJsonPath);
             neo = HelloWorldNeo.Load(json, OnLoadSave, OnCommitSave);
             // reference lookup to one of the "Hello World" outputs in `neo.Assets.LookupContainer.LookupList`
-            Debug.Log(neo.Assets.LookupContainer.Lookup.Name);
+            Debug.Log(neo.Assets.LookupContainer.Lookup?.Name ?? "Lookup not selected");
             TriggerDialogue();
         }
 
@@ -48,49 +52,69 @@ namespace HelloWorld.Assets.Scripts
             Debug.Log($"Start Dead: {neo.Save.Dead}");
             if (neo.Dialogues.TryTrigger("6efd8f7b-7491-4646-b4cc-05589bca92ab", out NeoDialogue dialogue))
             {
-                dialogue.OnShow += OnDialogueShow;
-                dialogue.OnError += OnError;
-                dialogue.OnFinish += OnFinish;
-                dialogue.Start();
+                ShowDialogue(dialogue);
             }
+        }
+
+        public void ShowDialogue(NeoDialogue dialogue)
+        {
+            dialogue.OnShow += OnDialogueShow;
+            dialogue.OnFinish += OnDialogueFinish;
+            dialogue.OnError += OnDialogueError;
+            dialogue.Start();
+            activeDialogue = dialogue;
         }
 
         public void OnDialogueShow(NeoDialogueTextNode node)
         {
-            Debug.Log(node.Text);
-            if (node.Options.Count > 0)
+            PrepareUI();
+            DialogueUI.SpeakerName = SpeakerLabel(node);
+            DialogueUI.Text = node.Text;
+            DialogueUI.Hint = node.Options.Count > 0
+                ? node.SaveChoice ? "Choice will be remembered" : "Choose a response"
+                : "Continue when ready";
+            DialogueUI.ClearOptionButtons();
+
+            void OnTextShown()
             {
-                foreach (NeoDialogueTextOption option in node.Options)
+                if (node.Options.Count > 0)
                 {
-                    if (option.Text == "Green" && !neo.Save.Dead || option.Text == "Blue" && neo.Save.Dead)
+                    foreach (NeoDialogueTextOption option in node.Options)
                     {
-                        Debug.Log($"Selecting option: {option.Text}");
-                        option.Select();
-                        return;
+                        DialogueUI.PrepareOptionButton(
+                            buttonText: option.Text,
+                            rememberChoice: node.SaveChoice,
+                            onClick: option.Select
+                        );
                     }
+                    return;
+                }
+
+                DialogueUI.PrepareOptionButton(
+                    buttonText: "Continue",
+                    rememberChoice: false,
+                    onClick: node.Next
+                );
+            }
+
+            DialogueUI.ShowText(OnTextShown);
+        }
+
+        public void OnDialogueFinish()
+        {
+            ClearDialogue();
+            if (neo.Save.NeoMemory.DialogueMemories.TryGetValue("6efd8f7b-7491-4646-b4cc-05589bca92ab", out NeoDialogueMemory memory))
+            {
+                if (memory.VisitCount < 2)
+                {
+                    TriggerDialogue();
                 }
             }
-            else
-            {
-                node.Next();
-            }
         }
 
-        private bool shouldRepeat = true;
-
-        public void OnFinish()
+        public void OnDialogueError(Exception exception)
         {
-            Debug.Log($"OnFinish Dead: {neo.Save.Dead}");
-            if (shouldRepeat)
-            {
-                shouldRepeat = false;
-                TriggerDialogue();
-            }
-        }
-
-        public void OnError(System.Exception exception)
-        {
-            Debug.LogError(exception);
+            DialogueUI.Reset();
         }
 
         public void OnSave()
@@ -104,14 +128,6 @@ namespace HelloWorld.Assets.Scripts
             LoadClient();
         }
 
-        protected void Update()
-        {
-            ui.Render(
-                HelloWorldText, World, VisitedPlanets,
-                OnVisit, OnSave, OnResetSave
-            );
-        }
-
         protected string OnLoadSave()
         {
             return File.ReadAllText(SaveJsonPath);
@@ -122,9 +138,55 @@ namespace HelloWorld.Assets.Scripts
             File.WriteAllText(SaveJsonPath, content);
         }
 
+        protected void Update()
+        {
+            CoreUI.Render(
+                HelloWorldText, World, VisitedPlanets,
+                OnVisit, OnSave, OnResetSave
+            );
+        }
+
         protected void OnDestroy()
         {
-            ui?.Dispose();
+            ClearDialogue();
+            DialogueUI?.Dispose();
+            CoreUI?.Dispose();
+        }
+
+        private void ClearDialogue()
+        {
+            if (activeDialogue != null)
+            {
+                activeDialogue.Dispose();
+                activeDialogue = null;
+            }
+
+            DialogueUI?.Reset();
+        }
+
+        private void PrepareUI()
+        {
+            if (CoreUI == null) CoreUI = new();
+            if (DialogueUI == null) DialogueUI = new();
+        }
+
+        private static string SpeakerLabel(NeoDialogueTextNode node)
+        {
+            if (!string.IsNullOrEmpty(node.Name)) return node.Name;
+            if (node.Primary == null) return "Dialogue";
+
+            if (node.Primary is Outpost)
+            {
+                return node.Name;
+            }
+
+            var nameProperty = node.Primary.GetType().GetProperty("Name");
+            if (nameProperty?.GetValue(node.Primary) is string name && !string.IsNullOrEmpty(name))
+            {
+                return name;
+            }
+
+            return node.Primary.GetType().Name;
         }
 
         // ──────────────────────────────────────────────
