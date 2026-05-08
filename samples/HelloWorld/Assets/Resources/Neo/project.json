@@ -3183,7 +3183,7 @@
     "dialogues": {
         "6efd8f7b-7491-4646-b4cc-05589bca92ab": {
             "_id": "69fa8c3a7fe594e9e5fd7939",
-            "name": "New dialogue",
+            "name": "I'm blue, if I were green....",
             "description": null,
             "nodes": {
                 "7af2e9ea-375b-48fa-83d0-44a388793cb4": {
@@ -3213,6 +3213,12 @@
                                 "text": "Green",
                                 "name": "Green",
                                 "toNodeId": "e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf"
+                            },
+                            {
+                                "id": "fc75b9da-ce50-4316-a201-4d280588a644",
+                                "text": "Pink",
+                                "name": "Pink",
+                                "toNodeId": "8f2d3768-9174-4e0e-89f0-35de3079e804"
                             }
                         ],
                         "saveChoice": null
@@ -3233,7 +3239,7 @@
                     "text": "Great, now I won't die!",
                     "name": "Green",
                     "optionSettings": null,
-                    "toNodeId": "302e7679-0e2d-4942-86b7-b8a1c694d095"
+                    "toNodeId": "71534395-bb0a-4ae0-8d99-490699904b3a"
                 },
                 "e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf": {
                     "id": "e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf",
@@ -3251,22 +3257,6 @@
                     "name": "Blue",
                     "optionSettings": null,
                     "toNodeId": "e21fadb4-7bfc-40ed-b216-a346251a36a9"
-                },
-                "302e7679-0e2d-4942-86b7-b8a1c694d095": {
-                    "id": "302e7679-0e2d-4942-86b7-b8a1c694d095",
-                    "type": 2,
-                    "layout": {
-                        "x": 259.0022119372818,
-                        "y": 979.0941737555494,
-                        "width": 320,
-                        "height": 160,
-                        "isOpen": true
-                    },
-                    "name": null,
-                    "linkedValues": [],
-                    "primaryLinkedValueId": null,
-                    "actions": [],
-                    "toNodeId": "71534395-bb0a-4ae0-8d99-490699904b3a"
                 },
                 "e21fadb4-7bfc-40ed-b216-a346251a36a9": {
                     "id": "e21fadb4-7bfc-40ed-b216-a346251a36a9",
@@ -3314,7 +3304,7 @@
                                                                             "type": 3,
                                                                             "required": true
                                                                         },
-                                                                        "value": "Save"
+                                                                        "value": "save"
                                                                     }
                                                                 }
                                                             }
@@ -3407,7 +3397,7 @@
                                                                                             "type": 3,
                                                                                             "required": true
                                                                                         },
-                                                                                        "value": "Save"
+                                                                                        "value": "save"
                                                                                     }
                                                                                 }
                                                                             }
@@ -3485,6 +3475,22 @@
                     "primaryLinkedValueId": null,
                     "text": "Abi doo abi dah",
                     "optionSettings": null
+                },
+                "8f2d3768-9174-4e0e-89f0-35de3079e804": {
+                    "id": "8f2d3768-9174-4e0e-89f0-35de3079e804",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 535,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [],
+                    "primaryLinkedValueId": null,
+                    "text": "I'm blue, if I were pink I would PIE",
+                    "optionSettings": null
                 }
             },
             "linkedValues": [],
@@ -3512,7 +3518,125 @@
             "id": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-06T00:32:58.144Z",
-            "updatedAt": "2026-05-07T12:10:25.263Z"
+            "updatedAt": "2026-05-08T04:49:06.165Z"
+        },
+        "3e842799-4859-4fbc-a317-8640bc6875e5": {
+            "_id": "69fd01d421f8b0238d0f6850",
+            "name": "Capitol OG Intro",
+            "description": null,
+            "nodes": {
+                "c246e26f-2736-4930-8a15-7e0155ca8573": {
+                    "id": "c246e26f-2736-4930-8a15-7e0155ca8573",
+                    "type": 1,
+                    "layout": {
+                        "x": 0,
+                        "y": 191,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "Hello, traveler! Welcome to the best planet of the best solar system in the ENTIRE galaxy!",
+                    "optionSettings": null,
+                    "toNodeId": "55cd604a-448b-4eb4-bd13-aa8c0f8143c9"
+                },
+                "55cd604a-448b-4eb4-bd13-aa8c0f8143c9": {
+                    "id": "55cd604a-448b-4eb4-bd13-aa8c0f8143c9",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 474,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "As the OGs of the system, you probably won't want to leave Earth during your stay, but you're mostly welcome to leave whenever you want!",
+                    "optionSettings": null,
+                    "toNodeId": "050f1583-b0fa-44a4-964b-74d2c267aad8"
+                },
+                "050f1583-b0fa-44a4-964b-74d2c267aad8": {
+                    "id": "050f1583-b0fa-44a4-964b-74d2c267aad8",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 677,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "So, what brings you to our fine Capitol?",
+                    "optionSettings": null
+                }
+            },
+            "linkedValues": [
+                {
+                    "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "source": 3
+                }
+            ],
+            "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+            "settings": {
+                "defaultSaveOptionChoices": true
+            },
+            "triggerNode": {
+                "id": "17d6690c-5649-4e6c-b252-bb237c884b5b",
+                "type": 0,
+                "layout": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 320,
+                    "height": 160,
+                    "isOpen": true
+                },
+                "name": null,
+                "linkedValues": [
+                    {
+                        "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                        "source": 3
+                    }
+                ],
+                "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                "conditions": [],
+                "dialogueGroupSettings": {
+                    "dialogueGroupId": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+                    "lookupValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "priority": {
+                        "priorityTypeId": null,
+                        "relativeOrder": null
+                    }
+                },
+                "occurrenceLimitSettings": {
+                    "count": 1
+                },
+                "toNodeId": "c246e26f-2736-4930-8a15-7e0155ca8573"
+            },
+            "id": "3e842799-4859-4fbc-a317-8640bc6875e5",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-07T21:19:16.082Z",
+            "updatedAt": "2026-05-08T03:29:45.309Z"
         }
     },
     "dialogueGroups": {
@@ -3533,14 +3657,75 @@
             "name": "Introductions",
             "type": 1,
             "parentDialogueGroupId": "9acf9982-4b14-4cc1-bc26-5aba3dfa3f9a",
-            "conditions": [],
+            "conditions": [
+                {
+                    "type": 0,
+                    "getter": {
+                        "parameters": [],
+                        "typeInfo": {
+                            "type": 1,
+                            "required": true
+                        },
+                        "instructions": [
+                            {
+                                "type": "return",
+                                "pointer": {
+                                    "type": "operation",
+                                    "operation": {
+                                        "type": "boolean",
+                                        "expression": {
+                                            "condition": {
+                                                "type": "equalTo",
+                                                "operand1": {
+                                                    "type": "keyOf",
+                                                    "keyOf": {
+                                                        "pointer": {
+                                                            "type": "callGetter",
+                                                            "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                                                            "thisPointer": {
+                                                                "type": "variable",
+                                                                "variableId": "__this__"
+                                                            }
+                                                        },
+                                                        "key": {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": "VisitCount"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "operand2": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 2,
+                                                            "required": true
+                                                        },
+                                                        "value": 0
+                                                    }
+                                                }
+                                            },
+                                            "connective": null
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            ],
             "priorityGroupIdOverride": null,
             "collectionAttributeId": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
             "collectionValueId": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
             "id": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T19:25:22.371Z",
-            "updatedAt": "2026-05-07T19:25:40.021Z"
+            "updatedAt": "2026-05-07T21:08:55.687Z"
         }
     },
     "priorityGroups": {

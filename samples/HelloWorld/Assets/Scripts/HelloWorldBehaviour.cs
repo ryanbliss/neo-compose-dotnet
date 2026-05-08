@@ -3,6 +3,7 @@
 
 using System;
 using System.IO;
+using System.Linq;
 using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using UnityEngine;
@@ -48,9 +49,16 @@ namespace HelloWorld.Assets.Scripts
 
         public void TriggerDialogue()
         {
-            Debug.Log($"Triggering dialogue with ID: 6efd8f7b-7491-4646-b4cc-05589bca92ab");
+            // Debug.Log($"Triggering dialogue with ID: 6efd8f7b-7491-4646-b4cc-05589bca92ab");
             Debug.Log($"Start Dead: {neo.Save.Dead}");
-            if (neo.Dialogues.TryTrigger("6efd8f7b-7491-4646-b4cc-05589bca92ab", out NeoDialogue dialogue))
+            var check = neo.Assets.Outposts.FirstOrDefault(check =>
+            {
+                Debug.Log(check.Planet == Planet.earth);
+                return check.Planet == Planet.earth;
+            });
+            if (check is not ReadOnlyOutpost outpost) return;
+            Debug.Log(outpost.Name);
+            if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue))
             {
                 ShowDialogue(dialogue);
             }

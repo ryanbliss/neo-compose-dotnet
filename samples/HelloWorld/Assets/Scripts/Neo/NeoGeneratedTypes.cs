@@ -218,15 +218,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public const string mercury = "mercury";
-        public const string venus = "venus";
-        public const string earth = "earth";
-        public const string mars = "mars";
-        public const string jupiter = "jupiter";
-        public const string saturn = "saturn";
-        public const string uranus = "uranus";
-        public const string neptune = "neptune";
-        public const string pluto = "pluto";
+        public static readonly Planet mercury = FromOptionId("mercury");
+        public static readonly Planet venus = FromOptionId("venus");
+        public static readonly Planet earth = FromOptionId("earth");
+        public static readonly Planet mars = FromOptionId("mars");
+        public static readonly Planet jupiter = FromOptionId("jupiter");
+        public static readonly Planet saturn = FromOptionId("saturn");
+        public static readonly Planet uranus = FromOptionId("uranus");
+        public static readonly Planet neptune = FromOptionId("neptune");
+        public static readonly Planet pluto = FromOptionId("pluto");
 
         public static Planet FromOptionId(string optionId)
         {
@@ -248,15 +248,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                mercury => true,
-                venus => true,
-                earth => true,
-                mars => true,
-                jupiter => true,
-                saturn => true,
-                uranus => true,
-                neptune => true,
-                pluto => true,
+                "mercury" => true,
+                "venus" => true,
+                "earth" => true,
+                "mars" => true,
+                "jupiter" => true,
+                "saturn" => true,
+                "uranus" => true,
+                "neptune" => true,
+                "pluto" => true,
                 _ => false,
             };
         }
@@ -267,6 +267,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool Equals(Planet? other) => other is not null && optionId == other.optionId;
         public override bool Equals(object? obj) => Equals(obj as Planet);
         public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(Planet? left, Planet? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(Planet? left, Planet? right) => !(left == right);
     }
     public sealed class JupiterMoon : IEquatable<JupiterMoon>
     {
@@ -278,10 +280,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public const string io = "io";
-        public const string europa = "europa";
-        public const string ganymede = "ganymede";
-        public const string callisto = "callisto";
+        public static readonly JupiterMoon io = FromOptionId("io");
+        public static readonly JupiterMoon europa = FromOptionId("europa");
+        public static readonly JupiterMoon ganymede = FromOptionId("ganymede");
+        public static readonly JupiterMoon callisto = FromOptionId("callisto");
 
         public static JupiterMoon FromOptionId(string optionId)
         {
@@ -303,10 +305,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                io => true,
-                europa => true,
-                ganymede => true,
-                callisto => true,
+                "io" => true,
+                "europa" => true,
+                "ganymede" => true,
+                "callisto" => true,
                 _ => false,
             };
         }
@@ -317,6 +319,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool Equals(JupiterMoon? other) => other is not null && optionId == other.optionId;
         public override bool Equals(object? obj) => Equals(obj as JupiterMoon);
         public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(JupiterMoon? left, JupiterMoon? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(JupiterMoon? left, JupiterMoon? right) => !(left == right);
     }
     public sealed class SaturnMoon : IEquatable<SaturnMoon>
     {
@@ -328,8 +332,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public const string titan = "titan";
-        public const string enceladus = "enceladus";
+        public static readonly SaturnMoon titan = FromOptionId("titan");
+        public static readonly SaturnMoon enceladus = FromOptionId("enceladus");
 
         public static SaturnMoon FromOptionId(string optionId)
         {
@@ -351,8 +355,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return id switch
             {
-                titan => true,
-                enceladus => true,
+                "titan" => true,
+                "enceladus" => true,
                 _ => false,
             };
         }
@@ -363,6 +367,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool Equals(SaturnMoon? other) => other is not null && optionId == other.optionId;
         public override bool Equals(object? obj) => Equals(obj as SaturnMoon);
         public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(SaturnMoon? left, SaturnMoon? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(SaturnMoon? left, SaturnMoon? right) => !(left == right);
     }
 
     public partial class ReadOnlyAssets : NeoGeneratedCustomValue
