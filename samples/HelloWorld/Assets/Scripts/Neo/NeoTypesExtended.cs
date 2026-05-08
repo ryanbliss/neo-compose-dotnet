@@ -8,7 +8,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             base.LazyInitialize();
             if (SaveUnsafe is not null) return;
-            // HelloWorldNeo.Instance.Save.OutpostSaveMap.Add(valueId, new());
+            HelloWorldNeo.Instance.Save.OutpostSaveMap.Add(valueId, new());
         }
     }
 }
