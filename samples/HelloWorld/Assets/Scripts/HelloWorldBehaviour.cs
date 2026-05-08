@@ -68,36 +68,28 @@ namespace HelloWorld.Assets.Scripts
         public void OnDialogueShow(NeoDialogueTextNode node)
         {
             PrepareUI();
-            DialogueUI.SpeakerName = SpeakerLabel(node);
-            DialogueUI.Text = node.Text;
-            DialogueUI.Hint = node.Options.Count > 0
-                ? node.SaveChoice ? "Choice will be remembered" : "Choose a response"
-                : "Continue when ready";
-            DialogueUI.ClearOptionButtons();
-
-            void OnTextShown()
+            DialogueUI.Show(
+                SpeakerLabel(node),
+                node.Text,
+                node.SaveChoice ? "Choice will be remembered" : "Choose a response"
+            );
+            if (node.Options.Count > 0)
             {
-                if (node.Options.Count > 0)
+                foreach (NeoDialogueTextOption option in node.Options)
                 {
-                    foreach (NeoDialogueTextOption option in node.Options)
-                    {
-                        DialogueUI.PrepareOptionButton(
-                            buttonText: option.Text,
-                            rememberChoice: node.SaveChoice,
-                            onClick: option.Select
-                        );
-                    }
-                    return;
+                    DialogueUI.PrepareOptionButton(
+                        buttonText: option.Text,
+                        onClick: option.Select,
+                        rememberChoice: node.SaveChoice
+                    );
                 }
-
-                DialogueUI.PrepareOptionButton(
-                    buttonText: "Continue",
-                    rememberChoice: false,
-                    onClick: node.Next
-                );
+                return;
             }
 
-            DialogueUI.ShowText(OnTextShown);
+            DialogueUI.PrepareOptionButton(
+                buttonText: "Continue",
+                onClick: node.Next
+            );
         }
 
         public void OnDialogueFinish()
@@ -173,21 +165,11 @@ namespace HelloWorld.Assets.Scripts
 
         private static string SpeakerLabel(NeoDialogueTextNode node)
         {
-            if (node.Primary == null) return "Dialogue";
-
             if (node.Primary is ReadOnlyOutpost outpost)
             {
                 return $"{outpost.Name} - {outpost.Planet}";
             }
-            if (!string.IsNullOrEmpty(node.Name)) return node.Name;
-
-            var nameProperty = node.Primary.GetType().GetProperty("Name");
-            if (nameProperty?.GetValue(node.Primary) is string name && !string.IsNullOrEmpty(name))
-            {
-                return name;
-            }
-
-            return node.Primary.GetType().Name;
+            return "Dialogue";
         }
 
         // ──────────────────────────────────────────────

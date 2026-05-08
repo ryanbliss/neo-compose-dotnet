@@ -25,7 +25,7 @@ namespace HelloWorld.Assets.Scripts
             set
             {
                 EnsureBuilt();
-                speakerText.text = string.IsNullOrEmpty(value) ? "Dialogue" : value;
+                speakerText.text = value;
             }
         }
 
@@ -47,11 +47,18 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        public void ShowText(Action onTextShown)
+        public void Show(
+            string speakerName,
+            string text,
+            string hint
+        )
         {
             EnsureBuilt();
+            SpeakerName = speakerName;
+            Text = text;
+            Hint = hint;
+            ClearOptionButtons();
             root.SetActive(true);
-            onTextShown();
         }
 
         public void ClearOptionButtons()
@@ -65,8 +72,9 @@ namespace HelloWorld.Assets.Scripts
 
         public void PrepareOptionButton(
             string buttonText,
-            bool rememberChoice,
-            Action onClick)
+            Action onClick,
+            bool rememberChoice = false
+        )
         {
             EnsureBuilt();
             CreateOptionButton(
@@ -154,6 +162,7 @@ namespace HelloWorld.Assets.Scripts
         {
             speakerText = CreateText(parent, "", 22, new Color(0.58f, 0.72f, 1f), FontStyle.Bold);
             speakerText.gameObject.GetComponent<LayoutElement>().preferredHeight = 30f;
+            speakerText.verticalOverflow = VerticalWrapMode.Overflow;
 
             bodyText = CreateText(parent, "", 28, new Color(0.96f, 0.98f, 1f), FontStyle.Normal);
             bodyText.alignment = TextAnchor.UpperLeft;
