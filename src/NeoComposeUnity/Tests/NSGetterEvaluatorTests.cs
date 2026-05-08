@@ -204,6 +204,146 @@ namespace NeoCompose.Tests
             Assert.AreEqual("outpost-row", result);
         }
 
+        [Test]
+        public void Evaluate_VisitCountAndHasVisited_ReadDialogueMemoryStore()
+        {
+            var client = LoadClient();
+            var memory = new TestMemoryStore();
+            var dialogueMemory = memory.GetOrCreateTestDialogueMemory("dialogue-1");
+            dialogueMemory.VisitCount = 2;
+            var textNodeMemory = (TestTextNodeMemory)dialogueMemory
+                .GetOrCreateTextNodeMemory("text-1");
+            textNodeMemory.VisitCount = 3;
+            textNodeMemory.AddChoice("option-1", "now");
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null,
+                memoryStore: memory);
+
+            Assert.AreEqual(
+                2,
+                NSGetterEvaluator.Evaluate(
+                    ReturnFunction(
+                        new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new VisitCountFunction
+                            {
+                                type = FunctionKind.VisitCount,
+                                info = new FunctionDialogueMemoryInfo
+                                {
+                                    pointer = StringPointer("dialogue-1"),
+                                },
+                            },
+                        },
+                        AttributeType.Int),
+                    ctx));
+            Assert.AreEqual(
+                3,
+                NSGetterEvaluator.Evaluate(
+                    ReturnFunction(
+                        new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new VisitCountFunction
+                            {
+                                type = FunctionKind.VisitCount,
+                                info = new FunctionDialogueMemoryInfo
+                                {
+                                    pointer = StringPointer("dialogue-1,text-1"),
+                                },
+                            },
+                        },
+                        AttributeType.Int),
+                    ctx));
+            Assert.AreEqual(
+                true,
+                NSGetterEvaluator.Evaluate(
+                    ReturnFunction(
+                        new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new HasVisitedFunction
+                            {
+                                type = FunctionKind.HasVisited,
+                                info = new FunctionDialogueMemoryInfo
+                                {
+                                    pointer = StringPointer("dialogue-1,text-1,option-1"),
+                                },
+                            },
+                        },
+                        AttributeType.Bool),
+                    ctx));
+            Assert.AreEqual(
+                false,
+                NSGetterEvaluator.Evaluate(
+                    ReturnFunction(
+                        new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new HasVisitedFunction
+                            {
+                                type = FunctionKind.HasVisited,
+                                info = new FunctionDialogueMemoryInfo
+                                {
+                                    pointer = StringPointer("dialogue-1,text-1,option-2"),
+                                },
+                            },
+                        },
+                        AttributeType.Bool),
+                    ctx));
+        }
+
+        [Test]
+        public void Evaluate_VisitCount_ReturnsZeroForUnknownOrInvalidPointers()
+        {
+            var client = LoadClient();
+            var memory = new TestMemoryStore();
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null,
+                memoryStore: memory);
+
+            Assert.AreEqual(
+                0,
+                NSGetterEvaluator.Evaluate(
+                    ReturnFunction(
+                        new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new VisitCountFunction
+                            {
+                                type = FunctionKind.VisitCount,
+                                info = new FunctionDialogueMemoryInfo
+                                {
+                                    pointer = StringPointer("missing"),
+                                },
+                            },
+                        },
+                        AttributeType.Int),
+                    ctx));
+            Assert.AreEqual(
+                0,
+                NSGetterEvaluator.Evaluate(
+                    ReturnFunction(
+                        new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new VisitCountFunction
+                            {
+                                type = FunctionKind.VisitCount,
+                                info = new FunctionDialogueMemoryInfo
+                                {
+                                    pointer = StringPointer("dialogue-1,,option-1"),
+                                },
+                            },
+                        },
+                        AttributeType.Int),
+                    ctx));
+        }
+
         // ---------------------------------------------------------------
         // resolvedGetter / resolvedReturnTypeInfo — pin the chain-walk.
         // attr-score has its own getter + returnTypeInfo so resolution
@@ -383,6 +523,117 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(result.ok, $"Expected ok via parent walk; got: {result.error}");
             Assert.AreEqual(3.0, result.value);
+        }
+
+        private static FunctionWithReturnType ReturnFunction(
+            Pointer pointer,
+            AttributeType returnType)
+        {
+            return new FunctionWithReturnType
+            {
+                parameters = new Variable[0],
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = returnType,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = pointer,
+                    },
+                },
+            };
+        }
+
+        private static ValuePointer StringPointer(string value)
+        {
+            return new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = AttributeType.String,
+                        required = true,
+                    },
+                    value = JToken.FromObject(value),
+                },
+            };
+        }
+
+        private sealed class TestMemoryStore : INeoDialogueMemoryStore
+        {
+            private readonly Dictionary<string, TestDialogueMemory> dialogues = new();
+
+            public TestDialogueMemory GetOrCreateTestDialogueMemory(string dialogueId)
+            {
+                return (TestDialogueMemory)GetOrCreateDialogueMemory(dialogueId);
+            }
+
+            public INeoDialogueMemory GetOrCreateDialogueMemory(string dialogueId)
+            {
+                if (!dialogues.TryGetValue(dialogueId, out TestDialogueMemory memory))
+                {
+                    memory = new TestDialogueMemory();
+                    dialogues[dialogueId] = memory;
+                }
+                return memory;
+            }
+
+            public INeoDialogueMemory? FindDialogueMemory(string dialogueId)
+            {
+                return dialogues.TryGetValue(dialogueId, out TestDialogueMemory memory)
+                    ? memory
+                    : null;
+            }
+        }
+
+        private sealed class TestDialogueMemory : INeoDialogueMemory
+        {
+            private readonly Dictionary<string, TestTextNodeMemory> textNodes = new();
+
+            public int VisitCount { get; set; }
+            public string? LastVisitedAt { get; set; }
+
+            public INeoTextNodeMemory GetOrCreateTextNodeMemory(string textNodeId)
+            {
+                if (!textNodes.TryGetValue(textNodeId, out TestTextNodeMemory memory))
+                {
+                    memory = new TestTextNodeMemory();
+                    textNodes[textNodeId] = memory;
+                }
+                return memory;
+            }
+
+            public INeoTextNodeMemory? FindTextNodeMemory(string textNodeId)
+            {
+                return textNodes.TryGetValue(textNodeId, out TestTextNodeMemory memory)
+                    ? memory
+                    : null;
+            }
+        }
+
+        private sealed class TestTextNodeMemory : INeoTextNodeMemory
+        {
+            private readonly HashSet<string> choices = new();
+
+            public int VisitCount { get; set; }
+            public string? LastVisitedAt { get; set; }
+            public string? MostRecentChoiceId { get; set; }
+
+            public bool HasChoice(string choiceId)
+            {
+                return choices.Contains(choiceId);
+            }
+
+            public void AddChoice(string choiceId, string createdAt)
+            {
+                choices.Add(choiceId);
+            }
         }
     }
 }

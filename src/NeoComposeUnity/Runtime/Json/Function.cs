@@ -81,6 +81,16 @@ namespace NeoCompose.Runtime.Json
         public Pointer collectionPointer = null!;
     }
 
+    /// <summary>
+    /// Info shape for global dialogue-memory functions
+    /// (<c>VisitCount</c> / <c>HasVisited</c>): one string pointer.
+    /// Mirrors TS-side <c>INSFunctionDialogueMemoryInfo</c>.
+    /// </summary>
+    public class FunctionDialogueMemoryInfo
+    {
+        public Pointer pointer = null!;
+    }
+
     // ---------- Per-function variants ----------
 
     public class SelectFunction : Function
@@ -113,6 +123,16 @@ namespace NeoCompose.Runtime.Json
         public FunctionCollectionInfo info = null!;
     }
 
+    public class VisitCountFunction : Function
+    {
+        public FunctionDialogueMemoryInfo info = null!;
+    }
+
+    public class HasVisitedFunction : Function
+    {
+        public FunctionDialogueMemoryInfo info = null!;
+    }
+
     public class FunctionConverter : DiscriminatedConverter<Function>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -125,6 +145,8 @@ namespace NeoCompose.Runtime.Json
                 case FunctionKind.Where: return typeof(WhereFunction);
                 case FunctionKind.Contains: return typeof(ContainsFunction);
                 case FunctionKind.Count: return typeof(CountFunction);
+                case FunctionKind.VisitCount: return typeof(VisitCountFunction);
+                case FunctionKind.HasVisited: return typeof(HasVisitedFunction);
                 default: return null;
             }
         }

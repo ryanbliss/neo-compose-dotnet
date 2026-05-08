@@ -81,6 +81,8 @@ namespace NeoCompose.Runtime.Json
         public const string Where = "where";
         public const string Contains = "contains";
         public const string Count = "count";
+        public const string VisitCount = "visitCount";
+        public const string HasVisited = "hasVisited";
     }
 
     public static class WritabilityKind

@@ -45,6 +45,7 @@ namespace NeoCompose.Runtime.NeoScript
             public object? thisValue { get; }
             public object? rootValue { get; }
             public object? contextValue { get; }
+            public INeoDialogueMemoryStore? memoryStore { get; }
             /// <summary>
             /// Stack of NSGetter attribute ids currently in-flight. Threaded
             /// through callGetter recursion via fresh-copy children so a
@@ -97,6 +98,7 @@ namespace NeoCompose.Runtime.NeoScript
                 object? thisValue,
                 object? rootValue,
                 object? contextValue = null,
+                INeoDialogueMemoryStore? memoryStore = null,
                 IReadOnlyCollection<string>? getterCallStack = null,
                 Dictionary<string, object?>? rowUnwrapCache = null,
                 Dictionary<object, string>? rowReverseIndex = null)
@@ -105,6 +107,7 @@ namespace NeoCompose.Runtime.NeoScript
                 this.thisValue = thisValue;
                 this.rootValue = rootValue;
                 this.contextValue = contextValue;
+                this.memoryStore = memoryStore;
                 this.getterCallStack = getterCallStack ?? System.Array.Empty<string>();
                 this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<string, object?>();
                 this.rowReverseIndex = rowReverseIndex
@@ -119,6 +122,7 @@ namespace NeoCompose.Runtime.NeoScript
                     thisValue,
                     rootValue,
                     contextValue,
+                    memoryStore,
                     next,
                     rowUnwrapCache,
                     rowReverseIndex);
@@ -131,6 +135,7 @@ namespace NeoCompose.Runtime.NeoScript
                     newThisValue,
                     rootValue,
                     contextValue,
+                    memoryStore,
                     getterCallStack,
                     rowUnwrapCache,
                     rowReverseIndex);
@@ -143,6 +148,7 @@ namespace NeoCompose.Runtime.NeoScript
                     thisValue,
                     newRootValue,
                     contextValue,
+                    memoryStore,
                     getterCallStack,
                     rowUnwrapCache,
                     rowReverseIndex);
@@ -155,6 +161,20 @@ namespace NeoCompose.Runtime.NeoScript
                     thisValue,
                     rootValue,
                     newContextValue,
+                    memoryStore,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex);
+            }
+
+            internal Context WithMemoryStore(INeoDialogueMemoryStore? newMemoryStore)
+            {
+                return new Context(
+                    client,
+                    thisValue,
+                    rootValue,
+                    contextValue,
+                    newMemoryStore,
                     getterCallStack,
                     rowUnwrapCache,
                     rowReverseIndex);
@@ -741,6 +761,19 @@ namespace NeoCompose.Runtime.NeoScript
         {
             switch (fn)
             {
+                case VisitCountFunction vcf:
+                {
+                    var pointer = EvalPointer(vcf.info.pointer, scope, ctx);
+                    return pointer is string text
+                        ? NeoDialogueMemoryQueries.VisitCount(ctx.memoryStore, text)
+                        : 0;
+                }
+                case HasVisitedFunction hvf:
+                {
+                    var pointer = EvalPointer(hvf.info.pointer, scope, ctx);
+                    return pointer is string text
+                        && NeoDialogueMemoryQueries.HasVisited(ctx.memoryStore, text);
+                }
                 case CountFunction cf:
                 {
                     var c = EvalPointer(cf.info.collectionPointer, scope, ctx);

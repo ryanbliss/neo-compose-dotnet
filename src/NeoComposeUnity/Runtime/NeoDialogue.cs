@@ -211,7 +211,7 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"Dialogue action '{action.id}' has no compiled action.");
                         }
-                        NeoDialogueActionEvaluator.Execute(client, compiled, Context);
+                        NeoDialogueActionEvaluator.Execute(client, compiled, Context, memoryStore);
                         continue;
                     }
                     throw new NotSupportedException(
@@ -236,7 +236,8 @@ namespace NeoCompose.Runtime
                     matched = NeoDialogueConditionEvaluator.EvaluateAll(
                         client,
                         outcome.conditions,
-                        Context);
+                        Context,
+                        memoryStore);
                 }
                 catch (Exception ex)
                 {

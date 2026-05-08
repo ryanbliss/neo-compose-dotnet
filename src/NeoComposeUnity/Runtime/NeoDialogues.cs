@@ -57,6 +57,16 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        public int VisitCount(string pointer)
+        {
+            return NeoDialogueMemoryQueries.VisitCount(memoryStore, pointer);
+        }
+
+        public bool HasVisited(string pointer)
+        {
+            return NeoDialogueMemoryQueries.HasVisited(memoryStore, pointer);
+        }
+
         public virtual bool TryTrigger(string dialogueId, out NeoDialogueTriggerResult result)
         {
             if (!client.dialogues.TryGetValue(dialogueId, out DialogueModel data))
@@ -90,7 +100,8 @@ namespace NeoCompose.Runtime
                 if (!NeoDialogueConditionEvaluator.EvaluateAll(
                     client,
                     data.triggerNode?.conditions,
-                    context))
+                    context,
+                    memoryStore))
                 {
                     result = NeoDialogueTriggerResult.NotFound();
                     return false;
@@ -165,7 +176,8 @@ namespace NeoCompose.Runtime
                         return NeoDialogueConditionEvaluator.EvaluateAll(
                             client,
                             dialogue.triggerNode?.conditions,
-                            context);
+                            context,
+                            memoryStore);
                     }
                     catch (Exception ex)
                     {
@@ -359,7 +371,8 @@ namespace NeoCompose.Runtime
                 if (!NeoDialogueConditionEvaluator.EvaluateAll(
                     client,
                     group.conditions,
-                    context))
+                    context,
+                    memoryStore))
                 {
                     return false;
                 }

@@ -80,6 +80,29 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DialoguesBase_VisitCountAndHasVisited_ReadMemoryPointers()
+        {
+            var client = CreateClient();
+            var memory = new TestMemoryStore();
+            var dialogueMemory = memory.GetOrCreateTestDialogueMemory("dialogue-visited");
+            dialogueMemory.VisitCount = 2;
+            var textNodeMemory = (TestTextNodeMemory)dialogueMemory
+                .GetOrCreateTextNodeMemory("text-visited");
+            textNodeMemory.VisitCount = 3;
+            textNodeMemory.AddChoice("option-visited", Now);
+            var root = new TestDialogues(client, memoryStore: memory);
+
+            Assert.AreEqual(2, root.VisitCount("dialogue-visited"));
+            Assert.AreEqual(3, root.VisitCount("dialogue-visited,text-visited"));
+            Assert.AreEqual(1, root.VisitCount("dialogue-visited,text-visited,option-visited"));
+            Assert.IsTrue(root.HasVisited("dialogue-visited"));
+            Assert.IsTrue(root.HasVisited("dialogue-visited,text-visited"));
+            Assert.IsTrue(root.HasVisited("dialogue-visited,text-visited,option-visited"));
+            Assert.AreEqual(0, root.VisitCount("dialogue-visited,,option-visited"));
+            Assert.IsFalse(root.HasVisited("missing"));
+        }
+
+        [Test]
         public void LookupGroupTryTrigger_FiltersByLookupValueId()
         {
             var client = CreateClient();

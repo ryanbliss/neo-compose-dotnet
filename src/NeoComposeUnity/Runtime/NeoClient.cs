@@ -418,27 +418,36 @@ namespace NeoCompose.Runtime
             var reachable = new HashSet<string>();
             foreach (var valueId in saveData.attributeValueOverrides.Values)
             {
-                MarkReachableSaveValue(valueId, reachable);
+                MarkReachableValue(valueId, reachable);
+            }
+            if (data.attributes.TryGetValue(data.project.rootSaveFileAttributeId, out Attribute rootSaveAttribute)
+                && rootSaveAttribute.valueId is not null)
+            {
+                MarkReachableValue(rootSaveAttribute.valueId, reachable);
             }
             return reachable;
         }
 
-        private void MarkReachableSaveValue(string valueId, HashSet<string> reachable)
+        private void MarkReachableValue(string valueId, HashSet<string> reachable)
         {
             if (!reachable.Add(valueId)) return;
-            if (!saveData.values.TryGetValue(valueId, out AttributeValue? val)) return;
+            if (!saveData.values.TryGetValue(valueId, out AttributeValue? val)
+                && !data.values.TryGetValue(valueId, out val))
+            {
+                return;
+            }
             switch (val)
             {
                 case ObjectAttributeValue obj when obj.value is not null:
                     foreach (var nestedId in obj.value.Values)
                     {
-                        MarkReachableSaveValue(nestedId, reachable);
+                        MarkReachableValue(nestedId, reachable);
                     }
                     break;
                 case ArrayAttributeValue arr when arr.value is not null:
                     foreach (var nestedId in arr.value)
                     {
-                        MarkReachableSaveValue(nestedId, reachable);
+                        MarkReachableValue(nestedId, reachable);
                     }
                     break;
             }

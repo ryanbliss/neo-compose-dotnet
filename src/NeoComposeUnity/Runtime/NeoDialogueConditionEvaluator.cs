@@ -14,12 +14,13 @@ namespace NeoCompose.Runtime
         internal static bool EvaluateAll(
             NeoClient client,
             LogicCondition[]? conditions,
-            NeoDialogueContext dialogueContext)
+            NeoDialogueContext dialogueContext,
+            INeoDialogueMemoryStore? memoryStore = null)
         {
             if (conditions == null || conditions.Length == 0) return true;
             foreach (var condition in conditions)
             {
-                if (!Evaluate(client, condition, dialogueContext)) return false;
+                if (!Evaluate(client, condition, dialogueContext, memoryStore)) return false;
             }
             return true;
         }
@@ -27,7 +28,8 @@ namespace NeoCompose.Runtime
         private static bool Evaluate(
             NeoClient client,
             LogicCondition condition,
-            NeoDialogueContext dialogueContext)
+            NeoDialogueContext dialogueContext,
+            INeoDialogueMemoryStore? memoryStore)
         {
             var getter = condition switch
             {
@@ -40,7 +42,7 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError("Dialogue condition has no compiled getter.");
             }
 
-            var ctx = BuildContext(client, dialogueContext);
+            var ctx = BuildContext(client, dialogueContext, memoryStore);
             var result = NSGetterEvaluator.Evaluate(getter, ctx);
             if (result is bool b) return b;
             throw new NSGetterRuntimeError(
@@ -49,9 +51,14 @@ namespace NeoCompose.Runtime
 
         internal static NSGetterEvaluator.Context BuildContext(
             NeoClient client,
-            NeoDialogueContext dialogueContext)
+            NeoDialogueContext dialogueContext,
+            INeoDialogueMemoryStore? memoryStore = null)
         {
-            var ctx = new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null);
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null,
+                memoryStore: memoryStore);
             object? rootValue = ResolveRootValue(client, ctx);
             object contextValue = new Dictionary<string, object?>
             {

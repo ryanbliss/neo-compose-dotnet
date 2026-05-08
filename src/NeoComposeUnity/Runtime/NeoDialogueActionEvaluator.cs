@@ -16,9 +16,13 @@ namespace NeoCompose.Runtime
         internal static void Execute(
             NeoClient client,
             FunctionWithReturnType action,
-            NeoDialogueContext dialogueContext)
+            NeoDialogueContext dialogueContext,
+            INeoDialogueMemoryStore? memoryStore = null)
         {
-            var ctx = NeoDialogueConditionEvaluator.BuildContext(client, dialogueContext);
+            var ctx = NeoDialogueConditionEvaluator.BuildContext(
+                client,
+                dialogueContext,
+                memoryStore);
             var scope = new Dictionary<string, object?>
             {
                 ["__this__"] = ctx.thisValue,

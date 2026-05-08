@@ -162,6 +162,7 @@ namespace HelloWorld.Assets.Tests
 
             Assert.IsTrue(finished);
             Assert.AreEqual(3, shown.Count);
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
         }
 
         [Test]

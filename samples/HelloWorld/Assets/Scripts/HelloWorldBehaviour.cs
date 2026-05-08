@@ -49,11 +49,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void TriggerDialogue()
         {
-            var check = neo.Assets.Outposts.FirstOrDefault(check =>
-            {
-                return check.Planet == Planet.earth;
-            });
-            if (check is not ReadOnlyOutpost outpost) return;
+            var outpost = neo.Save.Location;
             if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue))
             {
                 ShowDialogue(dialogue);
@@ -107,11 +103,12 @@ namespace HelloWorld.Assets.Scripts
         public void OnDialogueFinish()
         {
             ClearDialogue();
-            if (neo.Save.NeoMemory.DialogueMemories.TryGetValue("6efd8f7b-7491-4646-b4cc-05589bca92ab", out NeoDialogueMemory memory))
+            string ifIWereBlueDialogueId = "6efd8f7b-7491-4646-b4cc-05589bca92ab";
+            if (neo.Dialogues.VisitCount(ifIWereBlueDialogueId) < 2)
             {
-                if (memory.VisitCount < 2)
+                if (neo.Dialogues.TryTrigger(ifIWereBlueDialogueId, out NeoDialogue dialogue))
                 {
-                    TriggerDialogue();
+                    ShowDialogue(dialogue);
                 }
             }
         }
@@ -176,12 +173,11 @@ namespace HelloWorld.Assets.Scripts
 
         private static string SpeakerLabel(NeoDialogueTextNode node)
         {
-            Debug.Log(node.Primary);
             if (node.Primary == null) return "Dialogue";
 
             if (node.Primary is ReadOnlyOutpost outpost)
             {
-                return outpost.Name;
+                return $"{outpost.Name} - {outpost.Planet}";
             }
             if (!string.IsNullOrEmpty(node.Name)) return node.Name;
 

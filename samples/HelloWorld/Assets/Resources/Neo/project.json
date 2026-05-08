@@ -3360,7 +3360,7 @@
                     "outcomes": [
                         {
                             "id": "1ec62031-80e4-4bba-9a98-df189e43983f",
-                            "name": "isDead",
+                            "name": "blue",
                             "conditions": [
                                 {
                                     "type": 0,
@@ -3438,6 +3438,103 @@
                         },
                         {
                             "id": "af6ddff3-4805-450f-8078-dd69308f9aa0",
+                            "name": "pink",
+                            "conditions": [
+                                {
+                                    "type": 1,
+                                    "code": "\treturn HasVisited(\"6efd8f7b-7491-4646-b4cc-05589bca92ab,7af2e9ea-375b-48fa-83d0-44a388793cb4,fc75b9da-ce50-4316-a201-4d280588a644\");",
+                                    "getter": {
+                                        "parameters": [
+                                            {
+                                                "id": "__this__",
+                                                "typeInfo": {
+                                                    "type": 0,
+                                                    "required": true
+                                                },
+                                                "pointer": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 0,
+                                                            "required": true
+                                                        },
+                                                        "value": null
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "id": "__root__",
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "pointer": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 7,
+                                                            "required": true,
+                                                            "typeId": "__root__"
+                                                        },
+                                                        "value": null
+                                                    }
+                                                }
+                                            },
+                                            {
+                                                "id": "__context__",
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "pointer": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 7,
+                                                            "required": true,
+                                                            "typeId": "__dialogue_context__"
+                                                        },
+                                                        "value": null
+                                                    }
+                                                }
+                                            }
+                                        ],
+                                        "instructions": [
+                                            {
+                                                "type": "return",
+                                                "pointer": {
+                                                    "type": "function",
+                                                    "function": {
+                                                        "type": "hasVisited",
+                                                        "info": {
+                                                            "pointer": {
+                                                                "type": "value",
+                                                                "value": {
+                                                                    "typeInfo": {
+                                                                        "type": 3,
+                                                                        "required": true
+                                                                    },
+                                                                    "value": "6efd8f7b-7491-4646-b4cc-05589bca92ab,7af2e9ea-375b-48fa-83d0-44a388793cb4,fc75b9da-ce50-4316-a201-4d280588a644"
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        ],
+                                        "typeInfo": {
+                                            "type": 1,
+                                            "required": true
+                                        }
+                                    }
+                                }
+                            ],
+                            "toNodeId": "22e6b6be-b2be-4114-a1e9-501d09e3959d"
+                        },
+                        {
+                            "id": "c915b410-ad1f-4590-96a5-68ba955b36d3",
                             "name": "else",
                             "conditions": [],
                             "toNodeId": "22afb4c9-46b0-4ffa-a3a0-abc946721097"
@@ -3491,6 +3588,22 @@
                     "primaryLinkedValueId": null,
                     "text": "I'm blue, if I were pink I would PIE",
                     "optionSettings": null
+                },
+                "22e6b6be-b2be-4114-a1e9-501d09e3959d": {
+                    "id": "22e6b6be-b2be-4114-a1e9-501d09e3959d",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 892,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [],
+                    "primaryLinkedValueId": null,
+                    "text": "I GET TO PIE!!!!",
+                    "optionSettings": null
                 }
             },
             "linkedValues": [],
@@ -3518,7 +3631,7 @@
             "id": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-06T00:32:58.144Z",
-            "updatedAt": "2026-05-08T04:49:06.165Z"
+            "updatedAt": "2026-05-08T08:08:24.245Z"
         },
         "3e842799-4859-4fbc-a317-8640bc6875e5": {
             "_id": "69fd01d421f8b0238d0f6850",
@@ -3637,6 +3750,54 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T21:19:16.082Z",
             "updatedAt": "2026-05-08T03:29:45.309Z"
+        },
+        "ffff9f70-1a3a-4a7f-90cc-02c43861d602": {
+            "_id": "69fd82fe648f056c98420265",
+            "name": "Empty dialogue",
+            "description": null,
+            "nodes": {},
+            "linkedValues": [
+                {
+                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "source": 3
+                }
+            ],
+            "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+            "settings": {
+                "defaultSaveOptionChoices": true
+            },
+            "triggerNode": {
+                "id": "ceb31e24-a999-408f-8364-b2b854114018",
+                "type": 0,
+                "layout": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 320,
+                    "height": 160,
+                    "isOpen": true
+                },
+                "name": null,
+                "linkedValues": [
+                    {
+                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                        "source": 3
+                    }
+                ],
+                "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                "conditions": [],
+                "dialogueGroupSettings": {
+                    "dialogueGroupId": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+                    "lookupValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "priority": {
+                        "priorityTypeId": null,
+                        "relativeOrder": null
+                    }
+                }
+            },
+            "id": "ffff9f70-1a3a-4a7f-90cc-02c43861d602",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-08T06:30:22.862Z",
+            "updatedAt": "2026-05-08T06:30:22.862Z"
         }
     },
     "dialogueGroups": {
