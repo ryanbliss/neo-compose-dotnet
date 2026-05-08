@@ -320,6 +320,31 @@ namespace NeoCompose.Runtime
             return Get<TNeoAttribute>(key);
         }
 
+        public NeoAttributeLookupSaved GetOrCreateLookup(string key)
+        {
+            if (TryGet(key, out NeoAttributeLookupSaved? existing)) return existing;
+
+            string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
+            if (schemaKeyedAttributeId is null)
+            {
+                throw new System.Collections.Generic.KeyNotFoundException(
+                    $"Merged schema for type {type.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
+            }
+            if (!client.TryGetAttribute(schemaKeyedAttributeId, out Attribute? childAttribute))
+            {
+                throw new System.Exception(
+                    $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
+            }
+            if (childAttribute is not LookupAttribute)
+            {
+                throw new System.InvalidOperationException(
+                    $"Attribute '{key}' is not a lookup attribute.");
+            }
+
+            SetSerializedValue(key, NeoValueWritePayload.FromValue(System.Array.Empty<string>()));
+            return Get<NeoAttributeLookupSaved>(key);
+        }
+
         /// <summary>
         /// Sets the schema-keyed child to <paramref name="setValue"/>.
         /// Updates the existing entry in place when one exists; otherwise

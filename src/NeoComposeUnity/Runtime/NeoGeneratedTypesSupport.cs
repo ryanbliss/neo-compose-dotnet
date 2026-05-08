@@ -960,6 +960,7 @@ namespace NeoCompose.Runtime
 
         public static string? ValueId(object? value)
         {
+            if (value is NeoLookupSelection selection) return selection.valueId;
             return value is INeoValueReference reference
                 ? reference.valueId
                 : null;

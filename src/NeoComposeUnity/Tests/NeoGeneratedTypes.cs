@@ -197,8 +197,8 @@ namespace Assets.Scripts.Neo
             this.optionId = optionId;
         }
 
-        public const string fire = "fire";
-        public const string ice = "ice";
+        public static readonly Element fire = FromOptionId("fire");
+        public static readonly Element ice = FromOptionId("ice");
 
         public static Element FromOptionId(string optionId)
         {
@@ -220,8 +220,8 @@ namespace Assets.Scripts.Neo
         {
             return id switch
             {
-                fire => true,
-                ice => true,
+                "fire" => true,
+                "ice" => true,
                 _ => false,
             };
         }
@@ -232,6 +232,8 @@ namespace Assets.Scripts.Neo
         public bool Equals(Element? other) => other is not null && optionId == other.optionId;
         public override bool Equals(object? obj) => Equals(obj as Element);
         public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(Element? left, Element? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(Element? left, Element? right) => !(left == right);
     }
 
     public partial class ReadOnlyHero : NeoGeneratedCustomValue
@@ -565,7 +567,7 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        internal static ReadOnlyDerived Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ReadOnlyDerived Create(NeoClient client, NeoAttributeCustom node)
         {
             var clientTypeId = node.value?.typeId;
             return clientTypeId switch
@@ -589,8 +591,6 @@ namespace Assets.Scripts.Neo
             : base(client, node)
         {
         }
-
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
         public Derived(string? Name = null, int? Health = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Health))
@@ -630,7 +630,7 @@ namespace Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-derived", value, valueRows);
         }
 
-        internal static Derived CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal new static Derived CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var clientTypeId = node.value?.typeId;
             return clientTypeId switch
@@ -651,7 +651,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public new int? Health
+        public int? Health
         {
             get
             {
@@ -670,7 +670,7 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        internal static ReadOnlyOverride Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ReadOnlyOverride Create(NeoClient client, NeoAttributeCustom node)
         {
             var clientTypeId = node.value?.typeId;
             return clientTypeId switch
@@ -679,7 +679,7 @@ namespace Assets.Scripts.Neo
             };
         }
 
-        public string? Name
+        public new string? Name
         {
             get
             {
@@ -694,8 +694,6 @@ namespace Assets.Scripts.Neo
             : base(client, node)
         {
         }
-
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
         public Override(string? Name = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name))
@@ -723,7 +721,7 @@ namespace Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "type-override", value, valueRows);
         }
 
-        internal static Override CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal new static Override CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
             var clientTypeId = node.value?.typeId;
             return clientTypeId switch

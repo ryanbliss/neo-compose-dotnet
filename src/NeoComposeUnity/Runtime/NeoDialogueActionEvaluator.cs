@@ -241,6 +241,10 @@ namespace NeoCompose.Runtime
             }
             if (row is ArrayAttributeValue)
             {
+                if (target.typeInfo is LookupTypeInfo lookupTypeInfo)
+                {
+                    return new NeoLookupSetWriteTarget(rowId, lookupTypeInfo);
+                }
                 return new NeoListWriteTarget(rowId, EntryTypeInfo(target.typeInfo));
             }
             if (row is ObjectAttributeValue)
@@ -547,6 +551,10 @@ namespace NeoCompose.Runtime
 
         private static TypeInfo EntryTypeInfo(TypeInfo typeInfo)
         {
+            if (typeInfo is LookupTypeInfo lookupTypeInfo)
+            {
+                return lookupTypeInfo.entryTypeInfo;
+            }
             if (typeInfo is CollectionTypeInfo collectionTypeInfo)
             {
                 return collectionTypeInfo.entryTypeInfo;
@@ -615,6 +623,84 @@ namespace NeoCompose.Runtime
         {
             if (value is string s) return s;
             throw new NSGetterRuntimeError($"{name} must be a string.");
+        }
+
+        private static string ResolveLookupSelectionId(
+            NeoClient client,
+            LookupTypeInfo lookupTypeInfo,
+            object? value,
+            NSGetterEvaluator.Context ctx)
+        {
+            if (!client.TryGetAttribute(lookupTypeInfo.collectionAttributeId, out JsonAttribute? collectionAttribute))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Lookup collection attribute '{lookupTypeInfo.collectionAttributeId}' was not found.");
+            }
+            string? collectionValueId = lookupTypeInfo.collectionValueId ?? collectionAttribute.valueId;
+            if (collectionValueId is null || !client.TryGetValue(collectionValueId, out AttributeValue? collectionValue))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Lookup collection value '{collectionValueId ?? "<null>"}' was not found.");
+            }
+
+            if (lookupTypeInfo.entryTypeInfo.type == AttributeType.Custom)
+            {
+                string? valueId = value is string id
+                    ? id
+                    : FindValueId(value, ctx);
+                if (string.IsNullOrWhiteSpace(valueId))
+                {
+                    throw new NSGetterRuntimeError(
+                        "Lookup set custom argument must be a selected value id or generated custom value.");
+                }
+                if (!LookupCollectionContainsValueId(collectionValue, valueId!))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Lookup selection id '{valueId}' is not present in the configured lookup collection.");
+                }
+                return valueId!;
+            }
+
+            string? matchedValueId = FindLookupCollectionValueByPayload(client, collectionValue, value);
+            if (matchedValueId is null)
+            {
+                throw new NSGetterRuntimeError(
+                    "Lookup set argument was not found in the configured lookup collection.");
+            }
+            return matchedValueId;
+        }
+
+        private static bool LookupCollectionContainsValueId(
+            AttributeValue collectionValue,
+            string valueId)
+        {
+            return collectionValue switch
+            {
+                ArrayAttributeValue array when array.value is not null =>
+                    Array.IndexOf(array.value, valueId) >= 0,
+                ObjectAttributeValue obj when obj.value is not null =>
+                    obj.value.ContainsValue(valueId),
+                _ => false,
+            };
+        }
+
+        private static string? FindLookupCollectionValueByPayload(
+            NeoClient client,
+            AttributeValue collectionValue,
+            object? value)
+        {
+            IEnumerable<string> childIds = collectionValue switch
+            {
+                ArrayAttributeValue array when array.value is not null => array.value,
+                ObjectAttributeValue obj when obj.value is not null => obj.value.Values,
+                _ => Array.Empty<string>(),
+            };
+            foreach (var childId in childIds)
+            {
+                if (!client.TryGetValue(childId, out AttributeValue? child)) continue;
+                if (JsEqual(ReadRowValue(child), value)) return childId;
+            }
+            return null;
         }
 
         private static bool JsEqual(object? a, object? b)
@@ -1055,6 +1141,71 @@ namespace NeoCompose.Runtime
                 row.updatedAt = now;
                 client.SetSaveValue(row);
                 client.RemoveSaveValueAndDescendantsIfUnlinked(removedId);
+            }
+        }
+
+        private sealed class NeoLookupSetWriteTarget : NeoResolvedCollectionTarget
+        {
+            private readonly string rowId;
+            private readonly LookupTypeInfo typeInfo;
+
+            public NeoLookupSetWriteTarget(string rowId, LookupTypeInfo typeInfo)
+            {
+                this.rowId = rowId;
+                this.typeInfo = typeInfo;
+            }
+
+            public override void Mutate(
+                NeoClient client,
+                string mutation,
+                object?[] args,
+                NSGetterEvaluator.Context ctx)
+            {
+                EnsureSaveRow(client, rowId);
+                if (!client.TryGetValue(rowId, out ArrayAttributeValue? row))
+                {
+                    throw new NSGetterRuntimeError($"Missing lookup row '{rowId}'.");
+                }
+                row.value ??= Array.Empty<string>();
+                var now = DateTime.UtcNow.ToString("o");
+                switch (mutation)
+                {
+                    case CollectionMutationKind.Add:
+                    {
+                        string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
+                        if (Array.IndexOf(row.value, selectionId) >= 0) return;
+                        var next = new string[row.value.Length + 1];
+                        Array.Copy(row.value, next, row.value.Length);
+                        next[row.value.Length] = selectionId;
+                        row.value = next;
+                        row.updatedAt = now;
+                        client.SetSaveValue(row);
+                        return;
+                    }
+                    case CollectionMutationKind.Remove:
+                    {
+                        string selectionId = ResolveLookupSelectionId(client, typeInfo, args[0], ctx);
+                        int index = Array.IndexOf(row.value, selectionId);
+                        if (index < 0) return;
+                        var next = new string[row.value.Length - 1];
+                        for (int i = 0, j = 0; i < row.value.Length; i++)
+                        {
+                            if (i == index) continue;
+                            next[j++] = row.value[i];
+                        }
+                        row.value = next;
+                        row.updatedAt = now;
+                        client.SetSaveValue(row);
+                        return;
+                    }
+                    case CollectionMutationKind.Clear:
+                        row.value = Array.Empty<string>();
+                        row.updatedAt = now;
+                        client.SetSaveValue(row);
+                        return;
+                    default:
+                        throw new NSGetterRuntimeError($"Unsupported lookup set mutation '{mutation}'.");
+                }
             }
         }
 

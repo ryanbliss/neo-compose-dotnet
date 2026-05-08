@@ -59,7 +59,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(app.Assets);
             Assert.IsNotNull(app.Save);
             Assert.IsNotNull(host.FindUnlinkedSaveValueIds());
-            Assert.AreEqual(Element.fire, "fire");
+            Assert.AreEqual("fire", Element.fire.optionId);
             Assert.IsTrue(Element.IsKnown("fire"));
             Assert.IsFalse(Element.IsKnown("modded-element"));
         }

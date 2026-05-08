@@ -58,6 +58,17 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo entryTypeInfo = null!;
     }
 
+    /// <summary>
+    /// Multiselect Lookup type info. Carries the recursive entry type
+    /// and the collection attribute the lookup selects from.
+    /// </summary>
+    public class LookupTypeInfo : TypeInfo
+    {
+        public TypeInfo entryTypeInfo = null!;
+        public string collectionAttributeId = null!;
+        public string? collectionValueId;
+    }
+
     public class TypeInfoConverter : DiscriminatedConverter<TypeInfo>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -81,6 +92,8 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.List:
                 case AttributeType.Dictionary:
                     return typeof(CollectionTypeInfo);
+                case AttributeType.Lookup:
+                    return typeof(LookupTypeInfo);
                 default:
                     return null;
             }

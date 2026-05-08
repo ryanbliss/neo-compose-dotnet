@@ -792,6 +792,16 @@ namespace NeoCompose.Runtime.NeoScript
                         }
                         return s.Contains(ts);
                     }
+                    if (c is object?[] raw && target is string targetId)
+                    {
+                        foreach (var entry in raw)
+                        {
+                            if (entry is string selectedId && selectedId == targetId)
+                            {
+                                return true;
+                            }
+                        }
+                    }
                     foreach (var entry in CollectionEntries(c, ctx))
                     {
                         if (JsEqual(entry, target)) return true;

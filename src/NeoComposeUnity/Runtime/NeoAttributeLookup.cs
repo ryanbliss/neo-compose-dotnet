@@ -53,9 +53,9 @@ namespace NeoCompose.Runtime
                     $"No attribute for collection target {attribute.collectionAttributeId}");
             }
 
-            // The target's value-id is either the explicit
-            // collectionValueId override or the attribute's own valueId.
-            string? targetValueId = attribute.collectionValueId ?? targetAttribute.valueId;
+            // The target's value-id is either the explicit collectionValueId
+            // override or the target attribute's normal resolved value chain.
+            string? targetValueId = ResolveTargetValueId(targetAttribute);
             if (targetValueId is null)
             {
                 throw new System.InvalidOperationException(
@@ -81,6 +81,62 @@ namespace NeoCompose.Runtime
                     : Create(client, entryAttr, id));
             }
             return resolved;
+        }
+
+        internal bool IsSelectableId(string valueId)
+        {
+            if (string.IsNullOrWhiteSpace(valueId)) return false;
+            AttributeValue targetValue = ResolveTargetValue(out _);
+            return targetValue switch
+            {
+                ArrayAttributeValue array when array.value is not null =>
+                    System.Array.IndexOf(array.value, valueId) >= 0,
+                ObjectAttributeValue obj when obj.value is not null =>
+                    obj.value.ContainsValue(valueId),
+                _ => false,
+            };
+        }
+
+        internal Attribute ResolveEntryAttributeForLookup() =>
+            ResolveEntryAttribute(ResolveTargetAttribute());
+
+        private Attribute ResolveTargetAttribute()
+        {
+            if (!client.TryGetAttribute(attribute.collectionAttributeId, out Attribute? targetAttribute))
+            {
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(attribute.collectionAttributeId),
+                    $"No attribute for collection target {attribute.collectionAttributeId}");
+            }
+            return targetAttribute;
+        }
+
+        private AttributeValue ResolveTargetValue(out bool targetIsSaveOwned)
+        {
+            Attribute targetAttribute = ResolveTargetAttribute();
+            string? targetValueId = ResolveTargetValueId(targetAttribute);
+            if (targetValueId is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"Lookup target {attribute.collectionAttributeId} has no bound value");
+            }
+            if (!client.TryGetValue(targetValueId, out AttributeValue? targetValue))
+            {
+                throw new System.InvalidOperationException(
+                    $"Lookup target value {targetValueId} not found");
+            }
+            targetIsSaveOwned = client.saveValues.ContainsKey(targetValueId);
+            return targetValue;
+        }
+
+        private string? ResolveTargetValueId(Attribute targetAttribute)
+        {
+            if (attribute.collectionValueId is not null) return attribute.collectionValueId;
+            if (client.TryGetSaveOverrideValueId(targetAttribute.id, out string? saveValueId))
+            {
+                return saveValueId;
+            }
+            return targetAttribute.valueId;
         }
 
         private Attribute ResolveEntryAttribute(Attribute targetAttribute)
@@ -151,6 +207,40 @@ namespace NeoCompose.Runtime
             client.AddSaveValue(attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
+        }
+
+        public bool Add(string valueId)
+        {
+            if (string.IsNullOrWhiteSpace(valueId))
+            {
+                throw new System.InvalidOperationException(
+                    "Lookup selection id cannot be null or empty.");
+            }
+            if (!IsSelectableId(valueId))
+            {
+                throw new System.InvalidOperationException(
+                    $"Lookup selection id '{valueId}' is not present in the configured lookup collection.");
+            }
+            var selected = new List<string>(Selected());
+            if (selected.Contains(valueId)) return false;
+            selected.Add(valueId);
+            Set(selected.ToArray());
+            return true;
+        }
+
+        public bool Remove(string valueId)
+        {
+            if (string.IsNullOrWhiteSpace(valueId)) return false;
+            var selected = new List<string>(Selected());
+            bool removed = selected.Remove(valueId);
+            if (!removed) return false;
+            Set(selected.ToArray());
+            return true;
+        }
+
+        public void Clear()
+        {
+            Set(System.Array.Empty<string>());
         }
     }
 }

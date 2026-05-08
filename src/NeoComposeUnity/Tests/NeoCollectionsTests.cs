@@ -108,6 +108,46 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoLookupSet_AddRemoveClear_TracksUniqueLookupSelections()
+        {
+            var client = LoadClient(out _);
+            client.AddSaveValue("attr-tags", new ArrayAttributeValue
+            {
+                id = "v-tags-target",
+                createdAt = "now",
+                updatedAt = "now",
+                value = new[] { "v-a", "v-b" },
+            });
+
+            var choiceAttr = RequireAttribute<LookupAttribute>(client, "attr-choice");
+            var choiceNode = (NeoAttributeLookupSaved)NeoAttribute.CreateSaved(
+                client,
+                choiceAttr,
+                null);
+            var choices = new NeoLookupSet<NeoLookupSelection>(
+                client,
+                choiceNode,
+                child => new NeoLookupSelection(child.value?.id ?? ""));
+
+            int changed = 0;
+            choices.OnChanged += () => changed++;
+
+            Assert.IsTrue(choices.Add("v-a"));
+            Assert.IsFalse(choices.Add("v-a"));
+            Assert.IsTrue(choices.Contains("v-a"));
+            Assert.AreEqual(1, choices.Count);
+
+            Assert.IsTrue(choices.Remove("v-a"));
+            Assert.IsFalse(choices.Contains("v-a"));
+            Assert.AreEqual(0, choices.Count);
+
+            choices.Add("v-b");
+            choices.Clear();
+            Assert.AreEqual(0, choices.Count);
+            Assert.GreaterOrEqual(changed, 3);
+        }
+
+        [Test]
         public void NeoList_DoesNotExposeUntypedAddOverload()
         {
             Assert.IsNull(typeof(NeoList<string>).GetMethod(
