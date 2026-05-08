@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.IO;
+using System.Linq;
 using NeoCompose.Runtime;
 using NUnit.Framework;
 using UnityEngine;
@@ -85,10 +86,42 @@ namespace HelloWorld.Assets.Tests
                 loadSave,
                 handleSave);
 
-            Assert.AreEqual(Planet.earth, client.Save.World?.optionId);
+            Assert.AreEqual(Planet.earth, client.Save.World);
             Assert.AreEqual("Hello", client.Assets.Computed.baseText);
 
             Assert.AreEqual("Hello Earth!", client.Assets.Computed.fullText);
+        }
+
+        [Test]
+        public void GeneratedEnumValues_CompareStaticObjectsToGeneratedProperties()
+        {
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
+
+            var client = HelloWorldNeo.Load(
+                File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
+                loadSave,
+                handleSave);
+
+            var savedWorld = client.Save.World;
+            Assert.AreSame(Planet.earth, savedWorld);
+            Assert.IsTrue(savedWorld == Planet.earth);
+            Assert.IsTrue(savedWorld.Equals(Planet.earth));
+
+            var earthOutpost = client.Assets.Outposts.FirstOrDefault(outpost =>
+                outpost.Planet == Planet.earth);
+            Assert.IsNotNull(earthOutpost);
+            if (earthOutpost == null) return;
+
+            Assert.AreSame(Planet.earth, earthOutpost.Planet);
+            Assert.IsTrue(earthOutpost.Planet == Planet.earth);
+            Assert.IsTrue(earthOutpost.Planet.Equals(Planet.earth));
+
+            var customPlanet = Planet.FromOptionId("modded-planet");
+            Assert.AreSame(customPlanet, Planet.FromOptionId("modded-planet"));
+            Assert.IsTrue(customPlanet == Planet.FromOptionId("modded-planet"));
+            Assert.IsFalse(Planet.IsKnown("modded-planet"));
         }
 
         [Test]
@@ -107,18 +140,18 @@ namespace HelloWorld.Assets.Tests
                 behaviour.LoadClient();
 
                 Assert.AreEqual("Hello Earth!", behaviour.HelloWorldText);
-                Assert.AreEqual(Planet.earth, behaviour.World?.optionId);
+                Assert.AreEqual(Planet.earth, behaviour.World);
                 CollectionAssert.AreEqual(
                     new[] { Planet.earth },
-                    VisitedPlanetIds(behaviour));
+                    VisitedPlanets(behaviour));
 
                 behaviour.OnVisit(Planet.mars);
 
                 Assert.AreEqual("Hello Mars!", behaviour.HelloWorldText);
-                Assert.AreEqual(Planet.mars, behaviour.World?.optionId);
+                Assert.AreEqual(Planet.mars, behaviour.World);
                 CollectionAssert.AreEqual(
                     new[] { Planet.earth, Planet.mars },
-                    VisitedPlanetIds(behaviour));
+                    VisitedPlanets(behaviour));
             }
             finally
             {
@@ -151,10 +184,10 @@ namespace HelloWorld.Assets.Tests
                 behaviour.OnResetSave();
 
                 Assert.AreEqual("Hello Earth!", behaviour.HelloWorldText);
-                Assert.AreEqual(Planet.earth, behaviour.World?.optionId);
+                Assert.AreEqual(Planet.earth, behaviour.World);
                 CollectionAssert.AreEqual(
                     new[] { Planet.earth },
-                    VisitedPlanetIds(behaviour));
+                    VisitedPlanets(behaviour));
             }
             finally
             {
@@ -188,10 +221,10 @@ namespace HelloWorld.Assets.Tests
                 reloaded.LoadClient();
 
                 Assert.AreEqual("Hello Mars!", reloaded.HelloWorldText);
-                Assert.AreEqual(Planet.mars, reloaded.World?.optionId);
+                Assert.AreEqual(Planet.mars, reloaded.World);
                 CollectionAssert.AreEqual(
                     new[] { Planet.earth, Planet.mars },
-                    VisitedPlanetIds(reloaded));
+                    VisitedPlanets(reloaded));
             }
             finally
             {
@@ -204,14 +237,14 @@ namespace HelloWorld.Assets.Tests
             }
         }
 
-        private static string[] VisitedPlanetIds(HelloWorldBehaviour behaviour)
+        private static Planet[] VisitedPlanets(HelloWorldBehaviour behaviour)
         {
-            var ids = new System.Collections.Generic.List<string>();
+            var planets = new System.Collections.Generic.List<Planet>();
             foreach (var visit in behaviour.VisitedPlanets)
             {
-                ids.Add(visit.World.optionId);
+                planets.Add(visit.World);
             }
-            return ids.ToArray();
+            return planets.ToArray();
         }
     }
 }

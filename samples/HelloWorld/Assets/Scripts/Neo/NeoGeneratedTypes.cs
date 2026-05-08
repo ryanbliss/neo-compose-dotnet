@@ -111,17 +111,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
-    public sealed class IntroductionsDialogues : NeoLookupDialogueGroup<Outpost>
+    public sealed class IntroductionsDialogues : NeoLookupDialogueGroup<ReadOnlyOutpost>
     {
         internal IntroductionsDialogues(NeoDialogues root, string groupId)
             : base(root, groupId)
         {
         }
 
-        public bool TryTrigger(Outpost value, out NeoDialogue dialogue) =>
+        public bool TryTrigger(ReadOnlyOutpost value, out NeoDialogue dialogue) =>
             TryTriggerLookup(value, out dialogue);
 
-        public bool TryTrigger(Outpost value, out NeoDialogueTriggerResult result) =>
+        public bool TryTrigger(ReadOnlyOutpost value, out NeoDialogueTriggerResult result) =>
             TryTriggerLookup(value, out result);
     }
 
