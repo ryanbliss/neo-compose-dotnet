@@ -49,15 +49,11 @@ namespace HelloWorld.Assets.Scripts
 
         public void TriggerDialogue()
         {
-            // Debug.Log($"Triggering dialogue with ID: 6efd8f7b-7491-4646-b4cc-05589bca92ab");
-            Debug.Log($"Start Dead: {neo.Save.Dead}");
             var check = neo.Assets.Outposts.FirstOrDefault(check =>
             {
-                Debug.Log(check.Planet == Planet.earth);
                 return check.Planet == Planet.earth;
             });
             if (check is not ReadOnlyOutpost outpost) return;
-            Debug.Log(outpost.Name);
             if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue))
             {
                 ShowDialogue(dialogue);
@@ -180,13 +176,14 @@ namespace HelloWorld.Assets.Scripts
 
         private static string SpeakerLabel(NeoDialogueTextNode node)
         {
-            if (!string.IsNullOrEmpty(node.Name)) return node.Name;
+            Debug.Log(node.Primary);
             if (node.Primary == null) return "Dialogue";
 
-            if (node.Primary is Outpost)
+            if (node.Primary is ReadOnlyOutpost outpost)
             {
-                return node.Name;
+                return outpost.Name;
             }
+            if (!string.IsNullOrEmpty(node.Name)) return node.Name;
 
             var nameProperty = node.Primary.GetType().GetProperty("Name");
             if (nameProperty?.GetValue(node.Primary) is string name && !string.IsNullOrEmpty(name))

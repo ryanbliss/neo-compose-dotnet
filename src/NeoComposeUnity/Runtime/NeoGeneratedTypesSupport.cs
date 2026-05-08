@@ -36,32 +36,33 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, ReadOnlyCustomFactory> readOnlyFactories,
             IReadOnlyDictionary<string, SavedCustomFactory> savedFactories)
         {
-            if (!client.TryGetValue(valueId, out ObjectAttributeValue? value)
-                || string.IsNullOrEmpty(value.typeId))
+            if (!client.TryGetValue(valueId, out ObjectAttributeValue? value))
             {
                 return null;
             }
+            string? typeId = ResolveCustomValueTypeId(client, valueId, value);
+            if (string.IsNullOrEmpty(typeId)) return null;
 
             var attribute = new CustomAttribute
             {
-                id = $"__neo_resolved_custom_{value.typeId}",
-                _id = $"__neo_resolved_custom_{value.typeId}",
+                id = $"__neo_resolved_custom_{typeId}",
+                _id = $"__neo_resolved_custom_{typeId}",
                 name = "ResolvedCustomValue",
                 type = AttributeType.Custom,
-                customTypeId = value.typeId,
+                customTypeId = typeId,
                 createdAt = value.createdAt,
                 updatedAt = value.updatedAt,
             };
 
             if (client.saveValues.ContainsKey(valueId)
-                && savedFactories.TryGetValue(value.typeId, out var savedFactory))
+                && savedFactories.TryGetValue(typeId, out var savedFactory))
             {
                 return savedFactory(
                     client,
                     new NeoAttributeCustomSaved(client, attribute, valueId));
             }
 
-            if (readOnlyFactories.TryGetValue(value.typeId, out var readOnlyFactory))
+            if (readOnlyFactories.TryGetValue(typeId, out var readOnlyFactory))
             {
                 return readOnlyFactory(
                     client,
@@ -69,6 +70,205 @@ namespace NeoCompose.Runtime
             }
 
             return null;
+        }
+
+        private static string? ResolveCustomValueTypeId(
+            NeoClient client,
+            string valueId,
+            ObjectAttributeValue value)
+        {
+            if (!string.IsNullOrEmpty(value.typeId)) return value.typeId;
+            return TryInferCustomTypeId(
+                client,
+                valueId,
+                new HashSet<string>(),
+                out string? typeId)
+                ? typeId
+                : null;
+        }
+
+        private static bool TryInferCustomTypeId(
+            NeoClient client,
+            string valueId,
+            HashSet<string> visitingValueIds,
+            out string? typeId)
+        {
+            if (!visitingValueIds.Add(valueId))
+            {
+                typeId = null;
+                return false;
+            }
+
+            if (client.TryGetValue(valueId, out ObjectAttributeValue? value)
+                && !string.IsNullOrEmpty(value.typeId))
+            {
+                typeId = value.typeId;
+                return true;
+            }
+
+            if (TryInferAttributeForValueId(
+                    client,
+                    valueId,
+                    visitingValueIds,
+                    out Attribute? attribute)
+                && attribute != null
+                && TryResolveDirectCustomTypeIdFromAttribute(attribute, out typeId))
+            {
+                return true;
+            }
+
+            typeId = null;
+            return false;
+        }
+
+        private static bool TryInferAttributeForValueId(
+            NeoClient client,
+            string valueId,
+            HashSet<string> visitingValueIds,
+            out Attribute? attribute)
+        {
+            foreach (var candidate in client.attributes.Values)
+            {
+                if (candidate.valueId == valueId)
+                {
+                    attribute = candidate;
+                    return true;
+                }
+            }
+
+            foreach (var parent in EnumerateValues(client))
+            {
+                if (parent.Value is not ObjectAttributeValue objectValue
+                    || objectValue.value == null)
+                {
+                    continue;
+                }
+
+                foreach (var pair in objectValue.value)
+                {
+                    if (pair.Value != valueId) continue;
+                    if (!TryInferCustomTypeId(
+                            client,
+                            parent.Key,
+                            visitingValueIds,
+                            out string? parentTypeId)
+                        || string.IsNullOrEmpty(parentTypeId)
+                        || !client.types.TryGetValue(parentTypeId, out CustomType? parentType)
+                        || parentType.schema == null
+                        || !parentType.schema.TryGetValue(pair.Key, out string childAttributeId)
+                        || !client.TryGetAttribute(childAttributeId, out Attribute? childAttribute))
+                    {
+                        continue;
+                    }
+
+                    attribute = childAttribute;
+                    return true;
+                }
+            }
+
+            foreach (var parent in EnumerateValues(client))
+            {
+                if (parent.Value is ArrayAttributeValue arrayValue
+                    && arrayValue.value != null
+                    && Contains(arrayValue.value, valueId)
+                    && TryInferAttributeForValueId(
+                        client,
+                        parent.Key,
+                        visitingValueIds,
+                        out Attribute? collectionAttribute)
+                    && TryResolveCollectionEntryAttribute(
+                        client,
+                        collectionAttribute,
+                        out Attribute? entryAttribute))
+                {
+                    attribute = entryAttribute;
+                    return true;
+                }
+
+                if (parent.Value is ObjectAttributeValue dictionaryValue
+                    && dictionaryValue.value != null
+                    && dictionaryValue.value.ContainsValue(valueId)
+                    && TryInferAttributeForValueId(
+                        client,
+                        parent.Key,
+                        visitingValueIds,
+                        out collectionAttribute)
+                    && TryResolveCollectionEntryAttribute(
+                        client,
+                        collectionAttribute,
+                        out entryAttribute))
+                {
+                    attribute = entryAttribute;
+                    return true;
+                }
+            }
+
+            attribute = null;
+            return false;
+        }
+
+        private static bool TryResolveDirectCustomTypeIdFromAttribute(
+            Attribute attribute,
+            out string? typeId)
+        {
+            if (attribute is CustomAttribute custom
+                && !string.IsNullOrEmpty(custom.customTypeId))
+            {
+                typeId = custom.customTypeId;
+                return true;
+            }
+
+            typeId = null;
+            return false;
+        }
+
+        private static bool TryResolveCollectionEntryAttribute(
+            NeoClient client,
+            Attribute? attribute,
+            out Attribute? entryAttribute)
+        {
+            string? entryAttributeId = attribute switch
+            {
+                ListAttribute list => list.entryAttributeId,
+                DictionaryAttribute dictionary => dictionary.entryAttributeId,
+                _ => null,
+            };
+            if (attribute is LookupAttribute lookup
+                && client.TryGetAttribute(
+                    lookup.collectionAttributeId,
+                    out Attribute? collectionAttribute))
+            {
+                return TryResolveCollectionEntryAttribute(
+                    client,
+                    collectionAttribute,
+                    out entryAttribute);
+            }
+
+            if (string.IsNullOrEmpty(entryAttributeId)
+                || !client.TryGetAttribute(entryAttributeId!, out Attribute? resolved))
+            {
+                entryAttribute = null;
+                return false;
+            }
+
+            entryAttribute = resolved;
+            return true;
+        }
+
+        private static IEnumerable<KeyValuePair<string, AttributeValue>> EnumerateValues(
+            NeoClient client)
+        {
+            foreach (var pair in client.saveValues) yield return pair;
+            foreach (var pair in client.values) yield return pair;
+        }
+
+        private static bool Contains(string[] values, string value)
+        {
+            foreach (var item in values)
+            {
+                if (item == value) return true;
+            }
+            return false;
         }
 
         public static NeoValueWritePayload? ValueReference(

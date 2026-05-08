@@ -125,6 +125,46 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public void GeneratedDialogue_LinkedTextNodePrimaryResolvesTypedAsset()
+        {
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
+
+            var client = HelloWorldNeo.Load(
+                File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
+                loadSave,
+                handleSave);
+
+            var capitol = client.Assets.Outposts.FirstOrDefault(outpost =>
+                outpost.Name == "Capitol OG");
+            Assert.IsNotNull(capitol);
+            if (capitol == null) return;
+
+            Assert.IsTrue(client.Dialogues.Outposts.Introductions.TryTrigger(
+                capitol,
+                out NeoDialogue dialogue));
+
+            var shown = new System.Collections.Generic.List<NeoDialogueTextNode>();
+            bool finished = false;
+            dialogue.OnShow += node =>
+            {
+                shown.Add(node);
+                Assert.IsInstanceOf<ReadOnlyOutpost>(node.Primary);
+                var primary = (ReadOnlyOutpost)node.Primary!;
+                Assert.AreEqual(capitol.valueId, primary.valueId);
+                Assert.AreEqual("Capitol OG", primary.Name);
+                node.Next();
+            };
+            dialogue.OnFinish += () => finished = true;
+
+            dialogue.Start();
+
+            Assert.IsTrue(finished);
+            Assert.AreEqual(3, shown.Count);
+        }
+
+        [Test]
         public void Behaviour_VisitPlanet_UpdatesGeneratedTextAndVisitedList()
         {
             string savePath = Path.Combine(Application.persistentDataPath, "save1.json");
