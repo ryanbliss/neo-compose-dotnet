@@ -431,6 +431,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             var receiver = EvalPointer(keyOf.pointer, scope, ctx);
             if (optional && receiver is null) return null;
+            receiver = UnwrapGeneratedValue(receiver, ctx);
             var key = EvalPointer(keyOf.key, scope, ctx);
             if (receiver is null)
             {
@@ -802,6 +803,17 @@ namespace NeoCompose.Runtime.NeoScript
                             }
                         }
                     }
+                    if (c is object?[] rawWithReference
+                        && ValueIdOf(target, ctx) is string targetReferenceId)
+                    {
+                        foreach (var entry in rawWithReference)
+                        {
+                            if (entry is string selectedId && selectedId == targetReferenceId)
+                            {
+                                return true;
+                            }
+                        }
+                    }
                     foreach (var entry in CollectionEntries(c, ctx))
                     {
                         if (JsEqual(entry, target)) return true;
@@ -1086,6 +1098,27 @@ namespace NeoCompose.Runtime.NeoScript
                 }
             }
             return v;
+        }
+
+        private static object? UnwrapGeneratedValue(object? value, Context ctx)
+        {
+            if (value is INeoValueReference reference
+                && !string.IsNullOrEmpty(reference.valueId)
+                && ctx.client.TryGetValue(reference.valueId!, out AttributeValue? row))
+            {
+                return UnwrapCached(row, ctx);
+            }
+            return value;
+        }
+
+        private static string? ValueIdOf(object? value, Context ctx)
+        {
+            if (value is INeoValueReference reference
+                && !string.IsNullOrEmpty(reference.valueId))
+            {
+                return reference.valueId;
+            }
+            return FindRowIdByReference(value, ctx);
         }
 
         // ---------------------------------------------------------------

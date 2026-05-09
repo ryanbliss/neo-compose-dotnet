@@ -32,6 +32,7 @@ namespace HelloWorld.Assets.Scripts
             ClearDialogue();
             string json = File.ReadAllText(ProjectJsonPath);
             neo = HelloWorldNeo.Load(json, OnLoadSave, OnCommitSave);
+            neo.Save.Inventory.OnChanged += OnInventoryChanged;
             // reference lookup to one of the "Hello World" outputs in `neo.Assets.LookupContainer.LookupList`
             Debug.Log(neo.Assets.LookupContainer.Lookup?.Name ?? "Lookup not selected");
             TriggerDialogue();
@@ -45,6 +46,11 @@ namespace HelloWorld.Assets.Scripts
         {
             neo.Save.World = planet;
             neo.Save.Visited.Add(new PlanetVisit(planet, CurrentUnixTime));
+        }
+
+        public void OnInventoryChanged()
+        {
+            Debug.Log("Inventory changed");
         }
 
         public void TriggerDialogue()
@@ -94,6 +100,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void OnDialogueFinish()
         {
+            Debug.Log($"Inventory {string.Join(",", neo.Save.Inventory.Ids)}");
             ClearDialogue();
             string ifIWereBlueDialogueId = "6efd8f7b-7491-4646-b4cc-05589bca92ab";
             if (neo.Dialogues.VisitCount(ifIWereBlueDialogueId) < 2)
@@ -107,6 +114,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void OnDialogueError(Exception exception)
         {
+            Debug.LogError(exception);
             DialogueUI.Reset();
         }
 

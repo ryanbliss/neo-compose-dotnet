@@ -203,12 +203,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         protected void ReinitializeChildren()
         {
-            // Dispose existing children before clearing — they may have
-            // been bound to value-ids that aren't in the new value
-            // graph; leaving them registered would leak them in
-            // client.nodes.
-            foreach (var child in childAttributes.Values) child.Dispose();
-            childAttributes.Clear();
+            var previousChildren = childAttributes;
+            childAttributes = new();
             foreach (var entry in mergedSchema)
             {
                 if (!client.TryGetAttribute(entry.attributeId, out Attribute? childAttribute)) continue;
@@ -216,7 +212,19 @@ namespace NeoCompose.Runtime
                     && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey)
                         ? valueIdForKey
                         : null;
+                if (previousChildren.TryGetValue(entry.schemaKey, out NeoAttribute? existing)
+                    && existing.attribute.id == childAttribute.id
+                    && existing.overrideValueId == childValueId)
+                {
+                    childAttributes[entry.schemaKey] = existing;
+                    previousChildren.Remove(entry.schemaKey);
+                    continue;
+                }
                 childAttributes[entry.schemaKey] = CreateChild(client, childAttribute, childValueId);
+            }
+            foreach (var child in previousChildren.Values)
+            {
+                child.Dispose();
             }
         }
 

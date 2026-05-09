@@ -151,6 +151,11 @@ namespace NeoCompose.Runtime
             OnSaveValueChanged?.Invoke(value.id);
         }
 
+        internal void SetSaveValueSilently<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
+        {
+            saveData.values[value.id] = value;
+        }
+
         internal void SetSavePayloadRows(object? payload)
         {
             if (payload is not NeoValuePayload wrapped) return;
@@ -274,6 +279,94 @@ namespace NeoCompose.Runtime
         internal bool TryGetSaveOverrideValueId(string attributeId, [NotNullWhen(true)] out string? valueId)
         {
             return saveData.attributeValueOverrides.TryGetValue(attributeId, out valueId);
+        }
+
+        internal bool TryResolveLookupCollectionValueId(
+            string collectionAttributeId,
+            string? collectionValueId,
+            [NotNullWhen(true)] out string? valueId)
+        {
+            valueId = null;
+            if (!TryGetAttribute(collectionAttributeId, out Attribute? collectionAttribute))
+            {
+                return false;
+            }
+
+            valueId = ResolveLookupCollectionValueId(collectionAttribute, collectionValueId);
+            return valueId is not null;
+        }
+
+        private string? ResolveLookupCollectionValueId(
+            Attribute collectionAttribute,
+            string? collectionValueId)
+        {
+            if (collectionValueId is not null) return collectionValueId;
+            if (TryGetSaveOverrideValueId(collectionAttribute.id, out string? saveValueId))
+            {
+                return saveValueId;
+            }
+            if (TryFindBoundValueIdForAttribute(collectionAttribute.id, out string? boundValueId))
+            {
+                return boundValueId;
+            }
+            return collectionAttribute.valueId;
+        }
+
+        private bool TryFindBoundValueIdForAttribute(
+            string attributeId,
+            [NotNullWhen(true)] out string? valueId)
+        {
+            valueId = null;
+            var schemaKeys = new HashSet<string>();
+            foreach (var type in data.types.Values)
+            {
+                foreach (var pair in type.schema)
+                {
+                    if (pair.Value == attributeId)
+                    {
+                        schemaKeys.Add(pair.Key);
+                    }
+                }
+            }
+            if (schemaKeys.Count == 0) return false;
+
+            var candidates = new List<string>();
+            AddBoundValueCandidates(saveData.values.Values, schemaKeys, candidates);
+            AddBoundValueCandidates(data.values.Values, schemaKeys, candidates);
+
+            foreach (var candidate in candidates)
+            {
+                if (valueId is null)
+                {
+                    valueId = candidate;
+                    continue;
+                }
+                if (valueId != candidate)
+                {
+                    valueId = null;
+                    return false;
+                }
+            }
+            return valueId is not null;
+        }
+
+        private static void AddBoundValueCandidates(
+            IEnumerable<AttributeValue> rows,
+            HashSet<string> schemaKeys,
+            List<string> candidates)
+        {
+            foreach (var row in rows)
+            {
+                if (row is not ObjectAttributeValue obj || obj.value is null) continue;
+                foreach (var key in schemaKeys)
+                {
+                    if (obj.value.TryGetValue(key, out string childValueId)
+                        && !candidates.Contains(childValueId))
+                    {
+                        candidates.Add(childValueId);
+                    }
+                }
+            }
         }
 
         /// <summary>

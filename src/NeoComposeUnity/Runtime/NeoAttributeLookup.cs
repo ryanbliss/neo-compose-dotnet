@@ -53,8 +53,6 @@ namespace NeoCompose.Runtime
                     $"No attribute for collection target {attribute.collectionAttributeId}");
             }
 
-            // The target's value-id is either the explicit collectionValueId
-            // override or the target attribute's normal resolved value chain.
             string? targetValueId = ResolveTargetValueId(targetAttribute);
             if (targetValueId is null)
             {
@@ -131,12 +129,12 @@ namespace NeoCompose.Runtime
 
         private string? ResolveTargetValueId(Attribute targetAttribute)
         {
-            if (attribute.collectionValueId is not null) return attribute.collectionValueId;
-            if (client.TryGetSaveOverrideValueId(targetAttribute.id, out string? saveValueId))
-            {
-                return saveValueId;
-            }
-            return targetAttribute.valueId;
+            return client.TryResolveLookupCollectionValueId(
+                targetAttribute.id,
+                attribute.collectionValueId,
+                out string? targetValueId)
+                    ? targetValueId
+                    : null;
         }
 
         private Attribute ResolveEntryAttribute(Attribute targetAttribute)

@@ -755,6 +755,127 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ActionsNode_LookupSetAdd_ResolvesNestedCollectionValueWhenUnpinned()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "save-inventory-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new string[0],
+            });
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add-primary", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.IsTrue(client.TryGetValue("save-inventory-value", out ArrayAttributeValue? inventory));
+            CollectionAssert.AreEqual(new[] { "asset-item-value" }, inventory!.value);
+        }
+
+        [Test]
+        public void ActionsNode_LookupSetAdd_NotifiesExistingLookupSetWrapper()
+        {
+            var client = CreateClient();
+            client.AddSaveValue("root-save", new ObjectAttributeValue
+            {
+                id = "root-save-with-inventory-value",
+                createdAt = Now,
+                updatedAt = Now,
+                typeId = "type-root",
+                value = new Dictionary<string, string>
+                {
+                    ["Inventory"] = "save-inventory-value",
+                },
+            });
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "save-inventory-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new string[0],
+            });
+            var inventoryNode = client.save.GetOrCreateLookup("Inventory");
+            Assert.AreEqual("save-inventory-value", inventoryNode.overrideValueId);
+            var inventory = new NeoLookupSet<TestLookupValue>(
+                client,
+                inventoryNode,
+                child => new TestLookupValue(child.value?.id));
+            int changed = 0;
+            inventory.OnChanged += () => changed++;
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add-primary", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.AreEqual(1, changed);
+        }
+
+        [Test]
+        public void ActionsNode_LookupSetAddThroughRootPath_NotifiesExistingLookupSetWrapper()
+        {
+            var client = CreateClient();
+            client.AddSaveValue("root-save", new ObjectAttributeValue
+            {
+                id = "root-save-with-inventory-value",
+                createdAt = Now,
+                updatedAt = Now,
+                typeId = "type-root",
+                value = new Dictionary<string, string>
+                {
+                    ["Inventory"] = "save-inventory-value",
+                },
+            });
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "save-inventory-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new string[0],
+            });
+            var inventory = new NeoLookupSet<TestLookupValue>(
+                client,
+                client.save.GetOrCreateLookup("Inventory"),
+                child => new TestLookupValue(child.value?.id));
+            int changed = 0;
+            inventory.OnChanged += () => changed++;
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add-root-path", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.AreEqual(1, changed);
+        }
+
+        [Test]
+        public void ActionsNode_LookupSetAddThroughRootPath_NotifiesWrapperAcrossMaterialization()
+        {
+            var client = CreateClient();
+            var inventory = new NeoLookupSet<TestLookupValue>(
+                client,
+                client.save.GetOrCreateLookup("Inventory"),
+                child => new TestLookupValue(child.value?.id));
+            int changed = 0;
+            inventory.OnChanged += () => changed++;
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add-root-path", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.AreEqual(1, changed);
+            CollectionAssert.AreEqual(new[] { "asset-item-value" }, inventory.Ids);
+        }
+
+        [Test]
         public void ActionsNode_CollectionCall_CanLinkGeneratedCustomDictionaryValue()
         {
             var client = CreateClient();
@@ -865,9 +986,70 @@ namespace NeoCompose.Tests
                         createdAt = Now,
                         updatedAt = Now,
                     },
+                    ["attr-item-name"] = new StringAttribute
+                    {
+                        id = "attr-item-name",
+                        _id = "attr-item-name",
+                        projectId = ProjectId,
+                        name = "Name",
+                        type = AttributeType.String,
+                        required = true,
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
+                    ["attr-item"] = new CustomAttribute
+                    {
+                        id = "attr-item",
+                        _id = "attr-item",
+                        projectId = ProjectId,
+                        name = "Item",
+                        type = AttributeType.Custom,
+                        required = true,
+                        customTypeId = "type-item",
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
+                    ["attr-items"] = new ListAttribute
+                    {
+                        id = "attr-items",
+                        _id = "attr-items",
+                        projectId = ProjectId,
+                        name = "Items",
+                        type = AttributeType.List,
+                        required = true,
+                        valueId = "default-items-value",
+                        entryAttributeId = "attr-item",
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
+                    ["attr-inventory"] = new LookupAttribute
+                    {
+                        id = "attr-inventory",
+                        _id = "attr-inventory",
+                        projectId = ProjectId,
+                        name = "Inventory",
+                        type = AttributeType.Lookup,
+                        required = true,
+                        multiselect = true,
+                        collectionAttributeId = "attr-items",
+                        collectionValueId = null,
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
                 },
                 values = new Dictionary<string, AttributeValue>
                 {
+                    ["root-assets-value"] = new ObjectAttributeValue
+                    {
+                        id = "root-assets-value",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        typeId = "type-root",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Items"] = "assets-items-value",
+                        },
+                    },
                     ["asset-score-value"] = new NumberAttributeValue
                     {
                         id = "asset-score-value",
@@ -884,6 +1066,7 @@ namespace NeoCompose.Tests
                         value = new Dictionary<string, string>
                         {
                             ["Score"] = "score-default-value",
+                            ["Inventory"] = "default-inventory-value",
                         },
                     },
                     ["score-default-value"] = new NumberAttributeValue
@@ -900,6 +1083,45 @@ namespace NeoCompose.Tests
                         updatedAt = Now,
                         value = new Dictionary<string, string>(),
                     },
+                    ["default-items-value"] = new ArrayAttributeValue
+                    {
+                        id = "default-items-value",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        value = new string[0],
+                    },
+                    ["default-inventory-value"] = new ArrayAttributeValue
+                    {
+                        id = "default-inventory-value",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        value = new string[0],
+                    },
+                    ["assets-items-value"] = new ArrayAttributeValue
+                    {
+                        id = "assets-items-value",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        value = new[] { "asset-item-value" },
+                    },
+                    ["asset-item-value"] = new ObjectAttributeValue
+                    {
+                        id = "asset-item-value",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        typeId = "type-item",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Name"] = "asset-item-name-value",
+                        },
+                    },
+                    ["asset-item-name-value"] = new StringAttributeValue
+                    {
+                        id = "asset-item-name-value",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        value = "Compass",
+                    },
                 },
                 types = new Dictionary<string, CustomType>
                 {
@@ -912,6 +1134,21 @@ namespace NeoCompose.Tests
                         schema = new Dictionary<string, string>
                         {
                             ["Score"] = "attr-score",
+                            ["Items"] = "attr-items",
+                            ["Inventory"] = "attr-inventory",
+                        },
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
+                    ["type-item"] = new()
+                    {
+                        id = "type-item",
+                        _id = "type-item",
+                        projectId = ProjectId,
+                        name = "Item",
+                        schema = new Dictionary<string, string>
+                        {
+                            ["Name"] = "attr-item-name",
                         },
                         createdAt = Now,
                         updatedAt = Now,
@@ -1184,6 +1421,26 @@ namespace NeoCompose.Tests
                             StringPointer("slot"),
                             ContextKeyPointer("primary")),
                         primaryLinkedValueId: "root-save-value"),
+                    ["dialogue-action-lookup-add-primary"] = ActionDialogue(
+                        "dialogue-action-lookup-add-primary",
+                        CollectionAction(
+                            new ReferencePointer
+                            {
+                                type = PointerKind.Reference,
+                                valueId = "save-inventory-value",
+                            },
+                            LookupTypeInfo("attr-items", CustomTypeInfo("type-item")),
+                            CollectionMutationKind.Add,
+                            ContextKeyPointer("primary")),
+                        primaryLinkedValueId: "asset-item-value"),
+                    ["dialogue-action-lookup-add-root-path"] = ActionDialogue(
+                        "dialogue-action-lookup-add-root-path",
+                        CollectionAction(
+                            RootKeyPointer("Save", "Inventory"),
+                            LookupTypeInfo("attr-items", CustomTypeInfo("type-item")),
+                            CollectionMutationKind.Add,
+                            ContextKeyPointer("primary")),
+                        primaryLinkedValueId: "asset-item-value"),
                     ["dialogue-action-error"] = ActionDialogue(
                         "dialogue-action-error",
                         ThrowAction("boom")),
@@ -1290,7 +1547,7 @@ namespace NeoCompose.Tests
                 name = name,
                 type = AttributeType.Custom,
                 customTypeId = "type-root",
-                valueId = name == "Save" ? "root-save-default-value" : null,
+                valueId = name == "Save" ? "root-save-default-value" : "root-assets-value",
                 createdAt = Now,
                 updatedAt = Now,
             };
@@ -1782,6 +2039,20 @@ namespace NeoCompose.Tests
             {
                 type = AttributeType.Dictionary,
                 required = true,
+                entryTypeInfo = entryTypeInfo,
+            };
+        }
+
+        private static LookupTypeInfo LookupTypeInfo(
+            string collectionAttributeId,
+            TypeInfo entryTypeInfo)
+        {
+            return new LookupTypeInfo
+            {
+                type = AttributeType.Lookup,
+                required = true,
+                collectionAttributeId = collectionAttributeId,
+                collectionValueId = null,
                 entryTypeInfo = entryTypeInfo,
             };
         }

@@ -336,7 +336,7 @@ namespace NeoCompose.Runtime
                 }
                 else
                 {
-                    client.SetSaveValue(clone);
+                    client.SetSaveValueSilently(clone);
                 }
             }
             return true;
@@ -636,7 +636,12 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"Lookup collection attribute '{lookupTypeInfo.collectionAttributeId}' was not found.");
             }
-            string? collectionValueId = lookupTypeInfo.collectionValueId ?? collectionAttribute.valueId;
+            string? collectionValueId = client.TryResolveLookupCollectionValueId(
+                collectionAttribute.id,
+                lookupTypeInfo.collectionValueId,
+                out string? resolvedCollectionValueId)
+                    ? resolvedCollectionValueId
+                    : null;
             if (collectionValueId is null || !client.TryGetValue(collectionValueId, out AttributeValue? collectionValue))
             {
                 throw new NSGetterRuntimeError(

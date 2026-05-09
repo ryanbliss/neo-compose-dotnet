@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using Assets.Scripts.Neo;
 using NUnit.Framework;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -202,6 +203,74 @@ namespace NeoCompose.Tests
             var result = NSGetterEvaluator.Evaluate(getter, ctx.WithThis(thisValue));
 
             Assert.AreEqual("outpost-row", result);
+        }
+
+        [Test]
+        public void Evaluate_GeneratedCustomThis_AllowsSchemaMemberAccess()
+        {
+            var client = LoadClient();
+            if (!client.TryGetAttribute("attr-hero", out CustomAttribute? heroAttr))
+            {
+                Assert.Fail("Fixture is missing attr-hero");
+                return;
+            }
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "generated-this-row",
+                typeId = "type-hero",
+                createdAt = "x",
+                updatedAt = "x",
+                value = new Dictionary<string, string>
+                {
+                    ["Name"] = "v-str",
+                },
+            });
+            var node = (NeoAttributeCustom)NeoAttribute.Create(
+                client,
+                heroAttr,
+                "generated-this-row");
+            var generatedThis = ReadOnlyHero.Create(client, node);
+            var getter = ReturnFunction(
+                KeyOf(
+                    new VariablePointer
+                    {
+                        type = PointerKind.Variable,
+                        variableId = "__this__",
+                    },
+                    "Name"),
+                AttributeType.String);
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                thisValue: generatedThis,
+                rootValue: null);
+
+            var result = NSGetterEvaluator.Evaluate(getter, ctx);
+
+            Assert.AreEqual("hello", result);
+        }
+
+        [Test]
+        public void Evaluate_GeneratedCustomThis_AllKnownAttributeTypes_ReadOnlyAndSaved()
+        {
+            var client = LoadGeneratedValueSurfaceClient(
+                out CustomAttribute testAttribute,
+                out ObjectAttributeValue readOnlyRow,
+                out ObjectAttributeValue savedRow);
+            var readOnlyNode = (NeoAttributeCustom)NeoAttribute.Create(
+                client,
+                testAttribute,
+                readOnlyRow.id);
+            var savedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+                client,
+                testAttribute,
+                savedRow.id);
+
+            AssertGeneratedValueSurface(
+                client,
+                new TestReadOnlyGeneratedValue(client, readOnlyNode));
+            AssertGeneratedValueSurface(
+                client,
+                new TestGeneratedValue(client, savedNode));
         }
 
         [Test]
@@ -548,6 +617,234 @@ namespace NeoCompose.Tests
             };
         }
 
+        private static void AssertGeneratedValueSurface(
+            NeoClient client,
+            NeoGeneratedCustomValue generated)
+        {
+            Assert.IsNull(EvaluateThisMember(client, generated, "Null"));
+            Assert.AreEqual(true, EvaluateThisMember(client, generated, "Bool"));
+            Assert.AreEqual(7.0, EvaluateThisMember(client, generated, "Int"));
+            Assert.AreEqual(2.5, EvaluateThisMember(client, generated, "Float"));
+            Assert.AreEqual("hello", EvaluateThisMember(client, generated, "String"));
+            Assert.AreEqual("computed", EvaluateThisMember(client, generated, "Getter"));
+
+            var list = EvaluateThisMember(client, generated, "List") as object?[];
+            Assert.IsNotNull(list);
+            Assert.AreEqual(2, list!.Length);
+            Assert.AreEqual("v-list-1", list[0]);
+
+            var dictionary = EvaluateThisMember(client, generated, "Dictionary")
+                as IDictionary<string, object?>;
+            Assert.IsNotNull(dictionary);
+            Assert.AreEqual("v-dict-value", dictionary!["first"]);
+
+            Assert.AreEqual(
+                "child",
+                EvaluatePointer(
+                    client,
+                    generated,
+                    KeyOf(ThisPointer(), "CustomChild", "Text")));
+
+            var selectedEnum = EvaluateThisMember(client, generated, "Enum") as object?[];
+            Assert.IsNotNull(selectedEnum);
+            Assert.AreEqual("red", selectedEnum![0]);
+
+            var lookup = EvaluateThisMember(client, generated, "LookupSet") as object?[];
+            Assert.IsNotNull(lookup);
+            Assert.AreEqual(2, lookup!.Length);
+            Assert.AreEqual("v-list-2", lookup[1]);
+        }
+
+        private static object? EvaluateThisMember(
+            NeoClient client,
+            NeoGeneratedCustomValue generated,
+            string key)
+        {
+            return EvaluatePointer(client, generated, KeyOf(ThisPointer(), key));
+        }
+
+        private static object? EvaluatePointer(
+            NeoClient client,
+            NeoGeneratedCustomValue generated,
+            Pointer pointer)
+        {
+            return NSGetterEvaluator.Evaluate(
+                ReturnFunction(pointer, AttributeType.String),
+                new NSGetterEvaluator.Context(
+                    client,
+                    thisValue: generated,
+                    rootValue: null));
+        }
+
+        private static NeoClient LoadGeneratedValueSurfaceClient(
+            out CustomAttribute testAttribute,
+            out ObjectAttributeValue readOnlyRow,
+            out ObjectAttributeValue savedRow)
+        {
+            var childTextAttribute = StringAttribute("attr-child-text", "ChildText");
+            var childType = CustomType("type-child", "Child", new Dictionary<string, string>
+            {
+                ["Text"] = childTextAttribute.id,
+            });
+
+            var nullAttribute = NullAttribute("attr-null", "Null");
+            var boolAttribute = BoolAttribute("attr-bool", "Bool");
+            var intAttribute = IntAttribute("attr-int", "Int");
+            var floatAttribute = FloatAttribute("attr-float", "Float");
+            var stringAttribute = StringAttribute("attr-string", "String");
+            var listEntryAttribute = StringAttribute("attr-list-entry", "ListEntry");
+            var listAttribute = ListAttribute("attr-list", "List", listEntryAttribute.id);
+            var dictionaryEntryAttribute = StringAttribute("attr-dict-entry", "DictionaryEntry");
+            var dictionaryAttribute = DictionaryAttribute(
+                "attr-dictionary",
+                "Dictionary",
+                dictionaryEntryAttribute.id);
+            var customChildAttribute = CustomAttribute("attr-custom-child", "CustomChild", childType.id);
+            var enumModel = new NeoCompose.Runtime.Json.Enum
+            {
+                id = "enum-color",
+                _id = "enum-color",
+                projectId = "project-generated-surface",
+                name = "Color",
+                options = new Dictionary<string, EnumOption>
+                {
+                    ["red"] = new EnumOption { text = "Red" },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var enumAttribute = EnumAttribute("attr-enum", "Enum", enumModel.id);
+            var lookupAttribute = LookupAttribute(
+                "attr-lookup-set",
+                "LookupSet",
+                listAttribute.id,
+                "v-list");
+            var getterAttribute = NSGetterAttribute("attr-getter", "Getter");
+
+            testAttribute = CustomAttribute("attr-test", "Test", "type-test");
+            var rootAttribute = CustomAttribute("attr-root", "Root", "type-root");
+            var rootSaveAttribute = CustomAttribute("attr-save", "Save", "type-root");
+            var testType = CustomType("type-test", "GeneratedSurface", new Dictionary<string, string>
+            {
+                ["Null"] = nullAttribute.id,
+                ["Bool"] = boolAttribute.id,
+                ["Int"] = intAttribute.id,
+                ["Float"] = floatAttribute.id,
+                ["String"] = stringAttribute.id,
+                ["List"] = listAttribute.id,
+                ["Dictionary"] = dictionaryAttribute.id,
+                ["CustomChild"] = customChildAttribute.id,
+                ["Enum"] = enumAttribute.id,
+                ["LookupSet"] = lookupAttribute.id,
+                ["Getter"] = getterAttribute.id,
+            });
+            var rootType = CustomType("type-root", "Root", new Dictionary<string, string>());
+
+            var values = new Dictionary<string, AttributeValue>
+            {
+                ["v-assets"] = ObjectValue("v-assets", "type-root", new Dictionary<string, string>()),
+                ["v-null"] = NullValue("v-null"),
+                ["v-bool"] = BoolValue("v-bool", true),
+                ["v-int"] = NumberValue("v-int", 7),
+                ["v-float"] = NumberValue("v-float", 2.5),
+                ["v-string"] = StringValue("v-string", "hello"),
+                ["v-list-1"] = StringValue("v-list-1", "first"),
+                ["v-list-2"] = StringValue("v-list-2", "second"),
+                ["v-list"] = ArrayValue("v-list", "v-list-1", "v-list-2"),
+                ["v-dict-value"] = StringValue("v-dict-value", "dict"),
+                ["v-dictionary"] = ObjectValue(
+                    "v-dictionary",
+                    null,
+                    new Dictionary<string, string>
+                    {
+                        ["first"] = "v-dict-value",
+                    }),
+                ["v-child-text"] = StringValue("v-child-text", "child"),
+                ["v-child"] = ObjectValue(
+                    "v-child",
+                    childType.id,
+                    new Dictionary<string, string>
+                    {
+                        ["Text"] = "v-child-text",
+                    }),
+                ["v-enum"] = ArrayValue("v-enum", "red"),
+                ["v-lookup"] = ArrayValue("v-lookup", "v-list-1", "v-list-2"),
+            };
+            readOnlyRow = ObjectValue(
+                "v-readonly-test",
+                testType.id,
+                GeneratedValueSurfaceMap());
+            savedRow = ObjectValue(
+                "v-saved-test",
+                testType.id,
+                GeneratedValueSurfaceMap());
+            values[readOnlyRow.id] = readOnlyRow;
+            var data = new ProjectData
+            {
+                project = new Project
+                {
+                    id = "project-generated-surface",
+                    _id = "project-generated-surface",
+                    name = "Generated Surface",
+                    rootAssetsAttributeId = rootAttribute.id,
+                    rootSaveFileAttributeId = rootSaveAttribute.id,
+                    createdAt = "x",
+                    updatedAt = "x",
+                },
+                attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
+                {
+                    [rootAttribute.id] = rootAttribute,
+                    [rootSaveAttribute.id] = rootSaveAttribute,
+                    [testAttribute.id] = testAttribute,
+                    [nullAttribute.id] = nullAttribute,
+                    [boolAttribute.id] = boolAttribute,
+                    [intAttribute.id] = intAttribute,
+                    [floatAttribute.id] = floatAttribute,
+                    [stringAttribute.id] = stringAttribute,
+                    [listEntryAttribute.id] = listEntryAttribute,
+                    [listAttribute.id] = listAttribute,
+                    [dictionaryEntryAttribute.id] = dictionaryEntryAttribute,
+                    [dictionaryAttribute.id] = dictionaryAttribute,
+                    [customChildAttribute.id] = customChildAttribute,
+                    [childTextAttribute.id] = childTextAttribute,
+                    [enumAttribute.id] = enumAttribute,
+                    [lookupAttribute.id] = lookupAttribute,
+                    [getterAttribute.id] = getterAttribute,
+                },
+                values = values,
+                types = new Dictionary<string, CustomType>
+                {
+                    [rootType.id] = rootType,
+                    [testType.id] = testType,
+                    [childType.id] = childType,
+                },
+                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>
+                {
+                    [enumModel.id] = enumModel,
+                },
+            };
+            var client = new NeoClient(data, () => "", _ => { });
+            client.SetSaveValue(savedRow);
+            return client;
+        }
+
+        private static Dictionary<string, string> GeneratedValueSurfaceMap()
+        {
+            return new Dictionary<string, string>
+            {
+                ["Null"] = "v-null",
+                ["Bool"] = "v-bool",
+                ["Int"] = "v-int",
+                ["Float"] = "v-float",
+                ["String"] = "v-string",
+                ["List"] = "v-list",
+                ["Dictionary"] = "v-dictionary",
+                ["CustomChild"] = "v-child",
+                ["Enum"] = "v-enum",
+                ["LookupSet"] = "v-lookup",
+            };
+        }
+
         private static ValuePointer StringPointer(string value)
         {
             return new ValuePointer
@@ -563,6 +860,320 @@ namespace NeoCompose.Tests
                     value = JToken.FromObject(value),
                 },
             };
+        }
+
+        private static KeyOfPointer KeyOf(Pointer receiver, string key)
+        {
+            return new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf
+                {
+                    pointer = receiver,
+                    key = StringPointer(key),
+                },
+            };
+        }
+
+        private static KeyOfPointer KeyOf(Pointer receiver, string firstKey, string secondKey)
+        {
+            return KeyOf(KeyOf(receiver, firstKey), secondKey);
+        }
+
+        private static VariablePointer ThisPointer()
+        {
+            return new VariablePointer
+            {
+                type = PointerKind.Variable,
+                variableId = "__this__",
+            };
+        }
+
+        private static CustomType CustomType(
+            string id,
+            string name,
+            Dictionary<string, string> schema)
+        {
+            return new CustomType
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                schema = schema,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static NullAttribute NullAttribute(string id, string name)
+        {
+            return new NullAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.Null,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static BoolAttribute BoolAttribute(string id, string name)
+        {
+            return new BoolAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.Bool,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static IntAttribute IntAttribute(string id, string name)
+        {
+            return new IntAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.Int,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static FloatAttribute FloatAttribute(string id, string name)
+        {
+            return new FloatAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.Float,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static StringAttribute StringAttribute(string id, string name)
+        {
+            return new StringAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.String,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static ListAttribute ListAttribute(
+            string id,
+            string name,
+            string entryAttributeId)
+        {
+            return new ListAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.List,
+                entryAttributeId = entryAttributeId,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static DictionaryAttribute DictionaryAttribute(
+            string id,
+            string name,
+            string entryAttributeId)
+        {
+            return new DictionaryAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.Dictionary,
+                entryAttributeId = entryAttributeId,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static CustomAttribute CustomAttribute(
+            string id,
+            string name,
+            string customTypeId)
+        {
+            return new CustomAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.Custom,
+                customTypeId = customTypeId,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static EnumAttribute EnumAttribute(
+            string id,
+            string name,
+            string enumId)
+        {
+            return new EnumAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.Enum,
+                enumId = enumId,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static LookupAttribute LookupAttribute(
+            string id,
+            string name,
+            string collectionAttributeId,
+            string collectionValueId)
+        {
+            return new LookupAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.Lookup,
+                collectionAttributeId = collectionAttributeId,
+                collectionValueId = collectionValueId,
+                multiselect = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static NSGetterAttribute NSGetterAttribute(string id, string name)
+        {
+            return new NSGetterAttribute
+            {
+                id = id,
+                _id = id,
+                projectId = "project-generated-surface",
+                name = name,
+                type = AttributeType.NSGetter,
+                code = "return \"computed\";",
+                returnTypeInfo = new PrimitiveTypeInfo
+                {
+                    type = AttributeType.String,
+                    required = true,
+                },
+                getter = ReturnFunction(StringPointer("computed"), AttributeType.String),
+                createdAt = "x",
+                updatedAt = "x",
+            };
+        }
+
+        private static NullAttributeValue NullValue(string id)
+        {
+            return new NullAttributeValue
+            {
+                id = id,
+                createdAt = "x",
+                updatedAt = "x",
+                value = null,
+            };
+        }
+
+        private static BoolAttributeValue BoolValue(string id, bool value)
+        {
+            return new BoolAttributeValue
+            {
+                id = id,
+                createdAt = "x",
+                updatedAt = "x",
+                value = value,
+            };
+        }
+
+        private static NumberAttributeValue NumberValue(string id, double value)
+        {
+            return new NumberAttributeValue
+            {
+                id = id,
+                createdAt = "x",
+                updatedAt = "x",
+                value = value,
+            };
+        }
+
+        private static StringAttributeValue StringValue(string id, string value)
+        {
+            return new StringAttributeValue
+            {
+                id = id,
+                createdAt = "x",
+                updatedAt = "x",
+                value = value,
+            };
+        }
+
+        private static ArrayAttributeValue ArrayValue(string id, params string[] value)
+        {
+            return new ArrayAttributeValue
+            {
+                id = id,
+                createdAt = "x",
+                updatedAt = "x",
+                value = value,
+            };
+        }
+
+        private static ObjectAttributeValue ObjectValue(
+            string id,
+            string? typeId,
+            Dictionary<string, string> value)
+        {
+            return new ObjectAttributeValue
+            {
+                id = id,
+                typeId = typeId,
+                createdAt = "x",
+                updatedAt = "x",
+                value = value,
+            };
+        }
+
+        private sealed class TestReadOnlyGeneratedValue : NeoGeneratedCustomValue
+        {
+            public TestReadOnlyGeneratedValue(NeoClient client, NeoAttributeCustom node)
+                : base(client, node, "type-test")
+            {
+            }
+        }
+
+        private sealed class TestGeneratedValue : NeoGeneratedCustomValue
+        {
+            public TestGeneratedValue(NeoClient client, NeoAttributeCustomSaved node)
+                : base(client, node, "type-test")
+            {
+            }
         }
 
         private sealed class TestMemoryStore : INeoDialogueMemoryStore
