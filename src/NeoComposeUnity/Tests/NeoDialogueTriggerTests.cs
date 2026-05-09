@@ -122,7 +122,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(result.Dialogue);
             Assert.AreEqual("dialogue-lookup-b", result.Dialogue!.Id);
             Assert.AreEqual("lookup-value-b", ((TestLookupValue)result.Dialogue.Context.Trigger!).valueId);
-            Assert.AreEqual(result.Dialogue.Context.Trigger, result.Dialogue.Context.Primary);
+            Assert.IsNull(result.Dialogue.Context.Primary);
         }
 
         [Test]
@@ -222,7 +222,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(result.Dialogue);
             Assert.IsInstanceOf<TestLookupValue>(result.Dialogue!.Context.Trigger);
             Assert.AreEqual("lookup-value-direct", ((TestLookupValue)result.Dialogue.Context.Trigger!).valueId);
-            Assert.AreSame(result.Dialogue.Context.Trigger, result.Dialogue.Context.Primary);
+            Assert.IsNull(result.Dialogue.Context.Primary);
         }
 
         [Test]
@@ -255,6 +255,39 @@ namespace NeoCompose.Tests
             Assert.IsTrue(result.Ok);
             Assert.IsNotNull(result.Dialogue);
             Assert.AreEqual("dialogue-context-condition", result.Dialogue!.Id);
+        }
+
+        [Test]
+        public void TryTrigger_EvaluatesGroupConditionsWithDialoguePrimaryInContext()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => new TestLookupValue(valueId));
+
+            Assert.IsTrue(root.TryTrigger("dialogue-group-context-primary", out NeoDialogueTriggerResult result));
+
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.IsInstanceOf<TestLookupValue>(result.Dialogue!.Context.Primary);
+            Assert.AreEqual("primary-dialogue", ((TestLookupValue)result.Dialogue.Context.Primary!).valueId);
+        }
+
+        [Test]
+        public void LookupTriggerConditions_FallBackToRuntimeTriggerAsThis()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            var group = new TestLookupDialogueGroup(root, "group-lookup");
+
+            Assert.IsTrue(group.TryTrigger(
+                new TestLookupValue("lookup-value-this-trigger"),
+                out NeoDialogueTriggerResult result));
+
+            Assert.IsTrue(result.Ok);
+            Assert.IsNotNull(result.Dialogue);
+            Assert.AreEqual("dialogue-lookup-this-trigger", result.Dialogue!.Id);
+            Assert.IsNull(result.Dialogue.Context.Primary);
         }
 
         [Test]
@@ -435,6 +468,50 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(textMemory);
             Assert.AreEqual("option-a", textMemory!.MostRecentChoiceId);
             Assert.IsTrue(textMemory.HasChoice("option-a"));
+        }
+
+        [Test]
+        public void TextOption_Settings_FilterHiddenOptionsAndMarkSelectable()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-option-settings", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(shown);
+            Assert.AreEqual(2, shown!.Options.Count);
+            Assert.AreEqual("option-disabled", shown.Options[0].Id);
+            Assert.IsFalse(shown.Options[0].Selectable);
+            Assert.AreEqual("option-visible", shown.Options[1].Id);
+            Assert.IsTrue(shown.Options[1].Selectable);
+            Assert.AreEqual(1, shown.HiddenOptions.Count);
+            Assert.AreEqual("option-hidden", shown.HiddenOptions[0].Id);
+            Assert.IsNull(dialogue.Context.OptionId);
+
+            var ex = Assert.Throws<System.InvalidOperationException>(() => shown.Options[0].Select());
+            StringAssert.Contains("option.Selectable", ex!.Message);
+            StringAssert.Contains("Button.interactable", ex.Message);
+        }
+
+        [Test]
+        public void TextOption_Settings_FailureUsesDialogueErrorPath()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-option-condition-error", out NeoDialogue dialogue));
+
+            System.Exception? error = null;
+            dialogue.OnError += ex => error = ex;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(error);
+            StringAssert.Contains("expected bool", error!.Message);
+            Assert.AreEqual(NeoDialogueState.Disposed, dialogue.State);
         }
 
         [Test]
@@ -1256,6 +1333,17 @@ namespace NeoCompose.Tests
                         createdAt = Now,
                         updatedAt = Now,
                     },
+                    ["group-context-primary"] = new StandardDialogueGroup
+                    {
+                        id = "group-context-primary",
+                        _id = "group-context-primary",
+                        projectId = ProjectId,
+                        name = "Context Primary",
+                        type = DialogueGroupType.Standard,
+                        conditions = new[] { Condition(ContextIsNotNull("primary")) },
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
                 },
                 dialogues = new Dictionary<string, Dialogue>
                 {
@@ -1265,6 +1353,8 @@ namespace NeoCompose.Tests
                         "group-standard",
                         relativeOrder: 0),
                     ["dialogue-options"] = OptionsDialogue(),
+                    ["dialogue-option-settings"] = OptionSettingsDialogue(),
+                    ["dialogue-option-condition-error"] = OptionConditionErrorDialogue(),
                     ["dialogue-condition-false"] = Dialogue(
                         "dialogue-condition-false",
                         "Condition False",
@@ -1528,6 +1618,11 @@ namespace NeoCompose.Tests
                         {
                             Condition(ContextEquals("dialogueId", "dialogue-context-condition")),
                         }),
+                    ["dialogue-group-context-primary"] = Dialogue(
+                        "dialogue-group-context-primary",
+                        "Group Context Primary",
+                        "group-context-primary",
+                        primaryLinkedValueId: "primary-dialogue"),
                     ["dialogue-text-linked-values"] = Dialogue(
                         "dialogue-text-linked-values",
                         "Text Linked Values",
@@ -1548,6 +1643,15 @@ namespace NeoCompose.Tests
                         "Lookup B",
                         "group-lookup",
                         "lookup-value-b"),
+                    ["dialogue-lookup-this-trigger"] = Dialogue(
+                        "dialogue-lookup-this-trigger",
+                        "Lookup This Trigger",
+                        "group-lookup",
+                        "lookup-value-this-trigger",
+                        conditions: new[]
+                        {
+                            Condition(ThisEqualsContextTrigger()),
+                        }),
                 },
                 priorityGroups = new Dictionary<string, PriorityGroup>
                 {
@@ -1844,6 +1948,124 @@ namespace NeoCompose.Tests
             };
         }
 
+        private static Dialogue OptionSettingsDialogue()
+        {
+            return new Dialogue
+            {
+                id = "dialogue-option-settings",
+                _id = "dialogue-option-settings",
+                projectId = ProjectId,
+                name = "Option Settings Dialogue",
+                description = null,
+                linkedValues = new DialogueLinkedValue[0],
+                settings = new DialogueSettings(),
+                primaryLinkedValueId = null,
+                triggerNode = new DialogueTriggerNode
+                {
+                    id = "dialogue-option-settings-trigger",
+                    type = DialogueNodeType.Trigger,
+                    layout = new DialogueNodeLayout(),
+                    toNodeId = "text-option-settings",
+                    linkedValues = new DialogueLinkedValue[0],
+                    conditions = new LogicCondition[0],
+                    dialogueGroupSettings = new DialogueGroupSettings
+                    {
+                        dialogueGroupId = "group-standard",
+                        priority = new DialogueGroupPrioritySettings(),
+                    },
+                },
+                nodes = new Dictionary<string, DialogueBodyNode>
+                {
+                    ["text-option-settings"] = TextNode(
+                        "text-option-settings",
+                        "Pick one.",
+                        new[]
+                        {
+                            new NeoCompose.Runtime.Json.DialogueTextOption
+                            {
+                                id = "option-hidden",
+                                text = "Hidden",
+                                settings = new DialogueTextOptionSettings
+                                {
+                                    conditions = new[] { Condition(BoolGetter(false)) },
+                                    selectableConditions = new[] { Condition(StringGetter("should not evaluate")) },
+                                },
+                            },
+                            new NeoCompose.Runtime.Json.DialogueTextOption
+                            {
+                                id = "option-disabled",
+                                text = "Disabled",
+                                settings = new DialogueTextOptionSettings
+                                {
+                                    selectableConditions = new[] { Condition(BoolGetter(false)) },
+                                },
+                            },
+                            new NeoCompose.Runtime.Json.DialogueTextOption
+                            {
+                                id = "option-visible",
+                                text = "Visible",
+                                settings = new DialogueTextOptionSettings
+                                {
+                                    conditions = new[] { Condition(ContextEquals("optionId", "option-visible")) },
+                                    selectableConditions = new[] { Condition(ContextEquals("optionId", "option-visible")) },
+                                },
+                            },
+                        }),
+                },
+                createdAt = Now,
+                updatedAt = Now,
+            };
+        }
+
+        private static Dialogue OptionConditionErrorDialogue()
+        {
+            return new Dialogue
+            {
+                id = "dialogue-option-condition-error",
+                _id = "dialogue-option-condition-error",
+                projectId = ProjectId,
+                name = "Option Condition Error Dialogue",
+                description = null,
+                linkedValues = new DialogueLinkedValue[0],
+                settings = new DialogueSettings(),
+                primaryLinkedValueId = null,
+                triggerNode = new DialogueTriggerNode
+                {
+                    id = "dialogue-option-condition-error-trigger",
+                    type = DialogueNodeType.Trigger,
+                    layout = new DialogueNodeLayout(),
+                    toNodeId = "text-option-condition-error",
+                    linkedValues = new DialogueLinkedValue[0],
+                    conditions = new LogicCondition[0],
+                    dialogueGroupSettings = new DialogueGroupSettings
+                    {
+                        dialogueGroupId = "group-standard",
+                        priority = new DialogueGroupPrioritySettings(),
+                    },
+                },
+                nodes = new Dictionary<string, DialogueBodyNode>
+                {
+                    ["text-option-condition-error"] = TextNode(
+                        "text-option-condition-error",
+                        "Pick one.",
+                        new[]
+                        {
+                            new NeoCompose.Runtime.Json.DialogueTextOption
+                            {
+                                id = "option-error",
+                                text = "Error",
+                                settings = new DialogueTextOptionSettings
+                                {
+                                    conditions = new[] { Condition(StringGetter("not bool")) },
+                                },
+                            },
+                        }),
+                },
+                createdAt = Now,
+                updatedAt = Now,
+            };
+        }
+
         private static LogicCondition Condition(FunctionWithReturnType getter)
         {
             return new UILogicCondition
@@ -1902,6 +2124,33 @@ namespace NeoCompose.Tests
 
         private static FunctionWithReturnType ContextEquals(string key, string value)
         {
+            return BoolExpressionGetter(
+                ContextKeyPointer(key),
+                OperatorKind.EqualTo,
+                StringPointer(value));
+        }
+
+        private static FunctionWithReturnType ContextIsNotNull(string key)
+        {
+            return BoolExpressionGetter(
+                ContextKeyPointer(key),
+                OperatorKind.DoesNotEqual,
+                NullPointer());
+        }
+
+        private static FunctionWithReturnType ThisEqualsContextTrigger()
+        {
+            return BoolExpressionGetter(
+                ThisPointer(),
+                OperatorKind.EqualTo,
+                ContextKeyPointer("trigger"));
+        }
+
+        private static FunctionWithReturnType BoolExpressionGetter(
+            Pointer operand1,
+            string operatorKind,
+            Pointer operand2)
+        {
             return new FunctionWithReturnType
             {
                 typeInfo = new PrimitiveTypeInfo
@@ -1925,15 +2174,24 @@ namespace NeoCompose.Tests
                                 {
                                     condition = new Condition
                                     {
-                                        type = OperatorKind.EqualTo,
-                                        operand1 = ContextKeyPointer(key),
-                                        operand2 = StringPointer(value),
+                                        type = operatorKind,
+                                        operand1 = operand1,
+                                        operand2 = operand2,
                                     },
                                 },
                             },
                         },
                     },
                 },
+            };
+        }
+
+        private static Pointer ThisPointer()
+        {
+            return new VariablePointer
+            {
+                type = PointerKind.Variable,
+                variableId = "__this__",
             };
         }
 
@@ -1974,6 +2232,23 @@ namespace NeoCompose.Tests
                 };
             }
             return pointer;
+        }
+
+        private static Pointer NullPointer()
+        {
+            return new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = AttributeType.Null,
+                        required = false,
+                    },
+                    value = JValue.CreateNull(),
+                },
+            };
         }
 
         private static FunctionWithReturnType AssignAction(

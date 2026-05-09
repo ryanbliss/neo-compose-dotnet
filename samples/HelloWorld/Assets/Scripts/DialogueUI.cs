@@ -73,6 +73,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void PrepareOptionButton(
             string buttonText,
+            bool selectable,
             Action onClick,
             bool rememberChoice = false
         )
@@ -80,7 +81,9 @@ namespace HelloWorld.Assets.Scripts
             EnsureBuilt();
             CreateOptionButton(
                 rememberChoice ? $"{buttonText}  (remember)" : buttonText,
-                onClick);
+                selectable,
+                onClick
+            );
         }
 
         public void Reset()
@@ -187,7 +190,7 @@ namespace HelloWorld.Assets.Scripts
             layout.childForceExpandWidth = true;
         }
 
-        private void CreateOptionButton(string label, Action action)
+        private void CreateOptionButton(string label, bool selectable, Action action)
         {
             var rect = CreateRect(optionStack, label);
             var layout = rect.gameObject.AddComponent<LayoutElement>();
@@ -200,6 +203,7 @@ namespace HelloWorld.Assets.Scripts
             var button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
             button.colors = ButtonColors();
+            button.interactable = selectable;
             button.onClick.AddListener(() =>
             {
                 button.interactable = false;

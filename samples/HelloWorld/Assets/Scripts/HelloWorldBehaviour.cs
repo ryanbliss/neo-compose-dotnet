@@ -52,7 +52,7 @@ namespace HelloWorld.Assets.Scripts
 
         protected void OnInventoryChanged()
         {
-            Debug.Log("Inventory changed");
+            Debug.Log($"Added: {neo.Save.Inventory.LastOrDefault()?.Name}");
         }
         
         protected void OnBitsChanged(int bits)
@@ -92,6 +92,7 @@ namespace HelloWorld.Assets.Scripts
                 {
                     DialogueUI.PrepareOptionButton(
                         buttonText: option.Text,
+                        selectable: option.Selectable,
                         onClick: option.Select,
                         rememberChoice: node.SaveChoice
                     );
@@ -101,6 +102,7 @@ namespace HelloWorld.Assets.Scripts
 
             DialogueUI.PrepareOptionButton(
                 buttonText: "Continue",
+                selectable: true,
                 onClick: node.Next
             );
         }

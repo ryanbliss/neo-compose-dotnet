@@ -175,6 +175,13 @@ namespace NeoCompose.Runtime.Json
         public string text = null!;
         public string? name;
         public string? toNodeId;
+        public DialogueTextOptionSettings? settings;
+    }
+
+    public class DialogueTextOptionSettings
+    {
+        public LogicCondition[]? conditions;
+        public LogicCondition[]? selectableConditions;
     }
 
     public enum DialogueActionType

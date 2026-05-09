@@ -148,12 +148,39 @@ namespace NeoCompose.Runtime
                 ?? false;
             var optionModels = node.optionSettings?.options ?? Array.Empty<DialogueTextOptionModel>();
             var options = new List<NeoDialogueTextOption>(optionModels.Length);
+            var hiddenOptions = new List<NeoDialogueHiddenTextOption>();
             foreach (var optionModel in optionModels)
             {
+                bool visible;
+                bool selectable;
+                try
+                {
+                    visible = EvaluateOptionConditions(
+                        optionModel,
+                        optionModel.settings?.conditions);
+                    selectable = visible
+                        && EvaluateOptionConditions(
+                            optionModel,
+                            optionModel.settings?.selectableConditions);
+                }
+                catch (Exception ex)
+                {
+                    Fail(ex);
+                    return;
+                }
+                if (!visible)
+                {
+                    hiddenOptions.Add(new NeoDialogueHiddenTextOption(
+                        optionModel.id,
+                        optionModel.text,
+                        optionModel.name));
+                    continue;
+                }
                 options.Add(new NeoDialogueTextOption(
                     optionModel.id,
                     optionModel.text,
                     optionModel.name,
+                    selectable,
                     () =>
                     {
                         if (optionSelected)
@@ -188,8 +215,29 @@ namespace NeoCompose.Runtime
                 ResolveLinkedValues(node.linkedValues),
                 saveChoice,
                 options,
+                hiddenOptions,
                 () => EnterNode(node.toNodeId),
                 EnsureActive));
+        }
+
+        private bool EvaluateOptionConditions(
+            DialogueTextOptionModel optionModel,
+            NeoCompose.Runtime.Json.LogicCondition[]? conditions)
+        {
+            string? previousOptionId = Context.OptionId;
+            try
+            {
+                Context.OptionId = optionModel.id;
+                return NeoDialogueConditionEvaluator.EvaluateAll(
+                    client,
+                    conditions,
+                    Context,
+                    memoryStore);
+            }
+            finally
+            {
+                Context.OptionId = previousOptionId;
+            }
         }
 
         private void EnterActionsNode(DialogueActionsNodeModel node)
@@ -285,7 +333,7 @@ namespace NeoCompose.Runtime
             string? primaryLinkedValueId = string.IsNullOrEmpty(nodePrimaryLinkedValueId)
                 ? Data.primaryLinkedValueId
                 : nodePrimaryLinkedValueId;
-            if (string.IsNullOrEmpty(primaryLinkedValueId)) return Context.Trigger;
+            if (string.IsNullOrEmpty(primaryLinkedValueId)) return Context.Primary;
             return valueResolver?.Invoke(primaryLinkedValueId!);
         }
 
@@ -364,6 +412,7 @@ namespace NeoCompose.Runtime
         public IReadOnlyDictionary<string, object?> LinkedValues { get; }
         public bool SaveChoice { get; }
         public IReadOnlyList<NeoDialogueTextOption> Options { get; }
+        public IReadOnlyList<NeoDialogueHiddenTextOption> HiddenOptions { get; }
 
         public NeoDialogueTextNode(
             string id,
@@ -373,6 +422,7 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, object?> linkedValues,
             bool saveChoice,
             IReadOnlyList<NeoDialogueTextOption> options,
+            IReadOnlyList<NeoDialogueHiddenTextOption> hiddenOptions,
             Action next,
             Action ensureActive)
         {
@@ -383,6 +433,7 @@ namespace NeoCompose.Runtime
             LinkedValues = linkedValues;
             SaveChoice = saveChoice;
             Options = options;
+            HiddenOptions = hiddenOptions;
             this.next = next;
             this.ensureActive = ensureActive;
         }
@@ -408,17 +459,20 @@ namespace NeoCompose.Runtime
         public string Id { get; }
         public string Text { get; }
         public string? Name { get; }
+        public bool Selectable { get; }
 
         public NeoDialogueTextOption(
             string id,
             string text,
             string? name,
+            bool selectable,
             Action select,
             Action ensureActive)
         {
             Id = id;
             Text = text;
             Name = name;
+            Selectable = selectable;
             this.select = select;
             this.ensureActive = ensureActive;
         }
@@ -426,12 +480,34 @@ namespace NeoCompose.Runtime
         public void Select()
         {
             ensureActive();
+            if (!Selectable)
+            {
+                throw new InvalidOperationException(
+                    $"Dialogue option '{Id}' is not selectable. Check option.Selectable before calling Select(); for Unity UI, bind Button.interactable = option.Selectable.");
+            }
             if (selected)
             {
                 throw new InvalidOperationException($"Dialogue option '{Id}' has already been selected.");
             }
             selected = true;
             select();
+        }
+    }
+
+    public sealed class NeoDialogueHiddenTextOption
+    {
+        public string Id { get; }
+        public string Text { get; }
+        public string? Name { get; }
+
+        public NeoDialogueHiddenTextOption(
+            string id,
+            string text,
+            string? name)
+        {
+            Id = id;
+            Text = text;
+            Name = name;
         }
     }
 }

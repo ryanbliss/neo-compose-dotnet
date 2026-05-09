@@ -129,7 +129,15 @@ namespace NeoCompose.Tests
           ""optionSettings"": {
             ""saveChoice"": true,
             ""options"": [
-              { ""id"": ""option-a"", ""text"": ""Continue"", ""toNodeId"": ""actions-a"" }
+              {
+                ""id"": ""option-a"",
+                ""text"": ""Continue"",
+                ""toNodeId"": ""actions-a"",
+                ""settings"": {
+                  ""conditions"": [],
+                  ""selectableConditions"": []
+                }
+              }
             ]
           }
         },
@@ -290,6 +298,9 @@ namespace NeoCompose.Tests
             var textNode = (DialogueTextNode)dialogue.nodes["text-a"];
             Assert.AreEqual("Hello there", textNode.text);
             Assert.AreEqual("Continue", textNode.optionSettings!.options[0].text);
+            Assert.IsNotNull(textNode.optionSettings.options[0].settings);
+            Assert.AreEqual(0, textNode.optionSettings.options[0].settings!.conditions!.Length);
+            Assert.AreEqual(0, textNode.optionSettings.options[0].settings!.selectableConditions!.Length);
 
             var actionsNode = (DialogueActionsNode)dialogue.nodes["actions-a"];
             var action = (DialogueLogicEditAttributeAction)actionsNode.actions[0];

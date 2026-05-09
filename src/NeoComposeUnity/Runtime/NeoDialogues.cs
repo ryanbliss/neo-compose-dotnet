@@ -87,7 +87,7 @@ namespace NeoCompose.Runtime
             var context = CreateContext(data, trigger);
             try
             {
-                if (!EvaluateGroupConditionChain(groupId, context))
+                if (!EvaluateGroupConditionChain(groupId, context, trigger))
                 {
                     result = NeoDialogueTriggerResult.NotFound();
                     return false;
@@ -97,6 +97,7 @@ namespace NeoCompose.Runtime
                     result = NeoDialogueTriggerResult.NotFound();
                     return false;
                 }
+                context.CurrentPrimary = ResolveTriggerCurrentPrimary(data, trigger);
                 if (!NeoDialogueConditionEvaluator.EvaluateAll(
                     client,
                     data.triggerNode?.conditions,
@@ -142,8 +143,9 @@ namespace NeoCompose.Runtime
                         dialogueId: "",
                         groupId: groupId,
                         trigger: trigger,
-                        primary: trigger,
-                        linkedValues: new Dictionary<string, object?>())))
+                        primary: null,
+                        linkedValues: new Dictionary<string, object?>()),
+                    trigger))
                 {
                     result = NeoDialogueTriggerResult.NotFound();
                     return false;
@@ -173,6 +175,7 @@ namespace NeoCompose.Runtime
                     var context = CreateContext(dialogue, trigger);
                     try
                     {
+                        context.CurrentPrimary = ResolveTriggerCurrentPrimary(dialogue, trigger);
                         return NeoDialogueConditionEvaluator.EvaluateAll(
                             client,
                             dialogue.triggerNode?.conditions,
@@ -257,7 +260,7 @@ namespace NeoCompose.Runtime
                 data.id,
                 groupId,
                 trigger,
-                ResolvePrimary(data.primaryLinkedValueId, trigger),
+                ResolvePrimary(data.primaryLinkedValueId),
                 ResolveLinkedValues(data.linkedValues));
         }
 
@@ -343,10 +346,19 @@ namespace NeoCompose.Runtime
             return string.IsNullOrEmpty(lookupValueId) ? null : ResolveValue(lookupValueId!);
         }
 
-        private object? ResolvePrimary(string? primaryLinkedValueId, object? trigger)
+        private object? ResolvePrimary(string? primaryLinkedValueId)
         {
-            if (string.IsNullOrEmpty(primaryLinkedValueId)) return trigger;
+            if (string.IsNullOrEmpty(primaryLinkedValueId)) return null;
             return ResolveValue(primaryLinkedValueId!);
+        }
+
+        private object? ResolveTriggerCurrentPrimary(DialogueModel dialogue, object? trigger)
+        {
+            object? triggerPrimary = ResolvePrimary(dialogue.triggerNode?.primaryLinkedValueId);
+            if (triggerPrimary != null) return triggerPrimary;
+            object? dialoguePrimary = ResolvePrimary(dialogue.primaryLinkedValueId);
+            if (dialoguePrimary != null) return dialoguePrimary;
+            return trigger;
         }
 
         private IReadOnlyDictionary<string, object?> ResolveLinkedValues(
@@ -364,20 +376,30 @@ namespace NeoCompose.Runtime
 
         private bool EvaluateGroupConditionChain(
             string? groupId,
-            NeoDialogueContext context)
+            NeoDialogueContext context,
+            object? thisValue)
         {
-            foreach (var group in GetGroupChain(groupId))
+            object? previousPrimary = context.CurrentPrimary;
+            context.CurrentPrimary = thisValue;
+            try
             {
-                if (!NeoDialogueConditionEvaluator.EvaluateAll(
-                    client,
-                    group.conditions,
-                    context,
-                    memoryStore))
+                foreach (var group in GetGroupChain(groupId))
                 {
-                    return false;
+                    if (!NeoDialogueConditionEvaluator.EvaluateAll(
+                        client,
+                        group.conditions,
+                        context,
+                        memoryStore))
+                    {
+                        return false;
+                    }
                 }
+                return true;
             }
-            return true;
+            finally
+            {
+                context.CurrentPrimary = previousPrimary;
+            }
         }
 
         private IEnumerable<DialogueGroupModel> GetGroupChain(string? groupId)
