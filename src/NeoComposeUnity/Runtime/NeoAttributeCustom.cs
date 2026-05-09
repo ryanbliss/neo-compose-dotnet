@@ -105,6 +105,22 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        internal bool TryGetSchemaKeyForChild(
+            NeoAttribute child,
+            [NotNullWhen(true)] out string? schemaKey)
+        {
+            foreach (var pair in childAttributes)
+            {
+                if (ReferenceEquals(pair.Value, child))
+                {
+                    schemaKey = pair.Key;
+                    return true;
+                }
+            }
+            schemaKey = null;
+            return false;
+        }
+
         protected TValue? GetValueData<TValue>(string key) where TValue : AttributeValue
         {
             if (!TryGetValueData(key, out TValue? value))
@@ -189,7 +205,11 @@ namespace NeoCompose.Runtime
         public override void Dispose()
         {
             if (isDisposed) return;
-            foreach (var child in childAttributes.Values) child.Dispose();
+            foreach (var child in childAttributes.Values)
+            {
+                child.OnChanged -= HandleChildChanged;
+                child.Dispose();
+            }
             childAttributes.Clear();
             base.Dispose();
         }
@@ -220,12 +240,36 @@ namespace NeoCompose.Runtime
                     previousChildren.Remove(entry.schemaKey);
                     continue;
                 }
-                childAttributes[entry.schemaKey] = CreateChild(client, childAttribute, childValueId);
+                var child = CreateChild(client, childAttribute, childValueId);
+                child.OnChanged += HandleChildChanged;
+                childAttributes[entry.schemaKey] = child;
             }
             foreach (var child in previousChildren.Values)
             {
+                child.OnChanged -= HandleChildChanged;
                 child.Dispose();
             }
+        }
+
+        protected void HandleChildChanged(NeoAttribute child)
+        {
+            NotifyChanged(child);
+        }
+
+        protected void NotifyChildChanged(string key)
+        {
+            if (childAttributes.TryGetValue(key, out NeoAttribute? child))
+            {
+                NotifyChanged(child);
+                return;
+            }
+            NotifyChanged();
+        }
+
+        protected static bool ChildSelfNotifies(NeoAttribute child)
+        {
+            return child is not NeoAttributeDictionary
+                && child is not NeoAttributeList;
         }
 
         public IEnumerator<KeyValuePair<string, NeoAttribute>> GetEnumerator()
@@ -395,14 +439,12 @@ namespace NeoCompose.Runtime
                     value.updatedAt = nowIso;
                     client.SetSaveValue(value);
                     client.RemoveSaveValueAndDescendantsIfUnlinked(existingValueId);
-                    if (childAttributes.TryGetValue(key, out NeoAttribute? linkedOldChild))
-                    {
-                        linkedOldChild.Dispose();
-                    }
                     ReinitializeChildren();
-                    NotifyChanged();
+                    NotifyChildChanged(key);
                     return;
                 }
+                bool childWillSelfNotify = childAttributes.TryGetValue(key, out NeoAttribute? existingChild)
+                    && ChildSelfNotifies(existingChild);
                 AttributeValue next = AttributeValueFactory.Create(
                     childAttribute,
                     setValue?.value,
@@ -411,12 +453,11 @@ namespace NeoCompose.Runtime
                     nowIso);
                 client.SetSavePayloadRows(setValue?.value);
                 client.SetSaveValue(next);
-                if (childAttributes.TryGetValue(key, out NeoAttribute? oldChild))
-                {
-                    oldChild.Dispose();
-                }
                 ReinitializeChildren();
-                NotifyChanged();
+                if (!childWillSelfNotify)
+                {
+                    NotifyChildChanged(key);
+                }
                 return;
             }
 
@@ -461,7 +502,7 @@ namespace NeoCompose.Runtime
             client.SetSaveValue(value);
 
             ReinitializeChildren();
-            NotifyChanged();
+            NotifyChildChanged(key);
         }
 
         /// <summary>
@@ -484,6 +525,7 @@ namespace NeoCompose.Runtime
 
             if (childAttributes.TryGetValue(key, out NeoAttribute? child))
             {
+                child.OnChanged -= HandleChildChanged;
                 child.Dispose();
                 childAttributes.Remove(key);
             }

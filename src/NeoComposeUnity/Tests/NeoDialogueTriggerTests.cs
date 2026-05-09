@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.IO;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
@@ -15,6 +16,12 @@ namespace NeoCompose.Tests
     {
         private const string ProjectId = "dialogue-project";
         private const string Now = "1970-01-01T00:00:00.000Z";
+        private const string PackageRoot = "Packages/com.ryanbliss.neocompose/Tests";
+
+        private static string LoadFixture(string fileName)
+        {
+            return File.ReadAllText(Path.Combine(PackageRoot, fileName));
+        }
 
         [Test]
         public void TryTrigger_WithDialogueId_ReturnsDialogue()
@@ -481,7 +488,7 @@ namespace NeoCompose.Tests
                 id = "score-value",
                 createdAt = Now,
                 updatedAt = Now,
-                value = 1,
+                value = 1000,
             });
             var root = new TestDialogues(client);
             Assert.IsTrue(root.TryTrigger("dialogue-action-assign-compound", out NeoDialogue dialogue));
@@ -489,7 +496,36 @@ namespace NeoCompose.Tests
             dialogue.Start();
 
             Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
-            Assert.AreEqual(5, score!.value);
+            Assert.AreEqual(900, score!.value);
+        }
+
+        [TestCase("dialogue-ts-compiled-assign-add", 10, 13)]
+        [TestCase("dialogue-ts-compiled-assign-subtract", 10, 7)]
+        [TestCase("dialogue-ts-compiled-assign-multiply", 10, 30)]
+        [TestCase("dialogue-ts-compiled-assign-divide", 12, 4)]
+        [TestCase("dialogue-ts-compiled-assign-modulo", 10, 1)]
+        [TestCase("dialogue-ts-compiled-assign-increment", 10, 11)]
+        [TestCase("dialogue-ts-compiled-assign-decrement", 10, 9)]
+        public void ActionsNode_Assign_ExecutesTypescriptCompiledCompoundOperators(
+            string dialogueId,
+            double initialValue,
+            double expectedValue)
+        {
+            var client = new NeoLoader().Load(LoadFixture("synth-example.json"), () => "", _ => { });
+            client.SetSaveValue(new NumberAttributeValue
+            {
+                id = "v-score",
+                createdAt = Now,
+                updatedAt = Now,
+                value = initialValue,
+            });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger(dialogueId, out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.IsTrue(client.TryGetValue("v-score", out NumberAttributeValue? score));
+            Assert.AreEqual(expectedValue, score!.value, $"dialogue {dialogueId}");
         }
 
         [Test]
@@ -1264,8 +1300,15 @@ namespace NeoCompose.Tests
                                 valueId = "score-value",
                             },
                             IntTypeInfo(),
-                            NumberPointer(4),
-                            "+=")),
+                            ArithmeticPointer(
+                                ArithmeticOpKind.Subtraction,
+                                new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = "score-value",
+                                },
+                                NumberPointer(100)),
+                            "-=")),
                     ["dialogue-action-asset-write"] = ActionDialogue(
                         "dialogue-action-asset-write",
                         AssignAction(
@@ -2076,6 +2119,23 @@ namespace NeoCompose.Tests
                 {
                     typeInfo = IntTypeInfo(),
                     value = JToken.FromObject(value),
+                },
+            };
+        }
+
+        private static Pointer ArithmeticPointer(string op, params Pointer[] pointers)
+        {
+            return new OperationPointer
+            {
+                type = PointerKind.Operation,
+                operation = new ArithmeticOperation
+                {
+                    type = OperationKind.Arithmetic,
+                    arithmetic = new ArithmeticOpInfo
+                    {
+                        type = op,
+                        pointers = pointers,
+                    },
                 },
             };
         }

@@ -20,6 +20,7 @@ namespace HelloWorld.Assets.Scripts
         private HelloWorldUi CoreUI;
         private DialogueUI DialogueUI;
         private NeoDialogue activeDialogue;
+        private IDisposable bitsSubscription;
 
         protected void Awake()
         {
@@ -33,6 +34,7 @@ namespace HelloWorld.Assets.Scripts
             string json = File.ReadAllText(ProjectJsonPath);
             neo = HelloWorldNeo.Load(json, OnLoadSave, OnCommitSave);
             neo.Save.Inventory.OnChanged += OnInventoryChanged;
+            bitsSubscription = neo.Save.OnChanged(Save.Fields.Bits, OnBitsChanged);
             // reference lookup to one of the "Hello World" outputs in `neo.Assets.LookupContainer.LookupList`
             Debug.Log(neo.Assets.LookupContainer.Lookup?.Name ?? "Lookup not selected");
             TriggerDialogue();
@@ -48,9 +50,14 @@ namespace HelloWorld.Assets.Scripts
             neo.Save.Visited.Add(new PlanetVisit(planet, CurrentUnixTime));
         }
 
-        public void OnInventoryChanged()
+        protected void OnInventoryChanged()
         {
             Debug.Log("Inventory changed");
+        }
+        
+        protected void OnBitsChanged(int bits)
+        {
+            Debug.Log($"Bits changed {bits}");
         }
 
         public void TriggerDialogue()
@@ -152,6 +159,7 @@ namespace HelloWorld.Assets.Scripts
             ClearDialogue();
             DialogueUI?.Dispose();
             CoreUI?.Dispose();
+            bitsSubscription?.Dispose();
         }
 
         private void ClearDialogue()

@@ -86,8 +86,13 @@ namespace NeoCompose.Runtime
 
         protected void NotifyChanged()
         {
+            NotifyChanged(this);
+        }
+
+        protected void NotifyChanged(NeoAttribute changed)
+        {
             if (isDisposed) return;
-            OnChanged?.Invoke(this);
+            OnChanged?.Invoke(changed);
         }
 
         /// <summary>

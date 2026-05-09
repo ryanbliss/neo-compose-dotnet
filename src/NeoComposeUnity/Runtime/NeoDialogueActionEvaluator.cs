@@ -97,23 +97,12 @@ namespace NeoCompose.Runtime
             object? rhs = Eval(instruction.pointer, scope, ctx);
             if (instruction.target.pointer is VariablePointer variablePointer)
             {
-                object? current = scope.TryGetValue(variablePointer.variableId, out var value)
-                    ? value
-                    : null;
-                scope[variablePointer.variableId] = ApplyAssignment(
-                    current,
-                    rhs,
-                    instruction.operatorValue);
+                scope[variablePointer.variableId] = rhs;
                 return;
             }
 
             var target = ResolveTarget(client, instruction.target, scope, ctx);
-            object? currentValue = target.ReadCurrentValue(client, ctx);
-            object? nextValue = ApplyAssignment(
-                currentValue,
-                rhs,
-                instruction.operatorValue);
-            target.Write(client, nextValue);
+            target.Write(client, rhs);
         }
 
         private static void ExecuteCollectionCall(

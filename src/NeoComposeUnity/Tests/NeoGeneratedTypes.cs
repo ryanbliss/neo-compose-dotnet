@@ -267,6 +267,34 @@ namespace Assets.Scripts.Neo
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Health"));
             }
         }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Name = new("Name");
+
+            public static readonly NeoField<int?> Health = new("Health");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Health] = () => Health,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
     }
 
     public partial class Hero : ReadOnlyHero
@@ -348,6 +376,39 @@ namespace Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(savedNode, "Health", NeoGeneratedTypesSupport.Value(value));
             }
         }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Name = new("Name");
+
+            public static readonly NeoField<int?> Health = new("Health");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Health] = () => Health,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
     }
     public partial class ReadOnlyRoot : NeoGeneratedCustomValue
     {
@@ -383,12 +444,54 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        public int Score
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Score")) ?? throw new InvalidOperationException("Required int 'Score' has no value.");
+            }
+        }
+
         public ReadOnlyNeoMemory NeoMemory
         {
             get
             {
                 return ReadOnlyNeoMemory.Create(client, node.Get<NeoAttributeCustom>("NeoMemory"));
             }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoReadOnlyList<ReadOnlyHero>> Heroes = new("Heroes");
+
+            public static readonly NeoField<string> Manifest = new("Manifest");
+
+            public static readonly NeoField<int> Score = new("Score");
+
+            public static readonly NeoField<ReadOnlyNeoMemory> NeoMemory = new("NeoMemory");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Heroes] = () => Heroes,
+                [Fields.Manifest] = () => Manifest,
+                [Fields.Score] = () => Score,
+                [Fields.NeoMemory] = () => NeoMemory,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
         }
     }
 
@@ -401,12 +504,12 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Root(IEnumerable<Hero>? Heroes = null, NeoMemory? NeoMemory = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, NeoMemory))
+        public Root(IEnumerable<Hero>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Score, NeoMemory))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(IEnumerable<Hero>? Heroes = null, NeoMemory? NeoMemory = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(IEnumerable<Hero>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -427,6 +530,18 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = HeroesIds.ToArray(),
+                });
+            }
+            if (Score is not null)
+            {
+                var ScoreValueId = Guid.NewGuid().ToString();
+                value["Score"] = ScoreValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = ScoreValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Score.HasValue ? Score.Value : (double?)null,
                 });
             }
             if (NeoMemory is not null)
@@ -463,6 +578,18 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        public new int Score
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Score")) ?? throw new InvalidOperationException("Required int 'Score' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Score", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
         public new NeoMemory NeoMemory
         {
             get
@@ -473,6 +600,45 @@ namespace Assets.Scripts.Neo
             {
                 NeoGeneratedTypesSupport.SetValue(savedNode, "NeoMemory", NeoGeneratedTypesSupport.ValueReference(value));
             }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoList<Hero>> Heroes = new("Heroes");
+
+            public static readonly NeoField<string> Manifest = new("Manifest");
+
+            public static readonly NeoField<int> Score = new("Score");
+
+            public static readonly NeoField<NeoMemory> NeoMemory = new("NeoMemory");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Heroes] = () => Heroes,
+                [Fields.Manifest] = () => Manifest,
+                [Fields.Score] = () => Score,
+                [Fields.NeoMemory] = () => NeoMemory,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
     public partial class ReadOnlyBase : NeoGeneratedCustomValue
@@ -499,6 +665,31 @@ namespace Assets.Scripts.Neo
             {
                 return node.Get<NeoAttributeString>("Name").value?.value;
             }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Name = new("Name");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
         }
     }
 
@@ -559,6 +750,36 @@ namespace Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Name = new("Name");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
     }
     public partial class ReadOnlyDerived : ReadOnlyBase
     {
@@ -582,6 +803,31 @@ namespace Assets.Scripts.Neo
             {
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Health"));
             }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int?> Health = new("Health");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Health] = () => Health,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
         }
     }
 
@@ -662,6 +908,39 @@ namespace Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(savedNode, "Health", NeoGeneratedTypesSupport.Value(value));
             }
         }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Name = new("Name");
+
+            public static readonly NeoField<int?> Health = new("Health");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Health] = () => Health,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
     }
     public partial class ReadOnlyOverride : ReadOnlyBase
     {
@@ -685,6 +964,31 @@ namespace Assets.Scripts.Neo
             {
                 return node.Get<NeoAttributeString>("Name").value?.value;
             }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Name = new("Name");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
         }
     }
 
@@ -741,6 +1045,36 @@ namespace Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Name = new("Name");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
     }
     public partial class ReadOnlyNeoChoiceLog : NeoGeneratedCustomValue
     {
@@ -764,6 +1098,31 @@ namespace Assets.Scripts.Neo
             {
                 return node.Get<NeoAttributeString>("ChoiceId").value?.value ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
             }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> ChoiceId = new("ChoiceId");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.ChoiceId] = () => ChoiceId,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
         }
     }
 
@@ -819,6 +1178,36 @@ namespace Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(savedNode, "ChoiceId", NeoGeneratedTypesSupport.Value(value));
             }
         }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> ChoiceId = new("ChoiceId");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.ChoiceId] = () => ChoiceId,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
     }
     public partial class ReadOnlyNeoTextNodeMemory : NeoGeneratedCustomValue
     {
@@ -866,6 +1255,40 @@ namespace Assets.Scripts.Neo
             {
                 return new NeoReadOnlyList<ReadOnlyNeoChoiceLog>(client, node.Get<NeoAttributeList>("ChoiceHistory"), (client, child) => ReadOnlyNeoChoiceLog.Create(client, (NeoAttributeCustom)child));
             }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> VisitCount = new("VisitCount");
+
+            public static readonly NeoField<string?> LastVisitedAt = new("LastVisitedAt");
+
+            public static readonly NeoField<string?> MostRecentChoiceId = new("MostRecentChoiceId");
+
+            public static readonly NeoField<NeoReadOnlyList<ReadOnlyNeoChoiceLog>> ChoiceHistory = new("ChoiceHistory");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.VisitCount] = () => VisitCount,
+                [Fields.LastVisitedAt] = () => LastVisitedAt,
+                [Fields.MostRecentChoiceId] = () => MostRecentChoiceId,
+                [Fields.ChoiceHistory] = () => ChoiceHistory,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
         }
     }
 
@@ -997,6 +1420,45 @@ namespace Assets.Scripts.Neo
                 return new NeoList<NeoChoiceLog>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("ChoiceHistory"), (client, child) => NeoChoiceLog.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> VisitCount = new("VisitCount");
+
+            public static readonly NeoField<string?> LastVisitedAt = new("LastVisitedAt");
+
+            public static readonly NeoField<string?> MostRecentChoiceId = new("MostRecentChoiceId");
+
+            public static readonly NeoField<NeoList<NeoChoiceLog>> ChoiceHistory = new("ChoiceHistory");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.VisitCount] = () => VisitCount,
+                [Fields.LastVisitedAt] = () => LastVisitedAt,
+                [Fields.MostRecentChoiceId] = () => MostRecentChoiceId,
+                [Fields.ChoiceHistory] = () => ChoiceHistory,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
     }
     public partial class ReadOnlyNeoDialogueMemory : NeoGeneratedCustomValue
     {
@@ -1036,6 +1498,37 @@ namespace Assets.Scripts.Neo
             {
                 return new NeoReadOnlyDictionary<ReadOnlyNeoTextNodeMemory>(client, node.Get<NeoAttributeDictionary>("TextNodeMemories"), (client, child) => ReadOnlyNeoTextNodeMemory.Create(client, (NeoAttributeCustom)child));
             }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> VisitCount = new("VisitCount");
+
+            public static readonly NeoField<string?> LastVisitedAt = new("LastVisitedAt");
+
+            public static readonly NeoField<NeoReadOnlyDictionary<ReadOnlyNeoTextNodeMemory>> TextNodeMemories = new("TextNodeMemories");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.VisitCount] = () => VisitCount,
+                [Fields.LastVisitedAt] = () => LastVisitedAt,
+                [Fields.TextNodeMemories] = () => TextNodeMemories,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
         }
     }
 
@@ -1143,6 +1636,42 @@ namespace Assets.Scripts.Neo
                 return new NeoDictionary<NeoTextNodeMemory>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("TextNodeMemories"), (client, child) => NeoTextNodeMemory.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<int> VisitCount = new("VisitCount");
+
+            public static readonly NeoField<string?> LastVisitedAt = new("LastVisitedAt");
+
+            public static readonly NeoField<NeoDictionary<NeoTextNodeMemory>> TextNodeMemories = new("TextNodeMemories");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.VisitCount] = () => VisitCount,
+                [Fields.LastVisitedAt] = () => LastVisitedAt,
+                [Fields.TextNodeMemories] = () => TextNodeMemories,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
     }
     public partial class ReadOnlyNeoMemory : NeoGeneratedCustomValue
     {
@@ -1166,6 +1695,31 @@ namespace Assets.Scripts.Neo
             {
                 return new NeoReadOnlyDictionary<ReadOnlyNeoDialogueMemory>(client, node.Get<NeoAttributeDictionary>("DialogueMemories"), (client, child) => ReadOnlyNeoDialogueMemory.Create(client, (NeoAttributeCustom)child));
             }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoReadOnlyDictionary<ReadOnlyNeoDialogueMemory>> DialogueMemories = new("DialogueMemories");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.DialogueMemories] = () => DialogueMemories,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
         }
     }
 
@@ -1224,6 +1778,36 @@ namespace Assets.Scripts.Neo
             {
                 return new NeoDictionary<NeoDialogueMemory>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("DialogueMemories"), (client, child) => NeoDialogueMemory.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoDictionary<NeoDialogueMemory>> DialogueMemories = new("DialogueMemories");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.DialogueMemories] = () => DialogueMemories,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
 }

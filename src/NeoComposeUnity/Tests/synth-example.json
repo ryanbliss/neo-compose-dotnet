@@ -11,7 +11,7 @@
   },
   "attributes": {
     "root-assets": {
-      "_id": "e090970a-7c7e-4628-8df2-053af2c929e6",
+      "_id": "902858df-2c5b-4809-9c67-6b882d4a7002",
       "id": "root-assets",
       "name": "Assets",
       "type": 7,
@@ -23,7 +23,7 @@
       "customTypeId": "type-root"
     },
     "root-save": {
-      "_id": "146c75c9-e13c-486a-9552-e3233bb46063",
+      "_id": "8d5aac39-c686-4691-87ef-604f58a9bc02",
       "id": "root-save",
       "name": "Save",
       "type": 7,
@@ -32,10 +32,11 @@
       "projectId": "test-project",
       "createdAt": "1970-01-01T00:00:00.000Z",
       "updatedAt": "1970-01-01T00:00:00.000Z",
-      "customTypeId": "type-root"
+      "customTypeId": "type-root",
+      "valueId": "v-root-save"
     },
     "attr-name": {
-      "_id": "06fb3f6b-7e3e-4e21-b328-da378c6150fb",
+      "_id": "af17f3d4-43fb-4b49-80b7-8eed794d92da",
       "id": "attr-name",
       "name": "Name",
       "type": 3,
@@ -49,7 +50,7 @@
       }
     },
     "attr-altname": {
-      "_id": "2e6daacd-b7ac-422b-ba06-e5aefe0b1ad2",
+      "_id": "2f010c46-7d38-401b-9f14-5bf32ffd5602",
       "id": "attr-altname",
       "name": "AltName",
       "type": 3,
@@ -63,7 +64,7 @@
       }
     },
     "attr-health": {
-      "_id": "1d40a852-6b0c-4269-b767-07193826c565",
+      "_id": "d01f8ab6-0317-475c-b514-f594d0d5838b",
       "id": "attr-health",
       "name": "Health",
       "type": 2,
@@ -76,8 +77,23 @@
         "value": 100
       }
     },
+    "attr-root-score": {
+      "_id": "62ea5e5b-845a-4673-9722-0b77b2a8441f",
+      "id": "attr-root-score",
+      "name": "Score",
+      "type": 2,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "valueId": "v-score",
+      "defaultValue": {
+        "value": 10
+      }
+    },
     "attr-speed": {
-      "_id": "8607972c-44fc-46f4-80df-33cc6a72a1e7",
+      "_id": "ad8ecdda-f08c-4981-baa1-72cd90174abf",
       "id": "attr-speed",
       "name": "Speed",
       "type": 4,
@@ -91,7 +107,7 @@
       }
     },
     "attr-isalive": {
-      "_id": "e2408ffd-60b0-4d01-8ca1-6c134266150f",
+      "_id": "391f8f82-fc9f-47bc-a86d-05b04d67421a",
       "id": "attr-isalive",
       "name": "IsAlive",
       "type": 1,
@@ -105,7 +121,7 @@
       }
     },
     "attr-hero": {
-      "_id": "820f4248-eb0b-42c3-ba4b-66a792e8fffa",
+      "_id": "2b25f54e-a750-4b26-8dd4-22dba88acec9",
       "id": "attr-hero",
       "name": "Hero",
       "type": 7,
@@ -123,7 +139,7 @@
       }
     },
     "attr-inventory": {
-      "_id": "6d035b0c-96ec-4cf8-aa7c-05b3efae692f",
+      "_id": "599a7bfa-fdc8-4595-a6ae-2e3f9af50390",
       "id": "attr-inventory",
       "name": "Inventory",
       "type": 5,
@@ -141,7 +157,7 @@
       }
     },
     "attr-tags": {
-      "_id": "4f69cb69-49b7-43ab-af72-28b746532fa9",
+      "_id": "9bf8b789-9ac9-481b-b35f-20926bc82354",
       "id": "attr-tags",
       "name": "Tags",
       "type": 6,
@@ -159,7 +175,7 @@
       }
     },
     "attr-heroes": {
-      "_id": "003f2310-614e-4814-a8cd-a8890ed67fae",
+      "_id": "c9ef04d1-6da3-4e4f-92c3-f6168cb4196f",
       "id": "attr-heroes",
       "name": "Heroes",
       "type": 6,
@@ -171,7 +187,7 @@
       "entryAttributeId": "attr-hero"
     },
     "attr-element": {
-      "_id": "2c2de7c4-634d-4e2c-b99f-5593691f1cc7",
+      "_id": "11c64feb-ec51-46b4-91cf-d75fe63b19f5",
       "id": "attr-element",
       "name": "Element",
       "type": 8,
@@ -184,7 +200,7 @@
       "multiselect": false
     },
     "attr-choice": {
-      "_id": "3375bf67-a859-4d70-86d8-fc947cf38a45",
+      "_id": "d52c5af7-6ac4-4dda-b4bc-1ebb274658fe",
       "id": "attr-choice",
       "name": "Choice",
       "type": 9,
@@ -197,7 +213,7 @@
       "multiselect": true
     },
     "attr-score": {
-      "_id": "48c4ffd4-e808-4eb6-a0bc-f46dc126bc8e",
+      "_id": "112d6696-9dcb-4750-9d74-4c549036ffb0",
       "id": "attr-score",
       "name": "Score",
       "type": 10,
@@ -522,7 +538,7 @@
       }
     },
     "attr-manifest": {
-      "_id": "dfb342e0-86c2-4fda-a80e-ad088fd91794",
+      "_id": "7c7dea0c-a5c3-4826-91f0-7f533a02f952",
       "id": "attr-manifest",
       "name": "Manifest",
       "type": 10,
@@ -596,7 +612,7 @@
       }
     },
     "attr-active": {
-      "_id": "04639283-d5b5-4ffe-92c6-bb2536a074c3",
+      "_id": "733d5bc3-9968-49c6-ab2d-291b5df8db71",
       "id": "attr-active",
       "name": "Active",
       "type": 10,
@@ -636,7 +652,7 @@
       }
     },
     "attr-base": {
-      "_id": "aa6372ec-cde0-43b4-902e-345c319d8f9e",
+      "_id": "1d0dc9bc-85d9-4584-bd4c-f90bd2a93089",
       "id": "attr-base",
       "name": "BaseRecord",
       "type": 7,
@@ -648,7 +664,7 @@
       "customTypeId": "type-base"
     },
     "attr-derived": {
-      "_id": "09ef32e8-c043-441d-86ff-bbaedba25bae",
+      "_id": "4ccb989f-f82f-49f1-940d-9c3f63fddc8f",
       "id": "attr-derived",
       "name": "DerivedRecord",
       "type": 7,
@@ -660,7 +676,7 @@
       "customTypeId": "type-derived"
     },
     "attr-override": {
-      "_id": "d56fe554-1166-4dc4-afb1-3d20c6d4ad21",
+      "_id": "8d32500e-8286-41a9-8b23-a0e177cabc45",
       "id": "attr-override",
       "name": "OverrideRecord",
       "type": 7,
@@ -672,7 +688,7 @@
       "customTypeId": "type-override"
     },
     "attr-choice-id": {
-      "_id": "7d441724-4282-4dc6-b2b3-9e9eec5ac0a3",
+      "_id": "49426175-fd9e-4cae-bccf-3ff945eb173e",
       "id": "attr-choice-id",
       "name": "Choice ID",
       "type": 3,
@@ -683,7 +699,7 @@
       "updatedAt": "1970-01-01T00:00:00.000Z"
     },
     "attr-choice-log-entry": {
-      "_id": "a8bc25f9-fb76-4651-a073-d2c8d2fbabe6",
+      "_id": "70cae64f-6496-4a36-8cd8-567b0c4dbb73",
       "id": "attr-choice-log-entry",
       "name": "Choice Log Entry",
       "type": 7,
@@ -698,7 +714,7 @@
       }
     },
     "attr-choice-history": {
-      "_id": "b8f30e28-0e84-4d39-a537-3f8ad55da6be",
+      "_id": "96edbd0e-1c86-4021-8896-073c51c4b92e",
       "id": "attr-choice-history",
       "name": "Choice History",
       "type": 6,
@@ -713,7 +729,7 @@
       }
     },
     "attr-visit-count": {
-      "_id": "31d31294-815a-40c7-8191-776eef97ee3e",
+      "_id": "d60bc2a3-779d-4372-9008-eae592d49196",
       "id": "attr-visit-count",
       "name": "Visit Count",
       "type": 2,
@@ -727,7 +743,7 @@
       }
     },
     "attr-last-visited-at": {
-      "_id": "2286bc19-b751-4d1b-8819-b3f6082a2d92",
+      "_id": "426e2bb9-6c3f-4f0f-a398-8c78c2a0f608",
       "id": "attr-last-visited-at",
       "name": "Last Visited At",
       "type": 3,
@@ -738,7 +754,7 @@
       "updatedAt": "1970-01-01T00:00:00.000Z"
     },
     "attr-most-recent-choice-id": {
-      "_id": "500f28b9-0f09-4451-b837-860655b195f9",
+      "_id": "8b60ae9b-ec27-4db8-95d6-6829c25fa269",
       "id": "attr-most-recent-choice-id",
       "name": "Most Recent Choice ID",
       "type": 3,
@@ -749,7 +765,7 @@
       "updatedAt": "1970-01-01T00:00:00.000Z"
     },
     "attr-text-node-memory-entry": {
-      "_id": "3c18ce89-1c12-4d64-a7f0-3cda774b72a0",
+      "_id": "938a2fb7-2562-470e-8b8e-d3f128c46f67",
       "id": "attr-text-node-memory-entry",
       "name": "Text Node Memory Entry",
       "type": 7,
@@ -764,7 +780,7 @@
       }
     },
     "attr-text-node-memories": {
-      "_id": "9fb23304-ea31-4921-83fd-752c01b50be7",
+      "_id": "15519c0b-a877-4dc8-a4f5-4f2f512a52bf",
       "id": "attr-text-node-memories",
       "name": "Text Node Memories",
       "type": 5,
@@ -779,7 +795,7 @@
       }
     },
     "attr-dialogue-memory-entry": {
-      "_id": "bbcdea18-2696-4c79-8d4e-bdadb0503aba",
+      "_id": "866f2bd8-2b7c-4117-a2b2-b8b98362e339",
       "id": "attr-dialogue-memory-entry",
       "name": "Dialogue Memory Entry",
       "type": 7,
@@ -794,7 +810,7 @@
       }
     },
     "attr-dialogue-memories": {
-      "_id": "182a6604-6248-428b-9f10-10b56c587217",
+      "_id": "a508845c-fdc4-4992-81d4-c1bcd90c2a2e",
       "id": "attr-dialogue-memories",
       "name": "Dialogue Memories",
       "type": 5,
@@ -809,7 +825,7 @@
       }
     },
     "attr-neo-memory": {
-      "_id": "2a9c4061-4bb4-494a-b406-061ea28a31fc",
+      "_id": "159dabbf-ef7b-40c2-9c82-8701afaadde7",
       "id": "attr-neo-memory",
       "name": "NeoMemory",
       "type": 7,
@@ -864,6 +880,7 @@
       "schema": {
         "Heroes": "attr-heroes",
         "Manifest": "attr-manifest",
+        "Score": "attr-root-score",
         "NeoMemory": "attr-neo-memory"
       },
       "hiddenInAttributeSelector": false,
@@ -1004,6 +1021,14 @@
       "createdAt": "1970-01-01T00:00:00.000Z",
       "updatedAt": "1970-01-01T00:00:00.000Z"
     },
+    "v-score": {
+      "_id": "v-score",
+      "id": "v-score",
+      "projectId": "p-1",
+      "value": 10,
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
     "v-list": {
       "_id": "v-list",
       "id": "v-list",
@@ -1034,6 +1059,17 @@
       "value": null,
       "createdAt": "1970-01-01T00:00:00.000Z",
       "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "v-root-save": {
+      "_id": "v-root-save",
+      "id": "v-root-save",
+      "projectId": "p-1",
+      "value": {
+        "Score": "v-score"
+      },
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "typeId": "type-root"
     }
   },
   "dialogues": {
@@ -1106,6 +1142,1427 @@
               }
             ]
           }
+        }
+      },
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "dialogue-ts-compiled-assign-add": {
+      "_id": "dialogue-ts-compiled-assign-add",
+      "id": "dialogue-ts-compiled-assign-add",
+      "projectId": "test-project",
+      "name": "dialogue-ts-compiled-assign-add",
+      "description": "Synthetic TypeScript-compiled action dialogue.",
+      "primaryLinkedValueId": null,
+      "linkedValues": [],
+      "settings": {
+        "defaultSaveOptionChoices": true
+      },
+      "triggerNode": {
+        "id": "dialogue-ts-compiled-assign-add-trigger",
+        "type": 0,
+        "layout": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 120,
+          "isOpen": true
+        },
+        "linkedValues": [],
+        "primaryLinkedValueId": null,
+        "conditions": [],
+        "dialogueGroupSettings": null,
+        "occurrenceLimitSettings": null,
+        "toNodeId": "dialogue-ts-compiled-assign-add-actions"
+      },
+      "nodes": {
+        "dialogue-ts-compiled-assign-add-actions": {
+          "id": "dialogue-ts-compiled-assign-add-actions",
+          "type": 2,
+          "name": "Compiled action",
+          "layout": {
+            "x": 240,
+            "y": 0,
+            "width": 240,
+            "height": 160,
+            "isOpen": true
+          },
+          "linkedValues": [],
+          "primaryLinkedValueId": null,
+          "actions": [
+            {
+              "id": "dialogue-ts-compiled-assign-add-action",
+              "type": 0,
+              "logic": {
+                "type": 1,
+                "code": "root.Save.Score += 3;",
+                "action": {
+                  "parameters": [
+                    {
+                      "id": "__this__",
+                      "typeInfo": {
+                        "type": 0,
+                        "required": true
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 0,
+                            "required": true
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__root__",
+                      "typeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "typeId": "__root__"
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                          },
+                          "value": null
+                        }
+                      }
+                    }
+                  ],
+                  "instructions": [
+                    {
+                      "type": "assign",
+                      "target": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__root__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Save"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Score"
+                              }
+                            }
+                          }
+                        },
+                        "typeInfo": {
+                          "type": 2,
+                          "required": true
+                        },
+                        "writability": "save"
+                      },
+                      "operator": "+=",
+                      "pointer": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "arithmetic",
+                          "arithmetic": {
+                            "type": "+",
+                            "pointers": [
+                              {
+                                "type": "keyOf",
+                                "keyOf": {
+                                  "pointer": {
+                                    "type": "keyOf",
+                                    "keyOf": {
+                                      "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__root__"
+                                      },
+                                      "key": {
+                                        "type": "value",
+                                        "value": {
+                                          "typeInfo": {
+                                            "type": 3,
+                                            "required": true
+                                          },
+                                          "value": "Save"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "key": {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 3,
+                                        "required": true
+                                      },
+                                      "value": "Score"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 2,
+                                    "required": true
+                                  },
+                                  "value": 3
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "typeInfo": {
+                    "type": 0,
+                    "required": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "dialogue-ts-compiled-assign-subtract": {
+      "_id": "dialogue-ts-compiled-assign-subtract",
+      "id": "dialogue-ts-compiled-assign-subtract",
+      "projectId": "test-project",
+      "name": "dialogue-ts-compiled-assign-subtract",
+      "description": "Synthetic TypeScript-compiled action dialogue.",
+      "primaryLinkedValueId": null,
+      "linkedValues": [],
+      "settings": {
+        "defaultSaveOptionChoices": true
+      },
+      "triggerNode": {
+        "id": "dialogue-ts-compiled-assign-subtract-trigger",
+        "type": 0,
+        "layout": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 120,
+          "isOpen": true
+        },
+        "linkedValues": [],
+        "primaryLinkedValueId": null,
+        "conditions": [],
+        "dialogueGroupSettings": null,
+        "occurrenceLimitSettings": null,
+        "toNodeId": "dialogue-ts-compiled-assign-subtract-actions"
+      },
+      "nodes": {
+        "dialogue-ts-compiled-assign-subtract-actions": {
+          "id": "dialogue-ts-compiled-assign-subtract-actions",
+          "type": 2,
+          "name": "Compiled action",
+          "layout": {
+            "x": 240,
+            "y": 0,
+            "width": 240,
+            "height": 160,
+            "isOpen": true
+          },
+          "linkedValues": [],
+          "primaryLinkedValueId": null,
+          "actions": [
+            {
+              "id": "dialogue-ts-compiled-assign-subtract-action",
+              "type": 0,
+              "logic": {
+                "type": 1,
+                "code": "root.Save.Score -= 3;",
+                "action": {
+                  "parameters": [
+                    {
+                      "id": "__this__",
+                      "typeInfo": {
+                        "type": 0,
+                        "required": true
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 0,
+                            "required": true
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__root__",
+                      "typeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "typeId": "__root__"
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                          },
+                          "value": null
+                        }
+                      }
+                    }
+                  ],
+                  "instructions": [
+                    {
+                      "type": "assign",
+                      "target": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__root__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Save"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Score"
+                              }
+                            }
+                          }
+                        },
+                        "typeInfo": {
+                          "type": 2,
+                          "required": true
+                        },
+                        "writability": "save"
+                      },
+                      "operator": "-=",
+                      "pointer": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "arithmetic",
+                          "arithmetic": {
+                            "type": "-",
+                            "pointers": [
+                              {
+                                "type": "keyOf",
+                                "keyOf": {
+                                  "pointer": {
+                                    "type": "keyOf",
+                                    "keyOf": {
+                                      "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__root__"
+                                      },
+                                      "key": {
+                                        "type": "value",
+                                        "value": {
+                                          "typeInfo": {
+                                            "type": 3,
+                                            "required": true
+                                          },
+                                          "value": "Save"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "key": {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 3,
+                                        "required": true
+                                      },
+                                      "value": "Score"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 2,
+                                    "required": true
+                                  },
+                                  "value": 3
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "typeInfo": {
+                    "type": 0,
+                    "required": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "dialogue-ts-compiled-assign-multiply": {
+      "_id": "dialogue-ts-compiled-assign-multiply",
+      "id": "dialogue-ts-compiled-assign-multiply",
+      "projectId": "test-project",
+      "name": "dialogue-ts-compiled-assign-multiply",
+      "description": "Synthetic TypeScript-compiled action dialogue.",
+      "primaryLinkedValueId": null,
+      "linkedValues": [],
+      "settings": {
+        "defaultSaveOptionChoices": true
+      },
+      "triggerNode": {
+        "id": "dialogue-ts-compiled-assign-multiply-trigger",
+        "type": 0,
+        "layout": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 120,
+          "isOpen": true
+        },
+        "linkedValues": [],
+        "primaryLinkedValueId": null,
+        "conditions": [],
+        "dialogueGroupSettings": null,
+        "occurrenceLimitSettings": null,
+        "toNodeId": "dialogue-ts-compiled-assign-multiply-actions"
+      },
+      "nodes": {
+        "dialogue-ts-compiled-assign-multiply-actions": {
+          "id": "dialogue-ts-compiled-assign-multiply-actions",
+          "type": 2,
+          "name": "Compiled action",
+          "layout": {
+            "x": 240,
+            "y": 0,
+            "width": 240,
+            "height": 160,
+            "isOpen": true
+          },
+          "linkedValues": [],
+          "primaryLinkedValueId": null,
+          "actions": [
+            {
+              "id": "dialogue-ts-compiled-assign-multiply-action",
+              "type": 0,
+              "logic": {
+                "type": 1,
+                "code": "root.Save.Score *= 3;",
+                "action": {
+                  "parameters": [
+                    {
+                      "id": "__this__",
+                      "typeInfo": {
+                        "type": 0,
+                        "required": true
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 0,
+                            "required": true
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__root__",
+                      "typeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "typeId": "__root__"
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                          },
+                          "value": null
+                        }
+                      }
+                    }
+                  ],
+                  "instructions": [
+                    {
+                      "type": "assign",
+                      "target": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__root__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Save"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Score"
+                              }
+                            }
+                          }
+                        },
+                        "typeInfo": {
+                          "type": 2,
+                          "required": true
+                        },
+                        "writability": "save"
+                      },
+                      "operator": "*=",
+                      "pointer": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "arithmetic",
+                          "arithmetic": {
+                            "type": "*",
+                            "pointers": [
+                              {
+                                "type": "keyOf",
+                                "keyOf": {
+                                  "pointer": {
+                                    "type": "keyOf",
+                                    "keyOf": {
+                                      "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__root__"
+                                      },
+                                      "key": {
+                                        "type": "value",
+                                        "value": {
+                                          "typeInfo": {
+                                            "type": 3,
+                                            "required": true
+                                          },
+                                          "value": "Save"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "key": {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 3,
+                                        "required": true
+                                      },
+                                      "value": "Score"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 2,
+                                    "required": true
+                                  },
+                                  "value": 3
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "typeInfo": {
+                    "type": 0,
+                    "required": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "dialogue-ts-compiled-assign-divide": {
+      "_id": "dialogue-ts-compiled-assign-divide",
+      "id": "dialogue-ts-compiled-assign-divide",
+      "projectId": "test-project",
+      "name": "dialogue-ts-compiled-assign-divide",
+      "description": "Synthetic TypeScript-compiled action dialogue.",
+      "primaryLinkedValueId": null,
+      "linkedValues": [],
+      "settings": {
+        "defaultSaveOptionChoices": true
+      },
+      "triggerNode": {
+        "id": "dialogue-ts-compiled-assign-divide-trigger",
+        "type": 0,
+        "layout": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 120,
+          "isOpen": true
+        },
+        "linkedValues": [],
+        "primaryLinkedValueId": null,
+        "conditions": [],
+        "dialogueGroupSettings": null,
+        "occurrenceLimitSettings": null,
+        "toNodeId": "dialogue-ts-compiled-assign-divide-actions"
+      },
+      "nodes": {
+        "dialogue-ts-compiled-assign-divide-actions": {
+          "id": "dialogue-ts-compiled-assign-divide-actions",
+          "type": 2,
+          "name": "Compiled action",
+          "layout": {
+            "x": 240,
+            "y": 0,
+            "width": 240,
+            "height": 160,
+            "isOpen": true
+          },
+          "linkedValues": [],
+          "primaryLinkedValueId": null,
+          "actions": [
+            {
+              "id": "dialogue-ts-compiled-assign-divide-action",
+              "type": 0,
+              "logic": {
+                "type": 1,
+                "code": "root.Save.Score /= 3;",
+                "action": {
+                  "parameters": [
+                    {
+                      "id": "__this__",
+                      "typeInfo": {
+                        "type": 0,
+                        "required": true
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 0,
+                            "required": true
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__root__",
+                      "typeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "typeId": "__root__"
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                          },
+                          "value": null
+                        }
+                      }
+                    }
+                  ],
+                  "instructions": [
+                    {
+                      "type": "assign",
+                      "target": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__root__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Save"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Score"
+                              }
+                            }
+                          }
+                        },
+                        "typeInfo": {
+                          "type": 2,
+                          "required": true
+                        },
+                        "writability": "save"
+                      },
+                      "operator": "/=",
+                      "pointer": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "arithmetic",
+                          "arithmetic": {
+                            "type": "/",
+                            "pointers": [
+                              {
+                                "type": "keyOf",
+                                "keyOf": {
+                                  "pointer": {
+                                    "type": "keyOf",
+                                    "keyOf": {
+                                      "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__root__"
+                                      },
+                                      "key": {
+                                        "type": "value",
+                                        "value": {
+                                          "typeInfo": {
+                                            "type": 3,
+                                            "required": true
+                                          },
+                                          "value": "Save"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "key": {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 3,
+                                        "required": true
+                                      },
+                                      "value": "Score"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 2,
+                                    "required": true
+                                  },
+                                  "value": 3
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "typeInfo": {
+                    "type": 0,
+                    "required": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "dialogue-ts-compiled-assign-modulo": {
+      "_id": "dialogue-ts-compiled-assign-modulo",
+      "id": "dialogue-ts-compiled-assign-modulo",
+      "projectId": "test-project",
+      "name": "dialogue-ts-compiled-assign-modulo",
+      "description": "Synthetic TypeScript-compiled action dialogue.",
+      "primaryLinkedValueId": null,
+      "linkedValues": [],
+      "settings": {
+        "defaultSaveOptionChoices": true
+      },
+      "triggerNode": {
+        "id": "dialogue-ts-compiled-assign-modulo-trigger",
+        "type": 0,
+        "layout": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 120,
+          "isOpen": true
+        },
+        "linkedValues": [],
+        "primaryLinkedValueId": null,
+        "conditions": [],
+        "dialogueGroupSettings": null,
+        "occurrenceLimitSettings": null,
+        "toNodeId": "dialogue-ts-compiled-assign-modulo-actions"
+      },
+      "nodes": {
+        "dialogue-ts-compiled-assign-modulo-actions": {
+          "id": "dialogue-ts-compiled-assign-modulo-actions",
+          "type": 2,
+          "name": "Compiled action",
+          "layout": {
+            "x": 240,
+            "y": 0,
+            "width": 240,
+            "height": 160,
+            "isOpen": true
+          },
+          "linkedValues": [],
+          "primaryLinkedValueId": null,
+          "actions": [
+            {
+              "id": "dialogue-ts-compiled-assign-modulo-action",
+              "type": 0,
+              "logic": {
+                "type": 1,
+                "code": "root.Save.Score %= 3;",
+                "action": {
+                  "parameters": [
+                    {
+                      "id": "__this__",
+                      "typeInfo": {
+                        "type": 0,
+                        "required": true
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 0,
+                            "required": true
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__root__",
+                      "typeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "typeId": "__root__"
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                          },
+                          "value": null
+                        }
+                      }
+                    }
+                  ],
+                  "instructions": [
+                    {
+                      "type": "assign",
+                      "target": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__root__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Save"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Score"
+                              }
+                            }
+                          }
+                        },
+                        "typeInfo": {
+                          "type": 2,
+                          "required": true
+                        },
+                        "writability": "save"
+                      },
+                      "operator": "%=",
+                      "pointer": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "arithmetic",
+                          "arithmetic": {
+                            "type": "%",
+                            "pointers": [
+                              {
+                                "type": "keyOf",
+                                "keyOf": {
+                                  "pointer": {
+                                    "type": "keyOf",
+                                    "keyOf": {
+                                      "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__root__"
+                                      },
+                                      "key": {
+                                        "type": "value",
+                                        "value": {
+                                          "typeInfo": {
+                                            "type": 3,
+                                            "required": true
+                                          },
+                                          "value": "Save"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "key": {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 3,
+                                        "required": true
+                                      },
+                                      "value": "Score"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 2,
+                                    "required": true
+                                  },
+                                  "value": 3
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "typeInfo": {
+                    "type": 0,
+                    "required": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "dialogue-ts-compiled-assign-increment": {
+      "_id": "dialogue-ts-compiled-assign-increment",
+      "id": "dialogue-ts-compiled-assign-increment",
+      "projectId": "test-project",
+      "name": "dialogue-ts-compiled-assign-increment",
+      "description": "Synthetic TypeScript-compiled action dialogue.",
+      "primaryLinkedValueId": null,
+      "linkedValues": [],
+      "settings": {
+        "defaultSaveOptionChoices": true
+      },
+      "triggerNode": {
+        "id": "dialogue-ts-compiled-assign-increment-trigger",
+        "type": 0,
+        "layout": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 120,
+          "isOpen": true
+        },
+        "linkedValues": [],
+        "primaryLinkedValueId": null,
+        "conditions": [],
+        "dialogueGroupSettings": null,
+        "occurrenceLimitSettings": null,
+        "toNodeId": "dialogue-ts-compiled-assign-increment-actions"
+      },
+      "nodes": {
+        "dialogue-ts-compiled-assign-increment-actions": {
+          "id": "dialogue-ts-compiled-assign-increment-actions",
+          "type": 2,
+          "name": "Compiled action",
+          "layout": {
+            "x": 240,
+            "y": 0,
+            "width": 240,
+            "height": 160,
+            "isOpen": true
+          },
+          "linkedValues": [],
+          "primaryLinkedValueId": null,
+          "actions": [
+            {
+              "id": "dialogue-ts-compiled-assign-increment-action",
+              "type": 0,
+              "logic": {
+                "type": 1,
+                "code": "root.Save.Score++;",
+                "action": {
+                  "parameters": [
+                    {
+                      "id": "__this__",
+                      "typeInfo": {
+                        "type": 0,
+                        "required": true
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 0,
+                            "required": true
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__root__",
+                      "typeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "typeId": "__root__"
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                          },
+                          "value": null
+                        }
+                      }
+                    }
+                  ],
+                  "instructions": [
+                    {
+                      "type": "assign",
+                      "target": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__root__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Save"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Score"
+                              }
+                            }
+                          }
+                        },
+                        "typeInfo": {
+                          "type": 2,
+                          "required": true
+                        },
+                        "writability": "save"
+                      },
+                      "operator": "++",
+                      "pointer": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "arithmetic",
+                          "arithmetic": {
+                            "type": "+",
+                            "pointers": [
+                              {
+                                "type": "keyOf",
+                                "keyOf": {
+                                  "pointer": {
+                                    "type": "keyOf",
+                                    "keyOf": {
+                                      "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__root__"
+                                      },
+                                      "key": {
+                                        "type": "value",
+                                        "value": {
+                                          "typeInfo": {
+                                            "type": 3,
+                                            "required": true
+                                          },
+                                          "value": "Save"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "key": {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 3,
+                                        "required": true
+                                      },
+                                      "value": "Score"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 2,
+                                    "required": true
+                                  },
+                                  "value": 1
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "typeInfo": {
+                    "type": 0,
+                    "required": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      },
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z"
+    },
+    "dialogue-ts-compiled-assign-decrement": {
+      "_id": "dialogue-ts-compiled-assign-decrement",
+      "id": "dialogue-ts-compiled-assign-decrement",
+      "projectId": "test-project",
+      "name": "dialogue-ts-compiled-assign-decrement",
+      "description": "Synthetic TypeScript-compiled action dialogue.",
+      "primaryLinkedValueId": null,
+      "linkedValues": [],
+      "settings": {
+        "defaultSaveOptionChoices": true
+      },
+      "triggerNode": {
+        "id": "dialogue-ts-compiled-assign-decrement-trigger",
+        "type": 0,
+        "layout": {
+          "x": 0,
+          "y": 0,
+          "width": 200,
+          "height": 120,
+          "isOpen": true
+        },
+        "linkedValues": [],
+        "primaryLinkedValueId": null,
+        "conditions": [],
+        "dialogueGroupSettings": null,
+        "occurrenceLimitSettings": null,
+        "toNodeId": "dialogue-ts-compiled-assign-decrement-actions"
+      },
+      "nodes": {
+        "dialogue-ts-compiled-assign-decrement-actions": {
+          "id": "dialogue-ts-compiled-assign-decrement-actions",
+          "type": 2,
+          "name": "Compiled action",
+          "layout": {
+            "x": 240,
+            "y": 0,
+            "width": 240,
+            "height": 160,
+            "isOpen": true
+          },
+          "linkedValues": [],
+          "primaryLinkedValueId": null,
+          "actions": [
+            {
+              "id": "dialogue-ts-compiled-assign-decrement-action",
+              "type": 0,
+              "logic": {
+                "type": 1,
+                "code": "root.Save.Score--;",
+                "action": {
+                  "parameters": [
+                    {
+                      "id": "__this__",
+                      "typeInfo": {
+                        "type": 0,
+                        "required": true
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 0,
+                            "required": true
+                          },
+                          "value": null
+                        }
+                      }
+                    },
+                    {
+                      "id": "__root__",
+                      "typeInfo": {
+                        "type": 7,
+                        "required": true,
+                        "typeId": "__root__"
+                      },
+                      "pointer": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                          },
+                          "value": null
+                        }
+                      }
+                    }
+                  ],
+                  "instructions": [
+                    {
+                      "type": "assign",
+                      "target": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__root__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Save"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "Score"
+                              }
+                            }
+                          }
+                        },
+                        "typeInfo": {
+                          "type": 2,
+                          "required": true
+                        },
+                        "writability": "save"
+                      },
+                      "operator": "--",
+                      "pointer": {
+                        "type": "operation",
+                        "operation": {
+                          "type": "arithmetic",
+                          "arithmetic": {
+                            "type": "-",
+                            "pointers": [
+                              {
+                                "type": "keyOf",
+                                "keyOf": {
+                                  "pointer": {
+                                    "type": "keyOf",
+                                    "keyOf": {
+                                      "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__root__"
+                                      },
+                                      "key": {
+                                        "type": "value",
+                                        "value": {
+                                          "typeInfo": {
+                                            "type": 3,
+                                            "required": true
+                                          },
+                                          "value": "Save"
+                                        }
+                                      }
+                                    }
+                                  },
+                                  "key": {
+                                    "type": "value",
+                                    "value": {
+                                      "typeInfo": {
+                                        "type": 3,
+                                        "required": true
+                                      },
+                                      "value": "Score"
+                                    }
+                                  }
+                                }
+                              },
+                              {
+                                "type": "value",
+                                "value": {
+                                  "typeInfo": {
+                                    "type": 2,
+                                    "required": true
+                                  },
+                                  "value": 1
+                                }
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "typeInfo": {
+                    "type": 0,
+                    "required": true
+                  }
+                }
+              }
+            }
+          ]
         }
       },
       "createdAt": "1970-01-01T00:00:00.000Z",

@@ -114,18 +114,68 @@ namespace NeoCompose.Tests
                 app.Client,
                 derivedAttr,
                 null);
-            var generated = new ReadOnlyDerived(app.Client, derivedNode);
+            var generated = new Derived(app.Client, derivedNode);
             int changes = 0;
-            generated.OnChanged += () => changes++;
+            generated.OnChanged(Derived.Fields.Name, _ => changes++);
 
-            var generatedSaved = new Derived(app.Client, derivedNode);
-            generatedSaved.Name = "Before Dispose";
+            generated.Name = "Before Dispose";
             Assert.Greater(changes, 0);
 
             int beforeDispose = changes;
             generated.Dispose();
+            var generatedSaved = new Derived(app.Client, derivedNode);
             generatedSaved.Name = "After Dispose";
             Assert.AreEqual(beforeDispose, changes);
+        }
+
+        [Test]
+        public void GeneratedWrapper_FieldOnChanged_ReceivesTypedValue()
+        {
+            var app = LoadGeneratedClient(out _);
+            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
+            var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+                app.Client,
+                derivedAttr,
+                null);
+            var generated = new Derived(app.Client, derivedNode);
+            string? observed = null;
+            int changes = 0;
+            using var subscription = generated.OnChanged(Derived.Fields.Name, value =>
+            {
+                observed = value;
+                changes++;
+            });
+
+            generated.Name = "Typed Name";
+
+            Assert.AreEqual("Typed Name", observed);
+            Assert.AreEqual(1, changes);
+
+            generated.Name = "Typed Name Again";
+
+            Assert.AreEqual("Typed Name Again", observed);
+            Assert.AreEqual(2, changes);
+        }
+
+        [Test]
+        public void GeneratedWrapper_BatchOnChanged_ReportsChangedField()
+        {
+            var app = LoadGeneratedClient(out _);
+            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
+            var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+                app.Client,
+                derivedAttr,
+                null);
+            var generated = new Derived(app.Client, derivedNode);
+            NeoChangedArgs<Derived.Fields>? observed = null;
+            using var subscription = generated.OnChanged(args => observed = args);
+
+            generated.Health = 42;
+
+            Assert.IsNotNull(observed);
+            Assert.IsTrue(observed!.TryGet(Derived.Fields.Health, out int? health));
+            Assert.AreEqual(42, health);
+            Assert.IsFalse(observed.Has(Derived.Fields.Name));
         }
 
         [Test]
