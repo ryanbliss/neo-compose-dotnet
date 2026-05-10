@@ -18,6 +18,11 @@ using UILogicActionModel = NeoCompose.Runtime.Json.UILogicAction;
 
 namespace NeoCompose.Runtime
 {
+    /// <summary>
+    /// Runtime instance of a single triggered dialogue. Subscribe to its events,
+    /// call <see cref="Start"/>, then drive shown text nodes through
+    /// <see cref="NeoDialogueTextNode.Next"/> or <see cref="NeoDialogueTextOption.Select"/>.
+    /// </summary>
     public sealed class NeoDialogue : IDisposable
     {
         private readonly NeoClient client;
@@ -27,23 +32,87 @@ namespace NeoCompose.Runtime
         private readonly NeoDialogueValueResolver? valueResolver;
         private bool started;
 
+        /// <summary>
+        /// Stable dialogue id from the exported Neo Compose project.
+        /// </summary>
         public string Id { get; }
+
+        /// <summary>
+        /// Author-facing dialogue name from the exported Neo Compose project.
+        /// </summary>
         public string Name { get; }
+
+        /// <summary>
+        /// Optional dialogue description from the exported Neo Compose project.
+        /// </summary>
         public string? Description { get; }
+
+        /// <summary>
+        /// Dialogue group id that triggered this dialogue, when the dialogue belongs to a group.
+        /// </summary>
         public string? GroupId { get; }
+
+        /// <summary>
+        /// Stored lookup value id for lookup-triggered dialogues, when one is configured.
+        /// </summary>
         public string? LookupValueId { get; }
+
+        /// <summary>
+        /// Resolved primary value for the dialogue. Body nodes can expose a different current
+        /// primary through <see cref="NeoDialogueTextNode.Primary"/>.
+        /// </summary>
         public object? Primary { get; }
+
+        /// <summary>
+        /// Dialogue-level linked values resolved by exported value id.
+        /// </summary>
         public IReadOnlyDictionary<string, object?> LinkedValues { get; }
+
+        /// <summary>
+        /// Raw exported dialogue model backing this runtime instance.
+        /// </summary>
         public DialogueModel Data { get; }
+
+        /// <summary>
+        /// Mutable runtime context used while conditions and actions execute.
+        /// </summary>
         public NeoDialogueContext Context { get; }
+
+        /// <summary>
+        /// Current lifecycle state for this dialogue instance.
+        /// </summary>
         public NeoDialogueState State { get; private set; } = NeoDialogueState.Created;
+
+        /// <summary>
+        /// Returns whether <see cref="Start"/> has been called for this dialogue instance.
+        /// </summary>
         public bool IsStarted => started;
+
+        /// <summary>
+        /// Returns whether this dialogue has been disposed and can no longer be driven.
+        /// </summary>
         public bool IsDisposed => State == NeoDialogueState.Disposed;
 
+        /// <summary>
+        /// Raised whenever the dialogue reaches a text node that should be shown to the player.
+        /// </summary>
         public event Action<NeoDialogueTextNode>? OnShow;
+
+        /// <summary>
+        /// Raised when the dialogue reaches the end of its flow.
+        /// </summary>
         public event Action? OnFinish;
+
+        /// <summary>
+        /// Raised when dialogue execution fails. If no handler is attached, the exception is
+        /// logged and thrown through the default runtime error path.
+        /// </summary>
         public event Action<Exception>? OnError;
 
+        /// <summary>
+        /// Creates a runtime dialogue instance from exported data and runtime services.
+        /// Generated dialogue-group code normally constructs this for you.
+        /// </summary>
         public NeoDialogue(
             NeoClient client,
             DialogueModel data,
@@ -70,6 +139,32 @@ namespace NeoCompose.Runtime
             LinkedValues = context.LinkedValues;
         }
 
+        /// <summary>
+        /// Returns how many times this dialogue has been started in the configured dialogue memory store.
+        /// The count is incremented before the first node is entered during <see cref="Start"/>.
+        /// </summary>
+        public int VisitCount()
+        {
+            return NeoDialogueMemoryQueries.VisitCount(memoryStore, Id);
+        }
+
+        /// <summary>
+        /// Returns whether this dialogue has been started at least once in the configured dialogue memory store.
+        /// </summary>
+        public bool HasVisited()
+        {
+            return VisitCount() > 0;
+        }
+
+        /// <summary>
+        /// Starts dialogue execution. A dialogue instance can only be started once.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException">
+        /// Thrown when the dialogue has already been disposed.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the dialogue has already been started.
+        /// </exception>
         public void Start()
         {
             if (State != NeoDialogueState.Created)
@@ -177,9 +272,13 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 options.Add(new NeoDialogueTextOption(
+                    Id,
+                    node.id,
                     optionModel.id,
                     optionModel.text,
                     optionModel.name,
+                    saveChoice,
+                    memoryStore,
                     selectable,
                     () =>
                     {
@@ -208,12 +307,14 @@ namespace NeoCompose.Runtime
             }
 
             OnShow?.Invoke(new NeoDialogueTextNode(
+                Id,
                 node.id,
                 node.text,
                 node.name,
                 Context.CurrentPrimary,
                 ResolveLinkedValues(node.linkedValues),
                 saveChoice,
+                memoryStore,
                 options,
                 hiddenOptions,
                 () => EnterNode(node.toNodeId),
@@ -385,6 +486,9 @@ namespace NeoCompose.Runtime
             throw exception;
         }
 
+        /// <summary>
+        /// Disposes this dialogue instance and clears event listeners.
+        /// </summary>
         public void Dispose()
         {
             if (State == NeoDialogueState.Disposed) return;
@@ -400,44 +504,118 @@ namespace NeoCompose.Runtime
         }
     }
 
+    /// <summary>
+    /// Text node currently being shown by a <see cref="NeoDialogue"/>.
+    /// </summary>
     public sealed class NeoDialogueTextNode
     {
+        private readonly string dialogueId;
+        private readonly INeoDialogueMemoryStore? memoryStore;
         private readonly Action next;
         private readonly Action ensureActive;
 
+        /// <summary>
+        /// Stable text node id from the exported Neo Compose dialogue graph.
+        /// </summary>
         public string Id { get; }
+
+        /// <summary>
+        /// Text content to display for this node.
+        /// </summary>
         public string Text { get; }
+
+        /// <summary>
+        /// Optional author-facing node name.
+        /// </summary>
         public string? Name { get; }
+
+        /// <summary>
+        /// Resolved primary value for this node. Falls back to the dialogue primary when the
+        /// node does not override it.
+        /// </summary>
         public object? Primary { get; }
+
+        /// <summary>
+        /// Node-level linked values resolved by exported value id.
+        /// </summary>
         public IReadOnlyDictionary<string, object?> LinkedValues { get; }
+
+        /// <summary>
+        /// Whether selecting an option on this node should be persisted to dialogue memory.
+        /// </summary>
         public bool SaveChoice { get; }
+
+        /// <summary>
+        /// Visible options for this text node. Use <see cref="NeoDialogueTextOption.Select"/>
+        /// to advance through an option.
+        /// </summary>
         public IReadOnlyList<NeoDialogueTextOption> Options { get; }
+
+        /// <summary>
+        /// Options hidden by option visibility conditions. These are provided for diagnostics
+        /// and custom UI, but cannot be selected.
+        /// </summary>
         public IReadOnlyList<NeoDialogueHiddenTextOption> HiddenOptions { get; }
 
+        /// <summary>
+        /// Creates a runtime wrapper for a shown text node.
+        /// Generated dialogue runtime code normally constructs this for you.
+        /// </summary>
         public NeoDialogueTextNode(
+            string dialogueId,
             string id,
             string text,
             string? name,
             object? primary,
             IReadOnlyDictionary<string, object?> linkedValues,
             bool saveChoice,
+            INeoDialogueMemoryStore? memoryStore,
             IReadOnlyList<NeoDialogueTextOption> options,
             IReadOnlyList<NeoDialogueHiddenTextOption> hiddenOptions,
             Action next,
             Action ensureActive)
         {
+            this.dialogueId = dialogueId;
             Id = id;
             Text = text;
             Name = name;
             Primary = primary;
             LinkedValues = linkedValues;
             SaveChoice = saveChoice;
+            this.memoryStore = memoryStore;
             Options = options;
             HiddenOptions = hiddenOptions;
             this.next = next;
             this.ensureActive = ensureActive;
         }
 
+        /// <summary>
+        /// Returns how many times this text node has been shown in the configured dialogue memory store.
+        /// The count is incremented before <see cref="NeoDialogue.OnShow"/> is raised.
+        /// </summary>
+        public int VisitCount()
+        {
+            return NeoDialogueMemoryQueries.VisitCount(memoryStore, $"{dialogueId},{Id}");
+        }
+
+        /// <summary>
+        /// Returns whether this text node has been shown at least once in the configured dialogue memory store.
+        /// </summary>
+        public bool HasVisited()
+        {
+            return VisitCount() > 0;
+        }
+
+        /// <summary>
+        /// Advances to this node's next linked node. Use option <see cref="NeoDialogueTextOption.Select"/>
+        /// instead when <see cref="Options"/> is not empty.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException">
+        /// Thrown when the owning dialogue has finished or been disposed.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when this node has visible options.
+        /// </exception>
         public void Next()
         {
             ensureActive();
@@ -450,33 +628,96 @@ namespace NeoCompose.Runtime
         }
     }
 
+    /// <summary>
+    /// Visible selectable option on a <see cref="NeoDialogueTextNode"/>.
+    /// </summary>
     public sealed class NeoDialogueTextOption
     {
+        private readonly string dialogueId;
+        private readonly string textNodeId;
+        private readonly bool saveChoice;
+        private readonly INeoDialogueMemoryStore? memoryStore;
         private readonly Action select;
         private readonly Action ensureActive;
         private bool selected;
 
+        /// <summary>
+        /// Stable option id from the exported Neo Compose dialogue graph.
+        /// </summary>
         public string Id { get; }
+
+        /// <summary>
+        /// Text content to display for this option.
+        /// </summary>
         public string Text { get; }
+
+        /// <summary>
+        /// Optional author-facing option name.
+        /// </summary>
         public string? Name { get; }
+
+        /// <summary>
+        /// Whether this option can currently be selected. UI code should usually bind this
+        /// to its button's interactable/enabled state.
+        /// </summary>
         public bool Selectable { get; }
 
+        /// <summary>
+        /// Creates a runtime wrapper for a visible text option.
+        /// Generated dialogue runtime code normally constructs this for you.
+        /// </summary>
         public NeoDialogueTextOption(
+            string dialogueId,
+            string textNodeId,
             string id,
             string text,
             string? name,
+            bool saveChoice,
+            INeoDialogueMemoryStore? memoryStore,
             bool selectable,
             Action select,
             Action ensureActive)
         {
+            this.dialogueId = dialogueId;
+            this.textNodeId = textNodeId;
             Id = id;
             Text = text;
             Name = name;
+            this.saveChoice = saveChoice;
+            this.memoryStore = memoryStore;
             Selectable = selectable;
             this.select = select;
             this.ensureActive = ensureActive;
         }
 
+        /// <summary>
+        /// Returns whether this option has been selected before for its text node.
+        /// This requires the parent text node's <see cref="NeoDialogueTextNode.SaveChoice"/> to be enabled;
+        /// otherwise Neo Compose does not track option choices and this method throws.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when the parent text node has choice saving disabled.
+        /// </exception>
+        public bool HasChosen()
+        {
+            if (!saveChoice)
+            {
+                throw new InvalidOperationException(
+                    $"Dialogue option '{Id}' belongs to text node '{textNodeId}', but SaveChoice is disabled. Enable SaveChoice for that text node before calling HasChosen().");
+            }
+            return NeoDialogueMemoryQueries.HasVisited(memoryStore, $"{dialogueId},{textNodeId},{Id}");
+        }
+
+        /// <summary>
+        /// Selects this option, records the choice when the parent node saves choices, and advances
+        /// the owning dialogue to the option's target node.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException">
+        /// Thrown when the owning dialogue has finished or been disposed.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown when <see cref="Selectable"/> is false or this option was already selected.
+        /// </exception>
         public void Select()
         {
             ensureActive();
@@ -494,12 +735,29 @@ namespace NeoCompose.Runtime
         }
     }
 
+    /// <summary>
+    /// Option hidden by visibility conditions on a text node.
+    /// </summary>
     public sealed class NeoDialogueHiddenTextOption
     {
+        /// <summary>
+        /// Stable option id from the exported Neo Compose dialogue graph.
+        /// </summary>
         public string Id { get; }
+
+        /// <summary>
+        /// Text content configured for the hidden option.
+        /// </summary>
         public string Text { get; }
+
+        /// <summary>
+        /// Optional author-facing option name.
+        /// </summary>
         public string? Name { get; }
 
+        /// <summary>
+        /// Creates a runtime wrapper for an option hidden by visibility conditions.
+        /// </summary>
         public NeoDialogueHiddenTextOption(
             string id,
             string text,

@@ -354,6 +354,10 @@ namespace NeoCompose.Tests
                 memory);
             Assert.IsTrue(root.TryTrigger("dialogue-direct", out NeoDialogue dialogue));
             Assert.IsNull(memory.FindDialogueMemory("dialogue-direct"));
+            Assert.AreEqual(0, dialogue.VisitCount());
+            Assert.IsFalse(dialogue.HasVisited());
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnShow += node => shown = node;
 
             dialogue.Start();
 
@@ -361,11 +365,16 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(dialogueMemory);
             Assert.AreEqual(1, dialogueMemory!.VisitCount);
             Assert.AreEqual("2026-05-07T12:34:56.0000000Z", dialogueMemory.LastVisitedAt);
+            Assert.AreEqual(1, dialogue.VisitCount());
+            Assert.IsTrue(dialogue.HasVisited());
 
             var textMemory = dialogueMemory.FindTextNodeMemory("text-start");
             Assert.IsNotNull(textMemory);
             Assert.AreEqual(1, textMemory!.VisitCount);
             Assert.AreEqual("2026-05-07T12:34:56.0000000Z", textMemory.LastVisitedAt);
+            Assert.IsNotNull(shown);
+            Assert.AreEqual(1, shown!.VisitCount());
+            Assert.IsTrue(shown.HasVisited());
         }
 
         [Test]
@@ -460,6 +469,7 @@ namespace NeoCompose.Tests
             dialogue.OnShow += shown.Add;
 
             dialogue.Start();
+            Assert.IsFalse(shown[0].Options[0].HasChosen());
             shown[0].Options[0].Select();
 
             var textMemory = memory
@@ -468,6 +478,27 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(textMemory);
             Assert.AreEqual("option-a", textMemory!.MostRecentChoiceId);
             Assert.IsTrue(textMemory.HasChoice("option-a"));
+            Assert.IsTrue(shown[0].Options[0].HasChosen());
+        }
+
+        [Test]
+        public void TextOption_HasChosen_ThrowsWhenSaveChoiceDisabled()
+        {
+            var client = CreateClient();
+            var memory = new TestMemoryStore();
+            var root = new TestDialogues(client, memoryStore: memory);
+            Assert.IsTrue(root.TryTrigger("dialogue-options-no-save", out NeoDialogue dialogue));
+
+            var shown = new List<NeoDialogueTextNode>();
+            dialogue.OnShow += shown.Add;
+
+            dialogue.Start();
+
+            Assert.AreEqual(1, shown.Count);
+            Assert.IsFalse(shown[0].SaveChoice);
+            var ex = Assert.Throws<System.InvalidOperationException>(() => shown[0].Options[0].HasChosen());
+            StringAssert.Contains("SaveChoice is disabled", ex!.Message);
+            StringAssert.Contains("HasChosen", ex.Message);
         }
 
         [Test]
@@ -1353,6 +1384,7 @@ namespace NeoCompose.Tests
                         "group-standard",
                         relativeOrder: 0),
                     ["dialogue-options"] = OptionsDialogue(),
+                    ["dialogue-options-no-save"] = OptionsNoSaveChoiceDialogue(),
                     ["dialogue-option-settings"] = OptionSettingsDialogue(),
                     ["dialogue-option-condition-error"] = OptionConditionErrorDialogue(),
                     ["dialogue-condition-false"] = Dialogue(
@@ -1942,6 +1974,51 @@ namespace NeoCompose.Tests
                             },
                         }),
                     ["text-after-choice"] = TextNode("text-after-choice", "You picked A."),
+                },
+                createdAt = Now,
+                updatedAt = Now,
+            };
+        }
+
+        private static Dialogue OptionsNoSaveChoiceDialogue()
+        {
+            return new Dialogue
+            {
+                id = "dialogue-options-no-save",
+                _id = "dialogue-options-no-save",
+                projectId = ProjectId,
+                name = "Choice Dialogue Without Saved Choice",
+                description = null,
+                linkedValues = new DialogueLinkedValue[0],
+                settings = new DialogueSettings { defaultSaveOptionChoices = false },
+                primaryLinkedValueId = null,
+                triggerNode = new DialogueTriggerNode
+                {
+                    id = "dialogue-options-no-save-trigger",
+                    type = DialogueNodeType.Trigger,
+                    layout = new DialogueNodeLayout(),
+                    toNodeId = "text-choice-no-save",
+                    linkedValues = new DialogueLinkedValue[0],
+                    conditions = new LogicCondition[0],
+                    dialogueGroupSettings = new DialogueGroupSettings
+                    {
+                        dialogueGroupId = "group-standard",
+                        priority = new DialogueGroupPrioritySettings(),
+                    },
+                },
+                nodes = new Dictionary<string, DialogueBodyNode>
+                {
+                    ["text-choice-no-save"] = TextNode(
+                        "text-choice-no-save",
+                        "Pick one.",
+                        new[]
+                        {
+                            new NeoCompose.Runtime.Json.DialogueTextOption
+                            {
+                                id = "option-no-save",
+                                text = "No save",
+                            },
+                        }),
                 },
                 createdAt = Now,
                 updatedAt = Now,

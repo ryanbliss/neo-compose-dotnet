@@ -83,18 +83,18 @@ namespace HelloWorld.Assets.Scripts
             PrepareUI();
             DialogueUI.Show(
                 SpeakerLabel(node),
-                node.Text,
-                node.SaveChoice ? "Choice will be remembered" : "Choose a response"
+                node.Text
             );
             if (node.Options.Count > 0)
             {
                 foreach (NeoDialogueTextOption option in node.Options)
                 {
+                    bool alreadyChosen = node.SaveChoice && option.HasChosen();
                     DialogueUI.PrepareOptionButton(
                         buttonText: option.Text,
                         selectable: option.Selectable,
                         onClick: option.Select,
-                        rememberChoice: node.SaveChoice
+                        alreadyChosen: alreadyChosen
                     );
                 }
                 return;

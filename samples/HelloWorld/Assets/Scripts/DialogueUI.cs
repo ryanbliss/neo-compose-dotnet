@@ -18,7 +18,6 @@ namespace HelloWorld.Assets.Scripts
         private GameObject root;
         private Text speakerText;
         private Text bodyText;
-        private Text hintText;
         private RectTransform optionStack;
 
         public string SpeakerName
@@ -39,25 +38,14 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        public string Hint
-        {
-            set
-            {
-                EnsureBuilt();
-                hintText.text = value;
-            }
-        }
-
         public void Show(
             string speakerName,
-            string text,
-            string hint
+            string text
         )
         {
             EnsureBuilt();
             SpeakerName = speakerName;
             Text = text;
-            Hint = hint;
             ClearOptionButtons();
             root.SetActive(true);
         }
@@ -75,14 +63,15 @@ namespace HelloWorld.Assets.Scripts
             string buttonText,
             bool selectable,
             Action onClick,
-            bool rememberChoice = false
+            bool alreadyChosen = false
         )
         {
             EnsureBuilt();
             CreateOptionButton(
-                rememberChoice ? $"{buttonText}  (remember)" : buttonText,
+                buttonText,
                 selectable,
-                onClick
+                onClick,
+                alreadyChosen
             );
         }
 
@@ -176,11 +165,8 @@ namespace HelloWorld.Assets.Scripts
             bodyLayout.preferredHeight = 92f;
             bodyLayout.flexibleHeight = 1f;
 
-            hintText = CreateText(parent, "", 15, new Color(0.68f, 0.74f, 0.84f), FontStyle.Normal);
-            hintText.gameObject.GetComponent<LayoutElement>().preferredHeight = 24f;
-
             optionStack = CreateRect(parent, "Options");
-            optionStack.gameObject.AddComponent<LayoutElement>().preferredHeight = 118f;
+            optionStack.gameObject.AddComponent<LayoutElement>().preferredHeight = 150f;
             var layout = optionStack.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.spacing = 8f;
             layout.childAlignment = TextAnchor.UpperLeft;
@@ -190,7 +176,7 @@ namespace HelloWorld.Assets.Scripts
             layout.childForceExpandWidth = true;
         }
 
-        private void CreateOptionButton(string label, bool selectable, Action action)
+        private void CreateOptionButton(string label, bool selectable, Action action, bool alreadyChosen)
         {
             var rect = CreateRect(optionStack, label);
             var layout = rect.gameObject.AddComponent<LayoutElement>();
@@ -198,11 +184,13 @@ namespace HelloWorld.Assets.Scripts
             layout.minHeight = 44f;
 
             var image = rect.gameObject.AddComponent<Image>();
-            image.color = new Color(0.20f, 0.38f, 0.66f, 1f);
+            image.color = alreadyChosen
+                ? new Color(0.12f, 0.15f, 0.22f, 1f)
+                : new Color(0.20f, 0.38f, 0.66f, 1f);
 
             var button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
-            button.colors = ButtonColors();
+            button.colors = ButtonColors(alreadyChosen);
             button.interactable = selectable;
             button.onClick.AddListener(() =>
             {
@@ -210,7 +198,12 @@ namespace HelloWorld.Assets.Scripts
                 action();
             });
 
-            var text = CreateText(rect, label, 17, Color.white, FontStyle.Bold);
+            var text = CreateText(
+                rect,
+                label,
+                17,
+                alreadyChosen ? new Color(0.62f, 0.68f, 0.78f, 1f) : Color.white,
+                alreadyChosen ? FontStyle.Normal : FontStyle.Bold);
             text.alignment = TextAnchor.MiddleLeft;
             text.rectTransform.anchorMin = Vector2.zero;
             text.rectTransform.anchorMax = Vector2.one;
@@ -242,8 +235,22 @@ namespace HelloWorld.Assets.Scripts
             return rect;
         }
 
-        private static ColorBlock ButtonColors()
+        private static ColorBlock ButtonColors(bool alreadyChosen = false)
         {
+            if (alreadyChosen)
+            {
+                return new ColorBlock
+                {
+                    normalColor = new Color(0.12f, 0.15f, 0.22f, 1f),
+                    highlightedColor = new Color(0.17f, 0.22f, 0.32f, 1f),
+                    pressedColor = new Color(0.10f, 0.12f, 0.18f, 1f),
+                    selectedColor = new Color(0.12f, 0.15f, 0.22f, 1f),
+                    disabledColor = new Color(0.10f, 0.11f, 0.15f, 1f),
+                    colorMultiplier = 1f,
+                    fadeDuration = 0.08f,
+                };
+            }
+
             return new ColorBlock
             {
                 normalColor = new Color(0.20f, 0.38f, 0.66f, 1f),
