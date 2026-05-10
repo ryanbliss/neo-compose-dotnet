@@ -66,7 +66,7 @@ namespace HelloWorld.Assets.Scripts
         {
             if (root != null)
             {
-                UnityEngine.Object.Destroy(root);
+                DestroyObject(root);
             }
         }
 
@@ -251,7 +251,7 @@ namespace HelloWorld.Assets.Scripts
         {
             for (var i = visitedGrid.childCount - 1; i >= 0; i--)
             {
-                UnityEngine.Object.Destroy(visitedGrid.GetChild(i).gameObject);
+                DestroyObject(visitedGrid.GetChild(i).gameObject);
             }
 
             var visitedNames = visitedPlanets
@@ -377,6 +377,17 @@ namespace HelloWorld.Assets.Scripts
             if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() != null) return;
 
             _ = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        }
+
+        private static void DestroyObject(UnityEngine.Object target)
+        {
+            if (Application.isPlaying)
+            {
+                UnityEngine.Object.Destroy(target);
+                return;
+            }
+
+            UnityEngine.Object.DestroyImmediate(target);
         }
 
         private static string DisplayName(Planet planet)

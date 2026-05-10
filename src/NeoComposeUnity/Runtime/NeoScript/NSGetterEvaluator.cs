@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 using JsonAttribute = NeoCompose.Runtime.Json.Attribute;
@@ -43,6 +44,8 @@ namespace NeoCompose.Runtime.NeoScript
             public NeoClient client { get; }
             public object? thisValue { get; }
             public object? rootValue { get; }
+            public object? contextValue { get; }
+            public INeoDialogueMemoryStore? memoryStore { get; }
             /// <summary>
             /// Stack of NSGetter attribute ids currently in-flight. Threaded
             /// through callGetter recursion via fresh-copy children so a
@@ -94,6 +97,8 @@ namespace NeoCompose.Runtime.NeoScript
                 NeoClient client,
                 object? thisValue,
                 object? rootValue,
+                object? contextValue = null,
+                INeoDialogueMemoryStore? memoryStore = null,
                 IReadOnlyCollection<string>? getterCallStack = null,
                 Dictionary<string, object?>? rowUnwrapCache = null,
                 Dictionary<object, string>? rowReverseIndex = null)
@@ -101,6 +106,8 @@ namespace NeoCompose.Runtime.NeoScript
                 this.client = client;
                 this.thisValue = thisValue;
                 this.rootValue = rootValue;
+                this.contextValue = contextValue;
+                this.memoryStore = memoryStore;
                 this.getterCallStack = getterCallStack ?? System.Array.Empty<string>();
                 this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<string, object?>();
                 this.rowReverseIndex = rowReverseIndex
@@ -110,17 +117,67 @@ namespace NeoCompose.Runtime.NeoScript
             internal Context WithGetterPushed(string attributeId)
             {
                 var next = new HashSet<string>(getterCallStack) { attributeId };
-                return new Context(client, thisValue, rootValue, next, rowUnwrapCache, rowReverseIndex);
+                return new Context(
+                    client,
+                    thisValue,
+                    rootValue,
+                    contextValue,
+                    memoryStore,
+                    next,
+                    rowUnwrapCache,
+                    rowReverseIndex);
             }
 
             internal Context WithThis(object? newThisValue)
             {
-                return new Context(client, newThisValue, rootValue, getterCallStack, rowUnwrapCache, rowReverseIndex);
+                return new Context(
+                    client,
+                    newThisValue,
+                    rootValue,
+                    contextValue,
+                    memoryStore,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex);
             }
 
             internal Context WithRoot(object? newRootValue)
             {
-                return new Context(client, thisValue, newRootValue, getterCallStack, rowUnwrapCache, rowReverseIndex);
+                return new Context(
+                    client,
+                    thisValue,
+                    newRootValue,
+                    contextValue,
+                    memoryStore,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex);
+            }
+
+            internal Context WithContext(object? newContextValue)
+            {
+                return new Context(
+                    client,
+                    thisValue,
+                    rootValue,
+                    newContextValue,
+                    memoryStore,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex);
+            }
+
+            internal Context WithMemoryStore(INeoDialogueMemoryStore? newMemoryStore)
+            {
+                return new Context(
+                    client,
+                    thisValue,
+                    rootValue,
+                    contextValue,
+                    newMemoryStore,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex);
             }
         }
 
@@ -152,6 +209,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 ["__this__"] = ctx.thisValue,
                 ["__root__"] = ctx.rootValue,
+                ["__context__"] = ctx.contextValue,
             };
             var result = EvalInstructions(getter.instructions, scope, ctx);
             if (result.kind == InstructionResultKind.Return) return result.value;
@@ -169,6 +227,14 @@ namespace NeoCompose.Runtime.NeoScript
         /// fire because reference equality would never round-trip.
         /// </summary>
         public static object? UnwrapRow(AttributeValue row, Context ctx) => UnwrapCached(row, ctx);
+
+        internal static object? EvaluatePointer(
+            Pointer pointer,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            return EvalPointer(pointer, scope, ctx);
+        }
 
         // ---------------------------------------------------------------
         // Instructions
@@ -365,6 +431,7 @@ namespace NeoCompose.Runtime.NeoScript
         {
             var receiver = EvalPointer(keyOf.pointer, scope, ctx);
             if (optional && receiver is null) return null;
+            receiver = UnwrapGeneratedValue(receiver, ctx);
             var key = EvalPointer(keyOf.key, scope, ctx);
             if (receiver is null)
             {
@@ -385,10 +452,25 @@ namespace NeoCompose.Runtime.NeoScript
                 return ResolveValueIfId(arr[idx], ctx);
             }
 
+            string k = key?.ToString() ?? "null";
+            if (k == "Id")
+            {
+                if (receiver is INeoValueReference reference
+                    && !string.IsNullOrEmpty(reference.valueId))
+                {
+                    return reference.valueId;
+                }
+                string? rowId = FindRowIdByReference(receiver, ctx);
+                if (!string.IsNullOrEmpty(rowId))
+                {
+                    return rowId;
+                }
+                throw new NSGetterRuntimeError("Custom value has no backing row id.");
+            }
+
             // Dict / Custom record: receiver is Dictionary<string, ...>.
             if (TryAsObjectRecord(receiver, out IDictionary<string, object?>? record))
             {
-                string k = key?.ToString() ?? "null";
                 // Schema-dispatch if the receiver is a tracked Custom row.
                 var dispatched = DispatchSchemaMember(receiver, k, ctx);
                 if (dispatched.kind == DispatchKind.Ok) return dispatched.value;
@@ -680,6 +762,19 @@ namespace NeoCompose.Runtime.NeoScript
         {
             switch (fn)
             {
+                case VisitCountFunction vcf:
+                {
+                    var pointer = EvalPointer(vcf.info.pointer, scope, ctx);
+                    return pointer is string text
+                        ? NeoDialogueMemoryQueries.VisitCount(ctx.memoryStore, text)
+                        : 0;
+                }
+                case HasVisitedFunction hvf:
+                {
+                    var pointer = EvalPointer(hvf.info.pointer, scope, ctx);
+                    return pointer is string text
+                        && NeoDialogueMemoryQueries.HasVisited(ctx.memoryStore, text);
+                }
                 case CountFunction cf:
                 {
                     var c = EvalPointer(cf.info.collectionPointer, scope, ctx);
@@ -697,6 +792,27 @@ namespace NeoCompose.Runtime.NeoScript
                                 "string.Contains argument must be a string");
                         }
                         return s.Contains(ts);
+                    }
+                    if (c is object?[] raw && target is string targetId)
+                    {
+                        foreach (var entry in raw)
+                        {
+                            if (entry is string selectedId && selectedId == targetId)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                    if (c is object?[] rawWithReference
+                        && ValueIdOf(target, ctx) is string targetReferenceId)
+                    {
+                        foreach (var entry in rawWithReference)
+                        {
+                            if (entry is string selectedId && selectedId == targetReferenceId)
+                            {
+                                return true;
+                            }
+                        }
                     }
                     foreach (var entry in CollectionEntries(c, ctx))
                     {
@@ -984,6 +1100,27 @@ namespace NeoCompose.Runtime.NeoScript
             return v;
         }
 
+        private static object? UnwrapGeneratedValue(object? value, Context ctx)
+        {
+            if (value is INeoValueReference reference
+                && !string.IsNullOrEmpty(reference.valueId)
+                && ctx.client.TryGetValue(reference.valueId!, out AttributeValue? row))
+            {
+                return UnwrapCached(row, ctx);
+            }
+            return value;
+        }
+
+        private static string? ValueIdOf(object? value, Context ctx)
+        {
+            if (value is INeoValueReference reference
+                && !string.IsNullOrEmpty(reference.valueId))
+            {
+                return reference.valueId;
+            }
+            return FindRowIdByReference(value, ctx);
+        }
+
         // ---------------------------------------------------------------
         // Wire-value bridging — turns AttributeValue subclasses into the
         // plain CLR shapes the evaluator manipulates (object?[],
@@ -1002,7 +1139,7 @@ namespace NeoCompose.Runtime.NeoScript
                     : ToObjectArray(a.value),
                 ObjectAttributeValue o => o.value is null
                     ? null
-                    : ToObjectDict(o.value),
+                    : ToObjectDict(row.id, o.value),
                 NullAttributeValue _ => null,
                 _ => null,
             };
@@ -1049,9 +1186,23 @@ namespace NeoCompose.Runtime.NeoScript
             return result;
         }
 
-        private static IDictionary<string, object?> ToObjectDict(IDictionary<string, string> dict)
+        private sealed class NeoObjectRecord
+            : Dictionary<string, object?>, INeoValueReference
         {
-            var result = new Dictionary<string, object?>(dict.Count);
+            public string? valueId { get; }
+
+            public NeoObjectRecord(string valueId, int capacity)
+                : base(capacity)
+            {
+                this.valueId = valueId;
+            }
+        }
+
+        private static IDictionary<string, object?> ToObjectDict(
+            string rowId,
+            IDictionary<string, string> dict)
+        {
+            var result = new NeoObjectRecord(rowId, dict.Count);
             foreach (var kvp in dict) result[kvp.Key] = kvp.Value;
             return result;
         }
@@ -1309,7 +1460,7 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private static string? FindRowIdByReference(object? value, Context ctx)
+        internal static string? FindRowIdByReference(object? value, Context ctx)
         {
             if (value is null) return null;
             return ctx.rowReverseIndex.TryGetValue(value, out string? id) ? id : null;

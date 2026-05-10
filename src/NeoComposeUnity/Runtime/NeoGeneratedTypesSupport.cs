@@ -17,9 +17,258 @@ namespace NeoCompose.Runtime
     /// </summary>
     public static class NeoGeneratedTypesSupport
     {
+        public delegate object ReadOnlyCustomFactory(
+            NeoClient client,
+            NeoAttributeCustom node);
+
+        public delegate object SavedCustomFactory(
+            NeoClient client,
+            NeoAttributeCustomSaved node);
+
         public static NeoValueWritePayload? Value<T>(T? value)
         {
             return NeoValueWritePayload.FromValue(value);
+        }
+
+        public static object? ResolveCustomValue(
+            NeoClient client,
+            string valueId,
+            IReadOnlyDictionary<string, ReadOnlyCustomFactory> readOnlyFactories,
+            IReadOnlyDictionary<string, SavedCustomFactory> savedFactories)
+        {
+            if (!client.TryGetValue(valueId, out ObjectAttributeValue? value))
+            {
+                return null;
+            }
+            string? typeId = ResolveCustomValueTypeId(client, valueId, value);
+            if (string.IsNullOrEmpty(typeId)) return null;
+
+            var attribute = new CustomAttribute
+            {
+                id = $"__neo_resolved_custom_{typeId}",
+                _id = $"__neo_resolved_custom_{typeId}",
+                name = "ResolvedCustomValue",
+                type = AttributeType.Custom,
+                customTypeId = typeId,
+                createdAt = value.createdAt,
+                updatedAt = value.updatedAt,
+            };
+
+            if (client.saveValues.ContainsKey(valueId)
+                && savedFactories.TryGetValue(typeId, out var savedFactory))
+            {
+                return savedFactory(
+                    client,
+                    new NeoAttributeCustomSaved(client, attribute, valueId));
+            }
+
+            if (readOnlyFactories.TryGetValue(typeId, out var readOnlyFactory))
+            {
+                return readOnlyFactory(
+                    client,
+                    new NeoAttributeCustom(client, attribute, valueId));
+            }
+
+            return null;
+        }
+
+        private static string? ResolveCustomValueTypeId(
+            NeoClient client,
+            string valueId,
+            ObjectAttributeValue value)
+        {
+            if (!string.IsNullOrEmpty(value.typeId)) return value.typeId;
+            return TryInferCustomTypeId(
+                client,
+                valueId,
+                new HashSet<string>(),
+                out string? typeId)
+                ? typeId
+                : null;
+        }
+
+        private static bool TryInferCustomTypeId(
+            NeoClient client,
+            string valueId,
+            HashSet<string> visitingValueIds,
+            out string? typeId)
+        {
+            if (!visitingValueIds.Add(valueId))
+            {
+                typeId = null;
+                return false;
+            }
+
+            if (client.TryGetValue(valueId, out ObjectAttributeValue? value)
+                && !string.IsNullOrEmpty(value.typeId))
+            {
+                typeId = value.typeId;
+                return true;
+            }
+
+            if (TryInferAttributeForValueId(
+                    client,
+                    valueId,
+                    visitingValueIds,
+                    out Attribute? attribute)
+                && attribute != null
+                && TryResolveDirectCustomTypeIdFromAttribute(attribute, out typeId))
+            {
+                return true;
+            }
+
+            typeId = null;
+            return false;
+        }
+
+        private static bool TryInferAttributeForValueId(
+            NeoClient client,
+            string valueId,
+            HashSet<string> visitingValueIds,
+            out Attribute? attribute)
+        {
+            foreach (var candidate in client.attributes.Values)
+            {
+                if (candidate.valueId == valueId)
+                {
+                    attribute = candidate;
+                    return true;
+                }
+            }
+
+            foreach (var parent in EnumerateValues(client))
+            {
+                if (parent.Value is not ObjectAttributeValue objectValue
+                    || objectValue.value == null)
+                {
+                    continue;
+                }
+
+                foreach (var pair in objectValue.value)
+                {
+                    if (pair.Value != valueId) continue;
+                    if (!TryInferCustomTypeId(
+                            client,
+                            parent.Key,
+                            visitingValueIds,
+                            out string? parentTypeId)
+                        || string.IsNullOrEmpty(parentTypeId)
+                        || !client.types.TryGetValue(parentTypeId, out CustomType? parentType)
+                        || parentType.schema == null
+                        || !parentType.schema.TryGetValue(pair.Key, out string childAttributeId)
+                        || !client.TryGetAttribute(childAttributeId, out Attribute? childAttribute))
+                    {
+                        continue;
+                    }
+
+                    attribute = childAttribute;
+                    return true;
+                }
+            }
+
+            foreach (var parent in EnumerateValues(client))
+            {
+                if (parent.Value is ArrayAttributeValue arrayValue
+                    && arrayValue.value != null
+                    && Contains(arrayValue.value, valueId)
+                    && TryInferAttributeForValueId(
+                        client,
+                        parent.Key,
+                        visitingValueIds,
+                        out Attribute? collectionAttribute)
+                    && TryResolveCollectionEntryAttribute(
+                        client,
+                        collectionAttribute,
+                        out Attribute? entryAttribute))
+                {
+                    attribute = entryAttribute;
+                    return true;
+                }
+
+                if (parent.Value is ObjectAttributeValue dictionaryValue
+                    && dictionaryValue.value != null
+                    && dictionaryValue.value.ContainsValue(valueId)
+                    && TryInferAttributeForValueId(
+                        client,
+                        parent.Key,
+                        visitingValueIds,
+                        out collectionAttribute)
+                    && TryResolveCollectionEntryAttribute(
+                        client,
+                        collectionAttribute,
+                        out entryAttribute))
+                {
+                    attribute = entryAttribute;
+                    return true;
+                }
+            }
+
+            attribute = null;
+            return false;
+        }
+
+        private static bool TryResolveDirectCustomTypeIdFromAttribute(
+            Attribute attribute,
+            out string? typeId)
+        {
+            if (attribute is CustomAttribute custom
+                && !string.IsNullOrEmpty(custom.customTypeId))
+            {
+                typeId = custom.customTypeId;
+                return true;
+            }
+
+            typeId = null;
+            return false;
+        }
+
+        private static bool TryResolveCollectionEntryAttribute(
+            NeoClient client,
+            Attribute? attribute,
+            out Attribute? entryAttribute)
+        {
+            string? entryAttributeId = attribute switch
+            {
+                ListAttribute list => list.entryAttributeId,
+                DictionaryAttribute dictionary => dictionary.entryAttributeId,
+                _ => null,
+            };
+            if (attribute is LookupAttribute lookup
+                && client.TryGetAttribute(
+                    lookup.collectionAttributeId,
+                    out Attribute? collectionAttribute))
+            {
+                return TryResolveCollectionEntryAttribute(
+                    client,
+                    collectionAttribute,
+                    out entryAttribute);
+            }
+
+            if (string.IsNullOrEmpty(entryAttributeId)
+                || !client.TryGetAttribute(entryAttributeId!, out Attribute? resolved))
+            {
+                entryAttribute = null;
+                return false;
+            }
+
+            entryAttribute = resolved;
+            return true;
+        }
+
+        private static IEnumerable<KeyValuePair<string, AttributeValue>> EnumerateValues(
+            NeoClient client)
+        {
+            foreach (var pair in client.saveValues) yield return pair;
+            foreach (var pair in client.values) yield return pair;
+        }
+
+        private static bool Contains(string[] values, string value)
+        {
+            foreach (var item in values)
+            {
+                if (item == value) return true;
+            }
+            return false;
         }
 
         public static NeoValueWritePayload? ValueReference(
@@ -621,6 +870,100 @@ namespace NeoCompose.Runtime
                     result.error ?? "NSGetter evaluation failed.");
             }
             return result.value;
+        }
+
+        public static T? ReadNSGetterCustom<T>(
+            NeoClient client,
+            object? value,
+            bool required,
+            bool saved,
+            Func<NeoClient, NeoAttributeCustom, T>? readOnlyFactory,
+            Func<NeoClient, NeoAttributeCustomSaved, T> savedFactory)
+        {
+            if (value is null)
+            {
+                if (required)
+                {
+                    throw new InvalidOperationException(
+                        "NSGetter returned null for a required custom value.");
+                }
+                return default;
+            }
+
+            if (value is T typed) return typed;
+
+            string? valueId = ValueId(value);
+            if (string.IsNullOrEmpty(valueId)
+                || !client.TryGetValue(valueId, out ObjectAttributeValue? row)
+                || string.IsNullOrEmpty(row.typeId))
+            {
+                throw new InvalidOperationException(
+                    "NSGetter returned a custom value without a resolvable backing value id.");
+            }
+
+            var attribute = new CustomAttribute
+            {
+                id = $"__neo_nsg_custom_{row.typeId}",
+                _id = $"__neo_nsg_custom_{row.typeId}",
+                name = "NSGetterCustomValue",
+                type = AttributeType.Custom,
+                customTypeId = row.typeId,
+                createdAt = row.createdAt,
+                updatedAt = row.updatedAt,
+            };
+
+            if (saved)
+            {
+                if (!client.saveValues.ContainsKey(valueId))
+                {
+                    throw new InvalidOperationException(
+                        "NSGetter returned an asset-owned custom value where a saved value was expected.");
+                }
+
+                return savedFactory(
+                    client,
+                    new NeoAttributeCustomSaved(client, attribute, valueId));
+            }
+
+            if (readOnlyFactory is null)
+            {
+                throw new InvalidOperationException(
+                    "NSGetter custom value requires a read-only factory.");
+            }
+
+            return readOnlyFactory(
+                client,
+                new NeoAttributeCustom(client, attribute, valueId));
+        }
+
+        public static T ReadRequiredNSGetterCustom<T>(
+            NeoClient client,
+            object? value,
+            bool saved,
+            Func<NeoClient, NeoAttributeCustom, T>? readOnlyFactory,
+            Func<NeoClient, NeoAttributeCustomSaved, T> savedFactory)
+        {
+            T? resolved = ReadNSGetterCustom(
+                client,
+                value,
+                true,
+                saved,
+                readOnlyFactory,
+                savedFactory);
+            if (resolved is null)
+            {
+                throw new InvalidOperationException(
+                    "NSGetter returned null for a required custom value.");
+            }
+            return resolved;
+        }
+
+        public static string? ValueId(object? value)
+        {
+            if (value is NeoLookupSelection selection) return selection.valueId;
+            return value is INeoValueReference reference
+                ? reference.valueId
+                : null;
         }
 
         public static string[] ToStringArray(object? value)

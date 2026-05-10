@@ -22,12 +22,18 @@ namespace NeoCompose.Tests
             return File.ReadAllText(Path.Combine(PackageRoot, fileName));
         }
 
-        private static TestProjectNeo LoadGeneratedClient(out string saveBuffer)
+        private static TestProjectNeo LoadGeneratedClient(
+            out string saveBuffer,
+            NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             string buffer = "";
             string loadSave() => buffer;
             void handleSave(string file) => buffer = file;
-            var app = TestProjectNeo.Load(LoadFixture("synth-example.json"), loadSave, handleSave);
+            var app = TestProjectNeo.Load(
+                LoadFixture("synth-example.json"),
+                loadSave,
+                handleSave,
+                dialogueOptions);
             saveBuffer = buffer;
             return app;
         }
@@ -53,7 +59,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(app.Assets);
             Assert.IsNotNull(app.Save);
             Assert.IsNotNull(host.FindUnlinkedSaveValueIds());
-            Assert.AreEqual(Element.fire, "fire");
+            Assert.AreEqual("fire", Element.fire.optionId);
             Assert.IsTrue(Element.IsKnown("fire"));
             Assert.IsFalse(Element.IsKnown("modded-element"));
         }
@@ -108,18 +114,68 @@ namespace NeoCompose.Tests
                 app.Client,
                 derivedAttr,
                 null);
-            var generated = new ReadOnlyDerived(app.Client, derivedNode);
+            var generated = new Derived(app.Client, derivedNode);
             int changes = 0;
-            generated.OnChanged += () => changes++;
+            generated.OnChanged(Derived.Fields.Name, _ => changes++);
 
-            var generatedSaved = new Derived(app.Client, derivedNode);
-            generatedSaved.Name = "Before Dispose";
+            generated.Name = "Before Dispose";
             Assert.Greater(changes, 0);
 
             int beforeDispose = changes;
             generated.Dispose();
+            var generatedSaved = new Derived(app.Client, derivedNode);
             generatedSaved.Name = "After Dispose";
             Assert.AreEqual(beforeDispose, changes);
+        }
+
+        [Test]
+        public void GeneratedWrapper_FieldOnChanged_ReceivesTypedValue()
+        {
+            var app = LoadGeneratedClient(out _);
+            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
+            var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+                app.Client,
+                derivedAttr,
+                null);
+            var generated = new Derived(app.Client, derivedNode);
+            string? observed = null;
+            int changes = 0;
+            using var subscription = generated.OnChanged(Derived.Fields.Name, value =>
+            {
+                observed = value;
+                changes++;
+            });
+
+            generated.Name = "Typed Name";
+
+            Assert.AreEqual("Typed Name", observed);
+            Assert.AreEqual(1, changes);
+
+            generated.Name = "Typed Name Again";
+
+            Assert.AreEqual("Typed Name Again", observed);
+            Assert.AreEqual(2, changes);
+        }
+
+        [Test]
+        public void GeneratedWrapper_BatchOnChanged_ReportsChangedField()
+        {
+            var app = LoadGeneratedClient(out _);
+            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
+            var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+                app.Client,
+                derivedAttr,
+                null);
+            var generated = new Derived(app.Client, derivedNode);
+            NeoChangedArgs<Derived.Fields>? observed = null;
+            using var subscription = generated.OnChanged(args => observed = args);
+
+            generated.Health = 42;
+
+            Assert.IsNotNull(observed);
+            Assert.IsTrue(observed!.TryGet(Derived.Fields.Health, out int? health));
+            Assert.AreEqual(42, health);
+            Assert.IsFalse(observed.Has(Derived.Fields.Name));
         }
 
         [Test]
@@ -208,6 +264,82 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(direct.ok, direct.error);
             Assert.AreEqual(direct.value?.ToString(), result);
+        }
+
+        [Test]
+        public void GeneratedDialogueValueResolver_ReturnsRichGeneratedWrappers()
+        {
+            var app = LoadGeneratedClient(out _);
+
+            var assetResolved = app.ResolveDialogueValue("v-dict");
+
+            Assert.IsInstanceOf<ReadOnlyHero>(assetResolved);
+            Assert.IsNotInstanceOf<Hero>(assetResolved);
+            Assert.AreEqual("v-dict", ((ReadOnlyHero)assetResolved!).valueId);
+
+            var savedHero = new Hero(Name: "Saved Hero", Health: 9);
+            var savedResolved = app.ResolveDialogueValue(savedHero.valueId!);
+
+            Assert.IsInstanceOf<Hero>(savedResolved);
+            Assert.AreEqual("Saved Hero", ((Hero)savedResolved!).Name);
+        }
+
+        [Test]
+        public void GeneratedDialogueGroup_UsesGeneratedValueResolverAndMemoryStore()
+        {
+            var now = new System.DateTime(
+                2026,
+                5,
+                7,
+                12,
+                0,
+                0,
+                System.DateTimeKind.Utc);
+            var app = LoadGeneratedClient(
+                out _,
+                new NeoDialogueRuntimeOptions
+                {
+                    UtcNow = () => now,
+                    RandomDouble = () => 0,
+                });
+
+            Assert.IsTrue(app.Dialogues.Standard.TryTrigger(out NeoDialogue dialogue));
+
+            Assert.AreEqual("dialogue-linked-hero", dialogue.Id);
+            Assert.IsInstanceOf<ReadOnlyHero>(dialogue.Primary);
+            Assert.IsTrue(dialogue.LinkedValues.TryGetValue("v-dict", out object? linked));
+            Assert.IsInstanceOf<ReadOnlyHero>(linked);
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(shown);
+            Assert.IsInstanceOf<ReadOnlyHero>(shown!.Primary);
+            Assert.IsTrue(shown.LinkedValues.TryGetValue("v-dict", out object? textLinked));
+            Assert.IsInstanceOf<ReadOnlyHero>(textLinked);
+            Assert.AreEqual(1, shown.Options.Count);
+
+            shown.Options[0].Select();
+
+            var memory = (NeoDialogueMemory)app.Save.NeoMemory
+                .FindDialogueMemory("dialogue-linked-hero")!;
+            Assert.AreEqual(1, memory.VisitCount);
+            Assert.AreEqual(now.ToString("o"), memory.LastVisitedAt);
+
+            var textMemory = (NeoTextNodeMemory)memory
+                .FindTextNodeMemory("dialogue-linked-hero-text")!;
+            Assert.AreEqual(1, textMemory.VisitCount);
+            Assert.AreEqual(now.ToString("o"), textMemory.LastVisitedAt);
+            Assert.AreEqual(
+                "dialogue-linked-hero-option",
+                textMemory.MostRecentChoiceId);
+            Assert.IsTrue(textMemory.HasChoice("dialogue-linked-hero-option"));
+            Assert.AreEqual(1, textMemory.ChoiceHistory.Count);
+            Assert.AreEqual(
+                "dialogue-linked-hero-option",
+                textMemory.ChoiceHistory[0].ChoiceId);
         }
 
         [Test]

@@ -852,7 +852,7 @@
             "locked": false,
             "required": false,
             "type": 10,
-            "code": "    return root.assets.InventoryItems.Where((item) => { return item is ToolItem; })\n        .Select((item) => {\n            return item.Name;\n        });",
+            "code": "    return root.Assets.InventoryItems.Where((item) => { return item is ToolItem; })\n        .Select((item) => {\n            return item.Name;\n        });",
             "returnTypeInfo": {
                 "type": 6,
                 "required": true,
@@ -932,7 +932,7 @@
                                                                             "type": 3,
                                                                             "required": true
                                                                         },
-                                                                        "value": "assets"
+                                                                        "value": "Assets"
                                                                     }
                                                                 }
                                                             }
@@ -1301,7 +1301,7 @@
             "locked": false,
             "required": false,
             "type": 10,
-            "code": "\tstring query = this.Name;\n    return root.assets.InventoryItems.Find((check) => {\n        return check.Name == query;\n    });",
+            "code": "\tstring query = this.Name;\n    return root.Assets.InventoryItems.Find((check) => {\n        return check.Name == query;\n    });",
             "returnTypeInfo": {
                 "type": 7,
                 "required": false,
@@ -1402,7 +1402,7 @@
                                                                 "type": 3,
                                                                 "required": true
                                                             },
-                                                            "value": "assets"
+                                                            "value": "Assets"
                                                         }
                                                     }
                                                 }
@@ -1670,7 +1670,7 @@
             "locked": false,
             "required": false,
             "type": 10,
-            "code": "\treturn this.Birthday.Day == root.save.GameTime.Day\n\t\t&& this.Birthday.Season == root.save.GameTime.Season;",
+            "code": "\treturn this.Birthday.Day == root.Save.GameTime.Day\n\t\t&& this.Birthday.Season == root.Save.GameTime.Season;",
             "returnTypeInfo": {
                 "type": 1,
                 "required": true
@@ -1787,7 +1787,7 @@
                                                                                             "type": 3,
                                                                                             "required": true
                                                                                         },
-                                                                                        "value": "save"
+                                                                                        "value": "Save"
                                                                                     }
                                                                                 }
                                                                             }
@@ -1898,7 +1898,7 @@
                                                                                                     "type": 3,
                                                                                                     "required": true
                                                                                                 },
-                                                                                                "value": "save"
+                                                                                                "value": "Save"
                                                                                             }
                                                                                         }
                                                                                     }

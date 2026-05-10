@@ -282,4 +282,106 @@ namespace NeoCompose.Runtime
             return Remove(item.Key);
         }
     }
+
+    public class NeoReadOnlyLookupSet<T> : IReadOnlyCollection<T>
+    {
+        protected readonly NeoClient client;
+        protected readonly NeoAttributeLookup node;
+        private readonly Func<NeoAttribute, T> createItem;
+
+        public event Action? OnChanged;
+
+        public NeoReadOnlyLookupSet(
+            NeoClient client,
+            NeoAttributeLookup node,
+            Func<NeoAttribute, T> createItem)
+        {
+            this.client = client;
+            this.node = node;
+            this.createItem = createItem;
+            this.node.OnChanged += HandleNodeChanged;
+        }
+
+        public int Count => node.Selected().Length;
+
+        public IReadOnlyList<string> Ids => node.Selected();
+
+        public bool Contains(string valueId)
+        {
+            foreach (var selectedId in node.Selected())
+            {
+                if (selectedId == valueId) return true;
+            }
+            return false;
+        }
+
+        public bool Contains(T item)
+        {
+            string? valueId = NeoGeneratedTypesSupport.ValueId(item);
+            return valueId is not null && Contains(valueId);
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            foreach (var child in node.GetSelected())
+            {
+                yield return createItem(child);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        protected void HandleNodeChanged(NeoAttribute changed)
+        {
+            OnChanged?.Invoke();
+        }
+    }
+
+    public class NeoLookupSet<T> : NeoReadOnlyLookupSet<T>, ICollection<T>
+    {
+        private readonly NeoAttributeLookupSaved savedNode;
+
+        public NeoLookupSet(
+            NeoClient client,
+            NeoAttributeLookupSaved node,
+            Func<NeoAttribute, T> createItem)
+            : base(client, node, createItem)
+        {
+            savedNode = node;
+        }
+
+        public bool IsReadOnly => false;
+
+        public void Add(T item)
+        {
+            string? valueId = NeoGeneratedTypesSupport.ValueId(item);
+            if (valueId is null)
+            {
+                throw new InvalidOperationException(
+                    "Lookup set item must be a generated Neo value reference.");
+            }
+            savedNode.Add(valueId);
+        }
+
+        public bool Add(string valueId) => savedNode.Add(valueId);
+
+        public void Clear() => savedNode.Clear();
+
+        public void CopyTo(T[] array, int arrayIndex)
+        {
+            if (array is null) throw new ArgumentNullException(nameof(array));
+            foreach (var item in this)
+            {
+                array[arrayIndex++] = item;
+            }
+        }
+
+        public bool Remove(T item)
+        {
+            string? valueId = NeoGeneratedTypesSupport.ValueId(item);
+            return valueId is not null && savedNode.Remove(valueId);
+        }
+
+        public bool Remove(string valueId) => savedNode.Remove(valueId);
+    }
 }
