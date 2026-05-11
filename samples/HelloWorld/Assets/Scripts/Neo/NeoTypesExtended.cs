@@ -2,7 +2,7 @@ using NeoCompose.Runtime;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public partial class Outpost : ReadOnlyOutpost
+    public partial class ReadOnlyOutpost
     {
         protected override void LazyInitialize()
         {

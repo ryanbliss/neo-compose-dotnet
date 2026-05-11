@@ -2754,6 +2754,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public int Reputation
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Reputation")) ?? throw new InvalidOperationException("Required int 'Reputation' has no value.");
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -2763,6 +2771,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<int> VisitCount = new("VisitCount");
 
             public static readonly NeoField<bool> Visited = new("Visited");
+
+            public static readonly NeoField<int> Reputation = new("Reputation");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -2772,6 +2782,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Unlocked] = () => Unlocked,
                 [Fields.VisitCount] = () => VisitCount,
                 [Fields.Visited] = () => Visited,
+                [Fields.Reputation] = () => Reputation,
             };
         }
 
@@ -2795,12 +2806,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public OutpostSaveData(bool? Unlocked = null, int? VisitCount = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Unlocked, VisitCount))
+        public OutpostSaveData(bool? Unlocked = null, int? VisitCount = null, int? Reputation = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Unlocked, VisitCount, Reputation))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(bool? Unlocked = null, int? VisitCount = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(bool? Unlocked = null, int? VisitCount = null, int? Reputation = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -2828,6 +2839,18 @@ namespace HelloWorld.Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = VisitCount.HasValue ? VisitCount.Value : (double?)null,
+                });
+            }
+            if (Reputation is not null)
+            {
+                var ReputationValueId = Guid.NewGuid().ToString();
+                value["Reputation"] = ReputationValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = ReputationValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Reputation.HasValue ? Reputation.Value : (double?)null,
                 });
             }
             return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "8ccfe860-309f-428b-b74c-76a873bdea8a", value, valueRows);
@@ -2876,6 +2899,18 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new int Reputation
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Reputation")) ?? throw new InvalidOperationException("Required int 'Reputation' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Reputation", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -2885,6 +2920,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<int> VisitCount = new("VisitCount");
 
             public static readonly NeoField<bool> Visited = new("Visited");
+
+            public static readonly NeoField<int> Reputation = new("Reputation");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -2894,6 +2931,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Unlocked] = () => Unlocked,
                 [Fields.VisitCount] = () => VisitCount,
                 [Fields.Visited] = () => Visited,
+                [Fields.Reputation] = () => Reputation,
             };
         }
 

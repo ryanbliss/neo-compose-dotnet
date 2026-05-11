@@ -1744,6 +1744,23 @@
             "createdAt": "2026-05-08T21:20:39.885Z",
             "updatedAt": "2026-05-08T21:20:39.885Z",
             "minValue": 1
+        },
+        "1d1d14bc-987e-4079-a8f8-09998d5954fc": {
+            "_id": "6a023b4c13f8e0589f97bb9d",
+            "id": "1d1d14bc-987e-4079-a8f8-09998d5954fc",
+            "name": "Reputation",
+            "type": 2,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": 0
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "df13b560-3af3-45e3-811f-2299eacf7903",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-11T20:25:48.051Z",
+            "updatedAt": "2026-05-11T20:25:48.051Z"
         }
     },
     "enums": {
@@ -2040,7 +2057,8 @@
             "schema": {
                 "Unlocked": "5a4d8d10-9fef-4197-a7a1-1dc1b112677b",
                 "VisitCount": "68cd6fe1-7683-4c67-8030-acd6334f77a2",
-                "Visited": "0c02e45d-bb5b-44c3-8b48-91fa75171ff2"
+                "Visited": "0c02e45d-bb5b-44c3-8b48-91fa75171ff2",
+                "Reputation": "1d1d14bc-987e-4079-a8f8-09998d5954fc"
             },
             "extendsTypeId": null,
             "isAbstract": false,
@@ -2048,7 +2066,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-07T17:56:35.256Z",
-            "updatedAt": "2026-05-07T19:29:17.856Z"
+            "updatedAt": "2026-05-11T20:25:48.262Z"
         },
         "a50efb7e-58f6-4342-906e-0b01f98b15af": {
             "_id": "69fcdb3221f8b0238d0f6814",
@@ -3244,11 +3262,12 @@
             "id": "fb0766b1-8b3d-4a39-8b94-60de16a09079",
             "value": {
                 "Unlocked": "8cf66884-fb4a-4505-baea-fd2dfe40a5ff",
-                "VisitCount": "7f36cadb-6690-4b79-9be8-86fb82f8f743"
+                "VisitCount": "7f36cadb-6690-4b79-9be8-86fb82f8f743",
+                "Reputation": "d6aad16b-3b8f-4da0-89bc-9bc5b87d38ca"
             },
             "typeId": null,
             "createdAt": "2026-05-07T19:11:38.552Z",
-            "updatedAt": "2026-05-07T19:28:55.697Z",
+            "updatedAt": "2026-05-11T20:26:00.730Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "41864bd4-c129-4353-b868-3e9a7cca257f": {
@@ -3431,6 +3450,24 @@
             "typeId": null,
             "createdAt": "2026-05-08T21:20:45.272Z",
             "updatedAt": "2026-05-08T21:20:54.785Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "df13b560-3af3-45e3-811f-2299eacf7903": {
+            "_id": "6a023b4b13f8e0589f97bb9c",
+            "id": "df13b560-3af3-45e3-811f-2299eacf7903",
+            "value": 0,
+            "typeId": null,
+            "createdAt": "2026-05-11T20:25:47.996Z",
+            "updatedAt": "2026-05-11T20:25:47.996Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "d6aad16b-3b8f-4da0-89bc-9bc5b87d38ca": {
+            "_id": "6a023b5813f8e0589f97bb9e",
+            "id": "d6aad16b-3b8f-4da0-89bc-9bc5b87d38ca",
+            "value": 0,
+            "typeId": null,
+            "createdAt": "2026-05-11T20:26:00.571Z",
+            "updatedAt": "2026-05-11T20:26:00.571Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         }
     },
@@ -3960,7 +3997,7 @@
             "id": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-06T00:32:58.144Z",
-            "updatedAt": "2026-05-10T06:35:42.399Z"
+            "updatedAt": "2026-05-11T04:26:59.420Z"
         },
         "3e842799-4859-4fbc-a317-8640bc6875e5": {
             "_id": "69fd01d421f8b0238d0f6850",
@@ -3977,7 +4014,7 @@
                         "height": 160,
                         "isOpen": true
                     },
-                    "name": null,
+                    "name": "Welcome!",
                     "linkedValues": [
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -3999,7 +4036,7 @@
                         "height": 160,
                         "isOpen": true
                     },
-                    "name": null,
+                    "name": "Intro",
                     "linkedValues": [
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -4021,7 +4058,7 @@
                         "height": 160,
                         "isOpen": true
                     },
-                    "name": null,
+                    "name": "What brings you here?",
                     "linkedValues": [
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -4029,33 +4066,29 @@
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "So, what brings you to {{neo-var:59c1a41b-e58c-4996-80b6-98754b75ff11}}?",
+                    "text": "So, what brings you to {{neo-var:ce9039e2-7312-4e4c-add5-8bcb1bb145cc}}?",
                     "optionSettings": {
                         "options": [
                             {
                                 "id": "73b12994-15b0-407a-84c1-64337cdcaf27",
                                 "text": "Rumors of cosmic disturbances",
                                 "name": "Missions",
-                                "toNodeId": "37137d01-a012-423b-9760-ef9bc8b9f1c2"
+                                "toNodeId": "37137d01-a012-423b-9760-ef9bc8b9f1c2",
+                                "variables": null
                             },
                             {
                                 "id": "1d446373-0dc1-4540-9405-ac2de3c8faa9",
                                 "text": "To visit Earth, of course! (Lie)",
                                 "name": "Tourist",
                                 "toNodeId": "d8f50e6c-86a2-4b77-8309-7304355ce6bc"
-                            },
-                            {
-                                "id": "d9c4fca3-8718-4255-90c6-9fed85a076e9",
-                                "text": "None of your business",
-                                "name": "Vague"
                             }
                         ],
                         "saveChoice": null
                     },
                     "variables": {
-                        "59c1a41b-e58c-4996-80b6-98754b75ff11": {
-                            "id": "59c1a41b-e58c-4996-80b6-98754b75ff11",
-                            "displayPath": "Outpost > Name",
+                        "ce9039e2-7312-4e4c-add5-8bcb1bb145cc": {
+                            "id": "ce9039e2-7312-4e4c-add5-8bcb1bb145cc",
+                            "displayPath": "Outpost > Planet",
                             "getter": {
                                 "parameters": [
                                     {
@@ -4137,22 +4170,30 @@
                                                             }
                                                         },
                                                         {
-                                                            "type": "keyOf",
-                                                            "keyOf": {
-                                                                "pointer": {
-                                                                    "type": "variable",
-                                                                    "variableId": "__this__"
-                                                                },
-                                                                "key": {
-                                                                    "type": "value",
-                                                                    "value": {
-                                                                        "typeInfo": {
-                                                                            "type": 3,
-                                                                            "required": true
-                                                                        },
-                                                                        "value": "Name"
+                                                            "type": "stringify",
+                                                            "pointer": {
+                                                                "type": "keyOf",
+                                                                "keyOf": {
+                                                                    "pointer": {
+                                                                        "type": "variable",
+                                                                        "variableId": "__this__"
+                                                                    },
+                                                                    "key": {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "type": 3,
+                                                                                "required": true
+                                                                            },
+                                                                            "value": "Planet"
+                                                                        }
                                                                     }
                                                                 }
+                                                            },
+                                                            "sourceType": {
+                                                                "type": 8,
+                                                                "required": true,
+                                                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
                                                             }
                                                         }
                                                     ]
@@ -4166,7 +4207,7 @@
                                     "required": true
                                 }
                             },
-                            "label": "Name",
+                            "label": "Planet",
                             "pointer": {
                                 "type": "keyOf",
                                 "keyOf": {
@@ -4181,15 +4222,16 @@
                                                 "type": 3,
                                                 "required": true
                                             },
-                                            "value": "Name"
+                                            "value": "Planet"
                                         }
                                     }
                                 }
                             },
-                            "sourcePath": "this.Name",
+                            "sourcePath": "this.Planet",
                             "typeInfo": {
-                                "type": 3,
-                                "required": true
+                                "type": 8,
+                                "required": true,
+                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
                             }
                         }
                     }
@@ -4204,7 +4246,7 @@
                         "height": 160,
                         "isOpen": true
                     },
-                    "name": null,
+                    "name": "Buy souvenir?",
                     "linkedValues": [
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -4245,7 +4287,7 @@
                         "height": 160,
                         "isOpen": true
                     },
-                    "name": null,
+                    "name": "If can afford",
                     "linkedValues": [
                         {
                             "valueId": "ca105d9d-2885-4f33-80d4-206d5e207173",
@@ -4399,6 +4441,12 @@
                                 }
                             ],
                             "toNodeId": "0f2865ae-afae-475a-a7c4-e1910d6fa8fe"
+                        },
+                        {
+                            "id": "1b863d00-f027-46da-87a5-e4c08549bcf2",
+                            "name": "else",
+                            "conditions": [],
+                            "toNodeId": "46e5522e-fe64-49f3-b67e-fb0b1b2ba9d0"
                         }
                     ]
                 },
@@ -4412,7 +4460,7 @@
                         "height": 160,
                         "isOpen": true
                     },
-                    "name": null,
+                    "name": "Add item action",
                     "linkedValues": [
                         {
                             "valueId": "ca105d9d-2885-4f33-80d4-206d5e207173",
@@ -4666,6 +4714,65 @@
                                     }
                                 }
                             }
+                        },
+                        {
+                            "id": "cc2ffd9e-c4e7-4cbe-b2cf-53ed2777510f",
+                            "type": 0,
+                            "logic": {
+                                "type": 0,
+                                "action": {
+                                    "parameters": [],
+                                    "typeInfo": {
+                                        "type": 0,
+                                        "required": true
+                                    },
+                                    "instructions": [
+                                        {
+                                            "type": "assign",
+                                            "target": {
+                                                "pointer": {
+                                                    "type": "keyOf",
+                                                    "keyOf": {
+                                                        "pointer": {
+                                                            "type": "callGetter",
+                                                            "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                                                            "thisPointer": {
+                                                                "type": "reference",
+                                                                "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                                                            }
+                                                        },
+                                                        "key": {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": "Reputation"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "typeInfo": {
+                                                    "type": 2,
+                                                    "required": true
+                                                }
+                                            },
+                                            "operator": "++",
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "type": 2,
+                                                        "required": true
+                                                    },
+                                                    "value": 1
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
                         }
                     ],
                     "toNodeId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a"
@@ -4680,7 +4787,7 @@
                         "height": 160,
                         "isOpen": true
                     },
-                    "name": null,
+                    "name": "Thank you!",
                     "linkedValues": [
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -4688,8 +4795,307 @@
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "Fabulous! Enjoy your stay at Capitol OG.",
-                    "optionSettings": null
+                    "text": "Fabulous! Hey, I'd recommend staying away from the {{neo-var:1b88e8db-63e1-4e0b-aea9-5a846966c055}}s. Rumor has it they are causing an uptick in solar flares, but don't worry! That's what the hat is for!",
+                    "optionSettings": {
+                        "options": [
+                            {
+                                "id": "2019213b-8f57-41ec-8089-13c3023eee94",
+                                "text": "Thanks for the warning",
+                                "name": "Thanks",
+                                "variables": null,
+                                "toNodeId": "4620eef5-e9d4-4b2e-93cf-b1f039dbd79b"
+                            },
+                            {
+                                "id": "933f4e34-2bed-4899-a4c6-840fe6e04ece",
+                                "text": "Who are the {{neo-var:efb3c5f9-1341-4f43-ab03-00f73f6eec75}}s?",
+                                "name": "Who?",
+                                "toNodeId": "b5be7c15-28f8-4dda-a400-d48dfee783cb",
+                                "variables": {
+                                    "efb3c5f9-1341-4f43-ab03-00f73f6eec75": {
+                                        "id": "efb3c5f9-1341-4f43-ab03-00f73f6eec75",
+                                        "displayPath": "Assets > Outposts > Mercurial > Name",
+                                        "getter": {
+                                            "parameters": [
+                                                {
+                                                    "id": "__this__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "id": "__root__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "__root__"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "__root__"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "id": "__context__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "__dialogue_context__"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "__dialogue_context__"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "instructions": [
+                                                {
+                                                    "type": "return",
+                                                    "pointer": {
+                                                        "type": "operation",
+                                                        "operation": {
+                                                            "type": "arithmetic",
+                                                            "arithmetic": {
+                                                                "type": "+",
+                                                                "pointers": [
+                                                                    {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "type": 3,
+                                                                                "required": true
+                                                                            },
+                                                                            "value": ""
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        "type": "keyOf",
+                                                                        "keyOf": {
+                                                                            "pointer": {
+                                                                                "type": "reference",
+                                                                                "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                            },
+                                                                            "key": {
+                                                                                "type": "value",
+                                                                                "value": {
+                                                                                    "typeInfo": {
+                                                                                        "type": 3,
+                                                                                        "required": true
+                                                                                    },
+                                                                                    "value": "Name"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            }
+                                        },
+                                        "label": "Name",
+                                        "pointer": {
+                                            "type": "keyOf",
+                                            "keyOf": {
+                                                "pointer": {
+                                                    "type": "reference",
+                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                },
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 3,
+                                                            "required": true
+                                                        },
+                                                        "value": "Name"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                                        "typeInfo": {
+                                            "type": 3,
+                                            "required": true
+                                        }
+                                    }
+                                }
+                            }
+                        ],
+                        "saveChoice": null
+                    },
+                    "variables": {
+                        "1b88e8db-63e1-4e0b-aea9-5a846966c055": {
+                            "id": "1b88e8db-63e1-4e0b-aea9-5a846966c055",
+                            "displayPath": "Assets > Outposts > Mercurial > Name",
+                            "getter": {
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__root__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__dialogue_context__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    }
+                                ],
+                                "instructions": [
+                                    {
+                                        "type": "return",
+                                        "pointer": {
+                                            "type": "operation",
+                                            "operation": {
+                                                "type": "arithmetic",
+                                                "arithmetic": {
+                                                    "type": "+",
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "keyOf",
+                                                            "keyOf": {
+                                                                "pointer": {
+                                                                    "type": "reference",
+                                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                },
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "type": 3,
+                                                                            "required": true
+                                                                        },
+                                                                        "value": "Name"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                }
+                            },
+                            "label": "Name",
+                            "pointer": {
+                                "type": "keyOf",
+                                "keyOf": {
+                                    "pointer": {
+                                        "type": "reference",
+                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                    },
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            },
+                                            "value": "Name"
+                                        }
+                                    }
+                                }
+                            },
+                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                            "typeInfo": {
+                                "type": 3,
+                                "required": true
+                            }
+                        }
+                    }
                 },
                 "4246b2de-dfd3-4de5-b2c0-f340026a8625": {
                     "id": "4246b2de-dfd3-4de5-b2c0-f340026a8625",
@@ -4701,7 +5107,7 @@
                         "height": 160,
                         "isOpen": true
                     },
-                    "name": null,
+                    "name": "Not fashionable",
                     "linkedValues": [
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -4710,7 +5116,8 @@
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
                     "text": "That makes sense, not everyone can pull off such fashion.",
-                    "optionSettings": null
+                    "optionSettings": null,
+                    "toNodeId": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8"
                 },
                 "37137d01-a012-423b-9760-ef9bc8b9f1c2": {
                     "id": "37137d01-a012-423b-9760-ef9bc8b9f1c2",
@@ -4722,7 +5129,7 @@
                         "height": 160,
                         "isOpen": true
                     },
-                    "name": null,
+                    "name": "Shock",
                     "linkedValues": [
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -4736,16 +5143,1387 @@
                             {
                                 "id": "b24ed163-2369-4bcb-9f1e-12712cb0c3be",
                                 "text": "So you haven't noticed anything strange?",
-                                "name": "Question"
+                                "name": "Question",
+                                "toNodeId": "85859d34-8444-410d-8c77-fed6401527c5"
                             },
                             {
                                 "id": "5e6af9dc-e006-4e13-8937-0eee7764186d",
-                                "text": "I know it was you (lie)",
-                                "name": "Accuse"
+                                "text": "I know it was you <i>(lie)</i>",
+                                "name": "Accuse",
+                                "toNodeId": "9d3b6734-3e17-4f92-a2d0-79931808728b"
                             }
                         ],
                         "saveChoice": true
                     }
+                },
+                "85859d34-8444-410d-8c77-fed6401527c5": {
+                    "id": "85859d34-8444-410d-8c77-fed6401527c5",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 1193,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Strange cult",
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        },
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 0
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "Strange? Hmm...the {{neo-var:3d4c1bc4-2b85-4bcc-9698-ae2bb98d68cd}}s are a strange bunch, constantly staring into the sun. Even with all the solar flares we've been having lately! Blind as a bat, yep.",
+                    "optionSettings": null,
+                    "variables": {
+                        "3d4c1bc4-2b85-4bcc-9698-ae2bb98d68cd": {
+                            "id": "3d4c1bc4-2b85-4bcc-9698-ae2bb98d68cd",
+                            "displayPath": "Assets > Outposts > Mercurial > Name",
+                            "getter": {
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__root__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__dialogue_context__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    }
+                                ],
+                                "instructions": [
+                                    {
+                                        "type": "return",
+                                        "pointer": {
+                                            "type": "operation",
+                                            "operation": {
+                                                "type": "arithmetic",
+                                                "arithmetic": {
+                                                    "type": "+",
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "keyOf",
+                                                            "keyOf": {
+                                                                "pointer": {
+                                                                    "type": "reference",
+                                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                },
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "type": 3,
+                                                                            "required": true
+                                                                        },
+                                                                        "value": "Name"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                }
+                            },
+                            "label": "Name",
+                            "pointer": {
+                                "type": "keyOf",
+                                "keyOf": {
+                                    "pointer": {
+                                        "type": "reference",
+                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                    },
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            },
+                                            "value": "Name"
+                                        }
+                                    }
+                                }
+                            },
+                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                            "typeInfo": {
+                                "type": 3,
+                                "required": true
+                            }
+                        }
+                    },
+                    "toNodeId": "3d2bccf1-71e6-4f85-99ef-a4a2c208a52e"
+                },
+                "7a457b41-7a06-43d2-a3e4-c6d2f1bbf41b": {
+                    "id": "7a457b41-7a06-43d2-a3e4-c6d2f1bbf41b",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 1193,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Jerk",
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "Wow. You're a real jerk, you know that?",
+                    "optionSettings": null,
+                    "toNodeId": "d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5"
+                },
+                "9d3b6734-3e17-4f92-a2d0-79931808728b": {
+                    "id": "9d3b6734-3e17-4f92-a2d0-79931808728b",
+                    "type": 2,
+                    "layout": {
+                        "x": 220,
+                        "y": 1193,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Lose reputation action",
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "actions": [
+                        {
+                            "id": "eec3e59e-8492-4fcc-aa7f-bc7c5df841a7",
+                            "type": 0,
+                            "logic": {
+                                "type": 0,
+                                "action": {
+                                    "parameters": [],
+                                    "typeInfo": {
+                                        "type": 0,
+                                        "required": true
+                                    },
+                                    "instructions": [
+                                        {
+                                            "type": "assign",
+                                            "target": {
+                                                "pointer": {
+                                                    "type": "keyOf",
+                                                    "keyOf": {
+                                                        "pointer": {
+                                                            "type": "callGetter",
+                                                            "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                                                            "thisPointer": {
+                                                                "type": "variable",
+                                                                "variableId": "__this__"
+                                                            }
+                                                        },
+                                                        "key": {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": "Reputation"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "typeInfo": {
+                                                    "type": 2,
+                                                    "required": true
+                                                }
+                                            },
+                                            "operator": "-=",
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "type": 2,
+                                                        "required": true
+                                                    },
+                                                    "value": 1
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "toNodeId": "7a457b41-7a06-43d2-a3e4-c6d2f1bbf41b"
+                },
+                "d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5": {
+                    "id": "d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 1501,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Blame the mercurials",
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "All I know is that there have been an increase in solar flares. Rumor has it the {{neo-var:6eae5e82-7cd0-488c-8278-c4888b451e44}}s know more. Now get out of here.",
+                    "optionSettings": null,
+                    "variables": {
+                        "6eae5e82-7cd0-488c-8278-c4888b451e44": {
+                            "id": "6eae5e82-7cd0-488c-8278-c4888b451e44",
+                            "displayPath": "Assets > Outposts > Mercurial > Name",
+                            "getter": {
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__root__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__dialogue_context__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    }
+                                ],
+                                "instructions": [
+                                    {
+                                        "type": "return",
+                                        "pointer": {
+                                            "type": "operation",
+                                            "operation": {
+                                                "type": "arithmetic",
+                                                "arithmetic": {
+                                                    "type": "+",
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "keyOf",
+                                                            "keyOf": {
+                                                                "pointer": {
+                                                                    "type": "reference",
+                                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                },
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "type": 3,
+                                                                            "required": true
+                                                                        },
+                                                                        "value": "Name"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                }
+                            },
+                            "label": "Name",
+                            "pointer": {
+                                "type": "keyOf",
+                                "keyOf": {
+                                    "pointer": {
+                                        "type": "reference",
+                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                    },
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            },
+                                            "value": "Name"
+                                        }
+                                    }
+                                }
+                            },
+                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                            "typeInfo": {
+                                "type": 3,
+                                "required": true
+                            }
+                        }
+                    },
+                    "toNodeId": "3d2bccf1-71e6-4f85-99ef-a4a2c208a52e"
+                },
+                "3d2bccf1-71e6-4f85-99ef-a4a2c208a52e": {
+                    "id": "3d2bccf1-71e6-4f85-99ef-a4a2c208a52e",
+                    "type": 2,
+                    "layout": {
+                        "x": 220,
+                        "y": 1388,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "UNLOCK MERCIAL",
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "actions": [
+                        {
+                            "id": "e3f40736-99d3-4bfa-91c6-fc382cde87fd",
+                            "type": 0,
+                            "logic": {
+                                "type": 0,
+                                "action": {
+                                    "parameters": [],
+                                    "typeInfo": {
+                                        "type": 0,
+                                        "required": true
+                                    },
+                                    "instructions": [
+                                        {
+                                            "type": "assign",
+                                            "target": {
+                                                "pointer": {
+                                                    "type": "keyOf",
+                                                    "keyOf": {
+                                                        "pointer": {
+                                                            "type": "callGetter",
+                                                            "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                                                            "thisPointer": {
+                                                                "type": "variable",
+                                                                "variableId": "__this__"
+                                                            }
+                                                        },
+                                                        "key": {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": "Unlocked"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "typeInfo": {
+                                                    "type": 1,
+                                                    "required": true
+                                                }
+                                            },
+                                            "operator": "=",
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "type": 1,
+                                                        "required": true
+                                                    },
+                                                    "value": true
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                "b5be7c15-28f8-4dda-a400-d48dfee783cb": {
+                    "id": "b5be7c15-28f8-4dda-a400-d48dfee783cb",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 1989,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Optional Mercurial lore",
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "Strange bunch, those ones. They are a cult who moved to {{neo-var:cd44fa38-29aa-4fb0-93c9-e4bb1d8b4247}} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.",
+                    "optionSettings": null,
+                    "toNodeId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
+                    "variables": {
+                        "cd44fa38-29aa-4fb0-93c9-e4bb1d8b4247": {
+                            "id": "cd44fa38-29aa-4fb0-93c9-e4bb1d8b4247",
+                            "displayPath": "Assets > Outposts > Mercurial > Planet",
+                            "getter": {
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__root__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__dialogue_context__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    }
+                                ],
+                                "instructions": [
+                                    {
+                                        "type": "return",
+                                        "pointer": {
+                                            "type": "operation",
+                                            "operation": {
+                                                "type": "arithmetic",
+                                                "arithmetic": {
+                                                    "type": "+",
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "stringify",
+                                                            "pointer": {
+                                                                "type": "keyOf",
+                                                                "keyOf": {
+                                                                    "pointer": {
+                                                                        "type": "reference",
+                                                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                    },
+                                                                    "key": {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "type": 3,
+                                                                                "required": true
+                                                                            },
+                                                                            "value": "Planet"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "sourceType": {
+                                                                "type": 8,
+                                                                "required": true,
+                                                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                }
+                            },
+                            "label": "Planet",
+                            "pointer": {
+                                "type": "keyOf",
+                                "keyOf": {
+                                    "pointer": {
+                                        "type": "reference",
+                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                    },
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            },
+                                            "value": "Planet"
+                                        }
+                                    }
+                                }
+                            },
+                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Planet",
+                            "typeInfo": {
+                                "type": 8,
+                                "required": true,
+                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                            }
+                        }
+                    }
+                },
+                "4620eef5-e9d4-4b2e-93cf-b1f039dbd79b": {
+                    "id": "4620eef5-e9d4-4b2e-93cf-b1f039dbd79b",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 1989,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Enjoy your visit!",
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "Of course, enjoy your visit to {{neo-var:8635c9e7-a6a6-4e20-8cf0-12ad4b6b01c6}}!",
+                    "optionSettings": null,
+                    "variables": {
+                        "8635c9e7-a6a6-4e20-8cf0-12ad4b6b01c6": {
+                            "id": "8635c9e7-a6a6-4e20-8cf0-12ad4b6b01c6",
+                            "displayPath": "Outpost > Planet",
+                            "getter": {
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__root__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__dialogue_context__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    }
+                                ],
+                                "instructions": [
+                                    {
+                                        "type": "return",
+                                        "pointer": {
+                                            "type": "operation",
+                                            "operation": {
+                                                "type": "arithmetic",
+                                                "arithmetic": {
+                                                    "type": "+",
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "stringify",
+                                                            "pointer": {
+                                                                "type": "keyOf",
+                                                                "keyOf": {
+                                                                    "pointer": {
+                                                                        "type": "variable",
+                                                                        "variableId": "__this__"
+                                                                    },
+                                                                    "key": {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "type": 3,
+                                                                                "required": true
+                                                                            },
+                                                                            "value": "Planet"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "sourceType": {
+                                                                "type": 8,
+                                                                "required": true,
+                                                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                }
+                            },
+                            "label": "Planet",
+                            "pointer": {
+                                "type": "keyOf",
+                                "keyOf": {
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    },
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            },
+                                            "value": "Planet"
+                                        }
+                                    }
+                                }
+                            },
+                            "sourcePath": "this.Planet",
+                            "typeInfo": {
+                                "type": 8,
+                                "required": true,
+                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                            }
+                        }
+                    },
+                    "toNodeId": "3d2bccf1-71e6-4f85-99ef-a4a2c208a52e"
+                },
+                "46e5522e-fe64-49f3-b67e-fb0b1b2ba9d0": {
+                    "id": "46e5522e-fe64-49f3-b67e-fb0b1b2ba9d0",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 1385,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Impossible to reach",
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "How are you so poor?! You managed to lose the game in a way that should never happen, congratulations!",
+                    "optionSettings": null
+                },
+                "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8": {
+                    "id": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 1388,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Guilt trip mercurial warning",
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "Well, hope you brought another hat then. The sun has been flaring up lately. Something to do with the {{neo-var:6c6af0a0-bdf9-4349-9849-271d6e9659d8}}s.",
+                    "optionSettings": {
+                        "options": [
+                            {
+                                "id": "f60e18fa-7180-4873-80ea-71132f191bfe",
+                                "text": "Thanks for the warning",
+                                "name": "Thanks",
+                                "toNodeId": "4620eef5-e9d4-4b2e-93cf-b1f039dbd79b"
+                            },
+                            {
+                                "id": "2d63d4be-9f49-472c-92a8-d93a9da268c5",
+                                "text": "Who are the {{neo-var:268e2731-518f-4358-a288-737e5adaed73}}s?",
+                                "name": "Who?",
+                                "variables": {
+                                    "268e2731-518f-4358-a288-737e5adaed73": {
+                                        "id": "268e2731-518f-4358-a288-737e5adaed73",
+                                        "displayPath": "Assets > Outposts > Mercurial > Name",
+                                        "getter": {
+                                            "parameters": [
+                                                {
+                                                    "id": "__this__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "id": "__root__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "__root__"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "__root__"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "id": "__context__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "__dialogue_context__"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "__dialogue_context__"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "instructions": [
+                                                {
+                                                    "type": "return",
+                                                    "pointer": {
+                                                        "type": "operation",
+                                                        "operation": {
+                                                            "type": "arithmetic",
+                                                            "arithmetic": {
+                                                                "type": "+",
+                                                                "pointers": [
+                                                                    {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "type": 3,
+                                                                                "required": true
+                                                                            },
+                                                                            "value": ""
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        "type": "keyOf",
+                                                                        "keyOf": {
+                                                                            "pointer": {
+                                                                                "type": "reference",
+                                                                                "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                            },
+                                                                            "key": {
+                                                                                "type": "value",
+                                                                                "value": {
+                                                                                    "typeInfo": {
+                                                                                        "type": 3,
+                                                                                        "required": true
+                                                                                    },
+                                                                                    "value": "Name"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            }
+                                        },
+                                        "label": "Name",
+                                        "pointer": {
+                                            "type": "keyOf",
+                                            "keyOf": {
+                                                "pointer": {
+                                                    "type": "reference",
+                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                },
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 3,
+                                                            "required": true
+                                                        },
+                                                        "value": "Name"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                                        "typeInfo": {
+                                            "type": 3,
+                                            "required": true
+                                        }
+                                    }
+                                },
+                                "toNodeId": "0fd9e64b-e419-4adf-ac59-f3bc54ad11a0"
+                            }
+                        ],
+                        "saveChoice": null
+                    },
+                    "variables": {
+                        "6c6af0a0-bdf9-4349-9849-271d6e9659d8": {
+                            "id": "6c6af0a0-bdf9-4349-9849-271d6e9659d8",
+                            "displayPath": "Assets > Outposts > Mercurial > Name",
+                            "getter": {
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__root__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__dialogue_context__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    }
+                                ],
+                                "instructions": [
+                                    {
+                                        "type": "return",
+                                        "pointer": {
+                                            "type": "operation",
+                                            "operation": {
+                                                "type": "arithmetic",
+                                                "arithmetic": {
+                                                    "type": "+",
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "keyOf",
+                                                            "keyOf": {
+                                                                "pointer": {
+                                                                    "type": "reference",
+                                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                },
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "type": 3,
+                                                                            "required": true
+                                                                        },
+                                                                        "value": "Name"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                }
+                            },
+                            "label": "Name",
+                            "pointer": {
+                                "type": "keyOf",
+                                "keyOf": {
+                                    "pointer": {
+                                        "type": "reference",
+                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                    },
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            },
+                                            "value": "Name"
+                                        }
+                                    }
+                                }
+                            },
+                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                            "typeInfo": {
+                                "type": 3,
+                                "required": true
+                            }
+                        }
+                    }
+                },
+                "0fd9e64b-e419-4adf-ac59-f3bc54ad11a0": {
+                    "id": "0fd9e64b-e419-4adf-ac59-f3bc54ad11a0",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 1648,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Optional Mercurial lore",
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "Strange bunch, those ones. They are a cult who moved to {{neo-var:cde799f1-5d68-45a7-b8bb-8b6bfd121225}} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.",
+                    "optionSettings": null,
+                    "variables": {
+                        "cde799f1-5d68-45a7-b8bb-8b6bfd121225": {
+                            "id": "cde799f1-5d68-45a7-b8bb-8b6bfd121225",
+                            "displayPath": "Assets > Outposts > Mercurial > Planet",
+                            "getter": {
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__root__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__dialogue_context__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    }
+                                ],
+                                "instructions": [
+                                    {
+                                        "type": "return",
+                                        "pointer": {
+                                            "type": "operation",
+                                            "operation": {
+                                                "type": "arithmetic",
+                                                "arithmetic": {
+                                                    "type": "+",
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "stringify",
+                                                            "pointer": {
+                                                                "type": "keyOf",
+                                                                "keyOf": {
+                                                                    "pointer": {
+                                                                        "type": "reference",
+                                                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                    },
+                                                                    "key": {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "type": 3,
+                                                                                "required": true
+                                                                            },
+                                                                            "value": "Planet"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "sourceType": {
+                                                                "type": 8,
+                                                                "required": true,
+                                                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                }
+                            },
+                            "label": "Planet",
+                            "pointer": {
+                                "type": "keyOf",
+                                "keyOf": {
+                                    "pointer": {
+                                        "type": "reference",
+                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                    },
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            },
+                                            "value": "Planet"
+                                        }
+                                    }
+                                }
+                            },
+                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Planet",
+                            "typeInfo": {
+                                "type": 8,
+                                "required": true,
+                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                            }
+                        }
+                    },
+                    "toNodeId": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8"
                 }
             },
             "linkedValues": [
@@ -4793,7 +6571,7 @@
             "id": "3e842799-4859-4fbc-a317-8640bc6875e5",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T21:19:16.082Z",
-            "updatedAt": "2026-05-11T04:03:01.065Z"
+            "updatedAt": "2026-05-11T21:10:19.806Z"
         },
         "ffff9f70-1a3a-4a7f-90cc-02c43861d602": {
             "_id": "69fd82fe648f056c98420265",
