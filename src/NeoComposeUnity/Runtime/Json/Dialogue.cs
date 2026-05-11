@@ -136,6 +136,7 @@ namespace NeoCompose.Runtime.Json
     public class DialogueTextNode : DialogueBodyNode
     {
         public string text = null!;
+        public Dictionary<string, DialogueTextVariable>? variables;
         public DialogueOptionSettings? optionSettings;
     }
 
@@ -173,9 +174,21 @@ namespace NeoCompose.Runtime.Json
     {
         public string id = null!;
         public string text = null!;
+        public Dictionary<string, DialogueTextVariable>? variables;
         public string? name;
         public string? toNodeId;
         public DialogueTextOptionSettings? settings;
+    }
+
+    public class DialogueTextVariable
+    {
+        public string id = null!;
+        public string sourcePath = null!;
+        public string displayPath = null!;
+        public string label = null!;
+        public TypeInfo typeInfo = null!;
+        public Pointer pointer = null!;
+        public FunctionWithReturnType getter = null!;
     }
 
     public class DialogueTextOptionSettings

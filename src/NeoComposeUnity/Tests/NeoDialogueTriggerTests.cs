@@ -403,6 +403,78 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void TextNodeVariables_InterpolateBeforeOnShow()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-text-variables-root", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(shown);
+            Assert.AreEqual("Score 1, asset score 3.", shown!.Text);
+        }
+
+        [Test]
+        public void TextNodeVariables_UseTextPrimaryWithDialoguePrimaryFallback()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => ResolveClientValue(client, valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-text-variable-primary", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(shown);
+            Assert.AreEqual("Hello Compass.", shown!.Text);
+        }
+
+        [Test]
+        public void OptionTextVariables_UseParentTextNodeContextBeforeOptionsAreExposed()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => ResolveClientValue(client, valueId));
+            Assert.IsTrue(root.TryTrigger("dialogue-option-variable-primary", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(shown);
+            Assert.AreEqual(1, shown!.Options.Count);
+            Assert.AreEqual("Take Compass", shown.Options[0].Text);
+        }
+
+        [Test]
+        public void TextNodeVariables_FailThroughDialogueErrorPath()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-text-variable-missing", out NeoDialogue dialogue));
+            System.Exception? error = null;
+            bool showed = false;
+            dialogue.OnShow += _ => showed = true;
+            dialogue.OnError += ex => error = ex;
+
+            dialogue.Start();
+
+            Assert.IsFalse(showed);
+            Assert.IsNotNull(error);
+            StringAssert.Contains("references missing text variable", error!.Message);
+            Assert.AreEqual(NeoDialogueState.Disposed, dialogue.State);
+        }
+
+        [Test]
         public void Start_ExposesTextNodeLinkedValues()
         {
             var client = CreateClient();
@@ -1192,6 +1264,7 @@ namespace NeoCompose.Tests
                         value = new Dictionary<string, string>
                         {
                             ["Items"] = "assets-items-value",
+                            ["Score"] = "asset-score-value",
                         },
                     },
                     ["asset-score-value"] = new NumberAttributeValue
@@ -1660,6 +1733,10 @@ namespace NeoCompose.Tests
                         "Text Linked Values",
                         "group-standard",
                         textLinkedValueIds: new[] { "text-linked-value-a" }),
+                    ["dialogue-text-variables-root"] = TextVariablesRootDialogue(),
+                    ["dialogue-text-variable-primary"] = TextVariablePrimaryDialogue(),
+                    ["dialogue-option-variable-primary"] = OptionVariablePrimaryDialogue(),
+                    ["dialogue-text-variable-missing"] = TextVariableMissingDialogue(),
                     ["dialogue-lookup-a"] = Dialogue(
                         "dialogue-lookup-a",
                         "Lookup A",
@@ -2143,6 +2220,135 @@ namespace NeoCompose.Tests
             };
         }
 
+        private static Dialogue TextVariablesRootDialogue()
+        {
+            return new Dialogue
+            {
+                id = "dialogue-text-variables-root",
+                _id = "dialogue-text-variables-root",
+                projectId = ProjectId,
+                name = "Text Variables Root Dialogue",
+                description = null,
+                linkedValues = new DialogueLinkedValue[0],
+                settings = new DialogueSettings(),
+                primaryLinkedValueId = null,
+                triggerNode = Trigger("dialogue-text-variables-root", "text-variable-root"),
+                nodes = new Dictionary<string, DialogueBodyNode>
+                {
+                    ["text-variable-root"] = TextNode(
+                        "text-variable-root",
+                        "Score {{neo-var:score}}, asset score {{neo-var:asset-score}}.",
+                        variables: new Dictionary<string, DialogueTextVariable>
+                        {
+                            ["score"] = TextVariable(
+                                "score",
+                                RootKeyPointer("Save", "Score"),
+                                IntTypeInfo()),
+                            ["asset-score"] = TextVariable(
+                                "asset-score",
+                                RootKeyPointer("Assets", "Score"),
+                                IntTypeInfo()),
+                        }),
+                },
+                createdAt = Now,
+                updatedAt = Now,
+            };
+        }
+
+        private static Dialogue TextVariablePrimaryDialogue()
+        {
+            return new Dialogue
+            {
+                id = "dialogue-text-variable-primary",
+                _id = "dialogue-text-variable-primary",
+                projectId = ProjectId,
+                name = "Text Variable Primary Dialogue",
+                description = null,
+                linkedValues = new DialogueLinkedValue[0],
+                settings = new DialogueSettings(),
+                primaryLinkedValueId = "asset-item-value",
+                triggerNode = Trigger("dialogue-text-variable-primary", "text-variable-primary"),
+                nodes = new Dictionary<string, DialogueBodyNode>
+                {
+                    ["text-variable-primary"] = TextNode(
+                        "text-variable-primary",
+                        "Hello {{neo-var:item-name}}.",
+                        variables: new Dictionary<string, DialogueTextVariable>
+                        {
+                            ["item-name"] = TextVariable(
+                                "item-name",
+                                KeyOfPointer(ThisPointer(), "Name"),
+                                StringTypeInfo()),
+                        }),
+                },
+                createdAt = Now,
+                updatedAt = Now,
+            };
+        }
+
+        private static Dialogue OptionVariablePrimaryDialogue()
+        {
+            return new Dialogue
+            {
+                id = "dialogue-option-variable-primary",
+                _id = "dialogue-option-variable-primary",
+                projectId = ProjectId,
+                name = "Option Variable Primary Dialogue",
+                description = null,
+                linkedValues = new DialogueLinkedValue[0],
+                settings = new DialogueSettings(),
+                primaryLinkedValueId = "asset-item-value",
+                triggerNode = Trigger("dialogue-option-variable-primary", "text-option-variable"),
+                nodes = new Dictionary<string, DialogueBodyNode>
+                {
+                    ["text-option-variable"] = TextNode(
+                        "text-option-variable",
+                        "Pick one.",
+                        new[]
+                        {
+                            new NeoCompose.Runtime.Json.DialogueTextOption
+                            {
+                                id = "option-variable",
+                                text = "Take {{neo-var:item-name}}",
+                                variables = new Dictionary<string, DialogueTextVariable>
+                                {
+                                    ["item-name"] = TextVariable(
+                                        "item-name",
+                                        KeyOfPointer(ThisPointer(), "Name"),
+                                        StringTypeInfo()),
+                                },
+                            },
+                        }),
+                },
+                createdAt = Now,
+                updatedAt = Now,
+            };
+        }
+
+        private static Dialogue TextVariableMissingDialogue()
+        {
+            return new Dialogue
+            {
+                id = "dialogue-text-variable-missing",
+                _id = "dialogue-text-variable-missing",
+                projectId = ProjectId,
+                name = "Text Variable Missing Dialogue",
+                description = null,
+                linkedValues = new DialogueLinkedValue[0],
+                settings = new DialogueSettings(),
+                primaryLinkedValueId = null,
+                triggerNode = Trigger("dialogue-text-variable-missing", "text-variable-missing"),
+                nodes = new Dictionary<string, DialogueBodyNode>
+                {
+                    ["text-variable-missing"] = TextNode(
+                        "text-variable-missing",
+                        "Missing {{neo-var:missing}}."),
+                },
+                createdAt = Now,
+                updatedAt = Now,
+            };
+        }
+
         private static LogicCondition Condition(FunctionWithReturnType getter)
         {
             return new UILogicCondition
@@ -2172,6 +2378,30 @@ namespace NeoCompose.Tests
                     required = true,
                 },
                 JToken.FromObject(value));
+        }
+
+        private static FunctionWithReturnType StringGetterFromPointer(
+            Pointer pointer,
+            TypeInfo sourceType)
+        {
+            return new FunctionWithReturnType
+            {
+                typeInfo = StringTypeInfo(),
+                parameters = new Variable[0],
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new StringifyPointer
+                        {
+                            type = PointerKind.Stringify,
+                            pointer = pointer,
+                            sourceType = sourceType,
+                        },
+                    },
+                },
+            };
         }
 
         private static FunctionWithReturnType Getter(TypeInfo typeInfo, JToken value)
@@ -2284,6 +2514,19 @@ namespace NeoCompose.Tests
                         type = PointerKind.Variable,
                         variableId = "__context__",
                     },
+                    key = StringPointer(key),
+                },
+            };
+        }
+
+        private static Pointer KeyOfPointer(Pointer pointer, string key)
+        {
+            return new KeyOfPointer
+            {
+                type = PointerKind.KeyOf,
+                keyOf = new KeyOf
+                {
+                    pointer = pointer,
                     key = StringPointer(key),
                 },
             };
@@ -2556,7 +2799,8 @@ namespace NeoCompose.Tests
             string text,
             NeoCompose.Runtime.Json.DialogueTextOption[]? options = null,
             string? primaryLinkedValueId = null,
-            string[]? linkedValueIds = null)
+            string[]? linkedValueIds = null,
+            Dictionary<string, DialogueTextVariable>? variables = null)
         {
             return new DialogueTextNode
             {
@@ -2564,6 +2808,7 @@ namespace NeoCompose.Tests
                 type = DialogueNodeType.Text,
                 layout = new DialogueNodeLayout(),
                 text = text,
+                variables = variables,
                 primaryLinkedValueId = primaryLinkedValueId,
                 linkedValues = LinkedValues(linkedValueIds),
                 optionSettings = options == null
@@ -2573,6 +2818,51 @@ namespace NeoCompose.Tests
                         options = options,
                     },
             };
+        }
+
+        private static DialogueTriggerNode Trigger(string dialogueId, string toNodeId)
+        {
+            return new DialogueTriggerNode
+            {
+                id = $"{dialogueId}-trigger",
+                type = DialogueNodeType.Trigger,
+                layout = new DialogueNodeLayout(),
+                toNodeId = toNodeId,
+                linkedValues = new DialogueLinkedValue[0],
+                conditions = new LogicCondition[0],
+                dialogueGroupSettings = new DialogueGroupSettings
+                {
+                    dialogueGroupId = "group-standard",
+                    priority = new DialogueGroupPrioritySettings(),
+                },
+            };
+        }
+
+        private static DialogueTextVariable TextVariable(
+            string id,
+            Pointer pointer,
+            TypeInfo sourceType)
+        {
+            return new DialogueTextVariable
+            {
+                id = id,
+                sourcePath = id,
+                displayPath = id,
+                label = id,
+                typeInfo = sourceType,
+                pointer = pointer,
+                getter = StringGetterFromPointer(pointer, sourceType),
+            };
+        }
+
+        private static object? ResolveClientValue(NeoClient client, string valueId)
+        {
+            if (!client.TryGetValue(valueId, out AttributeValue? row)) return null;
+            var ctx = new NeoCompose.Runtime.NeoScript.NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null);
+            return NeoCompose.Runtime.NeoScript.NSGetterEvaluator.UnwrapRow(row, ctx);
         }
 
         private sealed class TestDialogues : NeoDialoguesBase

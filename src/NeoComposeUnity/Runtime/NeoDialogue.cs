@@ -236,6 +236,17 @@ namespace NeoCompose.Runtime
                 return;
             }
 
+            string text;
+            try
+            {
+                text = InterpolateTextNodeText(node);
+            }
+            catch (Exception ex)
+            {
+                Fail(ex);
+                return;
+            }
+
             bool optionSelected = false;
             bool saveChoice =
                 node.optionSettings?.saveChoice
@@ -271,11 +282,21 @@ namespace NeoCompose.Runtime
                         optionModel.name));
                     continue;
                 }
+                string optionText;
+                try
+                {
+                    optionText = InterpolateOptionText(node.id, optionModel);
+                }
+                catch (Exception ex)
+                {
+                    Fail(ex);
+                    return;
+                }
                 options.Add(new NeoDialogueTextOption(
                     Id,
                     node.id,
                     optionModel.id,
-                    optionModel.text,
+                    optionText,
                     optionModel.name,
                     saveChoice,
                     memoryStore,
@@ -309,7 +330,7 @@ namespace NeoCompose.Runtime
             OnShow?.Invoke(new NeoDialogueTextNode(
                 Id,
                 node.id,
-                node.text,
+                text,
                 node.name,
                 Context.CurrentPrimary,
                 ResolveLinkedValues(node.linkedValues),
@@ -319,6 +340,41 @@ namespace NeoCompose.Runtime
                 hiddenOptions,
                 () => EnterNode(node.toNodeId),
                 EnsureActive));
+        }
+
+        private string InterpolateTextNodeText(DialogueTextNodeModel node)
+        {
+            return NeoDialogueTextInterpolator.Interpolate(
+                client,
+                node.text,
+                node.variables,
+                Context,
+                memoryStore,
+                "text node",
+                node.id);
+        }
+
+        private string InterpolateOptionText(
+            string textNodeId,
+            DialogueTextOptionModel optionModel)
+        {
+            string? previousOptionId = Context.OptionId;
+            try
+            {
+                Context.OptionId = optionModel.id;
+                return NeoDialogueTextInterpolator.Interpolate(
+                    client,
+                    optionModel.text,
+                    optionModel.variables,
+                    Context,
+                    memoryStore,
+                    "text option",
+                    $"{textNodeId}/{optionModel.id}");
+            }
+            finally
+            {
+                Context.OptionId = previousOptionId;
+            }
         }
 
         private bool EvaluateOptionConditions(
