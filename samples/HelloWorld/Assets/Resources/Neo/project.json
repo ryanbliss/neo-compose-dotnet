@@ -6760,7 +6760,7 @@
         },
         "71478d85-4586-4ca8-8b95-226a391a9a5f": {
             "_id": "6a00216733f2641c2bfa810f",
-            "name": "Mercuial intro",
+            "name": "Mercurial intro",
             "description": null,
             "nodes": {
                 "2e4e76db-6945-4110-ab51-e15ae15b8ec2": {
@@ -6781,7 +6781,7 @@
                         }
                     ],
                     "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
-                    "text": "Sup",
+                    "text": "Hello, brave traveler. We've been expecting you.",
                     "optionSettings": null
                 }
             },
@@ -6830,7 +6830,7 @@
             "id": "71478d85-4586-4ca8-8b95-226a391a9a5f",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-10T06:10:47.246Z",
-            "updatedAt": "2026-05-11T22:44:22.518Z"
+            "updatedAt": "2026-05-11T23:22:34.014Z"
         },
         "5385d04c-b623-40f5-8032-c97d4f90073d": {
             "_id": "6a00278433f2641c2bfa8110",
@@ -6880,6 +6880,294 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-10T06:36:52.444Z",
             "updatedAt": "2026-05-10T06:41:08.349Z"
+        },
+        "2e65254c-7b5a-4bf0-ba4a-319352b403e3": {
+            "_id": "6a02636713f8e0589f97bba1",
+            "name": "Shuffle 1",
+            "description": null,
+            "nodes": {
+                "eeb47238-5622-43d3-b873-9118439f8ab0": {
+                    "id": "eeb47238-5622-43d3-b873-9118439f8ab0",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 283,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "Hello again!",
+                    "optionSettings": null
+                }
+            },
+            "linkedValues": [
+                {
+                    "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "source": 3
+                }
+            ],
+            "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+            "settings": {
+                "defaultSaveOptionChoices": true
+            },
+            "triggerNode": {
+                "id": "2b36f4cf-c31c-4a13-bc61-8737e7f0685a",
+                "type": 0,
+                "layout": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 320,
+                    "height": 160,
+                    "isOpen": true
+                },
+                "name": null,
+                "linkedValues": [
+                    {
+                        "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                        "source": 3
+                    }
+                ],
+                "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                "conditions": [],
+                "dialogueGroupSettings": {
+                    "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+                    "lookupValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "priority": {
+                        "priorityTypeId": null,
+                        "relativeOrder": null
+                    }
+                },
+                "occurrenceLimitSettings": null,
+                "toNodeId": "eeb47238-5622-43d3-b873-9118439f8ab0"
+            },
+            "id": "2e65254c-7b5a-4bf0-ba4a-319352b403e3",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-11T23:16:55.066Z",
+            "updatedAt": "2026-05-11T23:17:45.288Z"
+        },
+        "f7c77cd0-bf01-421f-aecf-f245921bbeec": {
+            "_id": "6a02639d13f8e0589f97bba2",
+            "name": "Shuffle 2",
+            "description": null,
+            "nodes": {
+                "5b0605a8-4a4c-479b-bcb5-6dffca4e3f4a": {
+                    "id": "5b0605a8-4a4c-479b-bcb5-6dffca4e3f4a",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 283,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [
+                        {
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "Wow, great to see you!",
+                    "optionSettings": null
+                }
+            },
+            "linkedValues": [
+                {
+                    "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "source": 3
+                }
+            ],
+            "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+            "settings": {
+                "defaultSaveOptionChoices": true
+            },
+            "triggerNode": {
+                "id": "a57e479c-c1ee-4ef9-bcc3-1bc88275f841",
+                "type": 0,
+                "layout": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 320,
+                    "height": 160,
+                    "isOpen": true
+                },
+                "name": null,
+                "linkedValues": [
+                    {
+                        "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                        "source": 3
+                    }
+                ],
+                "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                "conditions": [],
+                "dialogueGroupSettings": {
+                    "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+                    "lookupValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "priority": {
+                        "priorityTypeId": null,
+                        "relativeOrder": null
+                    }
+                },
+                "occurrenceLimitSettings": null,
+                "toNodeId": "5b0605a8-4a4c-479b-bcb5-6dffca4e3f4a"
+            },
+            "id": "f7c77cd0-bf01-421f-aecf-f245921bbeec",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-11T23:17:49.692Z",
+            "updatedAt": "2026-05-11T23:18:06.782Z"
+        },
+        "50c76b46-1ac7-4c30-962d-0164a1f65637": {
+            "_id": "6a0263b813f8e0589f97bba3",
+            "name": "Shuffle 1",
+            "description": null,
+            "nodes": {
+                "4dca4c60-300f-48db-8edd-4fcd3da840b9": {
+                    "id": "4dca4c60-300f-48db-8edd-4fcd3da840b9",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 283,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "text": "All praise the sun!",
+                    "optionSettings": null
+                }
+            },
+            "linkedValues": [
+                {
+                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "source": 3
+                }
+            ],
+            "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+            "settings": {
+                "defaultSaveOptionChoices": true
+            },
+            "triggerNode": {
+                "id": "84bc85cd-c1b6-4a19-a3c5-342f25e962f3",
+                "type": 0,
+                "layout": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 320,
+                    "height": 160,
+                    "isOpen": true
+                },
+                "name": null,
+                "linkedValues": [
+                    {
+                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                        "source": 3
+                    }
+                ],
+                "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                "conditions": [],
+                "dialogueGroupSettings": {
+                    "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+                    "lookupValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "priority": {
+                        "priorityTypeId": null,
+                        "relativeOrder": null
+                    }
+                },
+                "occurrenceLimitSettings": null,
+                "toNodeId": "4dca4c60-300f-48db-8edd-4fcd3da840b9"
+            },
+            "id": "50c76b46-1ac7-4c30-962d-0164a1f65637",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-11T23:18:16.179Z",
+            "updatedAt": "2026-05-11T23:18:35.712Z"
+        },
+        "911d074c-e2e6-4fdc-933a-11f1cde605a0": {
+            "_id": "6a0263ce13f8e0589f97bba4",
+            "name": "Shuffle 2",
+            "description": null,
+            "nodes": {
+                "38fd172c-d4fb-4c62-823c-9300c6832e3c": {
+                    "id": "38fd172c-d4fb-4c62-823c-9300c6832e3c",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 283,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "text": "Sun bless you",
+                    "optionSettings": null
+                }
+            },
+            "linkedValues": [
+                {
+                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "source": 3
+                }
+            ],
+            "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+            "settings": {
+                "defaultSaveOptionChoices": true
+            },
+            "triggerNode": {
+                "id": "2de198bd-088b-4479-a520-617204310796",
+                "type": 0,
+                "layout": {
+                    "x": 0,
+                    "y": 0,
+                    "width": 320,
+                    "height": 160,
+                    "isOpen": true
+                },
+                "name": null,
+                "linkedValues": [
+                    {
+                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                        "source": 3
+                    }
+                ],
+                "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                "conditions": [],
+                "dialogueGroupSettings": {
+                    "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+                    "lookupValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "priority": {
+                        "priorityTypeId": null,
+                        "relativeOrder": null
+                    }
+                },
+                "occurrenceLimitSettings": null,
+                "toNodeId": "38fd172c-d4fb-4c62-823c-9300c6832e3c"
+            },
+            "id": "911d074c-e2e6-4fdc-933a-11f1cde605a0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-11T23:18:38.306Z",
+            "updatedAt": "2026-05-11T23:18:52.044Z"
         }
     },
     "dialogueGroups": {
@@ -6969,6 +7257,81 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T19:25:22.371Z",
             "updatedAt": "2026-05-07T21:08:55.687Z"
+        },
+        "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43": {
+            "_id": "6a02635e13f8e0589f97bba0",
+            "name": "Visits",
+            "type": 1,
+            "parentDialogueGroupId": "9acf9982-4b14-4cc1-bc26-5aba3dfa3f9a",
+            "conditions": [
+                {
+                    "type": 0,
+                    "getter": {
+                        "parameters": [],
+                        "typeInfo": {
+                            "type": 1,
+                            "required": true
+                        },
+                        "instructions": [
+                            {
+                                "type": "return",
+                                "pointer": {
+                                    "type": "operation",
+                                    "operation": {
+                                        "type": "boolean",
+                                        "expression": {
+                                            "condition": {
+                                                "type": "greaterThan",
+                                                "operand1": {
+                                                    "type": "keyOf",
+                                                    "keyOf": {
+                                                        "pointer": {
+                                                            "type": "callGetter",
+                                                            "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                                                            "thisPointer": {
+                                                                "type": "variable",
+                                                                "variableId": "__this__"
+                                                            }
+                                                        },
+                                                        "key": {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": "VisitCount"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "operand2": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 2,
+                                                            "required": true
+                                                        },
+                                                        "value": 0
+                                                    }
+                                                }
+                                            },
+                                            "connective": null
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                }
+            ],
+            "priorityGroupIdOverride": null,
+            "collectionAttributeId": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
+            "collectionValueId": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
+            "id": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-11T23:16:46.400Z",
+            "updatedAt": "2026-05-11T23:16:46.400Z"
         }
     },
     "priorityGroups": {

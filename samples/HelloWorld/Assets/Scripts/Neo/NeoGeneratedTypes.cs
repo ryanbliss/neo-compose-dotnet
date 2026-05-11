@@ -105,17 +105,33 @@ namespace HelloWorld.Assets.Scripts.Neo
     public sealed class OutpostsDialogues : NeoFolderDialogueGroup
     {
         public IntroductionsDialogues Introductions { get; }
+        public VisitsDialogues Visits { get; }
 
         internal OutpostsDialogues(NeoDialogues root, string groupId)
             : base(root, groupId)
         {
             Introductions = new IntroductionsDialogues(root, "9b1c8f42-18fc-4e34-9b46-3e1c138874bc");
+            Visits = new VisitsDialogues(root, "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43");
         }
     }
 
     public sealed class IntroductionsDialogues : NeoLookupDialogueGroup<ReadOnlyOutpost>
     {
         internal IntroductionsDialogues(NeoDialogues root, string groupId)
+            : base(root, groupId)
+        {
+        }
+
+        public bool TryTrigger(ReadOnlyOutpost value, out NeoDialogue dialogue) =>
+            TryTriggerLookup(value, out dialogue);
+
+        public bool TryTrigger(ReadOnlyOutpost value, out NeoDialogueTriggerResult result) =>
+            TryTriggerLookup(value, out result);
+    }
+
+    public sealed class VisitsDialogues : NeoLookupDialogueGroup<ReadOnlyOutpost>
+    {
+        internal VisitsDialogues(NeoDialogues root, string groupId)
             : base(root, groupId)
         {
         }

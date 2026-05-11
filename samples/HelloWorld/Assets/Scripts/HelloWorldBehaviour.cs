@@ -71,9 +71,14 @@ namespace HelloWorld.Assets.Scripts
 
         public void TriggerDialogue(ReadOnlyOutpost outpost)
         {
-            if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue))
+            UpdateUI();
+            if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue introDialogue))
             {
-                ShowDialogue(dialogue);
+                ShowDialogue(introDialogue);
+            }
+            else if (neo.Dialogues.Outposts.Visits.TryTrigger(outpost, out NeoDialogue visitDialogue))
+            {
+                ShowDialogue(visitDialogue);
             }
         }
 
@@ -120,6 +125,7 @@ namespace HelloWorld.Assets.Scripts
             CurrentOutpost.Save.VisitCount += 1;
             Debug.Log($"Inventory {neo.Save.Inventory.Ids.Count}");
             ClearDialogue();
+            UpdateUI();
         }
 
         public void OnDialogueError(Exception exception)
@@ -149,7 +155,7 @@ namespace HelloWorld.Assets.Scripts
             File.WriteAllText(SaveJsonPath, content);
         }
 
-        protected void Update()
+        protected void UpdateUI()
         {
             CoreUI.Render(
                 HelloWorldText, CurrentOutpost, Outposts, VisitedPlanets,
