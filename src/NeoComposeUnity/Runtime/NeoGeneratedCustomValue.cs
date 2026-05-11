@@ -42,6 +42,7 @@ namespace NeoCompose.Runtime
             subscriptions.Clear();
             node.OnChanged -= HandleNodeChanged;
             node.OnDisposed -= HandleNodeDisposed;
+            client.UnregisterGeneratedCustomValue(this, node);
         }
 
         /// <summary>

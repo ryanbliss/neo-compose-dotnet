@@ -17,49 +17,32 @@ namespace HelloWorld.Assets.Scripts
     /// </summary>
     internal sealed class HelloWorldUi : IDisposable
     {
-        private static readonly Planet[] AllPlanets =
-        {
-            Planet.mercury,
-            Planet.venus,
-            Planet.earth,
-            Planet.mars,
-            Planet.jupiter,
-        };
-
         private GameObject root;
         private Text title;
         private Text visitedMeta;
         private Text travelMeta;
         private RectTransform visitedGrid;
-        private readonly Dictionary<string, Button> planetButtons = new();
-        private readonly Dictionary<string, Text> planetButtonLabels = new();
+        private RectTransform outpostGrid;
+        private readonly Dictionary<string, Button> outpostButtons = new();
+        private readonly Dictionary<string, Text> outpostButtonLabels = new();
 
         public void Render(
             string text,
-            Planet world,
+            ReadOnlyOutpost currentOutpost,
+            IReadOnlyList<ReadOnlyOutpost> outposts,
             IReadOnlyList<PlanetVisit> visitedPlanets,
-            Action<Planet> onVisitPlanet,
+            Action<ReadOnlyOutpost> onVisitOutpost,
             Action onSave,
             Action onReset
         )
         {
-            EnsureBuilt(onVisitPlanet, onSave, onReset);
+            EnsureBuilt(onSave, onReset);
 
-            title.text = $"{text}\n<size=18><color=#A3B3CC>Currently orbiting {DisplayName(world)}</color></size>";
+            title.text = $"{text}\n<size=18><color=#A3B3CC>Currently visiting {currentOutpost.FullDisplayText}</color></size>";
             RebuildVisited(visitedPlanets);
+            RebuildOutposts(outposts, currentOutpost, onVisitOutpost);
             visitedMeta.text = $"{visitedPlanets.Select(visit => visit.World.optionId).Distinct().Count()} visited";
-            travelMeta.text = $"{AllPlanets.Length} destinations";
-
-            foreach (var planet in AllPlanets)
-            {
-                var current = planet.Equals(world);
-                var key = planet.optionId;
-                planetButtons[key].interactable = !current;
-                planetButtonLabels[key].text = $"Visit {DisplayName(planet)}";
-                planetButtonLabels[key].color = current
-                    ? new Color(0.62f, 0.68f, 0.76f)
-                    : Color.white;
-            }
+            travelMeta.text = $"{outposts.Count(outpost => outpost.Save.Unlocked)} unlocked";
         }
 
         public void Dispose()
@@ -70,7 +53,7 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        private void EnsureBuilt(Action<Planet> onVisitPlanet, Action onSave, Action onReset)
+        private void EnsureBuilt(Action onSave, Action onReset)
         {
             if (root != null) return;
 
@@ -93,7 +76,7 @@ namespace HelloWorld.Assets.Scripts
 
             var panel = CreatePanel(root.transform);
             BuildHeader(panel.transform, onSave, onReset);
-            BuildContent(panel.transform, onVisitPlanet);
+            BuildContent(panel.transform);
         }
 
         private static RectTransform CreatePanel(Transform parent)
@@ -154,7 +137,7 @@ namespace HelloWorld.Assets.Scripts
             CreateButton(actions, "Reset", 96f, 34f, false, onReset);
         }
 
-        private void BuildContent(Transform parent, Action<Planet> onVisitPlanet)
+        private void BuildContent(Transform parent)
         {
             var row = CreateRect(parent, "Content");
             row.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
@@ -167,7 +150,7 @@ namespace HelloWorld.Assets.Scripts
             layout.childForceExpandWidth = false;
 
             BuildVisitedCard(row);
-            BuildTravelCard(row, onVisitPlanet);
+            BuildTravelCard(row);
         }
 
         private void BuildVisitedCard(Transform parent)
@@ -185,27 +168,19 @@ namespace HelloWorld.Assets.Scripts
             grid.constraintCount = 3;
         }
 
-        private void BuildTravelCard(Transform parent, Action<Planet> onVisitPlanet)
+        private void BuildTravelCard(Transform parent)
         {
             var card = CreateCard(parent, "TravelCard", 0.58f);
-            CreateSectionHeader(card, "Travel", out travelMeta);
+            CreateSectionHeader(card, "Outposts", out travelMeta);
 
-            var gridRect = CreateRect(card, "PlanetButtons");
-            gridRect.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
-            var grid = gridRect.gameObject.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(172f, 44f);
+            outpostGrid = CreateRect(card, "OutpostButtons");
+            outpostGrid.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
+            var grid = outpostGrid.gameObject.AddComponent<GridLayoutGroup>();
+            grid.cellSize = new Vector2(260f, 46f);
             grid.spacing = new Vector2(10f, 10f);
             grid.childAlignment = TextAnchor.UpperLeft;
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = 3;
-
-            foreach (var planet in AllPlanets)
-            {
-                var captured = planet;
-                var button = CreateButton(gridRect, $"Visit {DisplayName(planet)}", 172f, 44f, true, () => onVisitPlanet(captured));
-                planetButtons[planet.optionId] = button;
-                planetButtonLabels[planet.optionId] = button.GetComponentInChildren<Text>();
-            }
+            grid.constraintCount = 2;
         }
 
         private static RectTransform CreateCard(Transform parent, string name, float widthRatio)
@@ -267,6 +242,54 @@ namespace HelloWorld.Assets.Scripts
             foreach (var visitedName in visitedNames)
             {
                 CreateChip(visitedGrid, visitedName);
+            }
+        }
+
+        private void RebuildOutposts(
+            IReadOnlyList<ReadOnlyOutpost> outposts,
+            ReadOnlyOutpost currentOutpost,
+            Action<ReadOnlyOutpost> onVisitOutpost)
+        {
+            var seen = new HashSet<string>();
+            var siblingIndex = 0;
+
+            foreach (var outpost in outposts)
+            {
+                var captured = outpost;
+                var key = outpost.valueId;
+                seen.Add(key);
+                var isCurrent = outpost.valueId == currentOutpost.valueId;
+                var unlocked = outpost.Save.Unlocked;
+                if (!outpostButtons.TryGetValue(key, out var button))
+                {
+                    button = CreateButton(
+                        outpostGrid,
+                        outpost.FullDisplayText,
+                        260f,
+                        46f,
+                        true,
+                        () => onVisitOutpost(captured));
+                    outpostButtons[key] = button;
+                    outpostButtonLabels[key] = button.GetComponentInChildren<Text>();
+                }
+
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(() => onVisitOutpost(captured));
+                button.transform.SetSiblingIndex(siblingIndex++);
+                button.interactable = unlocked && !isCurrent;
+
+                var label = outpostButtonLabels[key];
+                label.text = outpost.FullDisplayText;
+                label.color = unlocked
+                    ? (isCurrent ? new Color(0.62f, 0.68f, 0.76f) : Color.white)
+                    : new Color(0.50f, 0.55f, 0.63f);
+            }
+
+            foreach (var key in outpostButtons.Keys.Where(key => !seen.Contains(key)).ToArray())
+            {
+                DestroyObject(outpostButtons[key].gameObject);
+                outpostButtons.Remove(key);
+                outpostButtonLabels.Remove(key);
             }
         }
 

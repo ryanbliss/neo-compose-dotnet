@@ -293,108 +293,12 @@ namespace NeoCompose.Runtime
         {
             if (!client.saveValues.ContainsKey(rowId))
             {
-                if (!TryMaterializeSavePath(client, rowId))
+                if (!client.TryMaterializeSavePath(rowId))
                 {
                     throw new NSGetterRuntimeError(
                         $"Cannot mutate value '{rowId}' because it is not save-owned.");
                 }
             }
-        }
-
-        private static bool TryMaterializeSavePath(NeoClient client, string rowId)
-        {
-            string? rootValueId = client.save.value?.id;
-            if (string.IsNullOrEmpty(rootValueId)) return false;
-
-            var path = new List<string>();
-            if (!TryFindValuePath(client, rootValueId!, rowId, new HashSet<string>(), path))
-            {
-                return false;
-            }
-
-            for (int i = 0; i < path.Count; i++)
-            {
-                string pathValueId = path[i];
-                if (client.saveValues.ContainsKey(pathValueId)) continue;
-                if (!client.TryGetValue(pathValueId, out AttributeValue? row)) return false;
-
-                var clone = CloneValueRow(row);
-                if (i == 0)
-                {
-                    client.AddSaveValue(client.project.rootSaveFileAttributeId, clone);
-                }
-                else
-                {
-                    client.SetSaveValueSilently(clone);
-                }
-            }
-            return true;
-        }
-
-        private static bool TryFindValuePath(
-            NeoClient client,
-            string currentValueId,
-            string targetValueId,
-            HashSet<string> visited,
-            List<string> path)
-        {
-            if (!visited.Add(currentValueId)) return false;
-            path.Add(currentValueId);
-            if (currentValueId == targetValueId) return true;
-
-            if (client.TryGetValue(currentValueId, out AttributeValue? row))
-            {
-                switch (row)
-                {
-                    case ObjectAttributeValue obj when obj.value != null:
-                        foreach (var childValueId in obj.value.Values)
-                        {
-                            if (TryFindValuePath(client, childValueId, targetValueId, visited, path))
-                            {
-                                return true;
-                            }
-                        }
-                        break;
-                    case ArrayAttributeValue arr when arr.value != null:
-                        foreach (var childValueId in arr.value)
-                        {
-                            if (TryFindValuePath(client, childValueId, targetValueId, visited, path))
-                            {
-                                return true;
-                            }
-                        }
-                        break;
-                }
-            }
-
-            path.RemoveAt(path.Count - 1);
-            return false;
-        }
-
-        private static AttributeValue CloneValueRow(AttributeValue row)
-        {
-            AttributeValue clone = row switch
-            {
-                NullAttributeValue n => new NullAttributeValue { value = n.value },
-                BoolAttributeValue b => new BoolAttributeValue { value = b.value },
-                NumberAttributeValue n => new NumberAttributeValue { value = n.value },
-                StringAttributeValue s => new StringAttributeValue { value = s.value },
-                ArrayAttributeValue a => new ArrayAttributeValue
-                {
-                    value = a.value == null ? null : (string[])a.value.Clone(),
-                },
-                ObjectAttributeValue o => new ObjectAttributeValue
-                {
-                    value = o.value == null ? null : new Dictionary<string, string>(o.value),
-                },
-                _ => throw new NSGetterRuntimeError(
-                    $"Unsupported save value row type '{row.GetType().Name}'."),
-            };
-            clone.id = row.id;
-            clone.createdAt = row.createdAt;
-            clone.updatedAt = row.updatedAt;
-            clone.typeId = row.typeId;
-            return clone;
         }
 
         private static bool TryResolveCustomMemberAttribute(

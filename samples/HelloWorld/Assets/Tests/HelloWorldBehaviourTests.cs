@@ -171,7 +171,88 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void Behaviour_VisitPlanet_UpdatesGeneratedTextAndVisitedList()
+        public void GeneratedNSGetters_InRepeatedCustomValuesResolveAgainstEachOutpost()
+        {
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
+
+            var client = HelloWorldNeo.Load(
+                File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
+                loadSave,
+                handleSave);
+
+            _ = client.Save.Location.FullDisplayText;
+            var displayTexts = client.Assets.Outposts
+                .Select(outpost => outpost.FullDisplayText)
+                .ToArray();
+
+            Assert.Greater(displayTexts.Length, 3);
+            Assert.Contains("Mercurial, Mercury", displayTexts);
+            Assert.Contains("Venusian, Venus", displayTexts);
+            Assert.Contains("Capitol OG, Earth", displayTexts);
+            Assert.Greater(displayTexts.Distinct().Count(), 3);
+        }
+
+        [Test]
+        public void GeneratedNSGetters_SaveUnsafeResolvesPerOutpost()
+        {
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
+
+            var client = HelloWorldNeo.Load(
+                File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
+                loadSave,
+                handleSave);
+
+            var outposts = client.Assets.Outposts.ToArray();
+            Assert.Greater(outposts.Length, 3);
+
+            foreach (var outpost in outposts)
+            {
+                Assert.IsNotNull(outpost.SaveUnsafe, outpost.FullDisplayText);
+                Assert.AreEqual(
+                    outpost.valueId,
+                    client.Save.OutpostSaveMap.First(pair => pair.Value.valueId == outpost.SaveUnsafe!.valueId).Key,
+                    outpost.FullDisplayText);
+            }
+
+            Assert.AreEqual(outposts.Length, client.Save.OutpostSaveMap.Count);
+            Assert.AreEqual(
+                outposts.Length,
+                outposts.Select(outpost => outpost.SaveUnsafe!.valueId).Distinct().Count());
+        }
+
+        [Test]
+        public void GeneratedCustomValues_ReturnCachedInstances()
+        {
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
+
+            var client = HelloWorldNeo.Load(
+                File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
+                loadSave,
+                handleSave);
+
+            var firstRead = client.Assets.Outposts.ToArray();
+            var secondRead = client.Assets.Outposts.ToArray();
+            Assert.Greater(firstRead.Length, 3);
+            Assert.AreEqual(firstRead.Length, secondRead.Length);
+
+            for (int i = 0; i < firstRead.Length; i++)
+            {
+                Assert.AreSame(firstRead[i], secondRead[i], firstRead[i].FullDisplayText);
+            }
+
+            var outpost = firstRead[0];
+            Assert.AreSame(outpost.Save, outpost.Save);
+            Assert.AreSame(outpost.SaveUnsafe, outpost.SaveUnsafe);
+        }
+
+        [Test]
+        public void Behaviour_VisitOutpost_UpdatesLocationGeneratedTextAndVisitCounts()
         {
             string savePath = Path.Combine(Application.persistentDataPath, "save1.json");
             if (File.Exists(savePath))
@@ -187,16 +268,24 @@ namespace HelloWorld.Assets.Tests
 
                 Assert.AreEqual("Hello Earth!", behaviour.HelloWorldText);
                 Assert.AreEqual(Planet.earth, behaviour.World);
+                var startingOutpost = behaviour.CurrentOutpost;
                 CollectionAssert.AreEqual(
                     new[] { Planet.earth },
                     VisitedPlanets(behaviour));
 
-                behaviour.OnVisit(Planet.mars);
+                var destination = behaviour.Outposts.First(outpost =>
+                    outpost.valueId != startingOutpost.valueId);
+                destination.Save.Unlocked = true;
+                var startingVisitCount = destination.Save.VisitCount;
 
-                Assert.AreEqual("Hello Mars!", behaviour.HelloWorldText);
-                Assert.AreEqual(Planet.mars, behaviour.World);
+                behaviour.OnVisitOutpost(destination);
+
+                Assert.AreEqual(destination.valueId, behaviour.CurrentOutpost.valueId);
+                Assert.AreEqual(destination.Planet, behaviour.World);
+                Assert.AreEqual(HelloText(destination.Planet), behaviour.HelloWorldText);
+                Assert.AreEqual(startingVisitCount, destination.Save.VisitCount);
                 CollectionAssert.AreEqual(
-                    new[] { Planet.earth, Planet.mars },
+                    new[] { Planet.earth, destination.Planet },
                     VisitedPlanets(behaviour));
             }
             finally
@@ -224,8 +313,11 @@ namespace HelloWorld.Assets.Tests
                 var behaviour = go.AddComponent<HelloWorldBehaviour>();
                 behaviour.LoadClient();
 
-                behaviour.OnVisit(Planet.mars);
-                Assert.AreEqual("Hello Mars!", behaviour.HelloWorldText);
+                var destination = behaviour.Outposts.First(outpost =>
+                    outpost.valueId != behaviour.CurrentOutpost.valueId);
+                destination.Save.Unlocked = true;
+                behaviour.OnVisitOutpost(destination);
+                Assert.AreEqual(HelloText(destination.Planet), behaviour.HelloWorldText);
 
                 behaviour.OnResetSave();
 
@@ -260,22 +352,66 @@ namespace HelloWorld.Assets.Tests
             {
                 var behaviour = first.AddComponent<HelloWorldBehaviour>();
                 behaviour.LoadClient();
-                behaviour.OnVisit(Planet.mars);
+                var destination = behaviour.Outposts.First(outpost =>
+                    outpost.valueId != behaviour.CurrentOutpost.valueId);
+                destination.Save.Unlocked = true;
+                behaviour.OnVisitOutpost(destination);
                 behaviour.OnSave();
 
                 var reloaded = second.AddComponent<HelloWorldBehaviour>();
                 reloaded.LoadClient();
 
-                Assert.AreEqual("Hello Mars!", reloaded.HelloWorldText);
-                Assert.AreEqual(Planet.mars, reloaded.World);
+                Assert.AreEqual(HelloText(destination.Planet), reloaded.HelloWorldText);
+                Assert.AreEqual(destination.Planet, reloaded.World);
+                Assert.AreEqual(destination.valueId, reloaded.CurrentOutpost.valueId);
                 CollectionAssert.AreEqual(
-                    new[] { Planet.earth, Planet.mars },
+                    new[] { Planet.earth, destination.Planet },
                     VisitedPlanets(reloaded));
             }
             finally
             {
                 Object.DestroyImmediate(first);
                 Object.DestroyImmediate(second);
+                if (File.Exists(savePath))
+                {
+                    File.Delete(savePath);
+                }
+            }
+        }
+
+        [Test]
+        public void Behaviour_VisitOutpost_IgnoresLockedOutpost()
+        {
+            string savePath = Path.Combine(Application.persistentDataPath, "save1.json");
+            if (File.Exists(savePath))
+            {
+                File.Delete(savePath);
+            }
+
+            var go = new GameObject("HelloWorld");
+            try
+            {
+                var behaviour = go.AddComponent<HelloWorldBehaviour>();
+                behaviour.LoadClient();
+
+                var startingOutpost = behaviour.CurrentOutpost;
+                var lockedDestination = behaviour.Outposts.First(outpost =>
+                    outpost.valueId != startingOutpost.valueId);
+                lockedDestination.Save.Unlocked = false;
+                var startingVisitCount = lockedDestination.Save.VisitCount;
+
+                behaviour.OnVisitOutpost(lockedDestination);
+
+                Assert.AreEqual(startingOutpost.valueId, behaviour.CurrentOutpost.valueId);
+                Assert.AreEqual(Planet.earth, behaviour.World);
+                Assert.AreEqual(startingVisitCount, lockedDestination.Save.VisitCount);
+                CollectionAssert.AreEqual(
+                    new[] { Planet.earth },
+                    VisitedPlanets(behaviour));
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
                 if (File.Exists(savePath))
                 {
                     File.Delete(savePath);
@@ -291,6 +427,12 @@ namespace HelloWorld.Assets.Tests
                 planets.Add(visit.World);
             }
             return planets.ToArray();
+        }
+
+        private static string HelloText(Planet planet)
+        {
+            var value = planet.optionId;
+            return $"Hello {char.ToUpperInvariant(value[0])}{value.Substring(1)}!";
         }
     }
 }

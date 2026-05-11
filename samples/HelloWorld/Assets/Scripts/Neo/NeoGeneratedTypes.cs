@@ -382,11 +382,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyAssets Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyAssets(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyAssets(client, node),
+                };
+            });
         }
 
         public ReadOnlyComputedText Computed
@@ -523,11 +526,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Assets CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new Assets(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Assets(client, node),
+                };
+            });
         }
 
         public new ComputedText Computed
@@ -618,11 +624,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlySave Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlySave(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlySave(client, node),
+                };
+            });
         }
 
         public Planet World
@@ -861,11 +870,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Save CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new Save(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Save(client, node),
+                };
+            });
         }
 
         public new Planet World
@@ -1023,11 +1035,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyComputedText Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyComputedText(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyComputedText(client, node),
+                };
+            });
         }
 
         public string baseText
@@ -1050,7 +1065,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("fullText").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("fullText").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return (string)result.value!;
             }
@@ -1137,11 +1152,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ComputedText CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ComputedText(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ComputedText(client, node),
+                };
+            });
         }
 
         public new string baseText
@@ -1172,7 +1190,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("fullText").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("fullText").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return (string)result.value!;
             }
@@ -1223,11 +1241,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyPlanetVisit Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyPlanetVisit(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyPlanetVisit(client, node),
+                };
+            });
         }
 
         public Planet World
@@ -1319,11 +1340,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static PlanetVisit CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new PlanetVisit(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new PlanetVisit(client, node),
+                };
+            });
         }
 
         public new Planet World
@@ -1393,11 +1417,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyLookupContainer Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyLookupContainer(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyLookupContainer(client, node),
+                };
+            });
         }
 
         public NeoReadOnlyDictionary<ReadOnlyLookupEntry> LookupList
@@ -1500,11 +1527,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static LookupContainer CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new LookupContainer(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new LookupContainer(client, node),
+                };
+            });
         }
 
         public new NeoDictionary<LookupEntry> LookupList
@@ -1570,11 +1600,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyLookupEntry Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyLookupEntry(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyLookupEntry(client, node),
+                };
+            });
         }
 
         public string Name
@@ -1648,11 +1681,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static LookupEntry CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new LookupEntry(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new LookupEntry(client, node),
+                };
+            });
         }
 
         public new string Name
@@ -1706,11 +1742,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyNeoChoiceLog Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyNeoChoiceLog(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyNeoChoiceLog(client, node),
+                };
+            });
         }
 
         public string ChoiceId
@@ -1784,11 +1823,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoChoiceLog CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new NeoChoiceLog(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoChoiceLog(client, node),
+                };
+            });
         }
 
         public new string ChoiceId
@@ -1842,11 +1884,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyNeoTextNodeMemory Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyNeoTextNodeMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyNeoTextNodeMemory(client, node),
+                };
+            });
         }
 
         public int VisitCount
@@ -1885,7 +1930,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return (bool)result.value!;
             }
@@ -2007,11 +2052,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoTextNodeMemory CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new NeoTextNodeMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoTextNodeMemory(client, node),
+                };
+            });
         }
 
         public new int VisitCount
@@ -2062,7 +2110,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return (bool)result.value!;
             }
@@ -2119,11 +2167,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyNeoDialogueMemory Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyNeoDialogueMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyNeoDialogueMemory(client, node),
+                };
+            });
         }
 
         public int VisitCount
@@ -2154,7 +2205,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return (bool)result.value!;
             }
@@ -2261,11 +2312,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoDialogueMemory CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new NeoDialogueMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoDialogueMemory(client, node),
+                };
+            });
         }
 
         public new int VisitCount
@@ -2304,7 +2358,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return (bool)result.value!;
             }
@@ -2358,11 +2412,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyNeoMemory Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyNeoMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyNeoMemory(client, node),
+                };
+            });
         }
 
         public NeoReadOnlyDictionary<ReadOnlyNeoDialogueMemory> DialogueMemories
@@ -2441,11 +2498,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static NeoMemory CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new NeoMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoMemory(client, node),
+                };
+            });
         }
 
         public new NeoDictionary<NeoDialogueMemory> DialogueMemories
@@ -2495,13 +2555,16 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyOutpost Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                "96818dab-90e5-4ab9-8f69-cce66e39e370" => new ReadOnlySaturnOutpost(client, node),
-                "a50efb7e-58f6-4342-906e-0b01f98b15af" => new ReadOnlyJupiterOutpost(client, node),
-                _ => new ReadOnlyOutpost(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "96818dab-90e5-4ab9-8f69-cce66e39e370" => new ReadOnlySaturnOutpost(client, node),
+                    "a50efb7e-58f6-4342-906e-0b01f98b15af" => new ReadOnlyJupiterOutpost(client, node),
+                    _ => new ReadOnlyOutpost(client, node),
+                };
+            });
         }
 
         public Planet Planet
@@ -2525,7 +2588,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
             }
@@ -2535,9 +2598,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+
+        public string FullDisplayText
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return (string)result.value!;
             }
         }
 
@@ -2552,6 +2625,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<OutpostSaveData?> SaveUnsafe = new("SaveUnsafe");
 
             public static readonly NeoField<OutpostSaveData> Save = new("Save");
+
+            public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -2562,6 +2637,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.SaveUnsafe] = () => SaveUnsafe,
                 [Fields.Save] = () => Save,
+                [Fields.FullDisplayText] = () => FullDisplayText,
             };
         }
 
@@ -2619,13 +2695,16 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Outpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(client, node),
-                "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(client, node),
-                _ => new Outpost(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(client, node),
+                    "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(client, node),
+                    _ => new Outpost(client, node),
+                };
+            });
         }
 
         public new Planet Planet
@@ -2657,7 +2736,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
             }
@@ -2667,9 +2746,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+
+        public new string FullDisplayText
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return (string)result.value!;
             }
         }
 
@@ -2684,6 +2773,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<OutpostSaveData?> SaveUnsafe = new("SaveUnsafe");
 
             public static readonly NeoField<OutpostSaveData> Save = new("Save");
+
+            public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -2694,6 +2785,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.SaveUnsafe] = () => SaveUnsafe,
                 [Fields.Save] = () => Save,
+                [Fields.FullDisplayText] = () => FullDisplayText,
             };
         }
 
@@ -2721,11 +2813,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyOutpostSaveData Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyOutpostSaveData(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyOutpostSaveData(client, node),
+                };
+            });
         }
 
         public bool Unlocked
@@ -2748,7 +2843,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return (bool)result.value!;
             }
@@ -2858,11 +2953,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static OutpostSaveData CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new OutpostSaveData(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new OutpostSaveData(client, node),
+                };
+            });
         }
 
         public new bool Unlocked
@@ -2893,7 +2991,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return (bool)result.value!;
             }
@@ -2959,11 +3057,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static ReadOnlyJupiterOutpost Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyJupiterOutpost(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyJupiterOutpost(client, node),
+                };
+            });
         }
 
         public JupiterMoon Moon
@@ -3066,11 +3167,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static JupiterOutpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new JupiterOutpost(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new JupiterOutpost(client, node),
+                };
+            });
         }
 
         public new Planet Planet
@@ -3102,7 +3206,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
             }
@@ -3112,9 +3216,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+
+        public new string FullDisplayText
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return (string)result.value!;
             }
         }
 
@@ -3143,6 +3257,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<OutpostSaveData> Save = new("Save");
 
+            public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
+
             public static readonly NeoField<JupiterMoon> Moon = new("Moon");
         }
 
@@ -3154,6 +3270,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.SaveUnsafe] = () => SaveUnsafe,
                 [Fields.Save] = () => Save,
+                [Fields.FullDisplayText] = () => FullDisplayText,
                 [Fields.Moon] = () => Moon,
             };
         }
@@ -3182,11 +3299,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static ReadOnlySaturnOutpost Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlySaturnOutpost(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlySaturnOutpost(client, node),
+                };
+            });
         }
 
         public new Planet Planet
@@ -3289,11 +3409,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal new static SaturnOutpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new SaturnOutpost(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new SaturnOutpost(client, node),
+                };
+            });
         }
 
         public new Planet Planet
@@ -3325,7 +3448,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
             }
@@ -3335,9 +3458,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Save").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
+            }
+        }
+
+        public new string FullDisplayText
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return (string)result.value!;
             }
         }
 
@@ -3366,6 +3499,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<OutpostSaveData> Save = new("Save");
 
+            public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
+
             public static readonly NeoField<SaturnMoon> Moon = new("Moon");
         }
 
@@ -3377,6 +3512,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.SaveUnsafe] = () => SaveUnsafe,
                 [Fields.Save] = () => Save,
+                [Fields.FullDisplayText] = () => FullDisplayText,
                 [Fields.Moon] = () => Moon,
             };
         }
@@ -3405,11 +3541,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static ReadOnlyItem Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyItem(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyItem(client, node),
+                };
+            });
         }
 
         public string Name
@@ -3506,11 +3645,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         internal static Item CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new Item(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Item(client, node),
+                };
+            });
         }
 
         public new string Name

@@ -1761,6 +1761,142 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-11T20:25:48.051Z",
             "updatedAt": "2026-05-11T20:25:48.051Z"
+        },
+        "514a79c5-dd23-4ede-9fc8-b07b3c866fe5": {
+            "_id": "6a02493213f8e0589f97bb9f",
+            "id": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
+            "name": "FullDisplayText",
+            "type": 10,
+            "locked": false,
+            "required": false,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-11T21:25:06.100Z",
+            "updatedAt": "2026-05-11T21:25:40.347Z",
+            "code": "\treturn $\"{this.Name}, {this.Planet}\";",
+            "returnTypeInfo": {
+                "type": 3,
+                "required": true
+            },
+            "getter": {
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                },
+                                "value": null
+                            }
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "__root__"
+                                },
+                                "value": null
+                            }
+                        }
+                    }
+                ],
+                "instructions": [
+                    {
+                        "type": "return",
+                        "pointer": {
+                            "type": "operation",
+                            "operation": {
+                                "type": "arithmetic",
+                                "arithmetic": {
+                                    "type": "+",
+                                    "pointers": [
+                                        {
+                                            "type": "keyOf",
+                                            "keyOf": {
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                },
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 3,
+                                                            "required": true
+                                                        },
+                                                        "value": "Name"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 3,
+                                                    "required": true
+                                                },
+                                                "value": ", "
+                                            }
+                                        },
+                                        {
+                                            "type": "stringify",
+                                            "pointer": {
+                                                "type": "keyOf",
+                                                "keyOf": {
+                                                    "pointer": {
+                                                        "type": "variable",
+                                                        "variableId": "__this__"
+                                                    },
+                                                    "key": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 3,
+                                                                "required": true
+                                                            },
+                                                            "value": "Planet"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "sourceType": {
+                                                "type": 8,
+                                                "required": true,
+                                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ],
+                "typeInfo": {
+                    "type": 3,
+                    "required": true
+                }
+            }
         }
     },
     "enums": {
@@ -2040,7 +2176,8 @@
                 "Planet": "3166fd08-4bdb-4df9-b100-ecccec859443",
                 "Name": "b56410b3-b2da-4681-897f-a25ce0a0ceb1",
                 "SaveUnsafe": "f66fba24-44d4-467c-98ac-4db1539910df",
-                "Save": "cccadaa5-0623-4a0f-9197-7175726c0e8b"
+                "Save": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                "FullDisplayText": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5"
             },
             "extendsTypeId": null,
             "isAbstract": false,
@@ -2048,7 +2185,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-07T17:52:15.777Z",
-            "updatedAt": "2026-05-07T20:03:41.389Z"
+            "updatedAt": "2026-05-11T21:25:06.277Z"
         },
         "8ccfe860-309f-428b-b74c-76a873bdea8a": {
             "_id": "69fcd25321f8b0238d0f67ef",
@@ -3282,10 +3419,10 @@
         "8cf66884-fb4a-4505-baea-fd2dfe40a5ff": {
             "_id": "69fce41021f8b0238d0f6844",
             "id": "8cf66884-fb4a-4505-baea-fd2dfe40a5ff",
-            "value": false,
+            "value": true,
             "typeId": null,
             "createdAt": "2026-05-07T19:12:16.655Z",
-            "updatedAt": "2026-05-07T19:12:16.655Z",
+            "updatedAt": "2026-05-11T22:40:17.026Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "3918da79-ae6d-4da7-a61f-e39d559f2faf": {
@@ -3325,7 +3462,7 @@
             "value": 0,
             "typeId": null,
             "createdAt": "2026-05-07T19:28:55.550Z",
-            "updatedAt": "2026-05-07T19:28:55.550Z",
+            "updatedAt": "2026-05-11T22:41:17.850Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "0705a0e0-7f9c-4a5b-953e-55f982e2b381": {
@@ -6625,7 +6762,29 @@
             "_id": "6a00216733f2641c2bfa810f",
             "name": "Mercuial intro",
             "description": null,
-            "nodes": {},
+            "nodes": {
+                "2e4e76db-6945-4110-ab51-e15ae15b8ec2": {
+                    "id": "2e4e76db-6945-4110-ab51-e15ae15b8ec2",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 283,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": null,
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "text": "Sup",
+                    "optionSettings": null
+                }
+            },
             "linkedValues": [
                 {
                     "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
@@ -6663,12 +6822,15 @@
                         "relativeOrder": 0
                     }
                 },
-                "occurrenceLimitSettings": null
+                "occurrenceLimitSettings": {
+                    "count": 1
+                },
+                "toNodeId": "2e4e76db-6945-4110-ab51-e15ae15b8ec2"
             },
             "id": "71478d85-4586-4ca8-8b95-226a391a9a5f",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-10T06:10:47.246Z",
-            "updatedAt": "2026-05-10T06:41:35.127Z"
+            "updatedAt": "2026-05-11T22:44:22.518Z"
         },
         "5385d04c-b623-40f5-8032-c97d4f90073d": {
             "_id": "6a00278433f2641c2bfa8110",

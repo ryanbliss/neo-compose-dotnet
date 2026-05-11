@@ -30,6 +30,15 @@ namespace NeoCompose.Runtime
             return NeoValueWritePayload.FromValue(value);
         }
 
+        public static TGenerated GetOrCreateGeneratedCustomValue<TGenerated>(
+            NeoClient client,
+            NeoAttributeCustom node,
+            Func<TGenerated> create)
+            where TGenerated : NeoGeneratedCustomValue
+        {
+            return client.GetOrCreateGeneratedCustomValue(node, create);
+        }
+
         public static object? ResolveCustomValue(
             NeoClient client,
             string valueId,
@@ -136,6 +145,16 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            foreach (var pair in client.saveOverrides)
+            {
+                if (pair.Value != valueId) continue;
+                if (client.TryGetAttribute(pair.Key, out Attribute? saveAttribute))
+                {
+                    attribute = saveAttribute;
+                    return true;
+                }
+            }
+
             foreach (var parent in EnumerateValues(client))
             {
                 if (parent.Value is not ObjectAttributeValue objectValue
@@ -147,10 +166,24 @@ namespace NeoCompose.Runtime
                 foreach (var pair in objectValue.value)
                 {
                     if (pair.Value != valueId) continue;
+                    if (TryInferAttributeForValueId(
+                            client,
+                            parent.Key,
+                            new HashSet<string>(visitingValueIds),
+                            out Attribute? parentAttribute)
+                        && TryResolveCollectionEntryAttribute(
+                            client,
+                            parentAttribute,
+                            out Attribute? parentEntryAttribute))
+                    {
+                        attribute = parentEntryAttribute;
+                        return true;
+                    }
+
                     if (!TryInferCustomTypeId(
                             client,
                             parent.Key,
-                            visitingValueIds,
+                            new HashSet<string>(visitingValueIds),
                             out string? parentTypeId)
                         || string.IsNullOrEmpty(parentTypeId)
                         || !client.types.TryGetValue(parentTypeId, out CustomType? parentType)
@@ -174,7 +207,7 @@ namespace NeoCompose.Runtime
                     && TryInferAttributeForValueId(
                         client,
                         parent.Key,
-                        visitingValueIds,
+                        new HashSet<string>(visitingValueIds),
                         out Attribute? collectionAttribute)
                     && TryResolveCollectionEntryAttribute(
                         client,
@@ -191,7 +224,7 @@ namespace NeoCompose.Runtime
                     && TryInferAttributeForValueId(
                         client,
                         parent.Key,
-                        visitingValueIds,
+                        new HashSet<string>(visitingValueIds),
                         out collectionAttribute)
                     && TryResolveCollectionEntryAttribute(
                         client,
@@ -893,21 +926,37 @@ namespace NeoCompose.Runtime
             if (value is T typed) return typed;
 
             string? valueId = ValueId(value);
-            if (string.IsNullOrEmpty(valueId)
-                || !client.TryGetValue(valueId, out ObjectAttributeValue? row)
-                || string.IsNullOrEmpty(row.typeId))
+            if (string.IsNullOrEmpty(valueId))
             {
                 throw new InvalidOperationException(
-                    "NSGetter returned a custom value without a resolvable backing value id.");
+                    $"NSGetter returned a custom value without a backing value id. Runtime value type: {value.GetType().FullName}.");
+            }
+
+            if (!client.TryGetValue(valueId, out AttributeValue? untypedRow))
+            {
+                throw new InvalidOperationException(
+                    $"NSGetter returned custom value id '{valueId}', but no backing value row exists. Runtime value type: {value.GetType().FullName}.");
+            }
+
+            if (untypedRow is not ObjectAttributeValue row)
+            {
+                throw new InvalidOperationException(
+                    $"NSGetter returned custom value id '{valueId}', but the backing row is not an object value. Row type: {untypedRow.GetType().FullName}.");
+            }
+            string? customTypeId = ResolveCustomValueTypeId(client, valueId!, row);
+            if (string.IsNullOrEmpty(customTypeId))
+            {
+                throw new InvalidOperationException(
+                    $"NSGetter returned custom value id '{valueId}', but the backing row does not declare a typeId and its owning attribute could not be inferred.");
             }
 
             var attribute = new CustomAttribute
             {
-                id = $"__neo_nsg_custom_{row.typeId}",
-                _id = $"__neo_nsg_custom_{row.typeId}",
+                id = $"__neo_nsg_custom_{customTypeId}",
+                _id = $"__neo_nsg_custom_{customTypeId}",
                 name = "NSGetterCustomValue",
                 type = AttributeType.Custom,
-                customTypeId = row.typeId,
+                customTypeId = customTypeId,
                 createdAt = row.createdAt,
                 updatedAt = row.updatedAt,
             };
@@ -916,8 +965,11 @@ namespace NeoCompose.Runtime
             {
                 if (!client.saveValues.ContainsKey(valueId))
                 {
-                    throw new InvalidOperationException(
-                        "NSGetter returned an asset-owned custom value where a saved value was expected.");
+                    if (!client.TryMaterializeSavePath(valueId))
+                    {
+                        throw new InvalidOperationException(
+                            "NSGetter returned an asset-owned custom value where a saved value was expected.");
+                    }
                 }
 
                 return savedFactory(

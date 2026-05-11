@@ -35,19 +35,23 @@ namespace HelloWorld.Assets.Scripts
             neo = HelloWorldNeo.Load(json, OnLoadSave, OnCommitSave);
             neo.Save.Inventory.OnChanged += OnInventoryChanged;
             bitsSubscription = neo.Save.OnChanged(Save.Fields.Bits, OnBitsChanged);
-            // reference lookup to one of the "Hello World" outputs in `neo.Assets.LookupContainer.LookupList`
-            Debug.Log(neo.Assets.LookupContainer.Lookup?.Name ?? "Lookup not selected");
             TriggerDialogue();
         }
 
         public string HelloWorldText => neo.Assets.Computed.fullText;
         public Planet World => neo.Save.World;
+        public ReadOnlyOutpost CurrentOutpost => neo.Save.Location;
+        public NeoReadOnlyList<ReadOnlyOutpost> Outposts => neo.Assets.Outposts;
         public NeoList<PlanetVisit> VisitedPlanets => neo.Save.Visited;
 
-        public void OnVisit(Planet planet)
+        public void OnVisitOutpost(ReadOnlyOutpost outpost)
         {
-            neo.Save.World = planet;
-            neo.Save.Visited.Add(new PlanetVisit(planet, CurrentUnixTime));
+            if (!outpost.Save.Unlocked) return;
+
+            neo.Save.Location = outpost;
+            neo.Save.World = outpost.Planet;
+            neo.Save.Visited.Add(new PlanetVisit(outpost.Planet, CurrentUnixTime));
+            TriggerDialogue(outpost);
         }
 
         protected void OnInventoryChanged()
@@ -62,7 +66,11 @@ namespace HelloWorld.Assets.Scripts
 
         public void TriggerDialogue()
         {
-            var outpost = neo.Save.Location;
+            TriggerDialogue(neo.Save.Location);
+        }
+
+        public void TriggerDialogue(ReadOnlyOutpost outpost)
+        {
             if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue))
             {
                 ShowDialogue(dialogue);
@@ -109,16 +117,9 @@ namespace HelloWorld.Assets.Scripts
 
         public void OnDialogueFinish()
         {
-            Debug.Log($"Inventory {string.Join(",", neo.Save.Inventory.Ids)}");
+            CurrentOutpost.Save.VisitCount += 1;
+            Debug.Log($"Inventory {neo.Save.Inventory.Ids.Count}");
             ClearDialogue();
-            string ifIWereBlueDialogueId = "6efd8f7b-7491-4646-b4cc-05589bca92ab";
-            if (neo.Dialogues.VisitCount(ifIWereBlueDialogueId) < 2)
-            {
-                if (neo.Dialogues.TryTrigger(ifIWereBlueDialogueId, out NeoDialogue dialogue))
-                {
-                    ShowDialogue(dialogue);
-                }
-            }
         }
 
         public void OnDialogueError(Exception exception)
@@ -151,8 +152,8 @@ namespace HelloWorld.Assets.Scripts
         protected void Update()
         {
             CoreUI.Render(
-                HelloWorldText, World, VisitedPlanets,
-                OnVisit, OnSave, OnResetSave
+                HelloWorldText, CurrentOutpost, Outposts, VisitedPlanets,
+                OnVisitOutpost, OnSave, OnResetSave
             );
         }
 
@@ -185,7 +186,7 @@ namespace HelloWorld.Assets.Scripts
         {
             if (node.Primary is ReadOnlyOutpost outpost)
             {
-                return $"{outpost.Name} - {outpost.Planet}";
+                return $"{outpost.FullDisplayText}";
             }
             return "Dialogue";
         }
@@ -198,6 +199,6 @@ namespace HelloWorld.Assets.Scripts
 
         private static string SaveJsonPath => $"{Application.persistentDataPath}/save1.json";
 
-        private static int CurrentUnixTime => (int)System.DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+        private static int CurrentUnixTime => (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
     }
 }

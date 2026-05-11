@@ -33,6 +33,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal IReadOnlyDictionary<string, NeoAttribute> nodes => nodesInternal;
         private readonly Dictionary<string, NeoAttribute> nodesInternal = new();
+        private readonly Dictionary<string, NeoGeneratedCustomValue> generatedValuesInternal = new();
 
         /// <summary>
         /// Read-only views over the underlying project + save maps.
@@ -163,6 +164,101 @@ namespace NeoCompose.Runtime
             {
                 SetSaveValue(row);
             }
+        }
+
+        internal bool TryMaterializeSavePath(string rowId)
+        {
+            string? rootValueId = save.value?.id;
+            if (string.IsNullOrEmpty(rootValueId)) return false;
+
+            var path = new List<string>();
+            if (!TryFindValuePath(rootValueId!, rowId, new HashSet<string>(), path))
+            {
+                return false;
+            }
+
+            for (int i = 0; i < path.Count; i++)
+            {
+                string pathValueId = path[i];
+                if (saveData.values.ContainsKey(pathValueId)) continue;
+                if (!TryGetValue(pathValueId, out AttributeValue? row)) return false;
+
+                var clone = CloneValueRow(row);
+                if (i == 0)
+                {
+                    AddSaveValue(project.rootSaveFileAttributeId, clone);
+                }
+                else
+                {
+                    SetSaveValueSilently(clone);
+                }
+            }
+            return true;
+        }
+
+        private bool TryFindValuePath(
+            string currentValueId,
+            string targetValueId,
+            HashSet<string> visited,
+            List<string> path)
+        {
+            if (!visited.Add(currentValueId)) return false;
+            path.Add(currentValueId);
+            if (currentValueId == targetValueId) return true;
+
+            if (TryGetValue(currentValueId, out AttributeValue? row))
+            {
+                switch (row)
+                {
+                    case ObjectAttributeValue obj when obj.value != null:
+                        foreach (var childValueId in obj.value.Values)
+                        {
+                            if (TryFindValuePath(childValueId, targetValueId, visited, path))
+                            {
+                                return true;
+                            }
+                        }
+                        break;
+                    case ArrayAttributeValue arr when arr.value != null:
+                        foreach (var childValueId in arr.value)
+                        {
+                            if (TryFindValuePath(childValueId, targetValueId, visited, path))
+                            {
+                                return true;
+                            }
+                        }
+                        break;
+                }
+            }
+
+            path.RemoveAt(path.Count - 1);
+            return false;
+        }
+
+        private static AttributeValue CloneValueRow(AttributeValue row)
+        {
+            AttributeValue clone = row switch
+            {
+                NullAttributeValue n => new NullAttributeValue { value = n.value },
+                BoolAttributeValue b => new BoolAttributeValue { value = b.value },
+                NumberAttributeValue n => new NumberAttributeValue { value = n.value },
+                StringAttributeValue s => new StringAttributeValue { value = s.value },
+                ArrayAttributeValue a => new ArrayAttributeValue
+                {
+                    value = a.value == null ? null : (string[])a.value.Clone(),
+                },
+                ObjectAttributeValue o => new ObjectAttributeValue
+                {
+                    value = o.value == null ? null : new Dictionary<string, string>(o.value),
+                },
+                _ => throw new System.InvalidOperationException(
+                    $"Unsupported save value row type '{row.GetType().Name}'."),
+            };
+            clone.id = row.id;
+            clone.createdAt = row.createdAt;
+            clone.updatedAt = row.updatedAt;
+            clone.typeId = row.typeId;
+            return clone;
         }
 
         /// <summary>
@@ -417,6 +513,33 @@ namespace NeoCompose.Runtime
             if (nodesInternal.TryGetValue(key, out NeoAttribute existing) && existing == node)
             {
                 nodesInternal.Remove(key);
+            }
+        }
+
+        internal TGenerated GetOrCreateGeneratedCustomValue<TGenerated>(
+            NeoAttributeCustom node,
+            System.Func<TGenerated> create)
+            where TGenerated : NeoGeneratedCustomValue
+        {
+            string key = MakeNodeKey(node.attribute.id, node.overrideValueId);
+            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedCustomValue existing))
+            {
+                if (existing is TGenerated match) return match;
+                existing.Dispose();
+            }
+
+            TGenerated generated = create();
+            generatedValuesInternal[key] = generated;
+            return generated;
+        }
+
+        internal void UnregisterGeneratedCustomValue(NeoGeneratedCustomValue generated, NeoAttributeCustom node)
+        {
+            string key = MakeNodeKey(node.attribute.id, node.overrideValueId);
+            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedCustomValue existing)
+                && ReferenceEquals(existing, generated))
+            {
+                generatedValuesInternal.Remove(key);
             }
         }
 
