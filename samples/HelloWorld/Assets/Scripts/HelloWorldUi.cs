@@ -20,8 +20,11 @@ namespace HelloWorld.Assets.Scripts
         private GameObject root;
         private Text title;
         private Text visitedMeta;
+        private Text bitsText;
+        private Text inventoryMeta;
         private Text travelMeta;
         private RectTransform visitedGrid;
+        private RectTransform inventoryList;
         private RectTransform outpostGrid;
         private readonly Dictionary<string, Button> outpostButtons = new();
         private readonly Dictionary<string, Text> outpostButtonLabels = new();
@@ -31,6 +34,8 @@ namespace HelloWorld.Assets.Scripts
             ReadOnlyOutpost currentOutpost,
             IReadOnlyList<ReadOnlyOutpost> outposts,
             IReadOnlyList<PlanetVisit> visitedPlanets,
+            int bits,
+            IReadOnlyList<ReadOnlyItem> inventory,
             Action<ReadOnlyOutpost> onVisitOutpost,
             Action onSave,
             Action onReset
@@ -40,8 +45,11 @@ namespace HelloWorld.Assets.Scripts
 
             title.text = $"{text}\n<size=18><color=#A3B3CC>Currently visiting {currentOutpost.FullDisplayText}</color></size>";
             RebuildVisited(visitedPlanets);
+            RebuildInventory(inventory);
             RebuildOutposts(outposts, currentOutpost, onVisitOutpost);
             visitedMeta.text = $"{visitedPlanets.Select(visit => visit.World.optionId).Distinct().Count()} visited";
+            bitsText.text = $"Bits: {bits}";
+            inventoryMeta.text = $"{inventory.Count} item{(inventory.Count == 1 ? "" : "s")}";
             travelMeta.text = $"{outposts.Count(outpost => outpost.Save.Unlocked)} unlocked";
         }
 
@@ -159,13 +167,30 @@ namespace HelloWorld.Assets.Scripts
             CreateSectionHeader(card, "Visited planets", out visitedMeta);
 
             visitedGrid = CreateRect(card, "VisitedPlanets");
-            visitedGrid.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
+            var visitedLayout = visitedGrid.gameObject.AddComponent<LayoutElement>();
+            visitedLayout.preferredHeight = 132f;
+            visitedLayout.flexibleHeight = 0f;
             var grid = visitedGrid.gameObject.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(132f, 34f);
             grid.spacing = new Vector2(8f, 8f);
             grid.childAlignment = TextAnchor.UpperLeft;
             grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
             grid.constraintCount = 3;
+
+            bitsText = CreateText(card, "Bits: 0", 20, new Color(0.92f, 0.96f, 1f), FontStyle.Bold);
+            bitsText.gameObject.GetComponent<LayoutElement>().preferredHeight = 34f;
+
+            CreateSectionHeader(card, "Inventory", out inventoryMeta);
+
+            inventoryList = CreateRect(card, "InventoryItems");
+            inventoryList.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
+            var listLayout = inventoryList.gameObject.AddComponent<VerticalLayoutGroup>();
+            listLayout.spacing = 8f;
+            listLayout.childAlignment = TextAnchor.UpperLeft;
+            listLayout.childControlHeight = true;
+            listLayout.childControlWidth = true;
+            listLayout.childForceExpandHeight = false;
+            listLayout.childForceExpandWidth = true;
         }
 
         private void BuildTravelCard(Transform parent)
@@ -242,6 +267,26 @@ namespace HelloWorld.Assets.Scripts
             foreach (var visitedName in visitedNames)
             {
                 CreateChip(visitedGrid, visitedName);
+            }
+        }
+
+        private void RebuildInventory(IReadOnlyList<ReadOnlyItem> inventory)
+        {
+            for (var i = inventoryList.childCount - 1; i >= 0; i--)
+            {
+                DestroyObject(inventoryList.GetChild(i).gameObject);
+            }
+
+            if (inventory.Count == 0)
+            {
+                var empty = CreateText(inventoryList, "No inventory items yet.", 16, new Color(0.64f, 0.70f, 0.80f), FontStyle.Normal);
+                empty.gameObject.GetComponent<LayoutElement>().preferredHeight = 30f;
+                return;
+            }
+
+            foreach (var item in inventory.OrderBy(item => item.Name))
+            {
+                CreateInventoryRow(inventoryList, item);
             }
         }
 
@@ -341,6 +386,31 @@ namespace HelloWorld.Assets.Scripts
             text.rectTransform.anchorMax = Vector2.one;
             text.rectTransform.offsetMin = new Vector2(14f, 0f);
             text.rectTransform.offsetMax = new Vector2(-14f, 0f);
+        }
+
+        private static void CreateInventoryRow(Transform parent, ReadOnlyItem item)
+        {
+            var row = CreateRect(parent, item.Name);
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = 34f;
+            var image = row.gameObject.AddComponent<Image>();
+            image.color = new Color(0.08f, 0.11f, 0.16f, 1f);
+
+            var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            layout.padding = new RectOffset(12, 12, 0, 0);
+            layout.spacing = 10f;
+            layout.childAlignment = TextAnchor.MiddleLeft;
+            layout.childControlHeight = true;
+            layout.childControlWidth = true;
+            layout.childForceExpandHeight = false;
+            layout.childForceExpandWidth = false;
+
+            var name = CreateText(row, item.Name, 15, new Color(0.90f, 0.94f, 1f), FontStyle.Bold);
+            name.alignment = TextAnchor.MiddleLeft;
+            name.gameObject.GetComponent<LayoutElement>().flexibleWidth = 1f;
+
+            var value = CreateText(row, item.Value.ToString(), 15, new Color(0.72f, 0.80f, 0.92f), FontStyle.Normal);
+            value.alignment = TextAnchor.MiddleRight;
+            value.gameObject.GetComponent<LayoutElement>().preferredWidth = 70f;
         }
 
         private static Text CreateText(Transform parent, string value, int fontSize, Color color, FontStyle fontStyle)

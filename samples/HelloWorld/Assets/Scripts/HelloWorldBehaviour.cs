@@ -30,6 +30,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void LoadClient()
         {
+            PrepareUI();
             ClearDialogue();
             string json = File.ReadAllText(ProjectJsonPath);
             neo = HelloWorldNeo.Load(json, OnLoadSave, OnCommitSave);
@@ -56,12 +57,12 @@ namespace HelloWorld.Assets.Scripts
 
         protected void OnInventoryChanged()
         {
-            Debug.Log($"Added: {neo.Save.Inventory.LastOrDefault()?.Name}");
+            UpdateUI();
         }
         
         protected void OnBitsChanged(int bits)
         {
-            Debug.Log($"Bits changed {bits}");
+            UpdateUI();
         }
 
         public void TriggerDialogue()
@@ -159,6 +160,7 @@ namespace HelloWorld.Assets.Scripts
         {
             CoreUI.Render(
                 HelloWorldText, CurrentOutpost, Outposts, VisitedPlanets,
+                neo.Save.Bits, neo.Save.Inventory.ToArray(),
                 OnVisitOutpost, OnSave, OnResetSave
             );
         }
