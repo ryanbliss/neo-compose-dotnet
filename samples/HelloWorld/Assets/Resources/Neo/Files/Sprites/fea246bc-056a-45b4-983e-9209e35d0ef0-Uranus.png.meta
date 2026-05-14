@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: d0cd2147b515942f88fcf3182a1fb6d2
+guid: 50065f420b67342e4b3f69ef16a7b63e
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 2764186788982075616
-    second: Mercury_0
+      213: -1758251710261134159
+    second: fea246bc-056a-45b4-983e-9209e35d0ef0-Uranus_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Mercury_0_0
+      name: fea246bc-056a-45b4-983e-9209e35d0ef0-Uranus_0_0
       rect:
         serializedVersion: 2
         x: 0
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: bc95f1423bc3349d1b1fe475f487f545
-      internalID: -1186636266
+      spriteID: 552914618034743ad9459ccdd659742c
+      internalID: 829520469
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 83b43526a7fd143bfb54bb3e0e6f8d19
+    spriteID: afeca0aedd6d74529a06bb4da17e6a22
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Mercury_0_0: -1186636266
+      fea246bc-056a-45b4-983e-9209e35d0ef0-Uranus_0_0: 829520469
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 3c33b3bfcce2a4207ac91edc32b3e35f
+guid: a3c21cafe7a1f499788c94ebb04f8a79
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -5737098359029379249
-    second: crafting-bench_0
+      213: -588599260463296610
+    second: e55c6f29-b498-433b-85a8-89672290f3c0-Mercury_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: crafting-bench_0_0
+      name: e55c6f29-b498-433b-85a8-89672290f3c0-Mercury_0_0
       rect:
         serializedVersion: 2
         x: 0
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f04b00455ad1344afa289f88551477b5
-      internalID: -1399795496
+      spriteID: 6a81c40ea0b4d49aab79f1dccd7861c2
+      internalID: 657575946
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: a04694a9cd17e473c9eafd2b84d82fb1
+    spriteID: 0f2b8471434d749e0af48f39be70ca5c
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      crafting-bench_0_0: -1399795496
+      e55c6f29-b498-433b-85a8-89672290f3c0-Mercury_0_0: 657575946
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

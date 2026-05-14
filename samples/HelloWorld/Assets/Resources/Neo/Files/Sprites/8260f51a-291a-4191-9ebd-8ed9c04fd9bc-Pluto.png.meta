@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: c2ad17b2b08f742a1bb0b9c1d45c8a92
+guid: 7f43f41e3600843dc8e459733312669b
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6423806749927177598
-    second: Earth_0
+      213: -1699075279937507352
+    second: 8260f51a-291a-4191-9ebd-8ed9c04fd9bc-Pluto_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Earth_0_0
+      name: 8260f51a-291a-4191-9ebd-8ed9c04fd9bc-Pluto_0_0
       rect:
         serializedVersion: 2
         x: 0
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f969a733e9912468aaf9d4d0a076b4a7
-      internalID: -992681427
+      spriteID: d055ef1644de84e49b18deca9a931790
+      internalID: 2067421529
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 0b4792c42563c4c81a1e047cc8bc4788
+    spriteID: e3a1c5afbe6b549279d5e35b2932c9f8
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Earth_0_0: -992681427
+      8260f51a-291a-4191-9ebd-8ed9c04fd9bc-Pluto_0_0: 2067421529
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

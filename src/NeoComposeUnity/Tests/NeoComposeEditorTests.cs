@@ -276,6 +276,9 @@ namespace NeoCompose.Tests
             };
             api.downloads["signed-url"] = new byte[] { 1, 2, 3 };
             var assets = new FakeAssetService();
+            var expectedPath = "Assets/Resources/Neo/Files/Sprites/file-1-hero.png";
+            var expectedSprite = Sprite.Create(new Texture2D(1, 1), new Rect(0, 0, 1, 1), Vector2.zero);
+            assets.loadedSprites[expectedPath] = new[] { expectedSprite };
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
             var progress = new List<string>();
 
@@ -286,16 +289,20 @@ namespace NeoCompose.Tests
             Assert.Contains("Downloading file 1/1: hero.png", progress);
             Assert.Contains("Applying import settings 1/1: hero.png", progress);
             CollectionAssert.AreEqual(new[] { "file-1" }, api.lastFileDownloadIds);
-            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, assets.binaryFiles["Assets/Resources/Neo/Files/Sprites/hero.png"]);
-            Assert.Contains("Assets/Resources/Neo/Files/Sprites/hero.png", assets.appliedImportSettings);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, assets.binaryFiles[expectedPath]);
+            Assert.Contains(expectedPath, assets.appliedImportSettings);
             var entry = assets.assetDatabase.TryGetEntry("file-1");
             Assert.IsNotNull(entry);
-            Assert.AreEqual("Assets/Resources/Neo/Files/Sprites/hero.png", entry!.AssetPath);
+            Assert.AreEqual("hero.png", entry!.FileName);
+            Assert.AreEqual(expectedPath, entry.AssetPath);
             Assert.AreEqual("1970-01-02T00:00:00.000Z", entry.FileUpdatedAt);
             Assert.AreEqual("texture-template-1", entry.TemplateId);
             Assert.AreEqual("1970-01-03T00:00:00.000Z", entry.TemplateUpdatedAt);
             Assert.AreEqual("2026-05-13.2", entry.ImportSettingsVersion);
+            Assert.AreSame(expectedSprite, entry.Sprites[0]);
             Assert.IsTrue(assets.savedAsset);
+            Object.DestroyImmediate(expectedSprite.texture);
+            Object.DestroyImmediate(expectedSprite);
         }
 
         [Test]
@@ -338,15 +345,18 @@ namespace NeoCompose.Tests
   ""audioClipTemplates"": {}
 }";
             var assets = new FakeAssetService();
+            var expectedPath = "Assets/Resources/Neo/Files/Sprites/file-1-hero.png";
             assets.assetDatabase.SetFile(
                 "file-1",
-                "Assets/Resources/Neo/Files/Sprites/hero.png",
+                "hero.png",
+                expectedPath,
                 "1970-01-02T00:00:00.000Z",
                 "1970-01-04T00:00:00.000Z",
                 null,
                 null,
                 null,
                 "2026-05-13.2");
+            assets.binaryFiles[expectedPath] = new byte[] { 1, 2, 3 };
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
             var progress = new List<string>();
 
@@ -355,8 +365,111 @@ namespace NeoCompose.Tests
             Assert.IsTrue(result.success, result.message);
             Assert.Contains("File assets are current.", progress);
             Assert.AreEqual(0, api.lastFileDownloadIds.Length);
-            Assert.AreEqual(0, assets.binaryFiles.Count);
+            Assert.AreEqual(1, assets.binaryFiles.Count);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, assets.binaryFiles[expectedPath]);
             Assert.IsTrue(assets.savedAsset);
+        }
+
+        [Test]
+        public async Task Synchronizer_RedownloadsUnityFileWhenDatabaseEntryExistsButAssetIsMissing()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.projectJson = ProjectJsonWithFiles(@"
+    ""file-1"": {
+      ""_id"": ""file-1"",
+      ""id"": ""file-1"",
+      ""projectId"": ""project-1"",
+      ""status"": ""uploaded"",
+      ""name"": ""hero.png"",
+      ""fileType"": ""image"",
+      ""mimeType"": ""image/png"",
+      ""byteLength"": 3,
+      ""storageKey"": ""projects/project-1/files/file-1"",
+      ""storageETag"": ""etag-1"",
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-02T00:00:00.000Z""
+    }");
+            api.fileDownloadResponse.files["file-1"] = new NeoComposeUnityExportFileDownload
+            {
+                fileId = "file-1",
+                downloadUrl = "signed-url",
+                expiresAt = "1970-01-01T00:05:00.000Z",
+            };
+            api.downloads["signed-url"] = new byte[] { 1, 2, 3 };
+            var assets = new FakeAssetService();
+            var expectedPath = "Assets/Resources/Neo/Files/Sprites/file-1-hero.png";
+            assets.assetDatabase.SetFile(
+                "file-1",
+                "hero.png",
+                expectedPath,
+                "1970-01-02T00:00:00.000Z",
+                "1970-01-04T00:00:00.000Z",
+                null,
+                null,
+                null,
+                "2026-05-13.2");
+            var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            CollectionAssert.AreEqual(new[] { "file-1" }, api.lastFileDownloadIds);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, assets.binaryFiles[expectedPath]);
+        }
+
+        [Test]
+        public async Task Synchronizer_DeletesStaleDatabaseEntriesAfterConfirmation()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.projectJson = ProjectJsonWithFiles("");
+            var assets = new FakeAssetService();
+            assets.binaryFiles["Assets/Resources/Neo/Files/Sprites/file-1-hero.png"] = new byte[] { 1 };
+            assets.assetDatabase.SetFile(
+                "file-1",
+                "hero.png",
+                "Assets/Resources/Neo/Files/Sprites/file-1-hero.png",
+                "1970-01-02T00:00:00.000Z",
+                "1970-01-04T00:00:00.000Z",
+                null,
+                null,
+                null,
+                "2026-05-13.2");
+            var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.Contains("Assets/Resources/Neo/Files/Sprites/file-1-hero.png", assets.deletedAssets);
+            Assert.IsNull(assets.assetDatabase.TryGetEntry("file-1"));
+        }
+
+        [Test]
+        public async Task Synchronizer_KeepsStaleDatabaseEntriesWhenDeletionIsDeclined()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.projectJson = ProjectJsonWithFiles("");
+            var assets = new FakeAssetService();
+            assets.binaryFiles["Assets/Resources/Neo/Files/Sprites/file-1-hero.png"] = new byte[] { 1 };
+            assets.assetDatabase.SetFile(
+                "file-1",
+                "hero.png",
+                "Assets/Resources/Neo/Files/Sprites/file-1-hero.png",
+                "1970-01-02T00:00:00.000Z",
+                "1970-01-04T00:00:00.000Z",
+                null,
+                null,
+                null,
+                "2026-05-13.2");
+            var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(false), assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(0, assets.deletedAssets.Count);
+            Assert.IsNotNull(assets.assetDatabase.TryGetEntry("file-1"));
         }
 
         [Test]
@@ -408,6 +521,70 @@ namespace NeoCompose.Tests
             CollectionAssert.AreEqual(new[] { "sheet_0_0", "sheet_0_1" }, sprites.Select(sprite => sprite.name).ToArray());
             Assert.AreEqual(new Rect(0, 0, 16, 16), sprites[0].rect);
             Assert.AreEqual(new Rect(16, 0, 16, 16), sprites[1].rect);
+        }
+
+        [Test]
+        public void AssetDatabase_ResolvesDirectReferencesAndReverseLookup()
+        {
+            var texture = new Texture2D(1, 1);
+            var sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), Vector2.zero);
+            var audio = AudioClip.Create("voice", 1, 1, 44100, false);
+            var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();
+            try
+            {
+                database.SetFile(
+                    "sprite-file",
+                    "hero.png",
+                    "Assets/Resources/Neo/Files/Sprites/sprite-file-hero.png",
+                    "1970-01-02T00:00:00.000Z",
+                    "1970-01-04T00:00:00.000Z",
+                    "texture-template-1",
+                    "1970-01-03T00:00:00.000Z",
+                    "1970-01-04T00:00:00.000Z",
+                    "2026-05-13.2",
+                    new[] { sprite },
+                    null);
+                database.SetFile(
+                    "audio-file",
+                    "voice.wav",
+                    "Assets/Resources/Neo/Files/Audio/audio-file-voice.wav",
+                    "1970-01-02T00:00:00.000Z",
+                    "1970-01-04T00:00:00.000Z",
+                    "audio-template-1",
+                    "1970-01-03T00:00:00.000Z",
+                    "1970-01-04T00:00:00.000Z",
+                    "2026-05-13.2",
+                    null,
+                    audio);
+
+                Assert.AreSame(sprite, database.TryGetSprite("sprite-file", 0));
+                Assert.AreSame(audio, database.TryGetAudioClip("audio-file"));
+
+                var spriteValue = database.TryGetValueForSprite(sprite);
+                Assert.IsNotNull(spriteValue);
+                Assert.AreEqual("sprite-file", spriteValue!.fileId);
+                Assert.AreEqual(0, spriteValue.sliceIndex);
+
+                var audioValue = database.TryGetValueForAudioClip(audio);
+                Assert.IsNotNull(audioValue);
+                Assert.AreEqual("audio-file", audioValue!.fileId);
+
+                Assert.DoesNotThrow(() =>
+                    NeoAssetResolver.ValueForSprite(database, sprite, "texture-template-1", "Portrait"));
+                Assert.DoesNotThrow(() =>
+                    NeoAssetResolver.ValueForAudioClip(database, audio, "audio-template-1", "Voice"));
+                Assert.Throws<System.InvalidOperationException>(() =>
+                    NeoAssetResolver.ValueForSprite(database, sprite, "other-template", "Portrait"));
+                Assert.Throws<System.InvalidOperationException>(() =>
+                    NeoAssetResolver.ValueForAudioClip(database, audio, "other-template", "Voice"));
+            }
+            finally
+            {
+                Object.DestroyImmediate(audio);
+                Object.DestroyImmediate(sprite);
+                Object.DestroyImmediate(texture);
+                Object.DestroyImmediate(database);
+            }
         }
 
         private sealed class TestPayloadProvider : INeoValuePayloadProvider
@@ -525,6 +702,31 @@ namespace NeoCompose.Tests
             config.apiBaseUrl = "http://localhost:3000";
             config.SelectProject("project-1", "Project One");
             return config;
+        }
+
+        private static string ProjectJsonWithFiles(string filesJson)
+        {
+            return @"
+{
+  ""project"": {
+    ""_id"": ""project-1"",
+    ""id"": ""project-1"",
+    ""name"": ""Project One"",
+    ""rootAssetsAttributeId"": ""assets-root"",
+    ""rootSaveFileAttributeId"": ""save-root"",
+    ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+    ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+  },
+  ""attributes"": {},
+  ""values"": {},
+  ""types"": {},
+  ""enums"": {},
+  ""files"": {
+" + filesJson + @"
+  },
+  ""textureTemplates"": {},
+  ""audioClipTemplates"": {}
+}";
         }
 
         private static UnityTexture2DImportSettingsTemplate MakeSpriteTemplate()
@@ -683,6 +885,8 @@ namespace NeoCompose.Tests
         {
             public readonly Dictionary<string, string> files = new();
             public readonly Dictionary<string, byte[]> binaryFiles = new();
+            public readonly Dictionary<string, Sprite[]> loadedSprites = new();
+            public readonly Dictionary<string, AudioClip> loadedAudioClips = new();
             public readonly List<string> createdDirectories = new();
             public readonly List<string> deletedAssets = new();
             public readonly List<string> appliedImportSettings = new();
@@ -727,6 +931,20 @@ namespace NeoCompose.Tests
             public void ApplyUnityImportSettings(string assetPath, ProjectFile file, ProjectData projectData)
             {
                 appliedImportSettings.Add(assetPath);
+            }
+
+            public Sprite[] LoadSprites(string assetPath)
+            {
+                return loadedSprites.TryGetValue(assetPath, out var sprites)
+                    ? sprites
+                    : System.Array.Empty<Sprite>();
+            }
+
+            public AudioClip? LoadAudioClip(string assetPath)
+            {
+                return loadedAudioClips.TryGetValue(assetPath, out var audioClip)
+                    ? audioClip
+                    : null;
             }
 
             public void SaveAsset(Object asset)

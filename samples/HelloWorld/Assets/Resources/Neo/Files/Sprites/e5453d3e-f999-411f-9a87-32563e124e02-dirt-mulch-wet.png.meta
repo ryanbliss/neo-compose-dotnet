@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 121e33c5019534ee2be966be676920c6
+guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 3632417556790793254
-    second: dirt-mulch-wet_0
+      213: -121232998896508449
+    second: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: dirt-mulch-wet_0_0
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_0_0
       rect:
         serializedVersion: 2
         x: 0
@@ -128,14 +128,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 4d6ed4452d6524b2499832a4d21aa99d
-      internalID: 841398932
+      spriteID: 7884f77b43fcb4fcd8d3f66ee7d821ff
+      internalID: -1549404760
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_0_1
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_0_1
       rect:
         serializedVersion: 2
         x: 16
@@ -150,14 +150,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 2263f2879f28245d29a8a0fa5e1c41c4
-      internalID: -277349923
+      spriteID: b90f5967c63134655b67b1608c30d6c5
+      internalID: -377108238
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_0_2
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_0_2
       rect:
         serializedVersion: 2
         x: 32
@@ -172,14 +172,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 9f311d03916924e04989eaf5f7b698d3
-      internalID: -1221056921
+      spriteID: c9f7a95b482204b41a7c058fbffbb64c
+      internalID: -2056057170
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_1_0
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_1_0
       rect:
         serializedVersion: 2
         x: 0
@@ -194,14 +194,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 364d6db123e3b4b3fb81250c4fb3c990
-      internalID: -725884037
+      spriteID: 325435e9754db41ed98939982a2cb967
+      internalID: 1470369995
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_1_1
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_1_1
       rect:
         serializedVersion: 2
         x: 16
@@ -216,14 +216,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: e98d5e66378bf4f9bae541d63c80c7e0
-      internalID: 1633276684
+      spriteID: 81f27b89b6733486babbba7716ad2f43
+      internalID: 1299433741
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_1_2
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_1_2
       rect:
         serializedVersion: 2
         x: 32
@@ -238,14 +238,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8f9e3828ce6a84bd892f380663ad4d82
-      internalID: 1954379013
+      spriteID: 75c7751a7d0a846318d7072b14025725
+      internalID: 213994728
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_2_0
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_2_0
       rect:
         serializedVersion: 2
         x: 0
@@ -260,14 +260,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: c5c926fb0432e4071bb50de7d5e27a76
-      internalID: 991387165
+      spriteID: 4dbf73dcb3de54917937f98aa3fa8f1e
+      internalID: -2033399634
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_2_1
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_2_1
       rect:
         serializedVersion: 2
         x: 16
@@ -282,14 +282,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8ae81e97e84754db9bce68a188fbe746
-      internalID: -325228029
+      spriteID: 60f390ebe7cca4976a05068f696f6b96
+      internalID: 739973960
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_2_2
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_2_2
       rect:
         serializedVersion: 2
         x: 32
@@ -304,14 +304,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7558fc11b635d400c8d577141144424b
-      internalID: 445572833
+      spriteID: 35778dde15d6f42da9096353f31cc3fe
+      internalID: -1784239205
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_3_0
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_3_0
       rect:
         serializedVersion: 2
         x: 0
@@ -326,14 +326,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: ba69dd6d6683f4a86a802933ea130eac
-      internalID: 1870202339
+      spriteID: ceb16a385477d4188bd9333748bd0363
+      internalID: -800633923
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_3_1
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_3_1
       rect:
         serializedVersion: 2
         x: 16
@@ -348,14 +348,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: e12e36ba712a143969166dcf15edd7f1
-      internalID: -478550533
+      spriteID: 601f53057e1794ee59e9755fcef547da
+      internalID: 272045676
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_3_2
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_3_2
       rect:
         serializedVersion: 2
         x: 32
@@ -370,14 +370,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 571226bbcc3984c739fae126118d01f7
-      internalID: -2055924146
+      spriteID: 9a276e05d24b84e3f8fcad30e492ee9e
+      internalID: 1258442405
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_4_0
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_4_0
       rect:
         serializedVersion: 2
         x: 0
@@ -392,14 +392,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: ead2a62b8f7144b5eaabda8735a96e5c
-      internalID: -1924867927
+      spriteID: 3de571c58ae904aeb8065700bde7ccaf
+      internalID: 1514254563
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_4_1
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_4_1
       rect:
         serializedVersion: 2
         x: 16
@@ -414,14 +414,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 373dae0c947284e399bc418f25ce0b95
-      internalID: 375846569
+      spriteID: bdb301e729fcf455fb7caa05b099dec3
+      internalID: -1574063211
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_4_2
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_4_2
       rect:
         serializedVersion: 2
         x: 32
@@ -436,14 +436,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: d2741dec66ec34095b85be9f7ad463cc
-      internalID: 962361501
+      spriteID: 9c4a067555adb48c5b3a60530b0c8dbb
+      internalID: -1105548831
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: dirt-mulch-wet_5_0
+      name: e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_5_0
       rect:
         serializedVersion: 2
         x: 0
@@ -458,8 +458,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 4f14f5b6a1de54b80bbdc14ea48536fb
-      internalID: 1860400430
+      spriteID: d1377e60117244196ad4b4da843a2198
+      internalID: -1664906274
       vertices: []
       indices: 
       edges: []
@@ -468,7 +468,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: b38e3baacef9e424292bbc72772e3d60
+    spriteID: 3684169cba5544b658c4fa26d5b89f2d
     internalID: 0
     vertices: []
     indices: 
@@ -478,22 +478,22 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      dirt-mulch-wet_0_0: 841398932
-      dirt-mulch-wet_0_1: -277349923
-      dirt-mulch-wet_0_2: -1221056921
-      dirt-mulch-wet_1_0: -725884037
-      dirt-mulch-wet_1_1: 1633276684
-      dirt-mulch-wet_1_2: 1954379013
-      dirt-mulch-wet_2_0: 991387165
-      dirt-mulch-wet_2_1: -325228029
-      dirt-mulch-wet_2_2: 445572833
-      dirt-mulch-wet_3_0: 1870202339
-      dirt-mulch-wet_3_1: -478550533
-      dirt-mulch-wet_3_2: -2055924146
-      dirt-mulch-wet_4_0: -1924867927
-      dirt-mulch-wet_4_1: 375846569
-      dirt-mulch-wet_4_2: 962361501
-      dirt-mulch-wet_5_0: 1860400430
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_0_0: -1549404760
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_0_1: -377108238
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_0_2: -2056057170
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_1_0: 1470369995
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_1_1: 1299433741
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_1_2: 213994728
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_2_0: -2033399634
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_2_1: 739973960
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_2_2: -1784239205
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_3_0: -800633923
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_3_1: 272045676
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_3_2: 1258442405
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_4_0: 1514254563
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_4_1: -1574063211
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_4_2: -1105548831
+      e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet_5_0: -1664906274
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

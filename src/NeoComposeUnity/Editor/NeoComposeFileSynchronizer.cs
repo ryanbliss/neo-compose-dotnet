@@ -35,11 +35,24 @@ namespace NeoCompose.Unity.Editor
                 .Where(file => string.Equals(file.status, "uploaded", StringComparison.OrdinalIgnoreCase))
                 .ToArray();
             var knownFileIds = new HashSet<string>(files.Select(file => file.id));
-            assetDatabase.RemoveMissingFiles(knownFileIds);
+            var missingFiles = assetDatabase.FindMissingFiles(knownFileIds);
+            if (missingFiles.Length > 0 &&
+                confirmations.Confirm(
+                    "Delete stale Neo Compose assets?",
+                    $"{missingFiles.Length} synchronized asset file(s) are no longer present in the project export.",
+                    "Delete",
+                    "Keep"))
+            {
+                foreach (var missingFile in missingFiles)
+                {
+                    assets.DeleteAsset(missingFile.AssetPath);
+                    assetDatabase.RemoveFile(missingFile.FileId);
+                }
+            }
 
             onProgress?.Invoke($"Checking {files.Length} file asset(s)...");
             var changedFiles = files
-                .Where(file => NeedsSync(config, assetDatabase, projectData, file))
+                .Where(file => NeedsSync(config, assets, assetDatabase, projectData, file))
                 .ToArray();
             if (changedFiles.Length == 0)
             {
@@ -105,18 +118,27 @@ namespace NeoCompose.Unity.Editor
                     assets.WriteAllBytes(assetPath, bytes);
                     onProgress?.Invoke($"Applying import settings {index + 1}/{changedFiles.Length}: {file.name}");
                     assets.ApplyUnityImportSettings(assetPath, file, projectData);
+                    var sprites = string.Equals(file.fileType, "image", StringComparison.OrdinalIgnoreCase)
+                        ? assets.LoadSprites(assetPath)
+                        : Array.Empty<UnityEngine.Sprite>();
+                    var audioClip = string.Equals(file.fileType, "audio", StringComparison.OrdinalIgnoreCase)
+                        ? assets.LoadAudioClip(assetPath)
+                        : null;
 
                     var template = ResolveTemplate(projectData, file);
                     var now = DateTime.UtcNow.ToString("o");
                     assetDatabase.SetFile(
                         file.id,
+                        file.name,
                         assetPath,
                         file.updatedAt,
                         now,
                         template.templateId,
                         template.templateUpdatedAt,
                         template.templateUpdatedAt == null ? null : now,
-                        ImportSettingsVersion);
+                        ImportSettingsVersion,
+                        sprites,
+                        audioClip);
                 }
                 catch (Exception exception)
                 {
@@ -131,6 +153,7 @@ namespace NeoCompose.Unity.Editor
 
         internal static bool NeedsSync(
             NeoComposeConfig config,
+            INeoComposeEditorAssetService assets,
             NeoAssetDatabase assetDatabase,
             ProjectData projectData,
             ProjectFile file)
@@ -139,12 +162,17 @@ namespace NeoCompose.Unity.Editor
             var entry = assetDatabase.TryGetEntry(file.id);
             if (entry == null) return true;
             if (entry.AssetPath != assetPath) return true;
-            if (entry.FileUpdatedAt != file.updatedAt) return true;
+            if (!assets.FileExists(assetPath)) return true;
+            if (IsAfter(file.updatedAt, entry.LastDownloadedAt)) return true;
             if (entry.ImportSettingsVersion != ImportSettingsVersion) return true;
 
             var template = ResolveTemplate(projectData, file);
             if (entry.TemplateId != template.templateId) return true;
-            if (entry.TemplateUpdatedAt != template.templateUpdatedAt) return true;
+            if (template.templateUpdatedAt != null &&
+                IsAfter(template.templateUpdatedAt, entry.LastAppliedTemplateEditsAt))
+            {
+                return true;
+            }
             return false;
         }
 
@@ -153,7 +181,19 @@ namespace NeoCompose.Unity.Editor
             var directory = string.Equals(file.fileType, "audio", StringComparison.OrdinalIgnoreCase)
                 ? config.audioClipDirectory
                 : config.spriteDirectory;
-            return NeoComposePathUtility.CombineAssetPath(directory, SanitizeFileName(file.name));
+            return NeoComposePathUtility.CombineAssetPath(directory, $"{file.id}-{SanitizeFileName(file.name)}");
+        }
+
+        private static bool IsAfter(string? lhs, string? rhs)
+        {
+            if (string.IsNullOrWhiteSpace(lhs)) return false;
+            if (string.IsNullOrWhiteSpace(rhs)) return true;
+            if (DateTime.TryParse(lhs, out var lhsDate) && DateTime.TryParse(rhs, out var rhsDate))
+            {
+                return lhsDate.ToUniversalTime() > rhsDate.ToUniversalTime();
+            }
+
+            return string.CompareOrdinal(lhs, rhs) > 0;
         }
 
         private static (string? templateId, string? templateUpdatedAt) ResolveTemplate(

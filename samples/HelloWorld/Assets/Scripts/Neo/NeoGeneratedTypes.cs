@@ -2690,12 +2690,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Outpost(Planet Planet, string Name, SpriteValue Image)
+        public Outpost(Planet Planet, string Name, Sprite Image)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Planet, Name, Image))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(Planet Planet, string Name, SpriteValue Image)
+        private static NeoAttributeCustomSaved CreateFactoryNode(Planet Planet, string Name, Sprite Image)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -2726,7 +2726,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 id = ImageValueId,
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = Image,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, Image),
             });
             return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "4c196697-4e08-4aeb-823f-322b353071ac", value, valueRows);
         }
@@ -2806,6 +2806,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var resolved = node.Get<NeoAttributeSprite>("Image").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'Image' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
             }
         }
 
@@ -3182,12 +3186,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public JupiterOutpost(string Name, JupiterMoon Moon, Planet? Planet = null, SpriteValue? Image = null)
+        public JupiterOutpost(string Name, JupiterMoon Moon, Planet? Planet = null, Sprite? Image = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, Planet, Image))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, JupiterMoon Moon, Planet? Planet = null, SpriteValue? Image = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, JupiterMoon Moon, Planet? Planet = null, Sprite? Image = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3223,7 +3227,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     id = ImageValueId,
                     createdAt = nowIso,
                     updatedAt = nowIso,
-                    value = Image,
+                    value = NeoGeneratedTypesSupport.SpriteValue(client, Image, "66504747-cbd5-4026-9d4c-89a0644f8192", "Image"),
                 });
             }
             var MoonValueId = Guid.NewGuid().ToString();
@@ -3310,6 +3314,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 return node.Get<NeoAttributeSprite>("Image").Resolve();
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value, "66504747-cbd5-4026-9d4c-89a0644f8192", "Image")));
             }
         }
 
@@ -3447,12 +3455,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public SaturnOutpost(string Name, SpriteValue Image, SaturnMoon Moon, Planet? Planet = null)
+        public SaturnOutpost(string Name, Sprite Image, SaturnMoon Moon, Planet? Planet = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Image, Moon, Planet))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, SpriteValue Image, SaturnMoon Moon, Planet? Planet = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, Sprite Image, SaturnMoon Moon, Planet? Planet = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3486,7 +3494,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 id = ImageValueId,
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = Image,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, Image),
             });
             var MoonValueId = Guid.NewGuid().ToString();
             value["Moon"] = MoonValueId;
@@ -3573,6 +3581,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var resolved = node.Get<NeoAttributeSprite>("Image").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'Image' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(savedNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
             }
         }
 

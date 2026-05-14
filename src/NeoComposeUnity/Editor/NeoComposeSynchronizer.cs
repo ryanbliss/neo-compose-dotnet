@@ -32,6 +32,8 @@ namespace NeoCompose.Unity.Editor
         void SaveConfig(NeoComposeConfig config);
         NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath);
         void ApplyUnityImportSettings(string assetPath, ProjectFile file, ProjectData projectData);
+        Sprite[] LoadSprites(string assetPath);
+        AudioClip? LoadAudioClip(string assetPath);
         void SaveAsset(UnityEngine.Object asset);
         void DeleteAsset(string assetPath);
     }
@@ -162,7 +164,7 @@ namespace NeoCompose.Unity.Editor
             try
             {
                 var root = JObject.Parse(projectJson);
-                if (root["files"] is not JObject files || !files.Properties().Any())
+                if (root["files"] is not JObject)
                 {
                     return Array.Empty<string>();
                 }
@@ -182,7 +184,7 @@ namespace NeoCompose.Unity.Editor
                 return new[] { "Could not read file metadata from project.json: " + exception.Message };
             }
 
-            if (projectData?.files == null || projectData.files.Count == 0)
+            if (projectData?.files == null)
             {
                 return Array.Empty<string>();
             }
@@ -379,6 +381,23 @@ namespace NeoCompose.Unity.Editor
         public void ApplyUnityImportSettings(string assetPath, ProjectFile file, ProjectData projectData)
         {
             NeoComposeUnityImportSettingsApplier.Apply(assetPath, file, projectData);
+        }
+
+        public Sprite[] LoadSprites(string assetPath)
+        {
+            var sprites = AssetDatabase
+                .LoadAllAssetRepresentationsAtPath(assetPath)
+                .OfType<Sprite>()
+                .ToArray();
+            if (sprites.Length > 0) return sprites;
+
+            var mainSprite = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+            return mainSprite == null ? Array.Empty<Sprite>() : new[] { mainSprite };
+        }
+
+        public AudioClip? LoadAudioClip(string assetPath)
+        {
+            return AssetDatabase.LoadAssetAtPath<AudioClip>(assetPath);
         }
 
         public void SaveAsset(UnityEngine.Object asset)

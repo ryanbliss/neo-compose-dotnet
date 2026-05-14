@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 2a35aed9c9b5b429880524c0acb8a22b
+guid: 4a35849cc02094c0d9be259e3c2cdd2e
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -3027226957381473135
-    second: Venus (cloudy)_0
+      213: 875003461094261924
+    second: 586c5d4b-37db-43de-95f2-d2555408ff7c-crafting-bench_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Venus (cloudy)_0_0
+      name: 586c5d4b-37db-43de-95f2-d2555408ff7c-crafting-bench_0_0
       rect:
         serializedVersion: 2
         x: 0
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 67759704c9039424db1a1d0e9eea9a6b
-      internalID: -5762574
+      spriteID: badc253760e2640d6835116e5722fe16
+      internalID: -1071130878
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: d43af0d4e773549c5845b234b1a3084e
+    spriteID: 429d80e9ec5c84226b51772402ba2f37
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Venus (cloudy)_0_0: -5762574
+      586c5d4b-37db-43de-95f2-d2555408ff7c-crafting-bench_0_0: -1071130878
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

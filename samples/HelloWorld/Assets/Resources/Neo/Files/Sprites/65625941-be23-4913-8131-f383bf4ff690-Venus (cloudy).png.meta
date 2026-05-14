@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: b93dbbec25b624e76a2a423894d7309e
+guid: 21e0eb2ff2a2e4847be871ae74b062fd
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 2789577005187601876
-    second: garden.mulch_0
+      213: -7303936740037594377
+    second: 65625941-be23-4913-8131-f383bf4ff690-Venus (cloudy)_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: garden.mulch_0_0
+      name: 65625941-be23-4913-8131-f383bf4ff690-Venus (cloudy)_0_0
       rect:
         serializedVersion: 2
         x: 0
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: e031006b3575b4a68b22ad1dc40d7272
-      internalID: -1524605687
+      spriteID: bfdd176ba80494cef99df491f39df599
+      internalID: -1100375191
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 22d86745b17d7432b941ccabd690abe6
+    spriteID: 16fbe1f6f197c4c8c910c095ba349c8a
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      garden.mulch_0_0: -1524605687
+      65625941-be23-4913-8131-f383bf4ff690-Venus (cloudy)_0_0: -1100375191
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

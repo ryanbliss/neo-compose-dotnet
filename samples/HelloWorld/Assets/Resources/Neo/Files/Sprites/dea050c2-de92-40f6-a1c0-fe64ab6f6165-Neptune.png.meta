@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: ca279913d7c3c48de855c8f067dded0f
+guid: adbf5da23f4a14c1c881d3f0ceae262a
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 5528776806964859323
-    second: Saturn_0
+      213: -3492818901664045077
+    second: dea050c2-de92-40f6-a1c0-fe64ab6f6165-Neptune_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,12 +113,12 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Saturn_0_0
+      name: dea050c2-de92-40f6-a1c0-fe64ab6f6165-Neptune_0_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 26
+        width: 16
         height: 16
       alignment: 0
       pivot: {x: 0.5, y: 0.5}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 79b25c5017b7c4cbca07c5800e08b56b
-      internalID: -1295035962
+      spriteID: 561424633f7914e3dbc2c226524db0e5
+      internalID: -1676293362
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 1da8a3994cb0d49f18777e243d6f2ca6
+    spriteID: 8ed10a58eee324fa3baff8ca6f6cdf58
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Saturn_0_0: -1295035962
+      dea050c2-de92-40f6-a1c0-fe64ab6f6165-Neptune_0_0: -1676293362
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

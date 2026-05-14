@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 66bee919dc998425c9d920321c271499
+guid: 131e561273ff54b36a164e2b404622fa
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -4840658929073548887
-    second: Jupiter_0
+      213: -2885573369383325570
+    second: 73bd63df-d741-4352-b6cf-7f6beb408090-garden.mulch_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Jupiter_0_0
+      name: 73bd63df-d741-4352-b6cf-7f6beb408090-garden.mulch_0_0
       rect:
         serializedVersion: 2
         x: 0
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: ceda7c6546cf84876820094fd3dd4cf6
-      internalID: -41446583
+      spriteID: 31a2bcaf35bcc427f90c3e48a2e0668d
+      internalID: -177693339
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: c8b63ecb28a044adb8ef99a7b0e591a1
+    spriteID: fcad925b4f31544d19d5253c6bc79756
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Jupiter_0_0: -41446583
+      73bd63df-d741-4352-b6cf-7f6beb408090-garden.mulch_0_0: -177693339
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

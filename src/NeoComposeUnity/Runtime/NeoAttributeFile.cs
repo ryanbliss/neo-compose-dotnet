@@ -68,6 +68,18 @@ namespace NeoCompose.Runtime
             RefreshFromValueData();
             NotifyChanged();
         }
+
+        public void Set(Sprite? sprite)
+        {
+            Set(
+                sprite == null
+                    ? null
+                    : NeoAssetResolver.ValueForSprite(
+                        client.assetDatabase,
+                        sprite,
+                        attribute.templateId,
+                        attribute.name));
+        }
     }
 
     /// <summary>Wrapper for an AudioClip-typed file attribute.</summary>
@@ -129,6 +141,18 @@ namespace NeoCompose.Runtime
             client.AddSaveValue(attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
+        }
+
+        public void Set(AudioClip? audioClip)
+        {
+            Set(
+                audioClip == null
+                    ? null
+                    : NeoAssetResolver.ValueForAudioClip(
+                        client.assetDatabase,
+                        audioClip,
+                        attribute.templateId,
+                        attribute.name));
         }
     }
 }

@@ -32,6 +32,36 @@ namespace NeoCompose.Runtime
             return NeoValueWritePayload.FromValue(value);
         }
 
+        public static SpriteValue? SpriteValue(
+            NeoClient client,
+            Sprite? sprite,
+            string? expectedTemplateId = null,
+            string? attributeName = null)
+        {
+            return sprite is null
+                ? null
+                : NeoAssetResolver.ValueForSprite(
+                    client.assetDatabase,
+                    sprite,
+                    expectedTemplateId,
+                    attributeName);
+        }
+
+        public static FileValue? AudioValue(
+            NeoClient client,
+            AudioClip? audioClip,
+            string? expectedTemplateId = null,
+            string? attributeName = null)
+        {
+            return audioClip is null
+                ? null
+                : NeoAssetResolver.ValueForAudioClip(
+                    client.assetDatabase,
+                    audioClip,
+                    expectedTemplateId,
+                    attributeName);
+        }
+
         public static TGenerated GetOrCreateGeneratedCustomValue<TGenerated>(
             NeoClient client,
             NeoAttributeCustom node,

@@ -14,114 +14,193 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   files:
   - fileId: 65625941-be23-4913-8131-f383bf4ff690
-    assetPath: Assets/Resources/Neo/Files/Sprites/Venus (cloudy).png
+    fileName: Venus (cloudy).png
+    assetPath: Assets/Resources/Neo/Files/Sprites/65625941-be23-4913-8131-f383bf4ff690-Venus
+      (cloudy).png
     fileUpdatedAt: 2026-05-13T21:09:55.780Z
-    lastDownloadedAt: 2026-05-14T03:38:47.4278250Z
+    lastDownloadedAt: 2026-05-14T04:34:24.9586860Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.4278250Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:24.9586860Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -1100375191, guid: 21e0eb2ff2a2e4847be871ae74b062fd, type: 3}
+    audioClip: {fileID: 0}
   - fileId: 8260f51a-291a-4191-9ebd-8ed9c04fd9bc
-    assetPath: Assets/Resources/Neo/Files/Sprites/Pluto.png
+    fileName: Pluto.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/8260f51a-291a-4191-9ebd-8ed9c04fd9bc-Pluto.png
     fileUpdatedAt: 2026-05-13T21:09:11.220Z
-    lastDownloadedAt: 2026-05-14T03:38:47.5353920Z
+    lastDownloadedAt: 2026-05-14T04:34:25.0958190Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.5353920Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:25.0958190Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 2067421529, guid: 7f43f41e3600843dc8e459733312669b, type: 3}
+    audioClip: {fileID: 0}
   - fileId: dea050c2-de92-40f6-a1c0-fe64ab6f6165
-    assetPath: Assets/Resources/Neo/Files/Sprites/Neptune.png
+    fileName: Neptune.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/dea050c2-de92-40f6-a1c0-fe64ab6f6165-Neptune.png
     fileUpdatedAt: 2026-05-13T21:08:38.647Z
-    lastDownloadedAt: 2026-05-14T03:38:47.6319280Z
+    lastDownloadedAt: 2026-05-14T04:34:25.2240330Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.6319280Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:25.2240330Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -1676293362, guid: adbf5da23f4a14c1c881d3f0ceae262a, type: 3}
+    audioClip: {fileID: 0}
   - fileId: fea246bc-056a-45b4-983e-9209e35d0ef0
-    assetPath: Assets/Resources/Neo/Files/Sprites/Uranus.png
+    fileName: Uranus.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/fea246bc-056a-45b4-983e-9209e35d0ef0-Uranus.png
     fileUpdatedAt: 2026-05-13T21:08:03.866Z
-    lastDownloadedAt: 2026-05-14T03:38:47.7210350Z
+    lastDownloadedAt: 2026-05-14T04:34:25.3644770Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.7210350Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:25.3644770Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 829520469, guid: 50065f420b67342e4b3f69ef16a7b63e, type: 3}
+    audioClip: {fileID: 0}
   - fileId: 027cc2b7-71d3-451d-a9db-fae0e6cbbfc4
-    assetPath: Assets/Resources/Neo/Files/Sprites/Saturn.png
+    fileName: Saturn.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/027cc2b7-71d3-451d-a9db-fae0e6cbbfc4-Saturn.png
     fileUpdatedAt: 2026-05-13T20:56:06.167Z
-    lastDownloadedAt: 2026-05-14T03:38:47.8195730Z
+    lastDownloadedAt: 2026-05-14T04:34:25.5112980Z
     templateId: c4010e22-e5d5-4ced-9c60-c650017cebaa
     templateUpdatedAt: 2026-05-13T21:06:46.557Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.8195730Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:25.5112980Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -1965635583, guid: 5c919faec07094aa1960ec13300cac3f, type: 3}
+    audioClip: {fileID: 0}
   - fileId: 6e1643e2-5b91-45a6-a4b1-435f36c1a0f9
-    assetPath: Assets/Resources/Neo/Files/Sprites/Jupiter.png
+    fileName: Jupiter.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/6e1643e2-5b91-45a6-a4b1-435f36c1a0f9-Jupiter.png
     fileUpdatedAt: 2026-05-13T21:01:32.460Z
-    lastDownloadedAt: 2026-05-14T03:38:47.9048710Z
+    lastDownloadedAt: 2026-05-14T04:34:25.6626610Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.9048710Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:25.6626610Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 2015550075, guid: 7fa31d24042544a6b9903bd06489c318, type: 3}
+    audioClip: {fileID: 0}
   - fileId: f35d7f06-1670-4d53-9468-82266fe8c41e
-    assetPath: Assets/Resources/Neo/Files/Sprites/Mars.png
+    fileName: Mars.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/f35d7f06-1670-4d53-9468-82266fe8c41e-Mars.png
     fileUpdatedAt: 2026-05-13T21:00:17.277Z
-    lastDownloadedAt: 2026-05-14T03:38:47.9908930Z
+    lastDownloadedAt: 2026-05-14T04:34:25.7838300Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.9908930Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:25.7838300Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -1939338281, guid: bdf513c2639ac4b9a8977cc93059004d, type: 3}
+    audioClip: {fileID: 0}
   - fileId: 5cc531eb-25a5-469f-877d-10afb4c5489e
-    assetPath: Assets/Resources/Neo/Files/Sprites/Earth.png
+    fileName: Earth.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/5cc531eb-25a5-469f-877d-10afb4c5489e-Earth.png
     fileUpdatedAt: 2026-05-13T21:00:03.997Z
-    lastDownloadedAt: 2026-05-14T03:38:48.0843190Z
+    lastDownloadedAt: 2026-05-14T04:34:25.9230530Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.0843190Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:25.9230530Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 1734276617, guid: 619e385801f604bf6814c4c5392485fa, type: 3}
+    audioClip: {fileID: 0}
   - fileId: e55c6f29-b498-433b-85a8-89672290f3c0
-    assetPath: Assets/Resources/Neo/Files/Sprites/Mercury.png
+    fileName: Mercury.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/e55c6f29-b498-433b-85a8-89672290f3c0-Mercury.png
     fileUpdatedAt: 2026-05-13T21:01:41.918Z
-    lastDownloadedAt: 2026-05-14T03:38:48.1775220Z
+    lastDownloadedAt: 2026-05-14T04:34:26.0582270Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.1775220Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.0582270Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 657575946, guid: a3c21cafe7a1f499788c94ebb04f8a79, type: 3}
+    audioClip: {fileID: 0}
   - fileId: e5453d3e-f999-411f-9a87-32563e124e02
-    assetPath: Assets/Resources/Neo/Files/Sprites/dirt-mulch-wet.png
+    fileName: dirt-mulch-wet.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet.png
     fileUpdatedAt: 2026-05-13T20:19:53.541Z
-    lastDownloadedAt: 2026-05-14T03:38:48.2723920Z
+    lastDownloadedAt: 2026-05-14T04:34:26.1911230Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.2723920Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.1911230Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -1549404760, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: -377108238, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: -2056057170, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: 1470369995, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: 1299433741, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: 213994728, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: -2033399634, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: 739973960, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: -1784239205, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: -800633923, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: 272045676, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: 1258442405, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: 1514254563, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: -1574063211, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: -1105548831, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    - {fileID: -1664906274, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
+    audioClip: {fileID: 0}
   - fileId: 73bd63df-d741-4352-b6cf-7f6beb408090
-    assetPath: Assets/Resources/Neo/Files/Sprites/garden.mulch.png
+    fileName: garden.mulch.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/73bd63df-d741-4352-b6cf-7f6beb408090-garden.mulch.png
     fileUpdatedAt: 2026-05-13T20:18:53.704Z
-    lastDownloadedAt: 2026-05-14T03:38:48.3633900Z
+    lastDownloadedAt: 2026-05-14T04:34:26.3106200Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.3633900Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.3106200Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -177693339, guid: 131e561273ff54b36a164e2b404622fa, type: 3}
+    audioClip: {fileID: 0}
   - fileId: 586c5d4b-37db-43de-95f2-d2555408ff7c
-    assetPath: Assets/Resources/Neo/Files/Sprites/crafting-bench.png
+    fileName: crafting-bench.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/586c5d4b-37db-43de-95f2-d2555408ff7c-crafting-bench.png
     fileUpdatedAt: 2026-05-13T20:16:15.434Z
-    lastDownloadedAt: 2026-05-14T03:38:48.4971670Z
+    lastDownloadedAt: 2026-05-14T04:34:26.4395120Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.4971670Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.4395120Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -1071130878, guid: 4a35849cc02094c0d9be259e3c2cdd2e, type: 3}
+    audioClip: {fileID: 0}
   - fileId: 6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7
-    assetPath: Assets/Resources/Neo/Files/Sprites/heart-icon.png
+    fileName: heart-icon.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7-heart-icon.png
     fileUpdatedAt: 2026-05-13T20:04:50.679Z
-    lastDownloadedAt: 2026-05-14T03:38:48.6070730Z
+    lastDownloadedAt: 2026-05-14T04:34:26.5772480Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.6070730Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.5772480Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 1896547809, guid: e656c4e8cd46942dbb9e62ee30883577, type: 3}
+    - {fileID: 756174956, guid: e656c4e8cd46942dbb9e62ee30883577, type: 3}
+    - {fileID: -1514024533, guid: e656c4e8cd46942dbb9e62ee30883577, type: 3}
+    - {fileID: -1549275675, guid: e656c4e8cd46942dbb9e62ee30883577, type: 3}
+    audioClip: {fileID: 0}
   - fileId: df67835a-7dfd-4a06-8110-7e6d8b380f57
-    assetPath: Assets/Resources/Neo/Files/Sprites/seed.strawberry.png
+    fileName: seed.strawberry.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/df67835a-7dfd-4a06-8110-7e6d8b380f57-seed.strawberry.png
     fileUpdatedAt: 2026-05-13T02:56:40.126Z
-    lastDownloadedAt: 2026-05-14T03:38:48.6908560Z
+    lastDownloadedAt: 2026-05-14T04:34:26.6970430Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.6908560Z
+    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.6970430Z
     importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -596323854, guid: 131402448d9234c8986af4b2acdb2ec1, type: 3}
+    - {fileID: 797977208, guid: 131402448d9234c8986af4b2acdb2ec1, type: 3}
+    - {fileID: 1198258647, guid: 131402448d9234c8986af4b2acdb2ec1, type: 3}
+    - {fileID: -802335912, guid: 131402448d9234c8986af4b2acdb2ec1, type: 3}
+    - {fileID: 1563714362, guid: 131402448d9234c8986af4b2acdb2ec1, type: 3}
+    audioClip: {fileID: 0}

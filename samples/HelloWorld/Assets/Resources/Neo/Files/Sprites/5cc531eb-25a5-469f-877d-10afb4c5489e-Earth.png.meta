@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: a33c20c6eb011412d8f9d980deabd73b
+guid: 619e385801f604bf6814c4c5392485fa
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: -1097753813296491289
-    second: Mars_0
+      213: -8628761800201193309
+    second: 5cc531eb-25a5-469f-877d-10afb4c5489e-Earth_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Mars_0_0
+      name: 5cc531eb-25a5-469f-877d-10afb4c5489e-Earth_0_0
       rect:
         serializedVersion: 2
         x: 0
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f1d7e4564149548cf81ca98470a7c659
-      internalID: -1641503165
+      spriteID: 898fa35a1adad44c480aafd84c66edb3
+      internalID: 1734276617
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 7547278cd97954d6d85783a1b0cab6ac
+    spriteID: 5c5ff8773966f4f689a7280398fef428
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      Mars_0_0: -1641503165
+      5cc531eb-25a5-469f-877d-10afb4c5489e-Earth_0_0: 1734276617
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

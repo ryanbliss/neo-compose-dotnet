@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using NeoCompose.Runtime.Json;
 using UnityEngine;
 
 namespace NeoCompose.Runtime
@@ -45,6 +46,89 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Resolves a synchronized sprite by file id and canonical slice index.
+        /// Falls back to Resources path loading when the serialized reference
+        /// has not been populated yet.
+        /// </summary>
+        public Sprite? TryGetSprite(string fileId, int sliceIndex)
+        {
+            var entry = TryGetEntry(fileId);
+            if (entry == null || sliceIndex < 0) return null;
+            if (entry.Sprites.Length > sliceIndex && entry.Sprites[sliceIndex] != null)
+            {
+                return entry.Sprites[sliceIndex];
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Resolves a synchronized audio clip by file id.
+        /// </summary>
+        public AudioClip? TryGetAudioClip(string fileId)
+        {
+            return TryGetEntry(fileId)?.AudioClip;
+        }
+
+        /// <summary>
+        /// Reverse-resolves a Unity Sprite into the persisted file reference
+        /// expected by Sprite attributes.
+        /// </summary>
+        public SpriteValue? TryGetValueForSprite(Sprite sprite)
+        {
+            var entry = TryGetEntryForSprite(sprite, out var sliceIndex);
+            return entry == null
+                ? null
+                : new SpriteValue { fileId = entry.FileId, sliceIndex = sliceIndex };
+        }
+
+        /// <summary>
+        /// Reverse-resolves a Unity AudioClip into the persisted file reference
+        /// expected by Audio attributes.
+        /// </summary>
+        public FileValue? TryGetValueForAudioClip(AudioClip audioClip)
+        {
+            var entry = TryGetEntryForAudioClip(audioClip);
+            return entry == null ? null : new FileValue { fileId = entry.FileId };
+        }
+
+        /// <summary>
+        /// Reverse-resolves a Unity Sprite to its synchronized file metadata.
+        /// </summary>
+        public NeoAssetDatabaseEntry? TryGetEntryForSprite(Sprite sprite, out int sliceIndex)
+        {
+            sliceIndex = -1;
+            if (sprite == null) return null;
+            foreach (var entry in files)
+            {
+                for (var index = 0; index < entry.Sprites.Length; index++)
+                {
+                    if (entry.Sprites[index] == sprite)
+                    {
+                        sliceIndex = index;
+                        return entry;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Reverse-resolves a Unity AudioClip to its synchronized file metadata.
+        /// </summary>
+        public NeoAssetDatabaseEntry? TryGetEntryForAudioClip(AudioClip audioClip)
+        {
+            if (audioClip == null) return null;
+            foreach (var entry in files)
+            {
+                if (entry.AudioClip == audioClip) return entry;
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Returns the synchronized entry for <paramref name="fileId"/>,
         /// or <c>null</c> when the file has not been synchronized yet.
         /// </summary>
@@ -65,13 +149,16 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void SetFile(
             string fileId,
+            string fileName,
             string assetPath,
             string updatedAt,
             string lastDownloadedAt,
             string? templateId,
             string? templateUpdatedAt,
             string? lastAppliedTemplateEditsAt,
-            string importSettingsVersion)
+            string importSettingsVersion,
+            Sprite[]? sprites = null,
+            AudioClip? audioClip = null)
         {
             if (string.IsNullOrWhiteSpace(fileId))
             {
@@ -91,6 +178,7 @@ namespace NeoCompose.Runtime
             }
 
             entry.FileId = fileId;
+            entry.FileName = fileName;
             entry.AssetPath = assetPath;
             entry.FileUpdatedAt = updatedAt;
             entry.LastDownloadedAt = lastDownloadedAt;
@@ -98,15 +186,31 @@ namespace NeoCompose.Runtime
             entry.TemplateUpdatedAt = templateUpdatedAt;
             entry.LastAppliedTemplateEditsAt = lastAppliedTemplateEditsAt;
             entry.ImportSettingsVersion = importSettingsVersion;
+            entry.Sprites = sprites ?? Array.Empty<Sprite>();
+            entry.AudioClip = audioClip;
         }
 
         /// <summary>
-        /// Removes stale file mappings whose ids are no longer present in
-        /// the latest Neo Compose export.
+        /// Returns stale file mappings whose ids are no longer present in the
+        /// latest Neo Compose export.
         /// </summary>
-        public void RemoveMissingFiles(ISet<string> fileIds)
+        public NeoAssetDatabaseEntry[] FindMissingFiles(ISet<string> fileIds)
         {
-            files.RemoveAll(entry => !fileIds.Contains(entry.FileId));
+            var missing = new List<NeoAssetDatabaseEntry>();
+            foreach (var entry in files)
+            {
+                if (!fileIds.Contains(entry.FileId)) missing.Add(entry);
+            }
+
+            return missing.ToArray();
+        }
+
+        /// <summary>
+        /// Removes a synchronized file mapping.
+        /// </summary>
+        public void RemoveFile(string fileId)
+        {
+            files.RemoveAll(entry => entry.FileId == fileId);
         }
     }
 
@@ -118,6 +222,8 @@ namespace NeoCompose.Runtime
     {
         [SerializeField]
         private string fileId = "";
+        [SerializeField]
+        private string fileName = "";
         [SerializeField]
         private string assetPath = "";
         [SerializeField]
@@ -132,12 +238,23 @@ namespace NeoCompose.Runtime
         private string? lastAppliedTemplateEditsAt;
         [SerializeField]
         private string importSettingsVersion = "";
+        [SerializeField]
+        private Sprite[] sprites = Array.Empty<Sprite>();
+        [SerializeField]
+        private AudioClip? audioClip;
 
         /// <summary>Neo Compose file id.</summary>
         public string FileId
         {
             get => fileId;
             set => fileId = value;
+        }
+
+        /// <summary>Original Neo Compose file name.</summary>
+        public string FileName
+        {
+            get => fileName;
+            set => fileName = value;
         }
 
         /// <summary>Project-relative Unity asset path.</summary>
@@ -187,6 +304,20 @@ namespace NeoCompose.Runtime
         {
             get => importSettingsVersion;
             set => importSettingsVersion = value;
+        }
+
+        /// <summary>Imported sprites in canonical slice order.</summary>
+        public Sprite[] Sprites
+        {
+            get => sprites ?? Array.Empty<Sprite>();
+            set => sprites = value ?? Array.Empty<Sprite>();
+        }
+
+        /// <summary>Imported audio clip reference.</summary>
+        public AudioClip? AudioClip
+        {
+            get => audioClip;
+            set => audioClip = value;
         }
     }
 }
