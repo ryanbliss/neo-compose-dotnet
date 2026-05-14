@@ -6,6 +6,8 @@
 using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json.Linq;
+using UnityEngine;
 using Attribute = NeoCompose.Runtime.Json.Attribute;
 
 namespace NeoCompose.Runtime
@@ -903,6 +905,68 @@ namespace NeoCompose.Runtime
                     result.error ?? "NSGetter evaluation failed.");
             }
             return result.value;
+        }
+
+        public static Sprite? ReadSprite(NeoClient client, object? value)
+        {
+            return NeoAssetResolver.ResolveSprite(
+                client.assetDatabase,
+                ToSpriteValue(value));
+        }
+
+        public static AudioClip? ReadAudioClip(NeoClient client, object? value)
+        {
+            return NeoAssetResolver.ResolveAudioClip(
+                client.assetDatabase,
+                ToFileValue(value));
+        }
+
+        private static SpriteValue? ToSpriteValue(object? value)
+        {
+            if (value is null) return null;
+            if (value is SpriteValue spriteValue) return spriteValue;
+            if (value is JObject obj)
+            {
+                var fileId = obj["fileId"]?.Value<string>();
+                var sliceIndex = obj["sliceIndex"]?.Value<int?>();
+                return string.IsNullOrWhiteSpace(fileId) || sliceIndex == null
+                    ? null
+                    : new SpriteValue { fileId = fileId!, sliceIndex = sliceIndex.Value };
+            }
+            if (value is IDictionary<string, object?> dict &&
+                dict.TryGetValue("fileId", out var rawFileId) &&
+                rawFileId is string dictFileId &&
+                dict.TryGetValue("sliceIndex", out var rawSliceIndex))
+            {
+                return rawSliceIndex switch
+                {
+                    int i => new SpriteValue { fileId = dictFileId, sliceIndex = i },
+                    long l => new SpriteValue { fileId = dictFileId, sliceIndex = (int)l },
+                    double d => new SpriteValue { fileId = dictFileId, sliceIndex = Convert.ToInt32(d) },
+                    _ => null,
+                };
+            }
+            return null;
+        }
+
+        private static FileValue? ToFileValue(object? value)
+        {
+            if (value is null) return null;
+            if (value is FileValue fileValue) return fileValue;
+            if (value is JObject obj)
+            {
+                var fileId = obj["fileId"]?.Value<string>();
+                return string.IsNullOrWhiteSpace(fileId)
+                    ? null
+                    : new FileValue { fileId = fileId! };
+            }
+            if (value is IDictionary<string, object?> dict &&
+                dict.TryGetValue("fileId", out var rawFileId) &&
+                rawFileId is string dictFileId)
+            {
+                return new FileValue { fileId = dictFileId };
+            }
+            return null;
         }
 
         public static T? ReadNSGetterCustom<T>(

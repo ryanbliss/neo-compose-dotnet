@@ -4,7 +4,7 @@
         "id": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
         "name": "HelloWorld",
         "createdAt": "2026-05-03T00:02:45.598Z",
-        "updatedAt": "2026-05-05T23:49:17.373Z",
+        "updatedAt": "2026-05-13T21:08:26.859Z",
         "rootAssetsAttributeId": "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684",
         "rootSaveFileAttributeId": "4a1a7058-e5ba-4479-9f2f-7686a649a6b5",
         "exportSettings": {
@@ -13,7 +13,9 @@
                 "singleton": true
             }
         },
-        "defaultPriorityGroupId": "e8f566bf-e173-4634-bc74-d4bbc9685db4"
+        "defaultPriorityGroupId": "e8f566bf-e173-4634-bc74-d4bbc9685db4",
+        "defaultAudioClipTemplateId": null,
+        "defaultTextureTemplateId": "66504747-cbd5-4026-9d4c-89a0644f8192"
     },
     "attributes": {
         "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684": {
@@ -468,9 +470,10 @@
             "valueId": "41ea31b5-730c-4371-9bed-509978052ad9",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T22:19:04.892Z",
-            "updatedAt": "2026-05-03T22:19:04.892Z",
+            "updatedAt": "2026-05-12T08:01:21.471Z",
             "multiselect": false,
-            "collectionAttributeId": "a65d4782-28cb-401f-8577-128dccca3d46"
+            "collectionAttributeId": "a65d4782-28cb-401f-8577-128dccca3d46",
+            "system": null
         },
         "dd65f671-aedb-4c17-8849-1a3290b5c4d0": {
             "_id": "69fa7410c7ff96bc9dd6ae7f",
@@ -1897,6 +1900,41 @@
                     "required": true
                 }
             }
+        },
+        "7ce8a389-265c-4ad4-90f4-42c3e91e7648": {
+            "_id": "6a0436f4f95eb3976b85859b",
+            "id": "7ce8a389-265c-4ad4-90f4-42c3e91e7648",
+            "name": "Image",
+            "type": 11,
+            "locked": false,
+            "required": true,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-13T08:31:48.520Z",
+            "updatedAt": "2026-05-14T03:40:24.855Z",
+            "templateId": null
+        },
+        "6133e24a-bf87-4d3a-a71e-3933eebcab25": {
+            "_id": "6a04e3bbf95eb3976b8585bb",
+            "id": "6133e24a-bf87-4d3a-a71e-3933eebcab25",
+            "name": "Image",
+            "type": 11,
+            "locked": false,
+            "required": false,
+            "defaultValue": {
+                "value": {
+                    "fileId": "6e1643e2-5b91-45a6-a4b1-435f36c1a0f9",
+                    "sliceIndex": 0
+                }
+            },
+            "extendsAttributeId": "7ce8a389-265c-4ad4-90f4-42c3e91e7648",
+            "system": null,
+            "valueId": "4b4ff858-9c56-4df8-8f3a-46e06d53a7e0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-13T20:48:59.968Z",
+            "updatedAt": "2026-05-13T20:48:59.968Z",
+            "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192"
         }
     },
     "enums": {
@@ -2061,7 +2099,8 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-03T22:15:54.242Z",
-            "updatedAt": "2026-05-03T22:19:05.161Z"
+            "updatedAt": "2026-05-12T08:01:43.931Z",
+            "system": null
         },
         "9296e4be-bd27-44e3-9823-77fbeaa60665": {
             "_id": "69f7c95f6c966743b317b2a8",
@@ -2177,7 +2216,8 @@
                 "Name": "b56410b3-b2da-4681-897f-a25ce0a0ceb1",
                 "SaveUnsafe": "f66fba24-44d4-467c-98ac-4db1539910df",
                 "Save": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
-                "FullDisplayText": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5"
+                "FullDisplayText": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
+                "Image": "7ce8a389-265c-4ad4-90f4-42c3e91e7648"
             },
             "extendsTypeId": null,
             "isAbstract": false,
@@ -2185,7 +2225,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-07T17:52:15.777Z",
-            "updatedAt": "2026-05-11T21:25:06.277Z"
+            "updatedAt": "2026-05-13T08:31:48.750Z"
         },
         "8ccfe860-309f-428b-b74c-76a873bdea8a": {
             "_id": "69fcd25321f8b0238d0f67ef",
@@ -2211,7 +2251,8 @@
             "name": "JupiterOutpost",
             "schema": {
                 "Moon": "c91791ff-8b41-47b2-ba12-81a84e595f42",
-                "Planet": "54c74f99-f949-44f6-bc1c-37a80888e32f"
+                "Planet": "54c74f99-f949-44f6-bc1c-37a80888e32f",
+                "Image": "6133e24a-bf87-4d3a-a71e-3933eebcab25"
             },
             "extendsTypeId": "4c196697-4e08-4aeb-823f-322b353071ac",
             "isAbstract": false,
@@ -2219,7 +2260,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-07T18:34:26.484Z",
-            "updatedAt": "2026-05-07T18:36:34.830Z"
+            "updatedAt": "2026-05-13T20:49:00.196Z"
         },
         "96818dab-90e5-4ab9-8f69-cce66e39e370": {
             "_id": "69fcde8721f8b0238d0f682c",
@@ -2466,11 +2507,12 @@
             "id": "52e8e972-60f5-44ed-80e6-eb0f5a472ca0",
             "value": {
                 "LookupList": "6662335c-148a-4fef-91de-5efa35f4be75",
-                "Lookup": "c271d7d5-c6d4-4685-b159-c1e3b99acb07"
+                "Lookup": "c271d7d5-c6d4-4685-b159-c1e3b99acb07",
+                "Blah": "74f6d050-0455-40c1-92c6-f3e7cb258cd5"
             },
             "typeId": null,
             "createdAt": "2026-05-03T22:15:54.732Z",
-            "updatedAt": "2026-05-03T22:19:05.418Z",
+            "updatedAt": "2026-05-12T08:01:38.008Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "c76972cb-5d92-4d1b-865f-b919615e51aa": {
@@ -2788,7 +2830,7 @@
             "value": false,
             "typeId": null,
             "createdAt": "2026-05-07T11:47:21.770Z",
-            "updatedAt": "2026-05-07T11:47:21.770Z",
+            "updatedAt": "2026-05-12T08:00:39.705Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "e621365a-edd1-43a7-b36a-18c35b515057": {
@@ -2866,7 +2908,6 @@
             "id": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
             "value": [
                 "6ef339e8-7d1d-423c-8fde-ec02a570e307",
-                "f09149db-7cab-4963-aa87-aa0f8cd03673",
                 "913fd757-d6ee-488e-866f-c7af41aa544b",
                 "424019cd-8b46-4dd9-9aac-3721331179bb",
                 "7a91f55f-a90e-4a80-80f4-43ad6386891a",
@@ -2877,11 +2918,12 @@
                 "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f",
                 "0bfa8e27-27e0-41b2-b90b-6d3c9442905a",
                 "763b50d2-c0b2-4346-b8fb-a092e7337af3",
-                "18154c7e-8f9a-4767-b44c-a25b0e1ca234"
+                "18154c7e-8f9a-4767-b44c-a25b0e1ca234",
+                "ed141cc4-304c-40cd-8229-105f1ee9b99c"
             ],
             "typeId": null,
             "createdAt": "2026-05-07T18:23:43.984Z",
-            "updatedAt": "2026-05-07T19:09:12.303Z",
+            "updatedAt": "2026-05-13T20:50:10.837Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "5a1c9596-8e35-4b74-8fc7-b3d4d9f70789": {
@@ -2898,10 +2940,10 @@
         "7c0281ff-9423-4e2b-8d0e-f12f43304977": {
             "_id": "69fcd8ba21f8b0238d0f67ff",
             "id": "7c0281ff-9423-4e2b-8d0e-f12f43304977",
-            "value": "Mercurial",
+            "value": "Mercurials",
             "typeId": null,
             "createdAt": "2026-05-07T18:23:54.987Z",
-            "updatedAt": "2026-05-07T18:28:08.004Z",
+            "updatedAt": "2026-05-14T00:16:56.585Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "6ef339e8-7d1d-423c-8fde-ec02a570e307": {
@@ -2909,43 +2951,12 @@
             "id": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
             "value": {
                 "Planet": "5a1c9596-8e35-4b74-8fc7-b3d4d9f70789",
-                "Name": "7c0281ff-9423-4e2b-8d0e-f12f43304977"
+                "Name": "7c0281ff-9423-4e2b-8d0e-f12f43304977",
+                "Image": "1dd5d019-dd71-48ad-b960-1c8063ce8109"
             },
             "typeId": null,
             "createdAt": "2026-05-07T18:23:55.101Z",
-            "updatedAt": "2026-05-07T18:23:55.101Z",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
-        },
-        "84f0fbd8-48c5-4d7c-9546-d7a2642c844f": {
-            "_id": "69fcd8fc21f8b0238d0f6801",
-            "id": "84f0fbd8-48c5-4d7c-9546-d7a2642c844f",
-            "value": [
-                "venus"
-            ],
-            "typeId": null,
-            "createdAt": "2026-05-07T18:25:00.752Z",
-            "updatedAt": "2026-05-07T18:25:04.352Z",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
-        },
-        "295d4238-cbd1-47db-b4f4-4dd1bd760bc7": {
-            "_id": "69fcd8fc21f8b0238d0f6802",
-            "id": "295d4238-cbd1-47db-b4f4-4dd1bd760bc7",
-            "value": "Venusian",
-            "typeId": null,
-            "createdAt": "2026-05-07T18:25:00.868Z",
-            "updatedAt": "2026-05-07T18:28:41.756Z",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
-        },
-        "f09149db-7cab-4963-aa87-aa0f8cd03673": {
-            "_id": "69fcd8fc21f8b0238d0f6803",
-            "id": "f09149db-7cab-4963-aa87-aa0f8cd03673",
-            "value": {
-                "Planet": "84f0fbd8-48c5-4d7c-9546-d7a2642c844f",
-                "Name": "295d4238-cbd1-47db-b4f4-4dd1bd760bc7"
-            },
-            "typeId": null,
-            "createdAt": "2026-05-07T18:25:00.975Z",
-            "updatedAt": "2026-05-07T18:25:00.975Z",
+            "updatedAt": "2026-05-13T09:45:48.066Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "1d30eb20-e75a-4a34-bd68-91cb0b1e6da0": {
@@ -2973,11 +2984,12 @@
             "id": "913fd757-d6ee-488e-866f-c7af41aa544b",
             "value": {
                 "Planet": "1d30eb20-e75a-4a34-bd68-91cb0b1e6da0",
-                "Name": "f06fcc73-bf85-4534-9357-a1fe88bbe445"
+                "Name": "f06fcc73-bf85-4534-9357-a1fe88bbe445",
+                "Image": "eb549625-cc4d-4167-9e02-bae3308247d3"
             },
             "typeId": null,
             "createdAt": "2026-05-07T18:26:36.985Z",
-            "updatedAt": "2026-05-07T18:26:36.985Z",
+            "updatedAt": "2026-05-13T18:28:46.910Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "bc796fbb-3022-4b7d-a334-2f62c48b4e5e": {
@@ -3005,11 +3017,12 @@
             "id": "424019cd-8b46-4dd9-9aac-3721331179bb",
             "value": {
                 "Planet": "bc796fbb-3022-4b7d-a334-2f62c48b4e5e",
-                "Name": "07666e99-93aa-4013-9cd2-836059f81964"
+                "Name": "07666e99-93aa-4013-9cd2-836059f81964",
+                "Image": "9e71223f-1ab0-407b-8b24-9361e7d49af1"
             },
             "typeId": null,
             "createdAt": "2026-05-07T18:27:08.233Z",
-            "updatedAt": "2026-05-07T18:27:08.233Z",
+            "updatedAt": "2026-05-13T20:45:56.544Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "e6309726-3213-4c8d-9748-734408e2c8ca": {
@@ -3049,11 +3062,12 @@
             "value": {
                 "Planet": "e6309726-3213-4c8d-9748-734408e2c8ca",
                 "Name": "5074d845-82de-4a1a-a3ef-6c81d3faa17f",
-                "Moon": "85c13b6a-1805-4fcb-bc54-6226af2a99ad"
+                "Moon": "85c13b6a-1805-4fcb-bc54-6226af2a99ad",
+                "Image": "0bff2dfa-4a1f-4174-858a-811a5cef1b3b"
             },
             "typeId": "a50efb7e-58f6-4342-906e-0b01f98b15af",
             "createdAt": "2026-05-07T18:35:13.643Z",
-            "updatedAt": "2026-05-07T18:35:13.643Z",
+            "updatedAt": "2026-05-13T20:50:31.636Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "96a5f27d-ca5c-44bf-8d53-67e2d5c48144": {
@@ -3093,11 +3107,12 @@
             "value": {
                 "Planet": "96a5f27d-ca5c-44bf-8d53-67e2d5c48144",
                 "Name": "700d2fa9-9aa0-4958-88a7-12a476bdd2c9",
-                "Moon": "2f760c73-d627-46de-8714-428d8a37ec23"
+                "Moon": "2f760c73-d627-46de-8714-428d8a37ec23",
+                "Image": "28570b83-f839-4e79-8bd9-08e71d4320ff"
             },
             "typeId": "a50efb7e-58f6-4342-906e-0b01f98b15af",
             "createdAt": "2026-05-07T18:35:38.418Z",
-            "updatedAt": "2026-05-07T18:35:38.418Z",
+            "updatedAt": "2026-05-13T20:50:47.279Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "0eb04da7-480b-4bdb-a04e-eba6f58ffcc8": {
@@ -3148,11 +3163,12 @@
             "value": {
                 "Planet": "1cc7ae4b-68d9-472f-8429-bfaeb62c494c",
                 "Name": "41f3c04b-c82d-483a-a118-0adad9808b0e",
-                "Moon": "c01a9d64-e67f-4476-8fc6-ee1fd1e72df4"
+                "Moon": "c01a9d64-e67f-4476-8fc6-ee1fd1e72df4",
+                "Image": "f1778207-4b53-4e6f-ab06-2eaa591d9d75"
             },
             "typeId": "a50efb7e-58f6-4342-906e-0b01f98b15af",
             "createdAt": "2026-05-07T18:36:39.799Z",
-            "updatedAt": "2026-05-07T18:36:39.799Z",
+            "updatedAt": "2026-05-13T20:51:02.227Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "2cb35794-38ee-4e11-9f5d-5a7a67e8986c": {
@@ -3192,11 +3208,12 @@
             "value": {
                 "Planet": "2cb35794-38ee-4e11-9f5d-5a7a67e8986c",
                 "Name": "0580c103-0694-4d6b-b60b-c13ab3e0badc",
-                "Moon": "eeb149d0-682f-4471-af7a-172779f9fbf4"
+                "Moon": "eeb149d0-682f-4471-af7a-172779f9fbf4",
+                "Image": "e3f8c9c2-d7aa-471c-8afc-79fa693b6a24"
             },
             "typeId": "a50efb7e-58f6-4342-906e-0b01f98b15af",
             "createdAt": "2026-05-07T18:40:29.708Z",
-            "updatedAt": "2026-05-07T18:40:29.708Z",
+            "updatedAt": "2026-05-13T20:51:16.378Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "2b63dd9f-df25-460d-84c3-67b8fdefcd07": {
@@ -3247,11 +3264,12 @@
             "value": {
                 "Planet": "6e6c4676-1f9f-4723-af84-e7b5dbdb3fa6",
                 "Name": "6c30c617-0402-442b-801c-6c4aa560d92e",
-                "Moon": "3a284dad-7529-448a-8aed-493a5f904fb4"
+                "Moon": "3a284dad-7529-448a-8aed-493a5f904fb4",
+                "Image": "75f24eb7-6b68-46d2-af22-3451831b4ebe"
             },
             "typeId": "96818dab-90e5-4ab9-8f69-cce66e39e370",
             "createdAt": "2026-05-07T18:49:18.419Z",
-            "updatedAt": "2026-05-07T18:49:18.419Z",
+            "updatedAt": "2026-05-13T09:39:43.262Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "a31a428c-9260-4309-85a5-e4f8382bac43": {
@@ -3291,11 +3309,12 @@
             "value": {
                 "Planet": "a31a428c-9260-4309-85a5-e4f8382bac43",
                 "Name": "76455b88-8ff4-4da7-9bce-8444965ced99",
-                "Moon": "97bed353-8d38-407b-9274-861eab97d948"
+                "Moon": "97bed353-8d38-407b-9274-861eab97d948",
+                "Image": "aa2f31a6-1866-4a48-bba4-23f93d151437"
             },
             "typeId": "96818dab-90e5-4ab9-8f69-cce66e39e370",
             "createdAt": "2026-05-07T18:49:53.791Z",
-            "updatedAt": "2026-05-07T18:49:53.791Z",
+            "updatedAt": "2026-05-13T09:43:27.841Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "3c34d333-c67f-4457-b299-9457eb00c61c": {
@@ -3323,11 +3342,12 @@
             "id": "0bfa8e27-27e0-41b2-b90b-6d3c9442905a",
             "value": {
                 "Planet": "3c34d333-c67f-4457-b299-9457eb00c61c",
-                "Name": "8a0a6406-0c25-4a2f-a9cf-55b89fc7e22e"
+                "Name": "8a0a6406-0c25-4a2f-a9cf-55b89fc7e22e",
+                "Image": "4bf13ac0-156f-4cf2-8124-9064bcc8fcf1"
             },
             "typeId": null,
             "createdAt": "2026-05-07T19:04:26.066Z",
-            "updatedAt": "2026-05-07T19:04:26.066Z",
+            "updatedAt": "2026-05-13T09:43:51.331Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "f9023084-e558-4f2b-9376-b1f982907a55": {
@@ -3355,11 +3375,12 @@
             "id": "763b50d2-c0b2-4346-b8fb-a092e7337af3",
             "value": {
                 "Planet": "f9023084-e558-4f2b-9376-b1f982907a55",
-                "Name": "25156663-5977-461a-8191-1f41b46f9366"
+                "Name": "25156663-5977-461a-8191-1f41b46f9366",
+                "Image": "b3484408-de0b-4bb3-81bd-933410676366"
             },
             "typeId": null,
             "createdAt": "2026-05-07T19:07:42.111Z",
-            "updatedAt": "2026-05-07T19:07:42.111Z",
+            "updatedAt": "2026-05-13T09:50:58.357Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "a8c03000-9b4b-4a29-b588-295ac18e7641": {
@@ -3387,11 +3408,12 @@
             "id": "18154c7e-8f9a-4767-b44c-a25b0e1ca234",
             "value": {
                 "Planet": "a8c03000-9b4b-4a29-b588-295ac18e7641",
-                "Name": "8fe29521-4991-491c-80db-f4fc99d7bfa1"
+                "Name": "8fe29521-4991-491c-80db-f4fc99d7bfa1",
+                "Image": "a38ca24a-d913-4c28-b3dc-9c95e88de5d8"
             },
             "typeId": null,
             "createdAt": "2026-05-07T19:09:12.143Z",
-            "updatedAt": "2026-05-07T19:09:12.143Z",
+            "updatedAt": "2026-05-13T09:35:41.641Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "fb0766b1-8b3d-4a39-8b94-60de16a09079": {
@@ -3462,7 +3484,7 @@
             "value": 0,
             "typeId": null,
             "createdAt": "2026-05-07T19:28:55.550Z",
-            "updatedAt": "2026-05-11T22:41:17.850Z",
+            "updatedAt": "2026-05-13T18:58:24.679Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "0705a0e0-7f9c-4a5b-953e-55f982e2b381": {
@@ -3605,6 +3627,227 @@
             "typeId": null,
             "createdAt": "2026-05-11T20:26:00.571Z",
             "updatedAt": "2026-05-11T20:26:00.571Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "74f6d050-0455-40c1-92c6-f3e7cb258cd5": {
+            "_id": "6a02de617d5fdf8fbba3ac95",
+            "id": "74f6d050-0455-40c1-92c6-f3e7cb258cd5",
+            "value": "",
+            "typeId": null,
+            "createdAt": "2026-05-12T08:01:37.594Z",
+            "updatedAt": "2026-05-12T08:01:37.594Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "a38ca24a-d913-4c28-b3dc-9c95e88de5d8": {
+            "_id": "6a0445edf95eb3976b8585a5",
+            "id": "a38ca24a-d913-4c28-b3dc-9c95e88de5d8",
+            "value": {
+                "fileId": "8260f51a-291a-4191-9ebd-8ed9c04fd9bc",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T09:35:41.490Z",
+            "updatedAt": "2026-05-13T21:09:13.256Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "75f24eb7-6b68-46d2-af22-3451831b4ebe": {
+            "_id": "6a0446dff95eb3976b8585a6",
+            "id": "75f24eb7-6b68-46d2-af22-3451831b4ebe",
+            "value": {
+                "fileId": "027cc2b7-71d3-451d-a9db-fae0e6cbbfc4",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T09:39:43.104Z",
+            "updatedAt": "2026-05-13T21:01:57.004Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "aa2f31a6-1866-4a48-bba4-23f93d151437": {
+            "_id": "6a0447bff95eb3976b8585a7",
+            "id": "aa2f31a6-1866-4a48-bba4-23f93d151437",
+            "value": {
+                "fileId": "027cc2b7-71d3-451d-a9db-fae0e6cbbfc4",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T09:43:27.686Z",
+            "updatedAt": "2026-05-13T21:02:12.604Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "4bf13ac0-156f-4cf2-8124-9064bcc8fcf1": {
+            "_id": "6a0447d7f95eb3976b8585a8",
+            "id": "4bf13ac0-156f-4cf2-8124-9064bcc8fcf1",
+            "value": {
+                "fileId": "fea246bc-056a-45b4-983e-9209e35d0ef0",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T09:43:51.178Z",
+            "updatedAt": "2026-05-13T21:08:07.092Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "1dd5d019-dd71-48ad-b960-1c8063ce8109": {
+            "_id": "6a04484bf95eb3976b8585a9",
+            "id": "1dd5d019-dd71-48ad-b960-1c8063ce8109",
+            "value": {
+                "fileId": "e55c6f29-b498-433b-85a8-89672290f3c0",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T09:45:47.911Z",
+            "updatedAt": "2026-05-13T20:42:33.787Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "58f7a7ae-93b1-4660-8a5f-bf28de1719cc": {
+            "_id": "6a0448b3f95eb3976b8585ac",
+            "id": "58f7a7ae-93b1-4660-8a5f-bf28de1719cc",
+            "value": [
+                "venus"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-13T09:47:31.068Z",
+            "updatedAt": "2026-05-13T09:47:47.733Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "eb5ac9f8-202c-464a-8eca-bdc1ff3aa983": {
+            "_id": "6a0448b3f95eb3976b8585ad",
+            "id": "eb5ac9f8-202c-464a-8eca-bdc1ff3aa983",
+            "value": "Venusian",
+            "typeId": null,
+            "createdAt": "2026-05-13T09:47:31.171Z",
+            "updatedAt": "2026-05-13T09:49:39.708Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "ed141cc4-304c-40cd-8229-105f1ee9b99c": {
+            "_id": "6a0448b3f95eb3976b8585ae",
+            "id": "ed141cc4-304c-40cd-8229-105f1ee9b99c",
+            "value": {
+                "Planet": "58f7a7ae-93b1-4660-8a5f-bf28de1719cc",
+                "Name": "eb5ac9f8-202c-464a-8eca-bdc1ff3aa983",
+                "Image": "f3a055f5-e9ab-458e-a69f-0509ee097cbb"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T09:47:31.439Z",
+            "updatedAt": "2026-05-13T21:09:57.431Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "b3484408-de0b-4bb3-81bd-933410676366": {
+            "_id": "6a044982f95eb3976b8585af",
+            "id": "b3484408-de0b-4bb3-81bd-933410676366",
+            "value": {
+                "fileId": "dea050c2-de92-40f6-a1c0-fe64ab6f6165",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T09:50:58.201Z",
+            "updatedAt": "2026-05-13T21:08:40.342Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "eb549625-cc4d-4167-9e02-bae3308247d3": {
+            "_id": "6a04c2def95eb3976b8585b0",
+            "id": "eb549625-cc4d-4167-9e02-bae3308247d3",
+            "value": {
+                "fileId": "5cc531eb-25a5-469f-877d-10afb4c5489e",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T18:28:46.747Z",
+            "updatedAt": "2026-05-13T20:45:20.195Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "9e71223f-1ab0-407b-8b24-9361e7d49af1": {
+            "_id": "6a04e304f95eb3976b8585b8",
+            "id": "9e71223f-1ab0-407b-8b24-9361e7d49af1",
+            "value": {
+                "fileId": "f35d7f06-1670-4d53-9468-82266fe8c41e",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T20:45:56.348Z",
+            "updatedAt": "2026-05-13T20:45:56.348Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "4b4ff858-9c56-4df8-8f3a-46e06d53a7e0": {
+            "_id": "6a04e3bbf95eb3976b8585ba",
+            "id": "4b4ff858-9c56-4df8-8f3a-46e06d53a7e0",
+            "value": {
+                "fileId": "6e1643e2-5b91-45a6-a4b1-435f36c1a0f9",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T20:48:59.915Z",
+            "updatedAt": "2026-05-13T20:48:59.915Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "26f51dd1-9fcf-4cbc-8e83-a8a6ba63fd2e": {
+            "_id": "6a04e3ebf95eb3976b8585be",
+            "id": "26f51dd1-9fcf-4cbc-8e83-a8a6ba63fd2e",
+            "value": [
+                "io"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-13T20:49:47.194Z",
+            "updatedAt": "2026-05-13T20:49:47.194Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "0bff2dfa-4a1f-4174-858a-811a5cef1b3b": {
+            "_id": "6a04e417f95eb3976b8585c0",
+            "id": "0bff2dfa-4a1f-4174-858a-811a5cef1b3b",
+            "value": {
+                "fileId": "6e1643e2-5b91-45a6-a4b1-435f36c1a0f9",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T20:50:31.479Z",
+            "updatedAt": "2026-05-13T20:50:31.479Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "28570b83-f839-4e79-8bd9-08e71d4320ff": {
+            "_id": "6a04e427f95eb3976b8585c1",
+            "id": "28570b83-f839-4e79-8bd9-08e71d4320ff",
+            "value": {
+                "fileId": "6e1643e2-5b91-45a6-a4b1-435f36c1a0f9",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T20:50:47.078Z",
+            "updatedAt": "2026-05-13T20:50:47.078Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "f1778207-4b53-4e6f-ab06-2eaa591d9d75": {
+            "_id": "6a04e436f95eb3976b8585c2",
+            "id": "f1778207-4b53-4e6f-ab06-2eaa591d9d75",
+            "value": {
+                "fileId": "6e1643e2-5b91-45a6-a4b1-435f36c1a0f9",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T20:51:02.067Z",
+            "updatedAt": "2026-05-13T20:51:02.067Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "e3f8c9c2-d7aa-471c-8afc-79fa693b6a24": {
+            "_id": "6a04e444f95eb3976b8585c3",
+            "id": "e3f8c9c2-d7aa-471c-8afc-79fa693b6a24",
+            "value": {
+                "fileId": "6e1643e2-5b91-45a6-a4b1-435f36c1a0f9",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T20:51:16.213Z",
+            "updatedAt": "2026-05-13T20:51:16.213Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "f3a055f5-e9ab-458e-a69f-0509ee097cbb": {
+            "_id": "6a04e8a5f95eb3976b8585ca",
+            "id": "f3a055f5-e9ab-458e-a69f-0509ee097cbb",
+            "value": {
+                "fileId": "65625941-be23-4913-8131-f383bf4ff690",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-13T21:09:57.271Z",
+            "updatedAt": "2026-05-13T21:09:57.271Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         }
     },
@@ -6710,54 +6953,6 @@
             "createdAt": "2026-05-07T21:19:16.082Z",
             "updatedAt": "2026-05-11T21:10:19.806Z"
         },
-        "ffff9f70-1a3a-4a7f-90cc-02c43861d602": {
-            "_id": "69fd82fe648f056c98420265",
-            "name": "Empty dialogue",
-            "description": null,
-            "nodes": {},
-            "linkedValues": [
-                {
-                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
-                    "source": 3
-                }
-            ],
-            "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
-            "settings": {
-                "defaultSaveOptionChoices": true
-            },
-            "triggerNode": {
-                "id": "ceb31e24-a999-408f-8364-b2b854114018",
-                "type": 0,
-                "layout": {
-                    "x": 0,
-                    "y": 0,
-                    "width": 320,
-                    "height": 160,
-                    "isOpen": true
-                },
-                "name": null,
-                "linkedValues": [
-                    {
-                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
-                        "source": 3
-                    }
-                ],
-                "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
-                "conditions": [],
-                "dialogueGroupSettings": {
-                    "dialogueGroupId": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
-                    "lookupValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
-                    "priority": {
-                        "priorityTypeId": null,
-                        "relativeOrder": null
-                    }
-                }
-            },
-            "id": "ffff9f70-1a3a-4a7f-90cc-02c43861d602",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "createdAt": "2026-05-08T06:30:22.862Z",
-            "updatedAt": "2026-05-08T06:30:22.862Z"
-        },
         "71478d85-4586-4ca8-8b95-226a391a9a5f": {
             "_id": "6a00216733f2641c2bfa810f",
             "name": "Mercurial intro",
@@ -7329,11 +7524,11 @@
             "nodes": {},
             "linkedValues": [
                 {
-                    "valueId": "f09149db-7cab-4963-aa87-aa0f8cd03673",
+                    "valueId": "ed141cc4-304c-40cd-8229-105f1ee9b99c",
                     "source": 3
                 }
             ],
-            "primaryLinkedValueId": "f09149db-7cab-4963-aa87-aa0f8cd03673",
+            "primaryLinkedValueId": "ed141cc4-304c-40cd-8229-105f1ee9b99c",
             "settings": {
                 "defaultSaveOptionChoices": true
             },
@@ -7350,15 +7545,15 @@
                 "name": null,
                 "linkedValues": [
                     {
-                        "valueId": "f09149db-7cab-4963-aa87-aa0f8cd03673",
+                        "valueId": "ed141cc4-304c-40cd-8229-105f1ee9b99c",
                         "source": 3
                     }
                 ],
-                "primaryLinkedValueId": "f09149db-7cab-4963-aa87-aa0f8cd03673",
+                "primaryLinkedValueId": "ed141cc4-304c-40cd-8229-105f1ee9b99c",
                 "conditions": [],
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
-                    "lookupValueId": "f09149db-7cab-4963-aa87-aa0f8cd03673",
+                    "lookupValueId": "ed141cc4-304c-40cd-8229-105f1ee9b99c",
                     "priority": {
                         "priorityTypeId": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
                         "relativeOrder": 0
@@ -7369,7 +7564,7 @@
             "id": "5385d04c-b623-40f5-8032-c97d4f90073d",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-10T06:36:52.444Z",
-            "updatedAt": "2026-05-10T06:41:08.349Z"
+            "updatedAt": "2026-05-13T09:48:38.945Z"
         },
         "2e65254c-7b5a-4bf0-ba4a-319352b403e3": {
             "_id": "6a02636713f8e0589f97bba1",
@@ -7857,5 +8052,701 @@
             "createdAt": "2026-05-05T23:49:17.316Z",
             "updatedAt": "2026-05-05T23:49:17.316Z"
         }
-    }
+    },
+    "files": {
+        "65625941-be23-4913-8131-f383bf4ff690": {
+            "_id": "6a04e8a3f95eb3976b8585c9",
+            "id": "65625941-be23-4913-8131-f383bf4ff690",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "Venus (cloudy).png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 833,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/65625941-be23-4913-8131-f383bf4ff690/f267035f-a2db-45f7-ac38-3949de737a4e-Venus-cloudy-.png",
+            "storageETag": "\"d1f3937f70d79a6f58d71a1a364f7d3c\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T21:09:55.280Z",
+            "updatedAt": "2026-05-13T21:09:55.780Z"
+        },
+        "8260f51a-291a-4191-9ebd-8ed9c04fd9bc": {
+            "_id": "6a04e876f95eb3976b8585c8",
+            "id": "8260f51a-291a-4191-9ebd-8ed9c04fd9bc",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "Pluto.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 773,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/8260f51a-291a-4191-9ebd-8ed9c04fd9bc/7e726004-a2a8-4d23-af0d-913bd2b49914-Pluto.png",
+            "storageETag": "\"59527ac11a1cc7f4969d3625d227ba74\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T21:09:10.041Z",
+            "updatedAt": "2026-05-13T21:09:11.220Z"
+        },
+        "dea050c2-de92-40f6-a1c0-fe64ab6f6165": {
+            "_id": "6a04e856f95eb3976b8585c7",
+            "id": "dea050c2-de92-40f6-a1c0-fe64ab6f6165",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "Neptune.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 687,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/dea050c2-de92-40f6-a1c0-fe64ab6f6165/8486a18c-df40-4dc9-b729-da3711e201fa-Neptune.png",
+            "storageETag": "\"3c273c5b6be6507dbc6d0607c6767c9e\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T21:08:38.037Z",
+            "updatedAt": "2026-05-13T21:08:38.647Z"
+        },
+        "fea246bc-056a-45b4-983e-9209e35d0ef0": {
+            "_id": "6a04e828f95eb3976b8585c6",
+            "id": "fea246bc-056a-45b4-983e-9209e35d0ef0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "Uranus.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 719,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/fea246bc-056a-45b4-983e-9209e35d0ef0/25fd777b-0543-49d6-8d4b-468d1a747bfe-Uranus.png",
+            "storageETag": "\"eddabde3c823924228bfed0934ed9f18\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T21:07:52.190Z",
+            "updatedAt": "2026-05-13T21:08:03.866Z"
+        },
+        "027cc2b7-71d3-451d-a9db-fae0e6cbbfc4": {
+            "_id": "6a04e45af95eb3976b8585c4",
+            "id": "027cc2b7-71d3-451d-a9db-fae0e6cbbfc4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "Saturn.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 787,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/027cc2b7-71d3-451d-a9db-fae0e6cbbfc4/d3bbbc55-8925-437c-80ad-85f3fdb78f23-Saturn.png",
+            "storageETag": "\"9bbc1c1b3a84faac43eb8ed3399a6a18\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "c4010e22-e5d5-4ced-9c60-c650017cebaa",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T20:51:38.427Z",
+            "updatedAt": "2026-05-13T20:56:06.167Z"
+        },
+        "6e1643e2-5b91-45a6-a4b1-435f36c1a0f9": {
+            "_id": "6a04e340f95eb3976b8585b9",
+            "id": "6e1643e2-5b91-45a6-a4b1-435f36c1a0f9",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "Jupiter.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 839,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/6e1643e2-5b91-45a6-a4b1-435f36c1a0f9/57e20ebc-1dd3-434b-b9cb-e317f7c52a6b-Jupiter.png",
+            "storageETag": "\"4bb7440c55421a0aab6e4c4003d8e6aa\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T20:46:56.865Z",
+            "updatedAt": "2026-05-13T21:01:32.460Z"
+        },
+        "f35d7f06-1670-4d53-9468-82266fe8c41e": {
+            "_id": "6a04e302f95eb3976b8585b7",
+            "id": "f35d7f06-1670-4d53-9468-82266fe8c41e",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "Mars.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 751,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/f35d7f06-1670-4d53-9468-82266fe8c41e/7c5e0b41-0d09-4503-b466-d65b0f398166-Mars.png",
+            "storageETag": "\"3c51cffa98b4fa8dd0a42d07f575467c\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T20:45:54.363Z",
+            "updatedAt": "2026-05-13T21:00:17.277Z"
+        },
+        "5cc531eb-25a5-469f-877d-10afb4c5489e": {
+            "_id": "6a04e2ddf95eb3976b8585b6",
+            "id": "5cc531eb-25a5-469f-877d-10afb4c5489e",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "Earth.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 855,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/5cc531eb-25a5-469f-877d-10afb4c5489e/9b5315d8-677a-4f3c-8305-18b523f58a50-Earth.png",
+            "storageETag": "\"b70c06dfd266c4ebff6db1c1ccf187b2\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T20:45:17.706Z",
+            "updatedAt": "2026-05-13T21:00:03.997Z"
+        },
+        "e55c6f29-b498-433b-85a8-89672290f3c0": {
+            "_id": "6a04e237f95eb3976b8585b5",
+            "id": "e55c6f29-b498-433b-85a8-89672290f3c0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "Mercury.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 819,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/e55c6f29-b498-433b-85a8-89672290f3c0/2547d186-d706-47e0-931f-cffa557d18e5-Mercury.png",
+            "storageETag": "\"9272f728f2df9a43061c40f374dffb10\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T20:42:31.511Z",
+            "updatedAt": "2026-05-13T21:01:41.918Z"
+        },
+        "e5453d3e-f999-411f-9a87-32563e124e02": {
+            "_id": "6a04dce8f95eb3976b8585b4",
+            "id": "e5453d3e-f999-411f-9a87-32563e124e02",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "dirt-mulch-wet.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 866,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/e5453d3e-f999-411f-9a87-32563e124e02/214c19a2-7726-460a-9504-49e2e081dffa-dirt-mulch-wet.png",
+            "storageETag": "\"462c32b3b698e5270e82293d516a6dc6\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T20:19:52.900Z",
+            "updatedAt": "2026-05-13T20:19:53.541Z"
+        },
+        "73bd63df-d741-4352-b6cf-7f6beb408090": {
+            "_id": "6a04dcadf95eb3976b8585b3",
+            "id": "73bd63df-d741-4352-b6cf-7f6beb408090",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "garden.mulch.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 272,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/73bd63df-d741-4352-b6cf-7f6beb408090/2aef8cfb-106d-4b5f-a612-15405e118d5b-garden.mulch.png",
+            "storageETag": "\"4767a6d476bc58ad4c5b7404eb14a5b3\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T20:18:53.205Z",
+            "updatedAt": "2026-05-13T20:18:53.704Z"
+        },
+        "586c5d4b-37db-43de-95f2-d2555408ff7c": {
+            "_id": "6a04dc0ef95eb3976b8585b2",
+            "id": "586c5d4b-37db-43de-95f2-d2555408ff7c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "crafting-bench.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 378,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/586c5d4b-37db-43de-95f2-d2555408ff7c/247b63a7-311d-42f8-bbdd-02dff30a684a-crafting-bench.png",
+            "storageETag": "\"514e503e0f244cce6267d410692cc914\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T20:16:14.846Z",
+            "updatedAt": "2026-05-13T20:16:15.434Z"
+        },
+        "6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7": {
+            "_id": "6a04d962f95eb3976b8585b1",
+            "id": "6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "heart-icon.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 467,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7/b91b468a-e338-4470-913e-32bb81da7af8-heart-icon.png",
+            "storageETag": "\"c8ad0e4a5fd0169f862fceeb568ccc5e\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T20:04:50.040Z",
+            "updatedAt": "2026-05-13T20:04:50.679Z"
+        },
+        "df67835a-7dfd-4a06-8110-7e6d8b380f57": {
+            "_id": "6a03dcdcf95eb3976b858599",
+            "id": "df67835a-7dfd-4a06-8110-7e6d8b380f57",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "seed.strawberry.png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 1335,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/df67835a-7dfd-4a06-8110-7e6d8b380f57/4d106e4d-2e85-465d-8287-e6bc6abf0179-seed.strawberry.png",
+            "storageETag": "\"57fae186e7bc13fa990b529c0bc6a8f1\"",
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-13T02:07:24.398Z",
+            "updatedAt": "2026-05-13T02:56:40.126Z"
+        }
+    },
+    "textureTemplates": {
+        "66504747-cbd5-4026-9d4c-89a0644f8192": {
+            "_id": "6a03951495c86f7af326dbcb",
+            "type": "texture-2d",
+            "textureType": "sprite",
+            "textureShape": "2d",
+            "sRGBTexture": true,
+            "alphaSource": "input-texture-alpha",
+            "alphaIsTransparency": true,
+            "nonPowerOfTwoScale": "none",
+            "ignorePngGamma": false,
+            "readWriteEnabled": true,
+            "virtualTextureOnly": false,
+            "generateMipMaps": false,
+            "borderMipMaps": false,
+            "mipMapFiltering": "box",
+            "mipMapsPreserveCoverage": false,
+            "alphaCutoffValue": 0.5,
+            "fadeOutMipMaps": false,
+            "mipMapFadeDistanceStart": 1,
+            "mipMapFadeDistanceEnd": 3,
+            "anisoLevel": 1,
+            "wrapMode": "clamp",
+            "wrapModeU": null,
+            "wrapModeV": null,
+            "filterMode": "point",
+            "maxTextureSize": 2048,
+            "resizeAlgorithm": "mitchell",
+            "textureCompression": "none",
+            "compressionQuality": 50,
+            "crunchedCompression": false,
+            "platformSettings": {
+                "default": {
+                    "maxTextureSize": 2048,
+                    "resizeAlgorithm": "mitchell",
+                    "format": "automatic",
+                    "textureCompression": "none",
+                    "crunchedCompression": false,
+                    "compressionQuality": 50
+                },
+                "standalone": {
+                    "override": false,
+                    "maxTextureSize": 2048,
+                    "resizeAlgorithm": "mitchell",
+                    "format": "rgba-compressed-dxt5-bc3",
+                    "textureCompression": "normal-quality",
+                    "crunchedCompression": false,
+                    "compressionQuality": 50
+                },
+                "web": {
+                    "override": false,
+                    "maxTextureSize": 2048,
+                    "resizeAlgorithm": "mitchell",
+                    "format": "rgba-compressed-dxt5-bc3",
+                    "textureCompression": "normal-quality",
+                    "crunchedCompression": false,
+                    "compressionQuality": 50
+                }
+            },
+            "spriteSettings": {
+                "spriteMode": "multiple",
+                "pixelsPerUnit": 16,
+                "meshType": "tight",
+                "extrudeEdges": 1,
+                "pivotAlignment": "center",
+                "pivot": {
+                    "x": 0.5,
+                    "y": 0.5
+                },
+                "generatePhysicsShape": true,
+                "spriteEditor": {
+                    "slice": {
+                        "type": "grid-by-cell-size",
+                        "pixelSize": {
+                            "x": 16,
+                            "y": 16
+                        },
+                        "offset": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "padding": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "keepEmptyRects": false,
+                        "pivotAlignment": "center",
+                        "pivot": {
+                            "x": 0.5,
+                            "y": 0.5
+                        },
+                        "border": {
+                            "x": 0,
+                            "y": 0,
+                            "z": 0,
+                            "w": 0
+                        },
+                        "naming": {
+                            "pattern": "{fileName}_{row}_{column}",
+                            "startIndex": 0,
+                            "order": "row-major"
+                        }
+                    }
+                }
+            },
+            "normalMapSettings": {
+                "createFromGrayscale": false,
+                "bumpiness": 0.25,
+                "filtering": "smooth",
+                "flipGreenChannel": false
+            },
+            "cookieSettings": {
+                "lightType": "spot"
+            },
+            "singleChannelSettings": {
+                "component": "alpha"
+            },
+            "swizzle": {
+                "r": "red",
+                "g": "green",
+                "b": "blue",
+                "a": "alpha"
+            },
+            "id": "66504747-cbd5-4026-9d4c-89a0644f8192",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "name": "16x16-PivotCenter",
+            "createdAt": "2026-05-12T21:00:42.700Z",
+            "updatedAt": "2026-05-13T20:40:02.135Z"
+        },
+        "c4010e22-e5d5-4ced-9c60-c650017cebaa": {
+            "_id": "6a04e53ef95eb3976b8585c5",
+            "type": "texture-2d",
+            "textureType": "sprite",
+            "textureShape": "2d",
+            "sRGBTexture": true,
+            "alphaSource": "input-texture-alpha",
+            "alphaIsTransparency": true,
+            "nonPowerOfTwoScale": "none",
+            "ignorePngGamma": false,
+            "readWriteEnabled": true,
+            "virtualTextureOnly": false,
+            "generateMipMaps": false,
+            "borderMipMaps": false,
+            "mipMapFiltering": "box",
+            "mipMapsPreserveCoverage": false,
+            "alphaCutoffValue": 0.5,
+            "fadeOutMipMaps": false,
+            "mipMapFadeDistanceStart": 1,
+            "mipMapFadeDistanceEnd": 3,
+            "anisoLevel": 1,
+            "wrapMode": "clamp",
+            "wrapModeU": null,
+            "wrapModeV": null,
+            "filterMode": "point",
+            "maxTextureSize": 2048,
+            "resizeAlgorithm": "mitchell",
+            "textureCompression": "none",
+            "compressionQuality": 50,
+            "crunchedCompression": false,
+            "platformSettings": {
+                "default": {
+                    "maxTextureSize": 2048,
+                    "resizeAlgorithm": "mitchell",
+                    "format": "automatic",
+                    "textureCompression": "none",
+                    "crunchedCompression": false,
+                    "compressionQuality": 50
+                },
+                "standalone": {
+                    "override": false,
+                    "maxTextureSize": 2048,
+                    "resizeAlgorithm": "mitchell",
+                    "format": "rgba-compressed-dxt5-bc3",
+                    "textureCompression": "normal-quality",
+                    "crunchedCompression": false,
+                    "compressionQuality": 50
+                },
+                "web": {
+                    "override": false,
+                    "maxTextureSize": 2048,
+                    "resizeAlgorithm": "mitchell",
+                    "format": "rgba-compressed-dxt5-bc3",
+                    "textureCompression": "normal-quality",
+                    "crunchedCompression": false,
+                    "compressionQuality": 50
+                }
+            },
+            "spriteSettings": {
+                "spriteMode": "multiple",
+                "pixelsPerUnit": 16,
+                "meshType": "tight",
+                "extrudeEdges": 1,
+                "pivotAlignment": "center",
+                "pivot": {
+                    "x": 0.5,
+                    "y": 0.5
+                },
+                "generatePhysicsShape": true,
+                "spriteEditor": {
+                    "slice": {
+                        "type": "grid-by-cell-size",
+                        "pixelSize": {
+                            "x": 26,
+                            "y": 16
+                        },
+                        "offset": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "padding": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "keepEmptyRects": false,
+                        "pivotAlignment": "center",
+                        "pivot": {
+                            "x": 0.5,
+                            "y": 0.5
+                        },
+                        "border": {
+                            "x": 0,
+                            "y": 0,
+                            "z": 0,
+                            "w": 0
+                        },
+                        "naming": {
+                            "pattern": "{fileName}_{row}_{column}",
+                            "startIndex": 0,
+                            "order": "row-major"
+                        }
+                    }
+                }
+            },
+            "normalMapSettings": {
+                "createFromGrayscale": false,
+                "bumpiness": 0.25,
+                "filtering": "smooth",
+                "flipGreenChannel": false
+            },
+            "cookieSettings": {
+                "lightType": "spot"
+            },
+            "singleChannelSettings": {
+                "component": "alpha"
+            },
+            "swizzle": {
+                "r": "red",
+                "g": "green",
+                "b": "blue",
+                "a": "alpha"
+            },
+            "id": "c4010e22-e5d5-4ced-9c60-c650017cebaa",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "name": "26x16-PivotCenter",
+            "createdAt": "2026-05-13T20:54:52.021Z",
+            "updatedAt": "2026-05-13T21:06:46.557Z"
+        },
+        "41f9d343-4cf4-4790-87b3-a9c421f54d26": {
+            "_id": "6a0395ab95c86f7af326dbcc",
+            "type": "texture-2d",
+            "textureType": "sprite",
+            "textureShape": "2d",
+            "sRGBTexture": true,
+            "alphaSource": "input-texture-alpha",
+            "alphaIsTransparency": true,
+            "nonPowerOfTwoScale": "none",
+            "ignorePngGamma": false,
+            "readWriteEnabled": true,
+            "virtualTextureOnly": false,
+            "generateMipMaps": false,
+            "borderMipMaps": false,
+            "mipMapFiltering": "box",
+            "mipMapsPreserveCoverage": false,
+            "alphaCutoffValue": 0.5,
+            "fadeOutMipMaps": false,
+            "mipMapFadeDistanceStart": 1,
+            "mipMapFadeDistanceEnd": 3,
+            "anisoLevel": 1,
+            "wrapMode": "clamp",
+            "wrapModeU": null,
+            "wrapModeV": null,
+            "filterMode": "point",
+            "maxTextureSize": 2048,
+            "resizeAlgorithm": "mitchell",
+            "textureCompression": "none",
+            "compressionQuality": 50,
+            "crunchedCompression": false,
+            "platformSettings": {
+                "default": {
+                    "maxTextureSize": 2048,
+                    "resizeAlgorithm": "mitchell",
+                    "format": "automatic",
+                    "textureCompression": "none",
+                    "crunchedCompression": false,
+                    "compressionQuality": 50
+                },
+                "standalone": {
+                    "override": false,
+                    "maxTextureSize": 2048,
+                    "resizeAlgorithm": "mitchell",
+                    "format": "rgba-compressed-dxt5-bc3",
+                    "textureCompression": "normal-quality",
+                    "crunchedCompression": false,
+                    "compressionQuality": 50
+                },
+                "web": {
+                    "override": false,
+                    "maxTextureSize": 2048,
+                    "resizeAlgorithm": "mitchell",
+                    "format": "rgba-compressed-dxt5-bc3",
+                    "textureCompression": "normal-quality",
+                    "crunchedCompression": false,
+                    "compressionQuality": 50
+                }
+            },
+            "spriteSettings": {
+                "spriteMode": "multiple",
+                "pixelsPerUnit": 16,
+                "meshType": "tight",
+                "extrudeEdges": 1,
+                "pivotAlignment": "center",
+                "pivot": {
+                    "x": 0.5,
+                    "y": 0.5
+                },
+                "generatePhysicsShape": true,
+                "spriteEditor": {
+                    "slice": {
+                        "type": "grid-by-cell-size",
+                        "pixelSize": {
+                            "x": 48,
+                            "y": 48
+                        },
+                        "offset": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "padding": {
+                            "x": 0,
+                            "y": 0
+                        },
+                        "keepEmptyRects": true,
+                        "pivotAlignment": "center",
+                        "pivot": {
+                            "x": 0.5,
+                            "y": 0.5
+                        },
+                        "border": {
+                            "x": 0,
+                            "y": 0,
+                            "z": 0,
+                            "w": 0
+                        },
+                        "naming": {
+                            "pattern": "{fileName}_{row}_{column}",
+                            "startIndex": 0,
+                            "order": "row-major"
+                        }
+                    }
+                }
+            },
+            "normalMapSettings": {
+                "createFromGrayscale": false,
+                "bumpiness": 0.25,
+                "filtering": "smooth",
+                "flipGreenChannel": false
+            },
+            "cookieSettings": {
+                "lightType": "spot"
+            },
+            "singleChannelSettings": {
+                "component": "alpha"
+            },
+            "swizzle": {
+                "r": "red",
+                "g": "green",
+                "b": "blue",
+                "a": "alpha"
+            },
+            "id": "41f9d343-4cf4-4790-87b3-a9c421f54d26",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "name": "48x48-PivotCenter",
+            "createdAt": "2026-05-12T21:03:01.984Z",
+            "updatedAt": "2026-05-12T21:03:01.984Z"
+        }
+    },
+    "audioClipTemplates": {}
 }

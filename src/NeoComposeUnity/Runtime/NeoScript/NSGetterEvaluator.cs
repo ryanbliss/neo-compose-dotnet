@@ -1044,6 +1044,17 @@ namespace NeoCompose.Runtime.NeoScript
                     return TryAsDouble(value, out double di) && di == System.Math.Truncate(di);
                 case AttributeType.Float: return TryAsDouble(value, out _);
                 case AttributeType.String: return value is string;
+                case AttributeType.Sprite:
+                    return value is IDictionary<string, object?> sprite &&
+                        sprite.TryGetValue("fileId", out var spriteFileId) &&
+                        spriteFileId is string &&
+                        sprite.TryGetValue("sliceIndex", out var sliceIndex) &&
+                        TryAsDouble(sliceIndex, out double slice) &&
+                        slice == System.Math.Truncate(slice);
+                case AttributeType.Audio:
+                    return value is IDictionary<string, object?> audio &&
+                        audio.TryGetValue("fileId", out var audioFileId) &&
+                        audioFileId is string;
                 case AttributeType.List: return value is object?[];
                 case AttributeType.Dictionary:
                     return value is IDictionary<string, object?>;
@@ -1140,6 +1151,16 @@ namespace NeoCompose.Runtime.NeoScript
                 ObjectAttributeValue o => o.value is null
                     ? null
                     : ToObjectDict(row.id, o.value),
+                FileAttributeValue f => f.value is null
+                    ? null
+                    : new Dictionary<string, object?> { ["fileId"] = f.value.fileId },
+                SpriteAttributeValue sp => sp.value is null
+                    ? null
+                    : new Dictionary<string, object?>
+                    {
+                        ["fileId"] = sp.value.fileId,
+                        ["sliceIndex"] = sp.value.sliceIndex,
+                    },
                 NullAttributeValue _ => null,
                 _ => null,
             };
@@ -1434,6 +1455,8 @@ namespace NeoCompose.Runtime.NeoScript
                 case AttributeType.Int: return "int";
                 case AttributeType.Float: return "float";
                 case AttributeType.String: return "string";
+                case AttributeType.Sprite: return "SpriteInfo";
+                case AttributeType.Audio: return "AudioClipInfo";
                 case AttributeType.Custom:
                 {
                     string typeId = (t as CustomTypeInfo)?.typeId ?? "";

@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using UnityEngine;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
@@ -76,9 +77,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             Dialogues = new NeoDialogues(this, dialogueOptions);
         }
 
-        public static HelloWorldNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null)
+        public static HelloWorldNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null)
         {
-            var client = new NeoLoader().Load(projectJson, loadSave, handleSave);
+            var client = new NeoLoader().Load(projectJson, loadSave, handleSave, assetDatabase);
             return new HelloWorldNeo(client, dialogueOptions);
         }
 
@@ -2630,6 +2631,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public Sprite Image
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("Image").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Image' has no synchronized asset.");
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -2643,6 +2653,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<OutpostSaveData> Save = new("Save");
 
             public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
+
+            public static readonly NeoField<Sprite> Image = new("Image");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -2654,6 +2666,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.SaveUnsafe] = () => SaveUnsafe,
                 [Fields.Save] = () => Save,
                 [Fields.FullDisplayText] = () => FullDisplayText,
+                [Fields.Image] = () => Image,
             };
         }
 
@@ -2677,12 +2690,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
 
-        public Outpost(Planet Planet, string Name)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Planet, Name))
+        public Outpost(Planet Planet, string Name, SpriteValue Image)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Planet, Name, Image))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(Planet Planet, string Name)
+        private static NeoAttributeCustomSaved CreateFactoryNode(Planet Planet, string Name, SpriteValue Image)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -2705,6 +2718,15 @@ namespace HelloWorld.Assets.Scripts.Neo
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = Name,
+            });
+            var ImageValueId = Guid.NewGuid().ToString();
+            value["Image"] = ImageValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = ImageValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Image,
             });
             return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "4c196697-4e08-4aeb-823f-322b353071ac", value, valueRows);
         }
@@ -2778,6 +2800,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new Sprite Image
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("Image").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Image' has no synchronized asset.");
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -2791,6 +2822,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<OutpostSaveData> Save = new("Save");
 
             public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
+
+            public static readonly NeoField<Sprite> Image = new("Image");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -2802,6 +2835,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.SaveUnsafe] = () => SaveUnsafe,
                 [Fields.Save] = () => Save,
                 [Fields.FullDisplayText] = () => FullDisplayText,
+                [Fields.Image] = () => Image,
             };
         }
 
@@ -3101,6 +3135,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new Sprite? Image
+        {
+            get
+            {
+                return node.Get<NeoAttributeSprite>("Image").Resolve();
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -3108,6 +3150,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<JupiterMoon> Moon = new("Moon");
 
             public static readonly NeoField<Planet> Planet = new("Planet");
+
+            public static readonly NeoField<Sprite?> Image = new("Image");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -3116,6 +3160,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Moon] = () => Moon,
                 [Fields.Planet] = () => Planet,
+                [Fields.Image] = () => Image,
             };
         }
 
@@ -3137,12 +3182,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public JupiterOutpost(string Name, JupiterMoon Moon, Planet? Planet = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, Planet))
+        public JupiterOutpost(string Name, JupiterMoon Moon, Planet? Planet = null, SpriteValue? Image = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, Planet, Image))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, JupiterMoon Moon, Planet? Planet = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, JupiterMoon Moon, Planet? Planet = null, SpriteValue? Image = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3169,6 +3214,18 @@ namespace HelloWorld.Assets.Scripts.Neo
                 updatedAt = nowIso,
                 value = Name,
             });
+            if (Image is not null)
+            {
+                var ImageValueId = Guid.NewGuid().ToString();
+                value["Image"] = ImageValueId;
+                valueRows.Add(new SpriteAttributeValue
+                {
+                    id = ImageValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Image,
+                });
+            }
             var MoonValueId = Guid.NewGuid().ToString();
             value["Moon"] = MoonValueId;
             valueRows.Add(new ArrayAttributeValue
@@ -3248,6 +3305,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new Sprite? Image
+        {
+            get
+            {
+                return node.Get<NeoAttributeSprite>("Image").Resolve();
+            }
+        }
+
         public JupiterMoon Moon
         {
             get
@@ -3275,6 +3340,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
 
+            public static readonly NeoField<Sprite?> Image = new("Image");
+
             public static readonly NeoField<JupiterMoon> Moon = new("Moon");
         }
 
@@ -3287,6 +3354,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.SaveUnsafe] = () => SaveUnsafe,
                 [Fields.Save] = () => Save,
                 [Fields.FullDisplayText] = () => FullDisplayText,
+                [Fields.Image] = () => Image,
                 [Fields.Moon] = () => Moon,
             };
         }
@@ -3379,12 +3447,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public SaturnOutpost(string Name, SaturnMoon Moon, Planet? Planet = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, Planet))
+        public SaturnOutpost(string Name, SpriteValue Image, SaturnMoon Moon, Planet? Planet = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Image, Moon, Planet))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, SaturnMoon Moon, Planet? Planet = null)
+        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, SpriteValue Image, SaturnMoon Moon, Planet? Planet = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3410,6 +3478,15 @@ namespace HelloWorld.Assets.Scripts.Neo
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = Name,
+            });
+            var ImageValueId = Guid.NewGuid().ToString();
+            value["Image"] = ImageValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = ImageValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Image,
             });
             var MoonValueId = Guid.NewGuid().ToString();
             value["Moon"] = MoonValueId;
@@ -3490,6 +3567,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new Sprite Image
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("Image").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Image' has no synchronized asset.");
+            }
+        }
+
         public SaturnMoon Moon
         {
             get
@@ -3517,6 +3603,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
 
+            public static readonly NeoField<Sprite> Image = new("Image");
+
             public static readonly NeoField<SaturnMoon> Moon = new("Moon");
         }
 
@@ -3529,6 +3617,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.SaveUnsafe] = () => SaveUnsafe,
                 [Fields.Save] = () => Save,
                 [Fields.FullDisplayText] = () => FullDisplayText,
+                [Fields.Image] = () => Image,
                 [Fields.Moon] = () => Moon,
             };
         }

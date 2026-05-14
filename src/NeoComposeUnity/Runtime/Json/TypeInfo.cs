@@ -25,7 +25,8 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
-    /// Primitive type info — Null / Bool / Int / Float / String. No
+    /// Primitive type info — Null / Bool / Int / Float / String and
+    /// file-backed asset types. No
     /// extra fields; <see cref="TypeInfo.type"/> alone identifies the
     /// primitive variant.
     /// </summary>
@@ -84,6 +85,8 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Int:
                 case AttributeType.Float:
                 case AttributeType.String:
+                case AttributeType.Sprite:
+                case AttributeType.Audio:
                     return typeof(PrimitiveTypeInfo);
                 case AttributeType.Custom:
                     return typeof(CustomTypeInfo);

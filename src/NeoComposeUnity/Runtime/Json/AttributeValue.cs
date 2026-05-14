@@ -157,6 +157,12 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Carrier for a Dictionary / Custom <see cref="Attribute.defaultValue"/>.</summary>
     public class ObjectAttributeValueBase : AttributeValueBase<Dictionary<string, string>?> { }
 
+    /// <summary>Carrier for an Audio file <see cref="Attribute.defaultValue"/>.</summary>
+    public class FileAttributeValueBase : AttributeValueBase<FileValue?> { }
+
+    /// <summary>Carrier for a Sprite <see cref="Attribute.defaultValue"/>.</summary>
+    public class SpriteAttributeValueBase : AttributeValueBase<SpriteValue?> { }
+
     /// <summary>
     /// Two-mode dispatch converter for <see cref="AttributeValueBase"/>.
     ///
@@ -247,10 +253,26 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Array:
                     return typeof(ArrayAttributeValueBase);
                 case JTokenType.Object:
+                    if (LooksLikeSpriteValue(token)) return typeof(SpriteAttributeValueBase);
+                    if (LooksLikeFileValue(token)) return typeof(FileAttributeValueBase);
                     return typeof(ObjectAttributeValueBase);
                 default:
                     return typeof(NullAttributeValueBase);
             }
+        }
+
+        private static bool LooksLikeFileValue(JToken token)
+        {
+            return token.Type == JTokenType.Object &&
+                token["fileId"]?.Type == JTokenType.String;
+        }
+
+        private static bool LooksLikeSpriteValue(JToken token)
+        {
+            return LooksLikeFileValue(token) &&
+                token["sliceIndex"] != null &&
+                (token["sliceIndex"]!.Type == JTokenType.Integer ||
+                    token["sliceIndex"]!.Type == JTokenType.Float);
         }
     }
 
@@ -310,6 +332,12 @@ namespace NeoCompose.Runtime.Json
 
     /// <summary>Stored value for a Dictionary / Custom attribute.</summary>
     public class ObjectAttributeValue : AttributeValue<Dictionary<string, string>?> { }
+
+    /// <summary>Stored value for an Audio file attribute.</summary>
+    public class FileAttributeValue : AttributeValue<FileValue?> { }
+
+    /// <summary>Stored value for a Sprite attribute.</summary>
+    public class SpriteAttributeValue : AttributeValue<SpriteValue?> { }
 
     /// <summary>
     /// Two-mode dispatch converter for <see cref="AttributeValue"/>.
@@ -374,10 +402,26 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Array:
                     return typeof(ArrayAttributeValue);
                 case JTokenType.Object:
+                    if (LooksLikeSpriteValue(token)) return typeof(SpriteAttributeValue);
+                    if (LooksLikeFileValue(token)) return typeof(FileAttributeValue);
                     return typeof(ObjectAttributeValue);
                 default:
                     return typeof(NullAttributeValue);
             }
+        }
+
+        private static bool LooksLikeFileValue(JToken token)
+        {
+            return token.Type == JTokenType.Object &&
+                token["fileId"]?.Type == JTokenType.String;
+        }
+
+        private static bool LooksLikeSpriteValue(JToken token)
+        {
+            return LooksLikeFileValue(token) &&
+                token["sliceIndex"] != null &&
+                (token["sliceIndex"]!.Type == JTokenType.Integer ||
+                    token["sliceIndex"]!.Type == JTokenType.Float);
         }
     }
 

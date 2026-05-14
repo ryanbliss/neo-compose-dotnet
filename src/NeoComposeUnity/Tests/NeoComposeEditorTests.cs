@@ -4,8 +4,11 @@
 #nullable enable
 
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
+using NeoCompose.Runtime.Json;
 using NeoCompose.Unity.Editor;
 using NUnit.Framework;
 using UnityEditor;
@@ -82,6 +85,8 @@ namespace NeoCompose.Tests
             Assert.AreEqual(NeoComposeDefaults.ApiBaseUrl, config.apiBaseUrl);
             Assert.AreEqual(NeoComposeDefaults.GeneratedTypesDirectory, config.generatedTypesDirectory);
             Assert.AreEqual(NeoComposeDefaults.ProjectJsonDirectory, config.projectJsonDirectory);
+            Assert.AreEqual(NeoComposeDefaults.SpriteDirectory, config.spriteDirectory);
+            Assert.AreEqual(NeoComposeDefaults.AudioClipDirectory, config.audioClipDirectory);
             Assert.AreEqual(NeoComposeDefaults.NamespaceForGeneratedTypes, config.namespaceForGeneratedTypes);
             Assert.AreEqual(NeoComposeDefaults.Singleton, config.singleton);
         }
@@ -111,6 +116,8 @@ namespace NeoCompose.Tests
             config.SelectProject("project-1", "Project One");
             config.generatedTypesDirectory = "Assets/CustomTypes";
             config.projectJsonDirectory = "Assets/CustomJson";
+            config.spriteDirectory = "Assets/CustomSprites";
+            config.audioClipDirectory = "Assets/CustomAudio";
             config.namespaceForGeneratedTypes = "Game.Generated";
             config.singleton = false;
 
@@ -120,6 +127,8 @@ namespace NeoCompose.Tests
             Assert.AreEqual("", config.projectName);
             Assert.AreEqual("Assets/CustomTypes", config.generatedTypesDirectory);
             Assert.AreEqual("Assets/CustomJson", config.projectJsonDirectory);
+            Assert.AreEqual("Assets/CustomSprites", config.spriteDirectory);
+            Assert.AreEqual("Assets/CustomAudio", config.audioClipDirectory);
             Assert.AreEqual("Game.Generated", config.namespaceForGeneratedTypes);
             Assert.IsFalse(config.singleton);
         }
@@ -168,6 +177,237 @@ namespace NeoCompose.Tests
             Assert.Contains("Assets/Scripts/Neo", assets.createdDirectories);
             Assert.Contains("Assets/Resources/Neo", assets.createdDirectories);
             Assert.IsTrue(assets.savedConfig);
+        }
+
+        [Test]
+        public async Task Synchronizer_DownloadsChangedUnityFilesAndStoresAssetDatabase()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.projectJson = @"
+{
+  ""project"": {
+    ""_id"": ""project-1"",
+    ""id"": ""project-1"",
+    ""name"": ""Project One"",
+    ""rootAssetsAttributeId"": ""assets-root"",
+    ""rootSaveFileAttributeId"": ""save-root"",
+    ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+    ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+  },
+  ""attributes"": {},
+  ""values"": {},
+  ""types"": {},
+  ""enums"": {},
+  ""files"": {
+    ""file-1"": {
+      ""_id"": ""file-1"",
+      ""id"": ""file-1"",
+      ""projectId"": ""project-1"",
+      ""status"": ""uploaded"",
+      ""name"": ""hero.png"",
+      ""fileType"": ""image"",
+      ""mimeType"": ""image/png"",
+      ""byteLength"": 3,
+      ""storageKey"": ""projects/project-1/files/file-1"",
+      ""storageETag"": ""etag-1"",
+      ""unityTextureSettings"": { ""templateId"": ""texture-template-1"", ""type"": ""texture-2d"", ""values"": {}, ""overridePaths"": [] },
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-02T00:00:00.000Z""
+    },
+    ""file-2"": {
+      ""_id"": ""file-2"",
+      ""id"": ""file-2"",
+      ""projectId"": ""project-1"",
+      ""status"": ""pending-upload"",
+      ""name"": ""draft.png"",
+      ""fileType"": ""image"",
+      ""mimeType"": ""image/png"",
+      ""byteLength"": 3,
+      ""storageKey"": ""projects/project-1/files/file-2"",
+      ""storageETag"": null,
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-02T00:00:00.000Z""
+    }
+  },
+  ""textureTemplates"": {
+    ""texture-template-1"": {
+      ""_id"": ""texture-template-1"",
+      ""id"": ""texture-template-1"",
+      ""projectId"": ""project-1"",
+      ""name"": ""Sprites"",
+      ""type"": ""texture-2d"",
+      ""textureType"": ""sprite"",
+      ""textureShape"": ""2d"",
+      ""sRGBTexture"": true,
+      ""alphaSource"": ""input-texture-alpha"",
+      ""alphaIsTransparency"": true,
+      ""nonPowerOfTwoScale"": ""none"",
+      ""ignorePngGamma"": false,
+      ""readWriteEnabled"": false,
+      ""virtualTextureOnly"": false,
+      ""generateMipMaps"": false,
+      ""borderMipMaps"": false,
+      ""mipMapFiltering"": ""box"",
+      ""mipMapsPreserveCoverage"": false,
+      ""alphaCutoffValue"": 0.5,
+      ""fadeOutMipMaps"": false,
+      ""mipMapFadeDistanceStart"": 1,
+      ""mipMapFadeDistanceEnd"": 3,
+      ""anisoLevel"": 1,
+      ""wrapMode"": ""clamp"",
+      ""filterMode"": ""point"",
+      ""maxTextureSize"": 2048,
+      ""resizeAlgorithm"": ""mitchell"",
+      ""textureCompression"": ""none"",
+      ""compressionQuality"": 50,
+      ""crunchedCompression"": false,
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-03T00:00:00.000Z""
+    }
+  },
+  ""audioClipTemplates"": {}
+}";
+            api.fileDownloadResponse.files["file-1"] = new NeoComposeUnityExportFileDownload
+            {
+                fileId = "file-1",
+                downloadUrl = "signed-url",
+                expiresAt = "1970-01-01T00:05:00.000Z",
+            };
+            api.downloads["signed-url"] = new byte[] { 1, 2, 3 };
+            var assets = new FakeAssetService();
+            var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
+            var progress = new List<string>();
+
+            var result = await synchronizer.SynchronizeAsync(config, progress.Add);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.Contains("Requesting download URLs for 1 file asset(s)...", progress);
+            Assert.Contains("Downloading file 1/1: hero.png", progress);
+            Assert.Contains("Applying import settings 1/1: hero.png", progress);
+            CollectionAssert.AreEqual(new[] { "file-1" }, api.lastFileDownloadIds);
+            CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, assets.binaryFiles["Assets/Resources/Neo/Files/Sprites/hero.png"]);
+            Assert.Contains("Assets/Resources/Neo/Files/Sprites/hero.png", assets.appliedImportSettings);
+            var entry = assets.assetDatabase.TryGetEntry("file-1");
+            Assert.IsNotNull(entry);
+            Assert.AreEqual("Assets/Resources/Neo/Files/Sprites/hero.png", entry!.AssetPath);
+            Assert.AreEqual("1970-01-02T00:00:00.000Z", entry.FileUpdatedAt);
+            Assert.AreEqual("texture-template-1", entry.TemplateId);
+            Assert.AreEqual("1970-01-03T00:00:00.000Z", entry.TemplateUpdatedAt);
+            Assert.AreEqual("2026-05-13.2", entry.ImportSettingsVersion);
+            Assert.IsTrue(assets.savedAsset);
+        }
+
+        [Test]
+        public async Task Synchronizer_SkipsUnityFilesWhenAssetDatabaseIsCurrent()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.projectJson = @"
+{
+  ""project"": {
+    ""_id"": ""project-1"",
+    ""id"": ""project-1"",
+    ""name"": ""Project One"",
+    ""rootAssetsAttributeId"": ""assets-root"",
+    ""rootSaveFileAttributeId"": ""save-root"",
+    ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+    ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+  },
+  ""attributes"": {},
+  ""values"": {},
+  ""types"": {},
+  ""enums"": {},
+  ""files"": {
+    ""file-1"": {
+      ""_id"": ""file-1"",
+      ""id"": ""file-1"",
+      ""projectId"": ""project-1"",
+      ""status"": ""uploaded"",
+      ""name"": ""hero.png"",
+      ""fileType"": ""image"",
+      ""mimeType"": ""image/png"",
+      ""byteLength"": 3,
+      ""storageKey"": ""projects/project-1/files/file-1"",
+      ""storageETag"": ""etag-1"",
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-02T00:00:00.000Z""
+    }
+  },
+  ""textureTemplates"": {},
+  ""audioClipTemplates"": {}
+}";
+            var assets = new FakeAssetService();
+            assets.assetDatabase.SetFile(
+                "file-1",
+                "Assets/Resources/Neo/Files/Sprites/hero.png",
+                "1970-01-02T00:00:00.000Z",
+                "1970-01-04T00:00:00.000Z",
+                null,
+                null,
+                null,
+                "2026-05-13.2");
+            var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
+            var progress = new List<string>();
+
+            var result = await synchronizer.SynchronizeAsync(config, progress.Add);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.Contains("File assets are current.", progress);
+            Assert.AreEqual(0, api.lastFileDownloadIds.Length);
+            Assert.AreEqual(0, assets.binaryFiles.Count);
+            Assert.IsTrue(assets.savedAsset);
+        }
+
+        [Test]
+        public void ImportSettingsApplier_AppliesGridSpriteSlices()
+        {
+            var assetPath = $"{TempRoot}/sheet.png";
+            var texture = new Texture2D(32, 16, TextureFormat.RGBA32, false);
+            for (var y = 0; y < texture.height; y++)
+            {
+                for (var x = 0; x < texture.width; x++)
+                {
+                    texture.SetPixel(x, y, x < 16 ? Color.red : Color.blue);
+                }
+            }
+            texture.Apply();
+            File.WriteAllBytes(assetPath, texture.EncodeToPNG());
+            UnityEngine.Object.DestroyImmediate(texture);
+            AssetDatabase.ImportAsset(assetPath);
+
+            var projectData = new ProjectData
+            {
+                textureTemplates = new Dictionary<string, UnityTexture2DImportSettingsTemplate>
+                {
+                    ["texture-template-1"] = MakeSpriteTemplate(),
+                },
+            };
+            var file = new ProjectFile
+            {
+                id = "file-1",
+                name = "sheet.png",
+                fileType = "image",
+                unityTextureSettings = new FileUnityTextureImportSettings
+                {
+                    templateId = "texture-template-1",
+                    type = "texture-2d",
+                    overridePaths = System.Array.Empty<string>(),
+                },
+            };
+
+            new NeoComposeEditorAssetService().ApplyUnityImportSettings(assetPath, file, projectData);
+
+            var importer = (TextureImporter)AssetImporter.GetAtPath(assetPath);
+            Assert.AreEqual(SpriteImportMode.Multiple, importer.spriteImportMode);
+            Assert.AreEqual(16, importer.spritePixelsPerUnit);
+            var sprites = AssetDatabase.LoadAllAssetRepresentationsAtPath(assetPath)
+                .OfType<Sprite>()
+                .ToArray();
+            Assert.AreEqual(2, sprites.Length);
+            CollectionAssert.AreEqual(new[] { "sheet_0_0", "sheet_0_1" }, sprites.Select(sprite => sprite.name).ToArray());
+            Assert.AreEqual(new Rect(0, 0, 16, 16), sprites[0].rect);
+            Assert.AreEqual(new Rect(16, 0, 16, 16), sprites[1].rect);
         }
 
         private sealed class TestPayloadProvider : INeoValuePayloadProvider
@@ -287,6 +527,73 @@ namespace NeoCompose.Tests
             return config;
         }
 
+        private static UnityTexture2DImportSettingsTemplate MakeSpriteTemplate()
+        {
+            return new UnityTexture2DImportSettingsTemplate
+            {
+                id = "texture-template-1",
+                _id = "texture-template-1",
+                projectId = "project-1",
+                name = "Sprites",
+                type = "texture-2d",
+                textureType = "sprite",
+                textureShape = "2d",
+                sRGBTexture = true,
+                alphaSource = "input-texture-alpha",
+                alphaIsTransparency = true,
+                nonPowerOfTwoScale = "none",
+                ignorePngGamma = false,
+                readWriteEnabled = true,
+                virtualTextureOnly = false,
+                generateMipMaps = false,
+                borderMipMaps = false,
+                mipMapFiltering = "box",
+                mipMapsPreserveCoverage = false,
+                alphaCutoffValue = 0.5,
+                fadeOutMipMaps = false,
+                mipMapFadeDistanceStart = 1,
+                mipMapFadeDistanceEnd = 3,
+                anisoLevel = 1,
+                wrapMode = "clamp",
+                filterMode = "point",
+                textureCompression = "none",
+                compressionQuality = 50,
+                crunchedCompression = false,
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-02T00:00:00.000Z",
+                spriteSettings = new UnitySpriteTextureSettingsTemplate
+                {
+                    spriteMode = "multiple",
+                    pixelsPerUnit = 16,
+                    meshType = "tight",
+                    extrudeEdges = 1,
+                    pivotAlignment = "center",
+                    pivot = new UnityVector2 { x = 0.5, y = 0.5 },
+                    generatePhysicsShape = true,
+                    spriteEditor = new UnitySpriteEditorSettingsTemplate
+                    {
+                        slice = new UnitySpriteGridByCellSizeSliceTemplate
+                        {
+                            type = "grid-by-cell-size",
+                            pixelSize = new UnityVector2 { x = 16, y = 16 },
+                            offset = new UnityVector2 { x = 0, y = 0 },
+                            padding = new UnityVector2 { x = 0, y = 0 },
+                            keepEmptyRects = false,
+                            pivotAlignment = "center",
+                            pivot = new UnityVector2 { x = 0.5, y = 0.5 },
+                            border = new UnityVector4 { x = 0, y = 0, z = 0, w = 0 },
+                            naming = new UnitySpriteGridNamingConvention
+                            {
+                                pattern = "{fileName}_{row}_{column}",
+                                startIndex = 0,
+                                order = "row-major",
+                            },
+                        },
+                    },
+                },
+            };
+        }
+
         private static void CleanupTempRoot()
         {
             if (AssetDatabase.IsValidFolder(TempRoot))
@@ -309,6 +616,9 @@ namespace NeoCompose.Tests
             public string? lastEditProjectId;
             public string? lastEditNamespace;
             public bool? lastEditSingleton;
+            public NeoComposeUnityExportFileDownloadResponse fileDownloadResponse = new();
+            public readonly Dictionary<string, byte[]> downloads = new();
+            public string[] lastFileDownloadIds = System.Array.Empty<string>();
 
             public Task<NeoComposeProjectListResponse> ListProjectsAsync(string apiBaseUrl, string? query)
             {
@@ -331,6 +641,20 @@ namespace NeoCompose.Tests
             public Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId)
             {
                 return Task.FromResult(exportResponse);
+            }
+
+            public Task<NeoComposeUnityExportFileDownloadResponse> ExportProjectFileDownloadsAsync(
+                string apiBaseUrl,
+                string projectId,
+                string[] fileIds)
+            {
+                lastFileDownloadIds = fileIds;
+                return Task.FromResult(fileDownloadResponse);
+            }
+
+            public Task<byte[]> DownloadFileAsync(string downloadUrl)
+            {
+                return Task.FromResult(downloads[downloadUrl]);
             }
         }
 
@@ -358,12 +682,17 @@ namespace NeoCompose.Tests
         private sealed class FakeAssetService : INeoComposeEditorAssetService
         {
             public readonly Dictionary<string, string> files = new();
+            public readonly Dictionary<string, byte[]> binaryFiles = new();
             public readonly List<string> createdDirectories = new();
+            public readonly List<string> deletedAssets = new();
+            public readonly List<string> appliedImportSettings = new();
+            public NeoAssetDatabase assetDatabase = ScriptableObject.CreateInstance<NeoAssetDatabase>();
             public bool savedConfig;
+            public bool savedAsset;
 
             public bool FileExists(string assetPath)
             {
-                return files.ContainsKey(assetPath);
+                return files.ContainsKey(assetPath) || binaryFiles.ContainsKey(assetPath);
             }
 
             public void EnsureDirectory(string assetDirectory)
@@ -376,6 +705,11 @@ namespace NeoCompose.Tests
                 files[assetPath] = content;
             }
 
+            public void WriteAllBytes(string assetPath, byte[] content)
+            {
+                binaryFiles[assetPath] = content;
+            }
+
             public void RefreshAsset(string assetPath)
             {
             }
@@ -383,6 +717,28 @@ namespace NeoCompose.Tests
             public void SaveConfig(NeoComposeConfig config)
             {
                 savedConfig = true;
+            }
+
+            public NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath)
+            {
+                return assetDatabase;
+            }
+
+            public void ApplyUnityImportSettings(string assetPath, ProjectFile file, ProjectData projectData)
+            {
+                appliedImportSettings.Add(assetPath);
+            }
+
+            public void SaveAsset(Object asset)
+            {
+                savedAsset = true;
+            }
+
+            public void DeleteAsset(string assetPath)
+            {
+                deletedAssets.Add(assetPath);
+                files.Remove(assetPath);
+                binaryFiles.Remove(assetPath);
             }
         }
     }

@@ -1,0 +1,127 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 85dfe84810dba4d7691f2f67be27319b, type: 3}
+  m_Name: NeoAssetDatabase
+  m_EditorClassIdentifier: 
+  files:
+  - fileId: 65625941-be23-4913-8131-f383bf4ff690
+    assetPath: Assets/Resources/Neo/Files/Sprites/Venus (cloudy).png
+    fileUpdatedAt: 2026-05-13T21:09:55.780Z
+    lastDownloadedAt: 2026-05-14T03:38:47.4278250Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.4278250Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: 8260f51a-291a-4191-9ebd-8ed9c04fd9bc
+    assetPath: Assets/Resources/Neo/Files/Sprites/Pluto.png
+    fileUpdatedAt: 2026-05-13T21:09:11.220Z
+    lastDownloadedAt: 2026-05-14T03:38:47.5353920Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.5353920Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: dea050c2-de92-40f6-a1c0-fe64ab6f6165
+    assetPath: Assets/Resources/Neo/Files/Sprites/Neptune.png
+    fileUpdatedAt: 2026-05-13T21:08:38.647Z
+    lastDownloadedAt: 2026-05-14T03:38:47.6319280Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.6319280Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: fea246bc-056a-45b4-983e-9209e35d0ef0
+    assetPath: Assets/Resources/Neo/Files/Sprites/Uranus.png
+    fileUpdatedAt: 2026-05-13T21:08:03.866Z
+    lastDownloadedAt: 2026-05-14T03:38:47.7210350Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.7210350Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: 027cc2b7-71d3-451d-a9db-fae0e6cbbfc4
+    assetPath: Assets/Resources/Neo/Files/Sprites/Saturn.png
+    fileUpdatedAt: 2026-05-13T20:56:06.167Z
+    lastDownloadedAt: 2026-05-14T03:38:47.8195730Z
+    templateId: c4010e22-e5d5-4ced-9c60-c650017cebaa
+    templateUpdatedAt: 2026-05-13T21:06:46.557Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.8195730Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: 6e1643e2-5b91-45a6-a4b1-435f36c1a0f9
+    assetPath: Assets/Resources/Neo/Files/Sprites/Jupiter.png
+    fileUpdatedAt: 2026-05-13T21:01:32.460Z
+    lastDownloadedAt: 2026-05-14T03:38:47.9048710Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.9048710Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: f35d7f06-1670-4d53-9468-82266fe8c41e
+    assetPath: Assets/Resources/Neo/Files/Sprites/Mars.png
+    fileUpdatedAt: 2026-05-13T21:00:17.277Z
+    lastDownloadedAt: 2026-05-14T03:38:47.9908930Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:47.9908930Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: 5cc531eb-25a5-469f-877d-10afb4c5489e
+    assetPath: Assets/Resources/Neo/Files/Sprites/Earth.png
+    fileUpdatedAt: 2026-05-13T21:00:03.997Z
+    lastDownloadedAt: 2026-05-14T03:38:48.0843190Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.0843190Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: e55c6f29-b498-433b-85a8-89672290f3c0
+    assetPath: Assets/Resources/Neo/Files/Sprites/Mercury.png
+    fileUpdatedAt: 2026-05-13T21:01:41.918Z
+    lastDownloadedAt: 2026-05-14T03:38:48.1775220Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.1775220Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: e5453d3e-f999-411f-9a87-32563e124e02
+    assetPath: Assets/Resources/Neo/Files/Sprites/dirt-mulch-wet.png
+    fileUpdatedAt: 2026-05-13T20:19:53.541Z
+    lastDownloadedAt: 2026-05-14T03:38:48.2723920Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.2723920Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: 73bd63df-d741-4352-b6cf-7f6beb408090
+    assetPath: Assets/Resources/Neo/Files/Sprites/garden.mulch.png
+    fileUpdatedAt: 2026-05-13T20:18:53.704Z
+    lastDownloadedAt: 2026-05-14T03:38:48.3633900Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.3633900Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: 586c5d4b-37db-43de-95f2-d2555408ff7c
+    assetPath: Assets/Resources/Neo/Files/Sprites/crafting-bench.png
+    fileUpdatedAt: 2026-05-13T20:16:15.434Z
+    lastDownloadedAt: 2026-05-14T03:38:48.4971670Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.4971670Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: 6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7
+    assetPath: Assets/Resources/Neo/Files/Sprites/heart-icon.png
+    fileUpdatedAt: 2026-05-13T20:04:50.679Z
+    lastDownloadedAt: 2026-05-14T03:38:48.6070730Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.6070730Z
+    importSettingsVersion: 2026-05-13.2
+  - fileId: df67835a-7dfd-4a06-8110-7e6d8b380f57
+    assetPath: Assets/Resources/Neo/Files/Sprites/seed.strawberry.png
+    fileUpdatedAt: 2026-05-13T02:56:40.126Z
+    lastDownloadedAt: 2026-05-14T03:38:48.6908560Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 2026-05-13T20:40:02.135Z
+    lastAppliedTemplateEditsAt: 2026-05-14T03:38:48.6908560Z
+    importSettingsVersion: 2026-05-13.2

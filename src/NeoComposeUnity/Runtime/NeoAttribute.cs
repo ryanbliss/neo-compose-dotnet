@@ -133,6 +133,8 @@ namespace NeoCompose.Runtime
                 EnumAttribute e => new NeoAttributeEnum(client, e, overrideValueId),
                 LookupAttribute lk => new NeoAttributeLookup(client, lk, overrideValueId),
                 NSGetterAttribute ng => new NeoAttributeNSGetter(client, ng, overrideValueId),
+                SpriteAttribute sp => new NeoAttributeSprite(client, sp, overrideValueId),
+                AudioAttribute au => new NeoAttributeAudio(client, au, overrideValueId),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}", nameof(attribute)),
             };
@@ -173,6 +175,8 @@ namespace NeoCompose.Runtime
                 EnumAttribute e => new NeoAttributeEnumSaved(client, e, overrideValueId),
                 LookupAttribute lk => new NeoAttributeLookupSaved(client, lk, overrideValueId),
                 NSGetterAttribute ng => new NeoAttributeNSGetter(client, ng, overrideValueId),
+                SpriteAttribute sp => new NeoAttributeSpriteSaved(client, sp, overrideValueId),
+                AudioAttribute au => new NeoAttributeAudioSaved(client, au, overrideValueId),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}", nameof(attribute)),
             };
@@ -193,6 +197,8 @@ namespace NeoCompose.Runtime
                 EnumAttribute => existing is NeoAttributeEnumSaved,
                 LookupAttribute => existing is NeoAttributeLookupSaved,
                 NSGetterAttribute => existing is NeoAttributeNSGetter,
+                SpriteAttribute => existing is NeoAttributeSpriteSaved,
+                AudioAttribute => existing is NeoAttributeAudioSaved,
                 _ => false,
             };
         }

@@ -16,6 +16,7 @@ namespace HelloWorld.Assets.Scripts
     internal sealed class DialogueUI : IDisposable
     {
         private GameObject root;
+        private Image speakerImage;
         private Text speakerText;
         private Text bodyText;
         private RectTransform optionStack;
@@ -26,6 +27,16 @@ namespace HelloWorld.Assets.Scripts
             {
                 EnsureBuilt();
                 speakerText.text = value;
+            }
+        }
+
+        public Sprite SpeakerImage
+        {
+            set
+            {
+                EnsureBuilt();
+                speakerImage.sprite = value;
+                speakerImage.enabled = value != null;
             }
         }
 
@@ -40,11 +51,13 @@ namespace HelloWorld.Assets.Scripts
 
         public void Show(
             string speakerName,
+            Sprite speakerSprite,
             string text
         )
         {
             EnsureBuilt();
             SpeakerName = speakerName;
+            SpeakerImage = speakerSprite;
             Text = text;
             ClearOptionButtons();
             root.SetActive(true);
@@ -153,8 +166,29 @@ namespace HelloWorld.Assets.Scripts
 
         private void BuildPanelContent(Transform parent)
         {
-            speakerText = CreateText(parent, "", 22, new Color(0.58f, 0.72f, 1f), FontStyle.Bold);
-            speakerText.gameObject.GetComponent<LayoutElement>().preferredHeight = 30f;
+            var speakerRow = CreateRect(parent, "Speaker");
+            speakerRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 32f;
+            var speakerLayout = speakerRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            speakerLayout.spacing = 10f;
+            speakerLayout.childAlignment = TextAnchor.MiddleLeft;
+            speakerLayout.childControlHeight = true;
+            speakerLayout.childControlWidth = true;
+            speakerLayout.childForceExpandHeight = false;
+            speakerLayout.childForceExpandWidth = false;
+
+            var imageRect = CreateRect(speakerRow, "Image");
+            var imageLayout = imageRect.gameObject.AddComponent<LayoutElement>();
+            imageLayout.preferredWidth = 30f;
+            imageLayout.preferredHeight = 30f;
+            imageLayout.minWidth = 30f;
+            imageLayout.minHeight = 30f;
+            speakerImage = imageRect.gameObject.AddComponent<Image>();
+            speakerImage.preserveAspect = true;
+            speakerImage.raycastTarget = false;
+            speakerImage.enabled = false;
+
+            speakerText = CreateText(speakerRow, "", 22, new Color(0.58f, 0.72f, 1f), FontStyle.Bold);
+            speakerText.gameObject.GetComponent<LayoutElement>().flexibleWidth = 1f;
             speakerText.verticalOverflow = VerticalWrapMode.Overflow;
 
             bodyText = CreateText(parent, "", 28, new Color(0.96f, 0.98f, 1f), FontStyle.Normal);

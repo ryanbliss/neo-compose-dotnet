@@ -11,9 +11,13 @@ namespace NeoCompose.Unity.Editor
     {
         public static string UnityNamespaceOrDefault(this NeoComposeProjectSummary project)
         {
-            return string.IsNullOrWhiteSpace(project.exportSettings?.unity?.namespaceForGeneratedTypes)
-                ? NeoComposeDefaults.NamespaceForGeneratedTypes
-                : project.exportSettings.unity.namespaceForGeneratedTypes!;
+            var namespaceForGeneratedTypes = project.exportSettings?.unity?.namespaceForGeneratedTypes;
+            if (string.IsNullOrWhiteSpace(namespaceForGeneratedTypes))
+            {
+                return NeoComposeDefaults.NamespaceForGeneratedTypes;
+            }
+
+            return namespaceForGeneratedTypes!;
         }
 
         public static bool UnitySingletonOrDefault(this NeoComposeProjectSummary project)

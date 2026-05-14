@@ -9,6 +9,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
+using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
@@ -25,8 +27,13 @@ namespace NeoCompose.Unity.Editor
         bool FileExists(string assetPath);
         void EnsureDirectory(string assetDirectory);
         void WriteAllText(string assetPath, string content);
+        void WriteAllBytes(string assetPath, byte[] content);
         void RefreshAsset(string assetPath);
         void SaveConfig(NeoComposeConfig config);
+        NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath);
+        void ApplyUnityImportSettings(string assetPath, ProjectFile file, ProjectData projectData);
+        void SaveAsset(UnityEngine.Object asset);
+        void DeleteAsset(string assetPath);
     }
 
     public sealed class NeoComposeSyncResult
@@ -71,13 +78,16 @@ namespace NeoCompose.Unity.Editor
             this.assets = assets;
         }
 
-        public async Task<NeoComposeSyncResult> SynchronizeAsync(NeoComposeConfig config)
+        public async Task<NeoComposeSyncResult> SynchronizeAsync(
+            NeoComposeConfig config,
+            Action<string>? onProgress = null)
         {
             var validation = ValidateConfig(config);
             if (!validation.success) return validation;
 
             try
             {
+                onProgress?.Invoke("Exporting project...");
                 var exportResponse = await apiClient.ExportProjectAsync(config.apiBaseUrl, config.projectId);
                 var diagnosticErrors = exportResponse.diagnostics
                     .Where(d => string.Equals(d.severity, "error", StringComparison.OrdinalIgnoreCase))
@@ -119,13 +129,21 @@ namespace NeoCompose.Unity.Editor
 
                 assets.EnsureDirectory(config.generatedTypesDirectory);
                 assets.EnsureDirectory(config.projectJsonDirectory);
+                var assetSyncErrors = await SynchronizeFilesAsync(config, exportResponse.projectJson, onProgress);
+
+                onProgress?.Invoke("Writing generated files...");
                 assets.WriteAllText(generatedTypesPath, exportResponse.generatedTypes);
                 assets.WriteAllText(projectJsonPath, exportResponse.projectJson);
-                assets.RefreshAsset(generatedTypesPath);
-                assets.RefreshAsset(projectJsonPath);
                 config.namespaceForGeneratedTypes = ReadUnityNamespaceOrDefault(exportResponse.projectJson);
                 config.singleton = ReadUnitySingletonOrDefault(exportResponse.projectJson);
                 assets.SaveConfig(config);
+
+                if (assetSyncErrors.Length > 0)
+                {
+                    return NeoComposeSyncResult.Failure(
+                        "Neo Compose files synchronized, but some assets failed:\n" +
+                        string.Join("\n", assetSyncErrors));
+                }
 
                 return NeoComposeSyncResult.Success("Neo Compose files synchronized.", exportResponse);
             }
@@ -134,6 +152,49 @@ namespace NeoCompose.Unity.Editor
                 Debug.LogError(exception);
                 return NeoComposeSyncResult.Failure(exception.Message);
             }
+        }
+
+        private async Task<string[]> SynchronizeFilesAsync(
+            NeoComposeConfig config,
+            string projectJson,
+            Action<string>? onProgress)
+        {
+            try
+            {
+                var root = JObject.Parse(projectJson);
+                if (root["files"] is not JObject files || !files.Properties().Any())
+                {
+                    return Array.Empty<string>();
+                }
+            }
+            catch
+            {
+                return Array.Empty<string>();
+            }
+
+            ProjectData? projectData;
+            try
+            {
+                projectData = JsonConvert.DeserializeObject<ProjectData>(projectJson);
+            }
+            catch (Exception exception)
+            {
+                return new[] { "Could not read file metadata from project.json: " + exception.Message };
+            }
+
+            if (projectData?.files == null || projectData.files.Count == 0)
+            {
+                return Array.Empty<string>();
+            }
+
+            onProgress?.Invoke("Checking synchronized assets...");
+            return await NeoComposeFileSynchronizer.SynchronizeAsync(
+                apiClient,
+                confirmations,
+                assets,
+                config,
+                projectData,
+                onProgress);
         }
 
         public static NeoComposeSyncResult ValidateConfig(NeoComposeConfig config)
@@ -174,8 +235,26 @@ namespace NeoCompose.Unity.Editor
                 return NeoComposeSyncResult.Failure(projectJsonError);
             }
 
+            if (!NeoComposePathUtility.TryNormalizeAssetDirectory(
+                    config.spriteDirectory,
+                    out var spriteDirectory,
+                    out var spriteError))
+            {
+                return NeoComposeSyncResult.Failure(spriteError);
+            }
+
+            if (!NeoComposePathUtility.TryNormalizeAssetDirectory(
+                    config.audioClipDirectory,
+                    out var audioClipDirectory,
+                    out var audioClipError))
+            {
+                return NeoComposeSyncResult.Failure(audioClipError);
+            }
+
             config.generatedTypesDirectory = generatedTypesDirectory;
             config.projectJsonDirectory = projectJsonDirectory;
+            config.spriteDirectory = spriteDirectory;
+            config.audioClipDirectory = audioClipDirectory;
             return NeoComposeSyncResult.Success("Config is valid.", new NeoComposeUnityExportResponse());
         }
 
@@ -202,7 +281,8 @@ namespace NeoCompose.Unity.Editor
         private static string FormatDiagnostic(NeoComposeCodegenDiagnostic diagnostic)
         {
             var path = string.IsNullOrWhiteSpace(diagnostic.path) ? "" : $"{diagnostic.path}: ";
-            return $"{diagnostic.severity.ToUpperInvariant()}: {path}{diagnostic.message}";
+            var severity = diagnostic.severity?.ToUpperInvariant() ?? "UNKNOWN";
+            return $"{severity}: {path}{diagnostic.message}";
         }
 
         private static string ReadUnityNamespaceOrDefault(string projectJson)
@@ -211,9 +291,12 @@ namespace NeoCompose.Unity.Editor
             {
                 var root = JObject.Parse(projectJson);
                 var namespaceForGeneratedTypes = root["project"]?["exportSettings"]?["unity"]?["namespaceForGeneratedTypes"]?.Value<string>();
-                return string.IsNullOrWhiteSpace(namespaceForGeneratedTypes)
-                    ? NeoComposeDefaults.NamespaceForGeneratedTypes
-                    : namespaceForGeneratedTypes;
+                if (string.IsNullOrWhiteSpace(namespaceForGeneratedTypes))
+                {
+                    return NeoComposeDefaults.NamespaceForGeneratedTypes;
+                }
+
+                return namespaceForGeneratedTypes!;
             }
             catch
             {
@@ -261,6 +344,11 @@ namespace NeoCompose.Unity.Editor
             File.WriteAllText(assetPath, content, new UTF8Encoding(false));
         }
 
+        public void WriteAllBytes(string assetPath, byte[] content)
+        {
+            File.WriteAllBytes(assetPath, content);
+        }
+
         public void RefreshAsset(string assetPath)
         {
             AssetDatabase.ImportAsset(assetPath);
@@ -269,6 +357,46 @@ namespace NeoCompose.Unity.Editor
         public void SaveConfig(NeoComposeConfig config)
         {
             NeoComposeConfigProvider.Save(config);
+        }
+
+        public NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath)
+        {
+            var existing = AssetDatabase.LoadAssetAtPath<NeoAssetDatabase>(assetPath);
+            if (existing != null) return existing;
+
+            var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();
+            var directory = Path.GetDirectoryName(assetPath);
+            if (!string.IsNullOrWhiteSpace(directory))
+            {
+                Directory.CreateDirectory(directory);
+            }
+
+            AssetDatabase.CreateAsset(database, assetPath);
+            AssetDatabase.SaveAssets();
+            return database;
+        }
+
+        public void ApplyUnityImportSettings(string assetPath, ProjectFile file, ProjectData projectData)
+        {
+            NeoComposeUnityImportSettingsApplier.Apply(assetPath, file, projectData);
+        }
+
+        public void SaveAsset(UnityEngine.Object asset)
+        {
+            EditorUtility.SetDirty(asset);
+            AssetDatabase.SaveAssets();
+        }
+
+        public void DeleteAsset(string assetPath)
+        {
+            if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath) != null)
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+            else if (File.Exists(assetPath))
+            {
+                File.Delete(assetPath);
+            }
         }
     }
 }

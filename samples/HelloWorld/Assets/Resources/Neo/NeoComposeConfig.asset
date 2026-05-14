@@ -17,5 +17,7 @@ MonoBehaviour:
   projectName: HelloWorld
   generatedTypesDirectory: Assets/Scripts/Neo
   projectJsonDirectory: Assets/Resources/Neo
+  spriteDirectory: Assets/Resources/Neo/Files/Sprites
+  audioClipDirectory: Assets/Resources/Neo/Files/Audio
   namespaceForGeneratedTypes: HelloWorld.Assets.Scripts.Neo
   singleton: 1

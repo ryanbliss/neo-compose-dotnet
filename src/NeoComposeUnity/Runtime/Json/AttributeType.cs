@@ -22,5 +22,7 @@ namespace NeoCompose.Runtime.Json
         Enum = 8,
         Lookup = 9,
         NSGetter = 10,
+        Sprite = 11,
+        Audio = 12,
     }
 }

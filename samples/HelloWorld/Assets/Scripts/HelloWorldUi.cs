@@ -27,6 +27,7 @@ namespace HelloWorld.Assets.Scripts
         private RectTransform inventoryList;
         private RectTransform outpostGrid;
         private readonly Dictionary<string, Button> outpostButtons = new();
+        private readonly Dictionary<string, Image> outpostButtonImages = new();
         private readonly Dictionary<string, Text> outpostButtonLabels = new();
 
         public void Render(
@@ -307,21 +308,26 @@ namespace HelloWorld.Assets.Scripts
                 var unlocked = outpost.Save.Unlocked;
                 if (!outpostButtons.TryGetValue(key, out var button))
                 {
-                    button = CreateButton(
+                    button = CreateOutpostButton(
                         outpostGrid,
                         outpost.FullDisplayText,
-                        260f,
-                        46f,
-                        true,
                         () => onVisitOutpost(captured));
                     outpostButtons[key] = button;
-                    outpostButtonLabels[key] = button.GetComponentInChildren<Text>();
+                    outpostButtonImages[key] = button.transform.Find("Image").GetComponent<Image>();
+                    outpostButtonLabels[key] = button.transform.Find("Label").GetComponent<Text>();
                 }
 
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() => onVisitOutpost(captured));
                 button.transform.SetSiblingIndex(siblingIndex++);
                 button.interactable = unlocked && !isCurrent;
+
+                var icon = outpostButtonImages[key];
+                icon.sprite = TryGetOutpostImage(outpost);
+                icon.enabled = icon.sprite != null;
+                icon.color = unlocked
+                    ? (isCurrent ? new Color(0.70f, 0.76f, 0.84f, 0.85f) : Color.white)
+                    : new Color(0.48f, 0.52f, 0.60f, 0.75f);
 
                 var label = outpostButtonLabels[key];
                 label.text = outpost.FullDisplayText;
@@ -334,8 +340,58 @@ namespace HelloWorld.Assets.Scripts
             {
                 DestroyObject(outpostButtons[key].gameObject);
                 outpostButtons.Remove(key);
+                outpostButtonImages.Remove(key);
                 outpostButtonLabels.Remove(key);
             }
+        }
+
+        private static Button CreateOutpostButton(
+            Transform parent,
+            string label,
+            Action action)
+        {
+            var rect = CreateRect(parent, label);
+            var layoutElement = rect.gameObject.AddComponent<LayoutElement>();
+            layoutElement.preferredWidth = 260f;
+            layoutElement.preferredHeight = 46f;
+            layoutElement.minWidth = 260f;
+            layoutElement.minHeight = 46f;
+            layoutElement.flexibleWidth = 0f;
+            layoutElement.flexibleHeight = 0f;
+
+            var background = rect.gameObject.AddComponent<Image>();
+            background.color = new Color(0.20f, 0.38f, 0.66f, 1f);
+
+            var button = rect.gameObject.AddComponent<Button>();
+            button.targetGraphic = background;
+            button.colors = PrimaryColors();
+            button.onClick.AddListener(() => action());
+
+            var row = rect.gameObject.AddComponent<HorizontalLayoutGroup>();
+            row.padding = new RectOffset(12, 14, 6, 6);
+            row.spacing = 10f;
+            row.childAlignment = TextAnchor.MiddleLeft;
+            row.childControlHeight = true;
+            row.childControlWidth = true;
+            row.childForceExpandHeight = false;
+            row.childForceExpandWidth = false;
+
+            var imageRect = CreateRect(rect, "Image");
+            var imageLayout = imageRect.gameObject.AddComponent<LayoutElement>();
+            imageLayout.preferredWidth = 30f;
+            imageLayout.preferredHeight = 30f;
+            imageLayout.minWidth = 30f;
+            imageLayout.minHeight = 30f;
+            var image = imageRect.gameObject.AddComponent<Image>();
+            image.preserveAspect = true;
+            image.raycastTarget = false;
+
+            var text = CreateText(rect, label, 14, Color.white, FontStyle.Bold);
+            text.gameObject.name = "Label";
+            text.alignment = TextAnchor.MiddleLeft;
+            text.horizontalOverflow = HorizontalWrapMode.Overflow;
+            text.gameObject.GetComponent<LayoutElement>().flexibleWidth = 1f;
+            return button;
         }
 
         private static Button CreateButton(
@@ -411,6 +467,19 @@ namespace HelloWorld.Assets.Scripts
             var value = CreateText(row, item.Value.ToString(), 15, new Color(0.72f, 0.80f, 0.92f), FontStyle.Normal);
             value.alignment = TextAnchor.MiddleRight;
             value.gameObject.GetComponent<LayoutElement>().preferredWidth = 70f;
+        }
+
+        private static Sprite TryGetOutpostImage(ReadOnlyOutpost outpost)
+        {
+            try
+            {
+                return outpost.Image;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"Could not resolve image for outpost '{outpost.FullDisplayText}': {exception.Message}");
+                return null;
+            }
         }
 
         private static Text CreateText(Transform parent, string value, int fontSize, Color color, FontStyle fontStyle)

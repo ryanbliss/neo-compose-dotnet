@@ -89,9 +89,189 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(export.dialogues);
             Assert.IsNotNull(export.dialogueGroups);
             Assert.IsNotNull(export.priorityGroups);
+            Assert.IsNotNull(export.files);
+            Assert.IsNotNull(export.textureTemplates);
+            Assert.IsNotNull(export.audioClipTemplates);
             Assert.AreEqual(0, export.dialogues.Count);
             Assert.AreEqual(0, export.dialogueGroups.Count);
             Assert.AreEqual(0, export.priorityGroups.Count);
+            Assert.AreEqual(0, export.files.Count);
+            Assert.AreEqual(0, export.textureTemplates.Count);
+            Assert.AreEqual(0, export.audioClipTemplates.Count);
+        }
+
+        [Test]
+        public void FileAttributeExport_DeserializesFileMetadataTemplatesAndValues()
+        {
+            var json = @"
+{
+  ""project"": {
+    ""_id"": ""project-a"",
+    ""id"": ""project-a"",
+    ""name"": ""Files"",
+    ""rootAssetsAttributeId"": ""assets-root"",
+    ""rootSaveFileAttributeId"": ""save-root"",
+    ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+    ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+  },
+  ""attributes"": {
+    ""sprite-attr"": {
+      ""_id"": ""sprite-attr"",
+      ""id"": ""sprite-attr"",
+      ""projectId"": ""project-a"",
+      ""name"": ""Portrait"",
+      ""type"": 11,
+      ""locked"": false,
+      ""required"": true,
+      ""templateId"": ""texture-template-1"",
+      ""valueId"": ""sprite-value"",
+      ""defaultValue"": { ""value"": { ""fileId"": ""file-1"", ""sliceIndex"": 2 } },
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+    },
+    ""audio-attr"": {
+      ""_id"": ""audio-attr"",
+      ""id"": ""audio-attr"",
+      ""projectId"": ""project-a"",
+      ""name"": ""Voice"",
+      ""type"": 12,
+      ""locked"": false,
+      ""required"": false,
+      ""templateId"": ""audio-template-1"",
+      ""valueId"": ""audio-value"",
+      ""defaultValue"": { ""value"": { ""fileId"": ""file-2"" } },
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+    }
+  },
+  ""values"": {
+    ""sprite-value"": {
+      ""_id"": ""sprite-value"",
+      ""id"": ""sprite-value"",
+      ""value"": { ""fileId"": ""file-1"", ""sliceIndex"": 2 },
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+    },
+    ""audio-value"": {
+      ""_id"": ""audio-value"",
+      ""id"": ""audio-value"",
+      ""value"": { ""fileId"": ""file-2"" },
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+    }
+  },
+  ""types"": {},
+  ""enums"": {},
+  ""files"": {
+    ""file-1"": {
+      ""_id"": ""file-1"",
+      ""id"": ""file-1"",
+      ""projectId"": ""project-a"",
+      ""status"": ""uploaded"",
+      ""name"": ""portrait.png"",
+      ""fileType"": ""image"",
+      ""mimeType"": ""image/png"",
+      ""byteLength"": 3,
+      ""storageKey"": ""projects/project-a/files/file-1"",
+      ""storageETag"": ""etag-1"",
+      ""unityTextureSettings"": { ""templateId"": ""texture-template-1"", ""type"": ""texture-2d"", ""overridePaths"": [], ""values"": {} },
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-02T00:00:00.000Z""
+    },
+    ""file-2"": {
+      ""_id"": ""file-2"",
+      ""id"": ""file-2"",
+      ""projectId"": ""project-a"",
+      ""status"": ""uploaded"",
+      ""name"": ""voice.wav"",
+      ""fileType"": ""audio"",
+      ""mimeType"": ""audio/wav"",
+      ""byteLength"": 4,
+      ""storageKey"": ""projects/project-a/files/file-2"",
+      ""storageETag"": ""etag-2"",
+      ""audioDurationSeconds"": 1.25,
+      ""unityAudioClipSettings"": { ""templateId"": ""audio-template-1"", ""overridePaths"": [], ""values"": {} },
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-02T00:00:00.000Z""
+    }
+  },
+  ""textureTemplates"": {
+    ""texture-template-1"": {
+      ""_id"": ""texture-template-1"",
+      ""id"": ""texture-template-1"",
+      ""projectId"": ""project-a"",
+      ""name"": ""Sprites"",
+      ""type"": ""texture-2d"",
+      ""textureType"": ""sprite"",
+      ""textureShape"": ""2d"",
+      ""sRGBTexture"": true,
+      ""alphaSource"": ""input-texture-alpha"",
+      ""alphaIsTransparency"": true,
+      ""nonPowerOfTwoScale"": ""none"",
+      ""ignorePngGamma"": false,
+      ""readWriteEnabled"": false,
+      ""virtualTextureOnly"": false,
+      ""generateMipMaps"": false,
+      ""borderMipMaps"": false,
+      ""mipMapFiltering"": ""box"",
+      ""mipMapsPreserveCoverage"": false,
+      ""alphaCutoffValue"": 0.5,
+      ""fadeOutMipMaps"": false,
+      ""mipMapFadeDistanceStart"": 1,
+      ""mipMapFadeDistanceEnd"": 3,
+      ""anisoLevel"": 1,
+      ""wrapMode"": ""clamp"",
+      ""filterMode"": ""point"",
+      ""maxTextureSize"": 2048,
+      ""resizeAlgorithm"": ""mitchell"",
+      ""textureCompression"": ""none"",
+      ""compressionQuality"": 50,
+      ""crunchedCompression"": false,
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-03T00:00:00.000Z""
+    }
+  },
+  ""audioClipTemplates"": {
+    ""audio-template-1"": {
+      ""_id"": ""audio-template-1"",
+      ""id"": ""audio-template-1"",
+      ""projectId"": ""project-a"",
+      ""name"": ""Voice"",
+      ""forceToMono"": false,
+      ""normalize"": true,
+      ""loadInBackground"": false,
+      ""ambisonic"": false,
+      ""loadType"": ""decompress-on-load"",
+      ""compressionFormat"": ""vorbis"",
+      ""quality"": 0.7,
+      ""sampleRateSetting"": ""preserve-sample-rate"",
+      ""preloadAudioData"": true,
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-04T00:00:00.000Z""
+    }
+  }
+}";
+            var export = Deserialize(json);
+
+            var spriteAttr = (SpriteAttribute)export.attributes["sprite-attr"];
+            var spriteDefault = (SpriteAttributeValueBase)spriteAttr.defaultValue!;
+            Assert.AreEqual(AttributeType.Sprite, spriteAttr.type);
+            Assert.AreEqual("texture-template-1", spriteAttr.templateId);
+            Assert.AreEqual("file-1", spriteDefault.value!.fileId);
+            Assert.AreEqual(2, spriteDefault.value.sliceIndex);
+            Assert.IsInstanceOf<SpriteAttributeValue>(export.values["sprite-value"]);
+
+            var audioAttr = (AudioAttribute)export.attributes["audio-attr"];
+            var audioDefault = (FileAttributeValueBase)audioAttr.defaultValue!;
+            Assert.AreEqual(AttributeType.Audio, audioAttr.type);
+            Assert.AreEqual("audio-template-1", audioAttr.templateId);
+            Assert.AreEqual("file-2", audioDefault.value!.fileId);
+            Assert.IsInstanceOf<FileAttributeValue>(export.values["audio-value"]);
+
+            Assert.AreEqual("portrait.png", export.files["file-1"].name);
+            Assert.AreEqual("texture-template-1", export.files["file-1"].unityTextureSettings!.templateId);
+            Assert.AreEqual("Sprites", export.textureTemplates["texture-template-1"].name);
+            Assert.AreEqual("Voice", export.audioClipTemplates["audio-template-1"].name);
         }
 
         [Test]

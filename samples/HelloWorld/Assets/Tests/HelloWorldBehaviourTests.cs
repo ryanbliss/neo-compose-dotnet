@@ -188,7 +188,7 @@ namespace HelloWorld.Assets.Tests
                 .ToArray();
 
             Assert.Greater(displayTexts.Length, 3);
-            Assert.Contains("Mercurial, Mercury", displayTexts);
+            Assert.Contains("Mercurials, Mercury", displayTexts);
             Assert.Contains("Venusian, Venus", displayTexts);
             Assert.Contains("Capitol OG, Earth", displayTexts);
             Assert.Greater(displayTexts.Distinct().Count(), 3);

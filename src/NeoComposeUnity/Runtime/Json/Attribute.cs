@@ -12,7 +12,7 @@ namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Abstract base for the TS-side <c>IAttribute&lt;TType, TValue&gt;</c>
-    /// discriminated union. Eleven concrete variants — one per
+    /// discriminated union. One concrete variant per
     /// <see cref="AttributeType"/> — collapse every per-type field into
     /// its own subclass instead of a bag-of-fields class. Newtonsoft
     /// dispatches on the numeric <see cref="type"/> via
@@ -173,6 +173,36 @@ namespace NeoCompose.Runtime.Json
         public FunctionWithReturnType getter = null!;
     }
 
+    /// <summary>
+    /// File reference payload shared by file-backed attributes.
+    /// </summary>
+    public class FileValue
+    {
+        public string fileId = null!;
+    }
+
+    /// <summary>
+    /// Sprite reference payload. <see cref="sliceIndex"/> addresses the
+    /// imported sprite slice for multi-sprite textures; single-sprite
+    /// textures use index 0.
+    /// </summary>
+    public class SpriteValue : FileValue
+    {
+        public int sliceIndex;
+    }
+
+    /// <summary>Mirror of TS-side <c>TAttributeSprite</c>.</summary>
+    public class SpriteAttribute : Attribute<SpriteValue?>
+    {
+        public string? templateId;
+    }
+
+    /// <summary>Mirror of TS-side <c>TAttributeAudio</c>.</summary>
+    public class AudioAttribute : Attribute<FileValue?>
+    {
+        public string? templateId;
+    }
+
     public class AttributeConverter : DiscriminatedConverter<Attribute>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -194,6 +224,8 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Enum: return typeof(EnumAttribute);
                 case AttributeType.Lookup: return typeof(LookupAttribute);
                 case AttributeType.NSGetter: return typeof(NSGetterAttribute);
+                case AttributeType.Sprite: return typeof(SpriteAttribute);
+                case AttributeType.Audio: return typeof(AudioAttribute);
                 default: return null;
             }
         }

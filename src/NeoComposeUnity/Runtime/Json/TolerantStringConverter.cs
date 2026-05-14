@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -57,6 +58,18 @@ namespace NeoCompose.Runtime.Json
                     // string field — coerce via ToString. Better than
                     // null when the data is *almost* right.
                     var v = reader.Value;
+                    if (v is DateTime dateTime)
+                    {
+                        return dateTime
+                            .ToUniversalTime()
+                            .ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
+                    }
+                    if (v is DateTimeOffset dateTimeOffset)
+                    {
+                        return dateTimeOffset
+                            .ToUniversalTime()
+                            .ToString("yyyy-MM-dd'T'HH:mm:ss.fff'Z'", CultureInfo.InvariantCulture);
+                    }
                     return v?.ToString();
             }
         }

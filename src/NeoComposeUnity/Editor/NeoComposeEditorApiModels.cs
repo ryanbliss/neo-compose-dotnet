@@ -55,4 +55,21 @@ namespace NeoCompose.Unity.Editor
         public string generatedTypes = "";
         public List<NeoComposeCodegenDiagnostic> diagnostics = new();
     }
+
+    public sealed class NeoComposeUnityExportFileDownloadRequest
+    {
+        public string[] fileIds = System.Array.Empty<string>();
+    }
+
+    public sealed class NeoComposeUnityExportFileDownload
+    {
+        public string fileId = "";
+        public string downloadUrl = "";
+        public string expiresAt = "";
+    }
+
+    public sealed class NeoComposeUnityExportFileDownloadResponse
+    {
+        public Dictionary<string, NeoComposeUnityExportFileDownload> files = new();
+    }
 }

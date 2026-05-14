@@ -197,6 +197,8 @@ namespace NeoCompose.Unity.Editor
             {
                 DrawDirectoryField("Generated Types", ref config.generatedTypesDirectory);
                 DrawDirectoryField("Project JSON", ref config.projectJsonDirectory);
+                DrawDirectoryField("Sprites", ref config.spriteDirectory);
+                DrawDirectoryField("Audio Clips", ref config.audioClipDirectory);
             }
 
             EndSection();
@@ -414,12 +416,24 @@ namespace NeoCompose.Unity.Editor
             status = "Synchronizing...";
             Repaint();
 
-            var result = await synchronizer.SynchronizeAsync(config);
-            RefreshConfigForDisplay();
-            status = result.message;
-            loading = false;
-            clearKeyboardFocusNextGui = true;
-            Repaint();
+            try
+            {
+                var result = await synchronizer.SynchronizeAsync(config, UpdateProgressStatus);
+                RefreshConfigForDisplay();
+                status = result.message;
+                ScheduleAssetRefresh();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(exception);
+                status = exception.Message;
+            }
+            finally
+            {
+                loading = false;
+                clearKeyboardFocusNextGui = true;
+                Repaint();
+            }
         }
 
         private async Task SaveUnityExportSettingsAsync()
@@ -429,17 +443,39 @@ namespace NeoCompose.Unity.Editor
             status = "Saving Unity export settings...";
             Repaint();
 
-            var result = await projectSettingsUpdater.UpdateUnityExportSettingsAsync(config);
-            RefreshConfigForDisplay();
-            status = result.message;
-            loading = false;
-            clearKeyboardFocusNextGui = true;
-            Repaint();
+            try
+            {
+                var result = await projectSettingsUpdater.UpdateUnityExportSettingsAsync(config);
+                RefreshConfigForDisplay();
+                status = result.message;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(exception);
+                status = exception.Message;
+            }
+            finally
+            {
+                loading = false;
+                clearKeyboardFocusNextGui = true;
+                Repaint();
+            }
+        }
+
+        private static void ScheduleAssetRefresh()
+        {
+            EditorApplication.delayCall += AssetDatabase.Refresh;
         }
 
         private void RefreshConfigForDisplay()
         {
             config = NeoComposeConfigProvider.LoadOrCreate();
+        }
+
+        private void UpdateProgressStatus(string message)
+        {
+            status = message;
+            Repaint();
         }
 
         private void ClearKeyboardFocusIfRequested()

@@ -97,6 +97,7 @@ namespace HelloWorld.Assets.Scripts
             PrepareUI();
             DialogueUI.Show(
                 SpeakerLabel(node),
+                SpeakerImage(node),
                 node.Text
             );
             if (node.Options.Count > 0)
@@ -197,6 +198,21 @@ namespace HelloWorld.Assets.Scripts
                 return $"{outpost.FullDisplayText}";
             }
             return "Dialogue";
+        }
+
+        private static Sprite SpeakerImage(NeoDialogueTextNode node)
+        {
+            if (node.Primary is not ReadOnlyOutpost outpost) return null;
+
+            try
+            {
+                return outpost.Image;
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning($"Could not resolve dialogue speaker image for '{outpost.FullDisplayText}': {exception.Message}");
+                return null;
+            }
         }
 
         // ──────────────────────────────────────────────

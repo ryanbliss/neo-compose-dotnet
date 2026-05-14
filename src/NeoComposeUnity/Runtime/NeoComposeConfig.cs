@@ -14,6 +14,8 @@ namespace NeoCompose.Runtime
         public string projectName = "";
         public string generatedTypesDirectory = NeoComposeDefaults.GeneratedTypesDirectory;
         public string projectJsonDirectory = NeoComposeDefaults.ProjectJsonDirectory;
+        public string spriteDirectory = NeoComposeDefaults.SpriteDirectory;
+        public string audioClipDirectory = NeoComposeDefaults.AudioClipDirectory;
         public string namespaceForGeneratedTypes = NeoComposeDefaults.NamespaceForGeneratedTypes;
         public bool singleton = NeoComposeDefaults.Singleton;
 

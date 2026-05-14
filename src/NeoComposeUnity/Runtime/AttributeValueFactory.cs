@@ -71,6 +71,16 @@ namespace NeoCompose.Runtime
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = Cast<string[]?>(rawPayload, attribute),
                 },
+                SpriteAttribute => new SpriteAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = Cast<SpriteValue?>(rawPayload, attribute),
+                },
+                AudioAttribute => new FileAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = Cast<FileValue?>(rawPayload, attribute),
+                },
                 NSGetterAttribute => new NullAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,

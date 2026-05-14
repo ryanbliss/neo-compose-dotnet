@@ -81,12 +81,18 @@ namespace NeoCompose.Runtime
         protected ProjectSaveData saveData;
         protected LoadSave loadSave;
         protected HandleSave handleSave;
+        internal NeoAssetDatabase? assetDatabase;
 
-        public NeoClient(ProjectData data, LoadSave loadSave, HandleSave handleSave)
+        public NeoClient(
+            ProjectData data,
+            LoadSave loadSave,
+            HandleSave handleSave,
+            NeoAssetDatabase? assetDatabase = null)
         {
             this.data = data;
             this.loadSave = loadSave;
             this.handleSave = handleSave;
+            this.assetDatabase = assetDatabase;
             LoadOrCreateSafe();
             assets = new(this, data.project.rootAssetsAttributeId, null);
             save = new(this, data.project.rootSaveFileAttributeId, null);
@@ -250,6 +256,20 @@ namespace NeoCompose.Runtime
                 ObjectAttributeValue o => new ObjectAttributeValue
                 {
                     value = o.value == null ? null : new Dictionary<string, string>(o.value),
+                },
+                FileAttributeValue f => new FileAttributeValue
+                {
+                    value = f.value == null ? null : new FileValue { fileId = f.value.fileId },
+                },
+                SpriteAttributeValue s => new SpriteAttributeValue
+                {
+                    value = s.value == null
+                        ? null
+                        : new SpriteValue
+                        {
+                            fileId = s.value.fileId,
+                            sliceIndex = s.value.sliceIndex,
+                        },
                 },
                 _ => throw new System.InvalidOperationException(
                     $"Unsupported save value row type '{row.GetType().Name}'."),
