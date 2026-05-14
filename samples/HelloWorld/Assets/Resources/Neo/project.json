@@ -6773,7 +6773,7 @@
                         "height": 160,
                         "isOpen": true
                     },
-                    "name": null,
+                    "name": "Hello",
                     "linkedValues": [
                         {
                             "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
@@ -6781,7 +6781,497 @@
                         }
                     ],
                     "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
-                    "text": "Hello, brave traveler. We've been expecting you.",
+                    "text": "Light graces you, brave traveler. We've been expecting you.",
+                    "optionSettings": {
+                        "options": [
+                            {
+                                "id": "82eeb3bc-f377-4127-bcf8-4072b5b3aba7",
+                                "text": "You've been <i>expecting </i>me?",
+                                "name": "Surprise",
+                                "toNodeId": "9cf20311-811b-4418-8833-00e98e498f55"
+                            },
+                            {
+                                "id": "a003dda5-7faf-493d-bc4d-10320e4f5275",
+                                "text": "I bet you say that to everyone",
+                                "name": "Doubt",
+                                "toNodeId": "8493e593-ab92-41ba-a04d-da2835244bb2"
+                            }
+                        ],
+                        "saveChoice": true
+                    }
+                },
+                "9cf20311-811b-4418-8833-00e98e498f55": {
+                    "id": "9cf20311-811b-4418-8833-00e98e498f55",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 543,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Sun shineth",
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "text": "Sun shineth for those that seeketh.",
+                    "optionSettings": {
+                        "options": [
+                            {
+                                "id": "2a487f51-3909-46bd-b3d4-80cfaccfff97",
+                                "text": "Well, I indeed was sent here to seeketh knowledge.",
+                                "name": "Seeketh",
+                                "toNodeId": "0db6ce1c-481f-4e70-9a0b-54a10697a737"
+                            },
+                            {
+                                "id": "9db7758b-856c-451b-af19-2b65473cf0fb",
+                                "text": "Does the sun shineth for those that seeketh to be blind?",
+                                "name": "Mock",
+                                "toNodeId": "9d741da4-f8f3-40f7-b05b-3ff1fae32952"
+                            }
+                        ],
+                        "saveChoice": null
+                    }
+                },
+                "9d741da4-f8f3-40f7-b05b-3ff1fae32952": {
+                    "id": "9d741da4-f8f3-40f7-b05b-3ff1fae32952",
+                    "type": 2,
+                    "layout": {
+                        "x": 220,
+                        "y": 543,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Decrease rep",
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "actions": [
+                        {
+                            "id": "d600d791-6292-42d0-a9e3-1f377ad43309",
+                            "type": 0,
+                            "logic": {
+                                "type": 0,
+                                "action": {
+                                    "parameters": [],
+                                    "typeInfo": {
+                                        "type": 0,
+                                        "required": true
+                                    },
+                                    "instructions": [
+                                        {
+                                            "type": "assign",
+                                            "target": {
+                                                "pointer": {
+                                                    "type": "keyOf",
+                                                    "keyOf": {
+                                                        "pointer": {
+                                                            "type": "callGetter",
+                                                            "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                                                            "thisPointer": {
+                                                                "type": "variable",
+                                                                "variableId": "__this__"
+                                                            }
+                                                        },
+                                                        "key": {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": "Reputation"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "typeInfo": {
+                                                    "type": 2,
+                                                    "required": true
+                                                }
+                                            },
+                                            "operator": "--",
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "type": 2,
+                                                        "required": true
+                                                    },
+                                                    "value": 1
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "toNodeId": "b3ece249-34d0-446b-a16a-9c09e6500f39"
+                },
+                "8493e593-ab92-41ba-a04d-da2835244bb2": {
+                    "id": "8493e593-ab92-41ba-a04d-da2835244bb2",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 796,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Sun offers light",
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "text": "The Sun offereth its Light freely, but it cannot reach those inclined to Darkness.",
+                    "optionSettings": {
+                        "options": [
+                            {
+                                "id": "cba68531-cc21-4ea4-93e6-b032aeba72c1",
+                                "text": "Fair enough. Well, I am looking for some information.",
+                                "name": "Fair",
+                                "toNodeId": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6"
+                            },
+                            {
+                                "id": "f0ddb88a-d569-4e0f-92a7-832498b79d21",
+                                "text": "Aren't you blind? Sounds pretty dark to me...",
+                                "name": "Rude",
+                                "toNodeId": "9d741da4-f8f3-40f7-b05b-3ff1fae32952"
+                            }
+                        ],
+                        "saveChoice": null
+                    }
+                },
+                "38b616a1-d31e-4ae4-868c-9bc7bca30cb6": {
+                    "id": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 803,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Asketh",
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "text": "Light Shines its abundance on {{neo-var:3d9bdd31-0547-4497-9386-8948d560d35f}}. Ask that which hath evadeth you in Darker realms.",
+                    "optionSettings": {
+                        "options": [
+                            {
+                                "id": "2563de09-b1fe-4a7d-aac5-784372b6a6fe",
+                                "text": "There are reports of cosmic disturbances",
+                                "name": "Cosmic",
+                                "toNodeId": "766e702b-009e-4b28-9f5b-b2cb3fe00ec9"
+                            },
+                            {
+                                "id": "217c325e-fb32-48be-9a3b-0483def242f6",
+                                "text": "I know you have been causing the solar flares <i>(Lie)</i>",
+                                "name": "Accuse"
+                            }
+                        ],
+                        "saveChoice": null
+                    },
+                    "variables": {
+                        "3d9bdd31-0547-4497-9386-8948d560d35f": {
+                            "id": "3d9bdd31-0547-4497-9386-8948d560d35f",
+                            "displayPath": "Outpost > Planet",
+                            "getter": {
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__root__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__dialogue_context__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    }
+                                ],
+                                "instructions": [
+                                    {
+                                        "type": "return",
+                                        "pointer": {
+                                            "type": "operation",
+                                            "operation": {
+                                                "type": "arithmetic",
+                                                "arithmetic": {
+                                                    "type": "+",
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "stringify",
+                                                            "pointer": {
+                                                                "type": "keyOf",
+                                                                "keyOf": {
+                                                                    "pointer": {
+                                                                        "type": "variable",
+                                                                        "variableId": "__this__"
+                                                                    },
+                                                                    "key": {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "type": 3,
+                                                                                "required": true
+                                                                            },
+                                                                            "value": "Planet"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "sourceType": {
+                                                                "type": 8,
+                                                                "required": true,
+                                                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                }
+                            },
+                            "label": "Planet",
+                            "pointer": {
+                                "type": "keyOf",
+                                "keyOf": {
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    },
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            },
+                                            "value": "Planet"
+                                        }
+                                    }
+                                }
+                            },
+                            "sourcePath": "this.Planet",
+                            "typeInfo": {
+                                "type": 8,
+                                "required": true,
+                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                            }
+                        }
+                    }
+                },
+                "0db6ce1c-481f-4e70-9a0b-54a10697a737": {
+                    "id": "0db6ce1c-481f-4e70-9a0b-54a10697a737",
+                    "type": 2,
+                    "layout": {
+                        "x": 220,
+                        "y": 803,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Increase rep",
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "actions": [
+                        {
+                            "id": "1183d2aa-7ad0-4f09-a77a-b0a7b2a45de0",
+                            "type": 0,
+                            "logic": {
+                                "type": 0,
+                                "action": {
+                                    "parameters": [],
+                                    "typeInfo": {
+                                        "type": 0,
+                                        "required": true
+                                    },
+                                    "instructions": [
+                                        {
+                                            "type": "assign",
+                                            "target": {
+                                                "pointer": {
+                                                    "type": "keyOf",
+                                                    "keyOf": {
+                                                        "pointer": {
+                                                            "type": "callGetter",
+                                                            "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                                                            "thisPointer": {
+                                                                "type": "variable",
+                                                                "variableId": "__this__"
+                                                            }
+                                                        },
+                                                        "key": {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": "Reputation"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "typeInfo": {
+                                                    "type": 2,
+                                                    "required": true
+                                                }
+                                            },
+                                            "operator": "++",
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "type": 2,
+                                                        "required": true
+                                                    },
+                                                    "value": 1
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    "toNodeId": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6"
+                },
+                "b3ece249-34d0-446b-a16a-9c09e6500f39": {
+                    "id": "b3ece249-34d0-446b-a16a-9c09e6500f39",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 1056,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Light to dark",
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "text": "Ah, so the Light has chosen Darkness as its vessel. Alas, all Light goes Dark in time. ",
+                    "optionSettings": {
+                        "options": [
+                            {
+                                "id": "5b1decc8-d84e-44d5-adc7-948049017535",
+                                "text": "Uh, okay...",
+                                "name": "Okay",
+                                "toNodeId": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6"
+                            }
+                        ],
+                        "saveChoice": false
+                    }
+                },
+                "766e702b-009e-4b28-9f5b-b2cb3fe00ec9": {
+                    "id": "766e702b-009e-4b28-9f5b-b2cb3fe00ec9",
+                    "type": 1,
+                    "layout": {
+                        "x": 220,
+                        "y": 1063,
+                        "width": 320,
+                        "height": 160,
+                        "isOpen": true
+                    },
+                    "name": "Cosmos crieth",
+                    "linkedValues": [
+                        {
+                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "source": 1
+                        }
+                    ],
+                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "text": "Aye, Cosmos crieth out through the Light. It was not Time for Red Nova, yet Time disturbeth all until Nova come.",
                     "optionSettings": null
                 }
             },
@@ -6830,7 +7320,7 @@
             "id": "71478d85-4586-4ca8-8b95-226a391a9a5f",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-10T06:10:47.246Z",
-            "updatedAt": "2026-05-11T23:22:34.014Z"
+            "updatedAt": "2026-05-12T03:55:51.685Z"
         },
         "5385d04c-b623-40f5-8032-c97d4f90073d": {
             "_id": "6a00278433f2641c2bfa8110",
