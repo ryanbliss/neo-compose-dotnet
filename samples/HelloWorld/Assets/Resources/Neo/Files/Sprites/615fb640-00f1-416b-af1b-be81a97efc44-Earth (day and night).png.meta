@@ -1,0 +1,1352 @@
+fileFormatVersion: 2
+guid: dd8fbe9577ebe4092b3382382952d26c
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: -5566534850453225108
+    second: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 1
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 0
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 16
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: 12
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: 12
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cbd0720846dc34620899cbb3edd006e1
+      internalID: 1335620982
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_1
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 729b39b6f22db4d41b5a5ca89e1afcc4
+      internalID: 719119896
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_2
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7b5f18f10ee9b4611bd3b55ee50053e1
+      internalID: 1576012760
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_3
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 971036311878e441f9297c9b897d3088
+      internalID: 853552087
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_4
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6c87ab90f288049e7a90345e571d6761
+      internalID: 1522408567
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_5
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e1dcf6e495e1b473daa8e0ee3bb9d5ed
+      internalID: -809620267
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_6
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 112
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fc42eab006fab442d9ec6c99c2f255d0
+      internalID: -759331202
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 1c17a64ef6d924780adaf0ad77aeef16
+      internalID: -1861944795
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_1
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 81c6bca51fa874716aa1bdfdcb0b2a70
+      internalID: -112764469
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_2
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f74c8d6d7572d463e80a12436dc1c6d3
+      internalID: 828265412
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_3
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8e131f469672545bba73719b61986d49
+      internalID: -1731199656
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_4
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: abc9da23d4da040da80618f16bd6505a
+      internalID: 960529363
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_5
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c28d98b4b78044ed0861a559486119a5
+      internalID: 973550299
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_6
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 96
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8a33e8ae7f8674c6fb3ff323325e366a
+      internalID: 1366874367
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 959c70c37f04349e4b0fc83ceccd2967
+      internalID: 1209042728
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_1
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7be7e1654f5d945ea8a9861fc70e41ae
+      internalID: 456911641
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_2
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 54ebb4d7e30da49f1bf4282312833502
+      internalID: -648099781
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_3
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b5d578f6137d0416f90139e8b63f3b91
+      internalID: -828790562
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_4
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 40a6716d4c29647fd9e64dbb2954bdf4
+      internalID: 1117647323
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_5
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 06b095f35ae8c46e3a8305a817a5250b
+      internalID: 1118424395
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_6
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 80
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c454ac7c62fc44a39ae9124321f0938b
+      internalID: 536389837
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6be63502bf36e40caa708c2cc4d8e5c9
+      internalID: 987162851
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_1
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 856939e82e0be48e4970795b4c80e786
+      internalID: -1348340918
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_2
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7131e8f61e63544279912cca9f13d72d
+      internalID: -793116888
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_3
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 47668de90689a4691b70b04518822335
+      internalID: 2072784192
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_4
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fa8a82cb25a724208b9c38fd028dca71
+      internalID: 1170652193
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_5
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0fe6af6fb894d4188b824b37983d2ddb
+      internalID: 1889852818
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_6
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 64
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 456cb1eda097d47aabbf163f4c929247
+      internalID: 270801432
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4b876aabe8f7541dc93ab8b696291962
+      internalID: -1636821425
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_1
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 65a0fabe8c83d4da09a8dc258cb9850e
+      internalID: 205777278
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_2
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 62016a46c7dec4b6f8135e3eb9472fe3
+      internalID: 714009530
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_3
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 302703ef36038459aa4980d5c85af429
+      internalID: 287849290
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_4
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dd8eb744f4c554e9da6ee120a25e78ac
+      internalID: 358916381
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_5
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a548174ff986f4b7785a13315a88b323
+      internalID: -1578035341
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_6
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 48
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2f7fa6e0f52ac4b81bdea1b69db47024
+      internalID: 1547284857
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 50b852c710d91438f9ea478d91cf337a
+      internalID: 610520394
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_1
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ab95b31a2f3294a1ea8ec7315a380389
+      internalID: 1560318195
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_2
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 474b6bd0dbabc4469849dfafc5637513
+      internalID: 1280672320
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_3
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2e503407d15614406af08133d23b14be
+      internalID: -262946348
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_4
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: adc896fbaa87642a2abf2bfc97877fc8
+      internalID: 1486502859
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_5
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6f0c8de1717844d38bc8db73c9ecfec9
+      internalID: -206131307
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_6
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 32
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 461e549e33b7240aab4d189a25698100
+      internalID: 206655519
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ba57a3dc098ab477eb042fa5752b499f
+      internalID: -2055014658
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_1
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2a531e711b37d485babebe1c1cb39258
+      internalID: 580960021
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_2
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b3b6147753a4e43f49b69af8075b95bc
+      internalID: -2016477394
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_3
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4ac33e39ee0fb4005a693e34c0725ad5
+      internalID: 1433069159
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_4
+      rect:
+        serializedVersion: 2
+        x: 64
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 4b062727818ac40a2b31b36f497eb9c9
+      internalID: 123800114
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_5
+      rect:
+        serializedVersion: 2
+        x: 80
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6a9e02a3baf144f64bb0c04c654127a2
+      internalID: 617566055
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_6
+      rect:
+        serializedVersion: 2
+        x: 96
+        y: 16
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7f8e3ab2c53564df08f5c59a886daac5
+      internalID: -1598218137
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_7_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 93618999139cb49c28f476a90c2e2f06
+      internalID: 1921779662
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_7_1
+      rect:
+        serializedVersion: 2
+        x: 16
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ab6db6c41f0f84035b2d12a37e673560
+      internalID: -888213619
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_7_2
+      rect:
+        serializedVersion: 2
+        x: 32
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9c8155aac03b84a11bae2e6bec4fe056
+      internalID: 1844008586
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_7_3
+      rect:
+        serializedVersion: 2
+        x: 48
+        y: 0
+        width: 16
+        height: 16
+      alignment: 0
+      pivot: {x: 0.5, y: 0.5}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: eb161f79d56df465480bae8b2adc3864
+      internalID: -444460451
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 3778e48771c5a49a2b37a0524d027c96
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_0: 1335620982
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_1: 719119896
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_2: 1576012760
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_3: 853552087
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_4: 1522408567
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_5: -809620267
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_0_6: -759331202
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_0: -1861944795
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_1: -112764469
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_2: 828265412
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_3: -1731199656
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_4: 960529363
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_5: 973550299
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_1_6: 1366874367
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_0: 1209042728
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_1: 456911641
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_2: -648099781
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_3: -828790562
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_4: 1117647323
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_5: 1118424395
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_2_6: 536389837
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_0: 987162851
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_1: -1348340918
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_2: -793116888
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_3: 2072784192
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_4: 1170652193
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_5: 1889852818
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_3_6: 270801432
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_0: -1636821425
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_1: 205777278
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_2: 714009530
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_3: 287849290
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_4: 358916381
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_5: -1578035341
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_4_6: 1547284857
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_0: 610520394
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_1: 1560318195
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_2: 1280672320
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_3: -262946348
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_4: 1486502859
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_5: -206131307
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_5_6: 206655519
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_0: -2055014658
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_1: 580960021
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_2: -2016477394
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_3: 1433069159
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_4: 123800114
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_5: 617566055
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_6_6: -1598218137
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_7_0: 1921779662
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_7_1: -888213619
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_7_2: 1844008586
+      615fb640-00f1-416b-af1b-be81a97efc44-Earth (day and night)_7_3: -444460451
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

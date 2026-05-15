@@ -3147,6 +3147,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new string FullDisplayText
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return (string)result.value!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -3156,6 +3166,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<Planet> Planet = new("Planet");
 
             public static readonly NeoField<Sprite?> Image = new("Image");
+
+            public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -3165,6 +3177,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Moon] = () => Moon,
                 [Fields.Planet] = () => Planet,
                 [Fields.Image] = () => Image,
+                [Fields.FullDisplayText] = () => FullDisplayText,
             };
         }
 
@@ -3419,6 +3432,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new string FullDisplayText
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return (string)result.value!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -3426,6 +3449,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<Planet> Planet = new("Planet");
 
             public static readonly NeoField<SaturnMoon> Moon = new("Moon");
+
+            public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -3434,6 +3459,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Planet] = () => Planet,
                 [Fields.Moon] = () => Moon,
+                [Fields.FullDisplayText] = () => FullDisplayText,
             };
         }
 

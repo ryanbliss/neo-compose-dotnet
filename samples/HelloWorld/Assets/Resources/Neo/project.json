@@ -116,7 +116,7 @@
             "extendsAttributeId": null,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-03T00:10:24.481Z",
-            "updatedAt": "2026-05-07T18:54:47.701Z",
+            "updatedAt": "2026-05-15T05:16:59.501Z",
             "code": "\tPlanet planet = root.Save.World;\n\tstring suffix = this.optionalSuffix ?? \"\";\n\treturn $\"{this.baseText} {planet}{suffix}\";",
             "returnTypeInfo": {
                 "type": 3,
@@ -1131,8 +1131,52 @@
             "valueId": "0e0cdfcc-86c6-43a5-bcbd-aa8c325e1a25",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T18:23:43.619Z",
-            "updatedAt": "2026-05-07T18:23:43.619Z",
-            "entryAttributeId": "9619809a-f7f0-4605-8f79-d1617b339819"
+            "updatedAt": "2026-05-15T04:34:22.019Z",
+            "entryAttributeId": "9619809a-f7f0-4605-8f79-d1617b339819",
+            "columnSettings": [
+                {
+                    "attributeKey": "Image",
+                    "width": 96,
+                    "hidden": false,
+                    "frozen": true,
+                    "wrapContent": false
+                },
+                {
+                    "attributeKey": "Name",
+                    "width": 158,
+                    "hidden": false,
+                    "frozen": true,
+                    "wrapContent": false
+                },
+                {
+                    "attributeKey": "Planet",
+                    "width": 115,
+                    "hidden": false,
+                    "frozen": false,
+                    "wrapContent": false
+                },
+                {
+                    "attributeKey": "FullDisplayText",
+                    "width": 229,
+                    "hidden": false,
+                    "frozen": false,
+                    "wrapContent": false
+                },
+                {
+                    "attributeKey": "SaveUnsafe",
+                    "width": 273,
+                    "hidden": false,
+                    "frozen": false,
+                    "wrapContent": false
+                },
+                {
+                    "attributeKey": "Save",
+                    "width": 264,
+                    "hidden": true,
+                    "frozen": false,
+                    "wrapContent": false
+                }
+            ]
         },
         "c91791ff-8b41-47b2-ba12-81a84e595f42": {
             "_id": "69fcdb4c21f8b0238d0f6815",
@@ -1935,6 +1979,352 @@
             "createdAt": "2026-05-13T20:48:59.968Z",
             "updatedAt": "2026-05-13T20:48:59.968Z",
             "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192"
+        },
+        "48c7bc64-fc1a-41bc-becb-4d24da7df9aa": {
+            "_id": "6a0558bef95eb3976b8585cb",
+            "id": "48c7bc64-fc1a-41bc-becb-4d24da7df9aa",
+            "name": "FullDisplayText",
+            "type": 10,
+            "locked": false,
+            "required": false,
+            "extendsAttributeId": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-14T05:08:14.772Z",
+            "updatedAt": "2026-05-14T05:08:39.247Z",
+            "code": "\treturn $\"{this.Name}, {this.Moon}, {this.Planet}\";",
+            "returnTypeInfo": {
+                "type": 3,
+                "required": true
+            },
+            "getter": {
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "a50efb7e-58f6-4342-906e-0b01f98b15af"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "a50efb7e-58f6-4342-906e-0b01f98b15af"
+                                },
+                                "value": null
+                            }
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "__root__"
+                                },
+                                "value": null
+                            }
+                        }
+                    }
+                ],
+                "instructions": [
+                    {
+                        "type": "return",
+                        "pointer": {
+                            "type": "operation",
+                            "operation": {
+                                "type": "arithmetic",
+                                "arithmetic": {
+                                    "type": "+",
+                                    "pointers": [
+                                        {
+                                            "type": "keyOf",
+                                            "keyOf": {
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                },
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 3,
+                                                            "required": true
+                                                        },
+                                                        "value": "Name"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 3,
+                                                    "required": true
+                                                },
+                                                "value": ", "
+                                            }
+                                        },
+                                        {
+                                            "type": "stringify",
+                                            "pointer": {
+                                                "type": "keyOf",
+                                                "keyOf": {
+                                                    "pointer": {
+                                                        "type": "variable",
+                                                        "variableId": "__this__"
+                                                    },
+                                                    "key": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 3,
+                                                                "required": true
+                                                            },
+                                                            "value": "Moon"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "sourceType": {
+                                                "type": 8,
+                                                "required": true,
+                                                "enumId": "a2d44a04-35a6-4529-8fd2-f54a55cf518b"
+                                            }
+                                        },
+                                        {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 3,
+                                                    "required": true
+                                                },
+                                                "value": ", "
+                                            }
+                                        },
+                                        {
+                                            "type": "stringify",
+                                            "pointer": {
+                                                "type": "keyOf",
+                                                "keyOf": {
+                                                    "pointer": {
+                                                        "type": "variable",
+                                                        "variableId": "__this__"
+                                                    },
+                                                    "key": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 3,
+                                                                "required": true
+                                                            },
+                                                            "value": "Planet"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "sourceType": {
+                                                "type": 8,
+                                                "required": true,
+                                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ],
+                "typeInfo": {
+                    "type": 3,
+                    "required": true
+                }
+            }
+        },
+        "33e86f10-7989-4d82-9156-631a19e3bf06": {
+            "_id": "6a0558eff95eb3976b8585cc",
+            "id": "33e86f10-7989-4d82-9156-631a19e3bf06",
+            "name": "FullDisplayText",
+            "type": 10,
+            "locked": false,
+            "required": false,
+            "extendsAttributeId": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-14T05:09:03.252Z",
+            "updatedAt": "2026-05-14T05:09:09.101Z",
+            "code": "\treturn $\"{this.Name}, {this.Moon}, {this.Planet}\";",
+            "returnTypeInfo": {
+                "type": 3,
+                "required": true
+            },
+            "getter": {
+                "parameters": [
+                    {
+                        "id": "__this__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "96818dab-90e5-4ab9-8f69-cce66e39e370"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "96818dab-90e5-4ab9-8f69-cce66e39e370"
+                                },
+                                "value": null
+                            }
+                        }
+                    },
+                    {
+                        "id": "__root__",
+                        "typeInfo": {
+                            "type": 7,
+                            "required": true,
+                            "typeId": "__root__"
+                        },
+                        "pointer": {
+                            "type": "value",
+                            "value": {
+                                "typeInfo": {
+                                    "type": 7,
+                                    "required": true,
+                                    "typeId": "__root__"
+                                },
+                                "value": null
+                            }
+                        }
+                    }
+                ],
+                "instructions": [
+                    {
+                        "type": "return",
+                        "pointer": {
+                            "type": "operation",
+                            "operation": {
+                                "type": "arithmetic",
+                                "arithmetic": {
+                                    "type": "+",
+                                    "pointers": [
+                                        {
+                                            "type": "keyOf",
+                                            "keyOf": {
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                },
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 3,
+                                                            "required": true
+                                                        },
+                                                        "value": "Name"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 3,
+                                                    "required": true
+                                                },
+                                                "value": ", "
+                                            }
+                                        },
+                                        {
+                                            "type": "stringify",
+                                            "pointer": {
+                                                "type": "keyOf",
+                                                "keyOf": {
+                                                    "pointer": {
+                                                        "type": "variable",
+                                                        "variableId": "__this__"
+                                                    },
+                                                    "key": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 3,
+                                                                "required": true
+                                                            },
+                                                            "value": "Moon"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "sourceType": {
+                                                "type": 8,
+                                                "required": true,
+                                                "enumId": "9d3ef3f4-0823-412b-a2b6-97874739072d"
+                                            }
+                                        },
+                                        {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 3,
+                                                    "required": true
+                                                },
+                                                "value": ", "
+                                            }
+                                        },
+                                        {
+                                            "type": "stringify",
+                                            "pointer": {
+                                                "type": "keyOf",
+                                                "keyOf": {
+                                                    "pointer": {
+                                                        "type": "variable",
+                                                        "variableId": "__this__"
+                                                    },
+                                                    "key": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 3,
+                                                                "required": true
+                                                            },
+                                                            "value": "Planet"
+                                                        }
+                                                    }
+                                                }
+                                            },
+                                            "sourceType": {
+                                                "type": 8,
+                                                "required": true,
+                                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                ],
+                "typeInfo": {
+                    "type": 3,
+                    "required": true
+                }
+            }
         }
     },
     "enums": {
@@ -2030,7 +2420,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": true,
             "createdAt": "2026-05-03T00:02:45.121Z",
-            "updatedAt": "2026-05-08T21:10:59.530Z",
+            "updatedAt": "2026-05-15T05:13:10.541Z",
             "system": null
         },
         "96e8284d-ae43-4e91-919d-86c25ce098e0": {
@@ -2252,7 +2642,8 @@
             "schema": {
                 "Moon": "c91791ff-8b41-47b2-ba12-81a84e595f42",
                 "Planet": "54c74f99-f949-44f6-bc1c-37a80888e32f",
-                "Image": "6133e24a-bf87-4d3a-a71e-3933eebcab25"
+                "Image": "6133e24a-bf87-4d3a-a71e-3933eebcab25",
+                "FullDisplayText": "48c7bc64-fc1a-41bc-becb-4d24da7df9aa"
             },
             "extendsTypeId": "4c196697-4e08-4aeb-823f-322b353071ac",
             "isAbstract": false,
@@ -2260,7 +2651,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-07T18:34:26.484Z",
-            "updatedAt": "2026-05-13T20:49:00.196Z"
+            "updatedAt": "2026-05-14T05:08:14.993Z"
         },
         "96818dab-90e5-4ab9-8f69-cce66e39e370": {
             "_id": "69fcde8721f8b0238d0f682c",
@@ -2268,7 +2659,8 @@
             "name": "SaturnOutpost",
             "schema": {
                 "Planet": "08cc78f5-3f90-43cc-89d7-9ec8d58e8dd0",
-                "Moon": "a804bead-3d5b-4c68-a733-94e85e1e79b6"
+                "Moon": "a804bead-3d5b-4c68-a733-94e85e1e79b6",
+                "FullDisplayText": "33e86f10-7989-4d82-9156-631a19e3bf06"
             },
             "extendsTypeId": "4c196697-4e08-4aeb-823f-322b353071ac",
             "isAbstract": false,
@@ -2276,7 +2668,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-07T18:48:39.421Z",
-            "updatedAt": "2026-05-07T18:49:10.162Z"
+            "updatedAt": "2026-05-14T05:09:03.527Z"
         },
         "60c25a92-cb01-46f7-b5cf-c9d950586116": {
             "_id": "69fe50d28f986e676188a351",
@@ -2307,7 +2699,7 @@
             },
             "typeId": null,
             "createdAt": "2026-05-03T00:02:45.230Z",
-            "updatedAt": "2026-05-08T21:11:00.026Z",
+            "updatedAt": "2026-05-15T05:13:10.013Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "299b23d6-4ea0-4475-94f5-f59c4d18d9cd": {
@@ -2907,7 +3299,8 @@
             "_id": "69fcd8af21f8b0238d0f67fd",
             "id": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
             "value": [
-                "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                "ed141cc4-304c-40cd-8229-105f1ee9b99c",
                 "913fd757-d6ee-488e-866f-c7af41aa544b",
                 "424019cd-8b46-4dd9-9aac-3721331179bb",
                 "7a91f55f-a90e-4a80-80f4-43ad6386891a",
@@ -2918,45 +3311,11 @@
                 "bb2dca5c-ab35-4ca5-82ec-a236f0de0a6f",
                 "0bfa8e27-27e0-41b2-b90b-6d3c9442905a",
                 "763b50d2-c0b2-4346-b8fb-a092e7337af3",
-                "18154c7e-8f9a-4767-b44c-a25b0e1ca234",
-                "ed141cc4-304c-40cd-8229-105f1ee9b99c"
+                "18154c7e-8f9a-4767-b44c-a25b0e1ca234"
             ],
             "typeId": null,
             "createdAt": "2026-05-07T18:23:43.984Z",
-            "updatedAt": "2026-05-13T20:50:10.837Z",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
-        },
-        "5a1c9596-8e35-4b74-8fc7-b3d4d9f70789": {
-            "_id": "69fcd8ba21f8b0238d0f67fe",
-            "id": "5a1c9596-8e35-4b74-8fc7-b3d4d9f70789",
-            "value": [
-                "mercury"
-            ],
-            "typeId": null,
-            "createdAt": "2026-05-07T18:23:54.879Z",
-            "updatedAt": "2026-05-07T18:23:54.879Z",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
-        },
-        "7c0281ff-9423-4e2b-8d0e-f12f43304977": {
-            "_id": "69fcd8ba21f8b0238d0f67ff",
-            "id": "7c0281ff-9423-4e2b-8d0e-f12f43304977",
-            "value": "Mercurials",
-            "typeId": null,
-            "createdAt": "2026-05-07T18:23:54.987Z",
-            "updatedAt": "2026-05-14T00:16:56.585Z",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
-        },
-        "6ef339e8-7d1d-423c-8fde-ec02a570e307": {
-            "_id": "69fcd8bb21f8b0238d0f6800",
-            "id": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
-            "value": {
-                "Planet": "5a1c9596-8e35-4b74-8fc7-b3d4d9f70789",
-                "Name": "7c0281ff-9423-4e2b-8d0e-f12f43304977",
-                "Image": "1dd5d019-dd71-48ad-b960-1c8063ce8109"
-            },
-            "typeId": null,
-            "createdAt": "2026-05-07T18:23:55.101Z",
-            "updatedAt": "2026-05-13T09:45:48.066Z",
+            "updatedAt": "2026-05-15T04:38:17.918Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "1d30eb20-e75a-4a34-bd68-91cb0b1e6da0": {
@@ -3009,7 +3368,7 @@
             "value": "Olympic Mons",
             "typeId": null,
             "createdAt": "2026-05-07T18:27:08.128Z",
-            "updatedAt": "2026-05-07T18:28:00.383Z",
+            "updatedAt": "2026-05-14T08:31:16.690Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "424019cd-8b46-4dd9-9aac-3721331179bb": {
@@ -3533,7 +3892,7 @@
             ],
             "typeId": null,
             "createdAt": "2026-05-08T21:10:59.687Z",
-            "updatedAt": "2026-05-08T21:11:29.904Z",
+            "updatedAt": "2026-05-15T05:23:37.785Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "06eea766-0e13-4bdf-ac92-2cc64e124bf4": {
@@ -3686,18 +4045,6 @@
             "updatedAt": "2026-05-13T21:08:07.092Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
-        "1dd5d019-dd71-48ad-b960-1c8063ce8109": {
-            "_id": "6a04484bf95eb3976b8585a9",
-            "id": "1dd5d019-dd71-48ad-b960-1c8063ce8109",
-            "value": {
-                "fileId": "e55c6f29-b498-433b-85a8-89672290f3c0",
-                "sliceIndex": 0
-            },
-            "typeId": null,
-            "createdAt": "2026-05-13T09:45:47.911Z",
-            "updatedAt": "2026-05-13T20:42:33.787Z",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
-        },
         "58f7a7ae-93b1-4660-8a5f-bf28de1719cc": {
             "_id": "6a0448b3f95eb3976b8585ac",
             "id": "58f7a7ae-93b1-4660-8a5f-bf28de1719cc",
@@ -3848,6 +4195,51 @@
             "typeId": null,
             "createdAt": "2026-05-13T21:09:57.271Z",
             "updatedAt": "2026-05-13T21:09:57.271Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "9ea8c17f-90f6-4e71-968d-33e23e3c3401": {
+            "_id": "6a069af2074443a0ac1ecc84",
+            "id": "9ea8c17f-90f6-4e71-968d-33e23e3c3401",
+            "value": [
+                "mercury"
+            ],
+            "typeId": null,
+            "createdAt": "2026-05-15T04:02:58.861Z",
+            "updatedAt": "2026-05-15T04:02:58.861Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "b5446956-b429-4171-947d-cfb55874653c": {
+            "_id": "6a069af2074443a0ac1ecc85",
+            "id": "b5446956-b429-4171-947d-cfb55874653c",
+            "value": "Mercurial",
+            "typeId": null,
+            "createdAt": "2026-05-15T04:02:58.972Z",
+            "updatedAt": "2026-05-15T04:03:47.223Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "88cacaa9-25d2-4cfd-bd10-55db71139608": {
+            "_id": "6a069af3074443a0ac1ecc86",
+            "id": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+            "value": {
+                "Planet": "9ea8c17f-90f6-4e71-968d-33e23e3c3401",
+                "Name": "b5446956-b429-4171-947d-cfb55874653c",
+                "Image": "0c96204e-584f-498e-99de-659f64283e54"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-15T04:02:59.244Z",
+            "updatedAt": "2026-05-15T04:03:53.032Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "0c96204e-584f-498e-99de-659f64283e54": {
+            "_id": "6a069b28074443a0ac1ecc87",
+            "id": "0c96204e-584f-498e-99de-659f64283e54",
+            "value": {
+                "fileId": "e55c6f29-b498-433b-85a8-89672290f3c0",
+                "sliceIndex": 0
+            },
+            "typeId": null,
+            "createdAt": "2026-05-15T04:03:52.874Z",
+            "updatedAt": "2026-05-15T04:03:52.874Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         }
     },
@@ -4446,7 +4838,7 @@
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "So, what brings you to {{neo-var:ce9039e2-7312-4e4c-add5-8bcb1bb145cc}}?",
+                    "text": "So, what brings you to {{neo-var:c3049b7f-c8a3-46fb-89ae-0be3372d8ee7}}?",
                     "optionSettings": {
                         "options": [
                             {
@@ -4458,7 +4850,7 @@
                             },
                             {
                                 "id": "1d446373-0dc1-4540-9405-ac2de3c8faa9",
-                                "text": "To visit Earth, of course! (Lie)",
+                                "text": "To visit Earth, of course! <i>(lie)</i>",
                                 "name": "Tourist",
                                 "toNodeId": "d8f50e6c-86a2-4b77-8309-7304355ce6bc"
                             }
@@ -4466,8 +4858,8 @@
                         "saveChoice": null
                     },
                     "variables": {
-                        "ce9039e2-7312-4e4c-add5-8bcb1bb145cc": {
-                            "id": "ce9039e2-7312-4e4c-add5-8bcb1bb145cc",
+                        "c3049b7f-c8a3-46fb-89ae-0be3372d8ee7": {
+                            "id": "c3049b7f-c8a3-46fb-89ae-0be3372d8ee7",
                             "displayPath": "Outpost > Planet",
                             "getter": {
                                 "parameters": [
@@ -4587,7 +4979,7 @@
                                     "required": true
                                 }
                             },
-                            "label": "Planet",
+                            "label": "Outpost > Planet",
                             "pointer": {
                                 "type": "keyOf",
                                 "keyOf": {
@@ -4638,14 +5030,155 @@
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "I knew it! Before you  continue, would you like to purchase this very special Earth OG Souvenir Hat? It is truly the PINNACLE of human craftsmanship!",
+                    "text": "I knew it! Before you continue, would you like to purchase this very special {{neo-var:1e6fc91e-ad08-446e-afff-812af0476e0d}}? It is truly the PINNACLE of human craftsmanship!",
                     "optionSettings": {
                         "options": [
                             {
                                 "id": "e1fd78a9-c6e7-48a9-b9d8-26cdb8fd3608",
-                                "text": "Buy the hat (100 bits)",
+                                "text": "Buy the hat <b>(</b>{{neo-var:89ea16d4-6d4a-4e55-a3ea-3d973a1ffd02}}<b> bits)</b>",
                                 "name": "Yes",
-                                "toNodeId": "887487ff-d89b-409e-849d-2a72633d92be"
+                                "toNodeId": "887487ff-d89b-409e-849d-2a72633d92be",
+                                "variables": {
+                                    "89ea16d4-6d4a-4e55-a3ea-3d973a1ffd02": {
+                                        "id": "89ea16d4-6d4a-4e55-a3ea-3d973a1ffd02",
+                                        "displayPath": "Earth OG Souvenir Hat > Value",
+                                        "getter": {
+                                            "parameters": [
+                                                {
+                                                    "id": "__this__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "id": "__root__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "__root__"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "__root__"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "id": "__context__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "__dialogue_context__"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "__dialogue_context__"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "instructions": [
+                                                {
+                                                    "type": "return",
+                                                    "pointer": {
+                                                        "type": "operation",
+                                                        "operation": {
+                                                            "type": "arithmetic",
+                                                            "arithmetic": {
+                                                                "type": "+",
+                                                                "pointers": [
+                                                                    {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "type": 3,
+                                                                                "required": true
+                                                                            },
+                                                                            "value": ""
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        "type": "keyOf",
+                                                                        "keyOf": {
+                                                                            "pointer": {
+                                                                                "type": "reference",
+                                                                                "valueId": "ca105d9d-2885-4f33-80d4-206d5e207173"
+                                                                            },
+                                                                            "key": {
+                                                                                "type": "value",
+                                                                                "value": {
+                                                                                    "typeInfo": {
+                                                                                        "type": 3,
+                                                                                        "required": true
+                                                                                    },
+                                                                                    "value": "Value"
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            }
+                                        },
+                                        "label": "Earth OG Souvenir Hat > Value",
+                                        "pointer": {
+                                            "type": "keyOf",
+                                            "keyOf": {
+                                                "pointer": {
+                                                    "type": "reference",
+                                                    "valueId": "ca105d9d-2885-4f33-80d4-206d5e207173"
+                                                },
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 3,
+                                                            "required": true
+                                                        },
+                                                        "value": "Value"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "sourcePath": "linked:ca105d9d-2885-4f33-80d4-206d5e207173.Value",
+                                        "typeInfo": {
+                                            "type": 2,
+                                            "required": true
+                                        }
+                                    }
+                                }
                             },
                             {
                                 "id": "7a2bfc68-b904-4123-aea5-96bb2721c7ab",
@@ -4655,6 +5188,147 @@
                             }
                         ],
                         "saveChoice": false
+                    },
+                    "variables": {
+                        "1e6fc91e-ad08-446e-afff-812af0476e0d": {
+                            "id": "1e6fc91e-ad08-446e-afff-812af0476e0d",
+                            "displayPath": "Earth OG Souvenir Hat > Name",
+                            "getter": {
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__root__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__dialogue_context__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    }
+                                ],
+                                "instructions": [
+                                    {
+                                        "type": "return",
+                                        "pointer": {
+                                            "type": "operation",
+                                            "operation": {
+                                                "type": "arithmetic",
+                                                "arithmetic": {
+                                                    "type": "+",
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "keyOf",
+                                                            "keyOf": {
+                                                                "pointer": {
+                                                                    "type": "reference",
+                                                                    "valueId": "ca105d9d-2885-4f33-80d4-206d5e207173"
+                                                                },
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "type": 3,
+                                                                            "required": true
+                                                                        },
+                                                                        "value": "Name"
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                }
+                            },
+                            "label": "Earth OG Souvenir Hat > Name",
+                            "pointer": {
+                                "type": "keyOf",
+                                "keyOf": {
+                                    "pointer": {
+                                        "type": "reference",
+                                        "valueId": "ca105d9d-2885-4f33-80d4-206d5e207173"
+                                    },
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            },
+                                            "value": "Name"
+                                        }
+                                    }
+                                }
+                            },
+                            "sourcePath": "linked:ca105d9d-2885-4f33-80d4-206d5e207173.Name",
+                            "typeInfo": {
+                                "type": 3,
+                                "required": true
+                            }
+                        }
                     }
                 },
                 "887487ff-d89b-409e-849d-2a72633d92be": {
@@ -5172,10 +5846,14 @@
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
                             "source": 1
+                        },
+                        {
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                            "source": 0
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "Fabulous! Hey, I'd recommend staying away from the {{neo-var:1b88e8db-63e1-4e0b-aea9-5a846966c055}}s. Rumor has it they are causing an uptick in solar flares, but don't worry! That's what the hat is for!",
+                    "text": "Fabulous! Hey, I'd recommend staying away from the {{neo-var:49aba70d-30fc-4ae9-8b1c-c5fff5f14e4e}}s. Rumor has it they are causing an uptick in solar flares, but don't worry! That's what the hat is for!",
                     "optionSettings": {
                         "options": [
                             {
@@ -5187,13 +5865,13 @@
                             },
                             {
                                 "id": "933f4e34-2bed-4899-a4c6-840fe6e04ece",
-                                "text": "Who are the {{neo-var:efb3c5f9-1341-4f43-ab03-00f73f6eec75}}s?",
+                                "text": "Who are the {{neo-var:3e1d30e6-941b-450a-896d-b0512a29a678}}s?",
                                 "name": "Who?",
                                 "toNodeId": "b5be7c15-28f8-4dda-a400-d48dfee783cb",
                                 "variables": {
-                                    "efb3c5f9-1341-4f43-ab03-00f73f6eec75": {
-                                        "id": "efb3c5f9-1341-4f43-ab03-00f73f6eec75",
-                                        "displayPath": "Assets > Outposts > Mercurial > Name",
+                                    "3e1d30e6-941b-450a-896d-b0512a29a678": {
+                                        "id": "3e1d30e6-941b-450a-896d-b0512a29a678",
+                                        "displayPath": "Mercurial > Name",
                                         "getter": {
                                             "parameters": [
                                                 {
@@ -5279,7 +5957,7 @@
                                                                         "keyOf": {
                                                                             "pointer": {
                                                                                 "type": "reference",
-                                                                                "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                                "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                                                             },
                                                                             "key": {
                                                                                 "type": "value",
@@ -5304,13 +5982,13 @@
                                                 "required": true
                                             }
                                         },
-                                        "label": "Name",
+                                        "label": "Mercurial > Name",
                                         "pointer": {
                                             "type": "keyOf",
                                             "keyOf": {
                                                 "pointer": {
                                                     "type": "reference",
-                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                    "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                                 },
                                                 "key": {
                                                     "type": "value",
@@ -5324,7 +6002,7 @@
                                                 }
                                             }
                                         },
-                                        "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                                        "sourcePath": "linked:88cacaa9-25d2-4cfd-bd10-55db71139608.Name",
                                         "typeInfo": {
                                             "type": 3,
                                             "required": true
@@ -5336,8 +6014,8 @@
                         "saveChoice": null
                     },
                     "variables": {
-                        "1b88e8db-63e1-4e0b-aea9-5a846966c055": {
-                            "id": "1b88e8db-63e1-4e0b-aea9-5a846966c055",
+                        "49aba70d-30fc-4ae9-8b1c-c5fff5f14e4e": {
+                            "id": "49aba70d-30fc-4ae9-8b1c-c5fff5f14e4e",
                             "displayPath": "Assets > Outposts > Mercurial > Name",
                             "getter": {
                                 "parameters": [
@@ -5424,7 +6102,7 @@
                                                             "keyOf": {
                                                                 "pointer": {
                                                                     "type": "reference",
-                                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                    "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                                                 },
                                                                 "key": {
                                                                     "type": "value",
@@ -5449,13 +6127,13 @@
                                     "required": true
                                 }
                             },
-                            "label": "Name",
+                            "label": "Mercurial > Name",
                             "pointer": {
                                 "type": "keyOf",
                                 "keyOf": {
                                     "pointer": {
                                         "type": "reference",
-                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                     },
                                     "key": {
                                         "type": "value",
@@ -5469,7 +6147,7 @@
                                     }
                                 }
                             },
-                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                            "sourcePath": "ref:88cacaa9-25d2-4cfd-bd10-55db71139608.Name",
                             "typeInfo": {
                                 "type": 3,
                                 "required": true
@@ -5553,17 +6231,17 @@
                             "source": 1
                         },
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 0
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "Strange? Hmm...the {{neo-var:3d4c1bc4-2b85-4bcc-9698-ae2bb98d68cd}}s are a strange bunch, constantly staring into the sun. Even with all the solar flares we've been having lately! Blind as a bat, yep.",
+                    "text": "Strange? Hmm...the {{neo-var:8c6427b4-9e59-4f38-8670-2090f21c4117}}s are a strange bunch, constantly staring into the sun. Even with all the solar flares we've been having lately! Blind as a bat, yep.",
                     "optionSettings": null,
                     "variables": {
-                        "3d4c1bc4-2b85-4bcc-9698-ae2bb98d68cd": {
-                            "id": "3d4c1bc4-2b85-4bcc-9698-ae2bb98d68cd",
-                            "displayPath": "Assets > Outposts > Mercurial > Name",
+                        "8c6427b4-9e59-4f38-8670-2090f21c4117": {
+                            "id": "8c6427b4-9e59-4f38-8670-2090f21c4117",
+                            "displayPath": "Mercurial > Name",
                             "getter": {
                                 "parameters": [
                                     {
@@ -5649,7 +6327,7 @@
                                                             "keyOf": {
                                                                 "pointer": {
                                                                     "type": "reference",
-                                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                    "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                                                 },
                                                                 "key": {
                                                                     "type": "value",
@@ -5674,13 +6352,13 @@
                                     "required": true
                                 }
                             },
-                            "label": "Name",
+                            "label": "Mercurial > Name",
                             "pointer": {
                                 "type": "keyOf",
                                 "keyOf": {
                                     "pointer": {
                                         "type": "reference",
-                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                     },
                                     "key": {
                                         "type": "value",
@@ -5694,7 +6372,7 @@
                                     }
                                 }
                             },
-                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                            "sourcePath": "linked:88cacaa9-25d2-4cfd-bd10-55db71139608.Name",
                             "typeInfo": {
                                 "type": 3,
                                 "required": true
@@ -5821,15 +6499,19 @@
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
                             "source": 1
+                        },
+                        {
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                            "source": 0
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "All I know is that there have been an increase in solar flares. Rumor has it the {{neo-var:6eae5e82-7cd0-488c-8278-c4888b451e44}}s know more. Now get out of here.",
+                    "text": "All I know is that there have been an increase in solar flares. Rumor has it the {{neo-var:d922e051-7714-43df-814f-92f977494e03}}s know more. Now get out of here.",
                     "optionSettings": null,
                     "variables": {
-                        "6eae5e82-7cd0-488c-8278-c4888b451e44": {
-                            "id": "6eae5e82-7cd0-488c-8278-c4888b451e44",
-                            "displayPath": "Assets > Outposts > Mercurial > Name",
+                        "d922e051-7714-43df-814f-92f977494e03": {
+                            "id": "d922e051-7714-43df-814f-92f977494e03",
+                            "displayPath": "Mercurial > Name",
                             "getter": {
                                 "parameters": [
                                     {
@@ -5915,7 +6597,7 @@
                                                             "keyOf": {
                                                                 "pointer": {
                                                                     "type": "reference",
-                                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                    "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                                                 },
                                                                 "key": {
                                                                     "type": "value",
@@ -5940,13 +6622,13 @@
                                     "required": true
                                 }
                             },
-                            "label": "Name",
+                            "label": "Mercurial > Name",
                             "pointer": {
                                 "type": "keyOf",
                                 "keyOf": {
                                     "pointer": {
                                         "type": "reference",
-                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                     },
                                     "key": {
                                         "type": "value",
@@ -5960,7 +6642,7 @@
                                     }
                                 }
                             },
-                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                            "sourcePath": "linked:88cacaa9-25d2-4cfd-bd10-55db71139608.Name",
                             "typeInfo": {
                                 "type": 3,
                                 "required": true
@@ -5982,14 +6664,14 @@
                     "name": "UNLOCK MERCIAL",
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "actions": [
                         {
-                            "id": "e3f40736-99d3-4bfa-91c6-fc382cde87fd",
+                            "id": "acf5e41c-755e-4dd6-9307-fbefd33f019e",
                             "type": 0,
                             "logic": {
                                 "type": 0,
@@ -6064,15 +6746,19 @@
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
                             "source": 1
+                        },
+                        {
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                            "source": 0
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "Strange bunch, those ones. They are a cult who moved to {{neo-var:cd44fa38-29aa-4fb0-93c9-e4bb1d8b4247}} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.",
+                    "text": "Strange bunch, those ones. They are a cult who moved to {{neo-var:23aec2a1-e952-4c13-86fb-e0cede15f33c}} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.",
                     "optionSettings": null,
                     "toNodeId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
                     "variables": {
-                        "cd44fa38-29aa-4fb0-93c9-e4bb1d8b4247": {
-                            "id": "cd44fa38-29aa-4fb0-93c9-e4bb1d8b4247",
+                        "23aec2a1-e952-4c13-86fb-e0cede15f33c": {
+                            "id": "23aec2a1-e952-4c13-86fb-e0cede15f33c",
                             "displayPath": "Assets > Outposts > Mercurial > Planet",
                             "getter": {
                                 "parameters": [
@@ -6161,7 +6847,7 @@
                                                                 "keyOf": {
                                                                     "pointer": {
                                                                         "type": "reference",
-                                                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                                                     },
                                                                     "key": {
                                                                         "type": "value",
@@ -6192,13 +6878,13 @@
                                     "required": true
                                 }
                             },
-                            "label": "Planet",
+                            "label": "Mercurial > Planet",
                             "pointer": {
                                 "type": "keyOf",
                                 "keyOf": {
                                     "pointer": {
                                         "type": "reference",
-                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                     },
                                     "key": {
                                         "type": "value",
@@ -6212,7 +6898,7 @@
                                     }
                                 }
                             },
-                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Planet",
+                            "sourcePath": "ref:88cacaa9-25d2-4cfd-bd10-55db71139608.Planet",
                             "typeInfo": {
                                 "type": 8,
                                 "required": true,
@@ -6239,11 +6925,11 @@
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "Of course, enjoy your visit to {{neo-var:8635c9e7-a6a6-4e20-8cf0-12ad4b6b01c6}}!",
+                    "text": "Of course, enjoy your visit to {{neo-var:e9fe0a2b-e192-4a75-b352-e26527e6b423}}!",
                     "optionSettings": null,
                     "variables": {
-                        "8635c9e7-a6a6-4e20-8cf0-12ad4b6b01c6": {
-                            "id": "8635c9e7-a6a6-4e20-8cf0-12ad4b6b01c6",
+                        "e9fe0a2b-e192-4a75-b352-e26527e6b423": {
+                            "id": "e9fe0a2b-e192-4a75-b352-e26527e6b423",
                             "displayPath": "Outpost > Planet",
                             "getter": {
                                 "parameters": [
@@ -6363,7 +7049,7 @@
                                     "required": true
                                 }
                             },
-                            "label": "Planet",
+                            "label": "Outpost > Planet",
                             "pointer": {
                                 "type": "keyOf",
                                 "keyOf": {
@@ -6429,10 +7115,14 @@
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
                             "source": 1
+                        },
+                        {
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                            "source": 0
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "Well, hope you brought another hat then. The sun has been flaring up lately. Something to do with the {{neo-var:6c6af0a0-bdf9-4349-9849-271d6e9659d8}}s.",
+                    "text": "Well, hope you brought another hat then. The sun has been flaring up lately. Something to do with the {{neo-var:895da7f1-82ed-4eab-842d-f5dd4c25399a}}s.",
                     "optionSettings": {
                         "options": [
                             {
@@ -6443,11 +7133,11 @@
                             },
                             {
                                 "id": "2d63d4be-9f49-472c-92a8-d93a9da268c5",
-                                "text": "Who are the {{neo-var:268e2731-518f-4358-a288-737e5adaed73}}s?",
+                                "text": "Who are the {{neo-var:6d620b86-cc1f-4ffc-961a-02bd52c81c76}}s?",
                                 "name": "Who?",
                                 "variables": {
-                                    "268e2731-518f-4358-a288-737e5adaed73": {
-                                        "id": "268e2731-518f-4358-a288-737e5adaed73",
+                                    "6d620b86-cc1f-4ffc-961a-02bd52c81c76": {
+                                        "id": "6d620b86-cc1f-4ffc-961a-02bd52c81c76",
                                         "displayPath": "Assets > Outposts > Mercurial > Name",
                                         "getter": {
                                             "parameters": [
@@ -6534,7 +7224,7 @@
                                                                         "keyOf": {
                                                                             "pointer": {
                                                                                 "type": "reference",
-                                                                                "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                                "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                                                             },
                                                                             "key": {
                                                                                 "type": "value",
@@ -6565,7 +7255,7 @@
                                             "keyOf": {
                                                 "pointer": {
                                                     "type": "reference",
-                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                    "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                                 },
                                                 "key": {
                                                     "type": "value",
@@ -6579,7 +7269,7 @@
                                                 }
                                             }
                                         },
-                                        "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                                        "sourcePath": "ref:88cacaa9-25d2-4cfd-bd10-55db71139608.Name",
                                         "typeInfo": {
                                             "type": 3,
                                             "required": true
@@ -6592,8 +7282,8 @@
                         "saveChoice": null
                     },
                     "variables": {
-                        "6c6af0a0-bdf9-4349-9849-271d6e9659d8": {
-                            "id": "6c6af0a0-bdf9-4349-9849-271d6e9659d8",
+                        "895da7f1-82ed-4eab-842d-f5dd4c25399a": {
+                            "id": "895da7f1-82ed-4eab-842d-f5dd4c25399a",
                             "displayPath": "Assets > Outposts > Mercurial > Name",
                             "getter": {
                                 "parameters": [
@@ -6680,7 +7370,7 @@
                                                             "keyOf": {
                                                                 "pointer": {
                                                                     "type": "reference",
-                                                                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                    "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                                                 },
                                                                 "key": {
                                                                     "type": "value",
@@ -6711,7 +7401,7 @@
                                 "keyOf": {
                                     "pointer": {
                                         "type": "reference",
-                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                     },
                                     "key": {
                                         "type": "value",
@@ -6725,7 +7415,7 @@
                                     }
                                 }
                             },
-                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Name",
+                            "sourcePath": "ref:88cacaa9-25d2-4cfd-bd10-55db71139608.Name",
                             "typeInfo": {
                                 "type": 3,
                                 "required": true
@@ -6748,14 +7438,18 @@
                         {
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
                             "source": 1
+                        },
+                        {
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                            "source": 0
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "Strange bunch, those ones. They are a cult who moved to {{neo-var:cde799f1-5d68-45a7-b8bb-8b6bfd121225}} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.",
+                    "text": "Strange bunch, those ones. They are a cult who moved to {{neo-var:3a36f845-8745-458a-8b19-3c9fbd2afee9}} — the planet closest to the sun — so they could stare at it all the time. Super blind, yep.",
                     "optionSettings": null,
                     "variables": {
-                        "cde799f1-5d68-45a7-b8bb-8b6bfd121225": {
-                            "id": "cde799f1-5d68-45a7-b8bb-8b6bfd121225",
+                        "3a36f845-8745-458a-8b19-3c9fbd2afee9": {
+                            "id": "3a36f845-8745-458a-8b19-3c9fbd2afee9",
                             "displayPath": "Assets > Outposts > Mercurial > Planet",
                             "getter": {
                                 "parameters": [
@@ -6844,7 +7538,7 @@
                                                                 "keyOf": {
                                                                     "pointer": {
                                                                         "type": "reference",
-                                                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                                                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                                                     },
                                                                     "key": {
                                                                         "type": "value",
@@ -6881,7 +7575,7 @@
                                 "keyOf": {
                                     "pointer": {
                                         "type": "reference",
-                                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307"
+                                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608"
                                     },
                                     "key": {
                                         "type": "value",
@@ -6895,7 +7589,7 @@
                                     }
                                 }
                             },
-                            "sourcePath": "ref:6ef339e8-7d1d-423c-8fde-ec02a570e307.Planet",
+                            "sourcePath": "ref:88cacaa9-25d2-4cfd-bd10-55db71139608.Planet",
                             "typeInfo": {
                                 "type": 8,
                                 "required": true,
@@ -6951,7 +7645,7 @@
             "id": "3e842799-4859-4fbc-a317-8640bc6875e5",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T21:19:16.082Z",
-            "updatedAt": "2026-05-11T21:10:19.806Z"
+            "updatedAt": "2026-05-15T07:43:27.421Z"
         },
         "71478d85-4586-4ca8-8b95-226a391a9a5f": {
             "_id": "6a00216733f2641c2bfa810f",
@@ -6971,11 +7665,11 @@
                     "name": "Hello",
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "text": "Light graces you, brave traveler. We've been expecting you.",
                     "optionSettings": {
                         "options": [
@@ -7008,11 +7702,11 @@
                     "name": "Sun shineth",
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "text": "Sun shineth for those that seeketh.",
                     "optionSettings": {
                         "options": [
@@ -7045,11 +7739,11 @@
                     "name": "Decrease rep",
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "actions": [
                         {
                             "id": "d600d791-6292-42d0-a9e3-1f377ad43309",
@@ -7071,7 +7765,7 @@
                                                     "keyOf": {
                                                         "pointer": {
                                                             "type": "callGetter",
-                                                            "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                                                            "attributeId": "f66fba24-44d4-467c-98ac-4db1539910df",
                                                             "thisPointer": {
                                                                 "type": "variable",
                                                                 "variableId": "__this__"
@@ -7126,11 +7820,11 @@
                     "name": "Sun offers light",
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "text": "The Sun offereth its Light freely, but it cannot reach those inclined to Darkness.",
                     "optionSettings": {
                         "options": [
@@ -7163,11 +7857,11 @@
                     "name": "Asketh",
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "text": "Light Shines its abundance on {{neo-var:3d9bdd31-0547-4497-9386-8948d560d35f}}. Ask that which hath evadeth you in Darker realms.",
                     "optionSettings": {
                         "options": [
@@ -7349,14 +8043,14 @@
                     "name": "Increase rep",
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "actions": [
                         {
-                            "id": "1183d2aa-7ad0-4f09-a77a-b0a7b2a45de0",
+                            "id": "6b81543f-58b6-4fdf-a049-aae08830e926",
                             "type": 0,
                             "logic": {
                                 "type": 0,
@@ -7430,11 +8124,11 @@
                     "name": "Light to dark",
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "text": "Ah, so the Light has chosen Darkness as its vessel. Alas, all Light goes Dark in time. ",
                     "optionSettings": {
                         "options": [
@@ -7461,22 +8155,22 @@
                     "name": "Cosmos crieth",
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "text": "Aye, Cosmos crieth out through the Light. It was not Time for Red Nova, yet Time disturbeth all until Nova come.",
                     "optionSettings": null
                 }
             },
             "linkedValues": [
                 {
-                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "source": 3
                 }
             ],
-            "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+            "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
             "settings": {
                 "defaultSaveOptionChoices": true
             },
@@ -7493,15 +8187,15 @@
                 "name": null,
                 "linkedValues": [
                     {
-                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                         "source": 3
                     }
                 ],
-                "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                 "conditions": [],
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
-                    "lookupValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "lookupValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "priority": {
                         "priorityTypeId": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
                         "relativeOrder": 0
@@ -7515,7 +8209,7 @@
             "id": "71478d85-4586-4ca8-8b95-226a391a9a5f",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-10T06:10:47.246Z",
-            "updatedAt": "2026-05-12T03:55:51.685Z"
+            "updatedAt": "2026-05-15T04:17:23.242Z"
         },
         "5385d04c-b623-40f5-8032-c97d4f90073d": {
             "_id": "6a00278433f2641c2bfa8110",
@@ -7728,22 +8422,22 @@
                     "name": null,
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "text": "All praise the sun!",
                     "optionSettings": null
                 }
             },
             "linkedValues": [
                 {
-                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "source": 3
                 }
             ],
-            "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+            "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
             "settings": {
                 "defaultSaveOptionChoices": true
             },
@@ -7760,15 +8454,15 @@
                 "name": null,
                 "linkedValues": [
                     {
-                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                         "source": 3
                     }
                 ],
-                "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                 "conditions": [],
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
-                    "lookupValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "lookupValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "priority": {
                         "priorityTypeId": null,
                         "relativeOrder": null
@@ -7780,7 +8474,7 @@
             "id": "50c76b46-1ac7-4c30-962d-0164a1f65637",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-11T23:18:16.179Z",
-            "updatedAt": "2026-05-11T23:18:35.712Z"
+            "updatedAt": "2026-05-15T04:31:17.546Z"
         },
         "911d074c-e2e6-4fdc-933a-11f1cde605a0": {
             "_id": "6a0263ce13f8e0589f97bba4",
@@ -7800,22 +8494,22 @@
                     "name": null,
                     "linkedValues": [
                         {
-                            "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                            "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
                         }
                     ],
-                    "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "text": "Sun bless you",
                     "optionSettings": null
                 }
             },
             "linkedValues": [
                 {
-                    "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "source": 3
                 }
             ],
-            "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+            "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
             "settings": {
                 "defaultSaveOptionChoices": true
             },
@@ -7832,15 +8526,15 @@
                 "name": null,
                 "linkedValues": [
                     {
-                        "valueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                        "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                         "source": 3
                     }
                 ],
-                "primaryLinkedValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                 "conditions": [],
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
-                    "lookupValueId": "6ef339e8-7d1d-423c-8fde-ec02a570e307",
+                    "lookupValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                     "priority": {
                         "priorityTypeId": null,
                         "relativeOrder": null
@@ -7852,7 +8546,7 @@
             "id": "911d074c-e2e6-4fdc-933a-11f1cde605a0",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-11T23:18:38.306Z",
-            "updatedAt": "2026-05-11T23:18:52.044Z"
+            "updatedAt": "2026-05-15T04:31:32.259Z"
         }
     },
     "dialogueGroups": {
@@ -8054,6 +8748,28 @@
         }
     },
     "files": {
+        "615fb640-00f1-416b-af1b-be81a97efc44": {
+            "_id": "6a06494c074443a0ac1ecc82",
+            "id": "615fb640-00f1-416b-af1b-be81a97efc44",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "name": "Earth (day and night).png",
+            "fileType": "image",
+            "mimeType": "image/png",
+            "byteLength": 9239,
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/615fb640-00f1-416b-af1b-be81a97efc44/161fd3d5-0a7e-417b-a77f-6b08a6d26534-Earth-day-and-night-.png",
+            "storageETag": "\"ce2369e480fbd935792983e8a3fb852b\"",
+            "audioDurationSeconds": null,
+            "unityTextureSettings": {
+                "type": "texture-2d",
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "overridePaths": [],
+                "values": {}
+            },
+            "unityAudioClipSettings": null,
+            "createdAt": "2026-05-14T22:14:36.363Z",
+            "updatedAt": "2026-05-14T22:14:37.453Z"
+        },
         "65625941-be23-4913-8131-f383bf4ff690": {
             "_id": "6a04e8a3f95eb3976b8585c9",
             "id": "65625941-be23-4913-8131-f383bf4ff690",
@@ -8251,115 +8967,6 @@
             "unityAudioClipSettings": null,
             "createdAt": "2026-05-13T20:42:31.511Z",
             "updatedAt": "2026-05-13T21:01:41.918Z"
-        },
-        "e5453d3e-f999-411f-9a87-32563e124e02": {
-            "_id": "6a04dce8f95eb3976b8585b4",
-            "id": "e5453d3e-f999-411f-9a87-32563e124e02",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "status": "uploaded",
-            "name": "dirt-mulch-wet.png",
-            "fileType": "image",
-            "mimeType": "image/png",
-            "byteLength": 866,
-            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/e5453d3e-f999-411f-9a87-32563e124e02/214c19a2-7726-460a-9504-49e2e081dffa-dirt-mulch-wet.png",
-            "storageETag": "\"462c32b3b698e5270e82293d516a6dc6\"",
-            "audioDurationSeconds": null,
-            "unityTextureSettings": {
-                "type": "texture-2d",
-                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
-                "overridePaths": [],
-                "values": {}
-            },
-            "unityAudioClipSettings": null,
-            "createdAt": "2026-05-13T20:19:52.900Z",
-            "updatedAt": "2026-05-13T20:19:53.541Z"
-        },
-        "73bd63df-d741-4352-b6cf-7f6beb408090": {
-            "_id": "6a04dcadf95eb3976b8585b3",
-            "id": "73bd63df-d741-4352-b6cf-7f6beb408090",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "status": "uploaded",
-            "name": "garden.mulch.png",
-            "fileType": "image",
-            "mimeType": "image/png",
-            "byteLength": 272,
-            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/73bd63df-d741-4352-b6cf-7f6beb408090/2aef8cfb-106d-4b5f-a612-15405e118d5b-garden.mulch.png",
-            "storageETag": "\"4767a6d476bc58ad4c5b7404eb14a5b3\"",
-            "audioDurationSeconds": null,
-            "unityTextureSettings": {
-                "type": "texture-2d",
-                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
-                "overridePaths": [],
-                "values": {}
-            },
-            "unityAudioClipSettings": null,
-            "createdAt": "2026-05-13T20:18:53.205Z",
-            "updatedAt": "2026-05-13T20:18:53.704Z"
-        },
-        "586c5d4b-37db-43de-95f2-d2555408ff7c": {
-            "_id": "6a04dc0ef95eb3976b8585b2",
-            "id": "586c5d4b-37db-43de-95f2-d2555408ff7c",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "status": "uploaded",
-            "name": "crafting-bench.png",
-            "fileType": "image",
-            "mimeType": "image/png",
-            "byteLength": 378,
-            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/586c5d4b-37db-43de-95f2-d2555408ff7c/247b63a7-311d-42f8-bbdd-02dff30a684a-crafting-bench.png",
-            "storageETag": "\"514e503e0f244cce6267d410692cc914\"",
-            "audioDurationSeconds": null,
-            "unityTextureSettings": {
-                "type": "texture-2d",
-                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
-                "overridePaths": [],
-                "values": {}
-            },
-            "unityAudioClipSettings": null,
-            "createdAt": "2026-05-13T20:16:14.846Z",
-            "updatedAt": "2026-05-13T20:16:15.434Z"
-        },
-        "6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7": {
-            "_id": "6a04d962f95eb3976b8585b1",
-            "id": "6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "status": "uploaded",
-            "name": "heart-icon.png",
-            "fileType": "image",
-            "mimeType": "image/png",
-            "byteLength": 467,
-            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7/b91b468a-e338-4470-913e-32bb81da7af8-heart-icon.png",
-            "storageETag": "\"c8ad0e4a5fd0169f862fceeb568ccc5e\"",
-            "audioDurationSeconds": null,
-            "unityTextureSettings": {
-                "type": "texture-2d",
-                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
-                "overridePaths": [],
-                "values": {}
-            },
-            "unityAudioClipSettings": null,
-            "createdAt": "2026-05-13T20:04:50.040Z",
-            "updatedAt": "2026-05-13T20:04:50.679Z"
-        },
-        "df67835a-7dfd-4a06-8110-7e6d8b380f57": {
-            "_id": "6a03dcdcf95eb3976b858599",
-            "id": "df67835a-7dfd-4a06-8110-7e6d8b380f57",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "status": "uploaded",
-            "name": "seed.strawberry.png",
-            "fileType": "image",
-            "mimeType": "image/png",
-            "byteLength": 1335,
-            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/df67835a-7dfd-4a06-8110-7e6d8b380f57/4d106e4d-2e85-465d-8287-e6bc6abf0179-seed.strawberry.png",
-            "storageETag": "\"57fae186e7bc13fa990b529c0bc6a8f1\"",
-            "unityTextureSettings": {
-                "type": "texture-2d",
-                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
-                "overridePaths": [],
-                "values": {}
-            },
-            "unityAudioClipSettings": null,
-            "createdAt": "2026-05-13T02:07:24.398Z",
-            "updatedAt": "2026-05-13T02:56:40.126Z"
         }
     },
     "textureTemplates": {

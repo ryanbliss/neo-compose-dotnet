@@ -122,85 +122,68 @@ MonoBehaviour:
     sprites:
     - {fileID: 657575946, guid: a3c21cafe7a1f499788c94ebb04f8a79, type: 3}
     audioClip: {fileID: 0}
-  - fileId: e5453d3e-f999-411f-9a87-32563e124e02
-    fileName: dirt-mulch-wet.png
-    assetPath: Assets/Resources/Neo/Files/Sprites/e5453d3e-f999-411f-9a87-32563e124e02-dirt-mulch-wet.png
-    fileUpdatedAt: 2026-05-13T20:19:53.541Z
-    lastDownloadedAt: 2026-05-14T04:34:26.1911230Z
+  - fileId: 615fb640-00f1-416b-af1b-be81a97efc44
+    fileName: Earth (day and night).png
+    assetPath: Assets/Resources/Neo/Files/Sprites/615fb640-00f1-416b-af1b-be81a97efc44-Earth
+      (day and night).png
+    fileUpdatedAt: 2026-05-14T22:14:37.453Z
+    lastDownloadedAt: 2026-05-15T04:14:05.6721520Z
     templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
     templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.1911230Z
+    lastAppliedTemplateEditsAt: 2026-05-15T04:14:05.6721520Z
     importSettingsVersion: 2026-05-13.2
     sprites:
-    - {fileID: -1549404760, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: -377108238, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: -2056057170, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: 1470369995, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: 1299433741, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: 213994728, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: -2033399634, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: 739973960, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: -1784239205, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: -800633923, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: 272045676, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: 1258442405, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: 1514254563, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: -1574063211, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: -1105548831, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    - {fileID: -1664906274, guid: 7ed3224c4ee774ec6a8b0e3a5e82cd02, type: 3}
-    audioClip: {fileID: 0}
-  - fileId: 73bd63df-d741-4352-b6cf-7f6beb408090
-    fileName: garden.mulch.png
-    assetPath: Assets/Resources/Neo/Files/Sprites/73bd63df-d741-4352-b6cf-7f6beb408090-garden.mulch.png
-    fileUpdatedAt: 2026-05-13T20:18:53.704Z
-    lastDownloadedAt: 2026-05-14T04:34:26.3106200Z
-    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
-    templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.3106200Z
-    importSettingsVersion: 2026-05-13.2
-    sprites:
-    - {fileID: -177693339, guid: 131e561273ff54b36a164e2b404622fa, type: 3}
-    audioClip: {fileID: 0}
-  - fileId: 586c5d4b-37db-43de-95f2-d2555408ff7c
-    fileName: crafting-bench.png
-    assetPath: Assets/Resources/Neo/Files/Sprites/586c5d4b-37db-43de-95f2-d2555408ff7c-crafting-bench.png
-    fileUpdatedAt: 2026-05-13T20:16:15.434Z
-    lastDownloadedAt: 2026-05-14T04:34:26.4395120Z
-    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
-    templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.4395120Z
-    importSettingsVersion: 2026-05-13.2
-    sprites:
-    - {fileID: -1071130878, guid: 4a35849cc02094c0d9be259e3c2cdd2e, type: 3}
-    audioClip: {fileID: 0}
-  - fileId: 6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7
-    fileName: heart-icon.png
-    assetPath: Assets/Resources/Neo/Files/Sprites/6b1193f0-9f5b-4e49-a1fd-9ac83f9cdba7-heart-icon.png
-    fileUpdatedAt: 2026-05-13T20:04:50.679Z
-    lastDownloadedAt: 2026-05-14T04:34:26.5772480Z
-    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
-    templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.5772480Z
-    importSettingsVersion: 2026-05-13.2
-    sprites:
-    - {fileID: 1896547809, guid: e656c4e8cd46942dbb9e62ee30883577, type: 3}
-    - {fileID: 756174956, guid: e656c4e8cd46942dbb9e62ee30883577, type: 3}
-    - {fileID: -1514024533, guid: e656c4e8cd46942dbb9e62ee30883577, type: 3}
-    - {fileID: -1549275675, guid: e656c4e8cd46942dbb9e62ee30883577, type: 3}
-    audioClip: {fileID: 0}
-  - fileId: df67835a-7dfd-4a06-8110-7e6d8b380f57
-    fileName: seed.strawberry.png
-    assetPath: Assets/Resources/Neo/Files/Sprites/df67835a-7dfd-4a06-8110-7e6d8b380f57-seed.strawberry.png
-    fileUpdatedAt: 2026-05-13T02:56:40.126Z
-    lastDownloadedAt: 2026-05-14T04:34:26.6970430Z
-    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
-    templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T04:34:26.6970430Z
-    importSettingsVersion: 2026-05-13.2
-    sprites:
-    - {fileID: -596323854, guid: 131402448d9234c8986af4b2acdb2ec1, type: 3}
-    - {fileID: 797977208, guid: 131402448d9234c8986af4b2acdb2ec1, type: 3}
-    - {fileID: 1198258647, guid: 131402448d9234c8986af4b2acdb2ec1, type: 3}
-    - {fileID: -802335912, guid: 131402448d9234c8986af4b2acdb2ec1, type: 3}
-    - {fileID: 1563714362, guid: 131402448d9234c8986af4b2acdb2ec1, type: 3}
+    - {fileID: 1335620982, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 719119896, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1576012760, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 853552087, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1522408567, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -809620267, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -759331202, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -1861944795, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -112764469, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 828265412, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -1731199656, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 960529363, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 973550299, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1366874367, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1209042728, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 456911641, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -648099781, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -828790562, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1117647323, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1118424395, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 536389837, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 987162851, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -1348340918, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -793116888, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 2072784192, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1170652193, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1889852818, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 270801432, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -1636821425, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 205777278, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 714009530, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 287849290, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 358916381, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -1578035341, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1547284857, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 610520394, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1560318195, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1280672320, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -262946348, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1486502859, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -206131307, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 206655519, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -2055014658, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 580960021, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -2016477394, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1433069159, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 123800114, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 617566055, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -1598218137, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1921779662, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -888213619, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: 1844008586, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    - {fileID: -444460451, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
     audioClip: {fileID: 0}
