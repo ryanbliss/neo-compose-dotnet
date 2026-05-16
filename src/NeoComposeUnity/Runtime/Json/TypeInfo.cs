@@ -33,6 +33,18 @@ namespace NeoCompose.Runtime.Json
     public class PrimitiveTypeInfo : TypeInfo { }
 
     /// <summary>
+    /// Compile-time dynamic value. Used by generated bridge signatures when
+    /// the concrete type is intentionally not known ahead of time.
+    /// </summary>
+    public class UnknownTypeInfo : TypeInfo { }
+
+    /// <summary>
+    /// Function-return-only sentinel for native Function attributes that
+    /// return no value.
+    /// </summary>
+    public class VoidTypeInfo : TypeInfo { }
+
+    /// <summary>
     /// Custom type info. Carries the referenced custom-type id.
     /// Mirrors the TS-side <c>INSTypeInfoCustom</c>.
     /// </summary>
@@ -74,9 +86,55 @@ namespace NeoCompose.Runtime.Json
     {
         protected override Type? ResolveSubclass(JToken discriminator)
         {
+            if (discriminator.Type == JTokenType.String)
+            {
+                return discriminator.Value<string>() == "Unknown"
+                    ? typeof(UnknownTypeInfo)
+                    : null;
+            }
             // TS-side `AttributeType` is a numeric enum on the wire.
             // Newtonsoft surfaces the JSON number as a long; cast through
             // int to land on the enum value.
+            var value = (AttributeType)discriminator.Value<int>();
+            switch (value)
+            {
+                case AttributeType.Null:
+                case AttributeType.Bool:
+                case AttributeType.Int:
+                case AttributeType.Float:
+                case AttributeType.String:
+                case AttributeType.Sprite:
+                case AttributeType.Audio:
+                    return typeof(PrimitiveTypeInfo);
+                case AttributeType.Custom:
+                    return typeof(CustomTypeInfo);
+                case AttributeType.Enum:
+                    return typeof(EnumTypeInfo);
+                case AttributeType.List:
+                case AttributeType.Dictionary:
+                    return typeof(CollectionTypeInfo);
+                case AttributeType.Lookup:
+                    return typeof(LookupTypeInfo);
+                default:
+                    return null;
+            }
+        }
+    }
+
+    public class FunctionReturnTypeInfoConverter : DiscriminatedConverter<TypeInfo>
+    {
+        protected override Type? ResolveSubclass(JToken discriminator)
+        {
+            if (discriminator.Type == JTokenType.String)
+            {
+                switch (discriminator.Value<string>())
+                {
+                    case "Unknown": return typeof(UnknownTypeInfo);
+                    case "Void": return typeof(VoidTypeInfo);
+                    default: return null;
+                }
+            }
+
             var value = (AttributeType)discriminator.Value<int>();
             switch (value)
             {

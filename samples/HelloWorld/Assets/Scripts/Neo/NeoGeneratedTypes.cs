@@ -68,9 +68,28 @@ namespace HelloWorld.Assets.Scripts.Neo
                 DialogueReadOnlyValueFactories,
                 DialogueSavedValueFactories);
 
+        private static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
+            new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["e549555b-9276-48d8-be33-156972520d31"] = (client, receiver, args) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ReadOnlyOutpost>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueSavedValueFactories,
+                    "LogHelloWorld",
+                    "e549555b-9276-48d8-be33-156972520d31");
+                var prefix = (string)args[0]!;
+                var suffix = (string)args[1]!;
+                return target.LogHelloWorld(prefix, suffix);
+                },
+            };
+
         public HelloWorldNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             Client = client;
+            Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Instance = this;
             Assets = new ReadOnlyAssets(client, client.assets);
             Save = new Save(client, client.save);
@@ -2563,11 +2582,22 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
+    public interface IOutpostFunctionHandler
+    {
+        string LogHelloWorld(string prefix, string suffix);
+    }
+
     public partial class ReadOnlyOutpost : NeoGeneratedCustomValue
     {
         internal ReadOnlyOutpost(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "4c196697-4e08-4aeb-823f-322b353071ac")
         {
+        }
+
+        public IOutpostFunctionHandler? FunctionHandler
+        {
+            get => FunctionHandlerObject as IOutpostFunctionHandler;
+            set => FunctionHandlerObject = value;
         }
 
         internal static ReadOnlyOutpost Create(NeoClient client, NeoAttributeCustom node)
@@ -2638,6 +2668,17 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var resolved = node.Get<NeoAttributeSprite>("Image").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'Image' has no synchronized asset.");
             }
+        }
+
+        public string LogHelloWorld(string prefix, string suffix)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'LogHelloWorld' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.LogHelloWorld(prefix, suffix);
         }
 
         public sealed class Fields
@@ -2812,6 +2853,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(savedNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
             }
         }
+
 
         public new sealed class Fields
         {
@@ -3334,6 +3376,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+
         public JupiterMoon Moon
         {
             get
@@ -3613,6 +3656,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 NeoGeneratedTypesSupport.SetValue(savedNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
             }
         }
+
 
         public SaturnMoon Moon
         {

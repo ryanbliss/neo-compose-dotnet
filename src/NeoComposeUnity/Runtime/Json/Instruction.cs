@@ -93,6 +93,11 @@ namespace NeoCompose.Runtime.Json
         public Pointer[] args = null!;
     }
 
+    public class NativeCallInstruction : Instruction
+    {
+        public CallNativeFunctionPointer call = null!;
+    }
+
     public class InstructionConverter : DiscriminatedConverter<Instruction>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -105,6 +110,7 @@ namespace NeoCompose.Runtime.Json
                 case InstructionKind.Throw: return typeof(ThrowInstruction);
                 case InstructionKind.Assign: return typeof(AssignInstruction);
                 case InstructionKind.CollectionCall: return typeof(CollectionCallInstruction);
+                case InstructionKind.NativeCall: return typeof(NativeCallInstruction);
                 default: return null;
             }
         }

@@ -30,6 +30,8 @@ namespace NeoCompose.Runtime.Json
         public const string Coalesce = "coalesce";
         public const string ToBool = "toBool";
         public const string Stringify = "stringify";
+        public const string CallNativeFunction = "callNativeFunction";
+        public const string NativeFunctionErrorCheck = "nativeFunctionErrorCheck";
     }
 
     public static class InstructionKind
@@ -40,6 +42,7 @@ namespace NeoCompose.Runtime.Json
         public const string Throw = "throw";
         public const string Assign = "assign";
         public const string CollectionCall = "collectionCall";
+        public const string NativeCall = "nativeCall";
     }
 
     public static class OperationKind
@@ -100,6 +103,12 @@ namespace NeoCompose.Runtime.Json
         public const string Remove = "Remove";
         public const string RemoveAt = "RemoveAt";
         public const string Clear = "Clear";
+    }
+
+    public static class NativeFunctionErrorCheckKind
+    {
+        public const string Throws = "throws";
+        public const string DoesNotThrow = "doesNotThrow";
     }
 
     // -----------------------------------------------------------------------

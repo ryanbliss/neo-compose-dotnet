@@ -80,6 +80,9 @@ namespace NeoCompose.Runtime
                     case CollectionCallInstruction collectionCall:
                         ExecuteCollectionCall(client, collectionCall, scope, ctx);
                         break;
+                    case NativeCallInstruction nativeCall:
+                        Eval(nativeCall.call, scope, ctx);
+                        break;
                     default:
                         throw new NSGetterRuntimeError(
                             $"Unknown instruction kind {instruction.GetType().Name}");

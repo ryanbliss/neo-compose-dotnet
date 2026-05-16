@@ -24,5 +24,8 @@ namespace NeoCompose.Runtime.Json
         NSGetter = 10,
         Sprite = 11,
         Audio = 12,
+        Function = 13,
+        Unknown = -1,
+        Void = -2,
     }
 }

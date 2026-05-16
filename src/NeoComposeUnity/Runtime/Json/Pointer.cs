@@ -142,6 +142,20 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo sourceType = null!;
     }
 
+    public class CallNativeFunctionPointer : Pointer
+    {
+        public string attributeId = null!;
+        public Pointer thisPointer = null!;
+        public Pointer[] args = null!;
+        public bool? optional;
+    }
+
+    public class NativeFunctionErrorCheckPointer : Pointer
+    {
+        public CallNativeFunctionPointer call = null!;
+        public string mode = null!;
+    }
+
     public class PointerConverter : DiscriminatedConverter<Pointer>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -162,6 +176,8 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.Coalesce: return typeof(CoalescePointer);
                 case PointerKind.ToBool: return typeof(ToBoolPointer);
                 case PointerKind.Stringify: return typeof(StringifyPointer);
+                case PointerKind.CallNativeFunction: return typeof(CallNativeFunctionPointer);
+                case PointerKind.NativeFunctionErrorCheck: return typeof(NativeFunctionErrorCheckPointer);
                 default: return null;
             }
         }
