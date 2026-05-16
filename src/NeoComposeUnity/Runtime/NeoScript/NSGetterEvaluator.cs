@@ -301,6 +301,11 @@ namespace NeoCompose.Runtime.NeoScript
                         var msg = EvalPointer(throwInstr.pointer, scope, ctx);
                         throw new NSGetterRuntimeError(msg?.ToString() ?? "null");
                     }
+                    case NativeCallInstruction nativeCall:
+                    {
+                        EvalNativeFunctionCall(nativeCall.call, scope, ctx);
+                        break;
+                    }
                     default:
                         throw new NSGetterRuntimeError(
                             $"Unknown instruction kind {ins.GetType().Name}");
@@ -413,9 +418,47 @@ namespace NeoCompose.Runtime.NeoScript
                     var v = EvalPointer(sp.pointer, scope, ctx);
                     return FormatForInterp(v, sp.sourceType, ctx);
                 }
+                case CallNativeFunctionPointer cnfp:
+                    return EvalNativeFunctionCall(cnfp, scope, ctx);
+                case NativeFunctionErrorCheckPointer nfec:
+                    return EvalNativeFunctionErrorCheck(nfec, scope, ctx);
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown pointer kind {pointer.GetType().Name}");
+            }
+        }
+
+        private static object? EvalNativeFunctionCall(
+            CallNativeFunctionPointer pointer,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            var receiver = EvalPointer(pointer.thisPointer, scope, ctx);
+            if (pointer.optional == true && receiver is null)
+            {
+                return null;
+            }
+            var args = new object?[pointer.args.Length];
+            for (int i = 0; i < pointer.args.Length; i++)
+            {
+                args[i] = EvalPointer(pointer.args[i], scope, ctx);
+            }
+            return ctx.client.InvokeNativeFunction(pointer.attributeId, receiver, args);
+        }
+
+        private static bool EvalNativeFunctionErrorCheck(
+            NativeFunctionErrorCheckPointer pointer,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            try
+            {
+                EvalNativeFunctionCall(pointer.call, scope, ctx);
+                return pointer.mode == NativeFunctionErrorCheckKind.DoesNotThrow;
+            }
+            catch
+            {
+                return pointer.mode == NativeFunctionErrorCheckKind.Throws;
             }
         }
 

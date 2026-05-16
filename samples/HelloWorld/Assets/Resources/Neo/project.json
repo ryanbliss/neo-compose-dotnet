@@ -1131,7 +1131,7 @@
             "valueId": "0e0cdfcc-86c6-43a5-bcbd-aa8c325e1a25",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T18:23:43.619Z",
-            "updatedAt": "2026-05-15T04:34:22.019Z",
+            "updatedAt": "2026-05-15T22:47:31.982Z",
             "entryAttributeId": "9619809a-f7f0-4605-8f79-d1617b339819",
             "columnSettings": [
                 {
@@ -1173,6 +1173,13 @@
                     "attributeKey": "Save",
                     "width": 264,
                     "hidden": true,
+                    "frozen": false,
+                    "wrapContent": false
+                },
+                {
+                    "attributeKey": "LogHelloWorld",
+                    "width": 204,
+                    "hidden": false,
                     "frozen": false,
                     "wrapContent": false
                 }
@@ -2325,6 +2332,30 @@
                     "required": true
                 }
             }
+        },
+        "e549555b-9276-48d8-be33-156972520d31": {
+            "_id": "6a07a209ffde9aefe32d5869",
+            "id": "e549555b-9276-48d8-be33-156972520d31",
+            "name": "DebugLog",
+            "type": 13,
+            "locked": false,
+            "required": false,
+            "extendsAttributeId": null,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-15T22:45:29.039Z",
+            "updatedAt": "2026-05-16T07:25:38.065Z",
+            "returnTypeInfo": {
+                "type": 3,
+                "required": true
+            },
+            "argumentTypes": [
+                {
+                    "type": 3,
+                    "required": true,
+                    "name": "text"
+                }
+            ]
         }
     },
     "enums": {
@@ -2607,7 +2638,8 @@
                 "SaveUnsafe": "f66fba24-44d4-467c-98ac-4db1539910df",
                 "Save": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
                 "FullDisplayText": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
-                "Image": "7ce8a389-265c-4ad4-90f4-42c3e91e7648"
+                "Image": "7ce8a389-265c-4ad4-90f4-42c3e91e7648",
+                "DebugLog": "e549555b-9276-48d8-be33-156972520d31"
             },
             "extendsTypeId": null,
             "isAbstract": false,
@@ -2615,7 +2647,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-07T17:52:15.777Z",
-            "updatedAt": "2026-05-13T08:31:48.750Z"
+            "updatedAt": "2026-05-16T07:25:19.200Z"
         },
         "8ccfe860-309f-428b-b74c-76a873bdea8a": {
             "_id": "69fcd25321f8b0238d0f67ef",
@@ -4816,9 +4848,159 @@
                         }
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "As the OGs of the system, you probably won't want to leave Earth during your stay, but you're <i>mostly</i> welcome to leave whenever you want!",
+                    "text": "As the OGs of the system, you probably won't want to leave {{neo-var:42b42e00-9b9c-4456-8100-38a8f3cd03f1}} during your stay, but you're <i>mostly</i> welcome to leave whenever you want!",
                     "optionSettings": null,
-                    "toNodeId": "050f1583-b0fa-44a4-964b-74d2c267aad8"
+                    "toNodeId": "050f1583-b0fa-44a4-964b-74d2c267aad8",
+                    "variables": {
+                        "42b42e00-9b9c-4456-8100-38a8f3cd03f1": {
+                            "id": "42b42e00-9b9c-4456-8100-38a8f3cd03f1",
+                            "displayPath": "Outpost > Planet",
+                            "getter": {
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__root__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__root__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "typeInfo": {
+                                            "type": 7,
+                                            "required": true,
+                                            "typeId": "__dialogue_context__"
+                                        },
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "type": 7,
+                                                    "required": true,
+                                                    "typeId": "__dialogue_context__"
+                                                },
+                                                "value": null
+                                            }
+                                        }
+                                    }
+                                ],
+                                "instructions": [
+                                    {
+                                        "type": "return",
+                                        "pointer": {
+                                            "type": "operation",
+                                            "operation": {
+                                                "type": "arithmetic",
+                                                "arithmetic": {
+                                                    "type": "+",
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "type": "stringify",
+                                                            "pointer": {
+                                                                "type": "keyOf",
+                                                                "keyOf": {
+                                                                    "pointer": {
+                                                                        "type": "variable",
+                                                                        "variableId": "__this__"
+                                                                    },
+                                                                    "key": {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "type": 3,
+                                                                                "required": true
+                                                                            },
+                                                                            "value": "Planet"
+                                                                        }
+                                                                    }
+                                                                }
+                                                            },
+                                                            "sourceType": {
+                                                                "type": 8,
+                                                                "required": true,
+                                                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "type": 3,
+                                    "required": true
+                                }
+                            },
+                            "label": "Outpost > Planet",
+                            "pointer": {
+                                "type": "keyOf",
+                                "keyOf": {
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    },
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            },
+                                            "value": "Planet"
+                                        }
+                                    }
+                                }
+                            },
+                            "sourcePath": "this.Planet",
+                            "typeInfo": {
+                                "type": 8,
+                                "required": true,
+                                "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                            }
+                        }
+                    }
                 },
                 "050f1583-b0fa-44a4-964b-74d2c267aad8": {
                     "id": "050f1583-b0fa-44a4-964b-74d2c267aad8",
@@ -4850,9 +5032,159 @@
                             },
                             {
                                 "id": "1d446373-0dc1-4540-9405-ac2de3c8faa9",
-                                "text": "To visit Earth, of course! <i>(lie)</i>",
+                                "text": "To visit {{neo-var:b3f0cc89-3530-4d6b-9eb4-8cc18d229d84}}, of course! <i>(lie)</i>",
                                 "name": "Tourist",
-                                "toNodeId": "d8f50e6c-86a2-4b77-8309-7304355ce6bc"
+                                "toNodeId": "d8f50e6c-86a2-4b77-8309-7304355ce6bc",
+                                "variables": {
+                                    "b3f0cc89-3530-4d6b-9eb4-8cc18d229d84": {
+                                        "id": "b3f0cc89-3530-4d6b-9eb4-8cc18d229d84",
+                                        "displayPath": "Outpost > Planet",
+                                        "getter": {
+                                            "parameters": [
+                                                {
+                                                    "id": "__this__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "id": "__root__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "__root__"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "__root__"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "id": "__context__",
+                                                    "typeInfo": {
+                                                        "type": 7,
+                                                        "required": true,
+                                                        "typeId": "__dialogue_context__"
+                                                    },
+                                                    "pointer": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 7,
+                                                                "required": true,
+                                                                "typeId": "__dialogue_context__"
+                                                            },
+                                                            "value": null
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "instructions": [
+                                                {
+                                                    "type": "return",
+                                                    "pointer": {
+                                                        "type": "operation",
+                                                        "operation": {
+                                                            "type": "arithmetic",
+                                                            "arithmetic": {
+                                                                "type": "+",
+                                                                "pointers": [
+                                                                    {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "type": 3,
+                                                                                "required": true
+                                                                            },
+                                                                            "value": ""
+                                                                        }
+                                                                    },
+                                                                    {
+                                                                        "type": "stringify",
+                                                                        "pointer": {
+                                                                            "type": "keyOf",
+                                                                            "keyOf": {
+                                                                                "pointer": {
+                                                                                    "type": "variable",
+                                                                                    "variableId": "__this__"
+                                                                                },
+                                                                                "key": {
+                                                                                    "type": "value",
+                                                                                    "value": {
+                                                                                        "typeInfo": {
+                                                                                            "type": 3,
+                                                                                            "required": true
+                                                                                        },
+                                                                                        "value": "Planet"
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        },
+                                                                        "sourceType": {
+                                                                            "type": 8,
+                                                                            "required": true,
+                                                                            "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            ],
+                                            "typeInfo": {
+                                                "type": 3,
+                                                "required": true
+                                            }
+                                        },
+                                        "label": "Outpost > Planet",
+                                        "pointer": {
+                                            "type": "keyOf",
+                                            "keyOf": {
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                },
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "type": 3,
+                                                            "required": true
+                                                        },
+                                                        "value": "Planet"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "sourcePath": "this.Planet",
+                                        "typeInfo": {
+                                            "type": 8,
+                                            "required": true,
+                                            "enumId": "576de38f-6c77-440d-91b3-95a19aad5e23"
+                                        }
+                                    }
+                                }
                             }
                         ],
                         "saveChoice": null
@@ -6728,6 +7060,45 @@
                                     ]
                                 }
                             }
+                        },
+                        {
+                            "id": "0207d58c-639e-4634-932c-45e12dbe790e",
+                            "type": 0,
+                            "logic": {
+                                "type": 0,
+                                "action": {
+                                    "parameters": [],
+                                    "typeInfo": {
+                                        "type": 0,
+                                        "required": true
+                                    },
+                                    "instructions": [
+                                        {
+                                            "type": "nativeCall",
+                                            "call": {
+                                                "type": "callNativeFunction",
+                                                "attributeId": "e549555b-9276-48d8-be33-156972520d31",
+                                                "thisPointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                },
+                                                "args": [
+                                                    {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "type": 3,
+                                                                "required": true
+                                                            },
+                                                            "value": "Unlocked set to True"
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
                         }
                     ]
                 },
@@ -7645,7 +8016,7 @@
             "id": "3e842799-4859-4fbc-a317-8640bc6875e5",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T21:19:16.082Z",
-            "updatedAt": "2026-05-15T07:43:27.421Z"
+            "updatedAt": "2026-05-16T07:26:42.508Z"
         },
         "71478d85-4586-4ca8-8b95-226a391a9a5f": {
             "_id": "6a00216733f2641c2bfa810f",

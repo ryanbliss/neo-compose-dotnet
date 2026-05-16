@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using UnityEngine;
 
 namespace Assets.Scripts.Neo
 {
@@ -55,18 +56,24 @@ namespace Assets.Scripts.Neo
                 DialogueReadOnlyValueFactories,
                 DialogueSavedValueFactories);
 
+        private static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
+            new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+            };
+
         public TestProjectNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             Client = client;
+            Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Instance = this;
             Assets = new ReadOnlyRoot(client, client.assets);
             Save = new Root(client, client.save);
             Dialogues = new NeoDialogues(this, dialogueOptions);
         }
 
-        public static TestProjectNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null)
+        public static TestProjectNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null)
         {
-            var client = new NeoLoader().Load(projectJson, loadSave, handleSave);
+            var client = new NeoLoader().Load(projectJson, loadSave, handleSave, assetDatabase);
             return new TestProjectNeo(client, dialogueOptions);
         }
 
@@ -245,11 +252,14 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyHero Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyHero(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyHero(client, node),
+                };
+            });
         }
 
         public string? Name
@@ -346,11 +356,14 @@ namespace Assets.Scripts.Neo
 
         internal static Hero CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new Hero(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Hero(client, node),
+                };
+            });
         }
 
         public new string? Name
@@ -419,11 +432,14 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyRoot Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyRoot(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyRoot(client, node),
+                };
+            });
         }
 
         public NeoReadOnlyList<ReadOnlyHero> Heroes
@@ -438,7 +454,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Manifest").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("Manifest").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return (string)result.value!;
             }
@@ -553,11 +569,14 @@ namespace Assets.Scripts.Neo
 
         internal static Root CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new Root(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Root(client, node),
+                };
+            });
         }
 
         public new NeoList<Hero> Heroes
@@ -572,7 +591,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Manifest").Compute();
+                var result = node.Get<NeoAttributeNSGetter>("Manifest").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return (string)result.value!;
             }
@@ -650,13 +669,16 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyBase Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                "type-derived" => new ReadOnlyDerived(client, node),
-                "type-override" => new ReadOnlyOverride(client, node),
-                _ => new ReadOnlyBase(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-derived" => new ReadOnlyDerived(client, node),
+                    "type-override" => new ReadOnlyOverride(client, node),
+                    _ => new ReadOnlyBase(client, node),
+                };
+            });
         }
 
         public string? Name
@@ -730,13 +752,16 @@ namespace Assets.Scripts.Neo
 
         internal static Base CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                "type-derived" => new Derived(client, node),
-                "type-override" => new Override(client, node),
-                _ => new Base(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-derived" => new Derived(client, node),
+                    "type-override" => new Override(client, node),
+                    _ => new Base(client, node),
+                };
+            });
         }
 
         public new string? Name
@@ -790,11 +815,14 @@ namespace Assets.Scripts.Neo
 
         internal new static ReadOnlyDerived Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyDerived(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyDerived(client, node),
+                };
+            });
         }
 
         public int? Health
@@ -878,11 +906,14 @@ namespace Assets.Scripts.Neo
 
         internal new static Derived CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new Derived(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Derived(client, node),
+                };
+            });
         }
 
         public new string? Name
@@ -951,11 +982,14 @@ namespace Assets.Scripts.Neo
 
         internal new static ReadOnlyOverride Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyOverride(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyOverride(client, node),
+                };
+            });
         }
 
         public new string? Name
@@ -1027,11 +1061,14 @@ namespace Assets.Scripts.Neo
 
         internal new static Override CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new Override(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Override(client, node),
+                };
+            });
         }
 
         public new string? Name
@@ -1085,11 +1122,14 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyNeoChoiceLog Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyNeoChoiceLog(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyNeoChoiceLog(client, node),
+                };
+            });
         }
 
         public string ChoiceId
@@ -1160,11 +1200,14 @@ namespace Assets.Scripts.Neo
 
         internal static NeoChoiceLog CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new NeoChoiceLog(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoChoiceLog(client, node),
+                };
+            });
         }
 
         public new string ChoiceId
@@ -1218,11 +1261,14 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyNeoTextNodeMemory Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyNeoTextNodeMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyNeoTextNodeMemory(client, node),
+                };
+            });
         }
 
         public int VisitCount
@@ -1370,11 +1416,14 @@ namespace Assets.Scripts.Neo
 
         internal static NeoTextNodeMemory CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new NeoTextNodeMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoTextNodeMemory(client, node),
+                };
+            });
         }
 
         public new int VisitCount
@@ -1469,11 +1518,14 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyNeoDialogueMemory Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyNeoDialogueMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyNeoDialogueMemory(client, node),
+                };
+            });
         }
 
         public int VisitCount
@@ -1598,11 +1650,14 @@ namespace Assets.Scripts.Neo
 
         internal static NeoDialogueMemory CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new NeoDialogueMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoDialogueMemory(client, node),
+                };
+            });
         }
 
         public new int VisitCount
@@ -1682,11 +1737,14 @@ namespace Assets.Scripts.Neo
 
         internal static ReadOnlyNeoMemory Create(NeoClient client, NeoAttributeCustom node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new ReadOnlyNeoMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyNeoMemory(client, node),
+                };
+            });
         }
 
         public NeoReadOnlyDictionary<ReadOnlyNeoDialogueMemory> DialogueMemories
@@ -1765,11 +1823,14 @@ namespace Assets.Scripts.Neo
 
         internal static NeoMemory CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
         {
-            var clientTypeId = node.value?.typeId;
-            return clientTypeId switch
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
-                _ => new NeoMemory(client, node),
-            };
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoMemory(client, node),
+                };
+            });
         }
 
         public new NeoDictionary<NeoDialogueMemory> DialogueMemories

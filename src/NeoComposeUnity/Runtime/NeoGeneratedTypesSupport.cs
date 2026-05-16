@@ -84,16 +84,29 @@ namespace NeoCompose.Runtime
             string? typeId = ResolveCustomValueTypeId(client, valueId, value);
             if (string.IsNullOrEmpty(typeId)) return null;
 
-            var attribute = new CustomAttribute
+            CustomAttribute attribute;
+            if (TryInferAttributeForValueId(
+                    client,
+                    valueId,
+                    new HashSet<string>(),
+                    out Attribute? inferredAttribute)
+                && inferredAttribute is CustomAttribute inferredCustomAttribute)
             {
-                id = $"__neo_resolved_custom_{typeId}",
-                _id = $"__neo_resolved_custom_{typeId}",
-                name = "ResolvedCustomValue",
-                type = AttributeType.Custom,
-                customTypeId = typeId,
-                createdAt = value.createdAt,
-                updatedAt = value.updatedAt,
-            };
+                attribute = inferredCustomAttribute;
+            }
+            else
+            {
+                attribute = new CustomAttribute
+                {
+                    id = $"__neo_resolved_custom_{typeId}",
+                    _id = $"__neo_resolved_custom_{typeId}",
+                    name = "ResolvedCustomValue",
+                    type = AttributeType.Custom,
+                    customTypeId = typeId,
+                    createdAt = value.createdAt,
+                    updatedAt = value.updatedAt,
+                };
+            }
 
             if (client.saveValues.ContainsKey(valueId)
                 && savedFactories.TryGetValue(typeId, out var savedFactory))
@@ -111,6 +124,63 @@ namespace NeoCompose.Runtime
             }
 
             return null;
+        }
+
+        public static T ResolveNativeFunctionReceiver<T>(
+            NeoClient client,
+            object? receiver,
+            IReadOnlyDictionary<string, ReadOnlyCustomFactory> readOnlyFactories,
+            IReadOnlyDictionary<string, SavedCustomFactory> savedFactories,
+            string functionName,
+            string attributeId)
+            where T : class
+        {
+            if (receiver is T typed) return typed;
+            string? valueId = ValueId(receiver);
+            if (!string.IsNullOrEmpty(valueId))
+            {
+                var resolved = ResolveCustomValue(
+                    client,
+                    valueId!,
+                    readOnlyFactories,
+                    savedFactories);
+                if (resolved is T resolvedTyped) return resolvedTyped;
+            }
+            throw new NeoScript.NSGetterRuntimeError(
+                $"Cannot invoke Function '{functionName}' ({attributeId}) because receiver type '{receiver?.GetType().Name ?? "null"}' is not supported.");
+        }
+
+        public static T? ResolveNativeFunctionCustomArgument<T>(
+            NeoClient client,
+            object? value,
+            bool required,
+            IReadOnlyDictionary<string, ReadOnlyCustomFactory> readOnlyFactories,
+            IReadOnlyDictionary<string, SavedCustomFactory> savedFactories,
+            string argumentName)
+            where T : class
+        {
+            if (value is null)
+            {
+                if (required)
+                {
+                    throw new NeoScript.NSGetterRuntimeError(
+                        $"Native Function argument '{argumentName}' is required.");
+                }
+                return null;
+            }
+            if (value is T typed) return typed;
+            string? valueId = ValueId(value);
+            if (!string.IsNullOrEmpty(valueId))
+            {
+                var resolved = ResolveCustomValue(
+                    client,
+                    valueId!,
+                    readOnlyFactories,
+                    savedFactories);
+                if (resolved is T resolvedTyped) return resolvedTyped;
+            }
+            throw new NeoScript.NSGetterRuntimeError(
+                $"Native Function argument '{argumentName}' could not be converted to {typeof(T).Name}.");
         }
 
         private static string? ResolveCustomValueTypeId(

@@ -18,6 +18,10 @@ namespace NeoCompose.Runtime
     {
         public delegate string LoadSave();
         public delegate void HandleSave(string content);
+        public delegate object? NeoNativeFunctionInvoker(
+            NeoClient client,
+            object? receiver,
+            object?[] args);
         public NeoAttributeCustom assets { get; protected set; }
         public NeoAttributeCustomSaved save { get; protected set; }
 
@@ -82,6 +86,7 @@ namespace NeoCompose.Runtime
         protected LoadSave loadSave;
         protected HandleSave handleSave;
         internal NeoAssetDatabase? assetDatabase;
+        private IReadOnlyDictionary<string, NeoNativeFunctionInvoker>? nativeFunctionInvokers;
 
         public NeoClient(
             ProjectData data,
@@ -561,6 +566,30 @@ namespace NeoCompose.Runtime
             {
                 generatedValuesInternal.Remove(key);
             }
+        }
+
+        public void RegisterNativeFunctionInvokers(
+            IReadOnlyDictionary<string, NeoNativeFunctionInvoker> invokers)
+        {
+            nativeFunctionInvokers = invokers;
+        }
+
+        internal object? InvokeNativeFunction(
+            string attributeId,
+            object? receiver,
+            object?[] args)
+        {
+            if (nativeFunctionInvokers is null)
+            {
+                throw new NeoScript.NSGetterRuntimeError(
+                    "Native Function invocation requires constructing the generated ProjectNeo client wrapper before evaluating NeoScript.");
+            }
+            if (!nativeFunctionInvokers.TryGetValue(attributeId, out var invoker))
+            {
+                throw new NeoScript.NSGetterRuntimeError(
+                    $"No native Function invoker is registered for attribute '{attributeId}'.");
+            }
+            return invoker(this, receiver, args);
         }
 
         /// <summary>

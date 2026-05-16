@@ -10,6 +10,7 @@ using NUnit.Framework;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Tests
@@ -56,6 +57,272 @@ namespace NeoCompose.Tests
                 throw new System.InvalidOperationException("unreachable");
             }
             return attr;
+        }
+
+        [Test]
+        public void Json_FunctionAttributeAndNativeCallIR_Deserializes()
+        {
+            var attribute = JsonConvert.DeserializeObject<Attribute>(
+                @"{
+                    ""id"": ""attr-fn"",
+                    ""_id"": ""attr-fn"",
+                    ""projectId"": ""test-project"",
+                    ""name"": ""BeginAnimation"",
+                    ""type"": 13,
+                    ""locked"": false,
+                    ""required"": false,
+                    ""createdAt"": ""2024-01-01T00:00:00.000Z"",
+                    ""updatedAt"": ""2024-01-01T00:00:00.000Z"",
+                    ""returnTypeInfo"": { ""type"": ""Void"", ""required"": true },
+                    ""argumentTypes"": [
+                        { ""name"": ""animationName"", ""type"": 3, ""required"": true }
+                    ]
+                }");
+
+            Assert.IsInstanceOf<FunctionAttribute>(attribute);
+            var function = (FunctionAttribute)attribute!;
+            Assert.IsInstanceOf<VoidTypeInfo>(function.returnTypeInfo);
+            Assert.AreEqual(AttributeType.Void, function.returnTypeInfo.type);
+            Assert.AreEqual("animationName", function.argumentTypes[0].name);
+            Assert.AreEqual(AttributeType.String, function.argumentTypes[0].type);
+
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<TypeInfo>(
+                    @"{ ""type"": ""Void"", ""required"": true }"));
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<FunctionArgumentTypeInfo>(
+                    @"{ ""name"": ""bad"", ""type"": ""Void"", ""required"": true }"));
+
+            var instruction = JsonConvert.DeserializeObject<Instruction>(
+                @"{
+                    ""type"": ""nativeCall"",
+                    ""call"": {
+                        ""type"": ""callNativeFunction"",
+                        ""attributeId"": ""attr-fn"",
+                        ""thisPointer"": {
+                            ""type"": ""value"",
+                            ""value"": {
+                                ""typeInfo"": { ""type"": 3, ""required"": true },
+                                ""value"": ""receiver""
+                            }
+                        },
+                        ""args"": []
+                    }
+                }");
+
+            Assert.IsInstanceOf<NativeCallInstruction>(instruction);
+            Assert.IsInstanceOf<CallNativeFunctionPointer>(
+                ((NativeCallInstruction)instruction!).call);
+        }
+
+        [Test]
+        public void Evaluate_CallNativeFunction_InvokesRegisteredBridge()
+        {
+            var client = LoadClient();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["attr-native"] = (_, receiver, args) => $"{receiver}:{args[0]}",
+            });
+            var getter = new FunctionWithReturnType
+            {
+                parameters = new Variable[0],
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = AttributeType.String,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new CallNativeFunctionPointer
+                        {
+                            type = PointerKind.CallNativeFunction,
+                            attributeId = "attr-native",
+                            thisPointer = StringValuePointer("receiver"),
+                            args = new Pointer[] { StringValuePointer("hello") },
+                        },
+                    },
+                },
+            };
+
+            var result = NSGetterEvaluator.Evaluate(
+                getter,
+                new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.AreEqual("receiver:hello", result);
+        }
+
+        [Test]
+        public void Evaluate_CallNativeFunction_ResolvesGeneratedWrapperAndUsesCachedHandler()
+        {
+            var client = LoadNativeFunctionClient(out CustomAttribute receiverAttribute);
+            var readOnlyFactories =
+                new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+                {
+                    ["type-native-receiver"] = (factoryClient, node) =>
+                        FunctionTestValue.Create(factoryClient, node),
+                };
+            var savedFactories =
+                new Dictionary<string, NeoGeneratedTypesSupport.SavedCustomFactory>();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["attr-native-ping"] = (invokeClient, receiver, args) =>
+                {
+                    var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<FunctionTestValue>(
+                        invokeClient,
+                        receiver,
+                        readOnlyFactories,
+                        savedFactories,
+                        "Ping",
+                        "attr-native-ping");
+                    return target.Ping((string)args[0]!);
+                },
+            });
+            var node = (NeoAttributeCustom)NeoAttribute.Create(
+                client,
+                receiverAttribute,
+                "v-native-receiver");
+            var wrapper = FunctionTestValue.Create(client, node);
+            var handler = new TestFunctionHandler();
+            wrapper.FunctionHandler = handler;
+            var getter = new FunctionWithReturnType
+            {
+                parameters = new Variable[0],
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = AttributeType.String,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new CallNativeFunctionPointer
+                        {
+                            type = PointerKind.CallNativeFunction,
+                            attributeId = "attr-native-ping",
+                            thisPointer = new ReferencePointer
+                            {
+                                type = PointerKind.Reference,
+                                valueId = "v-native-receiver",
+                            },
+                            args = new Pointer[] { StringValuePointer("hello") },
+                        },
+                    },
+                },
+            };
+
+            var result = NSGetterEvaluator.Evaluate(
+                getter,
+                new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.AreEqual("handled:hello", result);
+            Assert.AreSame(
+                wrapper,
+                FunctionTestValue.Create(client, node),
+                "Generated wrapper cache should preserve the assigned FunctionHandler.");
+            Assert.AreEqual(1, handler.CallCount);
+        }
+
+        [Test]
+        public void Evaluate_NativeFunctionErrorCheck_HandlesSuccessAndThrow()
+        {
+            var client = LoadClient();
+            client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+            {
+                ["attr-ok"] = (_, _, _) => null,
+                ["attr-throws"] = (_, _, _) => throw new NeoFunctionHandlerMissingException("missing handler"),
+            });
+            var getter = new FunctionWithReturnType
+            {
+                parameters = new Variable[0],
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = AttributeType.Bool,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new NativeFunctionErrorCheckPointer
+                        {
+                            type = PointerKind.NativeFunctionErrorCheck,
+                            mode = NativeFunctionErrorCheckKind.Throws,
+                            call = new CallNativeFunctionPointer
+                            {
+                                type = PointerKind.CallNativeFunction,
+                                attributeId = "attr-throws",
+                                thisPointer = StringValuePointer("receiver"),
+                                args = new Pointer[0],
+                            },
+                        },
+                    },
+                },
+            };
+
+            var result = NSGetterEvaluator.Evaluate(
+                getter,
+                new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.AreEqual(true, result);
+        }
+
+        [Test]
+        public void Evaluate_CallNativeFunction_WithoutGeneratedWrapperThrowsClearError()
+        {
+            var client = LoadClient();
+            var getter = new FunctionWithReturnType
+            {
+                parameters = new Variable[0],
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = AttributeType.Null,
+                    required = false,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new CallNativeFunctionPointer
+                        {
+                            type = PointerKind.CallNativeFunction,
+                            attributeId = "attr-native",
+                            thisPointer = StringValuePointer("receiver"),
+                            args = new Pointer[0],
+                        },
+                    },
+                },
+            };
+
+            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.Evaluate(
+                    getter,
+                    new NSGetterEvaluator.Context(client, null, null)));
+
+            StringAssert.Contains("generated ProjectNeo client wrapper", error!.Message);
+        }
+
+        private static ValuePointer StringValuePointer(string value)
+        {
+            return new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = AttributeType.String,
+                        required = true,
+                    },
+                    value = JToken.FromObject(value),
+                },
+            };
         }
 
         // ---------------------------------------------------------------
@@ -676,6 +943,96 @@ namespace NeoCompose.Tests
                     rootValue: null));
         }
 
+        private static NeoClient LoadNativeFunctionClient(
+            out CustomAttribute receiverAttribute)
+        {
+            var functionAttribute = new FunctionAttribute
+            {
+                id = "attr-native-ping",
+                _id = "attr-native-ping",
+                projectId = "project-native-function",
+                name = "Ping",
+                type = AttributeType.Function,
+                returnTypeInfo = new PrimitiveTypeInfo
+                {
+                    type = AttributeType.String,
+                    required = true,
+                },
+                argumentTypes = new FunctionArgumentTypeInfo[]
+                {
+                    new FunctionArgumentTypeInfo
+                    {
+                        name = "message",
+                        type = AttributeType.String,
+                        required = true,
+                    },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            receiverAttribute = CustomAttribute(
+                "attr-native-receiver",
+                "NativeReceiver",
+                "type-native-receiver");
+            receiverAttribute.valueId = "v-native-receiver";
+            var rootAttribute = CustomAttribute(
+                "attr-native-root",
+                "Root",
+                "type-native-root");
+            var rootSaveAttribute = CustomAttribute(
+                "attr-native-save",
+                "Save",
+                "type-native-root");
+            var receiverType = CustomType(
+                "type-native-receiver",
+                "NativeReceiver",
+                new Dictionary<string, string>
+                {
+                    ["Ping"] = functionAttribute.id,
+                });
+            var rootType = CustomType(
+                "type-native-root",
+                "NativeRoot",
+                new Dictionary<string, string>());
+            var data = new ProjectData
+            {
+                project = new Project
+                {
+                    id = "project-native-function",
+                    _id = "project-native-function",
+                    name = "Native Function",
+                    rootAssetsAttributeId = rootAttribute.id,
+                    rootSaveFileAttributeId = rootSaveAttribute.id,
+                    createdAt = "x",
+                    updatedAt = "x",
+                },
+                attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
+                {
+                    [functionAttribute.id] = functionAttribute,
+                    [receiverAttribute.id] = receiverAttribute,
+                    [rootAttribute.id] = rootAttribute,
+                    [rootSaveAttribute.id] = rootSaveAttribute,
+                },
+                values = new Dictionary<string, AttributeValue>
+                {
+                    ["v-native-root"] = ObjectValue(
+                        "v-native-root",
+                        rootType.id,
+                        new Dictionary<string, string>()),
+                    ["v-native-receiver"] = ObjectValue(
+                        "v-native-receiver",
+                        receiverType.id,
+                        new Dictionary<string, string>()),
+                },
+                types = new Dictionary<string, CustomType>
+                {
+                    [rootType.id] = rootType,
+                    [receiverType.id] = receiverType,
+                },
+            };
+            return new NeoClient(data, () => "", _ => { });
+        }
+
         private static NeoClient LoadGeneratedValueSurfaceClient(
             out CustomAttribute testAttribute,
             out ObjectAttributeValue readOnlyRow,
@@ -1173,6 +1530,56 @@ namespace NeoCompose.Tests
             public TestGeneratedValue(NeoClient client, NeoAttributeCustomSaved node)
                 : base(client, node, "type-test")
             {
+            }
+        }
+
+        private interface IFunctionTestValueFunctionHandler
+        {
+            string Ping(string message);
+        }
+
+        private sealed class TestFunctionHandler : IFunctionTestValueFunctionHandler
+        {
+            public int CallCount { get; private set; }
+
+            public string Ping(string message)
+            {
+                CallCount += 1;
+                return $"handled:{message}";
+            }
+        }
+
+        private sealed class FunctionTestValue : NeoGeneratedCustomValue
+        {
+            private FunctionTestValue(NeoClient client, NeoAttributeCustom node)
+                : base(client, node, "type-native-receiver")
+            {
+            }
+
+            public IFunctionTestValueFunctionHandler? FunctionHandler
+            {
+                get => FunctionHandlerObject as IFunctionTestValueFunctionHandler;
+                set => FunctionHandlerObject = value;
+            }
+
+            public static FunctionTestValue Create(
+                NeoClient client,
+                NeoAttributeCustom node)
+            {
+                return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(
+                    client,
+                    node,
+                    () => new FunctionTestValue(client, node));
+            }
+
+            public string Ping(string message)
+            {
+                if (FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke Function 'Ping' on FunctionTestValue because FunctionHandler is not set.");
+                }
+                return FunctionHandler.Ping(message);
             }
         }
 

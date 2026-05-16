@@ -173,6 +173,92 @@ namespace NeoCompose.Runtime.Json
         public FunctionWithReturnType getter = null!;
     }
 
+    [JsonConverter(typeof(FunctionArgumentTypeInfoConverter))]
+    public class FunctionArgumentTypeInfo : TypeInfo
+    {
+        public string name = null!;
+        public string? typeId;
+        public string? enumId;
+        public TypeInfo? entryTypeInfo;
+        public string? collectionAttributeId;
+        public string? collectionValueId;
+    }
+
+    public class FunctionArgumentTypeInfoConverter : JsonConverter
+    {
+        public override bool CanWrite => false;
+
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(FunctionArgumentTypeInfo);
+        }
+
+        public override object ReadJson(
+            JsonReader reader,
+            Type objectType,
+            object? existingValue,
+            JsonSerializer serializer)
+        {
+            var json = JObject.Load(reader);
+            var typeToken = json["type"] ?? throw new JsonSerializationException(
+                "Function argument type info is missing 'type'.");
+            var type = ReadArgumentType(typeToken);
+            if (type == AttributeType.Function
+                || type == AttributeType.Unknown
+                || type == AttributeType.Void)
+            {
+                throw new JsonSerializationException(
+                    $"Type '{typeToken}' is not valid for a Function argument.");
+            }
+
+            return new FunctionArgumentTypeInfo
+            {
+                name = json.Value<string>("name") ?? throw new JsonSerializationException(
+                    "Function argument type info is missing 'name'."),
+                type = type,
+                required = json.Value<bool?>("required") ?? false,
+                typeId = json.Value<string>("typeId"),
+                enumId = json.Value<string>("enumId"),
+                entryTypeInfo = json["entryTypeInfo"]?.ToObject<TypeInfo>(serializer),
+                collectionAttributeId = json.Value<string>("collectionAttributeId"),
+                collectionValueId = json.Value<string>("collectionValueId"),
+            };
+        }
+
+        public override void WriteJson(
+            JsonWriter writer,
+            object? value,
+            JsonSerializer serializer)
+        {
+            throw new NotSupportedException();
+        }
+
+        private static AttributeType ReadArgumentType(JToken typeToken)
+        {
+            if (typeToken.Type == JTokenType.String)
+            {
+                return typeToken.Value<string>() switch
+                {
+                    "Unknown" => AttributeType.Unknown,
+                    "Void" => AttributeType.Void,
+                    string value => throw new JsonSerializationException(
+                        $"Unknown Function argument type '{value}'."),
+                    _ => throw new JsonSerializationException(
+                        "Function argument type is invalid."),
+                };
+            }
+            return (AttributeType)typeToken.Value<int>();
+        }
+    }
+
+    /// <summary>Mirror of TS-side <c>TAttributeFunction</c>.</summary>
+    public class FunctionAttribute : Attribute<object?>
+    {
+        [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
+        public TypeInfo returnTypeInfo = null!;
+        public FunctionArgumentTypeInfo[] argumentTypes = null!;
+    }
+
     /// <summary>
     /// File reference payload shared by file-backed attributes.
     /// </summary>
@@ -226,6 +312,7 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.NSGetter: return typeof(NSGetterAttribute);
                 case AttributeType.Sprite: return typeof(SpriteAttribute);
                 case AttributeType.Audio: return typeof(AudioAttribute);
+                case AttributeType.Function: return typeof(FunctionAttribute);
                 default: return null;
             }
         }

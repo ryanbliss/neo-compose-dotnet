@@ -15,6 +15,7 @@ namespace NeoCompose.Runtime
         private readonly string fallbackTypeId;
         private bool isDisposed;
         private readonly List<IDisposable> subscriptions = new();
+        protected object? FunctionHandlerObject { get; set; }
 
         public string? valueId => node.overrideValueId ?? node.value?.id;
 

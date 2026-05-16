@@ -133,6 +133,7 @@ namespace NeoCompose.Runtime
                 EnumAttribute e => new NeoAttributeEnum(client, e, overrideValueId),
                 LookupAttribute lk => new NeoAttributeLookup(client, lk, overrideValueId),
                 NSGetterAttribute ng => new NeoAttributeNSGetter(client, ng, overrideValueId),
+                FunctionAttribute fn => new NeoAttributeFunction(client, fn, overrideValueId),
                 SpriteAttribute sp => new NeoAttributeSprite(client, sp, overrideValueId),
                 AudioAttribute au => new NeoAttributeAudio(client, au, overrideValueId),
                 _ => throw new System.ArgumentException(
@@ -175,6 +176,7 @@ namespace NeoCompose.Runtime
                 EnumAttribute e => new NeoAttributeEnumSaved(client, e, overrideValueId),
                 LookupAttribute lk => new NeoAttributeLookupSaved(client, lk, overrideValueId),
                 NSGetterAttribute ng => new NeoAttributeNSGetter(client, ng, overrideValueId),
+                FunctionAttribute fn => new NeoAttributeFunction(client, fn, overrideValueId),
                 SpriteAttribute sp => new NeoAttributeSpriteSaved(client, sp, overrideValueId),
                 AudioAttribute au => new NeoAttributeAudioSaved(client, au, overrideValueId),
                 _ => throw new System.ArgumentException(
@@ -197,10 +199,30 @@ namespace NeoCompose.Runtime
                 EnumAttribute => existing is NeoAttributeEnumSaved,
                 LookupAttribute => existing is NeoAttributeLookupSaved,
                 NSGetterAttribute => existing is NeoAttributeNSGetter,
+                FunctionAttribute => existing is NeoAttributeFunction,
                 SpriteAttribute => existing is NeoAttributeSpriteSaved,
                 AudioAttribute => existing is NeoAttributeAudioSaved,
                 _ => false,
             };
+        }
+    }
+
+    /// <summary>
+    /// Read-only marker node for native Function attributes. Function
+    /// attributes describe callable schema members and intentionally have no
+    /// backing value row.
+    /// </summary>
+    public sealed class NeoAttributeFunction : NeoAttribute
+    {
+        public new FunctionAttribute attribute => (FunctionAttribute)base.attribute;
+
+        public NeoAttributeFunction(
+            NeoClient client,
+            FunctionAttribute attribute,
+            string? overrideValueId)
+            : base(client, attribute, overrideValueId)
+        {
+            client.RegisterNode(this);
         }
     }
 
