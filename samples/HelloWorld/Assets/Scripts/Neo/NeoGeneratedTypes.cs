@@ -78,11 +78,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     receiver,
                     DialogueReadOnlyValueFactories,
                     DialogueSavedValueFactories,
-                    "LogHelloWorld",
+                    "DebugLog",
                     "e549555b-9276-48d8-be33-156972520d31");
-                var prefix = (string)args[0]!;
-                var suffix = (string)args[1]!;
-                return target.LogHelloWorld(prefix, suffix);
+                var text = (string)args[0]!;
+                return target.DebugLog(text);
                 },
             };
 
@@ -2584,7 +2583,7 @@ namespace HelloWorld.Assets.Scripts.Neo
     }
     public interface IOutpostFunctionHandler
     {
-        string LogHelloWorld(string prefix, string suffix);
+        string DebugLog(string text);
     }
 
     public partial class ReadOnlyOutpost : NeoGeneratedCustomValue
@@ -2670,15 +2669,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string LogHelloWorld(string prefix, string suffix)
+        public string DebugLog(string text)
         {
             if (FunctionHandler is null)
             {
                 var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
                 throw new NeoFunctionHandlerMissingException(
-                    $"Cannot invoke Function 'LogHelloWorld' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+                    $"Cannot invoke Function 'DebugLog' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
             }
-            return FunctionHandler.LogHelloWorld(prefix, suffix);
+            return FunctionHandler.DebugLog(text);
         }
 
         public sealed class Fields

@@ -28,9 +28,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.Outpost = Outpost;
         }
 
-        public string LogHelloWorld(string prefix, string suffix)
+        public string DebugLog(string text)
         {
-            string log = $"{prefix} {Outpost.Planet}{suffix}";
+            string log = $"<color=green>{Outpost.Name}:</color> {text}";
             Debug.Log(log);
             return log;
         }

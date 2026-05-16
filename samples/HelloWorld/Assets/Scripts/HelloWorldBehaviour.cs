@@ -125,7 +125,6 @@ namespace HelloWorld.Assets.Scripts
         public void OnDialogueFinish()
         {
             CurrentOutpost.Save.VisitCount += 1;
-            Debug.Log($"Inventory {neo.Save.Inventory.Ids.Count}");
             ClearDialogue();
             UpdateUI();
         }
@@ -176,26 +175,23 @@ namespace HelloWorld.Assets.Scripts
 
         private void ClearDialogue()
         {
-            if (activeDialogue != null)
-            {
-                activeDialogue.Dispose();
-                activeDialogue = null;
-            }
+            activeDialogue?.Dispose();
+            activeDialogue = null;
 
             DialogueUI?.Reset();
         }
 
         private void PrepareUI()
         {
-            if (CoreUI == null) CoreUI = new();
-            if (DialogueUI == null) DialogueUI = new();
+            CoreUI ??= new();
+            DialogueUI ??= new();
         }
 
         private static string SpeakerLabel(NeoDialogueTextNode node)
         {
             if (node.Primary is ReadOnlyOutpost outpost)
             {
-                return $"{outpost.FullDisplayText}";
+                return outpost.FullDisplayText;
             }
             return "Dialogue";
         }
@@ -203,16 +199,7 @@ namespace HelloWorld.Assets.Scripts
         private static Sprite SpeakerImage(NeoDialogueTextNode node)
         {
             if (node.Primary is not ReadOnlyOutpost outpost) return null;
-
-            try
-            {
-                return outpost.Image;
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning($"Could not resolve dialogue speaker image for '{outpost.FullDisplayText}': {exception.Message}");
-                return null;
-            }
+            return outpost.Image;
         }
 
         // ──────────────────────────────────────────────

@@ -2336,7 +2336,7 @@
         "e549555b-9276-48d8-be33-156972520d31": {
             "_id": "6a07a209ffde9aefe32d5869",
             "id": "e549555b-9276-48d8-be33-156972520d31",
-            "name": "LogHelloWorld",
+            "name": "DebugLog",
             "type": 13,
             "locked": false,
             "required": false,
@@ -2344,7 +2344,7 @@
             "system": null,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-15T22:45:29.039Z",
-            "updatedAt": "2026-05-15T22:55:01.667Z",
+            "updatedAt": "2026-05-16T07:25:38.065Z",
             "returnTypeInfo": {
                 "type": 3,
                 "required": true
@@ -2353,12 +2353,7 @@
                 {
                     "type": 3,
                     "required": true,
-                    "name": "prefix"
-                },
-                {
-                    "type": 3,
-                    "required": true,
-                    "name": "suffix"
+                    "name": "text"
                 }
             ]
         }
@@ -2644,7 +2639,7 @@
                 "Save": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
                 "FullDisplayText": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
                 "Image": "7ce8a389-265c-4ad4-90f4-42c3e91e7648",
-                "LogHelloWorld": "e549555b-9276-48d8-be33-156972520d31"
+                "DebugLog": "e549555b-9276-48d8-be33-156972520d31"
             },
             "extendsTypeId": null,
             "isAbstract": false,
@@ -2652,7 +2647,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-07T17:52:15.777Z",
-            "updatedAt": "2026-05-15T22:45:29.255Z"
+            "updatedAt": "2026-05-16T07:25:19.200Z"
         },
         "8ccfe860-309f-428b-b74c-76a873bdea8a": {
             "_id": "69fcd25321f8b0238d0f67ef",
@@ -7067,7 +7062,7 @@
                             }
                         },
                         {
-                            "id": "02d724bd-0889-437f-911f-1744c59506df",
+                            "id": "0207d58c-639e-4634-932c-45e12dbe790e",
                             "type": 0,
                             "logic": {
                                 "type": 0,
@@ -7095,17 +7090,7 @@
                                                                 "type": 3,
                                                                 "required": true
                                                             },
-                                                            "value": "Hello"
-                                                        }
-                                                    },
-                                                    {
-                                                        "type": "value",
-                                                        "value": {
-                                                            "typeInfo": {
-                                                                "type": 3,
-                                                                "required": true
-                                                            },
-                                                            "value": "!"
+                                                            "value": "Unlocked set to True"
                                                         }
                                                     }
                                                 ]
@@ -8031,7 +8016,7 @@
             "id": "3e842799-4859-4fbc-a317-8640bc6875e5",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T21:19:16.082Z",
-            "updatedAt": "2026-05-15T22:59:53.668Z"
+            "updatedAt": "2026-05-16T07:26:42.508Z"
         },
         "71478d85-4586-4ca8-8b95-226a391a9a5f": {
             "_id": "6a00216733f2641c2bfa810f",
