@@ -17,7 +17,7 @@ namespace HelloWorld.Assets.Scripts
     public class HelloWorldBehaviour : MonoBehaviour
     {
         protected HelloWorldNeo neo;
-        private HelloWorldUi CoreUI;
+        private CoreUI CoreUI;
         private DialogueUI DialogueUI;
         private NeoDialogue activeDialogue;
         private IDisposable bitsSubscription;

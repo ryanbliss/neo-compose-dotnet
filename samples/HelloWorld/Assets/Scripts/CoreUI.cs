@@ -15,7 +15,7 @@ namespace HelloWorld.Assets.Scripts
     /// Camera-backed Unity UI for the HelloWorld sample. Keeps layout and
     /// presentation separate from the SDK-facing behaviour.
     /// </summary>
-    internal sealed class HelloWorldUi : IDisposable
+    internal sealed class CoreUI : IDisposable
     {
         private GameObject root;
         private Text title;
