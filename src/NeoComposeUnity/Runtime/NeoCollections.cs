@@ -50,35 +50,35 @@ namespace NeoCompose.Runtime
 
     public class NeoList<T> : NeoReadOnlyList<T>, IList<T>
     {
-        private readonly NeoAttributeListSaved savedNode;
+        private readonly NeoAttributeListWritable writableNode;
         private readonly Func<T, NeoValueWritePayload?> serializeItem;
 
         public NeoList(
             NeoClient client,
-            NeoAttributeListSaved node,
+            NeoAttributeListWritable node,
             Func<NeoClient, NeoAttribute, T> createItem,
             Func<T, NeoValueWritePayload?> serializeItem)
             : base(client, node, createItem)
         {
-            savedNode = node;
+            writableNode = node;
             this.serializeItem = serializeItem;
         }
 
         public new T this[int index]
         {
             get => base[index];
-            set => savedNode.SetSerialized(index, serializeItem(value));
+            set => writableNode.SetSerialized(index, serializeItem(value));
         }
 
         public bool IsReadOnly => false;
 
-        public void Add(T item) => savedNode.AddSerialized(serializeItem(item));
+        public void Add(T item) => writableNode.AddSerialized(serializeItem(item));
 
         public void Clear()
         {
             for (int i = Count - 1; i >= 0; i--)
             {
-                savedNode.RemoveAt(i);
+                writableNode.RemoveAt(i);
             }
         }
 
@@ -117,7 +117,7 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        public void RemoveAt(int index) => savedNode.RemoveAt(index);
+        public void RemoveAt(int index) => writableNode.RemoveAt(index);
     }
 
     public class NeoReadOnlyDictionary<T> : IReadOnlyDictionary<string, T>
@@ -198,24 +198,24 @@ namespace NeoCompose.Runtime
 
     public class NeoDictionary<T> : NeoReadOnlyDictionary<T>, IDictionary<string, T>
     {
-        private readonly NeoAttributeDictionarySaved savedNode;
+        private readonly NeoAttributeDictionaryWritable writableNode;
         private readonly Func<T, NeoValueWritePayload?> serializeItem;
 
         public NeoDictionary(
             NeoClient client,
-            NeoAttributeDictionarySaved node,
+            NeoAttributeDictionaryWritable node,
             Func<NeoClient, NeoAttribute, T> createItem,
             Func<T, NeoValueWritePayload?> serializeItem)
             : base(client, node, createItem)
         {
-            savedNode = node;
+            writableNode = node;
             this.serializeItem = serializeItem;
         }
 
         public new T this[string key]
         {
             get => base[key];
-            set => savedNode.SetSerialized(key, serializeItem(value));
+            set => writableNode.SetSerialized(key, serializeItem(value));
         }
 
         public new ICollection<string> Keys
@@ -241,7 +241,7 @@ namespace NeoCompose.Runtime
         public bool IsReadOnly => false;
 
         public void Add(string key, T value) =>
-            savedNode.SetSerialized(key, serializeItem(value));
+            writableNode.SetSerialized(key, serializeItem(value));
 
         public void Add(KeyValuePair<string, T> item) => Add(item.Key, item.Value);
 
@@ -250,7 +250,7 @@ namespace NeoCompose.Runtime
             var keys = new List<string>(Keys);
             foreach (var key in keys)
             {
-                savedNode.Remove(key);
+                writableNode.Remove(key);
             }
         }
 
@@ -272,7 +272,7 @@ namespace NeoCompose.Runtime
         public bool Remove(string key)
         {
             if (!ContainsKey(key)) return false;
-            savedNode.Remove(key);
+            writableNode.Remove(key);
             return true;
         }
 
@@ -339,15 +339,15 @@ namespace NeoCompose.Runtime
 
     public class NeoLookupSet<T> : NeoReadOnlyLookupSet<T>, ICollection<T>
     {
-        private readonly NeoAttributeLookupSaved savedNode;
+        private readonly NeoAttributeLookupWritable writableNode;
 
         public NeoLookupSet(
             NeoClient client,
-            NeoAttributeLookupSaved node,
+            NeoAttributeLookupWritable node,
             Func<NeoAttribute, T> createItem)
             : base(client, node, createItem)
         {
-            savedNode = node;
+            writableNode = node;
         }
 
         public bool IsReadOnly => false;
@@ -360,12 +360,12 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     "Lookup set item must be a generated Neo value reference.");
             }
-            savedNode.Add(valueId);
+            writableNode.Add(valueId);
         }
 
-        public bool Add(string valueId) => savedNode.Add(valueId);
+        public bool Add(string valueId) => writableNode.Add(valueId);
 
-        public void Clear() => savedNode.Clear();
+        public void Clear() => writableNode.Clear();
 
         public void CopyTo(T[] array, int arrayIndex)
         {
@@ -379,9 +379,9 @@ namespace NeoCompose.Runtime
         public bool Remove(T item)
         {
             string? valueId = NeoGeneratedTypesSupport.ValueId(item);
-            return valueId is not null && savedNode.Remove(valueId);
+            return valueId is not null && writableNode.Remove(valueId);
         }
 
-        public bool Remove(string valueId) => savedNode.Remove(valueId);
+        public bool Remove(string valueId) => writableNode.Remove(valueId);
     }
 }

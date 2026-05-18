@@ -13,6 +13,12 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoClient
     {
+        NeoAttributeCustom AssetsRoot { get; }
+
+        NeoAttributeCustomWritable SaveRoot { get; }
+
+        NeoAttributeCustomWritable SessionRoot { get; }
+
         /// <summary>
         /// Serializes the current save state to JSON without invoking the
         /// configured save handler.

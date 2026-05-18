@@ -744,6 +744,24 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ActionsNode_Assign_InferSessionOwnershipWhenUiTargetHasNoWritability()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger(
+                "dialogue-action-session-bool-write-with-inferred-ownership",
+                out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.IsTrue(client.TryGetValue("session-foo-default-value", out BoolAttributeValue? sessionFoo));
+            Assert.AreEqual(true, sessionFoo!.value);
+            Assert.IsTrue(client.sessionValues.ContainsKey("session-foo-default-value"));
+            Assert.IsFalse(client.saveValues.ContainsKey("session-foo-default-value"));
+            Assert.IsFalse(client.SerializeSaveData().Contains("session-foo-default-value"));
+        }
+
+        [Test]
         public void ActionsNode_CollectionCall_AddsSaveListEntry()
         {
             var client = CreateClient();
@@ -1183,6 +1201,7 @@ namespace NeoCompose.Tests
                     name = "Dialogue Project",
                     rootAssetsAttributeId = "root-assets",
                     rootSaveFileAttributeId = "root-save",
+                    rootSessionAttributeId = "root-session",
                     defaultPriorityGroupId = "priority-default",
                     createdAt = Now,
                     updatedAt = Now,
@@ -1191,6 +1210,7 @@ namespace NeoCompose.Tests
                 {
                     ["root-assets"] = RootAttribute("root-assets", "Assets"),
                     ["root-save"] = RootAttribute("root-save", "Save"),
+                    ["root-session"] = RootAttribute("root-session", "Session"),
                     ["attr-score"] = new IntAttribute
                     {
                         id = "attr-score",
@@ -1252,6 +1272,17 @@ namespace NeoCompose.Tests
                         createdAt = Now,
                         updatedAt = Now,
                     },
+                    ["attr-session-foo"] = new BoolAttribute
+                    {
+                        id = "attr-session-foo",
+                        _id = "attr-session-foo",
+                        projectId = ProjectId,
+                        name = "Foo",
+                        type = AttributeType.Bool,
+                        required = true,
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
                 },
                 values = new Dictionary<string, AttributeValue>
                 {
@@ -1285,6 +1316,24 @@ namespace NeoCompose.Tests
                             ["Score"] = "score-default-value",
                             ["Inventory"] = "default-inventory-value",
                         },
+                    },
+                    ["root-session-default-value"] = new ObjectAttributeValue
+                    {
+                        id = "root-session-default-value",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        typeId = "type-root",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Foo"] = "session-foo-default-value",
+                        },
+                    },
+                    ["session-foo-default-value"] = new BoolAttributeValue
+                    {
+                        id = "session-foo-default-value",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        value = false,
                     },
                     ["score-default-value"] = new NumberAttributeValue
                     {
@@ -1353,6 +1402,7 @@ namespace NeoCompose.Tests
                             ["Score"] = "attr-score",
                             ["Items"] = "attr-items",
                             ["Inventory"] = "attr-inventory",
+                            ["Foo"] = "attr-session-foo",
                         },
                         createdAt = Now,
                         updatedAt = Now,
@@ -1520,6 +1570,13 @@ namespace NeoCompose.Tests
                             RootKeyPointer("Save", "Score"),
                             IntTypeInfo(),
                             NumberPointer(22))),
+                    ["dialogue-action-session-bool-write-with-inferred-ownership"] = ActionDialogue(
+                        "dialogue-action-session-bool-write-with-inferred-ownership",
+                        AssignAction(
+                            RootKeyPointer("Session", "Foo"),
+                            BoolTypeInfo(),
+                            BoolPointer(true),
+                            writability: null)),
                     ["dialogue-action-list-add"] = ActionDialogue(
                         "dialogue-action-list-add",
                         CollectionAction(
@@ -1803,7 +1860,11 @@ namespace NeoCompose.Tests
                 name = name,
                 type = AttributeType.Custom,
                 customTypeId = "type-root",
-                valueId = name == "Save" ? "root-save-default-value" : "root-assets-value",
+                valueId = name == "Save"
+                    ? "root-save-default-value"
+                    : name == "Session"
+                        ? "root-session-default-value"
+                        : "root-assets-value",
                 createdAt = Now,
                 updatedAt = Now,
             };
@@ -2575,7 +2636,8 @@ namespace NeoCompose.Tests
             Pointer target,
             TypeInfo typeInfo,
             Pointer value,
-            string operatorValue = "=")
+            string operatorValue = "=",
+            string? writability = WritabilityKind.Save)
         {
             return ActionFunction(new Instruction[]
             {
@@ -2586,7 +2648,7 @@ namespace NeoCompose.Tests
                     {
                         pointer = target,
                         typeInfo = typeInfo,
-                        writability = WritabilityKind.Save,
+                        writability = writability,
                     },
                     operatorValue = operatorValue,
                     pointer = value,
@@ -2652,6 +2714,15 @@ namespace NeoCompose.Tests
             };
         }
 
+        private static PrimitiveTypeInfo BoolTypeInfo()
+        {
+            return new PrimitiveTypeInfo
+            {
+                type = AttributeType.Bool,
+                required = true,
+            };
+        }
+
         private static PrimitiveTypeInfo StringTypeInfo()
         {
             return new PrimitiveTypeInfo
@@ -2713,6 +2784,19 @@ namespace NeoCompose.Tests
                 value = new Value
                 {
                     typeInfo = IntTypeInfo(),
+                    value = JToken.FromObject(value),
+                },
+            };
+        }
+
+        private static Pointer BoolPointer(bool value)
+        {
+            return new ValuePointer
+            {
+                type = PointerKind.Value,
+                value = new Value
+                {
+                    typeInfo = BoolTypeInfo(),
                     value = JToken.FromObject(value),
                 },
             };

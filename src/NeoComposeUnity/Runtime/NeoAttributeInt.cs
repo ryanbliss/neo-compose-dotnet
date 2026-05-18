@@ -11,26 +11,26 @@ namespace NeoCompose.Runtime
     /// Wrapper for an Int-typed attribute. The underlying
     /// <see cref="NumberAttributeValue"/> stores its payload as
     /// <c>double?</c> (Int and Float share the wire numeric shape) —
-    /// <see cref="NeoAttributeIntSaved.Set"/> casts the int through
+    /// <see cref="NeoAttributeIntWritable.Set"/> casts the int through
     /// the double slot.
     /// </summary>
     public class NeoAttributeInt
         : NeoAttribute<IntAttribute, NumberAttributeValue>
     {
-        public NeoAttributeInt(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeInt(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeInt(NeoClient client, IntAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeInt(NeoClient client, IntAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
     }
 
-    public class NeoAttributeIntSaved : NeoAttributeInt
+    public class NeoAttributeIntWritable : NeoAttributeInt
     {
-        public NeoAttributeIntSaved(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeIntWritable(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeIntSaved(NeoClient client, IntAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeIntWritable(NeoClient client, IntAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         public void Set(int? newValue)
         {
@@ -47,7 +47,7 @@ namespace NeoCompose.Runtime
             {
                 existing.value = doubleValue;
                 existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
+                client.SetWritableValue(ownership, existing);
                 NotifyChanged();
                 return;
             }
@@ -60,7 +60,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = doubleValue,
             };
-            client.AddSaveValue(attribute.id, newRow);
+            client.AddWritableValue(ownership, attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
         }

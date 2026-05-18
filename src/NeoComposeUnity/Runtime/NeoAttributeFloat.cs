@@ -15,20 +15,20 @@ namespace NeoCompose.Runtime
     public class NeoAttributeFloat
         : NeoAttribute<FloatAttribute, NumberAttributeValue>
     {
-        public NeoAttributeFloat(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeFloat(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeFloat(NeoClient client, FloatAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeFloat(NeoClient client, FloatAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
     }
 
-    public class NeoAttributeFloatSaved : NeoAttributeFloat
+    public class NeoAttributeFloatWritable : NeoAttributeFloat
     {
-        public NeoAttributeFloatSaved(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeFloatWritable(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeFloatSaved(NeoClient client, FloatAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeFloatWritable(NeoClient client, FloatAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         public void Set(float? newValue)
         {
@@ -45,7 +45,7 @@ namespace NeoCompose.Runtime
             {
                 existing.value = doubleValue;
                 existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
+                client.SetWritableValue(ownership, existing);
                 NotifyChanged();
                 return;
             }
@@ -58,7 +58,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = doubleValue,
             };
-            client.AddSaveValue(attribute.id, newRow);
+            client.AddWritableValue(ownership, attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
         }

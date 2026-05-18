@@ -6,7 +6,8 @@
         "createdAt": "2026-04-22T04:37:21.148Z",
         "updatedAt": "2026-04-22T04:37:21.148Z",
         "rootAssetsAttributeId": "1f3e5850-4b17-481b-a1b8-989368744da1",
-        "rootSaveFileAttributeId": "97f1760a-972a-469b-8ceb-67800332deb2"
+        "rootSaveFileAttributeId": "97f1760a-972a-469b-8ceb-67800332deb2",
+        "rootSessionAttributeId": "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a"
     },
     "attributes": {
         "1f3e5850-4b17-481b-a1b8-989368744da1": {
@@ -37,6 +38,22 @@
             },
             "id": "97f1760a-972a-469b-8ceb-67800332deb2",
             "valueId": "50455a56-c450-47d9-8a51-13a5146dfda6",
+            "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+            "createdAt": "2026-04-22T04:37:21.099Z",
+            "updatedAt": "2026-04-22T04:37:21.099Z"
+        },
+        "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a": {
+            "_id": "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a",
+            "customTypeId": "eef03495-48c4-4760-8b4c-dc41b6d9e589",
+            "name": "Session",
+            "type": 7,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a",
+            "valueId": "2bf832e4-871f-4998-ae8f-b77e62f11099",
             "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
             "createdAt": "2026-04-22T04:37:21.099Z",
             "updatedAt": "2026-04-22T04:37:21.099Z"
@@ -2641,6 +2658,14 @@
             },
             "createdAt": "2026-04-22T04:37:21.050Z",
             "updatedAt": "2026-04-28T23:43:49.187Z",
+            "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+        },
+        "2bf832e4-871f-4998-ae8f-b77e62f11099": {
+            "_id": "2bf832e4-871f-4998-ae8f-b77e62f11099",
+            "id": "2bf832e4-871f-4998-ae8f-b77e62f11099",
+            "value": {},
+            "createdAt": "2026-04-22T04:37:21.050Z",
+            "updatedAt": "2026-04-22T04:37:21.050Z",
             "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
         },
         "4181a582-2a2e-4b47-ab17-b85f308a6d54": {

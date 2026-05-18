@@ -48,7 +48,7 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient(out _);
             var tagsAttr = RequireAttribute<ListAttribute>(client, "attr-tags");
-            var tagsNode = (NeoAttributeListSaved)NeoAttribute.CreateSaved(client, tagsAttr, null);
+            var tagsNode = (NeoAttributeListWritable)NeoAttribute.CreateWritable(client, tagsAttr, null);
             var tags = new NeoList<string>(
                 client,
                 tagsNode,
@@ -78,7 +78,7 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient(out _);
             var inventoryAttr = RequireAttribute<DictionaryAttribute>(client, "attr-inventory");
-            var inventoryNode = (NeoAttributeDictionarySaved)NeoAttribute.CreateSaved(
+            var inventoryNode = (NeoAttributeDictionaryWritable)NeoAttribute.CreateWritable(
                 client,
                 inventoryAttr,
                 null);
@@ -120,7 +120,7 @@ namespace NeoCompose.Tests
             });
 
             var choiceAttr = RequireAttribute<LookupAttribute>(client, "attr-choice");
-            var choiceNode = (NeoAttributeLookupSaved)NeoAttribute.CreateSaved(
+            var choiceNode = (NeoAttributeLookupWritable)NeoAttribute.CreateWritable(
                 client,
                 choiceAttr,
                 null);

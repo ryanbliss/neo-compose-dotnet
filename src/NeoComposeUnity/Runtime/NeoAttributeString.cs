@@ -9,28 +9,28 @@ namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Wrapper for a String-typed attribute. Read-only — use
-    /// <see cref="NeoAttributeStringSaved"/> to mutate.
+    /// <see cref="NeoAttributeStringWritable"/> to mutate.
     /// </summary>
     public class NeoAttributeString
         : NeoAttribute<StringAttribute, StringAttributeValue>
     {
-        public NeoAttributeString(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeString(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeString(NeoClient client, StringAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeString(NeoClient client, StringAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
     }
 
     /// <summary>
     /// Writeable variant of <see cref="NeoAttributeString"/>.
     /// </summary>
-    public class NeoAttributeStringSaved : NeoAttributeString
+    public class NeoAttributeStringWritable : NeoAttributeString
     {
-        public NeoAttributeStringSaved(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeStringWritable(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeStringSaved(NeoClient client, StringAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeStringWritable(NeoClient client, StringAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         /// <summary>
         /// Sets the underlying string. Updates an existing value row in
@@ -51,7 +51,7 @@ namespace NeoCompose.Runtime
             {
                 existing.value = newValue;
                 existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
+                client.SetWritableValue(ownership, existing);
                 NotifyChanged();
                 return;
             }
@@ -64,7 +64,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = newValue,
             };
-            client.AddSaveValue(attribute.id, newRow);
+            client.AddWritableValue(ownership, attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
         }

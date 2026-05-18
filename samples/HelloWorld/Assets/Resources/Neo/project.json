@@ -4,7 +4,7 @@
         "id": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
         "name": "HelloWorld",
         "createdAt": "2026-05-03T00:02:45.598Z",
-        "updatedAt": "2026-05-13T21:08:26.859Z",
+        "updatedAt": "2026-05-16T09:10:05.863Z",
         "rootAssetsAttributeId": "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684",
         "rootSaveFileAttributeId": "4a1a7058-e5ba-4479-9f2f-7686a649a6b5",
         "exportSettings": {
@@ -15,7 +15,8 @@
         },
         "defaultPriorityGroupId": "e8f566bf-e173-4634-bc74-d4bbc9685db4",
         "defaultAudioClipTemplateId": null,
-        "defaultTextureTemplateId": "66504747-cbd5-4026-9d4c-89a0644f8192"
+        "defaultTextureTemplateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+        "rootSessionAttributeId": "f0ce0706-def6-41ff-b8e9-baa2a7a84de6"
     },
     "attributes": {
         "8f1dbf20-8d7c-49e0-9e0f-5e172da6f684": {
@@ -2356,6 +2357,41 @@
                     "name": "text"
                 }
             ]
+        },
+        "f0ce0706-def6-41ff-b8e9-baa2a7a84de6": {
+            "_id": "6a08346d16231ca5ae4a2f54",
+            "id": "f0ce0706-def6-41ff-b8e9-baa2a7a84de6",
+            "name": "Session",
+            "type": 7,
+            "locked": true,
+            "required": true,
+            "defaultValue": {
+                "value": {}
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "ead7222b-86b4-48ac-bf9a-f9162689a8f2",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-16T09:10:05.772Z",
+            "updatedAt": "2026-05-16T09:10:05.772Z",
+            "customTypeId": "63b261c9-46f2-4d37-84e9-06f16af04e58"
+        },
+        "8da60967-116a-4062-9cfb-e9d6a052914d": {
+            "_id": "6a0834c2ffde9aefe32d586b",
+            "id": "8da60967-116a-4062-9cfb-e9d6a052914d",
+            "name": "Foo",
+            "type": 1,
+            "locked": false,
+            "required": true,
+            "defaultValue": {
+                "value": false
+            },
+            "extendsAttributeId": null,
+            "system": null,
+            "valueId": "b116b3c4-4e57-4feb-b03f-a9f43de0715b",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "createdAt": "2026-05-16T09:11:30.479Z",
+            "updatedAt": "2026-05-16T09:11:30.479Z"
         }
     },
     "enums": {
@@ -2717,6 +2753,21 @@
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-08T21:08:34.976Z",
             "updatedAt": "2026-05-08T21:20:40.106Z"
+        },
+        "63b261c9-46f2-4d37-84e9-06f16af04e58": {
+            "_id": "6a08346d16231ca5ae4a2f52",
+            "id": "63b261c9-46f2-4d37-84e9-06f16af04e58",
+            "name": "Session",
+            "schema": {
+                "Foo": "8da60967-116a-4062-9cfb-e9d6a052914d"
+            },
+            "extendsTypeId": null,
+            "isAbstract": false,
+            "system": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "hiddenInAttributeSelector": true,
+            "createdAt": "2026-05-16T09:10:05.476Z",
+            "updatedAt": "2026-05-16T09:11:30.864Z"
         }
     },
     "values": {
@@ -3981,7 +4032,7 @@
             "value": 1000,
             "typeId": null,
             "createdAt": "2026-05-08T21:19:46.837Z",
-            "updatedAt": "2026-05-08T21:19:46.837Z",
+            "updatedAt": "2026-05-16T08:32:02.704Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         },
         "79e87314-be65-4a95-b4a6-ee28cffa1347": {
@@ -4272,6 +4323,35 @@
             "typeId": null,
             "createdAt": "2026-05-15T04:03:52.874Z",
             "updatedAt": "2026-05-15T04:03:52.874Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "ead7222b-86b4-48ac-bf9a-f9162689a8f2": {
+            "_id": "6a08346d16231ca5ae4a2f53",
+            "id": "ead7222b-86b4-48ac-bf9a-f9162689a8f2",
+            "value": {
+                "Foo": "93c9b12d-27db-4a37-a5e3-270835e2786f"
+            },
+            "typeId": null,
+            "createdAt": "2026-05-16T09:10:05.660Z",
+            "updatedAt": "2026-05-16T09:11:31.771Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "b116b3c4-4e57-4feb-b03f-a9f43de0715b": {
+            "_id": "6a0834c2ffde9aefe32d586a",
+            "id": "b116b3c4-4e57-4feb-b03f-a9f43de0715b",
+            "value": false,
+            "typeId": null,
+            "createdAt": "2026-05-16T09:11:30.384Z",
+            "updatedAt": "2026-05-16T09:11:30.384Z",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
+        },
+        "93c9b12d-27db-4a37-a5e3-270835e2786f": {
+            "_id": "6a0834c3ffde9aefe32d586c",
+            "id": "93c9b12d-27db-4a37-a5e3-270835e2786f",
+            "value": false,
+            "typeId": null,
+            "createdAt": "2026-05-16T09:11:31.167Z",
+            "updatedAt": "2026-05-16T09:11:31.167Z",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8"
         }
     },
@@ -6998,6 +7078,10 @@
                         {
                             "valueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
                             "source": 1
+                        },
+                        {
+                            "valueId": "ead7222b-86b4-48ac-bf9a-f9162689a8f2",
+                            "source": 2
                         }
                     ],
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
@@ -7090,10 +7174,80 @@
                                                                 "type": 3,
                                                                 "required": true
                                                             },
-                                                            "value": "Unlocked set to True"
+                                                            "value": "Unlocked set to true"
                                                         }
                                                     }
                                                 ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "id": "2b765c30-c6f9-449f-a838-1193db60633d",
+                            "type": 0,
+                            "logic": {
+                                "type": 0,
+                                "action": {
+                                    "parameters": [],
+                                    "typeInfo": {
+                                        "type": 0,
+                                        "required": true
+                                    },
+                                    "instructions": [
+                                        {
+                                            "type": "assign",
+                                            "target": {
+                                                "pointer": {
+                                                    "type": "keyOf",
+                                                    "keyOf": {
+                                                        "pointer": {
+                                                            "type": "keyOf",
+                                                            "keyOf": {
+                                                                "pointer": {
+                                                                    "type": "variable",
+                                                                    "variableId": "__root__"
+                                                                },
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "type": 3,
+                                                                            "required": true
+                                                                        },
+                                                                        "value": "Session"
+                                                                    }
+                                                                }
+                                                            }
+                                                        },
+                                                        "key": {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "type": 3,
+                                                                    "required": true
+                                                                },
+                                                                "value": "Foo"
+                                                            }
+                                                        }
+                                                    }
+                                                },
+                                                "typeInfo": {
+                                                    "type": 1,
+                                                    "required": true
+                                                }
+                                            },
+                                            "operator": "=",
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "type": 1,
+                                                        "required": true
+                                                    },
+                                                    "value": true
+                                                }
                                             }
                                         }
                                     ]
@@ -8016,7 +8170,7 @@
             "id": "3e842799-4859-4fbc-a317-8640bc6875e5",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T21:19:16.082Z",
-            "updatedAt": "2026-05-16T07:26:42.508Z"
+            "updatedAt": "2026-05-16T14:25:26.549Z"
         },
         "71478d85-4586-4ca8-8b95-226a391a9a5f": {
             "_id": "6a00216733f2641c2bfa810f",

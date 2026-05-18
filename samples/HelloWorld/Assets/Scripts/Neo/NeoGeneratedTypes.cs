@@ -17,8 +17,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         internal static HelloWorldNeo RequireInstance() => Instance ?? throw new InvalidOperationException("HelloWorldNeo.Instance has not been initialized.");
 
         public NeoClient Client { get; }
+        public NeoAttributeCustom AssetsRoot => Client.AssetsRoot;
+        public NeoAttributeCustomWritable SaveRoot => Client.SaveRoot;
+        public NeoAttributeCustomWritable SessionRoot => Client.SessionRoot;
         public ReadOnlyAssets Assets { get; }
         public Save Save { get; }
+        public Session Session { get; }
         public NeoDialogues Dialogues { get; }
 
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> DialogueReadOnlyValueFactories =
@@ -29,6 +33,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyOutpost.Create(client, node),
                 ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoTextNodeMemory.Create(client, node),
                 ["60c25a92-cb01-46f7-b5cf-c9d950586116"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyItem.Create(client, node),
+                ["63b261c9-46f2-4d37-84e9-06f16af04e58"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlySession.Create(client, node),
                 ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoMemory.Create(client, node),
                 ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyLookupContainer.Create(client, node),
                 ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyPlanetVisit.Create(client, node),
@@ -41,24 +46,25 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAssets.Create(client, node),
             };
 
-        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.SavedCustomFactory> DialogueSavedValueFactories =
-            new Dictionary<string, NeoGeneratedTypesSupport.SavedCustomFactory>
+        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory> DialogueWritableValueFactories =
+            new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>
             {
-                ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateSaved(client, node),
-                ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateSaved(client, node),
-                ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateSaved(client, node),
-                ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateSaved(client, node),
-                ["60c25a92-cb01-46f7-b5cf-c9d950586116"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Item.CreateSaved(client, node),
-                ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateSaved(client, node),
-                ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateSaved(client, node),
-                ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateSaved(client, node),
-                ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.CreateSaved(client, node),
-                ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.CreateSaved(client, node),
-                ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SaturnOutpost.CreateSaved(client, node),
-                ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Save.CreateSaved(client, node),
-                ["a50efb7e-58f6-4342-906e-0b01f98b15af"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.JupiterOutpost.CreateSaved(client, node),
-                ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateSaved(client, node),
-                ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.CreateSaved(client, node),
+                ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateWritable(client, node),
+                ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, node),
+                ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateWritable(client, node),
+                ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, node),
+                ["60c25a92-cb01-46f7-b5cf-c9d950586116"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Item.CreateWritable(client, node),
+                ["63b261c9-46f2-4d37-84e9-06f16af04e58"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Session.CreateWritable(client, node),
+                ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(client, node),
+                ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateWritable(client, node),
+                ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, node),
+                ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.CreateWritable(client, node),
+                ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.CreateWritable(client, node),
+                ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SaturnOutpost.CreateWritable(client, node),
+                ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Save.CreateWritable(client, node),
+                ["a50efb7e-58f6-4342-906e-0b01f98b15af"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.JupiterOutpost.CreateWritable(client, node),
+                ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, node),
+                ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.CreateWritable(client, node),
             };
 
         internal object? ResolveDialogueValue(string valueId) =>
@@ -66,7 +72,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 Client,
                 valueId,
                 DialogueReadOnlyValueFactories,
-                DialogueSavedValueFactories);
+                DialogueWritableValueFactories);
 
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
@@ -77,7 +83,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                     client,
                     receiver,
                     DialogueReadOnlyValueFactories,
-                    DialogueSavedValueFactories,
+                    DialogueWritableValueFactories,
                     "DebugLog",
                     "e549555b-9276-48d8-be33-156972520d31");
                 var text = (string)args[0]!;
@@ -92,6 +98,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             Instance = this;
             Assets = new ReadOnlyAssets(client, client.assets);
             Save = new Save(client, client.save);
+            Session = new Session(client, client.session);
             Dialogues = new NeoDialogues(this, dialogueOptions);
         }
 
@@ -167,9 +174,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         public INeoDialogueMemory GetOrCreateDialogueMemory(string dialogueId)
         {
             if (DialogueMemories.TryGetValue(dialogueId, out var memory)) return memory;
-            memory = NeoDialogueMemory.CreateSaved(
+            memory = NeoDialogueMemory.CreateWritable(
                 client,
-                NeoGeneratedTypesSupport.CreateSavedCustomValue(
+                NeoGeneratedTypesSupport.CreateWritableCustomValue(
                     client,
                     "48f37cd8-69d2-4cd3-ae44-7cfed7912415",
                     new Dictionary<string, string>(),
@@ -189,9 +196,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         public INeoTextNodeMemory GetOrCreateTextNodeMemory(string textNodeId)
         {
             if (TextNodeMemories.TryGetValue(textNodeId, out var memory)) return memory;
-            memory = NeoTextNodeMemory.CreateSaved(
+            memory = NeoTextNodeMemory.CreateWritable(
                 client,
-                NeoGeneratedTypesSupport.CreateSavedCustomValue(
+                NeoGeneratedTypesSupport.CreateWritableCustomValue(
                     client,
                     "4cdf4a5b-b299-4253-854b-d25c0a4c7c20",
                     new Dictionary<string, string>(),
@@ -235,9 +242,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = choiceId,
                 },
             };
-            ChoiceHistory.Add(NeoChoiceLog.CreateSaved(
+            ChoiceHistory.Add(NeoChoiceLog.CreateWritable(
                 client,
-                NeoGeneratedTypesSupport.CreateSavedCustomValue(
+                NeoGeneratedTypesSupport.CreateWritableCustomValue(
                     client,
                     "af5795d0-e019-4776-8b7c-d0206f90d59f",
                     value,
@@ -496,19 +503,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class Assets : ReadOnlyAssets
     {
-        internal Assets(NeoClient client, NeoAttributeCustomSaved node)
+        internal Assets(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public Assets(ComputedText? Computed = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, IEnumerable<Item>? Items = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Computed, LookupContainer, Outposts, Items))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(ComputedText? Computed = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, IEnumerable<Item>? Items = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(ComputedText? Computed = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, IEnumerable<Item>? Items = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -556,10 +563,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = ItemsIds.ToArray(),
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows);
         }
 
-        internal static Assets CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static Assets CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -575,11 +582,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return ComputedText.CreateSaved(client, node.Get<NeoAttributeCustomSaved>("Computed"));
+                return ComputedText.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("Computed"));
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Computed", NeoGeneratedTypesSupport.ValueReference(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Computed", NeoGeneratedTypesSupport.ValueReference(value));
             }
         }
 
@@ -587,11 +594,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return LookupContainer.CreateSaved(client, node.Get<NeoAttributeCustomSaved>("LookupContainer"));
+                return LookupContainer.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("LookupContainer"));
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "LookupContainer", NeoGeneratedTypesSupport.ValueReference(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "LookupContainer", NeoGeneratedTypesSupport.ValueReference(value));
             }
         }
 
@@ -599,7 +606,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<Outpost>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("Outposts"), (client, child) => Outpost.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoList<Outpost>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Outposts"), (client, child) => Outpost.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -607,7 +614,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<Item>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("Items"), (client, child) => Item.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoList<Item>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Items"), (client, child) => Item.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -784,19 +791,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class Save : ReadOnlySave
     {
-        internal Save(NeoClient client, NeoAttributeCustomSaved node)
+        internal Save(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public Save(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null, IDictionary<string, OutpostSaveData>? OutpostSaveMap = null, NeoLookupSelection? Location = null, IEnumerable<NeoLookupSelection>? Inventory = null, int? Bits = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(World, Visited, NeoMemory, Dead, OutpostSaveMap, Location, Inventory, Bits))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null, IDictionary<string, OutpostSaveData>? OutpostSaveMap = null, NeoLookupSelection? Location = null, IEnumerable<NeoLookupSelection>? Inventory = null, int? Bits = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null, IDictionary<string, OutpostSaveData>? OutpostSaveMap = null, NeoLookupSelection? Location = null, IEnumerable<NeoLookupSelection>? Inventory = null, int? Bits = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -900,10 +907,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = Bits.HasValue ? Bits.Value : (double?)null,
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows);
         }
 
-        internal static Save CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static Save CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -924,7 +931,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "World", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "World", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -932,7 +939,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<PlanetVisit>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("Visited"), (client, child) => PlanetVisit.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoList<PlanetVisit>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Visited"), (client, child) => PlanetVisit.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -940,11 +947,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return NeoMemory.CreateSaved(client, node.Get<NeoAttributeCustomSaved>("NeoMemory"));
+                return NeoMemory.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("NeoMemory"));
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "NeoMemory", NeoGeneratedTypesSupport.ValueReference(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "NeoMemory", NeoGeneratedTypesSupport.ValueReference(value));
             }
         }
 
@@ -956,7 +963,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Dead", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Dead", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -964,7 +971,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<OutpostSaveData>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("OutpostSaveMap"), (client, child) => OutpostSaveData.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoDictionary<OutpostSaveData>(client, writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("OutpostSaveMap"), (client, child) => OutpostSaveData.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -977,7 +984,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Location", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Location", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
             }
         }
 
@@ -985,7 +992,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoLookupSet<ReadOnlyItem>(client, savedNode.GetOrCreateLookup("Inventory"), child => ReadOnlyItem.Create(client, (NeoAttributeCustom)child));
+                return new NeoLookupSet<ReadOnlyItem>(client, writableNode.GetOrCreateLookup("Inventory"), child => ReadOnlyItem.Create(client, (NeoAttributeCustom)child));
             }
             set
             {
@@ -994,7 +1001,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 {
                     foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
                 }
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Inventory", NeoGeneratedTypesSupport.Value(ids.ToArray()));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Inventory", NeoGeneratedTypesSupport.Value(ids.ToArray()));
             }
         }
 
@@ -1006,7 +1013,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Bits", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Bits", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -1140,19 +1147,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class ComputedText : ReadOnlyComputedText
     {
-        internal ComputedText(NeoClient client, NeoAttributeCustomSaved node)
+        internal ComputedText(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public ComputedText(string? baseText = null, string? optionalSuffix = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(baseText, optionalSuffix))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(string? baseText = null, string? optionalSuffix = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? baseText = null, string? optionalSuffix = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -1182,10 +1189,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = optionalSuffix,
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", value, valueRows);
         }
 
-        internal static ComputedText CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static ComputedText CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -1205,7 +1212,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "baseText", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "baseText", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -1217,7 +1224,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "optionalSuffix", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "optionalSuffix", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -1334,19 +1341,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class PlanetVisit : ReadOnlyPlanetVisit
     {
-        internal PlanetVisit(NeoClient client, NeoAttributeCustomSaved node)
+        internal PlanetVisit(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public PlanetVisit(Planet World, int DateUnix)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(World, DateUnix))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(Planet World, int DateUnix)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Planet World, int DateUnix)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -1370,10 +1377,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 updatedAt = nowIso,
                 value = DateUnix,
             });
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", value, valueRows);
         }
 
-        internal static PlanetVisit CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static PlanetVisit CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -1394,7 +1401,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "World", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "World", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -1406,7 +1413,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "DateUnix", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DateUnix", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -1510,19 +1517,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class LookupContainer : ReadOnlyLookupContainer
     {
-        internal LookupContainer(NeoClient client, NeoAttributeCustomSaved node)
+        internal LookupContainer(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public LookupContainer(IDictionary<string, LookupEntry>? LookupList = null, NeoLookupSelection? Lookup = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(LookupList, Lookup))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(IDictionary<string, LookupEntry>? LookupList = null, NeoLookupSelection? Lookup = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IDictionary<string, LookupEntry>? LookupList = null, NeoLookupSelection? Lookup = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -1557,10 +1564,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = Lookup.HasValue ? new[] { Lookup.Value.valueId } : null,
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "77558d64-4fcc-46ac-8351-893093ee0002", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "77558d64-4fcc-46ac-8351-893093ee0002", value, valueRows);
         }
 
-        internal static LookupContainer CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static LookupContainer CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -1576,7 +1583,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<LookupEntry>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("LookupList"), (client, child) => LookupEntry.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoDictionary<LookupEntry>(client, writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("LookupList"), (client, child) => LookupEntry.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -1589,7 +1596,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Lookup", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Lookup", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
             }
         }
 
@@ -1681,19 +1688,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class LookupEntry : ReadOnlyLookupEntry
     {
-        internal LookupEntry(NeoClient client, NeoAttributeCustomSaved node)
+        internal LookupEntry(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public LookupEntry(string? Name = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(string? Name = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -1711,10 +1718,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = Name,
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "9296e4be-bd27-44e3-9823-77fbeaa60665", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "9296e4be-bd27-44e3-9823-77fbeaa60665", value, valueRows);
         }
 
-        internal static LookupEntry CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static LookupEntry CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -1734,7 +1741,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -1823,19 +1830,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class NeoChoiceLog : ReadOnlyNeoChoiceLog
     {
-        internal NeoChoiceLog(NeoClient client, NeoAttributeCustomSaved node)
+        internal NeoChoiceLog(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public NeoChoiceLog(string? ChoiceId = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(ChoiceId))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(string? ChoiceId = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? ChoiceId = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -1853,10 +1860,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = ChoiceId,
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "af5795d0-e019-4776-8b7c-d0206f90d59f", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "af5795d0-e019-4776-8b7c-d0206f90d59f", value, valueRows);
         }
 
-        internal static NeoChoiceLog CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static NeoChoiceLog CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -1876,7 +1883,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "ChoiceId", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "ChoiceId", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -2011,19 +2018,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class NeoTextNodeMemory : ReadOnlyNeoTextNodeMemory
     {
-        internal NeoTextNodeMemory(NeoClient client, NeoAttributeCustomSaved node)
+        internal NeoTextNodeMemory(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public NeoTextNodeMemory(int? VisitCount = null, string? LastVisitedAt = null, string? MostRecentChoiceId = null, IEnumerable<NeoChoiceLog>? ChoiceHistory = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(VisitCount, LastVisitedAt, MostRecentChoiceId, ChoiceHistory))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(int? VisitCount = null, string? LastVisitedAt = null, string? MostRecentChoiceId = null, IEnumerable<NeoChoiceLog>? ChoiceHistory = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(int? VisitCount = null, string? LastVisitedAt = null, string? MostRecentChoiceId = null, IEnumerable<NeoChoiceLog>? ChoiceHistory = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -2082,10 +2089,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = ChoiceHistoryIds.ToArray(),
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "4cdf4a5b-b299-4253-854b-d25c0a4c7c20", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "4cdf4a5b-b299-4253-854b-d25c0a4c7c20", value, valueRows);
         }
 
-        internal static NeoTextNodeMemory CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static NeoTextNodeMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -2105,7 +2112,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "VisitCount", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "VisitCount", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -2117,7 +2124,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "LastVisitedAt", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "LastVisitedAt", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -2129,7 +2136,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "MostRecentChoiceId", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "MostRecentChoiceId", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -2137,7 +2144,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<NeoChoiceLog>(client, savedNode.GetOrCreateCollection<NeoAttributeListSaved>("ChoiceHistory"), (client, child) => NeoChoiceLog.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoList<NeoChoiceLog>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("ChoiceHistory"), (client, child) => NeoChoiceLog.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -2283,19 +2290,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class NeoDialogueMemory : ReadOnlyNeoDialogueMemory
     {
-        internal NeoDialogueMemory(NeoClient client, NeoAttributeCustomSaved node)
+        internal NeoDialogueMemory(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public NeoDialogueMemory(int? VisitCount = null, string? LastVisitedAt = null, IDictionary<string, NeoTextNodeMemory>? TextNodeMemories = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(VisitCount, LastVisitedAt, TextNodeMemories))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(int? VisitCount = null, string? LastVisitedAt = null, IDictionary<string, NeoTextNodeMemory>? TextNodeMemories = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(int? VisitCount = null, string? LastVisitedAt = null, IDictionary<string, NeoTextNodeMemory>? TextNodeMemories = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -2342,10 +2349,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = TextNodeMemoriesIds,
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "48f37cd8-69d2-4cd3-ae44-7cfed7912415", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "48f37cd8-69d2-4cd3-ae44-7cfed7912415", value, valueRows);
         }
 
-        internal static NeoDialogueMemory CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static NeoDialogueMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -2365,7 +2372,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "VisitCount", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "VisitCount", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -2377,7 +2384,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "LastVisitedAt", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "LastVisitedAt", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -2385,7 +2392,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<NeoTextNodeMemory>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("TextNodeMemories"), (client, child) => NeoTextNodeMemory.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoDictionary<NeoTextNodeMemory>(client, writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("TextNodeMemories"), (client, child) => NeoTextNodeMemory.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -2493,19 +2500,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class NeoMemory : ReadOnlyNeoMemory
     {
-        internal NeoMemory(NeoClient client, NeoAttributeCustomSaved node)
+        internal NeoMemory(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public NeoMemory(IDictionary<string, NeoDialogueMemory>? DialogueMemories = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DialogueMemories))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(IDictionary<string, NeoDialogueMemory>? DialogueMemories = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IDictionary<string, NeoDialogueMemory>? DialogueMemories = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -2528,10 +2535,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = DialogueMemoriesIds,
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "6c6f3bb8-30a0-4132-b0d4-cce75943aedd", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "6c6f3bb8-30a0-4132-b0d4-cce75943aedd", value, valueRows);
         }
 
-        internal static NeoMemory CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static NeoMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -2547,7 +2554,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<NeoDialogueMemory>(client, savedNode.GetOrCreateCollection<NeoAttributeDictionarySaved>("DialogueMemories"), (client, child) => NeoDialogueMemory.CreateSaved(client, (NeoAttributeCustomSaved)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoDictionary<NeoDialogueMemory>(client, writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("DialogueMemories"), (client, child) => NeoDialogueMemory.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -2636,7 +2643,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
             }
         }
 
@@ -2646,7 +2653,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateWritable);
             }
         }
 
@@ -2723,19 +2730,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class Outpost : ReadOnlyOutpost
     {
-        internal Outpost(NeoClient client, NeoAttributeCustomSaved node)
+        internal Outpost(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public Outpost(Planet Planet, string Name, Sprite Image)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Planet, Name, Image))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(Planet Planet, string Name, Sprite Image)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Planet Planet, string Name, Sprite Image)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -2768,10 +2775,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 updatedAt = nowIso,
                 value = NeoGeneratedTypesSupport.SpriteValue(client, Image),
             });
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "4c196697-4e08-4aeb-823f-322b353071ac", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "4c196697-4e08-4aeb-823f-322b353071ac", value, valueRows);
         }
 
-        internal static Outpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static Outpost CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -2794,7 +2801,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -2806,7 +2813,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -2816,7 +2823,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
             }
         }
 
@@ -2826,7 +2833,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateWritable);
             }
         }
 
@@ -2849,7 +2856,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
             }
         }
 
@@ -2989,19 +2996,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class OutpostSaveData : ReadOnlyOutpostSaveData
     {
-        internal OutpostSaveData(NeoClient client, NeoAttributeCustomSaved node)
+        internal OutpostSaveData(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public OutpostSaveData(bool? Unlocked = null, int? VisitCount = null, int? Reputation = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Unlocked, VisitCount, Reputation))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(bool? Unlocked = null, int? VisitCount = null, int? Reputation = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(bool? Unlocked = null, int? VisitCount = null, int? Reputation = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3043,10 +3050,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = Reputation.HasValue ? Reputation.Value : (double?)null,
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "8ccfe860-309f-428b-b74c-76a873bdea8a", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "8ccfe860-309f-428b-b74c-76a873bdea8a", value, valueRows);
         }
 
-        internal static OutpostSaveData CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static OutpostSaveData CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -3066,7 +3073,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Unlocked", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Unlocked", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -3078,7 +3085,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "VisitCount", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "VisitCount", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -3100,7 +3107,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Reputation", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Reputation", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -3235,7 +3242,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class JupiterOutpost : Outpost
     {
-        internal JupiterOutpost(NeoClient client, NeoAttributeCustomSaved node)
+        internal JupiterOutpost(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
@@ -3245,7 +3252,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, JupiterMoon Moon, Planet? Planet = null, Sprite? Image = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, JupiterMoon Moon, Planet? Planet = null, Sprite? Image = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3293,10 +3300,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 updatedAt = nowIso,
                 value = new[] { Moon.optionId },
             });
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "a50efb7e-58f6-4342-906e-0b01f98b15af", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "a50efb7e-58f6-4342-906e-0b01f98b15af", value, valueRows);
         }
 
-        internal new static JupiterOutpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal new static JupiterOutpost CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -3317,7 +3324,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -3329,7 +3336,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -3339,7 +3346,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
             }
         }
 
@@ -3349,7 +3356,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateWritable);
             }
         }
 
@@ -3371,7 +3378,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value, "66504747-cbd5-4026-9d4c-89a0644f8192", "Image")));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value, "66504747-cbd5-4026-9d4c-89a0644f8192", "Image")));
             }
         }
 
@@ -3385,7 +3392,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Moon", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Moon", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -3518,7 +3525,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class SaturnOutpost : Outpost
     {
-        internal SaturnOutpost(NeoClient client, NeoAttributeCustomSaved node)
+        internal SaturnOutpost(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
@@ -3528,7 +3535,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(string Name, Sprite Image, SaturnMoon Moon, Planet? Planet = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, Sprite Image, SaturnMoon Moon, Planet? Planet = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3573,10 +3580,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 updatedAt = nowIso,
                 value = new[] { Moon.optionId },
             });
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "96818dab-90e5-4ab9-8f69-cce66e39e370", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "96818dab-90e5-4ab9-8f69-cce66e39e370", value, valueRows);
         }
 
-        internal new static SaturnOutpost CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal new static SaturnOutpost CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -3597,7 +3604,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -3609,7 +3616,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -3619,7 +3626,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
             }
         }
 
@@ -3629,7 +3636,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateSaved);
+                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateWritable);
             }
         }
 
@@ -3652,7 +3659,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
             }
         }
 
@@ -3666,7 +3673,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Moon", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Moon", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -3784,19 +3791,19 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     public partial class Item : ReadOnlyItem
     {
-        internal Item(NeoClient client, NeoAttributeCustomSaved node)
+        internal Item(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
         }
 
-        protected NeoAttributeCustomSaved savedNode => (NeoAttributeCustomSaved)node;
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
         public Item(string? Name = null, int? Value = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Value))
         {
         }
 
-        private static NeoAttributeCustomSaved CreateFactoryNode(string? Name = null, int? Value = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Value = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3826,10 +3833,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = Value.HasValue ? Value.Value : (double?)null,
                 });
             }
-            return NeoGeneratedTypesSupport.CreateSavedCustomValue(client, "60c25a92-cb01-46f7-b5cf-c9d950586116", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "60c25a92-cb01-46f7-b5cf-c9d950586116", value, valueRows);
         }
 
-        internal static Item CreateSaved(NeoClient client, NeoAttributeCustomSaved node)
+        internal static Item CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
             {
@@ -3849,7 +3856,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Name", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -3861,7 +3868,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(savedNode, "Value", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Value", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -3880,6 +3887,148 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Name] = () => Name,
                 [Fields.Value] = () => Value,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public partial class ReadOnlySession : NeoGeneratedCustomValue
+    {
+        internal ReadOnlySession(NeoClient client, NeoAttributeCustom node)
+            : base(client, node, "63b261c9-46f2-4d37-84e9-06f16af04e58")
+        {
+        }
+
+        internal static ReadOnlySession Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlySession(client, node),
+                };
+            });
+        }
+
+        public bool Foo
+        {
+            get
+            {
+                return node.Get<NeoAttributeBool>("Foo").value?.value ?? throw new InvalidOperationException("Required bool 'Foo' has no value.");
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<bool> Foo = new("Foo");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Foo] = () => Foo,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+    }
+
+    public partial class Session : ReadOnlySession
+    {
+        internal Session(NeoClient client, NeoAttributeCustomWritable node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
+
+        public Session(bool? Foo = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Foo))
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(bool? Foo = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Foo is not null)
+            {
+                var FooValueId = Guid.NewGuid().ToString();
+                value["Foo"] = FooValueId;
+                valueRows.Add(new BoolAttributeValue
+                {
+                    id = FooValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Foo,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "63b261c9-46f2-4d37-84e9-06f16af04e58", value, valueRows);
+        }
+
+        internal static Session CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Session(client, node),
+                };
+            });
+        }
+
+        public new bool Foo
+        {
+            get
+            {
+                return node.Get<NeoAttributeBool>("Foo").value?.value ?? throw new InvalidOperationException("Required bool 'Foo' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Foo", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<bool> Foo = new("Foo");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Foo] = () => Foo,
             };
         }
 

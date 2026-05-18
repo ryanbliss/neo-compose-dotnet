@@ -58,6 +58,8 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(app.Client);
             Assert.IsNotNull(app.Assets);
             Assert.IsNotNull(app.Save);
+            Assert.IsNotNull(app.Session);
+            Assert.AreSame(app.Client.SessionRoot, host.SessionRoot);
             Assert.IsNotNull(host.FindUnlinkedSaveValueIds());
             Assert.AreEqual("fire", Element.fire.optionId);
             Assert.IsTrue(Element.IsKnown("fire"));
@@ -69,7 +71,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
             var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
                 app.Client,
                 derivedAttr,
                 null);
@@ -90,7 +92,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
             var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
                 app.Client,
                 derivedAttr,
                 null);
@@ -110,7 +112,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
             var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
                 app.Client,
                 derivedAttr,
                 null);
@@ -133,7 +135,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
             var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
                 app.Client,
                 derivedAttr,
                 null);
@@ -162,7 +164,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
             var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
                 app.Client,
                 derivedAttr,
                 null);
@@ -190,7 +192,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Ada", hero.Name);
             Assert.AreEqual(7, hero.Health);
 
-            var heroesNode = app.Client.save.Get<NeoAttributeListSaved>("Heroes");
+            var heroesNode = app.Client.save.Get<NeoAttributeListWritable>("Heroes");
             var childNode = (NeoAttributeCustom)heroesNode[0];
             Assert.IsNotNull(childNode.overrideValueId);
             Assert.IsTrue(app.Client.TryGetValue<ObjectAttributeValue>(
@@ -233,12 +235,12 @@ namespace NeoCompose.Tests
                 updatedAt = "1970-01-01T00:00:00.000Z",
             };
 
-            var holder = NeoGeneratedTypesSupport.CreateSavedCustomValue(
+            var holder = NeoGeneratedTypesSupport.CreateWritableCustomValue(
                 app.Client,
                 "type-default-holder",
                 new Dictionary<string, string>(),
                 System.Array.Empty<AttributeValue>());
-            var hero = holder.Get<NeoAttributeCustomSaved>("Hero");
+            var hero = holder.Get<NeoAttributeCustomWritable>("Hero");
 
             Assert.AreEqual(
                 "Hero",
@@ -343,21 +345,72 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedConstructor_CreatesCollectableUnlinkedSavedValue()
+        public void GeneratedSession_MutationsDoNotSerializeOrResetOnCommit()
+        {
+            var app = LoadGeneratedClient(out _);
+            const int transientScore = 424242;
+
+            app.Session.Score = transientScore;
+            Assert.AreEqual(transientScore, app.Session.Score);
+
+            string serializedBeforeCommit = app.SerializeSaveData();
+            Assert.IsFalse(serializedBeforeCommit.Contains(transientScore.ToString()));
+
+            app.Commit();
+
+            Assert.AreEqual(transientScore, app.Session.Score);
+            Assert.IsFalse(app.SerializeSaveData().Contains(transientScore.ToString()));
+        }
+
+        [Test]
+        public void GeneratedSession_ReloadStartsFromAuthoredDefaults()
+        {
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
+
+            var first = TestProjectNeo.Load(
+                LoadFixture("synth-example.json"),
+                loadSave,
+                handleSave);
+            first.Session.Score = 777777;
+            first.Save.Score = 12;
+            first.Commit();
+
+            var second = TestProjectNeo.Load(
+                LoadFixture("synth-example.json"),
+                loadSave,
+                handleSave);
+
+            Assert.AreEqual(12, second.Save.Score);
+            Assert.AreEqual(10, second.Session.Score);
+            Assert.IsFalse(saveBuffer.Contains("777777"));
+        }
+
+        [Test]
+        public void GeneratedConstructor_CreatesTransientSessionValueThenPromotesToSave()
         {
             var app = LoadGeneratedClient(out _);
 
-            var orphan = new Hero(Name: "Orphan", Health: 1);
-            Assert.IsNotNull(orphan.valueId);
-            CollectionAssert.Contains(
-                new System.Collections.Generic.List<string>(
-                    app.FindUnlinkedSaveValueIds()),
-                orphan.valueId);
-
-            Assert.GreaterOrEqual(app.RunGarbageCollector(), 1);
-            Assert.IsFalse(app.Client.TryGetValue<ObjectAttributeValue>(
-                orphan.valueId!,
+            var transient = new Hero(Name: "Transient Hero", Health: 1);
+            Assert.IsNotNull(transient.valueId);
+            Assert.IsTrue(app.Client.TryGetValueOwnership(
+                transient.valueId!,
+                out NeoValueOwnership initialOwnership));
+            Assert.AreEqual(NeoValueOwnership.Session, initialOwnership);
+            Assert.IsFalse(app.SerializeSaveData().Contains("Transient Hero"));
+            Assert.AreEqual(0, app.RunGarbageCollector());
+            Assert.IsTrue(app.Client.TryGetValue<ObjectAttributeValue>(
+                transient.valueId!,
                 out _));
+
+            app.Save.Heroes.Add(transient);
+
+            Assert.IsTrue(app.Client.TryGetValueOwnership(
+                transient.valueId!,
+                out NeoValueOwnership promotedOwnership));
+            Assert.AreEqual(NeoValueOwnership.Save, promotedOwnership);
+            Assert.IsTrue(app.SerializeSaveData().Contains("Transient Hero"));
         }
     }
 }

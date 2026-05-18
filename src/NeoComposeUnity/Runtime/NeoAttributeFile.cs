@@ -12,11 +12,11 @@ namespace NeoCompose.Runtime
     public class NeoAttributeSprite
         : NeoAttribute<SpriteAttribute, SpriteAttributeValue>
     {
-        public NeoAttributeSprite(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeSprite(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeSprite(NeoClient client, SpriteAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeSprite(NeoClient client, SpriteAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         /// <summary>
         /// Resolves the current file reference through the synchronized
@@ -29,13 +29,13 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>Writeable variant of <see cref="NeoAttributeSprite"/>.</summary>
-    public class NeoAttributeSpriteSaved : NeoAttributeSprite
+    public class NeoAttributeSpriteWritable : NeoAttributeSprite
     {
-        public NeoAttributeSpriteSaved(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeSpriteWritable(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeSpriteSaved(NeoClient client, SpriteAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeSpriteWritable(NeoClient client, SpriteAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         public void Set(SpriteValue? newValue)
         {
@@ -51,7 +51,7 @@ namespace NeoCompose.Runtime
             {
                 existing.value = newValue;
                 existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
+                client.SetWritableValue(ownership, existing);
                 NotifyChanged();
                 return;
             }
@@ -64,7 +64,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = newValue,
             };
-            client.AddSaveValue(attribute.id, newRow);
+            client.AddWritableValue(ownership, attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
         }
@@ -86,11 +86,11 @@ namespace NeoCompose.Runtime
     public class NeoAttributeAudio
         : NeoAttribute<AudioAttribute, FileAttributeValue>
     {
-        public NeoAttributeAudio(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeAudio(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeAudio(NeoClient client, AudioAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeAudio(NeoClient client, AudioAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         /// <summary>
         /// Resolves the current file reference through the synchronized
@@ -103,13 +103,13 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>Writeable variant of <see cref="NeoAttributeAudio"/>.</summary>
-    public class NeoAttributeAudioSaved : NeoAttributeAudio
+    public class NeoAttributeAudioWritable : NeoAttributeAudio
     {
-        public NeoAttributeAudioSaved(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeAudioWritable(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeAudioSaved(NeoClient client, AudioAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeAudioWritable(NeoClient client, AudioAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         public void Set(FileValue? newValue)
         {
@@ -125,7 +125,7 @@ namespace NeoCompose.Runtime
             {
                 existing.value = newValue;
                 existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
+                client.SetWritableValue(ownership, existing);
                 NotifyChanged();
                 return;
             }
@@ -138,7 +138,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = newValue,
             };
-            client.AddSaveValue(attribute.id, newRow);
+            client.AddWritableValue(ownership, attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
         }

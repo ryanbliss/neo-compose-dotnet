@@ -92,8 +92,10 @@ namespace NeoCompose.Runtime.Json
     {
         public const string Local = "local";
         public const string Save = "save";
+        public const string Session = "session";
         public const string Asset = "asset";
         public const string AssetToSaveLookup = "assetToSaveLookup";
+        public const string AssetToSessionLookup = "assetToSessionLookup";
         public const string ReadOnly = "readOnly";
     }
 

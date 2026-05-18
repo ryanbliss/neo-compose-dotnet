@@ -21,14 +21,14 @@ namespace NeoCompose.Runtime
     {
         protected JsonEnum enumDef;
 
-        public NeoAttributeEnum(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId)
+        public NeoAttributeEnum(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership)
         {
             enumDef = ResolveEnum();
         }
 
-        public NeoAttributeEnum(NeoClient client, EnumAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId)
+        public NeoAttributeEnum(NeoClient client, EnumAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership)
         {
             enumDef = ResolveEnum();
         }
@@ -65,13 +65,13 @@ namespace NeoCompose.Runtime
         }
     }
 
-    public class NeoAttributeEnumSaved : NeoAttributeEnum
+    public class NeoAttributeEnumWritable : NeoAttributeEnum
     {
-        public NeoAttributeEnumSaved(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeEnumWritable(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeEnumSaved(NeoClient client, EnumAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeEnumWritable(NeoClient client, EnumAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         /// <summary>
         /// Overwrites the selected option ids. Each id is validated
@@ -111,7 +111,7 @@ namespace NeoCompose.Runtime
             {
                 existing.value = normalized;
                 existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
+                client.SetWritableValue(ownership, existing);
                 NotifyChanged();
                 return;
             }
@@ -124,7 +124,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = normalized,
             };
-            client.AddSaveValue(attribute.id, newRow);
+            client.AddWritableValue(ownership, attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
         }

@@ -38,8 +38,8 @@ namespace NeoCompose.Runtime
         public IList<MergedSchemaEntry> mergedSchema { get; private set; } = new List<MergedSchemaEntry>();
         protected Dictionary<string, NeoAttribute> childAttributes = new();
 
-        public NeoAttributeCustom(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId)
+        public NeoAttributeCustom(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership)
         {
             type = ResolveCustomType();
             ResolveTypeContext();
@@ -51,8 +51,8 @@ namespace NeoCompose.Runtime
             ReinitializeChildren();
         }
 
-        public NeoAttributeCustom(NeoClient client, CustomAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId)
+        public NeoAttributeCustom(NeoClient client, CustomAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership)
         {
             type = ResolveCustomType();
             ResolveTypeContext();
@@ -61,8 +61,8 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Hook for child instantiation — returns the read-only kind.
-        /// <see cref="NeoAttributeCustomSaved"/> overrides this to
-        /// return Saved kinds so descendants of a writeable Custom are
+        /// <see cref="NeoAttributeCustomWritable"/> overrides this to
+        /// return Writable kinds so descendants of a writeable Custom are
         /// also writeable. Sets <see cref="NeoAttribute.parent"/> on
         /// the constructed child so consumers (e.g.,
         /// <see cref="NeoAttributeNSGetter.Compute"/>) can walk up.
@@ -219,7 +219,7 @@ namespace NeoCompose.Runtime
         /// <see cref="childAttributes"/> dict from scratch using the
         /// current <see cref="type"/>'s schema. Called after the
         /// schema is wired (post-base-ctor), and again whenever a
-        /// Saved mutation invalidates the cached children.
+        /// Writable mutation invalidates the cached children.
         /// </summary>
         protected void ReinitializeChildren()
         {
@@ -324,22 +324,22 @@ namespace NeoCompose.Runtime
     /// Writeable variant of <see cref="NeoAttributeCustom"/>. All
     /// descendants are also Saved (the
     /// <see cref="CreateChild"/> override returns
-    /// <see cref="NeoAttribute.CreateSaved"/> kinds).
+    /// <see cref="NeoAttribute.CreateWritable"/> kinds).
     /// </summary>
-    public class NeoAttributeCustomSaved : NeoAttributeCustom
+    public class NeoAttributeCustomWritable : NeoAttributeCustom
     {
-        public NeoAttributeCustomSaved(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeCustomWritable(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeCustomSaved(NeoClient client, CustomAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeCustomWritable(NeoClient client, CustomAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         protected override NeoAttribute CreateChild(
             NeoClient client,
             Attribute childAttribute,
             string? overrideValueId)
         {
-            var child = CreateSaved(client, childAttribute, overrideValueId);
+            var child = CreateWritable(client, childAttribute, overrideValueId, ownership);
             child.parent = this;
             return child;
         }
@@ -372,9 +372,9 @@ namespace NeoCompose.Runtime
             return Get<TNeoAttribute>(key);
         }
 
-        public NeoAttributeLookupSaved GetOrCreateLookup(string key)
+        public NeoAttributeLookupWritable GetOrCreateLookup(string key)
         {
-            if (TryGet(key, out NeoAttributeLookupSaved? existing)) return existing;
+            if (TryGet(key, out NeoAttributeLookupWritable? existing)) return existing;
 
             string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
             if (schemaKeyedAttributeId is null)
@@ -394,7 +394,7 @@ namespace NeoCompose.Runtime
             }
 
             SetSerializedValue(key, NeoValueWritePayload.FromValue(System.Array.Empty<string>()));
-            return Get<NeoAttributeLookupSaved>(key);
+            return Get<NeoAttributeLookupWritable>(key);
         }
 
         /// <summary>
@@ -435,10 +435,10 @@ namespace NeoCompose.Runtime
             {
                 if (setValue?.isValueReference == true)
                 {
-                    value.value[key] = setValue.valueId!;
+                    value.value[key] = client.ImportValueReference(ownership, setValue.valueId!);
                     value.updatedAt = nowIso;
-                    client.SetSaveValue(value);
-                    client.RemoveSaveValueAndDescendantsIfUnlinked(existingValueId);
+                    client.SetWritableValue(ownership, value);
+                    client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, existingValueId);
                     ReinitializeChildren();
                     NotifyChildChanged(key);
                     return;
@@ -451,8 +451,8 @@ namespace NeoCompose.Runtime
                     existingValueId,
                     existing.createdAt,
                     nowIso);
-                client.SetSavePayloadRows(setValue?.value);
-                client.SetSaveValue(next);
+                client.SetWritablePayloadRows(ownership, setValue?.value);
+                client.SetWritableValue(ownership, next);
                 ReinitializeChildren();
                 if (!childWillSelfNotify)
                 {
@@ -469,15 +469,15 @@ namespace NeoCompose.Runtime
             string newValueId;
             if (setValue?.isValueReference == true)
             {
-                newValueId = setValue.valueId!;
+                newValueId = client.ImportValueReference(ownership, setValue.valueId!);
             }
             else
             {
                 newValueId = System.Guid.NewGuid().ToString();
                 AttributeValue newValueRow = AttributeValueFactory.Create(
                     childAttribute, setValue?.value, newValueId, nowIso, nowIso);
-                client.SetSavePayloadRows(setValue?.value);
-                client.SetSaveValue(newValueRow);
+                client.SetWritablePayloadRows(ownership, setValue?.value);
+                client.SetWritableValue(ownership, newValueRow);
             }
 
             // Make sure the parent has a value to link into. If we're
@@ -492,14 +492,14 @@ namespace NeoCompose.Runtime
                     updatedAt = nowIso,
                     value = new Dictionary<string, string>(),
                 };
-                client.AddSaveValue(attribute.id, parentRow);
+                client.AddWritableValue(ownership, attribute.id, parentRow);
                 RefreshFromValueData();
             }
 
             value!.value ??= new Dictionary<string, string>();
             value.value[key] = newValueId;
             value.updatedAt = nowIso;
-            client.SetSaveValue(value);
+            client.SetWritableValue(ownership, value);
 
             ReinitializeChildren();
             NotifyChildChanged(key);
@@ -521,7 +521,7 @@ namespace NeoCompose.Runtime
 
             value.value.Remove(key);
             value.updatedAt = nowIso;
-            client.SetSaveValue(value);
+            client.SetWritableValue(ownership, value);
 
             if (childAttributes.TryGetValue(key, out NeoAttribute? child))
             {
@@ -530,7 +530,7 @@ namespace NeoCompose.Runtime
                 childAttributes.Remove(key);
             }
 
-            client.RemoveSaveValueAndDescendantsIfUnlinked(removedValueId);
+            client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, removedValueId);
             NotifyChanged();
         }
     }

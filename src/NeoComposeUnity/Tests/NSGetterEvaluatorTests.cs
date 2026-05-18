@@ -165,7 +165,7 @@ namespace NeoCompose.Tests
                         FunctionTestValue.Create(factoryClient, node),
                 };
             var savedFactories =
-                new Dictionary<string, NeoGeneratedTypesSupport.SavedCustomFactory>();
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>();
             client.RegisterNativeFunctionInvokers(new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
                 ["attr-native-ping"] = (invokeClient, receiver, args) =>
@@ -517,7 +517,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Evaluate_GeneratedCustomThis_AllKnownAttributeTypes_ReadOnlyAndSaved()
+        public void Evaluate_GeneratedCustomThis_AllKnownAttributeTypes_ReadOnlyAndWritable()
         {
             var client = LoadGeneratedValueSurfaceClient(
                 out CustomAttribute testAttribute,
@@ -527,7 +527,7 @@ namespace NeoCompose.Tests
                 client,
                 testAttribute,
                 readOnlyRow.id);
-            var savedNode = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(
+            var writableNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
                 client,
                 testAttribute,
                 savedRow.id);
@@ -537,7 +537,7 @@ namespace NeoCompose.Tests
                 new TestReadOnlyGeneratedValue(client, readOnlyNode));
             AssertGeneratedValueSurface(
                 client,
-                new TestGeneratedValue(client, savedNode));
+                new TestGeneratedValue(client, writableNode));
         }
 
         [Test]
@@ -983,6 +983,10 @@ namespace NeoCompose.Tests
                 "attr-native-save",
                 "Save",
                 "type-native-root");
+            var rootSessionAttribute = CustomAttribute(
+                "attr-native-session",
+                "Session",
+                "type-native-root");
             var receiverType = CustomType(
                 "type-native-receiver",
                 "NativeReceiver",
@@ -1003,6 +1007,7 @@ namespace NeoCompose.Tests
                     name = "Native Function",
                     rootAssetsAttributeId = rootAttribute.id,
                     rootSaveFileAttributeId = rootSaveAttribute.id,
+                    rootSessionAttributeId = rootSessionAttribute.id,
                     createdAt = "x",
                     updatedAt = "x",
                 },
@@ -1012,6 +1017,7 @@ namespace NeoCompose.Tests
                     [receiverAttribute.id] = receiverAttribute,
                     [rootAttribute.id] = rootAttribute,
                     [rootSaveAttribute.id] = rootSaveAttribute,
+                    [rootSessionAttribute.id] = rootSessionAttribute,
                 },
                 values = new Dictionary<string, AttributeValue>
                 {
@@ -1145,6 +1151,7 @@ namespace NeoCompose.Tests
                     name = "Generated Surface",
                     rootAssetsAttributeId = rootAttribute.id,
                     rootSaveFileAttributeId = rootSaveAttribute.id,
+                    rootSessionAttributeId = rootSaveAttribute.id,
                     createdAt = "x",
                     updatedAt = "x",
                 },
@@ -1527,7 +1534,7 @@ namespace NeoCompose.Tests
 
         private sealed class TestGeneratedValue : NeoGeneratedCustomValue
         {
-            public TestGeneratedValue(NeoClient client, NeoAttributeCustomSaved node)
+            public TestGeneratedValue(NeoClient client, NeoAttributeCustomWritable node)
                 : base(client, node, "type-test")
             {
             }

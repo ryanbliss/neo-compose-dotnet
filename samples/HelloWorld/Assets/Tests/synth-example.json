@@ -5,6 +5,7 @@
     "name": "Test Project",
     "rootAssetsAttributeId": "root-assets",
     "rootSaveFileAttributeId": "root-save",
+    "rootSessionAttributeId": "root-session",
     "createdAt": "1970-01-01T00:00:00.000Z",
     "updatedAt": "1970-01-01T00:00:00.000Z"
   },
@@ -25,6 +26,18 @@
       "_id": "8fd6b2d6-497d-47a6-8b3e-a8702063e9df",
       "id": "root-save",
       "name": "Save",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": "1970-01-01T00:00:00.000Z",
+      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "customTypeId": "type-root"
+    },
+    "root-session": {
+      "_id": "e9282d5f-3ac6-4311-9efd-df746361438f",
+      "id": "root-session",
+      "name": "Session",
       "type": 7,
       "locked": false,
       "required": false,

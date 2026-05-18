@@ -24,7 +24,7 @@ namespace NeoCompose.Tests
     ///     value-id (or null on removal); subscribed
     ///     <see cref="NeoAttribute"/> nodes refresh their resolved
     ///     <c>value</c> via the chain.
-    ///   - <c>*Saved.Remove</c>/<c>RemoveAt</c> on collection types
+        ///   - <c>*Writable.Remove</c>/<c>RemoveAt</c> on collection types
     ///     dispose the orphaned child node AND cascade-delete the
     ///     orphaned value graph from
     ///     <see cref="ProjectSaveData.values"/>.
@@ -69,11 +69,11 @@ namespace NeoCompose.Tests
             var nameAttr = RequireAttribute<StringAttribute>(client, "attr-name");
 
             var node = NeoAttribute.Create(client, nameAttr, null);
-            Assert.IsTrue(client.nodes.ContainsKey("attr-name"));
+            Assert.IsTrue(client.nodes.ContainsKey("asset:attr-name"));
 
             node.Dispose();
             Assert.IsTrue(node.isDisposed);
-            Assert.IsFalse(client.nodes.ContainsKey("attr-name"));
+            Assert.IsFalse(client.nodes.ContainsKey("asset:attr-name"));
         }
 
         [Test]
@@ -100,13 +100,13 @@ namespace NeoCompose.Tests
 
             var first = new NeoAttributeString(client, nameAttr, null);
             var second = new NeoAttributeString(client, nameAttr, null);
-            Assert.AreSame(second, client.nodes["attr-name"], "Direct new is last-write-wins");
+            Assert.AreSame(second, client.nodes["asset:attr-name"], "Direct new is last-write-wins");
 
             first.Dispose();
             // First's Dispose tried to unregister "attr-name" but the
             // registry's instance was second, so the entry stays.
-            Assert.IsTrue(client.nodes.ContainsKey("attr-name"));
-            Assert.AreSame(second, client.nodes["attr-name"]);
+            Assert.IsTrue(client.nodes.ContainsKey("asset:attr-name"));
+            Assert.AreSame(second, client.nodes["asset:attr-name"]);
         }
 
         // -----------------------------------------------------------------
@@ -120,15 +120,15 @@ namespace NeoCompose.Tests
             var heroAttr = RequireAttribute<CustomAttribute>(client, "attr-hero");
             // Bind to v-dict so children get walked.
             var hero = (NeoAttributeCustom)NeoAttribute.Create(client, heroAttr, "v-dict");
-            Assert.IsTrue(client.nodes.ContainsKey("attr-name_v-name"),
+            Assert.IsTrue(client.nodes.ContainsKey("asset:attr-name_v-name"),
                 "Pre-condition: child registered");
-            var child = client.nodes["attr-name_v-name"];
+            var child = client.nodes["asset:attr-name_v-name"];
 
             hero.Dispose();
             Assert.IsTrue(hero.isDisposed);
             Assert.IsTrue(child.isDisposed, "Child should be disposed by parent's recursive Dispose");
-            Assert.IsFalse(client.nodes.ContainsKey("attr-hero_v-dict"));
-            Assert.IsFalse(client.nodes.ContainsKey("attr-name_v-name"));
+            Assert.IsFalse(client.nodes.ContainsKey("asset:attr-hero_v-dict"));
+            Assert.IsFalse(client.nodes.ContainsKey("asset:attr-name_v-name"));
         }
 
         // -----------------------------------------------------------------
@@ -238,7 +238,7 @@ namespace NeoCompose.Tests
             var inventoryAttr = RequireAttribute<DictionaryAttribute>(client, "attr-inventory");
             // Materialize a Dict by adding a key — DictionarySaved.Set
             // creates the parent + child rows in saveData.values.
-            var inv = (NeoAttributeDictionarySaved)NeoAttribute.CreateSaved(
+            var inv = (NeoAttributeDictionaryWritable)NeoAttribute.CreateWritable(
                 client, inventoryAttr, null);
             NeoGeneratedTypesSupport.SetValue(
                 inv,
@@ -248,7 +248,7 @@ namespace NeoCompose.Tests
             // Capture the registered child + its valueId before removal.
             Assert.IsTrue(inv.TryGet<NeoAttributeString>("sword", out NeoAttributeString? childBefore));
             string entryValueId = childBefore!.overrideValueId!;
-            Assert.IsTrue(client.nodes.ContainsKey($"attr-name_{entryValueId}"));
+            Assert.IsTrue(client.nodes.ContainsKey($"session:attr-name_{entryValueId}"));
             // Round-trip through the client to confirm the entry value
             // is sitting in saveData.values.
             Assert.IsTrue(client.TryGetValue<StringAttributeValue>(entryValueId, out _));
@@ -256,7 +256,7 @@ namespace NeoCompose.Tests
             inv.Remove("sword");
 
             Assert.IsTrue(childBefore.isDisposed);
-            Assert.IsFalse(client.nodes.ContainsKey($"attr-name_{entryValueId}"));
+            Assert.IsFalse(client.nodes.ContainsKey($"session:attr-name_{entryValueId}"));
             Assert.IsFalse(client.TryGetValue<StringAttributeValue>(entryValueId, out _),
                 "Removed entry's value row should be GC'd from saveData");
         }
@@ -266,7 +266,7 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient();
             var tagsAttr = RequireAttribute<ListAttribute>(client, "attr-tags");
-            var tags = (NeoAttributeListSaved)NeoAttribute.CreateSaved(client, tagsAttr, null);
+            var tags = (NeoAttributeListWritable)NeoAttribute.CreateWritable(client, tagsAttr, null);
             NeoGeneratedTypesSupport.AddValue(
                 tags,
                 NeoGeneratedTypesSupport.Value("first"));
@@ -276,13 +276,13 @@ namespace NeoCompose.Tests
 
             var firstChild = (NeoAttributeString)tags[0];
             string firstValueId = firstChild.overrideValueId!;
-            Assert.IsTrue(client.nodes.ContainsKey($"attr-name_{firstValueId}"));
+            Assert.IsTrue(client.nodes.ContainsKey($"session:attr-name_{firstValueId}"));
             Assert.IsTrue(client.TryGetValue<StringAttributeValue>(firstValueId, out _));
 
             tags.RemoveAt(0);
 
             Assert.IsTrue(firstChild.isDisposed);
-            Assert.IsFalse(client.nodes.ContainsKey($"attr-name_{firstValueId}"));
+            Assert.IsFalse(client.nodes.ContainsKey($"session:attr-name_{firstValueId}"));
             Assert.IsFalse(client.TryGetValue<StringAttributeValue>(firstValueId, out _),
                 "Removed entry's value row should be GC'd from saveData");
             Assert.AreEqual(1, tags.Count);
@@ -293,7 +293,7 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient();
             var heroAttr = RequireAttribute<CustomAttribute>(client, "attr-hero");
-            var hero = (NeoAttributeCustomSaved)NeoAttribute.CreateSaved(client, heroAttr, null);
+            var hero = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(client, heroAttr, null);
             NeoGeneratedTypesSupport.SetValue(
                 hero,
                 "Name",
@@ -301,13 +301,13 @@ namespace NeoCompose.Tests
 
             var nameChild = (NeoAttributeString)hero["Name"];
             string nameValueId = nameChild.overrideValueId!;
-            Assert.IsTrue(client.nodes.ContainsKey($"attr-name_{nameValueId}"));
+            Assert.IsTrue(client.nodes.ContainsKey($"session:attr-name_{nameValueId}"));
             Assert.IsTrue(client.TryGetValue<StringAttributeValue>(nameValueId, out _));
 
             hero.Remove("Name");
 
             Assert.IsTrue(nameChild.isDisposed);
-            Assert.IsFalse(client.nodes.ContainsKey($"attr-name_{nameValueId}"));
+            Assert.IsFalse(client.nodes.ContainsKey($"session:attr-name_{nameValueId}"));
             Assert.IsFalse(client.TryGetValue<StringAttributeValue>(nameValueId, out _));
         }
 

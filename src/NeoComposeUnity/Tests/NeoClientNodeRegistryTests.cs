@@ -13,17 +13,17 @@ namespace NeoCompose.Tests
     /// <summary>
     /// Coverage for the flat <see cref="NeoClient.nodes"/> registry +
     /// dedup behavior on <see cref="NeoAttribute.Create"/> /
-    /// <see cref="NeoAttribute.CreateSaved"/>.
+    /// <see cref="NeoAttribute.CreateWritable"/>.
     ///
     /// The registry's contract:
     ///
-    ///   - Every constructed <see cref="NeoAttribute"/> registers itself
-    ///     under <c>MakeNodeKey(attribute.id, overrideValueId)</c>.
+        ///   - Every constructed <see cref="NeoAttribute"/> registers itself
+        ///     under <c>MakeNodeKey(attribute.id, overrideValueId, ownership)</c>.
     ///   - <see cref="NeoAttribute.Create"/> /
-    ///     <see cref="NeoAttribute.CreateSaved"/> short-circuit to the
+    ///     <see cref="NeoAttribute.CreateWritable"/> short-circuit to the
     ///     registered instance when one exists for the requested key.
-    ///   - <c>overrideValueId</c> being null produces a key of
-    ///     <c>attribute.id</c>; non-null appends <c>"_{valueId}"</c>.
+        ///   - <c>overrideValueId</c> being null produces a key scoped by
+        ///     ownership; non-null appends <c>"_{valueId}"</c>.
     /// </summary>
     public class NeoClientNodeRegistryTests
     {
@@ -65,12 +65,13 @@ namespace NeoCompose.Tests
         private static NeoAttribute RequireNode(
             NeoClient client,
             string attributeId,
-            string? overrideValueId)
+            string? overrideValueId,
+            NeoValueOwnership ownership = NeoValueOwnership.Asset)
         {
-            if (!client.TryGetNode(attributeId, overrideValueId, out NeoAttribute? node))
+            if (!client.TryGetNode(attributeId, overrideValueId, ownership, out NeoAttribute? node))
             {
                 Assert.Fail(
-                    $"Registry is missing node {NeoClient.MakeNodeKey(attributeId, overrideValueId)}");
+                    $"Registry is missing node {NeoClient.MakeNodeKey(attributeId, overrideValueId, ownership)}");
                 throw new System.InvalidOperationException("unreachable");
             }
             return node;
@@ -79,14 +80,18 @@ namespace NeoCompose.Tests
         [Test]
         public void MakeNodeKey_NoOverride_IsBareAttributeId()
         {
-            Assert.AreEqual("attr-x", NeoClient.MakeNodeKey("attr-x", null));
-            Assert.AreEqual("attr-x", NeoClient.MakeNodeKey("attr-x", ""));
+            Assert.AreEqual("asset:attr-x", NeoClient.MakeNodeKey("attr-x", null));
+            Assert.AreEqual("asset:attr-x", NeoClient.MakeNodeKey("attr-x", ""));
+            Assert.AreEqual("save:attr-x", NeoClient.MakeNodeKey(
+                "attr-x",
+                null,
+                NeoValueOwnership.Save));
         }
 
         [Test]
         public void MakeNodeKey_WithOverride_AppendsValueId()
         {
-            Assert.AreEqual("attr-x_v-7", NeoClient.MakeNodeKey("attr-x", "v-7"));
+            Assert.AreEqual("asset:attr-x_v-7", NeoClient.MakeNodeKey("attr-x", "v-7"));
         }
 
         [Test]
@@ -94,10 +99,19 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient();
 
-            // The two roots are constructed in NeoClient's ctor; both
+            // The roots are constructed in NeoClient's ctor; all
             // self-register.
             Assert.AreSame(client.assets, RequireNode(client, "root-assets", null));
-            Assert.AreSame(client.save, RequireNode(client, "root-save", null));
+            Assert.AreSame(client.save, RequireNode(
+                client,
+                "root-save",
+                null,
+                NeoValueOwnership.Save));
+            Assert.AreSame(client.session, RequireNode(
+                client,
+                "root-session",
+                null,
+                NeoValueOwnership.Session));
         }
 
         [Test]
@@ -114,16 +128,16 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CreateSaved_ReturnsCachedInstance_OnSecondCall()
+        public void CreateWritable_ReturnsCachedInstance_OnSecondCall()
         {
             var client = LoadClient();
             var nameAttr = RequireAttribute<StringAttribute>(client, "attr-name");
 
-            var first = NeoAttribute.CreateSaved(client, nameAttr, null);
-            var second = NeoAttribute.CreateSaved(client, nameAttr, null);
+            var first = NeoAttribute.CreateWritable(client, nameAttr, null);
+            var second = NeoAttribute.CreateWritable(client, nameAttr, null);
 
             Assert.AreSame(first, second);
-            Assert.IsInstanceOf<NeoAttributeStringSaved>(first);
+            Assert.IsInstanceOf<NeoAttributeStringWritable>(first);
         }
 
         [Test]
@@ -157,14 +171,14 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(hero);
 
             Assert.IsTrue(
-                client.nodes.ContainsKey("attr-hero_v-dict"),
+                client.nodes.ContainsKey("asset:attr-hero_v-dict"),
                 "Parent registers under its composed key");
             var nameChild = RequireNode(client, "attr-name", "v-name");
             Assert.IsInstanceOf<NeoAttributeString>(nameChild);
         }
 
         [Test]
-        public void Create_FollowedByCreateSaved_ReplacesReadOnlyWithSavedInstance()
+        public void Create_FollowedByCreateWritable_ReplacesReadOnlyWithSavedInstance()
         {
             // Assets are constructed before Save and can register
             // read-only children for shared schema attributes. A later
@@ -175,12 +189,16 @@ namespace NeoCompose.Tests
             var altAttr = RequireAttribute<StringAttribute>(client, "attr-altname");
 
             var first = NeoAttribute.Create(client, altAttr, null);
-            var second = NeoAttribute.CreateSaved(client, altAttr, null);
+            var second = NeoAttribute.CreateWritable(client, altAttr, null);
 
             Assert.AreNotSame(first, second);
             Assert.IsInstanceOf<NeoAttributeString>(first);
-            Assert.IsInstanceOf<NeoAttributeStringSaved>(second);
-            Assert.AreSame(second, RequireNode(client, "attr-altname", null));
+            Assert.IsInstanceOf<NeoAttributeStringWritable>(second);
+            Assert.AreSame(second, RequireNode(
+                client,
+                "attr-altname",
+                null,
+                NeoValueOwnership.Session));
         }
     }
 }

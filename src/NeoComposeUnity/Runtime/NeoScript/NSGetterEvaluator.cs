@@ -1419,6 +1419,11 @@ namespace NeoCompose.Runtime.NeoScript
         {
             // Save-side wins by id (matches NeoClient.TryGetValue).
             var seen = new HashSet<string>();
+            foreach (var kvp in client.sessionValues)
+            {
+                seen.Add(kvp.Key);
+                yield return kvp;
+            }
             foreach (var kvp in client.saveValues)
             {
                 seen.Add(kvp.Key);

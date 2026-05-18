@@ -23,9 +23,9 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NeoAttributeCustom node);
 
-        public delegate object SavedCustomFactory(
+        public delegate object WritableCustomFactory(
             NeoClient client,
-            NeoAttributeCustomSaved node);
+            NeoAttributeCustomWritable node);
 
         public static NeoValueWritePayload? Value<T>(T? value)
         {
@@ -75,7 +75,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             string valueId,
             IReadOnlyDictionary<string, ReadOnlyCustomFactory> readOnlyFactories,
-            IReadOnlyDictionary<string, SavedCustomFactory> savedFactories)
+            IReadOnlyDictionary<string, WritableCustomFactory> savedFactories)
         {
             if (!client.TryGetValue(valueId, out ObjectAttributeValue? value))
             {
@@ -108,12 +108,13 @@ namespace NeoCompose.Runtime
                 };
             }
 
-            if (client.saveValues.ContainsKey(valueId)
+            if (client.TryGetValueOwnership(valueId, out NeoValueOwnership ownership)
+                && (ownership == NeoValueOwnership.Save || ownership == NeoValueOwnership.Session)
                 && savedFactories.TryGetValue(typeId, out var savedFactory))
             {
                 return savedFactory(
                     client,
-                    new NeoAttributeCustomSaved(client, attribute, valueId));
+                    new NeoAttributeCustomWritable(client, attribute, valueId, ownership));
             }
 
             if (readOnlyFactories.TryGetValue(typeId, out var readOnlyFactory))
@@ -130,7 +131,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             object? receiver,
             IReadOnlyDictionary<string, ReadOnlyCustomFactory> readOnlyFactories,
-            IReadOnlyDictionary<string, SavedCustomFactory> savedFactories,
+            IReadOnlyDictionary<string, WritableCustomFactory> savedFactories,
             string functionName,
             string attributeId)
             where T : class
@@ -155,7 +156,7 @@ namespace NeoCompose.Runtime
             object? value,
             bool required,
             IReadOnlyDictionary<string, ReadOnlyCustomFactory> readOnlyFactories,
-            IReadOnlyDictionary<string, SavedCustomFactory> savedFactories,
+            IReadOnlyDictionary<string, WritableCustomFactory> savedFactories,
             string argumentName)
             where T : class
         {
@@ -393,6 +394,7 @@ namespace NeoCompose.Runtime
         private static IEnumerable<KeyValuePair<string, AttributeValue>> EnumerateValues(
             NeoClient client)
         {
+            foreach (var pair in client.sessionValues) yield return pair;
             foreach (var pair in client.saveValues) yield return pair;
             foreach (var pair in client.values) yield return pair;
         }
@@ -416,7 +418,7 @@ namespace NeoCompose.Runtime
         }
 
         public static void SetValue(
-            NeoAttributeCustomSaved node,
+            NeoAttributeCustomWritable node,
             string key,
             NeoValueWritePayload? value)
         {
@@ -424,7 +426,7 @@ namespace NeoCompose.Runtime
         }
 
         public static void SetValue(
-            NeoAttributeDictionarySaved node,
+            NeoAttributeDictionaryWritable node,
             string key,
             NeoValueWritePayload? value)
         {
@@ -432,21 +434,21 @@ namespace NeoCompose.Runtime
         }
 
         public static void AddValue(
-            NeoAttributeListSaved node,
+            NeoAttributeListWritable node,
             NeoValueWritePayload? value)
         {
             node.AddSerialized(value);
         }
 
         public static void SetValue(
-            NeoAttributeListSaved node,
+            NeoAttributeListWritable node,
             int index,
             NeoValueWritePayload? value)
         {
             node.SetSerialized(index, value);
         }
 
-        public static NeoAttributeCustomSaved CreateSavedCustomValue(
+        public static NeoAttributeCustomWritable CreateWritableCustomValue(
             NeoClient client,
             string customTypeId,
             Dictionary<string, string> value,
@@ -454,7 +456,7 @@ namespace NeoCompose.Runtime
         {
             var nowIso = DateTime.UtcNow.ToString("o");
             var rows = new List<AttributeValue>(valueRows);
-            var parentRow = CreateSavedCustomValueRow(
+            var parentRow = CreateWritableCustomValueRow(
                 client,
                 customTypeId,
                 value,
@@ -465,7 +467,7 @@ namespace NeoCompose.Runtime
 
             foreach (var row in rows)
             {
-                client.SetSaveValue(row);
+                client.SetWritableValue(NeoValueOwnership.Session, row);
             }
 
             var factoryAttribute = new CustomAttribute
@@ -478,13 +480,14 @@ namespace NeoCompose.Runtime
                 createdAt = nowIso,
                 updatedAt = nowIso,
             };
-            return new NeoAttributeCustomSaved(
+            return new NeoAttributeCustomWritable(
                 client,
                 factoryAttribute,
-                parentRow.id);
+                parentRow.id,
+                NeoValueOwnership.Session);
         }
 
-        private static ObjectAttributeValue CreateSavedCustomValueRow(
+        private static ObjectAttributeValue CreateWritableCustomValueRow(
             NeoClient client,
             string customTypeId,
             Dictionary<string, string>? providedValue,
@@ -678,7 +681,7 @@ namespace NeoCompose.Runtime
                 rows,
                 nowIso,
                 customTypeStack);
-            return CreateSavedCustomValueRow(
+            return CreateWritableCustomValueRow(
                 client,
                 effectiveTypeId,
                 provided,
@@ -803,7 +806,7 @@ namespace NeoCompose.Runtime
                     };
                 case CustomAttribute customAttribute
                     when source is ObjectAttributeValue sourceValue:
-                    return CreateSavedCustomValueRow(
+                    return CreateWritableCustomValueRow(
                         client,
                         sourceValue.typeId ?? customAttribute.customTypeId,
                         CloneDefaultCustomChildren(
@@ -1075,7 +1078,7 @@ namespace NeoCompose.Runtime
             bool required,
             bool saved,
             Func<NeoClient, NeoAttributeCustom, T>? readOnlyFactory,
-            Func<NeoClient, NeoAttributeCustomSaved, T> savedFactory)
+            Func<NeoClient, NeoAttributeCustomWritable, T> savedFactory)
         {
             if (value is null)
             {
@@ -1127,18 +1130,20 @@ namespace NeoCompose.Runtime
 
             if (saved)
             {
-                if (!client.saveValues.ContainsKey(valueId))
+                if (!client.TryGetValueOwnership(valueId, out NeoValueOwnership ownership)
+                    || (ownership != NeoValueOwnership.Save && ownership != NeoValueOwnership.Session))
                 {
                     if (!client.TryMaterializeSavePath(valueId))
                     {
                         throw new InvalidOperationException(
                             "NSGetter returned an asset-owned custom value where a saved value was expected.");
                     }
+                    ownership = NeoValueOwnership.Save;
                 }
 
                 return savedFactory(
                     client,
-                    new NeoAttributeCustomSaved(client, attribute, valueId));
+                    new NeoAttributeCustomWritable(client, attribute, valueId, ownership));
             }
 
             if (readOnlyFactory is null)
@@ -1157,7 +1162,7 @@ namespace NeoCompose.Runtime
             object? value,
             bool saved,
             Func<NeoClient, NeoAttributeCustom, T>? readOnlyFactory,
-            Func<NeoClient, NeoAttributeCustomSaved, T> savedFactory)
+            Func<NeoClient, NeoAttributeCustomWritable, T> savedFactory)
         {
             T? resolved = ReadNSGetterCustom(
                 client,

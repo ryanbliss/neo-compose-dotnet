@@ -80,13 +80,16 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NSGetterEvaluator.Context ctx)
         {
-            var root = new Dictionary<string, object?>(2)
+            var root = new Dictionary<string, object?>(3)
             {
                 ["Assets"] = client.assets.value is ObjectAttributeValue assets
                     ? NSGetterEvaluator.UnwrapRow(assets, ctx)
                     : null,
                 ["Save"] = client.save.value is ObjectAttributeValue save
                     ? NSGetterEvaluator.UnwrapRow(save, ctx)
+                    : null,
+                ["Session"] = client.session.value is ObjectAttributeValue session
+                    ? NSGetterEvaluator.UnwrapRow(session, ctx)
                     : null,
             };
             return root;

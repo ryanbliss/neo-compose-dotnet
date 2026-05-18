@@ -15,7 +15,7 @@ namespace NeoCompose.Runtime
     /// time by walking the IR exposed via
     /// <see cref="NSGetterAttribute.getter"/>.
     ///
-    /// <para>No Saved variant — NSGetter values are derived, not set.
+    /// <para>No Writable variant — NSGetter values are derived, not set.
     /// <see cref="Compute"/> walks the IR via
     /// <see cref="NSGetterEvaluator"/>; <see cref="resolvedGetter"/>
     /// and <see cref="resolvedReturnTypeInfo"/> handle the
@@ -26,11 +26,11 @@ namespace NeoCompose.Runtime
     public class NeoAttributeNSGetter
         : NeoAttribute<NSGetterAttribute, NullAttributeValue>
     {
-        public NeoAttributeNSGetter(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeNSGetter(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeNSGetter(NeoClient client, NSGetterAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeNSGetter(NeoClient client, NSGetterAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         /// <summary>
         /// The compiled getter for this attribute, walking
@@ -175,12 +175,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         private object? ResolveRootValue(NSGetterEvaluator.Context ctx)
         {
-            var root = new Dictionary<string, object?>(2);
+            var root = new Dictionary<string, object?>(3);
             root["Assets"] = client.assets.value is ObjectAttributeValue a
                 ? NSGetterEvaluator.UnwrapRow(a, ctx)
                 : null;
             root["Save"] = client.save.value is ObjectAttributeValue s
                 ? NSGetterEvaluator.UnwrapRow(s, ctx)
+                : null;
+            root["Session"] = client.session.value is ObjectAttributeValue ss
+                ? NSGetterEvaluator.UnwrapRow(ss, ctx)
                 : null;
             return root;
         }

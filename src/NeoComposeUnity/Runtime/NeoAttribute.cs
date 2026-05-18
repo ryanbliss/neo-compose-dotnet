@@ -30,6 +30,7 @@ namespace NeoCompose.Runtime
     public abstract class NeoAttribute : NeoNode, System.IDisposable
     {
         public Attribute attribute { get; }
+        public NeoValueOwnership ownership { get; }
         /// <summary>
         /// The override-value-id passed to the ctor — together with
         /// <see cref="Attribute.id"/> it composes the registry key
@@ -61,10 +62,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         public bool isDisposed { get; private set; }
 
-        protected NeoAttribute(NeoClient client, Attribute attribute, string? overrideValueId) : base(client)
+        protected NeoAttribute(
+            NeoClient client,
+            Attribute attribute,
+            string? overrideValueId,
+            NeoValueOwnership ownership = NeoValueOwnership.Asset) : base(client)
         {
             this.attribute = attribute;
             this.overrideValueId = overrideValueId;
+            this.ownership = ownership;
         }
 
         /// <summary>
@@ -98,7 +104,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Read-only factory — instantiates the matching
         /// <c>NeoAttribute{Kind}</c> for the given attribute. Use
-        /// <see cref="CreateSaved"/> when constructing a writeable
+        /// <see cref="CreateWritable"/> when constructing a writeable
         /// sub-tree (e.g., descendants of <c>NeoClient.save</c>).
         ///
         /// <para>Returns the registry-cached instance for
@@ -106,17 +112,17 @@ namespace NeoCompose.Runtime
         /// when one already exists — see
         /// <see cref="NeoClient.TryGetNode"/>. Construction is the
         /// fallback when nothing is cached. Mixing
-        /// <see cref="Create"/> / <see cref="CreateSaved"/> for the same
+        /// <see cref="Create"/> / <see cref="CreateWritable"/> for the same
         /// key returns whichever was first; callers wanting the
         /// writeable variant should bootstrap their sub-tree through
-        /// <see cref="CreateSaved"/> from the root down.</para>
+        /// <see cref="CreateWritable"/> from the root down.</para>
         /// </summary>
         public static NeoAttribute Create(
             NeoClient client,
             Attribute attribute,
             string? overrideValueId)
         {
-            if (client.TryGetNode(attribute.id, overrideValueId, out NeoAttribute? existing))
+            if (client.TryGetNode(attribute.id, overrideValueId, NeoValueOwnership.Asset, out NeoAttribute? existing))
             {
                 return existing;
             }
@@ -142,7 +148,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Writeable factory — instantiates <c>NeoAttribute{Kind}Saved</c>
+        /// Writeable factory — instantiates <c>NeoAttribute{Kind}Writable</c>
         /// for kinds that support write-back, falling through to the
         /// read-only variant for Null and NSGetter (which have no
         /// stored value to set).
@@ -153,55 +159,56 @@ namespace NeoCompose.Runtime
         /// it's returned as-is, even if it's a read-only kind from a
         /// prior <see cref="Create"/> call.</para>
         /// </summary>
-        public static NeoAttribute CreateSaved(
+        public static NeoAttribute CreateWritable(
             NeoClient client,
             Attribute attribute,
-            string? overrideValueId)
+            string? overrideValueId,
+            NeoValueOwnership ownership = NeoValueOwnership.Session)
         {
-            if (client.TryGetNode(attribute.id, overrideValueId, out NeoAttribute? existing)
-                && IsSavedCompatible(attribute, existing))
+            if (client.TryGetNode(attribute.id, overrideValueId, ownership, out NeoAttribute? existing)
+                && IsWritableCompatible(attribute, existing))
             {
                 return existing;
             }
             return attribute switch
             {
-                NullAttribute n => new NeoAttributeNull(client, n, overrideValueId),
-                BoolAttribute b => new NeoAttributeBoolSaved(client, b, overrideValueId),
-                IntAttribute i => new NeoAttributeIntSaved(client, i, overrideValueId),
-                FloatAttribute f => new NeoAttributeFloatSaved(client, f, overrideValueId),
-                StringAttribute s => new NeoAttributeStringSaved(client, s, overrideValueId),
-                DictionaryAttribute d => new NeoAttributeDictionarySaved(client, d, overrideValueId),
-                ListAttribute l => new NeoAttributeListSaved(client, l, overrideValueId),
-                CustomAttribute c => new NeoAttributeCustomSaved(client, c, overrideValueId),
-                EnumAttribute e => new NeoAttributeEnumSaved(client, e, overrideValueId),
-                LookupAttribute lk => new NeoAttributeLookupSaved(client, lk, overrideValueId),
-                NSGetterAttribute ng => new NeoAttributeNSGetter(client, ng, overrideValueId),
-                FunctionAttribute fn => new NeoAttributeFunction(client, fn, overrideValueId),
-                SpriteAttribute sp => new NeoAttributeSpriteSaved(client, sp, overrideValueId),
-                AudioAttribute au => new NeoAttributeAudioSaved(client, au, overrideValueId),
+                NullAttribute n => new NeoAttributeNull(client, n, overrideValueId, ownership),
+                BoolAttribute b => new NeoAttributeBoolWritable(client, b, overrideValueId, ownership),
+                IntAttribute i => new NeoAttributeIntWritable(client, i, overrideValueId, ownership),
+                FloatAttribute f => new NeoAttributeFloatWritable(client, f, overrideValueId, ownership),
+                StringAttribute s => new NeoAttributeStringWritable(client, s, overrideValueId, ownership),
+                DictionaryAttribute d => new NeoAttributeDictionaryWritable(client, d, overrideValueId, ownership),
+                ListAttribute l => new NeoAttributeListWritable(client, l, overrideValueId, ownership),
+                CustomAttribute c => new NeoAttributeCustomWritable(client, c, overrideValueId, ownership),
+                EnumAttribute e => new NeoAttributeEnumWritable(client, e, overrideValueId, ownership),
+                LookupAttribute lk => new NeoAttributeLookupWritable(client, lk, overrideValueId, ownership),
+                NSGetterAttribute ng => new NeoAttributeNSGetter(client, ng, overrideValueId, ownership),
+                FunctionAttribute fn => new NeoAttributeFunction(client, fn, overrideValueId, ownership),
+                SpriteAttribute sp => new NeoAttributeSpriteWritable(client, sp, overrideValueId, ownership),
+                AudioAttribute au => new NeoAttributeAudioWritable(client, au, overrideValueId, ownership),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}", nameof(attribute)),
             };
         }
 
-        private static bool IsSavedCompatible(Attribute attribute, NeoAttribute existing)
+        private static bool IsWritableCompatible(Attribute attribute, NeoAttribute existing)
         {
             return attribute switch
             {
                 NullAttribute => existing is NeoAttributeNull,
-                BoolAttribute => existing is NeoAttributeBoolSaved,
-                IntAttribute => existing is NeoAttributeIntSaved,
-                FloatAttribute => existing is NeoAttributeFloatSaved,
-                StringAttribute => existing is NeoAttributeStringSaved,
-                DictionaryAttribute => existing is NeoAttributeDictionarySaved,
-                ListAttribute => existing is NeoAttributeListSaved,
-                CustomAttribute => existing is NeoAttributeCustomSaved,
-                EnumAttribute => existing is NeoAttributeEnumSaved,
-                LookupAttribute => existing is NeoAttributeLookupSaved,
+                BoolAttribute => existing is NeoAttributeBoolWritable,
+                IntAttribute => existing is NeoAttributeIntWritable,
+                FloatAttribute => existing is NeoAttributeFloatWritable,
+                StringAttribute => existing is NeoAttributeStringWritable,
+                DictionaryAttribute => existing is NeoAttributeDictionaryWritable,
+                ListAttribute => existing is NeoAttributeListWritable,
+                CustomAttribute => existing is NeoAttributeCustomWritable,
+                EnumAttribute => existing is NeoAttributeEnumWritable,
+                LookupAttribute => existing is NeoAttributeLookupWritable,
                 NSGetterAttribute => existing is NeoAttributeNSGetter,
                 FunctionAttribute => existing is NeoAttributeFunction,
-                SpriteAttribute => existing is NeoAttributeSpriteSaved,
-                AudioAttribute => existing is NeoAttributeAudioSaved,
+                SpriteAttribute => existing is NeoAttributeSpriteWritable,
+                AudioAttribute => existing is NeoAttributeAudioWritable,
                 _ => false,
             };
         }
@@ -219,8 +226,9 @@ namespace NeoCompose.Runtime
         public NeoAttributeFunction(
             NeoClient client,
             FunctionAttribute attribute,
-            string? overrideValueId)
-            : base(client, attribute, overrideValueId)
+            string? overrideValueId,
+            NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership)
         {
             client.RegisterNode(this);
         }
@@ -236,7 +244,7 @@ namespace NeoCompose.Runtime
     ///
     /// <para>Subclasses extend this with the matching DTO pair, e.g.
     /// <c>NeoAttributeString : NeoAttribute&lt;StringAttribute, StringAttributeValue&gt;</c>.
-    /// Read-only by default; the <c>*Saved</c> variants add a typed
+    /// Read-only by default; the <c>*Writable</c> variants add a typed
     /// <c>Set</c> (or <c>Add</c>/<c>Insert</c>/<c>RemoveAt</c> for
     /// collection types) that funnels through
     /// <c>client.SetSaveValue</c> / <c>client.AddSaveValue</c>.</para>
@@ -278,7 +286,7 @@ namespace NeoCompose.Runtime
             get
             {
                 if (overrideValueId is not null) return overrideValueId;
-                if (client.TryGetSaveOverrideValueId(attribute.id, out string? saveValId))
+                if (client.TryGetWritableOverrideValueId(ownership, attribute.id, out string? saveValId))
                 {
                     return saveValId;
                 }
@@ -302,14 +310,18 @@ namespace NeoCompose.Runtime
             }
         }
 
-        public NeoAttribute(NeoClient client, TAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId)
+        public NeoAttribute(
+            NeoClient client,
+            TAttribute attribute,
+            string? overrideValueId,
+            NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership)
         {
             InitFromValueData();
             // Subscribe before registering so the first save-override
             // change is observable from the moment the node exists.
-            client.OnSaveOverrideChanged += HandleSaveOverrideChanged;
-            client.OnSaveValueChanged += HandleSaveValueChanged;
+            client.OnWritableOverrideChanged += HandleWritableOverrideChanged;
+            client.OnWritableValueChanged += HandleWritableValueChanged;
             // Last step in the base ctor — children walked from a
             // collection-type derived ctor body run after this, but they
             // register under their own keys, so registration order is
@@ -318,20 +330,24 @@ namespace NeoCompose.Runtime
             client.RegisterNode(this);
         }
 
-        public NeoAttribute(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, ResolveAttribute(client, attributeId), overrideValueId)
+        public NeoAttribute(
+            NeoClient client,
+            string attributeId,
+            string? overrideValueId,
+            NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, ResolveAttribute(client, attributeId), overrideValueId, ownership)
         {
             InitFromValueData();
-            client.OnSaveOverrideChanged += HandleSaveOverrideChanged;
-            client.OnSaveValueChanged += HandleSaveValueChanged;
+            client.OnWritableOverrideChanged += HandleWritableOverrideChanged;
+            client.OnWritableValueChanged += HandleWritableValueChanged;
             client.RegisterNode(this);
         }
 
         public override void Dispose()
         {
             if (isDisposed) return;
-            client.OnSaveOverrideChanged -= HandleSaveOverrideChanged;
-            client.OnSaveValueChanged -= HandleSaveValueChanged;
+            client.OnWritableOverrideChanged -= HandleWritableOverrideChanged;
+            client.OnWritableValueChanged -= HandleWritableValueChanged;
             base.Dispose();
         }
 
@@ -342,14 +358,21 @@ namespace NeoCompose.Runtime
         /// <see cref="OnValueIdChainChanged"/> so collection types can
         /// also re-walk children.
         /// </summary>
-        private void HandleSaveOverrideChanged(string changedAttributeId, string? newValueId)
+        private void HandleWritableOverrideChanged(
+            NeoValueOwnership changedOwnership,
+            string changedAttributeId,
+            string? newValueId)
         {
+            if (changedOwnership != ownership) return;
             if (changedAttributeId != attribute.id) return;
             OnValueIdChainChanged();
         }
 
-        private void HandleSaveValueChanged(string changedValueId)
+        private void HandleWritableValueChanged(
+            NeoValueOwnership changedOwnership,
+            string changedValueId)
         {
+            if (changedOwnership != ownership) return;
             if (changedValueId != valueId) return;
             if (this is NeoAttributeDictionary
                 || this is NeoAttributeList)
@@ -406,7 +429,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Re-reads the current value through the resolution chain
         /// and re-runs <see cref="Initialize"/> if a value is now
-        /// bound. Saved variants call this after creating a new
+        /// bound. Writable variants call this after creating a new
         /// top-level row so the cached <c>value</c> and any
         /// child-tree state are in sync.
         /// </summary>

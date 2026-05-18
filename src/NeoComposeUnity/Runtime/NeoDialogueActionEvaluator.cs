@@ -200,13 +200,18 @@ namespace NeoCompose.Runtime
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx)
         {
-            EnsureWritable(target);
             switch (target.pointer)
             {
                 case ReferencePointer reference:
-                    return new NeoRowWriteTarget(reference.valueId, target.typeInfo);
+                {
+                    NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
+                    return new NeoRowWriteTarget(reference.valueId, target.typeInfo, ownership);
+                }
                 case KeyOfPointer keyOfPointer:
-                    return ResolveKeyOfTarget(client, keyOfPointer.keyOf, target.typeInfo, scope, ctx);
+                {
+                    NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
+                    return ResolveKeyOfTarget(client, keyOfPointer.keyOf, target.typeInfo, ownership, scope, ctx);
+                }
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unsupported assignment target '{target.pointer.GetType().Name}'.");
@@ -219,14 +224,14 @@ namespace NeoCompose.Runtime
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx)
         {
-            EnsureWritable(target);
+            NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
             object? value = Eval(target.pointer, scope, ctx);
             string? rowId = FindValueId(value, ctx);
             if (rowId == null)
             {
                 throw new NSGetterRuntimeError("Collection mutation target is not backed by a Neo value row.");
             }
-            EnsureSaveRow(client, rowId);
+            EnsureWritableRow(client, rowId, ownership);
             if (!client.TryGetValue(rowId, out AttributeValue? row))
             {
                 throw new NSGetterRuntimeError($"Missing collection row '{rowId}'.");
@@ -235,13 +240,13 @@ namespace NeoCompose.Runtime
             {
                 if (target.typeInfo is LookupTypeInfo lookupTypeInfo)
                 {
-                    return new NeoLookupSetWriteTarget(rowId, lookupTypeInfo);
+                    return new NeoLookupSetWriteTarget(rowId, lookupTypeInfo, ownership);
                 }
-                return new NeoListWriteTarget(rowId, EntryTypeInfo(target.typeInfo));
+                return new NeoListWriteTarget(rowId, EntryTypeInfo(target.typeInfo), ownership);
             }
             if (row is ObjectAttributeValue)
             {
-                return new NeoDictionaryWriteTarget(rowId, EntryTypeInfo(target.typeInfo));
+                return new NeoDictionaryWriteTarget(rowId, EntryTypeInfo(target.typeInfo), ownership);
             }
             throw new NSGetterRuntimeError("Collection mutation target must be a list or dictionary.");
         }
@@ -250,6 +255,7 @@ namespace NeoCompose.Runtime
             NeoClient client,
             KeyOf keyOf,
             TypeInfo targetType,
+            NeoValueOwnership ownership,
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx)
         {
@@ -260,7 +266,7 @@ namespace NeoCompose.Runtime
             {
                 throw new NSGetterRuntimeError("Assignment receiver is not backed by a Neo value row.");
             }
-            EnsureSaveRow(client, receiverRowId);
+            EnsureWritableRow(client, receiverRowId, ownership);
             if (!client.TryGetValue(receiverRowId, out AttributeValue? row))
             {
                 throw new NSGetterRuntimeError($"Missing receiver row '{receiverRowId}'.");
@@ -268,7 +274,7 @@ namespace NeoCompose.Runtime
 
             if (row is ArrayAttributeValue)
             {
-                return new NeoListIndexWriteTarget(receiverRowId, ToInt(key, "List assignment index"), targetType);
+                return new NeoListIndexWriteTarget(receiverRowId, ToInt(key, "List assignment index"), targetType, ownership);
             }
             if (row is ObjectAttributeValue objectRow)
             {
@@ -276,30 +282,66 @@ namespace NeoCompose.Runtime
                 if (!string.IsNullOrEmpty(objectRow.typeId)
                     && TryResolveCustomMemberAttribute(client, objectRow.typeId!, keyString, out JsonAttribute? memberAttribute))
                 {
-                    return new NeoCustomMemberWriteTarget(receiverRowId, keyString, memberAttribute!);
+                    return new NeoCustomMemberWriteTarget(receiverRowId, keyString, memberAttribute!, ownership);
                 }
-                return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType);
+                return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType, ownership);
             }
             throw new NSGetterRuntimeError("Assignment receiver must be a list, dictionary, or custom object.");
         }
 
-        private static void EnsureWritable(WriteTarget target)
+        private static NeoValueOwnership TargetOwnership(
+            NeoClient client,
+            WriteTarget target,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx)
         {
-            if (target.writability == WritabilityKind.Asset
-                || target.writability == WritabilityKind.ReadOnly)
+            if (target.writability is null)
             {
+                if (TryInferTargetOwnership(client, target.pointer, scope, ctx, out NeoValueOwnership inferred))
+                {
+                    return inferred;
+                }
                 throw new NSGetterRuntimeError("Cannot mutate read-only dialogue action target.");
             }
+            return target.writability switch
+            {
+                WritabilityKind.Save => NeoValueOwnership.Save,
+                WritabilityKind.AssetToSaveLookup => NeoValueOwnership.Save,
+                WritabilityKind.Session => NeoValueOwnership.Session,
+                WritabilityKind.AssetToSessionLookup => NeoValueOwnership.Session,
+                WritabilityKind.Local => NeoValueOwnership.Session,
+                _ => throw new NSGetterRuntimeError("Cannot mutate read-only dialogue action target."),
+            };
         }
 
-        private static void EnsureSaveRow(NeoClient client, string rowId)
+        private static bool TryInferTargetOwnership(
+            NeoClient client,
+            Pointer pointer,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            out NeoValueOwnership ownership)
         {
-            if (!client.saveValues.ContainsKey(rowId))
+            ownership = NeoValueOwnership.Asset;
+            string? rowId = pointer switch
             {
-                if (!client.TryMaterializeSavePath(rowId))
+                ReferencePointer reference => reference.valueId,
+                KeyOfPointer keyOfPointer => FindValueId(Eval(keyOfPointer.keyOf.pointer, scope, ctx), ctx),
+                _ => null,
+            };
+            return rowId is not null
+                && client.TryGetValueOwnership(rowId, out ownership)
+                && ownership != NeoValueOwnership.Asset;
+        }
+
+        private static void EnsureWritableRow(NeoClient client, string rowId, NeoValueOwnership ownership)
+        {
+            if (!client.TryGetValueOwnership(rowId, out NeoValueOwnership currentOwnership)
+                || currentOwnership != ownership)
+            {
+                if (ownership != NeoValueOwnership.Save || !client.TryMaterializeSavePath(rowId))
                 {
                     throw new NSGetterRuntimeError(
-                        $"Cannot mutate value '{rowId}' because it is not save-owned.");
+                        $"Cannot mutate value '{rowId}' because it is not {ownership}-owned.");
                 }
             }
         }
@@ -460,6 +502,7 @@ namespace NeoCompose.Runtime
 
         private static AttributeValue CreateValueRow(
             NeoClient client,
+            NeoValueOwnership ownership,
             JsonAttribute attribute,
             object? value,
             string id,
@@ -469,7 +512,7 @@ namespace NeoCompose.Runtime
             var payload = value is INeoValuePayloadProvider provider
                 ? provider.ToNeoValuePayload()
                 : value;
-            client.SetSavePayloadRows(payload);
+            client.SetWritablePayloadRows(ownership, payload);
             return AttributeValueFactory.Create(
                 attribute,
                 payload,
@@ -695,18 +738,20 @@ namespace NeoCompose.Runtime
         {
             private readonly string rowId;
             private readonly TypeInfo typeInfo;
+            private readonly NeoValueOwnership ownership;
 
-            public NeoRowWriteTarget(string rowId, TypeInfo typeInfo)
+            public NeoRowWriteTarget(string rowId, TypeInfo typeInfo, NeoValueOwnership ownership)
             {
                 this.rowId = rowId;
                 this.typeInfo = typeInfo;
+                this.ownership = ownership;
             }
 
             public override object? ReadCurrentValue(
                 NeoClient client,
                 NSGetterEvaluator.Context ctx)
             {
-                EnsureSaveRow(client, rowId);
+                EnsureWritableRow(client, rowId, ownership);
                 if (!client.TryGetValue(rowId, out AttributeValue? row))
                 {
                     throw new NSGetterRuntimeError($"Missing target row '{rowId}'.");
@@ -716,20 +761,21 @@ namespace NeoCompose.Runtime
 
             public override void Write(NeoClient client, object? value)
             {
-                EnsureSaveRow(client, rowId);
+                EnsureWritableRow(client, rowId, ownership);
                 if (!client.TryGetValue(rowId, out AttributeValue? existing))
                 {
                     throw new NSGetterRuntimeError($"Missing target row '{rowId}'.");
                 }
                 var next = CreateValueRow(
                     client,
+                    ownership,
                     AttributeFromTypeInfo(typeInfo),
                     value,
                     rowId,
                     existing.createdAt,
                     DateTime.UtcNow.ToString("o"));
                 next.typeId = existing.typeId;
-                client.SetSaveValue(next);
+                client.SetWritableValue(ownership, next);
             }
         }
 
@@ -738,15 +784,18 @@ namespace NeoCompose.Runtime
             private readonly string parentRowId;
             private readonly string key;
             private readonly JsonAttribute attribute;
+            private readonly NeoValueOwnership ownership;
 
             public NeoCustomMemberWriteTarget(
                 string parentRowId,
                 string key,
-                JsonAttribute attribute)
+                JsonAttribute attribute,
+                NeoValueOwnership ownership)
             {
                 this.parentRowId = parentRowId;
                 this.key = key;
                 this.attribute = attribute;
+                this.ownership = ownership;
             }
 
             public override object? ReadCurrentValue(
@@ -765,7 +814,7 @@ namespace NeoCompose.Runtime
 
             public override void Write(NeoClient client, object? value)
             {
-                EnsureSaveRow(client, parentRowId);
+                EnsureWritableRow(client, parentRowId, ownership);
                 if (!client.TryGetValue(parentRowId, out ObjectAttributeValue? parent))
                 {
                     throw new NSGetterRuntimeError($"Missing parent row '{parentRowId}'.");
@@ -780,15 +829,15 @@ namespace NeoCompose.Runtime
                             AttributeTypeInfo(attribute),
                             out string? referenceId))
                     {
-                        parent.value[key] = referenceId!;
+                        parent.value[key] = client.ImportValueReference(ownership, referenceId!);
                         parent.updatedAt = now;
-                        client.SetSaveValue(parent);
-                        client.RemoveSaveValueAndDescendantsIfUnlinked(existingId);
+                        client.SetWritableValue(ownership, parent);
+                        client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, existingId);
                         return;
                     }
-                    var next = CreateValueRow(client, attribute, value, existingId, existing.createdAt, now);
+                    var next = CreateValueRow(client, ownership, attribute, value, existingId, existing.createdAt, now);
                     next.typeId = existing.typeId;
-                    client.SetSaveValue(next);
+                    client.SetWritableValue(ownership, next);
                 }
                 else
                 {
@@ -797,18 +846,18 @@ namespace NeoCompose.Runtime
                             AttributeTypeInfo(attribute),
                             out string? referenceId))
                     {
-                        parent.value[key] = referenceId!;
+                        parent.value[key] = client.ImportValueReference(ownership, referenceId!);
                         parent.updatedAt = now;
-                        client.SetSaveValue(parent);
+                        client.SetWritableValue(ownership, parent);
                         return;
                     }
                     var childId = Guid.NewGuid().ToString();
-                    var next = CreateValueRow(client, attribute, value, childId, now, now);
-                    client.SetSaveValue(next);
+                    var next = CreateValueRow(client, ownership, attribute, value, childId, now, now);
+                    client.SetWritableValue(ownership, next);
                     parent.value[key] = childId;
                 }
                 parent.updatedAt = now;
-                client.SetSaveValue(parent);
+                client.SetWritableValue(ownership, parent);
             }
         }
 
@@ -817,15 +866,18 @@ namespace NeoCompose.Runtime
             private readonly string parentRowId;
             private readonly string key;
             private readonly TypeInfo typeInfo;
+            private readonly NeoValueOwnership ownership;
 
             public NeoDictionaryEntryWriteTarget(
                 string parentRowId,
                 string key,
-                TypeInfo typeInfo)
+                TypeInfo typeInfo,
+                NeoValueOwnership ownership)
             {
                 this.parentRowId = parentRowId;
                 this.key = key;
                 this.typeInfo = typeInfo;
+                this.ownership = ownership;
             }
 
             public override object? ReadCurrentValue(
@@ -844,7 +896,7 @@ namespace NeoCompose.Runtime
 
             public override void Write(NeoClient client, object? value)
             {
-                var target = new NeoDictionaryWriteTarget(parentRowId, typeInfo);
+                var target = new NeoDictionaryWriteTarget(parentRowId, typeInfo, ownership);
                 target.Set(client, key, value);
             }
         }
@@ -854,12 +906,18 @@ namespace NeoCompose.Runtime
             private readonly string parentRowId;
             private readonly int index;
             private readonly TypeInfo typeInfo;
+            private readonly NeoValueOwnership ownership;
 
-            public NeoListIndexWriteTarget(string parentRowId, int index, TypeInfo typeInfo)
+            public NeoListIndexWriteTarget(
+                string parentRowId,
+                int index,
+                TypeInfo typeInfo,
+                NeoValueOwnership ownership)
             {
                 this.parentRowId = parentRowId;
                 this.index = index;
                 this.typeInfo = typeInfo;
+                this.ownership = ownership;
             }
 
             public override object? ReadCurrentValue(
@@ -879,7 +937,7 @@ namespace NeoCompose.Runtime
 
             public override void Write(NeoClient client, object? value)
             {
-                EnsureSaveRow(client, parentRowId);
+                EnsureWritableRow(client, parentRowId, ownership);
                 if (!client.TryGetValue(parentRowId, out ArrayAttributeValue? parent)
                     || parent.value == null
                     || index < 0
@@ -890,10 +948,10 @@ namespace NeoCompose.Runtime
                 var childId = parent.value[index];
                 if (TryGetCustomValueReferenceId(value, typeInfo, out string? referenceId))
                 {
-                    parent.value[index] = referenceId!;
+                    parent.value[index] = client.ImportValueReference(ownership, referenceId!);
                     parent.updatedAt = DateTime.UtcNow.ToString("o");
-                    client.SetSaveValue(parent);
-                    client.RemoveSaveValueAndDescendantsIfUnlinked(childId);
+                    client.SetWritableValue(ownership, parent);
+                    client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, childId);
                     return;
                 }
                 if (!client.TryGetValue(childId, out AttributeValue? existing))
@@ -902,13 +960,14 @@ namespace NeoCompose.Runtime
                 }
                 var next = CreateValueRow(
                     client,
+                    ownership,
                     AttributeFromTypeInfo(typeInfo),
                     value,
                     childId,
                     existing.createdAt,
                     DateTime.UtcNow.ToString("o"));
                 next.typeId = existing.typeId;
-                client.SetSaveValue(next);
+                client.SetWritableValue(ownership, next);
             }
         }
 
@@ -925,11 +984,13 @@ namespace NeoCompose.Runtime
         {
             private readonly string rowId;
             private readonly TypeInfo entryTypeInfo;
+            private readonly NeoValueOwnership ownership;
 
-            public NeoListWriteTarget(string rowId, TypeInfo entryTypeInfo)
+            public NeoListWriteTarget(string rowId, TypeInfo entryTypeInfo, NeoValueOwnership ownership)
             {
                 this.rowId = rowId;
                 this.entryTypeInfo = entryTypeInfo;
+                this.ownership = ownership;
             }
 
             public override void Mutate(
@@ -938,7 +999,7 @@ namespace NeoCompose.Runtime
                 object?[] args,
                 NSGetterEvaluator.Context ctx)
             {
-                EnsureSaveRow(client, rowId);
+                EnsureWritableRow(client, rowId, ownership);
                 if (!client.TryGetValue(rowId, out ArrayAttributeValue? row))
                 {
                     throw new NSGetterRuntimeError($"Missing list row '{rowId}'.");
@@ -956,31 +1017,32 @@ namespace NeoCompose.Runtime
                         {
                             var referencedNext = new string[row.value.Length + 1];
                             Array.Copy(row.value, referencedNext, row.value.Length);
-                            referencedNext[row.value.Length] = referenceId!;
+                            referencedNext[row.value.Length] = client.ImportValueReference(ownership, referenceId!);
                             row.value = referencedNext;
                             row.updatedAt = now;
-                            client.SetSaveValue(row);
+                            client.SetWritableValue(ownership, row);
                             return;
                         }
                         var childId = Guid.NewGuid().ToString();
                         var child = CreateValueRow(
                             client,
+                            ownership,
                             AttributeFromTypeInfo(entryTypeInfo),
                             args[0],
                             childId,
                             now,
                             now);
-                        client.SetSaveValue(child);
+                        client.SetWritableValue(ownership, child);
                         var next = new string[row.value.Length + 1];
                         Array.Copy(row.value, next, row.value.Length);
                         next[row.value.Length] = childId;
                         row.value = next;
                         row.updatedAt = now;
-                        client.SetSaveValue(row);
+                        client.SetWritableValue(ownership, row);
                         return;
                     }
                     case CollectionMutationKind.RemoveAt:
-                        RemoveAt(client, row, ToInt(args[0], "RemoveAt index"), now);
+                        RemoveAt(client, ownership, row, ToInt(args[0], "RemoveAt index"), now);
                         return;
                     case CollectionMutationKind.Remove:
                     {
@@ -994,12 +1056,12 @@ namespace NeoCompose.Runtime
                         {
                             if (referenceId != null && row.value[i] == referenceId)
                             {
-                                RemoveAt(client, row, i, now);
+                                RemoveAt(client, ownership, row, i, now);
                                 return;
                             }
                             if (!client.TryGetValue(row.value[i], out AttributeValue? child)) continue;
                             if (!JsEqual(ReadRowValue(child), args[0])) continue;
-                            RemoveAt(client, row, i, now);
+                            RemoveAt(client, ownership, row, i, now);
                             return;
                         }
                         return;
@@ -1009,10 +1071,10 @@ namespace NeoCompose.Runtime
                         var removedIds = row.value;
                         row.value = Array.Empty<string>();
                         row.updatedAt = now;
-                        client.SetSaveValue(row);
+                        client.SetWritableValue(ownership, row);
                         foreach (var childId in removedIds)
                         {
-                            client.RemoveSaveValueAndDescendantsIfUnlinked(childId);
+                            client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, childId);
                         }
                         return;
                     }
@@ -1023,6 +1085,7 @@ namespace NeoCompose.Runtime
 
             private static void RemoveAt(
                 NeoClient client,
+                NeoValueOwnership ownership,
                 ArrayAttributeValue row,
                 int index,
                 string now)
@@ -1040,8 +1103,8 @@ namespace NeoCompose.Runtime
                 }
                 row.value = next;
                 row.updatedAt = now;
-                client.SetSaveValue(row);
-                client.RemoveSaveValueAndDescendantsIfUnlinked(removedId);
+                client.SetWritableValue(ownership, row);
+                client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, removedId);
             }
         }
 
@@ -1049,11 +1112,13 @@ namespace NeoCompose.Runtime
         {
             private readonly string rowId;
             private readonly LookupTypeInfo typeInfo;
+            private readonly NeoValueOwnership ownership;
 
-            public NeoLookupSetWriteTarget(string rowId, LookupTypeInfo typeInfo)
+            public NeoLookupSetWriteTarget(string rowId, LookupTypeInfo typeInfo, NeoValueOwnership ownership)
             {
                 this.rowId = rowId;
                 this.typeInfo = typeInfo;
+                this.ownership = ownership;
             }
 
             public override void Mutate(
@@ -1062,7 +1127,7 @@ namespace NeoCompose.Runtime
                 object?[] args,
                 NSGetterEvaluator.Context ctx)
             {
-                EnsureSaveRow(client, rowId);
+                EnsureWritableRow(client, rowId, ownership);
                 if (!client.TryGetValue(rowId, out ArrayAttributeValue? row))
                 {
                     throw new NSGetterRuntimeError($"Missing lookup row '{rowId}'.");
@@ -1080,7 +1145,7 @@ namespace NeoCompose.Runtime
                         next[row.value.Length] = selectionId;
                         row.value = next;
                         row.updatedAt = now;
-                        client.SetSaveValue(row);
+                        client.SetWritableValue(ownership, row);
                         return;
                     }
                     case CollectionMutationKind.Remove:
@@ -1096,13 +1161,13 @@ namespace NeoCompose.Runtime
                         }
                         row.value = next;
                         row.updatedAt = now;
-                        client.SetSaveValue(row);
+                        client.SetWritableValue(ownership, row);
                         return;
                     }
                     case CollectionMutationKind.Clear:
                         row.value = Array.Empty<string>();
                         row.updatedAt = now;
-                        client.SetSaveValue(row);
+                        client.SetWritableValue(ownership, row);
                         return;
                     default:
                         throw new NSGetterRuntimeError($"Unsupported lookup set mutation '{mutation}'.");
@@ -1114,11 +1179,13 @@ namespace NeoCompose.Runtime
         {
             private readonly string rowId;
             private readonly TypeInfo entryTypeInfo;
+            private readonly NeoValueOwnership ownership;
 
-            public NeoDictionaryWriteTarget(string rowId, TypeInfo entryTypeInfo)
+            public NeoDictionaryWriteTarget(string rowId, TypeInfo entryTypeInfo, NeoValueOwnership ownership)
             {
                 this.rowId = rowId;
                 this.entryTypeInfo = entryTypeInfo;
+                this.ownership = ownership;
             }
 
             public override void Mutate(
@@ -1145,7 +1212,7 @@ namespace NeoCompose.Runtime
 
             public void Set(NeoClient client, string key, object? value)
             {
-                EnsureSaveRow(client, rowId);
+                EnsureWritableRow(client, rowId, ownership);
                 if (!client.TryGetValue(rowId, out ObjectAttributeValue? row))
                 {
                     throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
@@ -1157,49 +1224,51 @@ namespace NeoCompose.Runtime
                 {
                     if (TryGetCustomValueReferenceId(value, entryTypeInfo, out string? referenceId))
                     {
-                        row.value[key] = referenceId!;
+                        row.value[key] = client.ImportValueReference(ownership, referenceId!);
                         row.updatedAt = now;
-                        client.SetSaveValue(row);
-                        client.RemoveSaveValueAndDescendantsIfUnlinked(existingId);
+                        client.SetWritableValue(ownership, row);
+                        client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, existingId);
                         return;
                     }
                     var next = CreateValueRow(
                         client,
+                        ownership,
                         AttributeFromTypeInfo(entryTypeInfo),
                         value,
                         existingId,
                         existing.createdAt,
                         now);
                     next.typeId = existing.typeId;
-                    client.SetSaveValue(next);
+                    client.SetWritableValue(ownership, next);
                 }
                 else
                 {
                     if (TryGetCustomValueReferenceId(value, entryTypeInfo, out string? referenceId))
                     {
-                        row.value[key] = referenceId!;
+                        row.value[key] = client.ImportValueReference(ownership, referenceId!);
                         row.updatedAt = now;
-                        client.SetSaveValue(row);
+                        client.SetWritableValue(ownership, row);
                         return;
                     }
                     var childId = Guid.NewGuid().ToString();
                     var next = CreateValueRow(
                         client,
+                        ownership,
                         AttributeFromTypeInfo(entryTypeInfo),
                         value,
                         childId,
                         now,
                         now);
-                    client.SetSaveValue(next);
+                    client.SetWritableValue(ownership, next);
                     row.value[key] = childId;
                 }
                 row.updatedAt = now;
-                client.SetSaveValue(row);
+                client.SetWritableValue(ownership, row);
             }
 
             private void Remove(NeoClient client, string key)
             {
-                EnsureSaveRow(client, rowId);
+                EnsureWritableRow(client, rowId, ownership);
                 if (!client.TryGetValue(rowId, out ObjectAttributeValue? row)
                     || row.value == null
                     || !row.value.TryGetValue(key, out string removedId))
@@ -1208,13 +1277,13 @@ namespace NeoCompose.Runtime
                 }
                 row.value.Remove(key);
                 row.updatedAt = DateTime.UtcNow.ToString("o");
-                client.SetSaveValue(row);
-                client.RemoveSaveValueAndDescendantsIfUnlinked(removedId);
+                client.SetWritableValue(ownership, row);
+                client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, removedId);
             }
 
             private void Clear(NeoClient client)
             {
-                EnsureSaveRow(client, rowId);
+                EnsureWritableRow(client, rowId, ownership);
                 if (!client.TryGetValue(rowId, out ObjectAttributeValue? row)
                     || row.value == null)
                 {
@@ -1223,10 +1292,10 @@ namespace NeoCompose.Runtime
                 var removedIds = new List<string>(row.value.Values);
                 row.value.Clear();
                 row.updatedAt = DateTime.UtcNow.ToString("o");
-                client.SetSaveValue(row);
+                client.SetWritableValue(ownership, row);
                 foreach (var childId in removedIds)
                 {
-                    client.RemoveSaveValueAndDescendantsIfUnlinked(childId);
+                    client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, childId);
                 }
             }
         }

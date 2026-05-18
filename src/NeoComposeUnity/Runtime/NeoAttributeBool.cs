@@ -9,25 +9,25 @@ namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Wrapper for a Bool-typed attribute. Read-only — use
-    /// <see cref="NeoAttributeBoolSaved"/> to mutate.
+    /// <see cref="NeoAttributeBoolWritable"/> to mutate.
     /// </summary>
     public class NeoAttributeBool
         : NeoAttribute<BoolAttribute, BoolAttributeValue>
     {
-        public NeoAttributeBool(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeBool(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeBool(NeoClient client, BoolAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeBool(NeoClient client, BoolAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
     }
 
-    public class NeoAttributeBoolSaved : NeoAttributeBool
+    public class NeoAttributeBoolWritable : NeoAttributeBool
     {
-        public NeoAttributeBoolSaved(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeBoolWritable(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeBoolSaved(NeoClient client, BoolAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeBoolWritable(NeoClient client, BoolAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         public void Set(bool? newValue)
         {
@@ -43,7 +43,7 @@ namespace NeoCompose.Runtime
             {
                 existing.value = newValue;
                 existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
+                client.SetWritableValue(ownership, existing);
                 NotifyChanged();
                 return;
             }
@@ -56,7 +56,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = newValue,
             };
-            client.AddSaveValue(attribute.id, newRow);
+            client.AddWritableValue(ownership, attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
         }

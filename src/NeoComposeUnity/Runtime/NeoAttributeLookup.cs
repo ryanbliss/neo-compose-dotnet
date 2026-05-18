@@ -19,11 +19,11 @@ namespace NeoCompose.Runtime
     public class NeoAttributeLookup
         : NeoAttribute<LookupAttribute, ArrayAttributeValue>
     {
-        public NeoAttributeLookup(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeLookup(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeLookup(NeoClient client, LookupAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeLookup(NeoClient client, LookupAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         /// <summary>Selected ids in the target collection. Empty when nothing is set.</summary>
         public string[] Selected() => value?.value ?? System.Array.Empty<string>();
@@ -64,7 +64,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Lookup target value {targetValueId} not found");
             }
-            bool targetIsSaveOwned = client.saveValues.ContainsKey(targetValueId);
+            client.TryGetValueOwnership(targetValueId, out NeoValueOwnership targetOwnership);
 
             // The entry attribute defines the type of each selected
             // entry. List/Lookup → entryAttributeId; Dictionary →
@@ -74,8 +74,8 @@ namespace NeoCompose.Runtime
 
             foreach (var id in selectedIds)
             {
-                resolved.Add(targetIsSaveOwned
-                    ? CreateSaved(client, entryAttr, id)
+                resolved.Add(targetOwnership == NeoValueOwnership.Save || targetOwnership == NeoValueOwnership.Session
+                    ? CreateWritable(client, entryAttr, id, targetOwnership)
                     : Create(client, entryAttr, id));
             }
             return resolved;
@@ -109,7 +109,7 @@ namespace NeoCompose.Runtime
             return targetAttribute;
         }
 
-        private AttributeValue ResolveTargetValue(out bool targetIsSaveOwned)
+        private AttributeValue ResolveTargetValue(out NeoValueOwnership targetOwnership)
         {
             Attribute targetAttribute = ResolveTargetAttribute();
             string? targetValueId = ResolveTargetValueId(targetAttribute);
@@ -123,7 +123,7 @@ namespace NeoCompose.Runtime
                 throw new System.InvalidOperationException(
                     $"Lookup target value {targetValueId} not found");
             }
-            targetIsSaveOwned = client.saveValues.ContainsKey(targetValueId);
+            client.TryGetValueOwnership(targetValueId, out targetOwnership);
             return targetValue;
         }
 
@@ -155,13 +155,13 @@ namespace NeoCompose.Runtime
         }
     }
 
-    public class NeoAttributeLookupSaved : NeoAttributeLookup
+    public class NeoAttributeLookupWritable : NeoAttributeLookup
     {
-        public NeoAttributeLookupSaved(NeoClient client, string attributeId, string? overrideValueId)
-            : base(client, attributeId, overrideValueId) { }
+        public NeoAttributeLookupWritable(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attributeId, overrideValueId, ownership) { }
 
-        public NeoAttributeLookupSaved(NeoClient client, LookupAttribute attribute, string? overrideValueId)
-            : base(client, attribute, overrideValueId) { }
+        public NeoAttributeLookupWritable(NeoClient client, LookupAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
+            : base(client, attribute, overrideValueId, ownership) { }
 
         /// <summary>
         /// Overwrites the selected ids. When
@@ -189,7 +189,7 @@ namespace NeoCompose.Runtime
             {
                 existing.value = normalized;
                 existing.updatedAt = nowIso;
-                client.SetSaveValue(existing);
+                client.SetWritableValue(ownership, existing);
                 NotifyChanged();
                 return;
             }
@@ -202,7 +202,7 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = normalized,
             };
-            client.AddSaveValue(attribute.id, newRow);
+            client.AddWritableValue(ownership, attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
         }
