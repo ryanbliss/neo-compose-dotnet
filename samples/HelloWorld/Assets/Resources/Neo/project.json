@@ -8837,12 +8837,6 @@
                             "type": 1,
                             "reason": "TestNoAutoResume",
                             "autoResumeDurationSeconds": null
-                        },
-                        {
-                            "id": "c18ee21b-b79d-4012-bc00-7f2d4ed0277e",
-                            "type": 1,
-                            "reason": "TestAutoResume",
-                            "autoResumeDurationSeconds": 1
                         }
                     ]
                 }
@@ -8890,7 +8884,7 @@
             "id": "2e65254c-7b5a-4bf0-ba4a-319352b403e3",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-11T23:16:55.066Z",
-            "updatedAt": "2026-05-18T21:04:58.131Z"
+            "updatedAt": "2026-05-18T22:15:44.612Z"
         },
         "f7c77cd0-bf01-421f-aecf-f245921bbeec": {
             "_id": "6a02639d13f8e0589f97bba2",
@@ -8938,12 +8932,6 @@
                     ],
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
                     "actions": [
-                        {
-                            "id": "84662577-d169-4069-811d-d3dd3534bc4d",
-                            "type": 1,
-                            "reason": "TestNoAutoResume",
-                            "autoResumeDurationSeconds": null
-                        },
                         {
                             "id": "c16e61a4-2414-43b2-8a23-cebbf22134c2",
                             "type": 1,
@@ -8996,7 +8984,7 @@
             "id": "f7c77cd0-bf01-421f-aecf-f245921bbeec",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-11T23:17:49.692Z",
-            "updatedAt": "2026-05-18T21:05:39.163Z"
+            "updatedAt": "2026-05-18T22:15:29.322Z"
         },
         "50c76b46-1ac7-4c30-962d-0164a1f65637": {
             "_id": "6a0263b813f8e0589f97bba3",
