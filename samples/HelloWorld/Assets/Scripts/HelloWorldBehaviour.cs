@@ -86,6 +86,7 @@ namespace HelloWorld.Assets.Scripts
         public void ShowDialogue(NeoDialogue dialogue)
         {
             dialogue.OnShow += OnDialogueShow;
+            dialogue.OnPause += OnDialoguePause;
             dialogue.OnFinish += OnDialogueFinish;
             dialogue.OnError += OnDialogueError;
             dialogue.Start();
@@ -120,6 +121,19 @@ namespace HelloWorld.Assets.Scripts
                 selectable: true,
                 onClick: node.Next
             );
+        }
+
+        public void OnDialoguePause(NeoDialoguePauseAction action)
+        {
+            if (action.AutoResumeDurationSeconds is not null)
+            {
+                Debug.Log($"pause action w/ reason {action.Reason}, will auto resume in {action.AutoResumeDurationSeconds}");
+            }
+            else
+            {
+                Debug.Log($"pause action w/ reason {action.Reason}, no auto resume");
+                action.Resume();
+            }
         }
 
         public void OnDialogueFinish()
@@ -171,6 +185,7 @@ namespace HelloWorld.Assets.Scripts
             DialogueUI?.Dispose();
             CoreUI?.Dispose();
             bitsSubscription?.Dispose();
+            neo.Dispose();
         }
 
         private void ClearDialogue()

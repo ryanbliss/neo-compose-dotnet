@@ -504,6 +504,40 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DialogueAction_Pause_Deserializes()
+        {
+            var json = @"
+{
+  ""id"": ""pause-a"",
+  ""type"": 1,
+  ""reason"": ""cutscene"",
+  ""autoResumeDurationSeconds"": 1.25
+}";
+
+            var action = (DialoguePauseAction)JsonConvert.DeserializeObject<DialogueAction>(json)!;
+
+            Assert.AreEqual("pause-a", action.id);
+            Assert.AreEqual(DialogueActionType.Pause, action.type);
+            Assert.AreEqual("cutscene", action.reason);
+            Assert.AreEqual(1.25, action.autoResumeDurationSeconds);
+        }
+
+        [TestCase(@"{ ""id"": ""pause-a"", ""type"": 1, ""autoResumeDurationSeconds"": null }", "reason")]
+        [TestCase(@"{ ""id"": ""pause-a"", ""type"": 1, ""reason"": """", ""autoResumeDurationSeconds"": -1 }", "greater than or equal to zero")]
+        [TestCase(@"{ ""id"": ""pause-a"", ""type"": 1, ""reason"": """", ""autoResumeDurationSeconds"": NaN }", "finite")]
+        [TestCase(@"{ ""id"": ""pause-a"", ""type"": 1, ""reason"": """", ""autoResumeDurationSeconds"": Infinity }", "finite")]
+        public void DialogueAction_Pause_RejectsInvalidShape(
+            string json,
+            string expectedMessage)
+        {
+            var exception = Assert.Throws<JsonSerializationException>(
+                () => { JsonConvert.DeserializeObject<DialogueAction>(json); });
+
+            StringAssert.Contains(expectedMessage, exception!.Message);
+            StringAssert.Contains("pause-a", exception.Message);
+        }
+
+        [Test]
         public void SynthFixture_ProjectFields_RoundTrip()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));

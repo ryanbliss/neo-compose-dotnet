@@ -11,6 +11,7 @@ using DialogueConditionsNodeModel = NeoCompose.Runtime.Json.DialogueConditionsNo
 using DialogueLogicEditAttributeActionModel = NeoCompose.Runtime.Json.DialogueLogicEditAttributeAction;
 using DialogueModel = NeoCompose.Runtime.Json.Dialogue;
 using DialogueOutcomeModel = NeoCompose.Runtime.Json.DialogueOutcome;
+using DialoguePauseActionModel = NeoCompose.Runtime.Json.DialoguePauseAction;
 using DialogueTextNodeModel = NeoCompose.Runtime.Json.DialogueTextNode;
 using DialogueTextOptionModel = NeoCompose.Runtime.Json.DialogueTextOption;
 using CodeLogicActionModel = NeoCompose.Runtime.Json.CodeLogicAction;
@@ -30,6 +31,8 @@ namespace NeoCompose.Runtime
         private readonly NeoDialogueRuntimeOptions options;
         private readonly INeoDialogueMemoryStore? memoryStore;
         private readonly NeoDialogueValueResolver? valueResolver;
+        private readonly IDisposable clientRegistration;
+        private NeoDialoguePauseAction? activePauseAction;
         private bool started;
 
         /// <summary>
@@ -99,6 +102,11 @@ namespace NeoCompose.Runtime
         public event Action<NeoDialogueTextNode>? OnShow;
 
         /// <summary>
+        /// Raised whenever the dialogue reaches a pause action.
+        /// </summary>
+        public event Action<NeoDialoguePauseAction>? OnPause;
+
+        /// <summary>
         /// Raised when the dialogue reaches the end of its flow.
         /// </summary>
         public event Action? OnFinish;
@@ -137,6 +145,7 @@ namespace NeoCompose.Runtime
             LookupValueId = data.triggerNode?.dialogueGroupSettings?.lookupValueId;
             Primary = context.Primary;
             LinkedValues = context.LinkedValues;
+            clientRegistration = client.RegisterDialogue(this);
         }
 
         /// <summary>
@@ -399,10 +408,18 @@ namespace NeoCompose.Runtime
 
         private void EnterActionsNode(DialogueActionsNodeModel node)
         {
+            ContinueActionsNode(node, 0);
+        }
+
+        private void ContinueActionsNode(DialogueActionsNodeModel node, int startIndex)
+        {
+            EnsureActive();
             try
             {
-                foreach (var action in node.actions ?? Array.Empty<DialogueActionModel>())
+                var actions = node.actions ?? Array.Empty<DialogueActionModel>();
+                for (int i = startIndex; i < actions.Length; i++)
                 {
+                    var action = actions[i];
                     if (action is DialogueLogicEditAttributeActionModel logicAction)
                     {
                         var compiled = logicAction.logic switch
@@ -419,6 +436,11 @@ namespace NeoCompose.Runtime
                         NeoDialogueActionEvaluator.Execute(client, compiled, Context, memoryStore);
                         continue;
                     }
+                    if (action is DialoguePauseActionModel pauseAction)
+                    {
+                        EnterPauseAction(node, pauseAction, i + 1);
+                        return;
+                    }
                     throw new NotSupportedException(
                         $"Dialogue action '{action.id}' has unsupported action type '{action.GetType().Name}'.");
                 }
@@ -429,6 +451,109 @@ namespace NeoCompose.Runtime
                 return;
             }
             EnterNode(node.toNodeId);
+        }
+
+        private void EnterPauseAction(
+            DialogueActionsNodeModel node,
+            DialoguePauseActionModel action,
+            int nextActionIndex)
+        {
+            State = NeoDialogueState.Paused;
+            var pause = new NeoDialoguePauseAction(
+                Id,
+                node.id,
+                action.id,
+                action.reason,
+                action.autoResumeDurationSeconds,
+                () => ResumePause(node, nextActionIndex, autoResume: false),
+                () => ResumePause(node, nextActionIndex, autoResume: true),
+                EnsurePauseCanResume);
+            activePauseAction = pause;
+
+            if (OnPause == null && action.autoResumeDurationSeconds == null)
+            {
+                logger.LogWarning(
+                    $"Dialogue '{Id}' paused at actions node '{node.id}', action '{action.id}' with no OnPause listener. Reason: '{action.reason}'.");
+            }
+
+            try
+            {
+                OnPause?.Invoke(pause);
+            }
+            catch (Exception ex)
+            {
+                Fail(ex);
+                return;
+            }
+
+            if (!pause.Paused) return;
+            if (action.autoResumeDurationSeconds == null) return;
+            if (action.autoResumeDurationSeconds.Value == 0)
+            {
+                pause.ResumeFromAuto();
+                return;
+            }
+
+            pause.ScheduleAutoResume(
+                options.ResolvePauseScheduler(),
+                TimeSpan.FromSeconds(action.autoResumeDurationSeconds.Value));
+        }
+
+        private void ResumePause(
+            DialogueActionsNodeModel node,
+            int nextActionIndex,
+            bool autoResume)
+        {
+            var pause = activePauseAction;
+            if (pause == null)
+            {
+                if (autoResume) return;
+                throw new InvalidOperationException(
+                    $"Dialogue '{Id}' does not have an active pause action to resume.");
+            }
+            if (State == NeoDialogueState.Disposed)
+            {
+                if (autoResume) return;
+                throw new ObjectDisposedException(
+                    nameof(NeoDialogue),
+                    $"Dialogue '{Id}' was disposed before pause action '{pause.Id}' could resume.");
+            }
+            if (State == NeoDialogueState.Finished)
+            {
+                if (autoResume) return;
+                throw new InvalidOperationException(
+                    $"Dialogue '{Id}' already finished before pause action '{pause.Id}' could resume.");
+            }
+            activePauseAction = null;
+            pause.MarkResumed();
+            State = NeoDialogueState.Started;
+            ContinueActionsNode(node, nextActionIndex);
+        }
+
+        private void EnsurePauseCanResume(NeoDialoguePauseAction pause)
+        {
+            if (client.IsDisposed)
+            {
+                throw new ObjectDisposedException(
+                    nameof(NeoClient),
+                    $"Cannot resume pause action '{pause.Id}' because its owning NeoClient was disposed.");
+            }
+            if (State == NeoDialogueState.Disposed)
+            {
+                throw new ObjectDisposedException(
+                    nameof(NeoDialogue),
+                    $"Cannot resume pause action '{pause.Id}' because dialogue '{Id}' was disposed.");
+            }
+            if (State == NeoDialogueState.Finished)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot resume pause action '{pause.Id}' because dialogue '{Id}' already finished.");
+            }
+            if (!ReferenceEquals(activePauseAction, pause))
+            {
+                throw new InvalidOperationException(
+                    $"Cannot resume pause action '{pause.Id}' because it is no longer the active pause for dialogue '{Id}'.");
+            }
         }
 
         private void EnterConditionsNode(DialogueConditionsNodeModel node)
@@ -523,9 +648,12 @@ namespace NeoCompose.Runtime
         internal void Finish()
         {
             if (State == NeoDialogueState.Disposed || State == NeoDialogueState.Finished) return;
+            activePauseAction?.DisposeFromOwner("dialogue finished");
+            activePauseAction = null;
             State = NeoDialogueState.Finished;
             OnFinish?.Invoke();
             ClearListeners();
+            clientRegistration.Dispose();
         }
 
         internal void Fail(Exception exception)
@@ -548,15 +676,126 @@ namespace NeoCompose.Runtime
         public void Dispose()
         {
             if (State == NeoDialogueState.Disposed) return;
+            activePauseAction?.DisposeFromOwner("dialogue disposed");
+            activePauseAction = null;
             State = NeoDialogueState.Disposed;
             ClearListeners();
+            clientRegistration.Dispose();
+        }
+
+        internal void DisposeFromClient()
+        {
+            if (State == NeoDialogueState.Disposed) return;
+            activePauseAction?.DisposeFromOwner("NeoClient disposed");
+            activePauseAction = null;
+            State = NeoDialogueState.Disposed;
+            ClearListeners();
+            clientRegistration.Dispose();
         }
 
         private void ClearListeners()
         {
             OnShow = null;
+            OnPause = null;
             OnFinish = null;
             OnError = null;
+        }
+    }
+
+    /// <summary>
+    /// Runtime pause action emitted by <see cref="NeoDialogue.OnPause"/>.
+    /// </summary>
+    public sealed class NeoDialoguePauseAction
+    {
+        private readonly Action resume;
+        private readonly Action resumeFromAuto;
+        private readonly Action<NeoDialoguePauseAction> ensureCanResume;
+        private IDisposable? autoResume;
+        private bool resumed;
+        private bool disposed;
+        private string? disposedReason;
+
+        public string Id { get; }
+        public string DialogueId { get; }
+        public string NodeId { get; }
+        public string Reason { get; }
+        public double? AutoResumeDurationSeconds { get; }
+        public bool Paused => !resumed && !disposed;
+
+        internal NeoDialoguePauseAction(
+            string dialogueId,
+            string nodeId,
+            string id,
+            string reason,
+            double? autoResumeDurationSeconds,
+            Action resume,
+            Action resumeFromAuto,
+            Action<NeoDialoguePauseAction> ensureCanResume)
+        {
+            DialogueId = dialogueId;
+            NodeId = nodeId;
+            Id = id;
+            Reason = reason;
+            AutoResumeDurationSeconds = autoResumeDurationSeconds;
+            this.resume = resume;
+            this.resumeFromAuto = resumeFromAuto;
+            this.ensureCanResume = ensureCanResume;
+        }
+
+        public void Resume()
+        {
+            if (disposed)
+            {
+                throw new ObjectDisposedException(
+                    nameof(NeoDialoguePauseAction),
+                    $"Cannot resume pause action '{Id}' because it was disposed when {disposedReason}.");
+            }
+            if (resumed)
+            {
+                throw new InvalidOperationException(
+                    $"Pause action '{Id}' has already been resumed.");
+            }
+            ensureCanResume(this);
+            resume();
+        }
+
+        internal void ResumeFromAuto()
+        {
+            if (!Paused) return;
+            try
+            {
+                ensureCanResume(this);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            resumeFromAuto();
+        }
+
+        internal void ScheduleAutoResume(
+            INeoDialoguePauseScheduler scheduler,
+            TimeSpan delay)
+        {
+            if (!Paused) return;
+            autoResume?.Dispose();
+            autoResume = scheduler.Schedule(delay, ResumeFromAuto);
+        }
+
+        internal void MarkResumed()
+        {
+            autoResume?.Dispose();
+            autoResume = null;
+            resumed = true;
+        }
+
+        internal void DisposeFromOwner(string reason)
+        {
+            if (disposed) return;
+            autoResume?.Dispose();
+            autoResume = null;
+            disposed = true;
+            disposedReason = reason;
         }
     }
 

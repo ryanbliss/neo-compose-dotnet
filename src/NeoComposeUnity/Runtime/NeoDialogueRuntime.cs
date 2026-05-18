@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using NeoCompose.Runtime.Json;
 using UnityEngine;
 
@@ -32,6 +33,7 @@ namespace NeoCompose.Runtime
         public Func<double>? RandomDouble { get; set; }
         public TimeSpan? RecencyHalfLife { get; set; }
         public INeoDialogueLogger? Logger { get; set; }
+        public INeoDialoguePauseScheduler? PauseScheduler { get; set; }
         public int OnEligibleDebounceMilliseconds { get; set; } = 50;
         public bool OnEligibleEmitAll { get; set; }
 
@@ -59,11 +61,56 @@ namespace NeoCompose.Runtime
             return RecencyHalfLife ?? TimeSpan.FromDays(1);
         }
 
+        internal INeoDialoguePauseScheduler ResolvePauseScheduler()
+        {
+            return PauseScheduler ?? UnityNeoDialoguePauseScheduler.Instance;
+        }
+
         private static double DefaultNextDouble()
         {
             lock (DefaultRandom)
             {
                 return DefaultRandom.NextDouble();
+            }
+        }
+    }
+
+    public interface INeoDialoguePauseScheduler
+    {
+        IDisposable Schedule(TimeSpan delay, Action callback);
+    }
+
+    internal sealed class UnityNeoDialoguePauseScheduler : INeoDialoguePauseScheduler
+    {
+        public static readonly UnityNeoDialoguePauseScheduler Instance = new();
+
+        private UnityNeoDialoguePauseScheduler() { }
+
+        public IDisposable Schedule(TimeSpan delay, Action callback)
+        {
+            var cancellation = new CancellationTokenSource();
+            RunAsync(delay, callback, cancellation.Token);
+            return new NeoDisposableAction(cancellation.Cancel);
+        }
+
+        private static async void RunAsync(
+            TimeSpan delay,
+            Action callback,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                await Awaitable.WaitForSecondsAsync(
+                    (float)delay.TotalSeconds,
+                    cancellationToken);
+                await Awaitable.MainThreadAsync();
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    callback();
+                }
+            }
+            catch (OperationCanceledException)
+            {
             }
         }
     }
@@ -95,6 +142,7 @@ namespace NeoCompose.Runtime
     {
         Created,
         Started,
+        Paused,
         Finished,
         Disposed,
     }

@@ -40,6 +40,7 @@ namespace NeoCompose.Runtime
 
         public virtual bool TryTrigger(string dialogueId, out NeoDialogue dialogue)
         {
+            client.EnsureNotDisposed();
             if (TryTrigger(dialogueId, out NeoDialogueTriggerResult result) && result.Dialogue != null)
             {
                 dialogue = result.Dialogue;
@@ -69,6 +70,7 @@ namespace NeoCompose.Runtime
 
         public virtual bool TryTrigger(string dialogueId, out NeoDialogueTriggerResult result)
         {
+            client.EnsureNotDisposed();
             if (!client.dialogues.TryGetValue(dialogueId, out DialogueModel data))
             {
                 result = NeoDialogueTriggerResult.NotFound();
@@ -124,6 +126,7 @@ namespace NeoCompose.Runtime
             string? lookupValueId,
             out NeoDialogueTriggerResult result)
         {
+            client.EnsureNotDisposed();
             if (!client.dialogueGroups.ContainsKey(groupId))
             {
                 result = NeoDialogueTriggerResult.NotFound(new[]

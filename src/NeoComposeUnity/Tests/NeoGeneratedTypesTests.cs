@@ -67,6 +67,23 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedRootClient_DisposeForwardsToRuntimeClient()
+        {
+            var app = LoadGeneratedClient(out _);
+            var client = app.Client;
+            System.IDisposable disposable = app;
+
+            disposable.Dispose();
+
+            Assert.IsTrue(client.IsDisposed);
+            Assert.Throws<System.ObjectDisposedException>(() =>
+            {
+                app.Dialogues.Standard.TryTrigger(out NeoDialogue _);
+            });
+            Assert.DoesNotThrow(() => disposable.Dispose());
+        }
+
+        [Test]
         public void GeneratedInheritance_ReadsInheritedAndOwnedMembers()
         {
             var app = LoadGeneratedClient(out _);

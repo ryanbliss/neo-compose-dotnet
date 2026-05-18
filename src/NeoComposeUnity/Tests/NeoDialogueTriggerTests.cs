@@ -1190,6 +1190,305 @@ namespace NeoCompose.Tests
             Assert.IsTrue(dialogue.IsDisposed);
         }
 
+        [Test]
+        public void ActionsNode_Pause_EmitsPauseAndResumesAtNextAction()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new NumberAttributeValue
+            {
+                id = "score-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = 1,
+            });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-manual", out NeoDialogue dialogue));
+
+            NeoDialoguePauseAction? pause = null;
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnPause += action => pause = action;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.AreEqual(NeoDialogueState.Paused, dialogue.State);
+            Assert.IsNotNull(pause);
+            Assert.AreEqual("pause-manual", pause!.Id);
+            Assert.AreEqual("dialogue-action-pause-manual", pause.DialogueId);
+            Assert.AreEqual("actions-start", pause.NodeId);
+            Assert.AreEqual("cutscene", pause.Reason);
+            Assert.IsNull(pause.AutoResumeDurationSeconds);
+            Assert.IsTrue(pause.Paused);
+            Assert.IsNull(shown);
+
+            pause.Resume();
+
+            Assert.IsFalse(pause.Paused);
+            Assert.IsNotNull(shown);
+            Assert.AreEqual("text-after-action", shown!.Id);
+            Assert.AreEqual(NeoDialogueState.Started, dialogue.State);
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.AreEqual(5, score!.value);
+            Assert.Throws<System.InvalidOperationException>(() => pause.Resume());
+        }
+
+        [Test]
+        public void ActionsNode_Pause_ConsecutivePausesRequireCurrentPause()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new NumberAttributeValue
+            {
+                id = "score-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = 1,
+            });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-consecutive", out NeoDialogue dialogue));
+
+            var pauses = new List<NeoDialoguePauseAction>();
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnPause += pauses.Add;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+            Assert.AreEqual(1, pauses.Count);
+
+            pauses[0].Resume();
+
+            Assert.AreEqual(2, pauses.Count);
+            Assert.IsNull(shown);
+            Assert.Throws<System.InvalidOperationException>(() => pauses[0].Resume());
+
+            pauses[1].Resume();
+
+            Assert.IsNotNull(shown);
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.AreEqual(7, score!.value);
+        }
+
+        [Test]
+        public void ActionsNode_Pause_SynchronousResumeContinuesBeforeStartReturns()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new NumberAttributeValue
+            {
+                id = "score-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = 1,
+            });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-manual", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnPause += action => action.Resume();
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(shown);
+            Assert.AreEqual("text-after-action", shown!.Id);
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.AreEqual(5, score!.value);
+        }
+
+        [Test]
+        public void ActionsNode_Pause_AutoResumeZeroContinuesAfterHandlersReturn()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new NumberAttributeValue
+            {
+                id = "score-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = 1,
+            });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-auto-zero", out NeoDialogue dialogue));
+
+            bool handlerSawPausedState = false;
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnPause += action =>
+            {
+                handlerSawPausedState = action.Paused
+                    && dialogue.State == NeoDialogueState.Paused
+                    && shown == null;
+            };
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsTrue(handlerSawPausedState);
+            Assert.IsNotNull(shown);
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.AreEqual(9, score!.value);
+        }
+
+        [Test]
+        public void ActionsNode_Pause_AutoResumePositiveUsesSchedulerAndManualResumeCancels()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new NumberAttributeValue
+            {
+                id = "score-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = 1,
+            });
+            var scheduler = new ManualPauseScheduler();
+            var root = new TestDialogues(
+                client,
+                new NeoDialogueRuntimeOptions
+                {
+                    PauseScheduler = scheduler,
+                });
+            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-auto-delay", out NeoDialogue dialogue));
+
+            NeoDialoguePauseAction? pause = null;
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnPause += action => pause = action;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(pause);
+            Assert.AreEqual(1, scheduler.PendingCount);
+            Assert.IsNull(shown);
+
+            pause!.Resume();
+
+            Assert.AreEqual(0, scheduler.PendingCount);
+            Assert.IsNotNull(shown);
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.AreEqual(11, score!.value);
+            Assert.DoesNotThrow(() => scheduler.RunAll());
+        }
+
+        [Test]
+        public void ActionsNode_Pause_AutoResumePositiveContinuesWhenSchedulerFires()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new NumberAttributeValue
+            {
+                id = "score-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = 1,
+            });
+            var scheduler = new ManualPauseScheduler();
+            var root = new TestDialogues(
+                client,
+                new NeoDialogueRuntimeOptions
+                {
+                    PauseScheduler = scheduler,
+                });
+            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-auto-delay", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsNull(shown);
+            Assert.AreEqual(1, scheduler.PendingCount);
+
+            scheduler.RunNext();
+
+            Assert.IsNotNull(shown);
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.AreEqual(11, score!.value);
+        }
+
+        [Test]
+        public void ActionsNode_Pause_NoListenerLogsWarningAndRemainsPaused()
+        {
+            var client = CreateClient();
+            var logger = new TestDialogueLogger();
+            var root = new TestDialogues(
+                client,
+                new NeoDialogueRuntimeOptions
+                {
+                    Logger = logger,
+                });
+            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-only", out NeoDialogue dialogue));
+
+            dialogue.Start();
+
+            Assert.AreEqual(NeoDialogueState.Paused, dialogue.State);
+            Assert.AreEqual(1, logger.Warnings.Count);
+            StringAssert.Contains("paused", logger.Warnings[0]);
+            StringAssert.Contains("pause-only", logger.Warnings[0]);
+        }
+
+        [Test]
+        public void ActionsNode_Pause_DisposeDialogueInvalidatesPause()
+        {
+            var client = CreateClient();
+            var scheduler = new ManualPauseScheduler();
+            var root = new TestDialogues(
+                client,
+                new NeoDialogueRuntimeOptions
+                {
+                    PauseScheduler = scheduler,
+                });
+            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-auto-delay", out NeoDialogue dialogue));
+
+            NeoDialoguePauseAction? pause = null;
+            dialogue.OnPause += action => pause = action;
+
+            dialogue.Start();
+            dialogue.Dispose();
+
+            Assert.AreEqual(NeoDialogueState.Disposed, dialogue.State);
+            Assert.AreEqual(0, scheduler.PendingCount);
+            Assert.IsFalse(pause!.Paused);
+            Assert.Throws<System.ObjectDisposedException>(() => pause.Resume());
+        }
+
+        [Test]
+        public void ActionsNode_Pause_DisposeClientDisposesDialogueAndInvalidatesPause()
+        {
+            var client = CreateClient();
+            var scheduler = new ManualPauseScheduler();
+            var root = new TestDialogues(
+                client,
+                new NeoDialogueRuntimeOptions
+                {
+                    PauseScheduler = scheduler,
+                });
+            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-auto-delay", out NeoDialogue dialogue));
+
+            NeoDialoguePauseAction? pause = null;
+            dialogue.OnPause += action => pause = action;
+
+            dialogue.Start();
+            client.Dispose();
+
+            Assert.AreEqual(NeoDialogueState.Disposed, dialogue.State);
+            Assert.AreEqual(0, scheduler.PendingCount);
+            Assert.IsFalse(pause!.Paused);
+            Assert.Throws<System.ObjectDisposedException>(() => pause.Resume());
+        }
+
+        [Test]
+        public void ActionsNode_Pause_ErrorAfterResumeUsesErrorPath()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-pause-then-error", out NeoDialogue dialogue));
+
+            System.Exception? error = null;
+            dialogue.OnPause += action => action.Resume();
+            dialogue.OnError += ex => error = ex;
+
+            dialogue.Start();
+
+            Assert.IsNotNull(error);
+            Assert.AreEqual("boom-after-pause", error!.Message);
+            Assert.AreEqual(NeoDialogueState.Disposed, dialogue.State);
+        }
+
         private static NeoClient CreateClient()
         {
             var data = new ProjectData
@@ -1739,6 +2038,68 @@ namespace NeoCompose.Tests
                     ["dialogue-action-error"] = ActionDialogue(
                         "dialogue-action-error",
                         ThrowAction("boom")),
+                    ["dialogue-action-pause-manual"] = ActionsDialogue(
+                        "dialogue-action-pause-manual",
+                        PauseAction("pause-manual", "cutscene"),
+                        EditAction(
+                            "set-score-after-pause",
+                            AssignAction(
+                                new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = "score-value",
+                                },
+                                IntTypeInfo(),
+                                NumberPointer(5)))),
+                    ["dialogue-action-pause-consecutive"] = ActionsDialogue(
+                        "dialogue-action-pause-consecutive",
+                        PauseAction("pause-one", "first"),
+                        PauseAction("pause-two", "second"),
+                        EditAction(
+                            "set-score-after-second-pause",
+                            AssignAction(
+                                new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = "score-value",
+                                },
+                                IntTypeInfo(),
+                                NumberPointer(7)))),
+                    ["dialogue-action-pause-auto-zero"] = ActionsDialogue(
+                        "dialogue-action-pause-auto-zero",
+                        PauseAction("pause-auto-zero", "zero", 0),
+                        EditAction(
+                            "set-score-after-zero-pause",
+                            AssignAction(
+                                new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = "score-value",
+                                },
+                                IntTypeInfo(),
+                                NumberPointer(9)))),
+                    ["dialogue-action-pause-auto-delay"] = ActionsDialogue(
+                        "dialogue-action-pause-auto-delay",
+                        PauseAction("pause-auto-delay", "delay", 3),
+                        EditAction(
+                            "set-score-after-delay-pause",
+                            AssignAction(
+                                new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = "score-value",
+                                },
+                                IntTypeInfo(),
+                                NumberPointer(11)))),
+                    ["dialogue-action-pause-only"] = ActionsDialogue(
+                        "dialogue-action-pause-only",
+                        PauseAction("pause-only", "manual forever")),
+                    ["dialogue-action-pause-then-error"] = ActionsDialogue(
+                        "dialogue-action-pause-then-error",
+                        PauseAction("pause-before-error", "error"),
+                        EditAction(
+                            "throw-after-pause",
+                            ThrowAction("boom-after-pause"))),
                     ["dialogue-priority-low"] = Dialogue(
                         "dialogue-priority-low",
                         "Priority Low",
@@ -2003,6 +2364,82 @@ namespace NeoCompose.Tests
                 },
                 createdAt = Now,
                 updatedAt = Now,
+            };
+        }
+
+        private static Dialogue ActionsDialogue(
+            string id,
+            params DialogueAction[] actions)
+        {
+            return new Dialogue
+            {
+                id = id,
+                _id = id,
+                projectId = ProjectId,
+                name = id,
+                description = null,
+                linkedValues = new DialogueLinkedValue[0],
+                settings = new DialogueSettings(),
+                primaryLinkedValueId = null,
+                triggerNode = new DialogueTriggerNode
+                {
+                    id = $"{id}-trigger",
+                    type = DialogueNodeType.Trigger,
+                    layout = new DialogueNodeLayout(),
+                    toNodeId = "actions-start",
+                    linkedValues = new DialogueLinkedValue[0],
+                    conditions = new LogicCondition[0],
+                    dialogueGroupSettings = new DialogueGroupSettings
+                    {
+                        dialogueGroupId = "group-standard",
+                        priority = new DialogueGroupPrioritySettings(),
+                    },
+                },
+                nodes = new Dictionary<string, DialogueBodyNode>
+                {
+                    ["actions-start"] = new DialogueActionsNode
+                    {
+                        id = "actions-start",
+                        type = DialogueNodeType.Actions,
+                        layout = new DialogueNodeLayout(),
+                        linkedValues = new DialogueLinkedValue[0],
+                        toNodeId = "text-after-action",
+                        actions = actions,
+                    },
+                    ["text-after-action"] = TextNode("text-after-action", "Action completed."),
+                },
+                createdAt = Now,
+                updatedAt = Now,
+            };
+        }
+
+        private static DialogueLogicEditAttributeAction EditAction(
+            string id,
+            FunctionWithReturnType action)
+        {
+            return new DialogueLogicEditAttributeAction
+            {
+                id = id,
+                type = DialogueActionType.EditAttribute,
+                logic = new UILogicAction
+                {
+                    type = LogicType.UI,
+                    action = action,
+                },
+            };
+        }
+
+        private static DialoguePauseAction PauseAction(
+            string id,
+            string reason,
+            double? autoResumeDurationSeconds = null)
+        {
+            return new DialoguePauseAction
+            {
+                id = id,
+                type = DialogueActionType.Pause,
+                reason = reason,
+                autoResumeDurationSeconds = autoResumeDurationSeconds,
             };
         }
 
@@ -2947,6 +3384,64 @@ namespace NeoCompose.Tests
                 thisValue: null,
                 rootValue: null);
             return NeoCompose.Runtime.NeoScript.NSGetterEvaluator.UnwrapRow(row, ctx);
+        }
+
+        private sealed class ManualPauseScheduler : INeoDialoguePauseScheduler
+        {
+            private readonly List<System.Action> callbacks = new();
+
+            public int PendingCount => callbacks.Count;
+
+            public System.IDisposable Schedule(
+                System.TimeSpan delay,
+                System.Action callback)
+            {
+                callbacks.Add(callback);
+                return new TestDisposable(() => callbacks.Remove(callback));
+            }
+
+            public void RunNext()
+            {
+                var callback = callbacks[0];
+                callbacks.RemoveAt(0);
+                callback();
+            }
+
+            public void RunAll()
+            {
+                while (callbacks.Count > 0)
+                {
+                    RunNext();
+                }
+            }
+        }
+
+        private sealed class TestDisposable : System.IDisposable
+        {
+            private System.Action? dispose;
+
+            public TestDisposable(System.Action dispose)
+            {
+                this.dispose = dispose;
+            }
+
+            public void Dispose()
+            {
+                var current = dispose;
+                dispose = null;
+                current?.Invoke();
+            }
+        }
+
+        private sealed class TestDialogueLogger : INeoDialogueLogger
+        {
+            public readonly List<string> Warnings = new();
+            public readonly List<string> Errors = new();
+            public readonly List<System.Exception> Exceptions = new();
+
+            public void LogWarning(string message) => Warnings.Add(message);
+            public void LogError(string message) => Errors.Add(message);
+            public void LogException(System.Exception exception) => Exceptions.Add(exception);
         }
 
         private sealed class TestDialogues : NeoDialoguesBase

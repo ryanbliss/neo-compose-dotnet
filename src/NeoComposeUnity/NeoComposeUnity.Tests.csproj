@@ -4,6 +4,7 @@
     <LangVersion>9.0</LangVersion>
     <RootNamespace>NeoCompose.Tests</RootNamespace>
     <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+    <UnityTestRunnerDir Condition="'$(UnityTestRunnerDir)' == ''">../../samples/HelloWorld/Library/ScriptAssemblies</UnityTestRunnerDir>
     <!-- IDE-only shim — Unity drives the actual test compile via the
          Tests/NeoCompose.Unity.Tests.asmdef. This csproj is what gives VSCode /
          Rider IntelliSense over the test sources when the monorepo is opened
@@ -20,11 +21,32 @@
 
   <ItemGroup>
     <ProjectReference Include="NeoComposeUnity.csproj" />
+    <ProjectReference Include="NeoComposeUnityEditor.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AudioModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.AudioModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEditor.CoreModule">
+      <HintPath>$(UnityManagedDir)/UnityEditor.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TestRunner">
+      <HintPath>$(UnityTestRunnerDir)/UnityEngine.TestRunner.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEditor.TestRunner">
+      <HintPath>$(UnityTestRunnerDir)/UnityEditor.TestRunner.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
