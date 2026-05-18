@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
 
 namespace NeoCompose.Runtime
@@ -11,7 +12,7 @@ namespace NeoCompose.Runtime
     /// User-facing save/runtime operations exposed by generated Neo Compose
     /// project facades.
     /// </summary>
-    public interface INeoClient
+    public interface INeoClient : IDisposable
     {
         NeoAttributeCustom AssetsRoot { get; }
 

@@ -200,6 +200,7 @@ namespace NeoCompose.Runtime.Json
     public enum DialogueActionType
     {
         EditAttribute = 0,
+        Pause = 1,
     }
 
     [JsonConverter(typeof(DialogueActionConverter))]
@@ -214,6 +215,12 @@ namespace NeoCompose.Runtime.Json
         public LogicAction logic = null!;
     }
 
+    public class DialoguePauseAction : DialogueAction
+    {
+        public string reason = null!;
+        public double? autoResumeDurationSeconds;
+    }
+
     public class DialogueActionConverter : DiscriminatedConverter<DialogueAction>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -221,7 +228,49 @@ namespace NeoCompose.Runtime.Json
             switch ((DialogueActionType)discriminator.Value<int>())
             {
                 case DialogueActionType.EditAttribute: return typeof(DialogueLogicEditAttributeAction);
+                case DialogueActionType.Pause: return typeof(DialoguePauseAction);
                 default: return null;
+            }
+        }
+
+        protected override void ValidateObject(JObject obj, Type concrete)
+        {
+            if (concrete != typeof(DialoguePauseAction)) return;
+            string actionId = obj["id"]?.Value<string>() ?? "<unknown>";
+            JToken? reason = obj["reason"];
+            if (reason == null)
+            {
+                throw new JsonSerializationException(
+                    $"Invalid pause dialogue action '{actionId}': field 'reason' is required.");
+            }
+            if (reason.Type != JTokenType.String)
+            {
+                throw new JsonSerializationException(
+                    $"Invalid pause dialogue action '{actionId}': field 'reason' must be a string.");
+            }
+
+            JToken? duration = obj["autoResumeDurationSeconds"];
+            if (duration == null)
+            {
+                throw new JsonSerializationException(
+                    $"Invalid pause dialogue action '{actionId}': field 'autoResumeDurationSeconds' is required.");
+            }
+            if (duration.Type == JTokenType.Null) return;
+            if (duration.Type != JTokenType.Integer && duration.Type != JTokenType.Float)
+            {
+                throw new JsonSerializationException(
+                    $"Invalid pause dialogue action '{actionId}': field 'autoResumeDurationSeconds' must be null or a finite number greater than or equal to zero.");
+            }
+            double value = duration.Value<double>();
+            if (double.IsNaN(value) || double.IsInfinity(value))
+            {
+                throw new JsonSerializationException(
+                    $"Invalid pause dialogue action '{actionId}': field 'autoResumeDurationSeconds' must be finite.");
+            }
+            if (value < 0)
+            {
+                throw new JsonSerializationException(
+                    $"Invalid pause dialogue action '{actionId}': field 'autoResumeDurationSeconds' must be greater than or equal to zero.");
             }
         }
     }

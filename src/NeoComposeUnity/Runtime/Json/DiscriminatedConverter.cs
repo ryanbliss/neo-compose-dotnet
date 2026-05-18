@@ -47,6 +47,8 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         protected abstract Type? ResolveSubclass(JToken discriminator);
 
+        protected virtual void ValidateObject(JObject obj, Type concrete) { }
+
         public override bool CanConvert(Type objectType)
         {
             return typeof(TBase).IsAssignableFrom(objectType);
@@ -74,6 +76,7 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     $"Unknown discriminator value '{disc}' for {typeof(TBase).Name}");
             }
+            ValidateObject(obj, concrete);
             // CRITICAL: do NOT call `obj.ToObject(concrete, serializer)`.
             // Newtonsoft would re-check `concrete`'s base attribute,
             // find this same converter via `CanConvert`, and re-enter

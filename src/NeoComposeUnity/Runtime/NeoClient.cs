@@ -42,6 +42,8 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, NeoAttribute> nodes => nodesInternal;
         private readonly Dictionary<string, NeoAttribute> nodesInternal = new();
         private readonly Dictionary<string, NeoGeneratedCustomValue> generatedValuesInternal = new();
+        private readonly HashSet<NeoDialogue> activeDialogues = new();
+        private bool isDisposed;
 
         /// <summary>
         /// Read-only views over the underlying project + save maps.
@@ -63,6 +65,7 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, AttributeValue> sessionValues => sessionData.values;
         internal IReadOnlyDictionary<string, string> sessionOverrides => sessionData.attributeValueOverrides;
         internal Project project => data.project;
+        internal bool IsDisposed => isDisposed;
 
         /// <summary>
         /// Fired when the entry for <c>attributeId</c> in
@@ -88,6 +91,21 @@ namespace NeoCompose.Runtime
         internal event System.Action<string>? OnSaveValueChanged;
         internal event System.Action<NeoValueOwnership, string, string?>? OnWritableOverrideChanged;
         internal event System.Action<NeoValueOwnership, string>? OnWritableValueChanged;
+
+        internal void EnsureNotDisposed()
+        {
+            if (isDisposed)
+            {
+                throw new System.ObjectDisposedException(nameof(NeoClient));
+            }
+        }
+
+        internal System.IDisposable RegisterDialogue(NeoDialogue dialogue)
+        {
+            EnsureNotDisposed();
+            activeDialogues.Add(dialogue);
+            return new NeoDisposableAction(() => activeDialogues.Remove(dialogue));
+        }
 
         protected ProjectData data;
         protected ProjectSaveData saveData;
@@ -116,6 +134,24 @@ namespace NeoCompose.Runtime
             assets = new(this, data.project.rootAssetsAttributeId, null);
             save = new(this, data.project.rootSaveFileAttributeId, null, NeoValueOwnership.Save);
             session = new(this, data.project.rootSessionAttributeId, null, NeoValueOwnership.Session);
+        }
+
+        public void Dispose()
+        {
+            if (isDisposed) return;
+            isDisposed = true;
+            foreach (var dialogue in new List<NeoDialogue>(activeDialogues))
+            {
+                dialogue.DisposeFromClient();
+            }
+            activeDialogues.Clear();
+            assets.Dispose();
+            save.Dispose();
+            session.Dispose();
+            OnSaveOverrideChanged = null;
+            OnSaveValueChanged = null;
+            OnWritableOverrideChanged = null;
+            OnWritableValueChanged = null;
         }
 
         internal bool TryGetAttribute<TAttribute>(string id, [NotNullWhen(true)] out TAttribute? attribute) where TAttribute : Attribute

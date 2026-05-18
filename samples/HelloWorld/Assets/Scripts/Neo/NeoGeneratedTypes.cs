@@ -115,6 +115,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         public int RunGarbageCollector() => Client.RunGarbageCollector();
 
         public IReadOnlyList<string> FindUnlinkedSaveValueIds() => Client.FindUnlinkedSaveValueIds();
+
+        public void Dispose() => Client.Dispose();
     }
 
     public sealed class NeoDialogues : NeoDialoguesBase
