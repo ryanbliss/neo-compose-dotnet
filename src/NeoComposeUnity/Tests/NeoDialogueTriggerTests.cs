@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.IO;
+using System;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
@@ -692,19 +693,15 @@ namespace NeoCompose.Tests
             double expectedValue)
         {
             var client = new NeoLoader().Load(LoadFixture("synth-example.json"), () => "", _ => { });
-            client.SetSaveValue(new NumberAttributeValue
-            {
-                id = "v-score",
-                createdAt = Now,
-                updatedAt = Now,
-                value = initialValue,
-            });
+            var scoreNode = client.save.Get<NeoAttributeIntWritable>("Score");
+            scoreNode.Set((int)initialValue);
             var root = new TestDialogues(client);
             Assert.IsTrue(root.TryTrigger(dialogueId, out NeoDialogue dialogue));
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("v-score", out NumberAttributeValue? score));
+            var score = client.save.Get<NeoAttributeInt>("Score").value;
+            Assert.IsNotNull(score);
             Assert.AreEqual(expectedValue, score!.value, $"dialogue {dialogueId}");
         }
 
@@ -735,11 +732,14 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("root-save-default-value", out ObjectAttributeValue? saveRoot));
-            Assert.AreEqual("score-default-value", saveRoot!.value!["Score"]);
-            Assert.IsTrue(client.TryGetValue("score-default-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.saveOverrides.TryGetValue("root-save", out string rootSaveValueId));
+            Assert.AreNotEqual("root-save-default-value", rootSaveValueId);
+            Assert.IsTrue(client.saveValues.TryGetValue(rootSaveValueId, out AttributeValue? saveRootUntyped));
+            var saveRoot = (ObjectAttributeValue)saveRootUntyped;
+            Assert.AreNotEqual("score-default-value", saveRoot.value!["Score"]);
+            Assert.IsTrue(client.saveValues.TryGetValue(saveRoot.value["Score"], out AttributeValue? scoreUntyped));
+            var score = (NumberAttributeValue)scoreUntyped;
             Assert.AreEqual(22, score!.value);
-            Assert.AreEqual("root-save-default-value", client.saveOverrides["root-save"]);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
         }
 
@@ -754,9 +754,14 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("session-foo-default-value", out BoolAttributeValue? sessionFoo));
-            Assert.AreEqual(true, sessionFoo!.value);
-            Assert.IsTrue(client.sessionValues.ContainsKey("session-foo-default-value"));
+            Assert.IsTrue(client.sessionOverrides.TryGetValue("root-session", out string rootSessionValueId));
+            Assert.IsTrue(client.sessionValues.TryGetValue(rootSessionValueId, out AttributeValue? sessionRootUntyped));
+            var sessionRoot = (ObjectAttributeValue)sessionRootUntyped;
+            Assert.IsTrue(sessionRoot.value!.TryGetValue("Foo", out string sessionFooValueId));
+            Assert.AreNotEqual("session-foo-default-value", sessionFooValueId);
+            Assert.IsTrue(client.sessionValues.TryGetValue(sessionFooValueId, out AttributeValue? sessionFooUntyped));
+            var sessionFoo = (BoolAttributeValue)sessionFooUntyped;
+            Assert.AreEqual(true, sessionFoo.value);
             Assert.IsFalse(client.saveValues.ContainsKey("session-foo-default-value"));
             Assert.IsFalse(client.SerializeSaveData().Contains("session-foo-default-value"));
         }
@@ -1233,6 +1238,117 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ActionsNode_DeferredFunction_PausesAndResumesWithResult()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new NumberAttributeValue
+            {
+                id = "score-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = 1,
+            });
+            NeoDeferredFunction<int>? pending = null;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    {
+                        pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                            deferred,
+                            "DeferredScore");
+                    },
+                });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-deferred-score", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.AreEqual(NeoDialogueState.Paused, dialogue.State);
+            Assert.IsNotNull(pending);
+            Assert.IsTrue(pending!.Pending);
+            Assert.IsNull(shown);
+
+            pending.Complete(42);
+
+            Assert.IsFalse(pending.Pending);
+            Assert.AreEqual(NeoDialogueState.Started, dialogue.State);
+            Assert.IsNotNull(shown);
+            Assert.AreEqual("text-after-action", shown!.Id);
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.AreEqual(42, score!.value);
+        }
+
+        [Test]
+        public void ActionsNode_DeferredFunction_SynchronousCompleteContinuesAfterHandlerReturns()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new NumberAttributeValue
+            {
+                id = "score-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = 1,
+            });
+            bool handlerReturned = false;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    {
+                        var typed = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                            deferred,
+                            "DeferredScore");
+                        typed.Complete(77);
+                        handlerReturned = true;
+                    },
+                });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-deferred-score", out NeoDialogue dialogue));
+
+            NeoDialogueTextNode? shown = null;
+            dialogue.OnShow += node => shown = node;
+
+            dialogue.Start();
+
+            Assert.IsTrue(handlerReturned);
+            Assert.AreEqual(NeoDialogueState.Started, dialogue.State);
+            Assert.IsNotNull(shown);
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.AreEqual(77, score!.value);
+        }
+
+        [Test]
+        public void ActionsNode_DeferredFunction_DisposeInvalidatesPendingHandle()
+        {
+            var client = CreateClient();
+            NeoDeferredFunction<int>? pending = null;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    {
+                        pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                            deferred,
+                            "DeferredScore");
+                    },
+                });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-deferred-score", out NeoDialogue dialogue));
+
+            dialogue.Start();
+            dialogue.Dispose();
+
+            Assert.IsNotNull(pending);
+            Assert.IsFalse(pending!.Pending);
+            Assert.IsTrue(pending.CancellationToken.IsCancellationRequested);
+            Assert.Throws<ObjectDisposedException>(() => pending.Complete(1));
+        }
+
+        [Test]
         public void ActionsNode_Pause_ConsecutivePausesRequireCurrentPause()
         {
             var client = CreateClient();
@@ -1505,7 +1621,7 @@ namespace NeoCompose.Tests
                     createdAt = Now,
                     updatedAt = Now,
                 },
-                attributes = new Dictionary<string, Attribute>
+                attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
                 {
                     ["root-assets"] = RootAttribute("root-assets", "Assets"),
                     ["root-save"] = RootAttribute("root-save", "Save"),
@@ -1579,6 +1695,20 @@ namespace NeoCompose.Tests
                         name = "Foo",
                         type = AttributeType.Bool,
                         required = true,
+                        createdAt = Now,
+                        updatedAt = Now,
+                    },
+                    ["attr-deferred-score"] = new FunctionAttribute
+                    {
+                        id = "attr-deferred-score",
+                        _id = "attr-deferred-score",
+                        projectId = ProjectId,
+                        name = "DeferredScore",
+                        type = AttributeType.Function,
+                        required = false,
+                        returnTypeInfo = IntTypeInfo(),
+                        argumentTypes = new FunctionArgumentTypeInfo[0],
+                        deferred = true,
                         createdAt = Now,
                         updatedAt = Now,
                     },
@@ -1720,7 +1850,7 @@ namespace NeoCompose.Tests
                         updatedAt = Now,
                     },
                 },
-                enums = new Dictionary<string, Enum>(),
+                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
                 dialogueGroups = new Dictionary<string, DialogueGroup>
                 {
                     ["group-standard"] = new StandardDialogueGroup
@@ -2100,6 +2230,11 @@ namespace NeoCompose.Tests
                         EditAction(
                             "throw-after-pause",
                             ThrowAction("boom-after-pause"))),
+                    ["dialogue-action-deferred-score"] = ActionsDialogue(
+                        "dialogue-action-deferred-score",
+                        EditAction(
+                            "set-score-after-deferred",
+                            DeferredScoreAction())),
                     ["dialogue-priority-low"] = Dialogue(
                         "dialogue-priority-low",
                         "Priority Low",
@@ -3124,6 +3259,49 @@ namespace NeoCompose.Tests
                 {
                     type = InstructionKind.Throw,
                     pointer = StringPointer(message),
+                },
+            });
+        }
+
+        private static FunctionWithReturnType DeferredScoreAction()
+        {
+            return ActionFunction(new Instruction[]
+            {
+                new VariableInstruction
+                {
+                    type = InstructionKind.Variable,
+                    variable = new Variable
+                    {
+                        id = "score",
+                        typeInfo = IntTypeInfo(),
+                        pointer = new CallNativeFunctionPointer
+                        {
+                            type = PointerKind.CallNativeFunction,
+                            attributeId = "attr-deferred-score",
+                            thisPointer = NullPointer(),
+                            args = new Pointer[0],
+                        },
+                    },
+                },
+                new AssignInstruction
+                {
+                    type = InstructionKind.Assign,
+                    target = new WriteTarget
+                    {
+                        pointer = new ReferencePointer
+                        {
+                            type = PointerKind.Reference,
+                            valueId = "score-value",
+                        },
+                        typeInfo = IntTypeInfo(),
+                        writability = WritabilityKind.Save,
+                    },
+                    operatorValue = "=",
+                    pointer = new VariablePointer
+                    {
+                        type = PointerKind.Variable,
+                        variableId = "score",
+                    },
                 },
             });
         }

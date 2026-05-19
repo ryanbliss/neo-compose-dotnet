@@ -55,6 +55,14 @@ namespace NeoCompose.Runtime
             // Do nothing by default
         }
 
+#if UNITY_EDITOR
+        public virtual void OnDidSynchronize()
+        {
+            // Do nothing by default
+        }
+
+#endif
+
         NeoValuePayload INeoValuePayloadProvider.ToNeoValuePayload()
         {
             return NeoGeneratedTypesSupport.ValuePayload(node, fallbackTypeId);

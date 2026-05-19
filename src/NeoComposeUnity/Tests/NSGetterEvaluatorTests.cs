@@ -76,7 +76,8 @@ namespace NeoCompose.Tests
                     ""returnTypeInfo"": { ""type"": ""Void"", ""required"": true },
                     ""argumentTypes"": [
                         { ""name"": ""animationName"", ""type"": 3, ""required"": true }
-                    ]
+                    ],
+                    ""deferred"": false
                 }");
 
             Assert.IsInstanceOf<FunctionAttribute>(attribute);
@@ -85,6 +86,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(AttributeType.Void, function.returnTypeInfo.type);
             Assert.AreEqual("animationName", function.argumentTypes[0].name);
             Assert.AreEqual(AttributeType.String, function.argumentTypes[0].type);
+            Assert.AreEqual(false, function.deferred);
 
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<TypeInfo>(
@@ -967,6 +969,7 @@ namespace NeoCompose.Tests
                         required = true,
                     },
                 },
+                deferred = false,
                 createdAt = "x",
                 updatedAt = "x",
             };

@@ -177,6 +177,7 @@ namespace NeoCompose.Tests
             Assert.Contains("Assets/Scripts/Neo", assets.createdDirectories);
             Assert.Contains("Assets/Resources/Neo", assets.createdDirectories);
             Assert.IsTrue(assets.savedConfig);
+            Assert.AreEqual("Assets/Resources/Neo/project.json", assets.postSynchronizeProjectJsonPath);
         }
 
         [Test]
@@ -893,6 +894,7 @@ namespace NeoCompose.Tests
             public NeoAssetDatabase assetDatabase = ScriptableObject.CreateInstance<NeoAssetDatabase>();
             public bool savedConfig;
             public bool savedAsset;
+            public string? postSynchronizeProjectJsonPath;
 
             public bool FileExists(string assetPath)
             {
@@ -921,6 +923,11 @@ namespace NeoCompose.Tests
             public void SaveConfig(NeoComposeConfig config)
             {
                 savedConfig = true;
+            }
+
+            public void SchedulePostSynchronize(NeoComposeConfig config, string projectJsonPath)
+            {
+                postSynchronizeProjectJsonPath = projectJsonPath;
             }
 
             public NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath)

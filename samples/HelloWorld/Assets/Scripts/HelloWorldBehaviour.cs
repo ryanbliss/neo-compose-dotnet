@@ -85,6 +85,12 @@ namespace HelloWorld.Assets.Scripts
 
         public void ShowDialogue(NeoDialogue dialogue)
         {
+            PrepareUI();
+            DialogueUI.Show(
+                GetSpeakerLabel(dialogue),
+                GetSpeakerImage(dialogue),
+                $"Traveling to {GetPlanet(dialogue)}..."
+            );
             dialogue.OnShow += OnDialogueShow;
             dialogue.OnPause += OnDialoguePause;
             dialogue.OnFinish += OnDialogueFinish;
@@ -97,8 +103,8 @@ namespace HelloWorld.Assets.Scripts
         {
             PrepareUI();
             DialogueUI.Show(
-                SpeakerLabel(node),
-                SpeakerImage(node),
+                GetSpeakerLabel(node),
+                GetSpeakerImage(node),
                 node.Text
             );
             if (node.Options.Count > 0)
@@ -182,6 +188,7 @@ namespace HelloWorld.Assets.Scripts
         protected void OnDestroy()
         {
             ClearDialogue();
+            OutpostFunctionHandler.AnimationPlayer = null;
             DialogueUI?.Dispose();
             CoreUI?.Dispose();
             bitsSubscription?.Dispose();
@@ -200,9 +207,10 @@ namespace HelloWorld.Assets.Scripts
         {
             CoreUI ??= new();
             DialogueUI ??= new();
+            OutpostFunctionHandler.AnimationPlayer = DialogueUI;
         }
 
-        private static string SpeakerLabel(NeoDialogueTextNode node)
+        private static string GetSpeakerLabel(NeoDialogueTextNode node)
         {
             if (node.Primary is ReadOnlyOutpost outpost)
             {
@@ -210,11 +218,30 @@ namespace HelloWorld.Assets.Scripts
             }
             return "Dialogue";
         }
+        private static string GetSpeakerLabel(NeoDialogue dialogue)
+        {
+            if (dialogue.Primary is ReadOnlyOutpost outpost)
+            {
+                return outpost.FullDisplayText;
+            }
+            return "Dialogue";
+        }
 
-        private static Sprite SpeakerImage(NeoDialogueTextNode node)
+        private static Sprite GetSpeakerImage(NeoDialogueTextNode node)
         {
             if (node.Primary is not ReadOnlyOutpost outpost) return null;
             return outpost.Image;
+        }
+        private static Sprite GetSpeakerImage(NeoDialogue dialogue)
+        {
+            if (dialogue.Primary is not ReadOnlyOutpost outpost) return null;
+            return outpost.Image;
+        }
+        
+        private static Planet GetPlanet(NeoDialogue dialogue)
+        {
+            if (dialogue.Primary is not ReadOnlyOutpost outpost) return null;
+            return outpost.Planet;
         }
 
         // ──────────────────────────────────────────────

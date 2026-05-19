@@ -184,6 +184,33 @@ namespace NeoCompose.Runtime
                 $"Native Function argument '{argumentName}' could not be converted to {typeof(T).Name}.");
         }
 
+        public static TDeferred ResolveDeferredFunction<TDeferred>(
+            NeoDeferredFunctionBase deferred,
+            string functionName)
+            where TDeferred : NeoDeferredFunctionBase
+        {
+            if (deferred is TDeferred typed) return typed;
+            var expectedType = typeof(TDeferred);
+            if (expectedType == typeof(NeoDeferredFunction))
+            {
+                return (TDeferred)(NeoDeferredFunctionBase)new NeoDeferredFunction(
+                    deferred.StateCore);
+            }
+            if (expectedType.IsGenericType
+                && expectedType.GetGenericTypeDefinition() == typeof(NeoDeferredFunction<>))
+            {
+                var created = Activator.CreateInstance(
+                    expectedType,
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic,
+                    binder: null,
+                    args: new object[] { deferred.StateCore },
+                    culture: null);
+                if (created is TDeferred createdTyped) return createdTyped;
+            }
+            throw new NeoScript.NSGetterRuntimeError(
+                $"Deferred Function '{functionName}' expected handle type {expectedType.Name}, got {deferred.GetType().Name}.");
+        }
+
         private static string? ResolveCustomValueTypeId(
             NeoClient client,
             string valueId,

@@ -41,6 +41,11 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         public class Context
         {
+            public delegate object? NativeFunctionCallHandler(
+                CallNativeFunctionPointer pointer,
+                Dictionary<string, object?> scope,
+                Context ctx);
+
             public NeoClient client { get; }
             public object? thisValue { get; }
             public object? rootValue { get; }
@@ -53,6 +58,7 @@ namespace NeoCompose.Runtime.NeoScript
             /// trips before the runtime stack overflows.
             /// </summary>
             public IReadOnlyCollection<string> getterCallStack { get; }
+            internal NeoValueOwnership valueOwnership { get; }
 
             /// <summary>
             /// Caches <c>valueId → unwrapped</c> CLR shape for every
@@ -91,7 +97,8 @@ namespace NeoCompose.Runtime.NeoScript
             /// reference equality on boxed primitives would
             /// false-positive.
             /// </summary>
-            internal Dictionary<object, string> rowReverseIndex { get; }
+            internal Dictionary<object, RowReference> rowReverseIndex { get; }
+            internal NativeFunctionCallHandler? nativeFunctionCallHandler { get; }
 
             public Context(
                 NeoClient client,
@@ -101,7 +108,9 @@ namespace NeoCompose.Runtime.NeoScript
                 INeoDialogueMemoryStore? memoryStore = null,
                 IReadOnlyCollection<string>? getterCallStack = null,
                 Dictionary<string, object?>? rowUnwrapCache = null,
-                Dictionary<object, string>? rowReverseIndex = null)
+                Dictionary<object, RowReference>? rowReverseIndex = null,
+                NeoValueOwnership valueOwnership = NeoValueOwnership.Save,
+                NativeFunctionCallHandler? nativeFunctionCallHandler = null)
             {
                 this.client = client;
                 this.thisValue = thisValue;
@@ -111,7 +120,9 @@ namespace NeoCompose.Runtime.NeoScript
                 this.getterCallStack = getterCallStack ?? System.Array.Empty<string>();
                 this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<string, object?>();
                 this.rowReverseIndex = rowReverseIndex
-                    ?? new Dictionary<object, string>(ReferenceEqualityComparer.Instance);
+                    ?? new Dictionary<object, RowReference>(ReferenceEqualityComparer.Instance);
+                this.valueOwnership = valueOwnership;
+                this.nativeFunctionCallHandler = nativeFunctionCallHandler;
             }
 
             internal Context WithGetterPushed(string attributeId)
@@ -125,7 +136,9 @@ namespace NeoCompose.Runtime.NeoScript
                     memoryStore,
                     next,
                     rowUnwrapCache,
-                    rowReverseIndex);
+                    rowReverseIndex,
+                    valueOwnership,
+                    nativeFunctionCallHandler);
             }
 
             internal Context WithThis(object? newThisValue)
@@ -138,7 +151,9 @@ namespace NeoCompose.Runtime.NeoScript
                     memoryStore,
                     getterCallStack,
                     rowUnwrapCache,
-                    rowReverseIndex);
+                    rowReverseIndex,
+                    valueOwnership,
+                    nativeFunctionCallHandler);
             }
 
             internal Context WithRoot(object? newRootValue)
@@ -151,7 +166,9 @@ namespace NeoCompose.Runtime.NeoScript
                     memoryStore,
                     getterCallStack,
                     rowUnwrapCache,
-                    rowReverseIndex);
+                    rowReverseIndex,
+                    valueOwnership,
+                    nativeFunctionCallHandler);
             }
 
             internal Context WithContext(object? newContextValue)
@@ -164,7 +181,9 @@ namespace NeoCompose.Runtime.NeoScript
                     memoryStore,
                     getterCallStack,
                     rowUnwrapCache,
-                    rowReverseIndex);
+                    rowReverseIndex,
+                    valueOwnership,
+                    nativeFunctionCallHandler);
             }
 
             internal Context WithMemoryStore(INeoDialogueMemoryStore? newMemoryStore)
@@ -177,7 +196,25 @@ namespace NeoCompose.Runtime.NeoScript
                     newMemoryStore,
                     getterCallStack,
                     rowUnwrapCache,
-                    rowReverseIndex);
+                    rowReverseIndex,
+                    valueOwnership,
+                    nativeFunctionCallHandler);
+            }
+
+            internal Context WithNativeFunctionCallHandler(
+                NativeFunctionCallHandler handler)
+            {
+                return new Context(
+                    client,
+                    thisValue,
+                    rootValue,
+                    contextValue,
+                    memoryStore,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex,
+                    valueOwnership,
+                    handler);
             }
         }
 
@@ -192,6 +229,18 @@ namespace NeoCompose.Runtime.NeoScript
             bool IEqualityComparer<object>.Equals(object? x, object? y) => ReferenceEquals(x, y);
             int IEqualityComparer<object>.GetHashCode(object obj) =>
                 System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+        }
+
+        public readonly struct RowReference
+        {
+            public string valueId { get; }
+            public NeoValueOwnership ownership { get; }
+
+            public RowReference(string valueId, NeoValueOwnership ownership)
+            {
+                this.valueId = valueId;
+                this.ownership = ownership;
+            }
         }
 
         // ---------------------------------------------------------------
@@ -226,7 +275,14 @@ namespace NeoCompose.Runtime.NeoScript
         /// types and runtime-override dispatch on the receiver wouldn't
         /// fire because reference equality would never round-trip.
         /// </summary>
-        public static object? UnwrapRow(AttributeValue row, Context ctx) => UnwrapCached(row, ctx);
+        public static object? UnwrapRow(AttributeValue row, Context ctx) =>
+            UnwrapCached(row, ctx, ctx.valueOwnership);
+
+        public static object? UnwrapRow(
+            AttributeValue row,
+            Context ctx,
+            NeoValueOwnership ownership) =>
+            UnwrapCached(row, ctx, ownership);
 
         internal static object? EvaluatePointer(
             Pointer pointer,
@@ -338,12 +394,12 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case ReferencePointer rp:
                 {
-                    if (!ctx.client.TryGetValue(rp.valueId, out AttributeValue? row))
+                    if (!ctx.client.TryGetValue(ctx.valueOwnership, rp.valueId, out AttributeValue? row))
                     {
                         throw new NSGetterRuntimeError(
                             $"Missing value reference: {rp.valueId}");
                     }
-                    return UnwrapCached(row, ctx);
+                    return UnwrapCached(row, ctx, ctx.valueOwnership);
                 }
                 case KeyOfPointer kop:
                     return EvalKeyOf(kop.keyOf, scope, ctx, kop.optional == true);
@@ -433,6 +489,10 @@ namespace NeoCompose.Runtime.NeoScript
             Dictionary<string, object?> scope,
             Context ctx)
         {
+            if (ctx.nativeFunctionCallHandler is not null)
+            {
+                return ctx.nativeFunctionCallHandler(pointer, scope, ctx);
+            }
             var receiver = EvalPointer(pointer.thisPointer, scope, ctx);
             if (pointer.optional == true && receiver is null)
             {
@@ -455,6 +515,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 EvalNativeFunctionCall(pointer.call, scope, ctx);
                 return pointer.mode == NativeFunctionErrorCheckKind.DoesNotThrow;
+            }
+            catch (NeoDeferredFunctionRuntimeError)
+            {
+                throw;
             }
             catch
             {
@@ -492,7 +556,7 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NSGetterRuntimeError(
                         $"List index out of bounds: {key}");
                 }
-                return ResolveValueIfId(arr[idx], ctx);
+                return ResolveValueIfId(arr[idx], ctx, FindRowOwnershipByReference(receiver, ctx));
             }
 
             string k = key?.ToString() ?? "null";
@@ -519,7 +583,7 @@ namespace NeoCompose.Runtime.NeoScript
                 if (dispatched.kind == DispatchKind.Ok) return dispatched.value;
                 if (record!.TryGetValue(k, out var at))
                 {
-                    return ResolveValueIfId(at, ctx);
+                    return ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx));
                 }
                 throw new NSGetterRuntimeError($"Missing key '{k}' on object");
             }
@@ -600,7 +664,8 @@ namespace NeoCompose.Runtime.NeoScript
 
             if (record!.TryGetValue(schemaKey, out var at))
             {
-                return DispatchResult.Ok(ResolveValueIfId(at, ctx));
+                return DispatchResult.Ok(
+                    ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx)));
             }
             return DispatchResult.NoInfo();
         }
@@ -962,12 +1027,14 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (c is object?[] arr)
             {
-                foreach (var e in arr) yield return ResolveValueIfId(e, ctx);
+                var ownership = FindRowOwnershipByReference(c, ctx);
+                foreach (var e in arr) yield return ResolveValueIfId(e, ctx, ownership);
                 yield break;
             }
             if (c is IDictionary<string, object?> dict)
             {
-                foreach (var v in dict.Values) yield return ResolveValueIfId(v, ctx);
+                var ownership = FindRowOwnershipByReference(c, ctx);
+                foreach (var v in dict.Values) yield return ResolveValueIfId(v, ctx, ownership);
             }
         }
 
@@ -981,7 +1048,7 @@ namespace NeoCompose.Runtime.NeoScript
                 for (int i = 0; i < arr.Length; i++)
                 {
                     var raw = arr[i];
-                    var entry = ResolveValueIfId(raw, ctx);
+                    var entry = ResolveValueIfId(raw, ctx, FindRowOwnershipByReference(c, ctx));
                     callback(entry, i, raw is string s ? s : null);
                 }
                 return;
@@ -990,7 +1057,7 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 foreach (var kvp in dict)
                 {
-                    var entry = ResolveValueIfId(kvp.Value, ctx);
+                    var entry = ResolveValueIfId(kvp.Value, ctx, FindRowOwnershipByReference(c, ctx));
                     callback(entry, kvp.Key, kvp.Value is string s ? s : null);
                 }
             }
@@ -1139,16 +1206,20 @@ namespace NeoCompose.Runtime.NeoScript
         /// Routes through <see cref="UnwrapCached"/> so the same heap
         /// object round-trips for the same id within a Compute call.
         /// </summary>
-        private static object? ResolveValueIfId(object? at, Context ctx)
+        private static object? ResolveValueIfId(
+            object? at,
+            Context ctx,
+            NeoValueOwnership? preferredOwnership = null)
         {
             if (at is not string id) return at;
-            if (!ctx.client.TryGetValue(id, out AttributeValue? row)) return at;
-            var v = UnwrapCached(row, ctx);
+            var ownership = preferredOwnership ?? ctx.valueOwnership;
+            if (!ctx.client.TryGetValue(ownership, id, out AttributeValue? row)) return at;
+            var v = UnwrapCached(row, ctx, ownership);
             if (v is object?[] arr && arr.Length == 1 && arr[0] is string singleId)
             {
-                if (ctx.client.TryGetValue(singleId, out AttributeValue? next))
+                if (ctx.client.TryGetValue(ownership, singleId, out AttributeValue? next))
                 {
-                    return UnwrapCached(next, ctx);
+                    return UnwrapCached(next, ctx, ownership);
                 }
             }
             return v;
@@ -1158,9 +1229,9 @@ namespace NeoCompose.Runtime.NeoScript
         {
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId)
-                && ctx.client.TryGetValue(reference.valueId!, out AttributeValue? row))
+                && ctx.client.TryGetValue(ctx.valueOwnership, reference.valueId!, out AttributeValue? row))
             {
-                return UnwrapCached(row, ctx);
+                return UnwrapCached(row, ctx, ctx.valueOwnership);
             }
             return value;
         }
@@ -1181,7 +1252,7 @@ namespace NeoCompose.Runtime.NeoScript
         // IDictionary, primitives, etc.).
         // ---------------------------------------------------------------
 
-        private static object? ExtractWireValue(AttributeValue row)
+        private static object? ExtractWireValue(AttributeValue row, NeoValueOwnership ownership)
         {
             return row switch
             {
@@ -1193,7 +1264,7 @@ namespace NeoCompose.Runtime.NeoScript
                     : ToObjectArray(a.value),
                 ObjectAttributeValue o => o.value is null
                     ? null
-                    : ToObjectDict(row.id, o.value),
+                    : ToObjectDict(row.id, ownership, o.value),
                 FileAttributeValue f => f.value is null
                     ? null
                     : new Dictionary<string, object?> { ["fileId"] = f.value.fileId },
@@ -1224,11 +1295,15 @@ namespace NeoCompose.Runtime.NeoScript
         /// primitives because boxed-primitive reference equality
         /// would false-positive across rows that share a value.</para>
         /// </summary>
-        private static object? UnwrapCached(AttributeValue row, Context ctx)
+        private static object? UnwrapCached(
+            AttributeValue row,
+            Context ctx,
+            NeoValueOwnership ownership)
         {
-            if (ctx.rowUnwrapCache.TryGetValue(row.id, out var cached)) return cached;
-            var unwrapped = ExtractWireValue(row);
-            ctx.rowUnwrapCache[row.id] = unwrapped;
+            string cacheKey = RowCacheKey(ownership, row.id);
+            if (ctx.rowUnwrapCache.TryGetValue(cacheKey, out var cached)) return cached;
+            var unwrapped = ExtractWireValue(row, ownership);
+            ctx.rowUnwrapCache[cacheKey] = unwrapped;
             // Reverse-index only object-shaped unwraps. Primitive
             // boxes don't have meaningful reference identity for our
             // lookups (two rows with `value = "hi"` would share a
@@ -1238,10 +1313,13 @@ namespace NeoCompose.Runtime.NeoScript
             // values where this is a non-issue.
             if (unwrapped is IDictionary<string, object?> || unwrapped is object?[])
             {
-                ctx.rowReverseIndex[unwrapped!] = row.id;
+                ctx.rowReverseIndex[unwrapped!] = new RowReference(row.id, ownership);
             }
             return unwrapped;
         }
+
+        private static string RowCacheKey(NeoValueOwnership ownership, string rowId) =>
+            ownership.ToString() + ":" + rowId;
 
         private static object?[] ToObjectArray(string[] arr)
         {
@@ -1254,19 +1332,22 @@ namespace NeoCompose.Runtime.NeoScript
             : Dictionary<string, object?>, INeoValueReference
         {
             public string? valueId { get; }
+            public NeoValueOwnership valueOwnership { get; }
 
-            public NeoObjectRecord(string valueId, int capacity)
+            public NeoObjectRecord(string valueId, NeoValueOwnership ownership, int capacity)
                 : base(capacity)
             {
                 this.valueId = valueId;
+                valueOwnership = ownership;
             }
         }
 
         private static IDictionary<string, object?> ToObjectDict(
             string rowId,
+            NeoValueOwnership ownership,
             IDictionary<string, string> dict)
         {
-            var result = new NeoObjectRecord(rowId, dict.Count);
+            var result = new NeoObjectRecord(rowId, ownership, dict.Count);
             foreach (var kvp in dict) result[kvp.Key] = kvp.Value;
             return result;
         }
@@ -1359,13 +1440,14 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static string? FindRowTypeIdByReference(object? value, Context ctx)
         {
-            if (value is null) return null;
             // O(1) reverse lookup against the per-context unwrap cache.
             // Only object-shaped values are indexed (see UnwrapCached);
             // primitives correctly miss because reference identity isn't
             // meaningful for them.
-            if (!ctx.rowReverseIndex.TryGetValue(value, out string? rowId)) return null;
-            return ctx.client.TryGetValue(rowId, out AttributeValue? row) ? row.typeId : null;
+            if (!TryFindRowReferenceByReference(value, ctx, out RowReference rowRef)) return null;
+            return ctx.client.TryGetValue(rowRef.ownership, rowRef.valueId, out AttributeValue? row)
+                ? row.typeId
+                : null;
         }
 
         // ---------------------------------------------------------------
@@ -1533,8 +1615,29 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static string? FindRowIdByReference(object? value, Context ctx)
         {
-            if (value is null) return null;
-            return ctx.rowReverseIndex.TryGetValue(value, out string? id) ? id : null;
+            return TryFindRowReferenceByReference(value, ctx, out RowReference rowRef)
+                ? rowRef.valueId
+                : null;
+        }
+
+        private static NeoValueOwnership? FindRowOwnershipByReference(object? value, Context ctx)
+        {
+            return TryFindRowReferenceByReference(value, ctx, out RowReference rowRef)
+                ? rowRef.ownership
+                : null;
+        }
+
+        private static bool TryFindRowReferenceByReference(
+            object? value,
+            Context ctx,
+            out RowReference rowRef)
+        {
+            if (value is not null && ctx.rowReverseIndex.TryGetValue(value, out rowRef))
+            {
+                return true;
+            }
+            rowRef = default;
+            return false;
         }
 
         private static string StringifyForInterp(object? v)

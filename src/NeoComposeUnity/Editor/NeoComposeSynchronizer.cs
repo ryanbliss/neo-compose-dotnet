@@ -30,6 +30,7 @@ namespace NeoCompose.Unity.Editor
         void WriteAllBytes(string assetPath, byte[] content);
         void RefreshAsset(string assetPath);
         void SaveConfig(NeoComposeConfig config);
+        void SchedulePostSynchronize(NeoComposeConfig config, string projectJsonPath);
         NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath);
         void ApplyUnityImportSettings(string assetPath, ProjectFile file, ProjectData projectData);
         Sprite[] LoadSprites(string assetPath);
@@ -139,6 +140,7 @@ namespace NeoCompose.Unity.Editor
                 config.namespaceForGeneratedTypes = ReadUnityNamespaceOrDefault(exportResponse.projectJson);
                 config.singleton = ReadUnitySingletonOrDefault(exportResponse.projectJson);
                 assets.SaveConfig(config);
+                assets.SchedulePostSynchronize(config, projectJsonPath);
 
                 if (assetSyncErrors.Length > 0)
                 {
@@ -359,6 +361,11 @@ namespace NeoCompose.Unity.Editor
         public void SaveConfig(NeoComposeConfig config)
         {
             NeoComposeConfigProvider.Save(config);
+        }
+
+        public void SchedulePostSynchronize(NeoComposeConfig config, string projectJsonPath)
+        {
+            NeoComposePostSynchronizeProcessor.Schedule(config, projectJsonPath);
         }
 
         public NeoAssetDatabase LoadOrCreateAssetDatabase(string assetPath)

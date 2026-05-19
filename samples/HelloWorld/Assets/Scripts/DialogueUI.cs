@@ -2,9 +2,12 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections.Generic;
+using HelloWorld.Assets.Scripts.Neo;
+using NeoCompose.Runtime;
 using UnityEngine;
+using UnityEngine.Animations;
 using UnityEngine.EventSystems;
+using UnityEngine.Playables;
 using UnityEngine.UI;
 
 namespace HelloWorld.Assets.Scripts
@@ -13,10 +16,11 @@ namespace HelloWorld.Assets.Scripts
     /// Small dialogue overlay for the sample. It exposes targeted UI APIs so
     /// HelloWorldBehaviour can show the SDK dialogue event flow in one place.
     /// </summary>
-    internal sealed class DialogueUI : IDisposable
+    internal sealed class DialogueUI : IDisposable, IOutpostAnimationPlayer
     {
         private GameObject root;
         private Image speakerImage;
+        private SpeakerImageAnimator speakerAnimator;
         private Text speakerText;
         private Text bodyText;
         private RectTransform optionStack;
@@ -90,10 +94,28 @@ namespace HelloWorld.Assets.Scripts
 
         public void Reset()
         {
+            speakerAnimator?.CancelActive();
             if (root != null)
             {
                 root.SetActive(false);
             }
+        }
+
+        public void PlaySpeakerAnimation(
+            ReadOnlyAnimationInfo animationInfo,
+            NeoDeferredFunction<bool> deferred)
+        {
+            EnsureBuilt();
+            var clip = Resources.Load<AnimationClip>(NeoAnimationClipResources.ResourcePath(animationInfo.Name));
+            if (clip is null)
+            {
+                Debug.LogWarning(
+                    $"Neo Compose: failed to play animation '{animationInfo.Name}' because the AnimationClip resource was not found.");
+                deferred.Complete(false);
+                return;
+            }
+
+            speakerAnimator.Play(speakerImage, clip, deferred);
         }
 
         public void Dispose()
@@ -138,6 +160,7 @@ namespace HelloWorld.Assets.Scripts
 
             var panel = CreatePanel(overlay);
             BuildPanelContent(panel);
+            speakerAnimator = root.AddComponent<SpeakerImageAnimator>();
             root.SetActive(false);
         }
 
@@ -318,5 +341,116 @@ namespace HelloWorld.Assets.Scripts
         private static Font BuiltInFont =>
             Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ??
             Resources.GetBuiltinResource<Font>("Arial.ttf");
+
+        private sealed class SpeakerImageAnimator : MonoBehaviour
+        {
+            private Coroutine current;
+            private Animator animator;
+            private PlayableGraph playableGraph;
+
+            public void Play(
+                Image target,
+                AnimationClip clip,
+                NeoDeferredFunction<bool> deferred)
+            {
+                CancelActive();
+                current = StartCoroutine(PlayRoutine(target, clip, deferred));
+            }
+
+            public void CancelActive()
+            {
+                if (current != null)
+                {
+                    StopCoroutine(current);
+                    current = null;
+                }
+
+                // Clean up the playable graph when stopping
+                if (playableGraph.IsValid())
+                {
+                    playableGraph.Destroy();
+                }
+            }
+
+            private System.Collections.IEnumerator PlayRoutine(
+                Image target,
+                AnimationClip clip,
+                NeoDeferredFunction<bool> deferred
+            )
+            {
+                target.enabled = true;
+
+                if (!target.gameObject.TryGetComponent(out animator))
+                {
+                    animator = target.gameObject.AddComponent<Animator>();
+                }
+
+                if (clip == null)
+                {
+                    Debug.LogWarning("Neo Compose: AnimationClip is null.");
+                    deferred.Complete(false);
+                    yield break;
+                }
+
+                playableGraph = PlayableGraph.Create($"SpeakerImageGraph_{gameObject.name}");
+                var playableOutput = AnimationPlayableOutput.Create(playableGraph, "Animation", animator);
+                var clipPlayable = AnimationClipPlayable.Create(playableGraph, clip);
+
+                clipPlayable.SetDuration(clip.length);
+                clipPlayable.SetTime(0f);
+                clipPlayable.SetSpeed(1f);
+
+                // Tells the playable engine to freeze/hold the final frame when it finishes
+                clipPlayable.SetDone(false);
+
+                playableOutput.SetSourcePlayable(clipPlayable);
+                playableGraph.Play();
+
+                try
+                {
+                    // This loop runs until the internal PlayableGraph time passes the asset length
+                    while (clipPlayable.GetTime() < clip.length)
+                    {
+                        if (deferred.CancellationToken.IsCancellationRequested)
+                        {
+                            if (playableGraph.IsValid()) playableGraph.Stop();
+                            current = null;
+                            yield break;
+                        }
+
+                        yield return null;
+                    }
+
+                    clipPlayable.SetTime(clip.length);
+                    playableGraph.Evaluate(0f);
+                    yield return null; // Wait exactly 1 UI frame so the graphic card processes the change
+                }
+                finally
+                {
+                    if (playableGraph.IsValid())
+                    {
+                        playableGraph.Destroy();
+                    }
+                }
+
+                if (!deferred.CancellationToken.IsCancellationRequested && deferred.Pending)
+                {
+                    deferred.Complete(true);
+                }
+
+                current = null;
+            }
+
+            internal void OnDisable()
+            {
+                CancelActive();
+            }
+
+            internal void OnDestroy()
+            {
+                CancelActive();
+            }
+        }
+
     }
 }

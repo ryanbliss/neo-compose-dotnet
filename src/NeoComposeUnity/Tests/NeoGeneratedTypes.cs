@@ -65,10 +65,16 @@ namespace Assets.Scripts.Neo
             {
             };
 
+        private static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
+            new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+            {
+            };
+
         public TestProjectNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             Client = client;
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
+            Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
             Instance = this;
             Assets = new ReadOnlyRoot(client, client.assets);
             Save = new Root(client, client.save);
@@ -123,15 +129,9 @@ namespace Assets.Scripts.Neo
         public INeoDialogueMemory GetOrCreateDialogueMemory(string dialogueId)
         {
             if (DialogueMemories.TryGetValue(dialogueId, out var memory)) return memory;
-            memory = NeoDialogueMemory.CreateWritable(
-                client,
-                NeoGeneratedTypesSupport.CreateWritableCustomValue(
-                    client,
-                    "type-dialogue-memory",
-                    new Dictionary<string, string>(),
-                    Array.Empty<AttributeValue>()));
+            memory = new NeoDialogueMemory(VisitCount: 0);
             DialogueMemories[dialogueId] = memory;
-            return memory;
+            return DialogueMemories[dialogueId];
         }
 
         public INeoDialogueMemory? FindDialogueMemory(string dialogueId)
@@ -145,15 +145,9 @@ namespace Assets.Scripts.Neo
         public INeoTextNodeMemory GetOrCreateTextNodeMemory(string textNodeId)
         {
             if (TextNodeMemories.TryGetValue(textNodeId, out var memory)) return memory;
-            memory = NeoTextNodeMemory.CreateWritable(
-                client,
-                NeoGeneratedTypesSupport.CreateWritableCustomValue(
-                    client,
-                    "type-text-node-memory",
-                    new Dictionary<string, string>(),
-                    Array.Empty<AttributeValue>()));
+            memory = new NeoTextNodeMemory(VisitCount: 0);
             TextNodeMemories[textNodeId] = memory;
-            return memory;
+            return TextNodeMemories[textNodeId];
         }
 
         public INeoTextNodeMemory? FindTextNodeMemory(string textNodeId)

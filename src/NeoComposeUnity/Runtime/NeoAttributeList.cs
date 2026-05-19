@@ -183,6 +183,14 @@ namespace NeoCompose.Runtime
             string nowIso = System.DateTime.UtcNow.ToString("o");
             string entryValueId = value.value[index];
 
+            if (ownership != NeoValueOwnership.Asset
+                && !client.TryGetWritableValue(ownership, entryValueId, out AttributeValue? _)
+                && client.TryMaterializeWritablePath(ownership, entryValueId, out _))
+            {
+                RefreshFromValueData();
+                entryValueId = value!.value[index];
+            }
+
             if (entryValue?.isValueReference == true)
             {
                 string importedValueId = client.ImportValueReference(ownership, entryValue.valueId!);
@@ -196,7 +204,7 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            if (!client.TryGetValue(entryValueId, out AttributeValue? existing))
+            if (!client.TryGetValue(ownership, entryValueId, out AttributeValue? existing))
             {
                 throw new System.InvalidOperationException(
                     $"List entry value '{entryValueId}' at index {index} not found");
@@ -255,7 +263,16 @@ namespace NeoCompose.Runtime
 
         private void EnsureParentExists(string nowIso)
         {
-            if (value is not null) return;
+            if (value is not null)
+            {
+                if (ownership != NeoValueOwnership.Asset
+                    && !client.TryGetWritableValue(ownership, value.id, out ArrayAttributeValue? _)
+                    && client.TryMaterializeWritablePath(ownership, value.id, out _))
+                {
+                    RefreshFromValueData();
+                }
+                return;
+            }
             ArrayAttributeValue parentRow = new()
             {
                 id = System.Guid.NewGuid().ToString(),

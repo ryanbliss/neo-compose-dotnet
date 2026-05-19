@@ -91,7 +91,8 @@ namespace NeoCompose.Tests
             var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
                 app.Client,
                 derivedAttr,
-                null);
+                null,
+                NeoValueOwnership.Save);
 
             var generatedSaved = new Derived(app.Client, derivedNode);
             generatedSaved.Name = "Ancestor Name";
@@ -112,7 +113,8 @@ namespace NeoCompose.Tests
             var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
                 app.Client,
                 derivedAttr,
-                null);
+                null,
+                NeoValueOwnership.Save);
 
             var generated = new Derived(app.Client, derivedNode);
 

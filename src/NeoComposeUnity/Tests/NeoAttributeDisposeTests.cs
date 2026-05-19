@@ -190,7 +190,11 @@ namespace NeoCompose.Tests
             var nameAttr = RequireAttribute<StringAttribute>(client, "attr-name");
             // attr-name has no static valueId in the fixture, so the
             // freshly-constructed node has value == null.
-            var node = (NeoAttributeString)NeoAttribute.Create(client, nameAttr, null);
+            var node = (NeoAttributeString)NeoAttribute.CreateWritable(
+                client,
+                nameAttr,
+                null,
+                NeoValueOwnership.Save);
             Assert.IsNull(node.value);
 
             // Add a save override → event fires → node refreshes from
@@ -217,7 +221,11 @@ namespace NeoCompose.Tests
                 createdAt = "now", updatedAt = "now", value = "seeded",
             });
 
-            var node = (NeoAttributeString)NeoAttribute.Create(client, nameAttr, null);
+            var node = (NeoAttributeString)NeoAttribute.CreateWritable(
+                client,
+                nameAttr,
+                null,
+                NeoValueOwnership.Save);
             Assert.IsNotNull(node.value);
 
             client.RemoveSaveOverride("attr-name");

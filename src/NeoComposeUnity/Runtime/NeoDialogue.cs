@@ -33,6 +33,7 @@ namespace NeoCompose.Runtime
         private readonly NeoDialogueValueResolver? valueResolver;
         private readonly IDisposable clientRegistration;
         private NeoDialoguePauseAction? activePauseAction;
+        private NeoDeferredFunctionBase? activeDeferredFunction;
         private bool started;
 
         /// <summary>
@@ -433,7 +434,12 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"Dialogue action '{action.id}' has no compiled action.");
                         }
-                        NeoDialogueActionEvaluator.Execute(client, compiled, Context, memoryStore);
+                        var result = NeoDialogueActionEvaluator.Execute(client, compiled, Context, memoryStore);
+                        if (result.IsPaused)
+                        {
+                            EnterDeferredFunction(node, i, result);
+                            return;
+                        }
                         continue;
                     }
                     if (action is DialoguePauseActionModel pauseAction)
@@ -451,6 +457,49 @@ namespace NeoCompose.Runtime
                 return;
             }
             EnterNode(node.toNodeId);
+        }
+
+        private void EnterDeferredFunction(
+            DialogueActionsNodeModel node,
+            int actionIndex,
+            NeoDialogueActionExecutionResult result)
+        {
+            if (result.Deferred == null)
+            {
+                throw new InvalidOperationException(
+                    $"Dialogue '{Id}' entered deferred Function state without a deferred handle.");
+            }
+            State = NeoDialogueState.Paused;
+            activeDeferredFunction = result.Deferred;
+            result.WhenDeferredSettled(
+                resumed =>
+                {
+                    try
+                    {
+                        if (State == NeoDialogueState.Disposed || State == NeoDialogueState.Finished)
+                        {
+                            return;
+                        }
+                        if (!ReferenceEquals(activeDeferredFunction, result.Deferred))
+                        {
+                            throw new InvalidOperationException(
+                                $"Deferred Function '{result.Deferred.FunctionName}' is no longer active for dialogue '{Id}'.");
+                        }
+                        activeDeferredFunction = null;
+                        State = NeoDialogueState.Started;
+                        if (resumed.IsPaused)
+                        {
+                            EnterDeferredFunction(node, actionIndex, resumed);
+                            return;
+                        }
+                        ContinueActionsNode(node, actionIndex + 1);
+                    }
+                    catch (Exception ex)
+                    {
+                        Fail(ex);
+                    }
+                },
+                Fail);
         }
 
         private void EnterPauseAction(
@@ -650,6 +699,8 @@ namespace NeoCompose.Runtime
             if (State == NeoDialogueState.Disposed || State == NeoDialogueState.Finished) return;
             activePauseAction?.DisposeFromOwner("dialogue finished");
             activePauseAction = null;
+            activeDeferredFunction?.DisposeFromOwner("dialogue finished");
+            activeDeferredFunction = null;
             State = NeoDialogueState.Finished;
             OnFinish?.Invoke();
             ClearListeners();
@@ -678,6 +729,8 @@ namespace NeoCompose.Runtime
             if (State == NeoDialogueState.Disposed) return;
             activePauseAction?.DisposeFromOwner("dialogue disposed");
             activePauseAction = null;
+            activeDeferredFunction?.DisposeFromOwner("dialogue disposed");
+            activeDeferredFunction = null;
             State = NeoDialogueState.Disposed;
             ClearListeners();
             clientRegistration.Dispose();
@@ -688,6 +741,8 @@ namespace NeoCompose.Runtime
             if (State == NeoDialogueState.Disposed) return;
             activePauseAction?.DisposeFromOwner("NeoClient disposed");
             activePauseAction = null;
+            activeDeferredFunction?.DisposeFromOwner("NeoClient disposed");
+            activeDeferredFunction = null;
             State = NeoDialogueState.Disposed;
             ClearListeners();
             clientRegistration.Dispose();

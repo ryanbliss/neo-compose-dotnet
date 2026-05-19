@@ -102,7 +102,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public NSGetterResult Compute(string thisValueId)
         {
-            if (!client.TryGetValue(thisValueId, out AttributeValue? row))
+            if (!client.TryGetValue(ownership, thisValueId, out AttributeValue? row))
             {
                 return NSGetterResult.Error(
                     $"thisValueId '{thisValueId}' not found in client values");
@@ -124,14 +124,18 @@ namespace NeoCompose.Runtime
             // `__this__` need to participate in the cache so dispatch
             // on `root.Assets.X` and `this.foo` rounds-trips through
             // reference equality.
-            var ctx = new NSGetterEvaluator.Context(client, thisValue: null, rootValue: null);
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null,
+                valueOwnership: ownership);
             object? rootValue = ResolveRootValue(ctx);
             ctx = ctx.WithRoot(rootValue);
 
             object? boundThis = thisValue;
             if (boundThis is null && thisRow is not null)
             {
-                boundThis = NSGetterEvaluator.UnwrapRow(thisRow, ctx);
+                boundThis = NSGetterEvaluator.UnwrapRow(thisRow, ctx, ownership);
             }
             if (boundThis is null)
             {
@@ -141,7 +145,7 @@ namespace NeoCompose.Runtime
                 {
                     if (cursor.value is ObjectAttributeValue obj)
                     {
-                        boundThis = NSGetterEvaluator.UnwrapRow(obj, ctx);
+                        boundThis = NSGetterEvaluator.UnwrapRow(obj, ctx, cursor.ownership);
                         if (boundThis is not null) break;
                     }
                     cursor = cursor.parent;
@@ -177,13 +181,13 @@ namespace NeoCompose.Runtime
         {
             var root = new Dictionary<string, object?>(3);
             root["Assets"] = client.assets.value is ObjectAttributeValue a
-                ? NSGetterEvaluator.UnwrapRow(a, ctx)
+                ? NSGetterEvaluator.UnwrapRow(a, ctx, NeoValueOwnership.Asset)
                 : null;
             root["Save"] = client.save.value is ObjectAttributeValue s
-                ? NSGetterEvaluator.UnwrapRow(s, ctx)
+                ? NSGetterEvaluator.UnwrapRow(s, ctx, NeoValueOwnership.Save)
                 : null;
             root["Session"] = client.session.value is ObjectAttributeValue ss
-                ? NSGetterEvaluator.UnwrapRow(ss, ctx)
+                ? NSGetterEvaluator.UnwrapRow(ss, ctx, NeoValueOwnership.Session)
                 : null;
             return root;
         }

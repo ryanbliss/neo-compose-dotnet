@@ -159,7 +159,16 @@ namespace NeoCompose.Runtime
 
             if (value?.value is not null
                 && value.value.TryGetValue(key, out string existingValueId)
-                && client.TryGetValue(existingValueId, out AttributeValue? existing))
+                && ownership != NeoValueOwnership.Asset
+                && !client.TryGetWritableValue(ownership, existingValueId, out AttributeValue? _)
+                && client.TryMaterializeWritablePath(ownership, existingValueId, out _))
+            {
+                RefreshFromValueData();
+            }
+
+            if (value?.value is not null
+                && value.value.TryGetValue(key, out existingValueId)
+                && client.TryGetValue(ownership, existingValueId, out AttributeValue? existing))
             {
                 if (setValue?.isValueReference == true)
                 {
@@ -191,6 +200,14 @@ namespace NeoCompose.Runtime
                 childAttributes[key] = CreateChild(client, entryAttribute, existingValueId);
                 NotifyChanged();
                 return;
+            }
+
+            if (value is not null
+                && ownership != NeoValueOwnership.Asset
+                && !client.TryGetWritableValue(ownership, value.id, out ObjectAttributeValue? _)
+                && client.TryMaterializeWritablePath(ownership, value.id, out _))
+            {
+                RefreshFromValueData();
             }
 
             string newValueId;

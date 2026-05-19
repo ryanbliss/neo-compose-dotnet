@@ -28,6 +28,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> DialogueReadOnlyValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
             {
+                ["11177bd5-0678-4bff-86b8-46718ff1827b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAnimationInfo.Create(client, node),
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyComputedText.Create(client, node),
                 ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoDialogueMemory.Create(client, node),
                 ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyOutpost.Create(client, node),
@@ -49,6 +50,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory> DialogueWritableValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>
             {
+                ["11177bd5-0678-4bff-86b8-46718ff1827b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable(client, node),
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateWritable(client, node),
                 ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, node),
                 ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateWritable(client, node),
@@ -91,10 +93,33 @@ namespace HelloWorld.Assets.Scripts.Neo
                 },
             };
 
+        private static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
+            new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+            {
+                ["cab850e3-cf8c-42b3-a70b-f0066089e6fb"] = (client, receiver, args, deferred) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ReadOnlyOutpost>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "BeginAnimation",
+                    "cab850e3-cf8c-42b3-a70b-f0066089e6fb");
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke deferred Function 'BeginAnimation' because FunctionHandler is not set.");
+                }
+                var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<bool>>(deferred, "BeginAnimation");
+                target.FunctionHandler.BeginAnimation(typedDeferred);
+                },
+            };
+
         public HelloWorldNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
             Client = client;
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
+            Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
             Instance = this;
             Assets = new ReadOnlyAssets(client, client.assets);
             Save = new Save(client, client.save);
@@ -176,15 +201,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         public INeoDialogueMemory GetOrCreateDialogueMemory(string dialogueId)
         {
             if (DialogueMemories.TryGetValue(dialogueId, out var memory)) return memory;
-            memory = NeoDialogueMemory.CreateWritable(
-                client,
-                NeoGeneratedTypesSupport.CreateWritableCustomValue(
-                    client,
-                    "48f37cd8-69d2-4cd3-ae44-7cfed7912415",
-                    new Dictionary<string, string>(),
-                    Array.Empty<AttributeValue>()));
+            memory = new NeoDialogueMemory(VisitCount: 0);
             DialogueMemories[dialogueId] = memory;
-            return memory;
+            return DialogueMemories[dialogueId];
         }
 
         public INeoDialogueMemory? FindDialogueMemory(string dialogueId)
@@ -198,15 +217,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         public INeoTextNodeMemory GetOrCreateTextNodeMemory(string textNodeId)
         {
             if (TextNodeMemories.TryGetValue(textNodeId, out var memory)) return memory;
-            memory = NeoTextNodeMemory.CreateWritable(
-                client,
-                NeoGeneratedTypesSupport.CreateWritableCustomValue(
-                    client,
-                    "4cdf4a5b-b299-4253-854b-d25c0a4c7c20",
-                    new Dictionary<string, string>(),
-                    Array.Empty<AttributeValue>()));
+            memory = new NeoTextNodeMemory(VisitCount: 0);
             TextNodeMemories[textNodeId] = memory;
-            return memory;
+            return TextNodeMemories[textNodeId];
         }
 
         public INeoTextNodeMemory? FindTextNodeMemory(string textNodeId)
@@ -711,11 +724,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyDictionary<ReadOnlyOutpostSaveData> OutpostSaveMap
+        public NeoReadOnlyDictionary<ReadOnlyOutpostSaveData?> OutpostSaveMap
         {
             get
             {
-                return new NeoReadOnlyDictionary<ReadOnlyOutpostSaveData>(client, node.Get<NeoAttributeDictionary>("OutpostSaveMap"), (client, child) => ReadOnlyOutpostSaveData.Create(client, (NeoAttributeCustom)child));
+                return new NeoReadOnlyDictionary<ReadOnlyOutpostSaveData?>(client, node.Get<NeoAttributeDictionary>("OutpostSaveMap"), (client, child) => ((NeoAttributeCustom)child).value is null ? null : ReadOnlyOutpostSaveData.Create(client, (NeoAttributeCustom)child));
             }
         }
 
@@ -756,7 +769,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<bool> Dead = new("Dead");
 
-            public static readonly NeoField<NeoReadOnlyDictionary<ReadOnlyOutpostSaveData>> OutpostSaveMap = new("OutpostSaveMap");
+            public static readonly NeoField<NeoReadOnlyDictionary<ReadOnlyOutpostSaveData?>> OutpostSaveMap = new("OutpostSaveMap");
 
             public static readonly NeoField<ReadOnlyOutpost> Location = new("Location");
 
@@ -800,12 +813,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Save(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null, IDictionary<string, OutpostSaveData>? OutpostSaveMap = null, NeoLookupSelection? Location = null, IEnumerable<NeoLookupSelection>? Inventory = null, int? Bits = null)
+        public Save(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null, IDictionary<string, OutpostSaveData?>? OutpostSaveMap = null, NeoLookupSelection? Location = null, IEnumerable<NeoLookupSelection>? Inventory = null, int? Bits = null)
             : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(World, Visited, NeoMemory, Dead, OutpostSaveMap, Location, Inventory, Bits))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null, IDictionary<string, OutpostSaveData>? OutpostSaveMap = null, NeoLookupSelection? Location = null, IEnumerable<NeoLookupSelection>? Inventory = null, int? Bits = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Planet? World = null, IEnumerable<PlanetVisit>? Visited = null, NeoMemory? NeoMemory = null, bool? Dead = null, IDictionary<string, OutpostSaveData?>? OutpostSaveMap = null, NeoLookupSelection? Location = null, IEnumerable<NeoLookupSelection>? Inventory = null, int? Bits = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -863,7 +876,23 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var OutpostSaveMapIds = new Dictionary<string, string>();
                 foreach (var pair in OutpostSaveMap)
                 {
-                    OutpostSaveMapIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(pair.Value.valueId);
+                    var entryValue = pair.Value;
+                    if (entryValue is null)
+                    {
+                        var entryValueId = Guid.NewGuid().ToString();
+                        OutpostSaveMapIds[pair.Key] = entryValueId;
+                        valueRows.Add(new ObjectAttributeValue
+                        {
+                            id = entryValueId,
+                            createdAt = nowIso,
+                            updatedAt = nowIso,
+                            value = null,
+                        });
+                    }
+                    else
+                    {
+                        OutpostSaveMapIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(entryValue.valueId);
+                    }
                 }
                 valueRows.Add(new ObjectAttributeValue
                 {
@@ -969,11 +998,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoDictionary<OutpostSaveData> OutpostSaveMap
+        public new NeoDictionary<OutpostSaveData?> OutpostSaveMap
         {
             get
             {
-                return new NeoDictionary<OutpostSaveData>(client, writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("OutpostSaveMap"), (client, child) => OutpostSaveData.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoDictionary<OutpostSaveData?>(client, writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("OutpostSaveMap"), (client, child) => ((NeoAttributeCustom)child).value is null ? null : OutpostSaveData.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -1031,7 +1060,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<bool> Dead = new("Dead");
 
-            public static readonly NeoField<NeoDictionary<OutpostSaveData>> OutpostSaveMap = new("OutpostSaveMap");
+            public static readonly NeoField<NeoDictionary<OutpostSaveData?>> OutpostSaveMap = new("OutpostSaveMap");
 
             public static readonly NeoField<ReadOnlyOutpost> Location = new("Location");
 
@@ -2593,6 +2622,7 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IOutpostFunctionHandler
     {
         string DebugLog(string text);
+        void BeginAnimation(NeoDeferredFunction<bool> deferred);
     }
 
     public partial class ReadOnlyOutpost : NeoGeneratedCustomValue
@@ -2689,6 +2719,20 @@ namespace HelloWorld.Assets.Scripts.Neo
             return FunctionHandler.DebugLog(text);
         }
 
+        public void BeginAnimation()
+        {
+            client.InvokeDeferredNativeFunction("cab850e3-cf8c-42b3-a70b-f0066089e6fb", this, new object?[] { });
+        }
+
+        public ReadOnlyAnimationInfo? AnimatedImage
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("AnimatedImage");
+                return child.value is null ? null : ReadOnlyAnimationInfo.Create(client, child);
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -2704,6 +2748,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
 
             public static readonly NeoField<Sprite> Image = new("Image");
+
+            public static readonly NeoField<ReadOnlyAnimationInfo?> AnimatedImage = new("AnimatedImage");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -2716,6 +2762,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Save] = () => Save,
                 [Fields.FullDisplayText] = () => FullDisplayText,
                 [Fields.Image] = () => Image,
+                [Fields.AnimatedImage] = () => AnimatedImage,
             };
         }
 
@@ -2739,12 +2786,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Outpost(Planet Planet, string Name, Sprite Image)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Planet, Name, Image))
+        public Outpost(Planet Planet, string Name, Sprite Image, AnimationInfo? AnimatedImage = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Planet, Name, Image, AnimatedImage))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(Planet Planet, string Name, Sprite Image)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Planet Planet, string Name, Sprite Image, AnimationInfo? AnimatedImage = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -2777,6 +2824,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 updatedAt = nowIso,
                 value = NeoGeneratedTypesSupport.SpriteValue(client, Image),
             });
+            if (AnimatedImage is not null)
+            {
+                value["AnimatedImage"] = NeoGeneratedTypesSupport.LookupSelectionId(AnimatedImage.valueId);
+            }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "4c196697-4e08-4aeb-823f-322b353071ac", value, valueRows);
         }
 
@@ -2863,6 +2914,25 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
 
+
+        public new AnimationInfo? AnimatedImage
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustomWritable>("AnimatedImage");
+                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
+            }
+            set
+            {
+                if (value is null)
+                {
+                    writableNode.Remove("AnimatedImage");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "AnimatedImage", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -2878,6 +2948,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
 
             public static readonly NeoField<Sprite> Image = new("Image");
+
+            public static readonly NeoField<AnimationInfo?> AnimatedImage = new("AnimatedImage");
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -2890,6 +2962,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Save] = () => Save,
                 [Fields.FullDisplayText] = () => FullDisplayText,
                 [Fields.Image] = () => Image,
+                [Fields.AnimatedImage] = () => AnimatedImage,
             };
         }
 
@@ -3249,12 +3322,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public JupiterOutpost(string Name, JupiterMoon Moon, Planet? Planet = null, Sprite? Image = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, Planet, Image))
+        public JupiterOutpost(string Name, JupiterMoon Moon, Planet? Planet = null, Sprite? Image = null, AnimationInfo? AnimatedImage = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, Planet, Image, AnimatedImage))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, JupiterMoon Moon, Planet? Planet = null, Sprite? Image = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, JupiterMoon Moon, Planet? Planet = null, Sprite? Image = null, AnimationInfo? AnimatedImage = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3292,6 +3365,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     updatedAt = nowIso,
                     value = NeoGeneratedTypesSupport.SpriteValue(client, Image, "66504747-cbd5-4026-9d4c-89a0644f8192", "Image"),
                 });
+            }
+            if (AnimatedImage is not null)
+            {
+                value["AnimatedImage"] = NeoGeneratedTypesSupport.LookupSelectionId(AnimatedImage.valueId);
             }
             var MoonValueId = Guid.NewGuid().ToString();
             value["Moon"] = MoonValueId;
@@ -3385,6 +3462,25 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
 
+
+        public new AnimationInfo? AnimatedImage
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustomWritable>("AnimatedImage");
+                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
+            }
+            set
+            {
+                if (value is null)
+                {
+                    writableNode.Remove("AnimatedImage");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "AnimatedImage", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
         public JupiterMoon Moon
         {
             get
@@ -3414,6 +3510,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<Sprite?> Image = new("Image");
 
+            public static readonly NeoField<AnimationInfo?> AnimatedImage = new("AnimatedImage");
+
             public static readonly NeoField<JupiterMoon> Moon = new("Moon");
         }
 
@@ -3427,6 +3525,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Save] = () => Save,
                 [Fields.FullDisplayText] = () => FullDisplayText,
                 [Fields.Image] = () => Image,
+                [Fields.AnimatedImage] = () => AnimatedImage,
                 [Fields.Moon] = () => Moon,
             };
         }
@@ -3532,12 +3631,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public SaturnOutpost(string Name, Sprite Image, SaturnMoon Moon, Planet? Planet = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Image, Moon, Planet))
+        public SaturnOutpost(string Name, Sprite Image, SaturnMoon Moon, Planet? Planet = null, AnimationInfo? AnimatedImage = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Image, Moon, Planet, AnimatedImage))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, Sprite Image, SaturnMoon Moon, Planet? Planet = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, Sprite Image, SaturnMoon Moon, Planet? Planet = null, AnimationInfo? AnimatedImage = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3573,6 +3672,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 updatedAt = nowIso,
                 value = NeoGeneratedTypesSupport.SpriteValue(client, Image),
             });
+            if (AnimatedImage is not null)
+            {
+                value["AnimatedImage"] = NeoGeneratedTypesSupport.LookupSelectionId(AnimatedImage.valueId);
+            }
             var MoonValueId = Guid.NewGuid().ToString();
             value["Moon"] = MoonValueId;
             valueRows.Add(new ArrayAttributeValue
@@ -3666,6 +3769,25 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
 
+
+        public new AnimationInfo? AnimatedImage
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustomWritable>("AnimatedImage");
+                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
+            }
+            set
+            {
+                if (value is null)
+                {
+                    writableNode.Remove("AnimatedImage");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "AnimatedImage", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
         public SaturnMoon Moon
         {
             get
@@ -3695,6 +3817,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<Sprite> Image = new("Image");
 
+            public static readonly NeoField<AnimationInfo?> AnimatedImage = new("AnimatedImage");
+
             public static readonly NeoField<SaturnMoon> Moon = new("Moon");
         }
 
@@ -3708,6 +3832,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Save] = () => Save,
                 [Fields.FullDisplayText] = () => FullDisplayText,
                 [Fields.Image] = () => Image,
+                [Fields.AnimatedImage] = () => AnimatedImage,
                 [Fields.Moon] = () => Moon,
             };
         }
@@ -4031,6 +4156,230 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Foo] = () => Foo,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public partial class ReadOnlyAnimationInfo : NeoGeneratedCustomValue
+    {
+        internal ReadOnlyAnimationInfo(NeoClient client, NeoAttributeCustom node)
+            : base(client, node, "11177bd5-0678-4bff-86b8-46718ff1827b")
+        {
+        }
+
+        internal static ReadOnlyAnimationInfo Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyAnimationInfo(client, node),
+                };
+            });
+        }
+
+        public string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+        }
+
+        public NeoReadOnlyList<Sprite> Frames
+        {
+            get
+            {
+                return new NeoReadOnlyList<Sprite>(client, node.Get<NeoAttributeList>("Frames"), (client, child) => ((NeoAttributeSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite 'List' has no synchronized asset."));
+            }
+        }
+
+        public int FPS
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("FPS")) ?? throw new InvalidOperationException("Required int 'FPS' has no value.");
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoReadOnlyList<Sprite>> Frames = new("Frames");
+
+            public static readonly NeoField<int> FPS = new("FPS");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Frames] = () => Frames,
+                [Fields.FPS] = () => FPS,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+    }
+
+    public partial class AnimationInfo : ReadOnlyAnimationInfo
+    {
+        internal AnimationInfo(NeoClient client, NeoAttributeCustomWritable node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
+
+        public AnimationInfo(IEnumerable<Sprite> Frames, string? Name = null, int? FPS = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Frames, Name, FPS))
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<Sprite> Frames, string? Name = null, int? FPS = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                });
+            }
+            var FramesValueId = Guid.NewGuid().ToString();
+            value["Frames"] = FramesValueId;
+            var FramesIds = new List<string>();
+            foreach (var entry in Frames)
+            {
+                var entryValueId = Guid.NewGuid().ToString();
+                FramesIds.Add(entryValueId);
+                valueRows.Add(new SpriteAttributeValue
+                {
+                    id = entryValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.SpriteValue(client, entry),
+                });
+            }
+            valueRows.Add(new ArrayAttributeValue
+            {
+                id = FramesValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = FramesIds.ToArray(),
+            });
+            if (FPS is not null)
+            {
+                var FPSValueId = Guid.NewGuid().ToString();
+                value["FPS"] = FPSValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = FPSValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = FPS.HasValue ? FPS.Value : (double?)null,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "11177bd5-0678-4bff-86b8-46718ff1827b", value, valueRows);
+        }
+
+        internal static AnimationInfo CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new AnimationInfo(client, node),
+                };
+            });
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new NeoList<Sprite> Frames
+        {
+            get
+            {
+                return new NeoList<Sprite>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Frames"), (client, child) => ((NeoAttributeSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite 'List' has no synchronized asset."), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, item)));
+            }
+        }
+
+        public new int FPS
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("FPS")) ?? throw new InvalidOperationException("Required int 'FPS' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FPS", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoList<Sprite>> Frames = new("Frames");
+
+            public static readonly NeoField<int> FPS = new("FPS");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Frames] = () => Frames,
+                [Fields.FPS] = () => FPS,
             };
         }
 

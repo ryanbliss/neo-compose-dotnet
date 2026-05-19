@@ -257,6 +257,7 @@ namespace NeoCompose.Runtime.Json
         [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
         public TypeInfo returnTypeInfo = null!;
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
+        public bool? deferred;
     }
 
     /// <summary>

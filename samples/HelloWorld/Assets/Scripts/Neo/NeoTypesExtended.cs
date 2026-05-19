@@ -1,5 +1,14 @@
+using System.IO;
 using UnityEngine;
 using NeoCompose.Runtime;
+#if UNITY_EDITOR
+using System;
+using System.Collections.Generic;
+using UnityEngine.UI;
+using UnityEditor;
+#endif
+
+# nullable enable
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
@@ -14,18 +23,46 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 return;
             }
-            
-            HelloWorldNeo.Instance.Save.OutpostSaveMap.Add(valueId, new());
+
+            HelloWorldNeo.Instance.Save.OutpostSaveMap.Add(valueId!, new());
         }
     }
 
-    public class OutpostFunctionHandler : IOutpostFunctionHandler
+    public interface IOutpostAnimationPlayer
     {
+        void PlaySpeakerAnimation(
+            ReadOnlyAnimationInfo animation,
+            NeoDeferredFunction<bool> deferred);
+    }
+
+    internal sealed class OutpostFunctionHandler : IOutpostFunctionHandler
+    {
+        public static IOutpostAnimationPlayer? AnimationPlayer { get; set; }
+
         private readonly ReadOnlyOutpost Outpost;
 
         public OutpostFunctionHandler(ReadOnlyOutpost Outpost)
         {
             this.Outpost = Outpost;
+        }
+
+        public void BeginAnimation(NeoDeferredFunction<bool> deferred)
+        {
+            ReadOnlyAnimationInfo? animation = Outpost.AnimatedImage;
+            if (animation is null || AnimationPlayer is null || !Application.isPlaying)
+            {
+                deferred.Complete(false);
+                return;
+            }
+
+            try
+            {
+                AnimationPlayer.PlaySpeakerAnimation(animation, deferred);
+            }
+            catch (System.Exception exception)
+            {
+                deferred.Fail(exception);
+            }
         }
 
         public string DebugLog(string text)
@@ -35,4 +72,113 @@ namespace HelloWorld.Assets.Scripts.Neo
             return log;
         }
     }
+
+    internal static class NeoAnimationClipResources
+    {
+        public const string AssetDirectory = "Assets/Resources/Neo/Animations";
+        public const string ResourceDirectory = "Neo/Animations";
+
+        public static string AssetName(string name)
+        {
+            string trimmed = string.IsNullOrWhiteSpace(name) ? "AnimationInfo" : name.Trim();
+            foreach (char invalid in Path.GetInvalidFileNameChars())
+            {
+                trimmed = trimmed.Replace(invalid, '_');
+            }
+
+            return trimmed;
+        }
+
+        public static string AssetPath(string name) => $"{AssetDirectory}/{AssetName(name)}.anim";
+
+        public static string ResourcePath(string name) => $"{ResourceDirectory}/{AssetName(name)}";
+    }
+
+#if UNITY_EDITOR
+    // Example showing how you can hook into asset synchronization for things like creating AnimationClip assets from a list of Sprites
+    public partial class ReadOnlyAnimationInfo
+    {
+        public override void OnDidSynchronize()
+        {
+            var frames = new List<Sprite>();
+            foreach (Sprite frame in Frames)
+            {
+                if (frame != null) frames.Add(frame);
+            }
+
+            if (frames.Count == 0)
+            {
+                Debug.LogWarning($"Neo Compose animation '{Name}' did not create an AnimationClip because it has no synchronized frames.");
+                return;
+            }
+
+            int fps = FPS;
+            string assetPath = NeoAnimationClipResources.AssetPath(Name);
+            Directory.CreateDirectory(NeoAnimationClipResources.AssetDirectory);
+
+            AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(assetPath);
+            bool isNewAsset = false;
+            
+            if (clip == null)
+            {
+                clip = new AnimationClip();
+                isNewAsset = true;
+            }
+            else
+            {
+                clip.ClearCurves();
+            }
+
+            clip.name = NeoAnimationClipResources.AssetName(Name);
+            clip.frameRate = fps;
+            
+            // 1. Force the clip to be modern (Mecanim/Playables)
+            clip.legacy = false; 
+
+            // 2. Configure Modern Looping / Wrap settings
+            var settings = AnimationUtility.GetAnimationClipSettings(clip);
+            settings.loopTime = false; // Set to true if you want this clip to repeat automatically
+            AnimationUtility.SetAnimationClipSettings(clip, settings);
+
+            var keyframes = new ObjectReferenceKeyframe[frames.Count + 1];
+            for (var i = 0; i < frames.Count; i++)
+            {
+                keyframes[i] = new ObjectReferenceKeyframe
+                {
+                    time = i / (float)fps,
+                    value = frames[i],
+                };
+            }
+
+            keyframes[keyframes.Length - 1] = new ObjectReferenceKeyframe
+            {
+                time = frames.Count / (float)fps,
+                value = frames[frames.Count - 1],
+            };
+
+            AnimationUtility.SetObjectReferenceCurve(
+                clip,
+                new EditorCurveBinding
+                {
+                    path = "",
+                    type = typeof(Image),
+                    propertyName = "m_Sprite",
+                },
+                keyframes);
+
+            // 3. Proper asset pipeline handling
+            if (isNewAsset)
+            {
+                AssetDatabase.CreateAsset(clip, assetPath);
+            }
+            else
+            {
+                EditorUtility.SetDirty(clip);
+            }
+            
+            AssetDatabase.SaveAssets();
+            AssetDatabase.ImportAsset(assetPath);
+        }
+    }
+#endif
 }

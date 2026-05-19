@@ -347,7 +347,19 @@ namespace NeoCompose.Runtime
         public TNeoAttribute GetOrCreateCollection<TNeoAttribute>(string key)
             where TNeoAttribute : NeoAttribute
         {
-            if (TryGet(key, out TNeoAttribute? existing)) return existing;
+            if (TryGet(key, out TNeoAttribute? existing))
+            {
+                if (ownership != NeoValueOwnership.Asset
+                    && existing.overrideValueId is not null
+                    && !client.TryGetWritableValue(ownership, existing.overrideValueId, out AttributeValue? _)
+                    && client.TryMaterializeWritablePath(ownership, existing.overrideValueId, out _))
+                {
+                    RefreshFromValueData();
+                    ReinitializeChildren();
+                    if (TryGet(key, out existing)) return existing;
+                }
+                return existing!;
+            }
 
             string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
             if (schemaKeyedAttributeId is null)
@@ -374,7 +386,19 @@ namespace NeoCompose.Runtime
 
         public NeoAttributeLookupWritable GetOrCreateLookup(string key)
         {
-            if (TryGet(key, out NeoAttributeLookupWritable? existing)) return existing;
+            if (TryGet(key, out NeoAttributeLookupWritable? existing))
+            {
+                if (ownership != NeoValueOwnership.Asset
+                    && existing.overrideValueId is not null
+                    && !client.TryGetWritableValue(ownership, existing.overrideValueId, out AttributeValue? _)
+                    && client.TryMaterializeWritablePath(ownership, existing.overrideValueId, out _))
+                {
+                    RefreshFromValueData();
+                    ReinitializeChildren();
+                    if (TryGet(key, out existing)) return existing!;
+                }
+                return existing!;
+            }
 
             string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
             if (schemaKeyedAttributeId is null)
@@ -431,7 +455,17 @@ namespace NeoCompose.Runtime
 
             if (value?.value is not null
                 && value.value.TryGetValue(key, out string existingValueId)
-                && client.TryGetValue(existingValueId, out AttributeValue? existing))
+                && ownership != NeoValueOwnership.Asset
+                && !client.TryGetWritableValue(ownership, existingValueId, out AttributeValue? _)
+                && client.TryMaterializeWritablePath(ownership, existingValueId, out _))
+            {
+                RefreshFromValueData();
+                ReinitializeChildren();
+            }
+
+            if (value?.value is not null
+                && value.value.TryGetValue(key, out existingValueId)
+                && client.TryGetValue(ownership, existingValueId, out AttributeValue? existing))
             {
                 if (setValue?.isValueReference == true)
                 {
@@ -459,6 +493,15 @@ namespace NeoCompose.Runtime
                     NotifyChildChanged(key);
                 }
                 return;
+            }
+
+            if (value is not null
+                && ownership != NeoValueOwnership.Asset
+                && !client.TryGetWritableValue(ownership, value.id, out ObjectAttributeValue? _)
+                && client.TryMaterializeWritablePath(ownership, value.id, out _))
+            {
+                RefreshFromValueData();
+                ReinitializeChildren();
             }
 
             // No existing value row — create one + link it under the

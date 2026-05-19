@@ -22,6 +22,11 @@ namespace NeoCompose.Runtime
             NeoClient client,
             object? receiver,
             object?[] args);
+        public delegate void NeoDeferredNativeFunctionInvoker(
+            NeoClient client,
+            object? receiver,
+            object?[] args,
+            NeoDeferredFunctionBase deferred);
         public NeoAttributeCustom assets { get; protected set; }
         public NeoAttributeCustomWritable save { get; protected set; }
         public NeoAttributeCustomWritable session { get; protected set; }
@@ -114,6 +119,7 @@ namespace NeoCompose.Runtime
         protected HandleSave handleSave;
         internal NeoAssetDatabase? assetDatabase;
         private IReadOnlyDictionary<string, NeoNativeFunctionInvoker>? nativeFunctionInvokers;
+        private IReadOnlyDictionary<string, NeoDeferredNativeFunctionInvoker>? deferredNativeFunctionInvokers;
 
         public NeoClient(
             ProjectData data,
@@ -128,8 +134,10 @@ namespace NeoCompose.Runtime
             ValidateRootCustomAttribute(data.project.rootAssetsAttributeId, nameof(Project.rootAssetsAttributeId));
             ValidateRootCustomAttribute(data.project.rootSaveFileAttributeId, nameof(Project.rootSaveFileAttributeId));
             ValidateRootCustomAttribute(data.project.rootSessionAttributeId, nameof(Project.rootSessionAttributeId));
+            ValidateFunctionAttributes();
             LoadOrCreateSafe();
             sessionData = BuildDefaultSessionData();
+            InitializeSaveDefaults();
             InitializeSessionDefaults();
             assets = new(this, data.project.rootAssetsAttributeId, null);
             save = new(this, data.project.rootSaveFileAttributeId, null, NeoValueOwnership.Save);
@@ -206,6 +214,51 @@ namespace NeoCompose.Runtime
                 }
             }
             value = null;
+            return false;
+        }
+
+        internal bool TryGetValue<TValue>(
+            NeoValueOwnership ownership,
+            string id,
+            [NotNullWhen(true)] out TValue? value) where TValue : AttributeValue
+        {
+            value = null;
+            switch (ownership)
+            {
+                case NeoValueOwnership.Session:
+                    if (sessionData.values.TryGetValue(id, out AttributeValue sessionMatch))
+                    {
+                        if (sessionMatch is TValue typedSession)
+                        {
+                            value = typedSession;
+                            return true;
+                        }
+                        return false;
+                    }
+                    break;
+                case NeoValueOwnership.Save:
+                    if (saveData.values.TryGetValue(id, out AttributeValue saveMatch))
+                    {
+                        if (saveMatch is TValue typedSave)
+                        {
+                            value = typedSave;
+                            return true;
+                        }
+                        return false;
+                    }
+                    break;
+                case NeoValueOwnership.Asset:
+                    break;
+                default:
+                    throw new System.InvalidOperationException(
+                        $"Unknown value ownership '{ownership}'.");
+            }
+            if (data.values.TryGetValue(id, out AttributeValue assetMatch)
+                && assetMatch is TValue typedAsset)
+            {
+                value = typedAsset;
+                return true;
+            }
             return false;
         }
 
@@ -608,35 +661,90 @@ namespace NeoCompose.Runtime
 
         internal bool TryMaterializeSavePath(string rowId)
         {
-            string? rootValueId = save.value?.id;
+            return TryMaterializeSavePath(rowId, out _);
+        }
+
+        internal bool TryMaterializeSavePath(string rowId, [NotNullWhen(true)] out string? materializedRowId)
+        {
+            return TryMaterializeWritablePath(NeoValueOwnership.Save, rowId, out materializedRowId);
+        }
+
+        internal bool TryMaterializeWritablePath(
+            NeoValueOwnership ownership,
+            string rowId,
+            [NotNullWhen(true)] out string? materializedRowId)
+        {
+            materializedRowId = null;
+            if (ownership == NeoValueOwnership.Asset)
+            {
+                throw new System.InvalidOperationException("Asset-owned values cannot be materialized into a writable store.");
+            }
+            var store = GetWritableStore(ownership);
+            if (store.values.ContainsKey(rowId))
+            {
+                materializedRowId = rowId;
+                return true;
+            }
+
+            NeoAttributeCustomWritable rootNode = ownership == NeoValueOwnership.Save ? save : session;
+            string rootAttributeId = ownership == NeoValueOwnership.Save
+                ? project.rootSaveFileAttributeId
+                : project.rootSessionAttributeId;
+            string? rootValueId = rootNode.value?.id;
             if (string.IsNullOrEmpty(rootValueId)) return false;
 
             var path = new List<string>();
-            if (!TryFindValuePath(rootValueId!, rowId, new HashSet<string>(), path))
+            if (!TryFindValuePath(ownership, rootValueId!, rowId, new HashSet<string>(), path))
             {
                 return false;
             }
 
+            var remappedIds = new Dictionary<string, string>();
             for (int i = 0; i < path.Count; i++)
             {
                 string pathValueId = path[i];
-                if (saveData.values.ContainsKey(pathValueId)) continue;
-                if (!TryGetValue(pathValueId, out AttributeValue? row)) return false;
+                remappedIds[pathValueId] = store.values.ContainsKey(pathValueId)
+                    ? pathValueId
+                    : System.Guid.NewGuid().ToString();
+            }
 
-                var clone = CloneValueRow(row);
+            for (int i = path.Count - 1; i >= 0; i--)
+            {
+                string pathValueId = path[i];
+                bool alreadyWritable = store.values.TryGetValue(pathValueId, out AttributeValue? existingWritable);
+                if (!alreadyWritable && !TryGetValue(ownership, pathValueId, out existingWritable))
+                {
+                    return false;
+                }
+
+                var clone = CloneValueRow(existingWritable!);
+                clone.id = remappedIds[pathValueId];
+                if (i < path.Count - 1)
+                {
+                    RemapDirectChildLink(clone, path[i + 1], remappedIds[path[i + 1]]);
+                }
                 if (i == 0)
                 {
-                    AddSaveValue(project.rootSaveFileAttributeId, clone);
+                    if (alreadyWritable)
+                    {
+                        SetWritableValue(ownership, clone);
+                    }
+                    else
+                    {
+                        AddWritableValue(ownership, rootAttributeId, clone);
+                    }
                 }
                 else
                 {
-                    SetSaveValueSilently(clone);
+                    SetWritableValue(ownership, clone);
                 }
             }
+            materializedRowId = remappedIds[rowId];
             return true;
         }
 
         private bool TryFindValuePath(
+            NeoValueOwnership ownership,
             string currentValueId,
             string targetValueId,
             HashSet<string> visited,
@@ -646,14 +754,14 @@ namespace NeoCompose.Runtime
             path.Add(currentValueId);
             if (currentValueId == targetValueId) return true;
 
-            if (TryGetValue(currentValueId, out AttributeValue? row))
+            if (TryGetValue(ownership, currentValueId, out AttributeValue? row))
             {
                 switch (row)
                 {
                     case ObjectAttributeValue obj when obj.value != null:
                         foreach (var childValueId in obj.value.Values)
                         {
-                            if (TryFindValuePath(childValueId, targetValueId, visited, path))
+                            if (TryFindValuePath(ownership, childValueId, targetValueId, visited, path))
                             {
                                 return true;
                             }
@@ -662,7 +770,7 @@ namespace NeoCompose.Runtime
                     case ArrayAttributeValue arr when arr.value != null:
                         foreach (var childValueId in arr.value)
                         {
-                            if (TryFindValuePath(childValueId, targetValueId, visited, path))
+                            if (TryFindValuePath(ownership, childValueId, targetValueId, visited, path))
                             {
                                 return true;
                             }
@@ -673,6 +781,39 @@ namespace NeoCompose.Runtime
 
             path.RemoveAt(path.Count - 1);
             return false;
+        }
+
+        private static void RemapDirectChildLink(
+            AttributeValue row,
+            string oldChildValueId,
+            string newChildValueId)
+        {
+            switch (row)
+            {
+                case ObjectAttributeValue obj when obj.value != null:
+                {
+                    var keys = new List<string>(obj.value.Keys);
+                    foreach (var key in keys)
+                    {
+                        if (obj.value[key] == oldChildValueId)
+                        {
+                            obj.value[key] = newChildValueId;
+                        }
+                    }
+                    break;
+                }
+                case ArrayAttributeValue arr when arr.value != null:
+                {
+                    for (int i = 0; i < arr.value.Length; i++)
+                    {
+                        if (arr.value[i] == oldChildValueId)
+                        {
+                            arr.value[i] = newChildValueId;
+                        }
+                    }
+                    break;
+                }
+            }
         }
 
         private static AttributeValue CloneValueRow(AttributeValue row)
@@ -869,6 +1010,25 @@ namespace NeoCompose.Runtime
             valueId = null;
             if (ownership == NeoValueOwnership.Asset) return false;
             return GetWritableStore(ownership).attributeValueOverrides.TryGetValue(attributeId, out valueId);
+        }
+
+        internal bool TryGetWritableValue<TValue>(
+            NeoValueOwnership ownership,
+            string id,
+            [NotNullWhen(true)] out TValue? value) where TValue : AttributeValue
+        {
+            value = null;
+            if (ownership == NeoValueOwnership.Asset) return false;
+            if (!GetWritableStore(ownership).values.TryGetValue(id, out AttributeValue row))
+            {
+                return false;
+            }
+            if (row is not TValue typed)
+            {
+                return false;
+            }
+            value = typed;
+            return true;
         }
 
         private ProjectSaveData GetWritableStore(NeoValueOwnership ownership)
@@ -1068,11 +1228,22 @@ namespace NeoCompose.Runtime
             nativeFunctionInvokers = invokers;
         }
 
+        public void RegisterDeferredNativeFunctionInvokers(
+            IReadOnlyDictionary<string, NeoDeferredNativeFunctionInvoker> invokers)
+        {
+            deferredNativeFunctionInvokers = invokers;
+        }
+
         internal object? InvokeNativeFunction(
             string attributeId,
             object? receiver,
             object?[] args)
         {
+            if (IsNativeFunctionDeferred(attributeId))
+            {
+                throw new NeoDeferredFunctionRuntimeError(
+                    $"Deferred Function '{attributeId}' can only be invoked from dialogue action runtime.");
+            }
             if (nativeFunctionInvokers is null)
             {
                 throw new NeoScript.NSGetterRuntimeError(
@@ -1084,6 +1255,121 @@ namespace NeoCompose.Runtime
                     $"No native Function invoker is registered for attribute '{attributeId}'.");
             }
             return invoker(this, receiver, args);
+        }
+
+        public void InvokeDeferredNativeFunction(
+            string attributeId,
+            object? receiver,
+            object?[] args)
+        {
+            throw new NeoDeferredFunctionRuntimeError(
+                $"Deferred Function '{attributeId}' can only be invoked from dialogue action runtime.");
+        }
+
+        internal NeoDeferredFunctionBase StartDeferredNativeFunction(
+            string attributeId,
+            object? receiver,
+            object?[] args,
+            System.Action<object?> complete,
+            System.Action<System.Exception> fail)
+        {
+            if (!TryResolveFunctionAttribute(attributeId, out var attribute))
+            {
+                throw new NeoScript.NSGetterRuntimeError(
+                    $"No Function attribute exists for '{attributeId}'.");
+            }
+            if (attribute.deferred != true)
+            {
+                throw new NeoScript.NSGetterRuntimeError(
+                    $"Function '{attribute.name}' ({attributeId}) is not deferred.");
+            }
+            if (deferredNativeFunctionInvokers is null)
+            {
+                throw new NeoScript.NSGetterRuntimeError(
+                    "Deferred native Function invocation requires constructing the generated ProjectNeo client wrapper before evaluating NeoScript.");
+            }
+            if (!deferredNativeFunctionInvokers.TryGetValue(attributeId, out var invoker))
+            {
+                throw new NeoScript.NSGetterRuntimeError(
+                    $"No deferred native Function invoker is registered for attribute '{attributeId}'.");
+            }
+
+            NeoDeferredFunctionBase deferred = attribute.returnTypeInfo is VoidTypeInfo
+                ? new NeoDeferredFunction(attributeId, attribute.name, complete, fail)
+                : CreateTypedDeferredFunction(attribute, complete, fail);
+            invoker(this, receiver, args, deferred);
+            return deferred;
+        }
+
+        internal bool IsNativeFunctionDeferred(string attributeId)
+        {
+            return TryResolveFunctionAttribute(attributeId, out var attribute)
+                && attribute.deferred == true;
+        }
+
+        private NeoDeferredFunctionBase CreateTypedDeferredFunction(
+            FunctionAttribute attribute,
+            System.Action<object?> complete,
+            System.Action<System.Exception> fail)
+        {
+            return attribute.returnTypeInfo.type switch
+            {
+                AttributeType.Bool => new NeoDeferredFunction<bool>(attribute.id, attribute.name, complete, fail),
+                AttributeType.Int => new NeoDeferredFunction<int>(attribute.id, attribute.name, complete, fail),
+                AttributeType.Float => new NeoDeferredFunction<float>(attribute.id, attribute.name, complete, fail),
+                AttributeType.String => new NeoDeferredFunction<string?>(attribute.id, attribute.name, complete, fail),
+                _ => new NeoDeferredFunction<object?>(attribute.id, attribute.name, complete, fail),
+            };
+        }
+
+        private bool TryResolveFunctionAttribute(
+            string attributeId,
+            [NotNullWhen(true)] out FunctionAttribute? attribute)
+        {
+            var visited = new HashSet<string>();
+            string? currentId = attributeId;
+            while (!string.IsNullOrEmpty(currentId) && visited.Add(currentId))
+            {
+                if (!data.attributes.TryGetValue(currentId!, out Attribute? current))
+                {
+                    break;
+                }
+                if (current is FunctionAttribute function
+                    && function.returnTypeInfo is not null
+                    && function.argumentTypes is not null
+                    && function.deferred.HasValue)
+                {
+                    attribute = function;
+                    return true;
+                }
+                currentId = current.extendsAttributeId;
+            }
+            attribute = null;
+            return false;
+        }
+
+        private void ValidateFunctionAttributes()
+        {
+            foreach (var pair in data.attributes)
+            {
+                if (pair.Value is not FunctionAttribute function) continue;
+                if (!string.IsNullOrEmpty(function.extendsAttributeId)) continue;
+                if (function.returnTypeInfo is null)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Function attribute '{function.id}' is missing returnTypeInfo.");
+                }
+                if (function.argumentTypes is null)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Function attribute '{function.id}' is missing argumentTypes.");
+                }
+                if (!function.deferred.HasValue)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Function attribute '{function.id}' is missing deferred.");
+                }
+            }
         }
 
         /// <summary>
@@ -1155,27 +1441,31 @@ namespace NeoCompose.Runtime
             {
                 return;
             }
-            CopyAuthoredValueGraphToSession(
+            string sessionRootValueId = CloneValueGraphToOwnership(
+                NeoValueOwnership.Session,
                 rootSessionAttribute.valueId,
-                new HashSet<string>(),
+                new Dictionary<string, string>(),
                 rootSessionAttribute);
+            sessionData.attributeValueOverrides[rootSessionAttribute.id] = sessionRootValueId;
         }
 
-        private void CopyAuthoredValueGraphToSession(
-            string valueId,
-            HashSet<string> visited,
-            Attribute? sourceAttribute = null)
+        private void InitializeSaveDefaults()
         {
-            if (!visited.Add(valueId)) return;
-            if (!data.values.TryGetValue(valueId, out AttributeValue? row)) return;
-
-            var clone = CloneValueRow(row);
-            SetWritableValueSilently(NeoValueOwnership.Session, clone);
-
-            foreach (var child in EnumerateOwnedChildLinks(row, sourceAttribute))
+            if (!data.attributes.TryGetValue(data.project.rootSaveFileAttributeId, out Attribute rootSaveAttribute)
+                || rootSaveAttribute.valueId is null)
             {
-                CopyAuthoredValueGraphToSession(child.valueId, visited, child.attribute);
+                return;
             }
+            if (saveData.attributeValueOverrides.ContainsKey(rootSaveAttribute.id))
+            {
+                return;
+            }
+            string saveRootValueId = CloneValueGraphToOwnership(
+                NeoValueOwnership.Save,
+                rootSaveAttribute.valueId,
+                new Dictionary<string, string>(),
+                rootSaveAttribute);
+            saveData.attributeValueOverrides[rootSaveAttribute.id] = saveRootValueId;
         }
 
         private void ValidateRootCustomAttribute(string attributeId, string projectFieldName)
