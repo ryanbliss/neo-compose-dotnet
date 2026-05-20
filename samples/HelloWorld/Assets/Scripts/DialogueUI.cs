@@ -54,14 +54,14 @@ namespace HelloWorld.Assets.Scripts
         }
 
         public void Show(
-            string speakerName,
-            Sprite speakerSprite,
+            string name,
+            Sprite image,
             string text
         )
         {
             EnsureBuilt();
-            SpeakerName = speakerName;
-            SpeakerImage = speakerSprite;
+            SpeakerName = name;
+            SpeakerImage = image;
             Text = text;
             ClearOptionButtons();
             root.SetActive(true);

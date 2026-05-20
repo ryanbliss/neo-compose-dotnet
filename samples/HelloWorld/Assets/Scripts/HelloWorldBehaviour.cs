@@ -59,7 +59,7 @@ namespace HelloWorld.Assets.Scripts
         {
             UpdateUI();
         }
-        
+
         protected void OnBitsChanged(int bits)
         {
             UpdateUI();
@@ -85,12 +85,12 @@ namespace HelloWorld.Assets.Scripts
 
         public void ShowDialogue(NeoDialogue dialogue)
         {
-            PrepareUI();
-            DialogueUI.Show(
-                GetSpeakerLabel(dialogue),
-                GetSpeakerImage(dialogue),
-                $"Traveling to {GetPlanet(dialogue)}..."
-            );
+            if (dialogue.Primary is ReadOnlyOutpost outpost)
+            {
+                PrepareUI();
+                DialogueUI.Show(outpost.FullDisplayText, outpost.Image, $"Traveling to {outpost.Planet}...");
+            }
+
             dialogue.OnShow += OnDialogueShow;
             dialogue.OnPause += OnDialoguePause;
             dialogue.OnFinish += OnDialogueFinish;
@@ -101,12 +101,11 @@ namespace HelloWorld.Assets.Scripts
 
         public void OnDialogueShow(NeoDialogueTextNode node)
         {
-            PrepareUI();
-            DialogueUI.Show(
-                GetSpeakerLabel(node),
-                GetSpeakerImage(node),
-                node.Text
-            );
+            if (node.Primary is not ReadOnlyOutpost outpost)
+                throw new Exception($"Expected linked type of {typeof(ReadOnlyOutpost)}");
+
+            DialogueUI.Show(outpost.FullDisplayText, outpost.Image, node.Text);
+
             if (node.Options.Count > 0)
             {
                 foreach (NeoDialogueTextOption option in node.Options)
@@ -208,40 +207,6 @@ namespace HelloWorld.Assets.Scripts
             CoreUI ??= new();
             DialogueUI ??= new();
             OutpostFunctionHandler.AnimationPlayer = DialogueUI;
-        }
-
-        private static string GetSpeakerLabel(NeoDialogueTextNode node)
-        {
-            if (node.Primary is ReadOnlyOutpost outpost)
-            {
-                return outpost.FullDisplayText;
-            }
-            return "Dialogue";
-        }
-        private static string GetSpeakerLabel(NeoDialogue dialogue)
-        {
-            if (dialogue.Primary is ReadOnlyOutpost outpost)
-            {
-                return outpost.FullDisplayText;
-            }
-            return "Dialogue";
-        }
-
-        private static Sprite GetSpeakerImage(NeoDialogueTextNode node)
-        {
-            if (node.Primary is not ReadOnlyOutpost outpost) return null;
-            return outpost.Image;
-        }
-        private static Sprite GetSpeakerImage(NeoDialogue dialogue)
-        {
-            if (dialogue.Primary is not ReadOnlyOutpost outpost) return null;
-            return outpost.Image;
-        }
-        
-        private static Planet GetPlanet(NeoDialogue dialogue)
-        {
-            if (dialogue.Primary is not ReadOnlyOutpost outpost) return null;
-            return outpost.Planet;
         }
 
         // ──────────────────────────────────────────────
