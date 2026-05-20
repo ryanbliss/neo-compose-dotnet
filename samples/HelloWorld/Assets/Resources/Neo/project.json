@@ -1132,7 +1132,7 @@
             "valueId": "0e0cdfcc-86c6-43a5-bcbd-aa8c325e1a25",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-07T18:23:43.619Z",
-            "updatedAt": "2026-05-19T21:19:16.643Z",
+            "updatedAt": "2026-05-20T00:40:25.464Z",
             "entryAttributeId": "9619809a-f7f0-4605-8f79-d1617b339819",
             "columnSettings": [
                 {
@@ -1193,7 +1193,7 @@
                 },
                 {
                     "attributeKey": "AnimatedImage",
-                    "width": 411,
+                    "width": 402,
                     "hidden": false,
                     "frozen": false,
                     "wrapContent": false
@@ -2411,16 +2411,15 @@
         "cab850e3-cf8c-42b3-a70b-f0066089e6fb": {
             "_id": "6a0cc78affde9aefe32d586d",
             "id": "cab850e3-cf8c-42b3-a70b-f0066089e6fb",
-            "name": "BeginAnimation",
+            "name": "PlayAnimation",
             "type": 13,
             "locked": false,
             "required": false,
-            "defaultValue": null,
             "extendsAttributeId": null,
             "system": null,
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "createdAt": "2026-05-19T20:26:50.830Z",
-            "updatedAt": "2026-05-19T20:26:50.830Z",
+            "updatedAt": "2026-05-20T00:44:51.832Z",
             "returnTypeInfo": {
                 "type": 1,
                 "required": true
@@ -2792,7 +2791,7 @@
                 "FullDisplayText": "514a79c5-dd23-4ede-9fc8-b07b3c866fe5",
                 "Image": "7ce8a389-265c-4ad4-90f4-42c3e91e7648",
                 "DebugLog": "e549555b-9276-48d8-be33-156972520d31",
-                "BeginAnimation": "cab850e3-cf8c-42b3-a70b-f0066089e6fb",
+                "PlayAnimation": "cab850e3-cf8c-42b3-a70b-f0066089e6fb",
                 "AnimatedImage": "d7607422-7e33-402f-9fe6-8e9ac85a7019"
             },
             "extendsTypeId": null,
@@ -2801,7 +2800,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "hiddenInAttributeSelector": false,
             "createdAt": "2026-05-07T17:52:15.777Z",
-            "updatedAt": "2026-05-19T21:12:25.941Z"
+            "updatedAt": "2026-05-20T00:44:41.698Z"
         },
         "8ccfe860-309f-428b-b74c-76a873bdea8a": {
             "_id": "69fcd25321f8b0238d0f67ef",

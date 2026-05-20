@@ -103,15 +103,15 @@ namespace HelloWorld.Assets.Scripts.Neo
                     receiver,
                     DialogueReadOnlyValueFactories,
                     DialogueWritableValueFactories,
-                    "BeginAnimation",
+                    "PlayAnimation",
                     "cab850e3-cf8c-42b3-a70b-f0066089e6fb");
                 if (target.FunctionHandler is null)
                 {
                     throw new NeoFunctionHandlerMissingException(
-                        "Cannot invoke deferred Function 'BeginAnimation' because FunctionHandler is not set.");
+                        "Cannot invoke deferred Function 'PlayAnimation' because FunctionHandler is not set.");
                 }
-                var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<bool>>(deferred, "BeginAnimation");
-                target.FunctionHandler.BeginAnimation(typedDeferred);
+                var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<bool>>(deferred, "PlayAnimation");
+                target.FunctionHandler.PlayAnimation(typedDeferred);
                 },
             };
 
@@ -2622,7 +2622,7 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IOutpostFunctionHandler
     {
         string DebugLog(string text);
-        void BeginAnimation(NeoDeferredFunction<bool> deferred);
+        void PlayAnimation(NeoDeferredFunction<bool> deferred);
     }
 
     public partial class ReadOnlyOutpost : NeoGeneratedCustomValue
@@ -2719,7 +2719,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return FunctionHandler.DebugLog(text);
         }
 
-        public void BeginAnimation()
+        public void PlayAnimation()
         {
             client.InvokeDeferredNativeFunction("cab850e3-cf8c-42b3-a70b-f0066089e6fb", this, new object?[] { });
         }

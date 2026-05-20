@@ -46,7 +46,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             this.Outpost = Outpost;
         }
 
-        public void BeginAnimation(NeoDeferredFunction<bool> deferred)
+        public void PlayAnimation(NeoDeferredFunction<bool> deferred)
         {
             ReadOnlyAnimationInfo? animation = Outpost.AnimatedImage;
             if (animation is null || AnimationPlayer is null || !Application.isPlaying)
