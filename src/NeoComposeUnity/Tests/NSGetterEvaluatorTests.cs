@@ -722,7 +722,6 @@ namespace NeoCompose.Tests
             var attr = new NSGetterAttribute
             {
                 id = "test-orphan-getter",
-                _id = "test-orphan-getter",
                 projectId = "p",
                 name = "Orphan",
                 type = AttributeType.NSGetter,
@@ -774,7 +773,6 @@ namespace NeoCompose.Tests
             var attr = new NSGetterAttribute
             {
                 id = "test-force-unwrap-null",
-                _id = "test-force-unwrap-null",
                 projectId = "p",
                 name = "ForceUnwrapNull",
                 type = AttributeType.NSGetter,
@@ -951,7 +949,6 @@ namespace NeoCompose.Tests
             var functionAttribute = new FunctionAttribute
             {
                 id = "attr-native-ping",
-                _id = "attr-native-ping",
                 projectId = "project-native-function",
                 name = "Ping",
                 type = AttributeType.Function,
@@ -1006,7 +1003,6 @@ namespace NeoCompose.Tests
                 project = new Project
                 {
                     id = "project-native-function",
-                    _id = "project-native-function",
                     name = "Native Function",
                     rootAssetsAttributeId = rootAttribute.id,
                     rootSaveFileAttributeId = rootSaveAttribute.id,
@@ -1069,7 +1065,6 @@ namespace NeoCompose.Tests
             var enumModel = new NeoCompose.Runtime.Json.Enum
             {
                 id = "enum-color",
-                _id = "enum-color",
                 projectId = "project-generated-surface",
                 name = "Color",
                 options = new Dictionary<string, EnumOption>
@@ -1150,7 +1145,6 @@ namespace NeoCompose.Tests
                 project = new Project
                 {
                     id = "project-generated-surface",
-                    _id = "project-generated-surface",
                     name = "Generated Surface",
                     rootAssetsAttributeId = rootAttribute.id,
                     rootSaveFileAttributeId = rootSaveAttribute.id,
@@ -1264,7 +1258,6 @@ namespace NeoCompose.Tests
             return new CustomType
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 schema = schema,
@@ -1278,7 +1271,6 @@ namespace NeoCompose.Tests
             return new NullAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.Null,
@@ -1292,7 +1284,6 @@ namespace NeoCompose.Tests
             return new BoolAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.Bool,
@@ -1306,7 +1297,6 @@ namespace NeoCompose.Tests
             return new IntAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.Int,
@@ -1320,7 +1310,6 @@ namespace NeoCompose.Tests
             return new FloatAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.Float,
@@ -1334,7 +1323,6 @@ namespace NeoCompose.Tests
             return new StringAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.String,
@@ -1351,7 +1339,6 @@ namespace NeoCompose.Tests
             return new ListAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.List,
@@ -1369,7 +1356,6 @@ namespace NeoCompose.Tests
             return new DictionaryAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.Dictionary,
@@ -1387,7 +1373,6 @@ namespace NeoCompose.Tests
             return new CustomAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.Custom,
@@ -1405,7 +1390,6 @@ namespace NeoCompose.Tests
             return new EnumAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.Enum,
@@ -1424,7 +1408,6 @@ namespace NeoCompose.Tests
             return new LookupAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.Lookup,
@@ -1441,7 +1424,6 @@ namespace NeoCompose.Tests
             return new NSGetterAttribute
             {
                 id = id,
-                _id = id,
                 projectId = "project-generated-surface",
                 name = name,
                 type = AttributeType.NSGetter,

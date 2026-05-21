@@ -12,6 +12,8 @@ namespace NeoCompose.Runtime
         public string apiBaseUrl = NeoComposeDefaults.ApiBaseUrl;
         public string projectId = "";
         public string projectName = "";
+        public string targetReleaseChannelId = "";
+        public string versionId = "";
         public string generatedTypesDirectory = NeoComposeDefaults.GeneratedTypesDirectory;
         public string projectJsonDirectory = NeoComposeDefaults.ProjectJsonDirectory;
         public string spriteDirectory = NeoComposeDefaults.SpriteDirectory;
@@ -27,6 +29,12 @@ namespace NeoCompose.Runtime
             string? namespaceForGeneratedTypes = null,
             bool singleton = NeoComposeDefaults.Singleton)
         {
+            if (projectId != id)
+            {
+                targetReleaseChannelId = "";
+                versionId = "";
+            }
+
             projectId = id;
             projectName = name;
             this.namespaceForGeneratedTypes = string.IsNullOrWhiteSpace(namespaceForGeneratedTypes)
@@ -39,6 +47,8 @@ namespace NeoCompose.Runtime
         {
             projectId = "";
             projectName = "";
+            targetReleaseChannelId = "";
+            versionId = "";
         }
     }
 }

@@ -101,6 +101,52 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void VersionedExport_DeserializesRecordsWithoutMongoIds()
+        {
+            var json = @"
+{
+  ""project"": {
+    ""_id"": ""project-a"",
+    ""id"": ""project-a"",
+    ""name"": ""Versioned Export"",
+    ""rootAssetsAttributeId"": ""assets-root"",
+    ""rootSaveFileAttributeId"": ""save-root"",
+    ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+    ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+  },
+  ""attributes"": {
+    ""attr-a"": {
+      ""id"": ""attr-a"",
+      ""projectId"": ""project-a"",
+      ""name"": ""Title"",
+      ""type"": 4,
+      ""locked"": false,
+      ""required"": true,
+      ""valueId"": ""value-a"",
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+    }
+  },
+  ""values"": {
+    ""value-a"": {
+      ""id"": ""value-a"",
+      ""value"": ""Hello"",
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+    }
+  },
+  ""types"": {},
+  ""enums"": {},
+  ""files"": {}
+}";
+
+            var export = Deserialize(json);
+
+            Assert.IsNotNull(export.attributes["attr-a"]);
+            Assert.IsNotNull(export.values["value-a"]);
+        }
+
+        [Test]
         public void FileAttributeExport_DeserializesFileMetadataTemplatesAndValues()
         {
             var json = @"

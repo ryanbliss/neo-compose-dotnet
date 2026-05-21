@@ -1612,7 +1612,6 @@ namespace NeoCompose.Tests
                 project = new Project
                 {
                     id = ProjectId,
-                    _id = ProjectId,
                     name = "Dialogue Project",
                     rootAssetsAttributeId = "root-assets",
                     rootSaveFileAttributeId = "root-save",
@@ -1629,7 +1628,6 @@ namespace NeoCompose.Tests
                     ["attr-score"] = new IntAttribute
                     {
                         id = "attr-score",
-                        _id = "attr-score",
                         projectId = ProjectId,
                         name = "Score",
                         type = AttributeType.Int,
@@ -1640,7 +1638,6 @@ namespace NeoCompose.Tests
                     ["attr-item-name"] = new StringAttribute
                     {
                         id = "attr-item-name",
-                        _id = "attr-item-name",
                         projectId = ProjectId,
                         name = "Name",
                         type = AttributeType.String,
@@ -1651,7 +1648,6 @@ namespace NeoCompose.Tests
                     ["attr-item"] = new CustomAttribute
                     {
                         id = "attr-item",
-                        _id = "attr-item",
                         projectId = ProjectId,
                         name = "Item",
                         type = AttributeType.Custom,
@@ -1663,7 +1659,6 @@ namespace NeoCompose.Tests
                     ["attr-items"] = new ListAttribute
                     {
                         id = "attr-items",
-                        _id = "attr-items",
                         projectId = ProjectId,
                         name = "Items",
                         type = AttributeType.List,
@@ -1676,7 +1671,6 @@ namespace NeoCompose.Tests
                     ["attr-inventory"] = new LookupAttribute
                     {
                         id = "attr-inventory",
-                        _id = "attr-inventory",
                         projectId = ProjectId,
                         name = "Inventory",
                         type = AttributeType.Lookup,
@@ -1690,7 +1684,6 @@ namespace NeoCompose.Tests
                     ["attr-session-foo"] = new BoolAttribute
                     {
                         id = "attr-session-foo",
-                        _id = "attr-session-foo",
                         projectId = ProjectId,
                         name = "Foo",
                         type = AttributeType.Bool,
@@ -1701,7 +1694,6 @@ namespace NeoCompose.Tests
                     ["attr-deferred-score"] = new FunctionAttribute
                     {
                         id = "attr-deferred-score",
-                        _id = "attr-deferred-score",
                         projectId = ProjectId,
                         name = "DeferredScore",
                         type = AttributeType.Function,
@@ -1823,7 +1815,6 @@ namespace NeoCompose.Tests
                     ["type-root"] = new()
                     {
                         id = "type-root",
-                        _id = "type-root",
                         projectId = ProjectId,
                         name = "Root",
                         schema = new Dictionary<string, string>
@@ -1839,7 +1830,6 @@ namespace NeoCompose.Tests
                     ["type-item"] = new()
                     {
                         id = "type-item",
-                        _id = "type-item",
                         projectId = ProjectId,
                         name = "Item",
                         schema = new Dictionary<string, string>
@@ -1856,7 +1846,6 @@ namespace NeoCompose.Tests
                     ["group-standard"] = new StandardDialogueGroup
                     {
                         id = "group-standard",
-                        _id = "group-standard",
                         projectId = ProjectId,
                         name = "Standard",
                         type = DialogueGroupType.Standard,
@@ -1866,7 +1855,6 @@ namespace NeoCompose.Tests
                     ["group-lookup"] = new LookupDialogueGroup
                     {
                         id = "group-lookup",
-                        _id = "group-lookup",
                         projectId = ProjectId,
                         name = "Lookup",
                         type = DialogueGroupType.Lookup,
@@ -1877,7 +1865,6 @@ namespace NeoCompose.Tests
                     ["group-priority"] = new StandardDialogueGroup
                     {
                         id = "group-priority",
-                        _id = "group-priority",
                         projectId = ProjectId,
                         name = "Priority",
                         type = DialogueGroupType.Standard,
@@ -1887,7 +1874,6 @@ namespace NeoCompose.Tests
                     ["group-visits"] = new StandardDialogueGroup
                     {
                         id = "group-visits",
-                        _id = "group-visits",
                         projectId = ProjectId,
                         name = "Visits",
                         type = DialogueGroupType.Standard,
@@ -1897,7 +1883,6 @@ namespace NeoCompose.Tests
                     ["group-folder-false"] = new FolderDialogueGroup
                     {
                         id = "group-folder-false",
-                        _id = "group-folder-false",
                         projectId = ProjectId,
                         name = "False Folder",
                         type = DialogueGroupType.Folder,
@@ -1908,7 +1893,6 @@ namespace NeoCompose.Tests
                     ["group-child-of-false"] = new StandardDialogueGroup
                     {
                         id = "group-child-of-false",
-                        _id = "group-child-of-false",
                         projectId = ProjectId,
                         name = "Child Of False",
                         type = DialogueGroupType.Standard,
@@ -1919,7 +1903,6 @@ namespace NeoCompose.Tests
                     ["group-context-primary"] = new StandardDialogueGroup
                     {
                         id = "group-context-primary",
-                        _id = "group-context-primary",
                         projectId = ProjectId,
                         name = "Context Primary",
                         type = DialogueGroupType.Standard,
@@ -2320,7 +2303,6 @@ namespace NeoCompose.Tests
                     ["priority-default"] = new PriorityGroup
                     {
                         id = "priority-default",
-                        _id = "priority-default",
                         projectId = ProjectId,
                         name = "Default",
                         options = new[]
@@ -2351,7 +2333,6 @@ namespace NeoCompose.Tests
             return new CustomAttribute
             {
                 id = id,
-                _id = id,
                 projectId = ProjectId,
                 name = name,
                 type = AttributeType.Custom,
@@ -2383,7 +2364,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = id,
-                _id = id,
                 projectId = ProjectId,
                 name = name,
                 description = null,
@@ -2451,7 +2431,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = id,
-                _id = id,
                 projectId = ProjectId,
                 name = id,
                 description = null,
@@ -2509,7 +2488,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = id,
-                _id = id,
                 projectId = ProjectId,
                 name = id,
                 description = null,
@@ -2583,7 +2561,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = "dialogue-conditions-node",
-                _id = "dialogue-conditions-node",
                 projectId = ProjectId,
                 name = "Conditions Node Dialogue",
                 description = null,
@@ -2643,7 +2620,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = "dialogue-options",
-                _id = "dialogue-options",
                 projectId = ProjectId,
                 name = "Choice Dialogue",
                 description = null,
@@ -2695,7 +2671,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = "dialogue-options-no-save",
-                _id = "dialogue-options-no-save",
                 projectId = ProjectId,
                 name = "Choice Dialogue Without Saved Choice",
                 description = null,
@@ -2740,7 +2715,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = "dialogue-option-settings",
-                _id = "dialogue-option-settings",
                 projectId = ProjectId,
                 name = "Option Settings Dialogue",
                 description = null,
@@ -2809,7 +2783,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = "dialogue-option-condition-error",
-                _id = "dialogue-option-condition-error",
                 projectId = ProjectId,
                 name = "Option Condition Error Dialogue",
                 description = null,
@@ -2858,7 +2831,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = "dialogue-text-variables-root",
-                _id = "dialogue-text-variables-root",
                 projectId = ProjectId,
                 name = "Text Variables Root Dialogue",
                 description = null,
@@ -2893,7 +2865,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = "dialogue-text-variable-primary",
-                _id = "dialogue-text-variable-primary",
                 projectId = ProjectId,
                 name = "Text Variable Primary Dialogue",
                 description = null,
@@ -2924,7 +2895,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = "dialogue-option-variable-primary",
-                _id = "dialogue-option-variable-primary",
                 projectId = ProjectId,
                 name = "Option Variable Primary Dialogue",
                 description = null,
@@ -2963,7 +2933,6 @@ namespace NeoCompose.Tests
             return new Dialogue
             {
                 id = "dialogue-text-variable-missing",
-                _id = "dialogue-text-variable-missing",
                 projectId = ProjectId,
                 name = "Text Variable Missing Dialogue",
                 description = null,

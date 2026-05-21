@@ -91,7 +91,10 @@ namespace NeoCompose.Unity.Editor
             try
             {
                 onProgress?.Invoke("Exporting project...");
-                var exportResponse = await apiClient.ExportProjectAsync(config.apiBaseUrl, config.projectId);
+                var exportResponse = await apiClient.ExportProjectAsync(
+                    config.apiBaseUrl,
+                    config.projectId,
+                    config.versionId);
                 var diagnosticErrors = exportResponse.diagnostics
                     .Where(d => string.Equals(d.severity, "error", StringComparison.OrdinalIgnoreCase))
                     .ToArray();
@@ -137,6 +140,11 @@ namespace NeoCompose.Unity.Editor
                 onProgress?.Invoke("Writing generated files...");
                 assets.WriteAllText(generatedTypesPath, exportResponse.generatedTypes);
                 assets.WriteAllText(projectJsonPath, exportResponse.projectJson);
+                if (exportResponse.version != null && !string.IsNullOrWhiteSpace(exportResponse.version.id))
+                {
+                    config.versionId = exportResponse.version.id;
+                }
+
                 config.namespaceForGeneratedTypes = ReadUnityNamespaceOrDefault(exportResponse.projectJson);
                 config.singleton = ReadUnitySingletonOrDefault(exportResponse.projectJson);
                 assets.SaveConfig(config);
@@ -221,6 +229,16 @@ namespace NeoCompose.Unity.Editor
             if (string.IsNullOrWhiteSpace(config.projectId))
             {
                 return NeoComposeSyncResult.Failure("No Neo Compose project is selected.");
+            }
+
+            if (string.IsNullOrWhiteSpace(config.targetReleaseChannelId))
+            {
+                return NeoComposeSyncResult.Failure("No Neo Compose release channel is selected.");
+            }
+
+            if (string.IsNullOrWhiteSpace(config.versionId))
+            {
+                return NeoComposeSyncResult.Failure("No Neo Compose project version is selected.");
             }
 
             if (!NeoComposePathUtility.TryNormalizeAssetDirectory(

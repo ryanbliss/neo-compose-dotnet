@@ -114,6 +114,8 @@ namespace NeoCompose.Tests
         {
             var config = ScriptableObject.CreateInstance<NeoComposeConfig>();
             config.SelectProject("project-1", "Project One");
+            config.targetReleaseChannelId = "development";
+            config.versionId = "version-1";
             config.generatedTypesDirectory = "Assets/CustomTypes";
             config.projectJsonDirectory = "Assets/CustomJson";
             config.spriteDirectory = "Assets/CustomSprites";
@@ -125,6 +127,8 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual("", config.projectId);
             Assert.AreEqual("", config.projectName);
+            Assert.AreEqual("", config.targetReleaseChannelId);
+            Assert.AreEqual("", config.versionId);
             Assert.AreEqual("Assets/CustomTypes", config.generatedTypesDirectory);
             Assert.AreEqual("Assets/CustomJson", config.projectJsonDirectory);
             Assert.AreEqual("Assets/CustomSprites", config.spriteDirectory);
@@ -137,6 +141,74 @@ namespace NeoCompose.Tests
         public void GeneratedTypesSupport_LookupSelectionId_ReturnsBoundValueId()
         {
             Assert.AreEqual("value-1", NeoGeneratedTypesSupport.LookupSelectionId("value-1"));
+        }
+
+        [Test]
+        public void VersionSelection_DefaultsToDevelopmentLatestSemver()
+        {
+            var channels = new[]
+            {
+                new NeoComposeProjectReleaseChannel { id = "production", name = "Production", slug = "production", sortOrder = 1 },
+                new NeoComposeProjectReleaseChannel { id = "development", name = "Development", slug = "development", sortOrder = 0 },
+            };
+            var statuses = new[]
+            {
+                new NeoComposeProjectVersionStatus
+                {
+                    id = "draft",
+                    name = "Draft",
+                    isWritable = true,
+                    releaseChannelIds = new[] { "development" },
+                },
+                new NeoComposeProjectVersionStatus
+                {
+                    id = "published",
+                    name = "Published",
+                    releaseChannelIds = new[] { "production" },
+                },
+            };
+            var versions = new[]
+            {
+                Version("v-0-1-1", "draft", 0, 1, 1),
+                Version("v-0-2-0", "draft", 0, 2, 0),
+                Version("v-1-0-0", "published", 1, 0, 0),
+            };
+
+            var channelId = NeoComposeVersionSelectionUtility.SelectDefaultReleaseChannelId(channels);
+            var latest = NeoComposeVersionSelectionUtility.SelectLatestVersionForChannel(versions, statuses, channelId);
+
+            Assert.AreEqual("development", channelId);
+            Assert.IsNotNull(latest);
+            Assert.AreEqual("v-0-2-0", latest!.id);
+        }
+
+        [Test]
+        public void VersionSelection_KeepsPinnedArchivedVersionInDropdown()
+        {
+            var statuses = new[]
+            {
+                new NeoComposeProjectVersionStatus
+                {
+                    id = "draft",
+                    name = "Draft",
+                    releaseChannelIds = new[] { "development" },
+                },
+            };
+            var current = Version("v-archived", "draft", 0, 1, 0);
+            current.archivedAt = "1970-01-01T00:00:00.000Z";
+            var versions = new[]
+            {
+                Version("v-latest", "draft", 0, 2, 0),
+                current,
+            };
+
+            var options = NeoComposeVersionSelectionUtility.BuildVersionDropdownOptions(
+                versions,
+                statuses,
+                "development",
+                "v-archived");
+
+            CollectionAssert.AreEqual(new[] { "v-archived", "v-latest" }, options.Select(version => version.id).ToArray());
         }
 
         [Test]
@@ -177,6 +249,7 @@ namespace NeoCompose.Tests
             Assert.Contains("Assets/Scripts/Neo", assets.createdDirectories);
             Assert.Contains("Assets/Resources/Neo", assets.createdDirectories);
             Assert.IsTrue(assets.savedConfig);
+            Assert.AreEqual("version-1", api.lastExportVersionId);
             Assert.AreEqual("Assets/Resources/Neo/project.json", assets.postSynchronizeProjectJsonPath);
         }
 
@@ -290,6 +363,7 @@ namespace NeoCompose.Tests
             Assert.Contains("Downloading file 1/1: hero.png", progress);
             Assert.Contains("Applying import settings 1/1: hero.png", progress);
             CollectionAssert.AreEqual(new[] { "file-1" }, api.lastFileDownloadIds);
+            Assert.AreEqual("version-1", api.lastFileDownloadVersionId);
             CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, assets.binaryFiles[expectedPath]);
             Assert.Contains(expectedPath, assets.appliedImportSettings);
             var entry = assets.assetDatabase.TryGetEntry("file-1");
@@ -690,6 +764,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(result.success, result.message);
             Assert.AreEqual("http://localhost:3000", api.lastEditApiBaseUrl);
             Assert.AreEqual("project-1", api.lastEditProjectId);
+            Assert.AreEqual("version-1", api.lastEditVersionId);
             Assert.AreEqual("Game.Generated", api.lastEditNamespace);
             Assert.AreEqual(false, api.lastEditSingleton);
             Assert.AreEqual("Game.Generated", config.namespaceForGeneratedTypes);
@@ -702,7 +777,30 @@ namespace NeoCompose.Tests
             var config = ScriptableObject.CreateInstance<NeoComposeConfig>();
             config.apiBaseUrl = "http://localhost:3000";
             config.SelectProject("project-1", "Project One");
+            config.targetReleaseChannelId = "development";
+            config.versionId = "version-1";
             return config;
+        }
+
+        private static NeoComposeProjectVersion Version(
+            string id,
+            string statusId,
+            int major,
+            int minor,
+            int patch)
+        {
+            return new NeoComposeProjectVersion
+            {
+                id = id,
+                statusId = statusId,
+                semver = new NeoComposeProjectVersionSemver
+                {
+                    major = major,
+                    minor = minor,
+                    patch = patch,
+                    label = $"{major}.{minor}.{patch}",
+                },
+            };
         }
 
         private static string ProjectJsonWithFiles(string filesJson)
@@ -735,7 +833,6 @@ namespace NeoCompose.Tests
             return new UnityTexture2DImportSettingsTemplate
             {
                 id = "texture-template-1",
-                _id = "texture-template-1",
                 projectId = "project-1",
                 name = "Sprites",
                 type = "texture-2d",
@@ -817,40 +914,71 @@ namespace NeoCompose.Tests
             public readonly NeoComposeProjectEditResponse editResponse = new();
             public string? lastEditApiBaseUrl;
             public string? lastEditProjectId;
+            public string? lastEditVersionId;
             public string? lastEditNamespace;
             public bool? lastEditSingleton;
+            public string? lastExportVersionId;
             public NeoComposeUnityExportFileDownloadResponse fileDownloadResponse = new();
             public readonly Dictionary<string, byte[]> downloads = new();
             public string[] lastFileDownloadIds = System.Array.Empty<string>();
+            public string? lastFileDownloadVersionId;
 
             public Task<NeoComposeProjectListResponse> ListProjectsAsync(string apiBaseUrl, string? query)
             {
                 return Task.FromResult(new NeoComposeProjectListResponse());
             }
 
+            public Task<NeoComposeProjectReleaseChannelListResponse> ListReleaseChannelsAsync(string apiBaseUrl, string projectId)
+            {
+                return Task.FromResult(new NeoComposeProjectReleaseChannelListResponse());
+            }
+
+            public Task<NeoComposeProjectVersionListResponse> ListVersionsAsync(string apiBaseUrl, string projectId)
+            {
+                return Task.FromResult(new NeoComposeProjectVersionListResponse());
+            }
+
+            public Task<NeoComposeProjectVersionStatusListResponse> ListVersionStatusesAsync(string apiBaseUrl, string projectId)
+            {
+                return Task.FromResult(new NeoComposeProjectVersionStatusListResponse());
+            }
+
+            public Task<NeoComposeProjectVersionMetadataResponse> GetVersionMetadataAsync(
+                string apiBaseUrl,
+                string projectId,
+                string versionId)
+            {
+                return Task.FromResult(new NeoComposeProjectVersionMetadataResponse());
+            }
+
             public Task<NeoComposeProjectEditResponse> UpdateProjectExportSettingsAsync(
                 string apiBaseUrl,
                 string projectId,
+                string versionId,
                 string namespaceForGeneratedTypes,
                 bool singleton)
             {
                 lastEditApiBaseUrl = apiBaseUrl;
                 lastEditProjectId = projectId;
+                lastEditVersionId = versionId;
                 lastEditNamespace = namespaceForGeneratedTypes;
                 lastEditSingleton = singleton;
                 return Task.FromResult(editResponse);
             }
 
-            public Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId)
+            public Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId, string versionId)
             {
+                lastExportVersionId = versionId;
                 return Task.FromResult(exportResponse);
             }
 
             public Task<NeoComposeUnityExportFileDownloadResponse> ExportProjectFileDownloadsAsync(
                 string apiBaseUrl,
                 string projectId,
+                string versionId,
                 string[] fileIds)
             {
+                lastFileDownloadVersionId = versionId;
                 lastFileDownloadIds = fileIds;
                 return Task.FromResult(fileDownloadResponse);
             }

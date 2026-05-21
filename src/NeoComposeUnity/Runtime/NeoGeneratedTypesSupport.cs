@@ -99,7 +99,6 @@ namespace NeoCompose.Runtime
                 attribute = new CustomAttribute
                 {
                     id = $"__neo_resolved_custom_{typeId}",
-                    _id = $"__neo_resolved_custom_{typeId}",
                     name = "ResolvedCustomValue",
                     type = AttributeType.Custom,
                     customTypeId = typeId,
@@ -500,7 +499,6 @@ namespace NeoCompose.Runtime
             var factoryAttribute = new CustomAttribute
             {
                 id = $"__neo_factory_custom_{customTypeId}",
-                _id = $"__neo_factory_custom_{customTypeId}",
                 name = "Factory",
                 type = AttributeType.Custom,
                 customTypeId = customTypeId,
@@ -1147,7 +1145,6 @@ namespace NeoCompose.Runtime
             var attribute = new CustomAttribute
             {
                 id = $"__neo_nsg_custom_{customTypeId}",
-                _id = $"__neo_nsg_custom_{customTypeId}",
                 name = "NSGetterCustomValue",
                 type = AttributeType.Custom,
                 customTypeId = customTypeId,

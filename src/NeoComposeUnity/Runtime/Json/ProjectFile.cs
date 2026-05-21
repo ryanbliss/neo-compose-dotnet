@@ -21,7 +21,6 @@ namespace NeoCompose.Runtime.Json
     public sealed class ProjectFile
     {
         public string id = null!;
-        public string _id = null!;
         public string projectId = null!;
         public string status = null!;
         public string name = null!;

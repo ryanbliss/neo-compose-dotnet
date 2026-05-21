@@ -25,7 +25,6 @@ namespace NeoCompose.Runtime.Json
     public sealed class UnityTexture2DImportSettingsTemplate
     {
         public string id = null!;
-        public string _id = null!;
         public string projectId = null!;
         public string name = null!;
         public string type = null!;
@@ -108,7 +107,6 @@ namespace NeoCompose.Runtime.Json
     public sealed class UnityAudioClipImportSettingsTemplate
     {
         public string id = null!;
-        public string _id = null!;
         public string projectId = null!;
         public string name = null!;
         public bool forceToMono;

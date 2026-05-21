@@ -29,6 +29,66 @@ namespace NeoCompose.Unity.Editor
         public NeoComposeProjectExportSettings? exportSettings;
     }
 
+    public sealed class NeoComposeProjectVersionSemver
+    {
+        public int major;
+        public int minor;
+        public int patch;
+        public string label = "";
+    }
+
+    public sealed class NeoComposeProjectVersion
+    {
+        public string id = "";
+        public string projectId = "";
+        public NeoComposeProjectVersionSemver semver = new();
+        public string statusId = "";
+        public string? archivedAt;
+    }
+
+    public sealed class NeoComposeProjectVersionStatus
+    {
+        public string id = "";
+        public string projectId = "";
+        public string name = "";
+        public int sortOrder;
+        public string? archivedAt;
+        public bool isWritable;
+        public string[] releaseChannelIds = System.Array.Empty<string>();
+    }
+
+    public sealed class NeoComposeProjectReleaseChannel
+    {
+        public string id = "";
+        public string projectId = "";
+        public string name = "";
+        public string slug = "";
+        public int sortOrder;
+    }
+
+    public sealed class NeoComposeProjectReleaseChannelListResponse
+    {
+        public List<NeoComposeProjectReleaseChannel> channels = new();
+    }
+
+    public sealed class NeoComposeProjectVersionListResponse
+    {
+        public List<NeoComposeProjectVersion> versions = new();
+    }
+
+    public sealed class NeoComposeProjectVersionStatusListResponse
+    {
+        public List<NeoComposeProjectVersionStatus> statuses = new();
+    }
+
+    public sealed class NeoComposeProjectVersionMetadataResponse
+    {
+        public NeoComposeProjectVersion version = new();
+        public NeoComposeProjectVersionStatus versionStatus = new();
+        public List<NeoComposeProjectVersionStatus> versionStatuses = new();
+        public List<NeoComposeProjectReleaseChannel> releaseChannels = new();
+    }
+
     public sealed class NeoComposeProjectExportSettings
     {
         public NeoComposeUnityExportSettings? unity;
@@ -54,10 +114,17 @@ namespace NeoCompose.Unity.Editor
         public string projectJson = "";
         public string generatedTypes = "";
         public List<NeoComposeCodegenDiagnostic> diagnostics = new();
+        public NeoComposeProjectVersion? version;
+        public NeoComposeProjectVersionStatus? versionStatus;
+        public List<NeoComposeProjectReleaseChannel> releaseChannels = new();
+        public string? projectDocumentContentHash;
+        public string? codegenContractHash;
+        public string? runtimeDataContractHash;
     }
 
     public sealed class NeoComposeUnityExportFileDownloadRequest
     {
+        public string versionId = "";
         public string[] fileIds = System.Array.Empty<string>();
     }
 

@@ -83,6 +83,7 @@ namespace NeoCompose.Unity.Editor
                 downloads = await apiClient.ExportProjectFileDownloadsAsync(
                     config.apiBaseUrl,
                     config.projectId,
+                    config.versionId,
                     changedFiles.Select(file => file.id).ToArray());
             }
             catch (Exception exception)

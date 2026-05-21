@@ -247,7 +247,6 @@ namespace NeoCompose.Tests
             types["type-default-holder"] = new CustomType
             {
                 id = "type-default-holder",
-                _id = "type-default-holder",
                 name = "DefaultHolder",
                 schema = new Dictionary<string, string> { ["Hero"] = "attr-hero" },
                 createdAt = "1970-01-01T00:00:00.000Z",

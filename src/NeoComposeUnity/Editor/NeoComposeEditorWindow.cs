@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using UnityEditor;
@@ -19,6 +20,9 @@ namespace NeoCompose.Unity.Editor
         private NeoComposeSynchronizer? synchronizer;
         private NeoComposeProjectSettingsUpdater? projectSettingsUpdater;
         private readonly List<NeoComposeProjectSummary> projects = new();
+        private readonly List<NeoComposeProjectReleaseChannel> releaseChannels = new();
+        private readonly List<NeoComposeProjectVersion> versions = new();
+        private readonly List<NeoComposeProjectVersionStatus> versionStatuses = new();
         private Vector2 scroll;
         private string searchText = "";
         private string status = "";
@@ -47,6 +51,10 @@ namespace NeoCompose.Unity.Editor
             projectSettingsUpdater = new NeoComposeProjectSettingsUpdater(
                 apiClient,
                 new NeoComposeEditorAssetService());
+            if (config.HasProject)
+            {
+                _ = RefreshVersionMetadataAsync(false);
+            }
         }
 
         private void OnGUI()
@@ -102,6 +110,10 @@ namespace NeoCompose.Unity.Editor
                 if (EditorGUI.EndChangeCheck())
                 {
                     NeoComposeConfigProvider.Save(config);
+                    if (config.HasProject)
+                    {
+                        _ = RefreshVersionMetadataAsync(false);
+                    }
                 }
             }
 
@@ -149,6 +161,9 @@ namespace NeoCompose.Unity.Editor
             if (GUILayout.Button("Remove", GUILayout.Width(RemoveButtonWidth)))
             {
                 config.ClearProject();
+                releaseChannels.Clear();
+                versions.Clear();
+                versionStatuses.Clear();
                 NeoComposeConfigProvider.Save(config);
                 status = "Project unlinked. Synchronized files were left untouched.";
             }
@@ -163,6 +178,8 @@ namespace NeoCompose.Unity.Editor
                 GUILayout.Height(EditorGUIUtility.singleLineHeight));
             EditorGUILayout.EndHorizontal();
             EndSection();
+
+            RenderVersionSelection(config);
 
             BeginSection("Export Settings");
             using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
@@ -180,7 +197,7 @@ namespace NeoCompose.Unity.Editor
 
             EditorGUILayout.Space(3);
             EditorGUILayout.BeginHorizontal();
-            using (new EditorGUI.DisabledScope(loading))
+            using (new EditorGUI.DisabledScope(loading || !CanSaveUnityExportSettings(config)))
             {
                 if (GUILayout.Button("Save to web", GUILayout.Width(120), GUILayout.Height(24)))
                 {
@@ -209,7 +226,7 @@ namespace NeoCompose.Unity.Editor
                 MutedStyle());
             EditorGUILayout.Space(3);
             EditorGUILayout.BeginHorizontal();
-            using (new EditorGUI.DisabledScope(loading))
+            using (new EditorGUI.DisabledScope(loading || !CanSynchronize(config)))
             {
                 if (GUILayout.Button(loading ? "Synchronizing..." : "Synchronize", GUILayout.Width(160), GUILayout.Height(26)))
                 {
@@ -219,12 +236,213 @@ namespace NeoCompose.Unity.Editor
 
             if (GUILayout.Button("Edit in web", GUILayout.Width(120), GUILayout.Height(26)))
             {
-                Application.OpenURL(BuildProjectSchemaUrl(config.apiBaseUrl, config.projectId));
+                Application.OpenURL(BuildProjectSchemaUrl(config.apiBaseUrl, config.projectId, config.versionId));
             }
 
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
             EndSection();
+        }
+
+        private void RenderVersionSelection(NeoComposeConfig config)
+        {
+            BeginSection("Version");
+            if (releaseChannels.Count == 0 || versions.Count == 0 || versionStatuses.Count == 0)
+            {
+                EditorGUILayout.LabelField(
+                    loading ? "Loading release channels and versions..." : "Release channel and version metadata has not been loaded.",
+                    MutedStyle());
+                using (new EditorGUI.DisabledScope(loading))
+                {
+                    if (GUILayout.Button("Refresh Versions", GUILayout.Width(128)))
+                    {
+                        _ = RefreshVersionMetadataAsync(true);
+                    }
+                }
+
+                EndSection();
+                return;
+            }
+
+            var orderedChannels = NeoComposeVersionSelectionUtility.OrderChannels(releaseChannels).ToArray();
+            var channelIndex = Math.Max(0, Array.FindIndex(orderedChannels, channel => channel.id == config.targetReleaseChannelId));
+            if (channelIndex >= orderedChannels.Length) channelIndex = 0;
+
+            using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
+            {
+                EditorGUI.BeginChangeCheck();
+                var nextChannelIndex = EditorGUILayout.Popup(
+                    "Release Channel",
+                    channelIndex,
+                    orderedChannels.Select(channel => channel.name).ToArray());
+                if (EditorGUI.EndChangeCheck() && nextChannelIndex >= 0 && nextChannelIndex < orderedChannels.Length)
+                {
+                    SelectReleaseChannel(config, orderedChannels[nextChannelIndex].id);
+                }
+
+                var options = NeoComposeVersionSelectionUtility.BuildVersionDropdownOptions(
+                    versions,
+                    versionStatuses,
+                    config.targetReleaseChannelId,
+                    config.versionId);
+                if (options.Length == 0)
+                {
+                    EditorGUILayout.LabelField("Version", "No versions available");
+                }
+                else
+                {
+                    var versionIndex = Math.Max(0, Array.FindIndex(options, version => version.id == config.versionId));
+                    if (versionIndex >= options.Length) versionIndex = 0;
+                    EditorGUI.BeginChangeCheck();
+                    var nextVersionIndex = EditorGUILayout.Popup(
+                        "Version",
+                        versionIndex,
+                        options.Select(FormatVersionOption).ToArray());
+                    if (EditorGUI.EndChangeCheck() && nextVersionIndex >= 0 && nextVersionIndex < options.Length)
+                    {
+                        config.versionId = options[nextVersionIndex].id;
+                        NeoComposeConfigProvider.Save(config);
+                    }
+                }
+            }
+
+            RenderVersionWarnings(config);
+            RenderUpdateAvailable(config);
+            EditorGUILayout.BeginHorizontal();
+            using (new EditorGUI.DisabledScope(loading))
+            {
+                if (GUILayout.Button("Refresh Versions", GUILayout.Width(128)))
+                {
+                    _ = RefreshVersionMetadataAsync(true);
+                }
+            }
+
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+            EndSection();
+        }
+
+        private void SelectReleaseChannel(NeoComposeConfig config, string channelId)
+        {
+            config.targetReleaseChannelId = channelId;
+            if (!string.IsNullOrWhiteSpace(config.versionId))
+            {
+                var current = versions.FirstOrDefault(version => version.id == config.versionId);
+                if (current != null &&
+                    NeoComposeVersionSelectionUtility.IsVersionInChannel(current, versionStatuses, channelId))
+                {
+                    NeoComposeConfigProvider.Save(config);
+                    return;
+                }
+            }
+
+            var latest = NeoComposeVersionSelectionUtility.SelectLatestVersionForChannel(
+                versions,
+                versionStatuses,
+                channelId);
+            config.versionId = latest?.id ?? "";
+            NeoComposeConfigProvider.Save(config);
+        }
+
+        private void RenderVersionWarnings(NeoComposeConfig config)
+        {
+            var current = versions.FirstOrDefault(version => version.id == config.versionId);
+            if (current == null)
+            {
+                EditorGUILayout.HelpBox("The selected project version could not be found.", MessageType.Warning);
+                return;
+            }
+
+            var statusForVersion = NeoComposeVersionSelectionUtility.FindStatus(current, versionStatuses);
+            if (statusForVersion != null)
+            {
+                using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
+                {
+                    EditorGUILayout.LabelField("Status", statusForVersion.name);
+                }
+            }
+
+            if (!NeoComposeVersionSelectionUtility.IsVersionInChannel(
+                    current,
+                    versionStatuses,
+                    config.targetReleaseChannelId))
+            {
+                var targetedChannels = NeoComposeVersionSelectionUtility.GetTargetReleaseChannelNames(
+                    current,
+                    versionStatuses,
+                    releaseChannels);
+                var targets = targetedChannels.Length == 0
+                    ? "It is not exposed by any release channel."
+                    : "It currently targets: " + string.Join(", ", targetedChannels) + ".";
+                EditorGUILayout.HelpBox(
+                    "The pinned version is not in the selected release channel. " + targets,
+                    MessageType.Warning);
+            }
+
+            if (NeoComposeVersionSelectionUtility.IsArchived(current))
+            {
+                EditorGUILayout.HelpBox("The selected project version is archived.", MessageType.Warning);
+            }
+
+            if (NeoComposeVersionSelectionUtility.IsDeprecated(current, versionStatuses))
+            {
+                EditorGUILayout.HelpBox(
+                    "The selected project version is deprecated or no longer channel-targeted.",
+                    MessageType.Warning);
+            }
+        }
+
+        private void RenderUpdateAvailable(NeoComposeConfig config)
+        {
+            var current = versions.FirstOrDefault(version => version.id == config.versionId);
+            var latest = NeoComposeVersionSelectionUtility.SelectLatestVersionForChannel(
+                versions,
+                versionStatuses,
+                config.targetReleaseChannelId);
+            if (current == null || latest == null) return;
+            if (NeoComposeVersionSelectionUtility.CompareSemver(latest, current) <= 0) return;
+
+            EditorGUILayout.HelpBox("A newer update is available.", MessageType.Info);
+            using (new EditorGUI.DisabledScope(loading))
+            {
+                if (GUILayout.Button("Update to latest version", GUILayout.Width(180)))
+                {
+                    config.versionId = latest.id;
+                    NeoComposeConfigProvider.Save(config);
+                    if (EditorUtility.DisplayDialog(
+                            "Synchronize latest version?",
+                            $"Version {latest.semver.label} is now selected. Synchronize generated files now?",
+                            "Synchronize",
+                            "Not Now"))
+                    {
+                        _ = SynchronizeAsync();
+                    }
+                }
+            }
+        }
+
+        private bool CanSynchronize(NeoComposeConfig config)
+        {
+            return config.HasProject &&
+                !string.IsNullOrWhiteSpace(config.targetReleaseChannelId) &&
+                !string.IsNullOrWhiteSpace(config.versionId);
+        }
+
+        private bool CanSaveUnityExportSettings(NeoComposeConfig config)
+        {
+            return CanSynchronize(config) &&
+                NeoComposeVersionSelectionUtility.IsCurrentVersionWritable(
+                    config.versionId,
+                    versions,
+                    versionStatuses);
+        }
+
+        private static string FormatVersionOption(NeoComposeProjectVersion version)
+        {
+            var label = string.IsNullOrWhiteSpace(version.semver.label)
+                ? version.id
+                : version.semver.label;
+            return string.IsNullOrWhiteSpace(version.archivedAt) ? label : label + " (archived)";
         }
 
         private void DrawDirectoryField(string label, ref string assetDirectory)
@@ -258,7 +476,7 @@ namespace NeoCompose.Unity.Editor
             }
         }
 
-        private static void DrawProjectSearchResult(NeoComposeConfig config, NeoComposeProjectSummary project)
+        private void DrawProjectSearchResult(NeoComposeConfig config, NeoComposeProjectSummary project)
         {
             EditorGUILayout.BeginVertical(SearchResultStyle());
             EditorGUILayout.BeginHorizontal();
@@ -278,6 +496,7 @@ namespace NeoCompose.Unity.Editor
                     project.UnityNamespaceOrDefault(),
                     project.UnitySingletonOrDefault());
                 NeoComposeConfigProvider.Save(config);
+                _ = RefreshVersionMetadataAsync(true);
             }
 
             EditorGUILayout.EndHorizontal();
@@ -409,6 +628,70 @@ namespace NeoCompose.Unity.Editor
             }
         }
 
+        private async Task RefreshVersionMetadataAsync(bool showStatus)
+        {
+            if (config == null || !config.HasProject) return;
+            loading = true;
+            if (showStatus) status = "Loading release channels and versions...";
+            Repaint();
+
+            try
+            {
+                var channelResponse = await apiClient.ListReleaseChannelsAsync(config.apiBaseUrl, config.projectId);
+                var versionResponse = await apiClient.ListVersionsAsync(config.apiBaseUrl, config.projectId);
+                var statusResponse = await apiClient.ListVersionStatusesAsync(config.apiBaseUrl, config.projectId);
+
+                releaseChannels.Clear();
+                releaseChannels.AddRange(channelResponse.channels);
+                versions.Clear();
+                versions.AddRange(versionResponse.versions);
+                versionStatuses.Clear();
+                versionStatuses.AddRange(statusResponse.statuses);
+
+                var changed = false;
+                if (string.IsNullOrWhiteSpace(config.targetReleaseChannelId))
+                {
+                    config.targetReleaseChannelId =
+                        NeoComposeVersionSelectionUtility.SelectDefaultReleaseChannelId(releaseChannels);
+                    changed = !string.IsNullOrWhiteSpace(config.targetReleaseChannelId);
+                }
+
+                if (string.IsNullOrWhiteSpace(config.versionId) &&
+                    !string.IsNullOrWhiteSpace(config.targetReleaseChannelId))
+                {
+                    var latest = NeoComposeVersionSelectionUtility.SelectLatestVersionForChannel(
+                        versions,
+                        versionStatuses,
+                        config.targetReleaseChannelId);
+                    if (latest != null)
+                    {
+                        config.versionId = latest.id;
+                        changed = true;
+                    }
+                }
+
+                if (changed)
+                {
+                    NeoComposeConfigProvider.Save(config);
+                }
+
+                if (showStatus)
+                {
+                    status = $"Loaded {releaseChannels.Count} channel(s) and {versions.Count} version(s).";
+                }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(exception);
+                status = exception.Message;
+            }
+            finally
+            {
+                loading = false;
+                Repaint();
+            }
+        }
+
         private async Task SynchronizeAsync()
         {
             if (config == null || synchronizer == null) return;
@@ -420,6 +703,10 @@ namespace NeoCompose.Unity.Editor
             {
                 var result = await synchronizer.SynchronizeAsync(config, UpdateProgressStatus);
                 RefreshConfigForDisplay();
+                if (config != null && config.HasProject)
+                {
+                    await RefreshVersionMetadataAsync(false);
+                }
                 status = result.message;
                 ScheduleAssetRefresh();
             }
@@ -488,9 +775,11 @@ namespace NeoCompose.Unity.Editor
             EditorGUIUtility.editingTextField = false;
         }
 
-        private static string BuildProjectSchemaUrl(string apiBaseUrl, string projectId)
+        private static string BuildProjectSchemaUrl(string apiBaseUrl, string projectId, string versionId)
         {
-            return apiBaseUrl.Trim().TrimEnd('/') + "/projects/" + Uri.EscapeDataString(projectId);
+            var root = apiBaseUrl.Trim().TrimEnd('/') + "/projects/" + Uri.EscapeDataString(projectId);
+            if (string.IsNullOrWhiteSpace(versionId)) return root;
+            return root + "/versions/" + Uri.EscapeDataString(versionId);
         }
 
         private static bool TryConvertAbsoluteFolderToAssetPath(string absolutePath, out string assetPath)
