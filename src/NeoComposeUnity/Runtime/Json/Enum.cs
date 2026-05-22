@@ -26,7 +26,6 @@ namespace NeoCompose.Runtime.Json
     public class Enum
     {
         public string id = null!;
-        public string _id = null!;
         public string projectId = null!;
         public string name = null!;
         public Dictionary<string, EnumOption> options = null!;

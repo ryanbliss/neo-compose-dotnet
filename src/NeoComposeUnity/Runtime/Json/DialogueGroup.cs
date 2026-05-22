@@ -20,7 +20,6 @@ namespace NeoCompose.Runtime.Json
     public abstract class DialogueGroup
     {
         public string id = null!;
-        public string _id = null!;
         public string projectId = null!;
         public string name = null!;
         public DialogueGroupType type;

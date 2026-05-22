@@ -555,20 +555,19 @@ namespace NeoCompose.Runtime
             switch (typeInfo.type)
             {
                 case AttributeType.Null:
-                    return new NullAttribute { id = id, _id = id, type = AttributeType.Null };
+                    return new NullAttribute { id = id, type = AttributeType.Null };
                 case AttributeType.Bool:
-                    return new BoolAttribute { id = id, _id = id, type = AttributeType.Bool };
+                    return new BoolAttribute { id = id, type = AttributeType.Bool };
                 case AttributeType.Int:
-                    return new IntAttribute { id = id, _id = id, type = AttributeType.Int };
+                    return new IntAttribute { id = id, type = AttributeType.Int };
                 case AttributeType.Float:
-                    return new FloatAttribute { id = id, _id = id, type = AttributeType.Float };
+                    return new FloatAttribute { id = id, type = AttributeType.Float };
                 case AttributeType.String:
-                    return new StringAttribute { id = id, _id = id, type = AttributeType.String };
+                    return new StringAttribute { id = id, type = AttributeType.String };
                 case AttributeType.Custom:
                     return new CustomAttribute
                     {
                         id = id,
-                        _id = id,
                         type = AttributeType.Custom,
                         customTypeId = ((CustomTypeInfo)typeInfo).typeId,
                     };
@@ -576,7 +575,6 @@ namespace NeoCompose.Runtime
                     return new ListAttribute
                     {
                         id = id,
-                        _id = id,
                         type = AttributeType.List,
                         entryAttributeId = id,
                     };
@@ -584,7 +582,6 @@ namespace NeoCompose.Runtime
                     return new DictionaryAttribute
                     {
                         id = id,
-                        _id = id,
                         type = AttributeType.Dictionary,
                         entryAttributeId = id,
                     };
@@ -592,7 +589,6 @@ namespace NeoCompose.Runtime
                     return new EnumAttribute
                     {
                         id = id,
-                        _id = id,
                         type = AttributeType.Enum,
                         enumId = ((EnumTypeInfo)typeInfo).enumId,
                     };
@@ -600,7 +596,6 @@ namespace NeoCompose.Runtime
                     return new LookupAttribute
                     {
                         id = id,
-                        _id = id,
                         type = AttributeType.Lookup,
                         collectionAttributeId = id,
                     };

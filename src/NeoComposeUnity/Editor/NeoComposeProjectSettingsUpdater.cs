@@ -58,11 +58,17 @@ namespace NeoCompose.Unity.Editor
                 return NeoComposeProjectSettingsUpdateResult.Failure("No Neo Compose project is selected.");
             }
 
+            if (string.IsNullOrWhiteSpace(config.versionId))
+            {
+                return NeoComposeProjectSettingsUpdateResult.Failure("No Neo Compose project version is selected.");
+            }
+
             try
             {
                 var response = await apiClient.UpdateProjectExportSettingsAsync(
                     config.apiBaseUrl,
                     config.projectId,
+                    config.versionId,
                     config.namespaceForGeneratedTypes,
                     config.singleton);
 
