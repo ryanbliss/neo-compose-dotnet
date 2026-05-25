@@ -327,15 +327,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "mercury" => "Mercury",
-                "venus" => "Venus",
-                "earth" => "Earth",
-                "mars" => "Mars",
-                "jupiter" => "Jupiter",
-                "saturn" => "Saturn",
-                "uranus" => "Uranus",
-                "neptune" => "Neptune",
-                "pluto" => "Pluto",
+                "mercury" => "4e5a1262-ba35-4bf6-a68a-45b27479143d",
+                "venus" => "fe5ab262-4a0f-4551-ab27-5fd1c97da128",
+                "earth" => "165b49a1-0b48-4e99-beec-079dc0531484",
+                "mars" => "92fe9254-9e61-40c6-aced-6f55692b0120",
+                "jupiter" => "dae6ab0c-4b82-4a11-8057-097a193fecea",
+                "saturn" => "1f81373c-bdb0-47ab-87a8-283c45f1a686",
+                "uranus" => "fafce114-ab70-4813-a4e2-cb436b66aba6",
+                "neptune" => "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6",
+                "pluto" => "ee2f7b0b-786c-41ca-8578-6f348194d52c",
                 _ => optionId,
             };
         }
@@ -399,8 +399,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "titan" => "Titan",
-                "enceladus" => "Enceladus",
+                "titan" => "c59bdeaf-9f71-4970-a95f-058c7f54c18b",
+                "enceladus" => "543a1e52-c9ca-470a-ad07-884ee0c55cc2",
                 _ => optionId,
             };
         }
@@ -468,10 +468,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return optionId switch
             {
-                "io" => "Io",
-                "europa" => "Europa",
-                "ganymede" => "Ganymede",
-                "callisto" => "Callisto",
+                "io" => "03d962a1-c763-4589-89bd-f0db811c9b95",
+                "europa" => "134542ba-7414-4353-b0bd-5773e31d63bf",
+                "ganymede" => "15a60d3e-940d-4ac4-b6ba-ac1403dcfea2",
+                "callisto" => "c9ec2854-89aa-4a36-bbd8-ece671852b77",
                 _ => optionId,
             };
         }
@@ -3235,6 +3235,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new bool Visited
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return (bool)result.value!;
+            }
+        }
+
         public new int VisitCount
         {
             get
@@ -3244,16 +3254,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             set
             {
                 NeoGeneratedTypesSupport.SetValue(writableNode, "VisitCount", NeoGeneratedTypesSupport.Value(value));
-            }
-        }
-
-        public new bool Visited
-        {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return (bool)result.value!;
             }
         }
 
@@ -3275,9 +3275,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<bool> Unlocked = new("Unlocked");
 
-            public static readonly NeoField<int> VisitCount = new("VisitCount");
-
             public static readonly NeoField<bool> Visited = new("Visited");
+
+            public static readonly NeoField<int> VisitCount = new("VisitCount");
 
             public static readonly NeoField<int> Reputation = new("Reputation");
         }
@@ -3287,8 +3287,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Unlocked] = () => null,
-                [Fields.VisitCount] = () => null,
                 [Fields.Visited] = () => null,
+                [Fields.VisitCount] = () => null,
                 [Fields.Reputation] = () => null,
             };
         }
@@ -3308,8 +3308,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Unlocked] = () => Unlocked,
-                [Fields.VisitCount] = () => VisitCount,
                 [Fields.Visited] = () => Visited,
+                [Fields.VisitCount] = () => VisitCount,
                 [Fields.Reputation] = () => Reputation,
             };
         }
