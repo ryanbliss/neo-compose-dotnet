@@ -113,6 +113,7 @@ namespace NeoCompose.Unity.Editor
         public string projectName = "";
         public string projectJson = "";
         public string generatedTypes = "";
+        public List<NeoComposeUnityLocalizationFile> localizationFiles = new();
         public List<NeoComposeCodegenDiagnostic> diagnostics = new();
         public NeoComposeProjectVersion? version;
         public NeoComposeProjectVersionStatus? versionStatus;
@@ -120,6 +121,13 @@ namespace NeoCompose.Unity.Editor
         public string? projectDocumentContentHash;
         public string? codegenContractHash;
         public string? runtimeDataContractHash;
+    }
+
+    public sealed class NeoComposeUnityLocalizationFile
+    {
+        public string locale = "";
+        public string fileName = "";
+        public string content = "";
     }
 
     public sealed class NeoComposeUnityExportFileDownloadRequest

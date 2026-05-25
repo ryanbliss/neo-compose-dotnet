@@ -265,6 +265,22 @@ namespace NeoCompose.Unity.Editor
                 return NeoComposeSyncResult.Failure(spriteError);
             }
 
+            if (!NeoComposePathUtility.TryNormalizeResourcesDirectory(
+                    config.localizationResourcesDirectory,
+                    out var localizationResourcesDirectory,
+                    out var localizationResourcesError))
+            {
+                return NeoComposeSyncResult.Failure(localizationResourcesError);
+            }
+
+            if (!NeoComposePathUtility.TryNormalizeStreamingAssetsDirectory(
+                    config.localizationStreamingAssetsDirectory,
+                    out var localizationStreamingAssetsDirectory,
+                    out var localizationStreamingAssetsError))
+            {
+                return NeoComposeSyncResult.Failure(localizationStreamingAssetsError);
+            }
+
             if (!NeoComposePathUtility.TryNormalizeAssetDirectory(
                     config.audioClipDirectory,
                     out var audioClipDirectory,
@@ -276,6 +292,8 @@ namespace NeoCompose.Unity.Editor
             config.generatedTypesDirectory = generatedTypesDirectory;
             config.projectJsonDirectory = projectJsonDirectory;
             config.spriteDirectory = spriteDirectory;
+            config.localizationResourcesDirectory = localizationResourcesDirectory;
+            config.localizationStreamingAssetsDirectory = localizationStreamingAssetsDirectory;
             config.audioClipDirectory = audioClipDirectory;
             return NeoComposeSyncResult.Success("Config is valid.", new NeoComposeUnityExportResponse());
         }

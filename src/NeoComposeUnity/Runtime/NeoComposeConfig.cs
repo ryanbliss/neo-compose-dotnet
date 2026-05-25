@@ -16,6 +16,11 @@ namespace NeoCompose.Runtime
         public string versionId = "";
         public string generatedTypesDirectory = NeoComposeDefaults.GeneratedTypesDirectory;
         public string projectJsonDirectory = NeoComposeDefaults.ProjectJsonDirectory;
+        public string localizationResourcesDirectory = NeoComposeDefaults.LocalizationResourcesDirectory;
+        public string localizationStreamingAssetsDirectory = NeoComposeDefaults.LocalizationStreamingAssetsDirectory;
+        public bool useStreamingAssetsForNonRootLocales;
+        public bool preloadSystemLocale = true;
+        public string localeOverride = "";
         public string spriteDirectory = NeoComposeDefaults.SpriteDirectory;
         public string audioClipDirectory = NeoComposeDefaults.AudioClipDirectory;
         public string namespaceForGeneratedTypes = NeoComposeDefaults.NamespaceForGeneratedTypes;

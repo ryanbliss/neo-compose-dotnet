@@ -5,9 +5,9 @@
 Draft task ledger for implementing
 [project-text-localization-runtime.md](./project-text-localization-runtime.md).
 
-Active chunk: not started. The first implementation chunk should validate the
-web export contract and add Unity-side DTOs/configuration before runtime
-resolution changes.
+Active chunk: Phase 1 Unity package/DTO/config setup is partially in place.
+Next chunk should add the web export contract/model changes before moving into
+locale file synchronization.
 
 Use this file as the source of implementation status. Mark a task complete only
 after its implementation and relevant tests/verification are done. If a task is
@@ -55,18 +55,18 @@ metadata before changing runtime behavior.
 
 ### Package and DTO setup
 
-- [ ] LRT-011 Add `com.unity.localization` as a hard dependency in `src/NeoComposeUnity/package.json`.
-- [ ] LRT-012 Add Unity C# DTOs for `ProjectData.localization` metadata.
-- [ ] LRT-013 Add Unity C# DTOs for locale runtime file JSON.
-- [ ] LRT-014 Add editor API models for `localizationFiles`.
-- [ ] LRT-015 Add config fields for localization Resources directory, StreamingAssets directory, streaming opt-in, preload behavior, and locale override.
-- [ ] LRT-016 Validate localization Resources and StreamingAssets directories in `NeoComposeSynchronizer.ValidateConfig`.
-- [ ] LRT-017 Add tests for config path validation.
+- [x] LRT-011 Add `com.unity.localization` as a hard dependency in `src/NeoComposeUnity/package.json`.
+- [x] LRT-012 Add Unity C# DTOs for `ProjectData.localization` metadata.
+- [x] LRT-013 Add Unity C# DTOs for locale runtime file JSON.
+- [x] LRT-014 Add editor API models for `localizationFiles`.
+- [x] LRT-015 Add config fields for localization Resources directory, StreamingAssets directory, streaming opt-in, preload behavior, and locale override.
+- [x] LRT-016 Validate localization Resources and StreamingAssets directories in `NeoComposeSynchronizer.ValidateConfig`.
+- [x] LRT-017 Add tests for config path validation.
 
 ### Phase 1 verification
 
 - [ ] LRT-018 Run focused web Unity export tests.
-- [ ] LRT-019 Run focused Unity DTO/config tests from the HelloWorld Unity Test Runner.
+- [x] LRT-019 Run focused Unity DTO/config tests from the HelloWorld Unity Test Runner.
 
 ## Phase 2: ICU to SmartFormat export diagnostics
 
@@ -118,9 +118,9 @@ alongside generated C# and `project.json`.
 
 ### Editor UI
 
-- [ ] LRT-045 Add localization path fields to the Neo Compose editor window.
-- [ ] LRT-046 Add toggle for StreamingAssets non-root locale synchronization.
-- [ ] LRT-047 Add locale override field to the Neo Compose editor window.
+- [x] LRT-045 Add localization path fields to the Neo Compose editor window.
+- [x] LRT-046 Add toggle for StreamingAssets non-root locale synchronization.
+- [x] LRT-047 Add locale override field to the Neo Compose editor window.
 - [ ] LRT-048 Show a warning when streaming mode requires explicit async preload for non-root locale behavior.
 - [ ] LRT-049 Add editor tests for localization sync path selection.
 - [ ] LRT-050 Add editor tests for stale locale cleanup.
