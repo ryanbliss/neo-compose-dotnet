@@ -394,12 +394,13 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case ReferencePointer rp:
                 {
-                    if (!ctx.client.TryGetValue(ctx.valueOwnership, rp.valueId, out AttributeValue? row))
+                    var ownership = ResolveOwnershipForValueId(ctx, rp.valueId);
+                    if (!ctx.client.TryGetValue(ownership, rp.valueId, out AttributeValue? row))
                     {
                         throw new NSGetterRuntimeError(
                             $"Missing value reference: {rp.valueId}");
                     }
-                    return UnwrapCached(row, ctx, ctx.valueOwnership);
+                    return UnwrapCached(row, ctx, ownership);
                 }
                 case KeyOfPointer kop:
                     return EvalKeyOf(kop.keyOf, scope, ctx, kop.optional == true);
@@ -1213,14 +1214,15 @@ namespace NeoCompose.Runtime.NeoScript
             JsonAttribute? attribute = null)
         {
             if (at is not string id) return at;
-            var ownership = preferredOwnership ?? ctx.valueOwnership;
+            var ownership = preferredOwnership ?? ResolveOwnershipForValueId(ctx, id);
             if (!ctx.client.TryGetValue(ownership, id, out AttributeValue? row)) return at;
             var v = UnwrapCached(row, ctx, ownership, attribute);
             if (v is object?[] arr && arr.Length == 1 && arr[0] is string singleId)
             {
-                if (ctx.client.TryGetValue(ownership, singleId, out AttributeValue? next))
+                var singleOwnership = ResolveOwnershipForValueId(ctx, singleId);
+                if (ctx.client.TryGetValue(singleOwnership, singleId, out AttributeValue? next))
                 {
-                    return UnwrapCached(next, ctx, ownership);
+                    return UnwrapCached(next, ctx, singleOwnership);
                 }
             }
             return v;
@@ -1229,12 +1231,27 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? UnwrapGeneratedValue(object? value, Context ctx)
         {
             if (value is INeoValueReference reference
-                && !string.IsNullOrEmpty(reference.valueId)
-                && ctx.client.TryGetValue(ctx.valueOwnership, reference.valueId!, out AttributeValue? row))
+                && !string.IsNullOrEmpty(reference.valueId))
             {
-                return UnwrapCached(row, ctx, ctx.valueOwnership);
+                var ownership = ResolveOwnershipForValueId(ctx, reference.valueId!);
+                if (ctx.client.TryGetValue(
+                        ownership,
+                        reference.valueId!,
+                        out AttributeValue? row))
+                {
+                    return UnwrapCached(row, ctx, ownership);
+                }
             }
             return value;
+        }
+
+        private static NeoValueOwnership ResolveOwnershipForValueId(
+            Context ctx,
+            string valueId)
+        {
+            return ctx.client.TryGetValueOwnership(valueId, out NeoValueOwnership ownership)
+                ? ownership
+                : ctx.valueOwnership;
         }
 
         private static string? ValueIdOf(object? value, Context ctx)
@@ -1467,9 +1484,15 @@ namespace NeoCompose.Runtime.NeoScript
             // primitives correctly miss because reference identity isn't
             // meaningful for them.
             if (!TryFindRowReferenceByReference(value, ctx, out RowReference rowRef)) return null;
-            return ctx.client.TryGetValue(rowRef.ownership, rowRef.valueId, out AttributeValue? row)
-                ? row.typeId
-                : null;
+            if (!ctx.client.TryGetValue(rowRef.ownership, rowRef.valueId, out AttributeValue? row))
+            {
+                return null;
+            }
+            if (!string.IsNullOrEmpty(row.typeId)) return row.typeId;
+            return ctx.client.TryInferAttributeForValueId(rowRef.valueId, out JsonAttribute? attribute)
+                && attribute is CustomAttribute customAttribute
+                    ? customAttribute.customTypeId
+                    : null;
         }
 
         // ---------------------------------------------------------------
