@@ -214,6 +214,26 @@ namespace NeoCompose.Unity.Editor
             {
                 DrawDirectoryField("Generated Types", ref config.generatedTypesDirectory);
                 DrawDirectoryField("Project JSON", ref config.projectJsonDirectory);
+                DrawDirectoryField("Localization Resources", ref config.localizationResourcesDirectory);
+                DrawDirectoryField("Localization StreamingAssets", ref config.localizationStreamingAssetsDirectory);
+                EditorGUI.BeginChangeCheck();
+                config.useStreamingAssetsForNonMainLocales = EditorGUILayout.Toggle(
+                    "Stream Non-Main Locales",
+                    config.useStreamingAssetsForNonMainLocales);
+                if (config.useStreamingAssetsForNonMainLocales)
+                {
+                    EditorGUILayout.HelpBox(
+                        "Non-main locale files synced to StreamingAssets require an explicit async preload before synchronous localized text getters can use them. Until preload completes, localized text falls back to loaded locales and the main locale.",
+                        MessageType.Warning);
+                }
+                config.preloadSystemLocale = EditorGUILayout.Toggle(
+                    "Preload System Locale",
+                    config.preloadSystemLocale);
+                config.localeOverride = EditorGUILayout.TextField("Locale Override", config.localeOverride);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    NeoComposeConfigProvider.Save(config);
+                }
                 DrawDirectoryField("Sprites", ref config.spriteDirectory);
                 DrawDirectoryField("Audio Clips", ref config.audioClipDirectory);
             }

@@ -74,6 +74,36 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void PathUtility_ValidatesLocalizationDirectories()
+        {
+            Assert.IsTrue(NeoComposePathUtility.TryNormalizeResourcesDirectory(
+                "Assets\\Resources\\Neo\\Localization\\",
+                out var resources,
+                out var resourcesError));
+            Assert.AreEqual("", resourcesError);
+            Assert.AreEqual("Assets/Resources/Neo/Localization", resources);
+
+            Assert.IsFalse(NeoComposePathUtility.TryNormalizeResourcesDirectory(
+                "Assets/StreamingAssets/Neo/Localization",
+                out _,
+                out var invalidResourcesError));
+            Assert.IsTrue(invalidResourcesError.Contains("Assets/Resources/"));
+
+            Assert.IsTrue(NeoComposePathUtility.TryNormalizeStreamingAssetsDirectory(
+                "Assets\\StreamingAssets\\Neo\\Localization\\",
+                out var streaming,
+                out var streamingError));
+            Assert.AreEqual("", streamingError);
+            Assert.AreEqual("Assets/StreamingAssets/Neo/Localization", streaming);
+
+            Assert.IsFalse(NeoComposePathUtility.TryNormalizeStreamingAssetsDirectory(
+                "Assets/Resources/Neo/Localization",
+                out _,
+                out var invalidStreamingError));
+            Assert.IsTrue(invalidStreamingError.Contains("Assets/StreamingAssets/"));
+        }
+
+        [Test]
         public void ConfigProvider_CreatesDefaultConfigInResourcesFolder()
         {
             var path = $"{TempRoot}/Resources/Neo/NeoComposeConfig.asset";
@@ -85,6 +115,11 @@ namespace NeoCompose.Tests
             Assert.AreEqual(NeoComposeDefaults.ApiBaseUrl, config.apiBaseUrl);
             Assert.AreEqual(NeoComposeDefaults.GeneratedTypesDirectory, config.generatedTypesDirectory);
             Assert.AreEqual(NeoComposeDefaults.ProjectJsonDirectory, config.projectJsonDirectory);
+            Assert.AreEqual(NeoComposeDefaults.LocalizationResourcesDirectory, config.localizationResourcesDirectory);
+            Assert.AreEqual(NeoComposeDefaults.LocalizationStreamingAssetsDirectory, config.localizationStreamingAssetsDirectory);
+            Assert.IsFalse(config.useStreamingAssetsForNonMainLocales);
+            Assert.IsTrue(config.preloadSystemLocale);
+            Assert.AreEqual("", config.localeOverride);
             Assert.AreEqual(NeoComposeDefaults.SpriteDirectory, config.spriteDirectory);
             Assert.AreEqual(NeoComposeDefaults.AudioClipDirectory, config.audioClipDirectory);
             Assert.AreEqual(NeoComposeDefaults.NamespaceForGeneratedTypes, config.namespaceForGeneratedTypes);
@@ -118,6 +153,11 @@ namespace NeoCompose.Tests
             config.versionId = "version-1";
             config.generatedTypesDirectory = "Assets/CustomTypes";
             config.projectJsonDirectory = "Assets/CustomJson";
+            config.localizationResourcesDirectory = "Assets/Resources/CustomLocalization";
+            config.localizationStreamingAssetsDirectory = "Assets/StreamingAssets/CustomLocalization";
+            config.useStreamingAssetsForNonMainLocales = true;
+            config.preloadSystemLocale = false;
+            config.localeOverride = "es-ES";
             config.spriteDirectory = "Assets/CustomSprites";
             config.audioClipDirectory = "Assets/CustomAudio";
             config.namespaceForGeneratedTypes = "Game.Generated";
@@ -131,6 +171,11 @@ namespace NeoCompose.Tests
             Assert.AreEqual("", config.versionId);
             Assert.AreEqual("Assets/CustomTypes", config.generatedTypesDirectory);
             Assert.AreEqual("Assets/CustomJson", config.projectJsonDirectory);
+            Assert.AreEqual("Assets/Resources/CustomLocalization", config.localizationResourcesDirectory);
+            Assert.AreEqual("Assets/StreamingAssets/CustomLocalization", config.localizationStreamingAssetsDirectory);
+            Assert.IsTrue(config.useStreamingAssetsForNonMainLocales);
+            Assert.IsFalse(config.preloadSystemLocale);
+            Assert.AreEqual("es-ES", config.localeOverride);
             Assert.AreEqual("Assets/CustomSprites", config.spriteDirectory);
             Assert.AreEqual("Assets/CustomAudio", config.audioClipDirectory);
             Assert.AreEqual("Game.Generated", config.namespaceForGeneratedTypes);
@@ -251,6 +296,148 @@ namespace NeoCompose.Tests
             Assert.IsTrue(assets.savedConfig);
             Assert.AreEqual("version-1", api.lastExportVersionId);
             Assert.AreEqual("Assets/Resources/Neo/project.json", assets.postSynchronizeProjectJsonPath);
+        }
+
+        [Test]
+        public async Task Synchronizer_WritesLocalizationFilesToResourcesByDefault()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.projectJson = ProjectJsonWithLocalization("en-US");
+            api.exportResponse.localizationFiles.Add(new NeoComposeUnityLocalizationFile
+            {
+                locale = "en-US",
+                fileName = "en-US.json",
+                content = "{ \"locale\": \"en-US\" }",
+            });
+            api.exportResponse.localizationFiles.Add(new NeoComposeUnityLocalizationFile
+            {
+                locale = "es-MX",
+                fileName = "es-MX.json",
+                content = "{ \"locale\": \"es-MX\" }",
+            });
+            var assets = new FakeAssetService();
+            assets.files["Assets/Resources/Neo/Localization/fr-FR.json"] = "{}";
+            var synchronizer = new NeoComposeSynchronizer(
+                api,
+                new FakeConfirmationService(true),
+                assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(
+                "{ \"locale\": \"en-US\" }",
+                assets.files["Assets/Resources/Neo/Localization/en-US.json"]);
+            Assert.AreEqual(
+                "{ \"locale\": \"es-MX\" }",
+                assets.files["Assets/Resources/Neo/Localization/es-MX.json"]);
+            Assert.Contains("Assets/Resources/Neo/Localization", assets.createdDirectories);
+            Assert.Contains("Assets/Resources/Neo/Localization/fr-FR.json", assets.deletedAssets);
+        }
+
+        [Test]
+        public async Task Synchronizer_WritesNonMainLocalizationFilesToStreamingAssetsWhenEnabled()
+        {
+            var config = MakeConfig();
+            config.useStreamingAssetsForNonMainLocales = true;
+            var api = new FakeApiClient();
+            api.exportResponse.projectJson = ProjectJsonWithLocalization("en-US");
+            api.exportResponse.localizationFiles.Add(new NeoComposeUnityLocalizationFile
+            {
+                locale = "en-US",
+                fileName = "en-US.json",
+                content = "{ \"locale\": \"en-US\" }",
+            });
+            api.exportResponse.localizationFiles.Add(new NeoComposeUnityLocalizationFile
+            {
+                locale = "es-MX",
+                fileName = "es-MX.json",
+                content = "{ \"locale\": \"es-MX\" }",
+            });
+            var assets = new FakeAssetService();
+            var synchronizer = new NeoComposeSynchronizer(
+                api,
+                new FakeConfirmationService(true),
+                assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(
+                "{ \"locale\": \"en-US\" }",
+                assets.files["Assets/Resources/Neo/Localization/en-US.json"]);
+            Assert.AreEqual(
+                "{ \"locale\": \"es-MX\" }",
+                assets.files["Assets/StreamingAssets/Neo/Localization/es-MX.json"]);
+            Assert.Contains("Assets/Resources/Neo/Localization", assets.createdDirectories);
+            Assert.Contains("Assets/StreamingAssets/Neo/Localization", assets.createdDirectories);
+        }
+
+        [Test]
+        public async Task Synchronizer_ReportsLocalizationWriteFailuresAfterWritingProjectFiles()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.generatedTypes = "// generated";
+            api.exportResponse.projectJson = ProjectJsonWithLocalization("en-US");
+            api.exportResponse.localizationFiles.Add(new NeoComposeUnityLocalizationFile
+            {
+                locale = "en-US",
+                fileName = "en-US.json",
+                content = "{ \"locale\": \"en-US\" }",
+            });
+            var assets = new FakeAssetService();
+            assets.throwOnWriteText.Add("Assets/Resources/Neo/Localization/en-US.json");
+            var synchronizer = new NeoComposeSynchronizer(
+                api,
+                new FakeConfirmationService(true),
+                assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsFalse(result.success);
+            Assert.IsTrue(result.message.Contains("en-US"));
+            Assert.AreEqual("// generated", assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+            Assert.AreEqual(ProjectJsonWithLocalization("en-US"), assets.files["Assets/Resources/Neo/project.json"]);
+        }
+
+        [Test]
+        public void Synchronizer_ValidateConfig_NormalizesLocalizationDirectories()
+        {
+            var config = MakeConfig();
+            config.localizationResourcesDirectory = "Assets\\Resources\\Neo\\Localization\\";
+            config.localizationStreamingAssetsDirectory = "Assets\\StreamingAssets\\Neo\\Localization\\";
+
+            var result = NeoComposeSynchronizer.ValidateConfig(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual("Assets/Resources/Neo/Localization", config.localizationResourcesDirectory);
+            Assert.AreEqual("Assets/StreamingAssets/Neo/Localization", config.localizationStreamingAssetsDirectory);
+        }
+
+        [Test]
+        public void Synchronizer_ValidateConfig_RejectsLocalizationResourcesOutsideResources()
+        {
+            var config = MakeConfig();
+            config.localizationResourcesDirectory = "Assets/Neo/Localization";
+
+            var result = NeoComposeSynchronizer.ValidateConfig(config);
+
+            Assert.IsFalse(result.success);
+            Assert.IsTrue(result.message.Contains("Assets/Resources/"));
+        }
+
+        [Test]
+        public void Synchronizer_ValidateConfig_RejectsLocalizationStreamingOutsideStreamingAssets()
+        {
+            var config = MakeConfig();
+            config.localizationStreamingAssetsDirectory = "Assets/Resources/Neo/Localization";
+
+            var result = NeoComposeSynchronizer.ValidateConfig(config);
+
+            Assert.IsFalse(result.success);
+            Assert.IsTrue(result.message.Contains("Assets/StreamingAssets/"));
         }
 
         [Test]
@@ -740,6 +927,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task Synchronizer_CanContinueAndWriteFilesAfterExportDiagnostics()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.generatedTypes = "// generated";
+            api.exportResponse.projectJson = "{ \"project\": true }";
+            api.exportResponse.diagnostics.Add(new NeoComposeCodegenDiagnostic
+            {
+                severity = "error",
+                path = "localizedTexts.text-1.localeValues.en-US.value",
+                message = "Localized text could not be converted.",
+            });
+            var assets = new FakeAssetService();
+            var confirmations = new FakeConfirmationService(true);
+            var synchronizer = new NeoComposeSynchronizer(api, confirmations, assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual("// generated", assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+            Assert.AreEqual("{ \"project\": true }", assets.files["Assets/Resources/Neo/project.json"]);
+            Assert.AreEqual(1, confirmations.calls.Count);
+            Assert.IsTrue(confirmations.calls[0].Contains("generated C#"));
+        }
+
+        [Test]
         public async Task ProjectSettingsUpdater_SavesUnityExportSettings()
         {
             var config = MakeConfig();
@@ -825,6 +1038,23 @@ namespace NeoCompose.Tests
   },
   ""textureTemplates"": {},
   ""audioClipTemplates"": {}
+}";
+        }
+
+        private static string ProjectJsonWithLocalization(string mainLocale)
+        {
+            return @"{
+  ""project"": {
+    ""exportSettings"": {
+      ""unity"": {
+        ""namespaceForGeneratedTypes"": ""Assets.Scripts.Neo"",
+        ""singleton"": true
+      }
+    }
+  },
+  ""localization"": {
+    ""mainLocale"": """ + mainLocale + @"""
+  }
 }";
         }
 
@@ -1019,6 +1249,7 @@ namespace NeoCompose.Tests
             public readonly List<string> createdDirectories = new();
             public readonly List<string> deletedAssets = new();
             public readonly List<string> appliedImportSettings = new();
+            public readonly HashSet<string> throwOnWriteText = new();
             public NeoAssetDatabase assetDatabase = ScriptableObject.CreateInstance<NeoAssetDatabase>();
             public bool savedConfig;
             public bool savedAsset;
@@ -1029,6 +1260,15 @@ namespace NeoCompose.Tests
                 return files.ContainsKey(assetPath) || binaryFiles.ContainsKey(assetPath);
             }
 
+            public string[] FindFiles(string assetDirectory, string searchPattern)
+            {
+                return files.Keys
+                    .Concat(binaryFiles.Keys)
+                    .Where(path => path.StartsWith(assetDirectory.TrimEnd('/') + "/"))
+                    .Where(path => searchPattern != "*.json" || path.EndsWith(".json"))
+                    .ToArray();
+            }
+
             public void EnsureDirectory(string assetDirectory)
             {
                 createdDirectories.Add(assetDirectory);
@@ -1036,6 +1276,10 @@ namespace NeoCompose.Tests
 
             public void WriteAllText(string assetPath, string content)
             {
+                if (throwOnWriteText.Contains(assetPath))
+                {
+                    throw new IOException("Injected write failure.");
+                }
                 files[assetPath] = content;
             }
 

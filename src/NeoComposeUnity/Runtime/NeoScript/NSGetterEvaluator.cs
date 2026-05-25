@@ -394,12 +394,13 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case ReferencePointer rp:
                 {
-                    if (!ctx.client.TryGetValue(ctx.valueOwnership, rp.valueId, out AttributeValue? row))
+                    var ownership = ResolveOwnershipForValueId(ctx, rp.valueId);
+                    if (!ctx.client.TryGetValue(ownership, rp.valueId, out AttributeValue? row))
                     {
                         throw new NSGetterRuntimeError(
                             $"Missing value reference: {rp.valueId}");
                     }
-                    return UnwrapCached(row, ctx, ctx.valueOwnership);
+                    return UnwrapCached(row, ctx, ownership);
                 }
                 case KeyOfPointer kop:
                     return EvalKeyOf(kop.keyOf, scope, ctx, kop.optional == true);
@@ -665,7 +666,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (record!.TryGetValue(schemaKey, out var at))
             {
                 return DispatchResult.Ok(
-                    ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx)));
+                    ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx), attr));
             }
             return DispatchResult.NoInfo();
         }
@@ -1209,17 +1210,19 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? ResolveValueIfId(
             object? at,
             Context ctx,
-            NeoValueOwnership? preferredOwnership = null)
+            NeoValueOwnership? preferredOwnership = null,
+            JsonAttribute? attribute = null)
         {
             if (at is not string id) return at;
-            var ownership = preferredOwnership ?? ctx.valueOwnership;
+            var ownership = preferredOwnership ?? ResolveOwnershipForValueId(ctx, id);
             if (!ctx.client.TryGetValue(ownership, id, out AttributeValue? row)) return at;
-            var v = UnwrapCached(row, ctx, ownership);
+            var v = UnwrapCached(row, ctx, ownership, attribute);
             if (v is object?[] arr && arr.Length == 1 && arr[0] is string singleId)
             {
-                if (ctx.client.TryGetValue(ownership, singleId, out AttributeValue? next))
+                var singleOwnership = ResolveOwnershipForValueId(ctx, singleId);
+                if (ctx.client.TryGetValue(singleOwnership, singleId, out AttributeValue? next))
                 {
-                    return UnwrapCached(next, ctx, ownership);
+                    return UnwrapCached(next, ctx, singleOwnership);
                 }
             }
             return v;
@@ -1228,12 +1231,27 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? UnwrapGeneratedValue(object? value, Context ctx)
         {
             if (value is INeoValueReference reference
-                && !string.IsNullOrEmpty(reference.valueId)
-                && ctx.client.TryGetValue(ctx.valueOwnership, reference.valueId!, out AttributeValue? row))
+                && !string.IsNullOrEmpty(reference.valueId))
             {
-                return UnwrapCached(row, ctx, ctx.valueOwnership);
+                var ownership = ResolveOwnershipForValueId(ctx, reference.valueId!);
+                if (ctx.client.TryGetValue(
+                        ownership,
+                        reference.valueId!,
+                        out AttributeValue? row))
+                {
+                    return UnwrapCached(row, ctx, ownership);
+                }
             }
             return value;
+        }
+
+        private static NeoValueOwnership ResolveOwnershipForValueId(
+            Context ctx,
+            string valueId)
+        {
+            return ctx.client.TryGetValueOwnership(valueId, out NeoValueOwnership ownership)
+                ? ownership
+                : ctx.valueOwnership;
         }
 
         private static string? ValueIdOf(object? value, Context ctx)
@@ -1252,13 +1270,19 @@ namespace NeoCompose.Runtime.NeoScript
         // IDictionary, primitives, etc.).
         // ---------------------------------------------------------------
 
-        private static object? ExtractWireValue(AttributeValue row, NeoValueOwnership ownership)
+        private static object? ExtractWireValue(
+            AttributeValue row,
+            NeoValueOwnership ownership,
+            JsonAttribute? attribute,
+            Context ctx)
         {
             return row switch
             {
                 BoolAttributeValue b => b.value,
                 NumberAttributeValue n => n.value,
-                StringAttributeValue s => s.value,
+                StringAttributeValue s => attribute is StringAttribute stringAttribute
+                    ? ResolveStringValue(s, stringAttribute, ctx)
+                    : s.value,
                 ArrayAttributeValue a => a.value is null
                     ? null
                     : ToObjectArray(a.value),
@@ -1298,11 +1322,12 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? UnwrapCached(
             AttributeValue row,
             Context ctx,
-            NeoValueOwnership ownership)
+            NeoValueOwnership ownership,
+            JsonAttribute? attribute = null)
         {
-            string cacheKey = RowCacheKey(ownership, row.id);
+            string cacheKey = RowCacheKey(ownership, row.id, attribute);
             if (ctx.rowUnwrapCache.TryGetValue(cacheKey, out var cached)) return cached;
-            var unwrapped = ExtractWireValue(row, ownership);
+            var unwrapped = ExtractWireValue(row, ownership, attribute, ctx);
             ctx.rowUnwrapCache[cacheKey] = unwrapped;
             // Reverse-index only object-shaped unwraps. Primitive
             // boxes don't have meaningful reference identity for our
@@ -1318,8 +1343,22 @@ namespace NeoCompose.Runtime.NeoScript
             return unwrapped;
         }
 
-        private static string RowCacheKey(NeoValueOwnership ownership, string rowId) =>
-            ownership.ToString() + ":" + rowId;
+        private static string RowCacheKey(
+            NeoValueOwnership ownership,
+            string rowId,
+            JsonAttribute? attribute = null) =>
+            ownership.ToString() + ":" + rowId + ":" + (attribute?.id ?? "");
+
+        private static string? ResolveStringValue(
+            StringAttributeValue value,
+            StringAttribute attribute,
+            Context ctx)
+        {
+            if (value.value == null) return null;
+            if (!attribute.localizable) return value.value;
+            if (value.neoLocalizationMode == NeoStringLocalizationMode.Literal) return value.value;
+            return ctx.client.Localization.ResolveText(value.value);
+        }
 
         private static object?[] ToObjectArray(string[] arr)
         {
@@ -1445,9 +1484,15 @@ namespace NeoCompose.Runtime.NeoScript
             // primitives correctly miss because reference identity isn't
             // meaningful for them.
             if (!TryFindRowReferenceByReference(value, ctx, out RowReference rowRef)) return null;
-            return ctx.client.TryGetValue(rowRef.ownership, rowRef.valueId, out AttributeValue? row)
-                ? row.typeId
-                : null;
+            if (!ctx.client.TryGetValue(rowRef.ownership, rowRef.valueId, out AttributeValue? row))
+            {
+                return null;
+            }
+            if (!string.IsNullOrEmpty(row.typeId)) return row.typeId;
+            return ctx.client.TryInferAttributeForValueId(rowRef.valueId, out JsonAttribute? attribute)
+                && attribute is CustomAttribute customAttribute
+                    ? customAttribute.customTypeId
+                    : null;
         }
 
         // ---------------------------------------------------------------
@@ -1542,9 +1587,18 @@ namespace NeoCompose.Runtime.NeoScript
                     var labels = new List<string>(ids.Count);
                     foreach (var id in ids)
                     {
-                        labels.Add(jsonEnum.options.TryGetValue(id, out EnumOption opt)
-                            ? opt.text
-                            : id);
+                        if (!jsonEnum.options.TryGetValue(id, out EnumOption opt))
+                        {
+                            labels.Add(id);
+                        }
+                        else if (ctx.client.Localization.TryResolveText(opt.text, out var localized))
+                        {
+                            labels.Add(localized);
+                        }
+                        else
+                        {
+                            labels.Add(opt.text);
+                        }
                     }
                     return string.Join(", ", labels);
                 }

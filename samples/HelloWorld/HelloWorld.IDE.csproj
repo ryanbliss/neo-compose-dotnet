@@ -25,13 +25,23 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\NeoComposeUnity\NeoComposeUnity.csproj" />
+    <ProjectReference
+      Include="..\..\src\NeoComposeUnity\NeoComposeUnity.csproj"
+      AdditionalProperties="NeoComposeUnityPackageAssembliesDir=$(MSBuildProjectDirectory)/$(UnityScriptAssembliesDir)" />
   </ItemGroup>
 
   <ItemGroup>
     <!-- Mirror Unity's generated csproj surface for IDE analysis: editor
          modules plus package assemblies compiled into the sample Library. -->
     <Reference Include="$(UnityManagedDir)/*.dll" Private="false" />
+    <Reference Include="UnityEngine.UI" Condition="Exists('$(UnityScriptAssembliesDir)/UnityEngine.UI.dll')">
+      <HintPath>$(UnityScriptAssembliesDir)/UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Localization" Condition="Exists('$(UnityScriptAssembliesDir)/Unity.Localization.dll')">
+      <HintPath>$(UnityScriptAssembliesDir)/Unity.Localization.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference
       Include="$(UnityScriptAssembliesDir)/*.dll"
       Exclude="$(UnityScriptAssembliesDir)/HelloWorld.dll;$(UnityScriptAssembliesDir)/Tests.dll;$(UnityScriptAssembliesDir)/NeoCompose.Unity*.dll"

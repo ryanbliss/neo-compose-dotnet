@@ -646,6 +646,9 @@ namespace NeoCompose.Runtime
                             createdAt = nowIso,
                             updatedAt = nowIso,
                             value = attr.defaultValue.value,
+                            neoLocalizationMode = attr.defaultValue is StringAttributeValueBase stringDefault
+                                ? stringDefault.neoLocalizationMode
+                                : null,
                             typeId = attr.defaultValue.typeId,
                         };
                 case EnumAttribute attr:
@@ -817,6 +820,7 @@ namespace NeoCompose.Runtime
                         createdAt = nowIso,
                         updatedAt = nowIso,
                         value = sourceValue.value,
+                        neoLocalizationMode = sourceValue.neoLocalizationMode,
                         typeId = source.typeId,
                     };
                 case EnumAttribute or LookupAttribute

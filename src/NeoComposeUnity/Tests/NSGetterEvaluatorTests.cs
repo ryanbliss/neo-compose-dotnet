@@ -59,6 +59,17 @@ namespace NeoCompose.Tests
             return attr;
         }
 
+        private static T RequireAttribute<T>(NeoClient client, string id)
+            where T : NeoCompose.Runtime.Json.Attribute
+        {
+            if (!client.TryGetAttribute(id, out T? attr))
+            {
+                Assert.Fail($"Fixture is missing attribute '{id}' of type {typeof(T).Name}");
+                throw new System.InvalidOperationException("unreachable");
+            }
+            return attr;
+        }
+
         [Test]
         public void Json_FunctionAttributeAndNativeCallIR_Deserializes()
         {
@@ -540,6 +551,59 @@ namespace NeoCompose.Tests
             AssertGeneratedValueSurface(
                 client,
                 new TestGeneratedValue(client, writableNode));
+        }
+
+        [Test]
+        public void Evaluate_GeneratedCustomThis_LocalizesStringDereference()
+        {
+            var client = LoadGeneratedValueSurfaceClient(
+                out CustomAttribute testAttribute,
+                out ObjectAttributeValue readOnlyRow,
+                out _);
+            RequireAttribute<StringAttribute>(client, "attr-string").localizable = true;
+            ((StringAttributeValue)client.values["v-string"]).value = "text-string";
+            var readOnlyNode = (NeoAttributeCustom)NeoAttribute.Create(
+                client,
+                testAttribute,
+                readOnlyRow.id);
+
+            var result = EvaluateThisMember(
+                client,
+                new TestReadOnlyGeneratedValue(client, readOnlyNode),
+                "String");
+
+            Assert.AreEqual("Localized string", result);
+        }
+
+        [Test]
+        public void Evaluate_StringInterpolation_LocalizesEnumOptionText()
+        {
+            var client = LoadGeneratedValueSurfaceClient(
+                out CustomAttribute testAttribute,
+                out ObjectAttributeValue readOnlyRow,
+                out _);
+            client.enums["enum-color"].options["red"].text = "text-red";
+            var readOnlyNode = (NeoAttributeCustom)NeoAttribute.Create(
+                client,
+                testAttribute,
+                readOnlyRow.id);
+
+            var result = EvaluatePointer(
+                client,
+                new TestReadOnlyGeneratedValue(client, readOnlyNode),
+                new StringifyPointer
+                {
+                    type = PointerKind.Stringify,
+                    pointer = KeyOf(ThisPointer(), "Enum"),
+                    sourceType = new EnumTypeInfo
+                    {
+                        type = AttributeType.Enum,
+                        enumId = "enum-color",
+                        required = true,
+                    },
+                });
+
+            Assert.AreEqual("Localized red", result);
         }
 
         [Test]
@@ -1183,8 +1247,41 @@ namespace NeoCompose.Tests
                 {
                     [enumModel.id] = enumModel,
                 },
+                localization = new ProjectLocalizationExport
+                {
+                    schemaVersion = 1,
+                    mainLocale = "en-US",
+                    supportedLocales = new[]
+                    {
+                        new ProjectLocalizationLocale { locale = "en-US" },
+                    },
+                    textIds = new[] { "text-string", "text-red" },
+                    mainLocaleFileName = "en-US.json",
+                    localeFileNames = new Dictionary<string, string>
+                    {
+                        ["en-US"] = "en-US.json",
+                    },
+                    formatting = new ProjectLocalizationFormatting
+                    {
+                        syntax = "smart-format",
+                        sourceSyntax = "icu",
+                    },
+                },
             };
             var client = new NeoClient(data, () => "", _ => { });
+            client.Localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
+            {
+                schemaVersion = 1,
+                projectId = data.project.id,
+                versionId = "version-1",
+                locale = "en-US",
+                formattingSyntax = "smart-format",
+                values = new Dictionary<string, string?>
+                {
+                    ["text-string"] = "Localized string",
+                    ["text-red"] = "Localized red",
+                },
+            });
             client.SetSaveValue(savedRow);
             return client;
         }

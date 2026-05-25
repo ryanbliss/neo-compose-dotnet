@@ -33,6 +33,7 @@ namespace NeoCompose.Runtime
         public NeoAttributeCustom AssetsRoot => assets;
         public NeoAttributeCustomWritable SaveRoot => save;
         public NeoAttributeCustomWritable SessionRoot => session;
+        public NeoLocalization Localization { get; }
 
         /// <summary>
         /// Flat registry of every constructed <see cref="NeoAttribute"/>,
@@ -125,12 +126,14 @@ namespace NeoCompose.Runtime
             ProjectData data,
             LoadSave loadSave,
             HandleSave handleSave,
-            NeoAssetDatabase? assetDatabase = null)
+            NeoAssetDatabase? assetDatabase = null,
+            NeoLocalization? localization = null)
         {
             this.data = data;
             this.loadSave = loadSave;
             this.handleSave = handleSave;
             this.assetDatabase = assetDatabase;
+            Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
             ValidateRootCustomAttribute(data.project.rootAssetsAttributeId, nameof(Project.rootAssetsAttributeId));
             ValidateRootCustomAttribute(data.project.rootSaveFileAttributeId, nameof(Project.rootSaveFileAttributeId));
             ValidateRootCustomAttribute(data.project.rootSessionAttributeId, nameof(Project.rootSessionAttributeId));
@@ -565,8 +568,16 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        internal bool TryInferAttributeForValueId(
+            string valueId,
+            [NotNullWhen(true)] out Attribute? attribute)
+        {
+            return TryInferAttributeForValueId(valueId, new HashSet<string>(), out attribute);
+        }
+
         private bool TryInferAttributeForValueId(
             string valueId,
+            HashSet<string> visitingValueIds,
             [NotNullWhen(true)] out Attribute? attribute)
         {
             foreach (var candidate in data.attributes.Values)
@@ -600,21 +611,98 @@ namespace NeoCompose.Runtime
 
             foreach (var parent in EnumerateAllValueRows())
             {
-                foreach (var child in EnumerateOwnedChildLinks(
-                             parent.Value,
-                             TryInferDirectAttributeForValueId(parent.Key, out Attribute? parentAttribute)
-                                 ? parentAttribute
-                                 : null))
+                if (parent.Value is not ObjectAttributeValue objectValue
+                    || objectValue.value == null)
                 {
-                    if (child.valueId == valueId && child.attribute is not null)
+                    continue;
+                }
+
+                foreach (var pair in objectValue.value)
+                {
+                    if (pair.Value != valueId) continue;
+                    if (TryInferAttributeForValueId(
+                            parent.Key,
+                            new HashSet<string>(visitingValueIds),
+                            out Attribute? parentAttribute)
+                        && TryResolveCollectionEntryAttribute(parentAttribute) is Attribute parentEntryAttribute)
                     {
-                        attribute = child.attribute;
+                        attribute = parentEntryAttribute;
+                        return true;
+                    }
+
+                    if (TryInferCustomTypeIdForValueId(
+                            parent.Key,
+                            new HashSet<string>(visitingValueIds),
+                            out string? parentTypeId)
+                        && !string.IsNullOrEmpty(parentTypeId)
+                        && TryResolveMergedSchemaAttribute(parentTypeId!, pair.Key, out Attribute? childAttribute))
+                    {
+                        attribute = childAttribute;
                         return true;
                     }
                 }
             }
 
+            foreach (var parent in EnumerateAllValueRows())
+            {
+                if (parent.Value is ArrayAttributeValue arrayValue
+                    && arrayValue.value != null
+                    && System.Array.IndexOf(arrayValue.value, valueId) >= 0
+                    && TryInferAttributeForValueId(
+                        parent.Key,
+                        new HashSet<string>(visitingValueIds),
+                        out Attribute? collectionAttribute)
+                    && TryResolveCollectionEntryAttribute(collectionAttribute) is Attribute entryAttribute)
+                {
+                    attribute = entryAttribute;
+                    return true;
+                }
+
+                if (parent.Value is ObjectAttributeValue dictionaryValue
+                    && dictionaryValue.value != null
+                    && dictionaryValue.value.ContainsValue(valueId)
+                    && TryInferAttributeForValueId(
+                        parent.Key,
+                        new HashSet<string>(visitingValueIds),
+                        out collectionAttribute)
+                    && TryResolveCollectionEntryAttribute(collectionAttribute) is Attribute dictionaryEntryAttribute)
+                {
+                    attribute = dictionaryEntryAttribute;
+                    return true;
+                }
+            }
+
             attribute = null;
+            return false;
+        }
+
+        private bool TryInferCustomTypeIdForValueId(
+            string valueId,
+            HashSet<string> visitingValueIds,
+            [NotNullWhen(true)] out string? typeId)
+        {
+            if (!visitingValueIds.Add(valueId))
+            {
+                typeId = null;
+                return false;
+            }
+            if (TryGetValue(valueId, out ObjectAttributeValue? value)
+                && !string.IsNullOrEmpty(value.typeId))
+            {
+                typeId = value.typeId;
+                return true;
+            }
+            if (TryInferAttributeForValueId(
+                    valueId,
+                    visitingValueIds,
+                    out Attribute? attribute)
+                && attribute is CustomAttribute customAttribute
+                && !string.IsNullOrEmpty(customAttribute.customTypeId))
+            {
+                typeId = customAttribute.customTypeId;
+                return true;
+            }
+            typeId = null;
             return false;
         }
 
@@ -823,7 +911,11 @@ namespace NeoCompose.Runtime
                 NullAttributeValue n => new NullAttributeValue { value = n.value },
                 BoolAttributeValue b => new BoolAttributeValue { value = b.value },
                 NumberAttributeValue n => new NumberAttributeValue { value = n.value },
-                StringAttributeValue s => new StringAttributeValue { value = s.value },
+                StringAttributeValue s => new StringAttributeValue
+                {
+                    value = s.value,
+                    neoLocalizationMode = s.neoLocalizationMode,
+                },
                 ArrayAttributeValue a => new ArrayAttributeValue
                 {
                     value = a.value == null ? null : (string[])a.value.Clone(),
@@ -875,6 +967,16 @@ namespace NeoCompose.Runtime
             if (!saveData.attributeValueOverrides.Remove(attributeId)) return false;
             OnSaveOverrideChanged?.Invoke(attributeId, null);
             OnWritableOverrideChanged?.Invoke(NeoValueOwnership.Save, attributeId, null);
+            return true;
+        }
+
+        internal bool RemoveWritableOverride(NeoValueOwnership ownership, string attributeId)
+        {
+            if (ownership == NeoValueOwnership.Save) return RemoveSaveOverride(attributeId);
+            if (ownership == NeoValueOwnership.Asset) return false;
+            var store = GetWritableStore(ownership);
+            if (!store.attributeValueOverrides.Remove(attributeId)) return false;
+            OnWritableOverrideChanged?.Invoke(ownership, attributeId, null);
             return true;
         }
 

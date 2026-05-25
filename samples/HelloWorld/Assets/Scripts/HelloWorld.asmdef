@@ -2,7 +2,8 @@
     "name": "HelloWorld",
     "rootNamespace": "HelloWorld",
     "references": [
-        "NeoCompose.Unity"
+        "NeoCompose.Unity",
+        "UnityEngine.UI"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

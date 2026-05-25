@@ -60,6 +60,7 @@ namespace NeoCompose.Runtime
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = Cast<string?>(rawPayload, attribute),
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 },
                 DictionaryAttribute or CustomAttribute => new ObjectAttributeValue
                 {

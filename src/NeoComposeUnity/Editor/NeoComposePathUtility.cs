@@ -45,6 +45,38 @@ namespace NeoCompose.Unity.Editor
             return true;
         }
 
+        public static bool TryNormalizeResourcesDirectory(string path, out string normalized, out string error)
+        {
+            if (!TryNormalizeAssetDirectory(path, out normalized, out error))
+            {
+                return false;
+            }
+
+            if (normalized != "Assets/Resources" && !normalized.StartsWith("Assets/Resources/"))
+            {
+                error = $"Directory path must be under Assets/Resources/: {path}";
+                return false;
+            }
+
+            return true;
+        }
+
+        public static bool TryNormalizeStreamingAssetsDirectory(string path, out string normalized, out string error)
+        {
+            if (!TryNormalizeAssetDirectory(path, out normalized, out error))
+            {
+                return false;
+            }
+
+            if (normalized != "Assets/StreamingAssets" && !normalized.StartsWith("Assets/StreamingAssets/"))
+            {
+                error = $"Directory path must be under Assets/StreamingAssets/: {path}";
+                return false;
+            }
+
+            return true;
+        }
+
         public static string CombineAssetPath(string assetDirectory, string fileName)
         {
             return $"{assetDirectory.TrimEnd('/')}/{fileName}";

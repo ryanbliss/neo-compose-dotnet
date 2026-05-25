@@ -39,5 +39,6 @@ namespace NeoCompose.Runtime.Json
         public Dictionary<string, Dialogue> dialogues = new();
         public Dictionary<string, DialogueGroup> dialogueGroups = new();
         public Dictionary<string, PriorityGroup> priorityGroups = new();
+        public ProjectLocalizationExport? localization;
     }
 }

@@ -19,6 +19,11 @@ MonoBehaviour:
   versionId: 0281a621-aec9-47b9-9af5-0ec07bd3ebfb
   generatedTypesDirectory: Assets/Scripts/Neo
   projectJsonDirectory: Assets/Resources/Neo
+  localizationResourcesDirectory: Assets/Resources/Neo/Localization
+  localizationStreamingAssetsDirectory: Assets/StreamingAssets/Neo/Localization
+  useStreamingAssetsForNonMainLocales: 0
+  preloadSystemLocale: 1
+  localeOverride: 
   spriteDirectory: Assets/Resources/Neo/Files/Sprites
   audioClipDirectory: Assets/Resources/Neo/Files/Audio
   namespaceForGeneratedTypes: HelloWorld.Assets.Scripts.Neo

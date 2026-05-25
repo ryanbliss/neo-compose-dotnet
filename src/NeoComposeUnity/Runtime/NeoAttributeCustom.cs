@@ -421,6 +421,67 @@ namespace NeoCompose.Runtime
             return Get<NeoAttributeLookupWritable>(key);
         }
 
+        public NeoAttributeStringWritable GetOrCreateString(
+            string key,
+            string? initialValue = null)
+        {
+            if (TryGet(key, out NeoAttributeStringWritable? existing))
+            {
+                if (ownership != NeoValueOwnership.Asset
+                    && existing.overrideValueId is not null
+                    && !client.TryGetWritableValue(ownership, existing.overrideValueId, out AttributeValue? _)
+                    && client.TryMaterializeWritablePath(ownership, existing.overrideValueId, out _))
+                {
+                    RefreshFromValueData();
+                    ReinitializeChildren();
+                    if (TryGet(key, out existing)) return existing!;
+                }
+                return existing!;
+            }
+
+            string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
+            if (schemaKeyedAttributeId is null)
+            {
+                throw new System.Collections.Generic.KeyNotFoundException(
+                    $"Merged schema for type {type.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
+            }
+            if (!client.TryGetAttribute(schemaKeyedAttributeId, out Attribute? childAttribute))
+            {
+                throw new System.Exception(
+                    $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
+            }
+            if (childAttribute is not StringAttribute)
+            {
+                throw new System.InvalidOperationException(
+                    $"Attribute '{key}' is not a string attribute.");
+            }
+
+            SetSerializedValue(key, NeoValueWritePayload.FromValue(initialValue));
+            return Get<NeoAttributeStringWritable>(key);
+        }
+
+        public void SetStringLiteral(string key, string? value)
+        {
+            string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
+            if (schemaKeyedAttributeId is null)
+            {
+                throw new System.Collections.Generic.KeyNotFoundException(
+                    $"Merged schema for type {type.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
+            }
+            if (!client.TryGetAttribute(schemaKeyedAttributeId, out Attribute? childAttribute))
+            {
+                throw new System.Exception(
+                    $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
+            }
+            if (childAttribute is not StringAttribute)
+            {
+                throw new System.InvalidOperationException(
+                    $"Attribute '{key}' is not a string attribute.");
+            }
+
+            SetSerializedValue(key, NeoValueWritePayload.FromValue(value));
+        }
+
         /// <summary>
         /// Sets the schema-keyed child to <paramref name="setValue"/>.
         /// Updates the existing entry in place when one exists; otherwise

@@ -1,7 +1,9 @@
 {
     "name": "NeoCompose.Unity",
     "rootNamespace": "NeoCompose",
-    "references": [],
+    "references": [
+        "Unity.Localization"
+    ],
     "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,

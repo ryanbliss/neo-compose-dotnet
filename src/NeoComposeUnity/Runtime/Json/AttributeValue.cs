@@ -149,7 +149,10 @@ namespace NeoCompose.Runtime.Json
     public class NumberAttributeValueBase : AttributeValueBase<double?> { }
 
     /// <summary>Carrier for a String <see cref="Attribute.defaultValue"/>.</summary>
-    public class StringAttributeValueBase : AttributeValueBase<string?> { }
+    public class StringAttributeValueBase : AttributeValueBase<string?>
+    {
+        public NeoStringLocalizationMode? neoLocalizationMode;
+    }
 
     /// <summary>Carrier for a List / Enum / Lookup <see cref="Attribute.defaultValue"/>.</summary>
     public class ArrayAttributeValueBase : AttributeValueBase<string[]?> { }
@@ -325,7 +328,10 @@ namespace NeoCompose.Runtime.Json
     public class NumberAttributeValue : AttributeValue<double?> { }
 
     /// <summary>Stored value for a String attribute.</summary>
-    public class StringAttributeValue : AttributeValue<string?> { }
+    public class StringAttributeValue : AttributeValue<string?>
+    {
+        public NeoStringLocalizationMode? neoLocalizationMode;
+    }
 
     /// <summary>Stored value for a List / Enum / Lookup attribute.</summary>
     public class ArrayAttributeValue : AttributeValue<string[]?> { }

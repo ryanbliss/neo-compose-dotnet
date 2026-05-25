@@ -30,6 +30,14 @@
       <HintPath>$(UnityManagedDir)/UnityEngine.AudioModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.Localization" Condition="Exists('$(NeoComposeUnityPackageAssembliesDir)/Unity.Localization.dll')">
+      <HintPath>$(NeoComposeUnityPackageAssembliesDir)/Unity.Localization.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
   </ItemGroup>
 
   <ItemGroup>

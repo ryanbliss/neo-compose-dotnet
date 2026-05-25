@@ -43,6 +43,71 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void TryTrigger_LocalizesDialogueDescription()
+        {
+            var client = CreateClientWithLocalization(
+                new Dictionary<string, string?>
+                {
+                    ["text-dialogue-description"] = "Localized description",
+                });
+            client.dialogues["dialogue-direct"].description = "text-dialogue-description";
+            var root = new TestDialogues(client);
+
+            Assert.IsTrue(root.TryTrigger("dialogue-direct", out NeoDialogueTriggerResult result));
+
+            Assert.AreEqual("text-dialogue-description", result.Dialogue!.DescriptionTextId);
+            Assert.AreEqual("Localized description", result.Dialogue.Description);
+        }
+
+        [Test]
+        public void TextNode_LocalizesTextBeforeNeoVariableInterpolation()
+        {
+            var client = CreateClientWithLocalization(
+                new Dictionary<string, string?>
+                {
+                    ["text-localized-node"] = "Take {{neo-var:item-name}}.",
+                });
+            var dialogue = client.dialogues["dialogue-text-variable-primary"];
+            ((NeoCompose.Runtime.Json.DialogueTextNode)dialogue.nodes["text-variable-primary"]).text =
+                "text-localized-node";
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => ResolveClientValue(client, valueId));
+
+            Assert.IsTrue(root.TryTrigger("dialogue-text-variable-primary", out NeoDialogue triggered));
+            NeoDialogueTextNode? shown = null;
+            triggered.OnShow += node => shown = node;
+
+            triggered.Start();
+
+            Assert.AreEqual("Take Compass.", shown!.Text);
+        }
+
+        [Test]
+        public void TextOption_LocalizesTextBeforeNeoVariableInterpolation()
+        {
+            var client = CreateClientWithLocalization(
+                new Dictionary<string, string?>
+                {
+                    ["text-localized-option"] = "Grab {{neo-var:item-name}}",
+                });
+            var dialogue = client.dialogues["dialogue-option-variable-primary"];
+            var node = (NeoCompose.Runtime.Json.DialogueTextNode)dialogue.nodes["text-option-variable"];
+            node.optionSettings!.options[0].text = "text-localized-option";
+            var root = new TestDialogues(
+                client,
+                valueResolver: valueId => ResolveClientValue(client, valueId));
+
+            Assert.IsTrue(root.TryTrigger("dialogue-option-variable-primary", out NeoDialogue triggered));
+            NeoDialogueTextNode? shown = null;
+            triggered.OnShow += node => shown = node;
+
+            triggered.Start();
+
+            Assert.AreEqual("Grab Compass", shown!.Options[0].Text);
+        }
+
+        [Test]
         public void StandardGroupTryTrigger_ReturnsFirstDialogueInGroup()
         {
             var client = CreateClient();
@@ -1620,6 +1685,25 @@ namespace NeoCompose.Tests
                     createdAt = Now,
                     updatedAt = Now,
                 },
+                localization = new ProjectLocalizationExport
+                {
+                    schemaVersion = 1,
+                    mainLocale = "en-US",
+                    supportedLocales = new[]
+                    {
+                        new ProjectLocalizationLocale { locale = "en-US" },
+                    },
+                    mainLocaleFileName = "en-US.json",
+                    localeFileNames = new Dictionary<string, string>
+                    {
+                        ["en-US"] = "en-US.json",
+                    },
+                    formatting = new ProjectLocalizationFormatting
+                    {
+                        syntax = "smart-format",
+                        sourceSyntax = "icu",
+                    },
+                },
                 attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
                 {
                     ["root-assets"] = RootAttribute("root-assets", "Assets"),
@@ -2326,6 +2410,22 @@ namespace NeoCompose.Tests
 
             string buffer = "";
             return new NeoClient(data, () => buffer, save => buffer = save);
+        }
+
+        private static NeoClient CreateClientWithLocalization(
+            Dictionary<string, string?> values)
+        {
+            var client = CreateClient();
+            client.Localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
+            {
+                schemaVersion = 1,
+                projectId = ProjectId,
+                versionId = "version-1",
+                locale = "en-US",
+                formattingSyntax = "smart-format",
+                values = values,
+            });
+            return client;
         }
 
         private static CustomAttribute RootAttribute(string id, string name)
