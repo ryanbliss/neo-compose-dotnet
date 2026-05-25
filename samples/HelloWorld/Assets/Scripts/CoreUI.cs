@@ -554,10 +554,7 @@ namespace HelloWorld.Assets.Scripts
 
         private static string DisplayName(Planet planet)
         {
-            var value = planet.optionId;
-            return value.Length == 0
-                ? value
-                : char.ToUpperInvariant(value[0]) + value.Substring(1);
+            return planet.Text;
         }
 
         private static Font BuiltInFont =>

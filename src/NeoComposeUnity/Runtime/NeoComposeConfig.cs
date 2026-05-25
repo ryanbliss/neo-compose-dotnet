@@ -28,6 +28,22 @@ namespace NeoCompose.Runtime
 
         public bool HasProject => !string.IsNullOrWhiteSpace(projectId);
 
+        public static NeoComposeConfig? LoadDefault()
+        {
+            return Resources.Load<NeoComposeConfig>(NeoComposeDefaults.ConfigResourcePath);
+        }
+
+        public NeoLocalizationOptions ToLocalizationOptions()
+        {
+            return new NeoLocalizationOptions
+            {
+                localeOverride = string.IsNullOrWhiteSpace(localeOverride) ? null : localeOverride.Trim(),
+                preloadSystemLocale = preloadSystemLocale,
+                useStreamingAssetsForNonMainLocales = useStreamingAssetsForNonMainLocales,
+                streamingAssetsRelativePath = LocalizationStreamingAssetsRelativePath(),
+            };
+        }
+
         public void SelectProject(
             string id,
             string name,
@@ -54,6 +70,15 @@ namespace NeoCompose.Runtime
             projectName = "";
             targetReleaseChannelId = "";
             versionId = "";
+        }
+
+        private string LocalizationStreamingAssetsRelativePath()
+        {
+            const string prefix = "Assets/StreamingAssets/";
+            var normalized = localizationStreamingAssetsDirectory.Replace('\\', '/').Trim('/');
+            return normalized.StartsWith(prefix, System.StringComparison.Ordinal)
+                ? normalized.Substring(prefix.Length)
+                : NeoComposeDefaults.LocalizationStreamingAssetsRelativePath;
         }
     }
 }

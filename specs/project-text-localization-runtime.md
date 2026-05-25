@@ -332,12 +332,16 @@ public sealed class NeoLocalizationOptions
 Default load behavior:
 
 - Parse localization metadata from `project.json`.
+- If `NeoLoader.Load` receives `null` localization options, load
+  `NeoComposeConfig` from `Resources/Neo/NeoComposeConfig` and derive
+  `NeoLocalizationOptions` from the editor/runtime config fields.
+- If callers pass explicit `NeoLocalizationOptions`, use them as-is and do not
+  merge in the Resources config.
 - Load the main locale synchronously from `Resources`.
 - Choose initial requested locale in this order:
-  1. `NeoLocalizationOptions.LocaleOverride`
-  2. `NeoComposeConfig.localeOverride`
-  3. System locale.
-  4. Main locale.
+  1. Effective `NeoLocalizationOptions.LocaleOverride`.
+  2. System locale.
+  3. Main locale.
 - Match locale by exact code first, then language-only match, then main locale.
 - If `preloadSystemLocale` is true and the selected locale is in Resources,
   synchronously load the selected locale and its fallback chain.

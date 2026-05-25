@@ -150,7 +150,8 @@ loading.
 
 ### Locale selection
 
-- [x] LRT-060 Choose initial locale from explicit options, config override, system locale, then main locale.
+- [x] LRT-060 Choose initial locale from effective options, system locale, then main locale.
+- [x] LRT-060A Use `NeoComposeConfig` from Resources as the default localization options when `NeoLoader.Load` receives `null` options.
 - [x] LRT-061 Match locale codes exactly before language-only fallback.
 - [x] LRT-062 Fall back to main locale when no configured locale matches.
 - [x] LRT-063 Add `SetLocale`.

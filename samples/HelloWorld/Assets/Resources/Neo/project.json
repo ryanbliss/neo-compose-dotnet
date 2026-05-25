@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "7aa8a99785ea06aad8a50382ce2ef4cd58783a1162580a06e5a088fc43fb67ba",
-        "codegenContractHash": "cc93b0fe0ca7ccd16452f4132a92d8108c389c44022bf75abbd1676e1db65b34",
-        "runtimeDataContractHash": "4931730938161813c7362940fb545d7690a3d31a4f495eabe9c98adfd4b47507"
+        "projectDocumentContentHash": "aa8fc5bd9a152785a28c046529b5f7e9a049c942169efba51b1827bd1217a282",
+        "codegenContractHash": "5a5492d1414c3f2fed4472af5c7f5468e7cc2333454c121aa8a3f2c6d2d3e809",
+        "runtimeDataContractHash": "26606899c9886ee8e49abf48dbcd4d59587efd2cc918fbf3869730b520b889c3"
     },
     "localization": {
         "schemaVersion": 1,
@@ -10713,12 +10713,11 @@
     "localizationConfig": {
         "id": "localization-config",
         "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-        "mainLocale": "en-US",
         "supportedLocales": [
             {
                 "locale": "en-US",
                 "sourceLocale": null,
-                "name": "en-US",
+                "name": "English (US)",
                 "sortOrder": 0,
                 "archivedAt": null
             },
@@ -10734,13 +10733,14 @@
             "localization-status-needs-translation",
             "localization-status-in-progress",
             "localization-status-needs-review",
-            "localization-status-approved",
             "localization-status-update-needed",
-            "localization-status-blocked-by-predecessor"
+            "localization-status-blocked-by-predecessor",
+            "localization-status-approved"
         ],
-        "mainLocaleDefaultStatusId": "localization-status-approved",
         "createdAt": "2026-05-25T02:00:27.578Z",
-        "updatedAt": "2026-05-25T04:21:49.131Z"
+        "updatedAt": "2026-05-25T10:07:16.963Z",
+        "mainLocale": "en-US",
+        "mainLocaleDefaultStatusId": "localization-status-approved"
     },
     "localizationStatuses": {
         "localization-status-approved": {
@@ -10755,7 +10755,8 @@
             "transitionToStatusIdOnEditText": null,
             "transitionToWhenSourceBecomesStatusId": null,
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T10:00:41.540Z",
+            "emoji": "✅"
         },
         "localization-status-blocked-by-predecessor": {
             "id": "localization-status-blocked-by-predecessor",
@@ -10769,7 +10770,8 @@
             "transitionToStatusIdOnEditText": "localization-status-needs-review",
             "transitionToWhenSourceBecomesStatusId": "localization-status-blocked-by-predecessor",
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T10:01:21.151Z",
+            "emoji": "🛑"
         },
         "localization-status-in-progress": {
             "id": "localization-status-in-progress",
@@ -10783,7 +10785,8 @@
             "transitionToStatusIdOnEditText": "localization-status-needs-review",
             "transitionToWhenSourceBecomesStatusId": "localization-status-blocked-by-predecessor",
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T09:58:15.675Z",
+            "emoji": "✍️"
         },
         "localization-status-needs-review": {
             "id": "localization-status-needs-review",
@@ -10797,7 +10800,8 @@
             "transitionToStatusIdOnEditText": null,
             "transitionToWhenSourceBecomesStatusId": "localization-status-update-needed",
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T10:00:21.264Z",
+            "emoji": "📚"
         },
         "localization-status-needs-translation": {
             "id": "localization-status-needs-translation",
@@ -10811,7 +10815,8 @@
             "transitionToStatusIdOnEditText": "localization-status-needs-review",
             "transitionToWhenSourceBecomesStatusId": "localization-status-blocked-by-predecessor",
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T10:01:07.952Z",
+            "emoji": "🆕"
         },
         "localization-status-update-needed": {
             "id": "localization-status-update-needed",
@@ -10825,7 +10830,8 @@
             "transitionToStatusIdOnEditText": "localization-status-needs-review",
             "transitionToWhenSourceBecomesStatusId": "localization-status-blocked-by-predecessor",
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T10:01:12.534Z",
+            "emoji": "🚧"
         }
     },
     "localizedTexts": {
@@ -10846,11 +10852,17 @@
                     "value": "Io",
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T18:39:27.140Z"
+                },
+                "es-ES": {
+                    "value": "Ío",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "070400a3-f6c2-4b33-9357-1bdfa3e2819a": {
             "id": "070400a3-f6c2-4b33-9357-1bdfa3e2819a",
@@ -10896,10 +10908,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Hay informes de perturbaciones cósmicas",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "0d85d4fa-2686-4ba7-9684-e7c120051eb8": {
             "id": "0d85d4fa-2686-4ba7-9684-e7c120051eb8",
@@ -10920,10 +10938,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "El sol brilla para quienes buscan.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "12190092-3e2f-4c75-bdc7-bd29207bcbfe": {
             "id": "12190092-3e2f-4c75-bdc7-bd29207bcbfe",
@@ -10944,10 +10968,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Mercurial",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "134542ba-7414-4353-b0bd-5773e31d63bf": {
             "id": "134542ba-7414-4353-b0bd-5773e31d63bf",
@@ -10967,10 +10997,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Europa",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "14140023-0700-4c44-9ead-219be96499b0": {
             "id": "14140023-0700-4c44-9ead-219be96499b0",
@@ -10991,10 +11027,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T03:26:37.795Z"
+                },
+                "es-ES": {
+                    "value": "Titán",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T03:26:37.795Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "15807e52-6333-4ec7-95f1-15bcc8281140": {
             "id": "15807e52-6333-4ec7-95f1-15bcc8281140",
@@ -11016,10 +11058,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Bueno, ciertamente fui enviado aquí para buscar conocimiento.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "1581ebee-9b65-4d9e-8308-72a0eb41f947": {
             "id": "1581ebee-9b65-4d9e-8308-72a0eb41f947",
@@ -11041,10 +11089,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Sé que tú has estado causando las erupciones solares <i>(Mentira)</i>",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "15a60d3e-940d-4ac4-b6ba-ac1403dcfea2": {
             "id": "15a60d3e-940d-4ac4-b6ba-ac1403dcfea2",
@@ -11064,10 +11118,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Ganímedes",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "165b49a1-0b48-4e99-beec-079dc0531484": {
             "id": "165b49a1-0b48-4e99-beec-079dc0531484",
@@ -11117,10 +11177,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Plutocracia",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6": {
             "id": "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6",
@@ -11140,10 +11206,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Neptuno",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "1b3856d2-6f8a-4de4-8d11-81b5beb893c8": {
             "id": "1b3856d2-6f8a-4de4-8d11-81b5beb893c8",
@@ -11164,10 +11236,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Soy azul; si fuera verde, moriría",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "1be8eaba-ceeb-4f97-98a8-a132659d672d": {
             "id": "1be8eaba-ceeb-4f97-98a8-a132659d672d",
@@ -11188,10 +11266,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Vaya. Eres un verdadero imbécil, ¿lo sabías?",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "1bf3fe18-044b-4798-a39e-f6cca003a29f": {
             "id": "1bf3fe18-044b-4798-a39e-f6cca003a29f",
@@ -11213,10 +11297,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Apuesto a que le dices eso a todo el mundo",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "1f81373c-bdb0-47ab-87a8-283c45f1a686": {
             "id": "1f81373c-bdb0-47ab-87a8-283c45f1a686",
@@ -11236,10 +11326,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Saturno",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "251c967a-dff1-4af9-962e-8d22cc40cbad": {
             "id": "251c967a-dff1-4af9-962e-8d22cc40cbad",
@@ -11260,10 +11356,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Qué grupo tan raro. Son un culto que se mudó a {{neo-var:23aec2a1-e952-4c13-86fb-e0cede15f33c}} — el planeta más cercano al sol — para poder mirarlo todo el tiempo. Muy ciegos, sí.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "26a73141-5a25-4e54-9c27-88de7f58d280": {
             "id": "26a73141-5a25-4e54-9c27-88de7f58d280",
@@ -11284,10 +11386,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Capitol OG",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "2b9d011b-8ac4-4dc7-933f-03fcffa6c13a": {
             "id": "2b9d011b-8ac4-4dc7-933f-03fcffa6c13a",
@@ -11308,10 +11416,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "La Luz derrama su abundancia sobre {{neo-var:3d9bdd31-0547-4497-9386-8948d560d35f}}. Pregunta aquello que se te ha escapado en reinos más oscuros.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "2d50d81c-4e97-4799-9c16-448c25a750a5": {
             "id": "2d50d81c-4e97-4799-9c16-448c25a750a5",
@@ -11332,10 +11446,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Osa Mayor",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "2e6c7b85-9439-44be-843d-76629ace737c": {
             "id": "2e6c7b85-9439-44be-843d-76629ace737c",
@@ -11356,10 +11476,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¿Cuál es tu color favorito?",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "2f8826ca-8af9-41e8-9f07-cb2eadcd811d": {
             "id": "2f8826ca-8af9-41e8-9f07-cb2eadcd811d",
@@ -11381,10 +11507,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¿Quiénes son los {{neo-var:6d620b86-cc1f-4ffc-961a-02bd52c81c76}}?",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "3018cc3e-c3ec-40d0-ab94-f481152a4cf0": {
             "id": "3018cc3e-c3ec-40d0-ab94-f481152a4cf0",
@@ -11406,10 +11538,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "No, gracias",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "34da8073-835e-4dbf-994e-3819b2c0c1e2": {
             "id": "34da8073-835e-4dbf-994e-3819b2c0c1e2",
@@ -11431,10 +11569,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Gracias por la advertencia",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "375a1c06-8da5-4e98-9b06-408bd3a16d01": {
             "id": "375a1c06-8da5-4e98-9b06-408bd3a16d01",
@@ -11455,10 +11599,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "El Sol ofrece su Luz libremente, pero no puede alcanzar a quienes se inclinan hacia la Oscuridad.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "37ca7f98-8bf2-4771-b094-810dbd41abc0": {
             "id": "37ca7f98-8bf2-4771-b094-810dbd41abc0",
@@ -11479,10 +11629,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡¡¡¡ME TOCA PASTEL!!!!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "387bb35e-a41d-4aef-a3dc-5bc123db7327": {
             "id": "387bb35e-a41d-4aef-a3dc-5bc123db7327",
@@ -11503,10 +11659,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡Hola, mundo!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "3b85e0dc-62a9-4e49-852b-7db2b853ce07": {
             "id": "3b85e0dc-62a9-4e49-852b-7db2b853ce07",
@@ -11527,10 +11689,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Hola",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "3e0fc211-9087-48de-808e-6bb57d6d637a": {
             "id": "3e0fc211-9087-48de-808e-6bb57d6d637a",
@@ -11551,10 +11719,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Sí, el Cosmos clama a través de la Luz. No era Tiempo de Nova Roja, pero el Tiempo lo perturba todo hasta que llegue la Nova.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "425156b5-5936-466c-b402-089e46ace744": {
             "id": "425156b5-5936-466c-b402-089e46ace744",
@@ -11576,10 +11750,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Me parece justo. Bueno, estoy buscando información.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "42941190-29b0-410d-a440-5d46fc338074": {
             "id": "42941190-29b0-410d-a440-5d46fc338074",
@@ -11596,14 +11776,14 @@
             ],
             "localeValues": {
                 "en-US": {
-                    "value": "",
+                    "value": null,
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T11:44:39.736Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T11:44:39.736Z"
         },
         "48020dd6-3fb9-4b73-98be-fba38e00285b": {
             "id": "48020dd6-3fb9-4b73-98be-fba38e00285b",
@@ -11619,14 +11799,14 @@
             ],
             "localeValues": {
                 "en-US": {
-                    "value": "",
+                    "value": null,
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T11:44:39.847Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T11:44:39.847Z"
         },
         "494e22cd-3ac7-41ff-bdcf-d063c465afbe": {
             "id": "494e22cd-3ac7-41ff-bdcf-d063c465afbe",
@@ -11647,10 +11827,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Monte Olimpo",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "4a144eba-b15f-4707-9fe7-2e438207f196": {
             "id": "4a144eba-b15f-4707-9fe7-2e438207f196",
@@ -11671,10 +11857,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "RotarTierra",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "4c794088-4822-4786-a4d2-60603ec8b1c0": {
             "id": "4c794088-4822-4786-a4d2-60603ec8b1c0",
@@ -11695,10 +11887,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Hola",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "4e5a1262-ba35-4bf6-a68a-45b27479143d": {
             "id": "4e5a1262-ba35-4bf6-a68a-45b27479143d",
@@ -11718,10 +11916,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Mercurio",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "4f903122-580c-4748-9bee-4a717478c215": {
             "id": "4f903122-580c-4748-9bee-4a717478c215",
@@ -11743,10 +11947,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¿Brilla el sol para quienes buscan quedar ciegos?",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "51ea219e-f6fd-450c-b63e-9dcbd12059e4": {
             "id": "51ea219e-f6fd-450c-b63e-9dcbd12059e4",
@@ -11768,10 +11978,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Azul",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "543a1e52-c9ca-470a-ad07-884ee0c55cc2": {
             "id": "543a1e52-c9ca-470a-ad07-884ee0c55cc2",
@@ -11791,10 +12007,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Encélado",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "561bfa28-4549-40a9-9549-343c052c8537": {
             "id": "561bfa28-4549-40a9-9549-343c052c8537",
@@ -11815,10 +12037,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Todo lo que sé es que han aumentado las erupciones solares. Se rumorea que los {{neo-var:d922e051-7714-43df-814f-92f977494e03}} saben más. Ahora sal de aquí.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "59ef64db-552a-4636-93f8-e4bec59001f3": {
             "id": "59ef64db-552a-4636-93f8-e4bec59001f3",
@@ -11840,10 +12068,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Rosa",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "5c90af78-a25e-462a-b5c3-8082e5080037": {
             "id": "5c90af78-a25e-462a-b5c3-8082e5080037",
@@ -11859,14 +12093,14 @@
             ],
             "localeValues": {
                 "en-US": {
-                    "value": "",
+                    "value": null,
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T11:44:39.632Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T11:44:39.632Z"
         },
         "5e305c09-c0fe-4dfe-a0cf-175eddfecc2f": {
             "id": "5e305c09-c0fe-4dfe-a0cf-175eddfecc2f",
@@ -11888,10 +12122,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Rumores de perturbaciones cósmicas",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "5e5272c9-3e63-498b-bfa7-32975a6c07b8": {
             "id": "5e5272c9-3e63-498b-bfa7-32975a6c07b8",
@@ -11912,10 +12152,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Bueno, espero que hayas traído otro sombrero entonces. El sol ha estado soltando erupciones últimamente. Algo relacionado con los {{neo-var:895da7f1-82ed-4eab-842d-f5dd4c25399a}}.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "5ed5d8c1-a01d-47ff-b2ca-d663be283d79": {
             "id": "5ed5d8c1-a01d-47ff-b2ca-d663be283d79",
@@ -11935,10 +12181,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Hola",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "5f0b0049-0a7b-4847-8bb5-0ab1da42284d": {
             "id": "5f0b0049-0a7b-4847-8bb5-0ab1da42284d",
@@ -11959,10 +12211,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Soy azul; si fuera rosa, me haría PASTEL",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "6005885c-1b00-4369-bf37-85034f381858": {
             "id": "6005885c-1b00-4369-bf37-85034f381858",
@@ -11984,10 +12242,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¿Así que no has notado nada extraño?",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "638ab8ab-376b-47f6-8b4d-c792d5190f28": {
             "id": "638ab8ab-376b-47f6-8b4d-c792d5190f28",
@@ -12009,10 +12273,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Verde",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "64b26893-3aa9-4afa-88a7-f6d557f3da5d": {
             "id": "64b26893-3aa9-4afa-88a7-f6d557f3da5d",
@@ -12033,10 +12303,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Señores del Vertido",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "67f47805-cbdc-42aa-ba85-56dfb984414c": {
             "id": "67f47805-cbdc-42aa-ba85-56dfb984414c",
@@ -12057,10 +12333,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Entonces, ¿qué te trae a {{neo-var:c3049b7f-c8a3-46fb-89ae-0be3372d8ee7}}?",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "73f58157-2510-4984-b5bd-ba6c030edd49": {
             "id": "73f58157-2510-4984-b5bd-ba6c030edd49",
@@ -12081,10 +12363,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Venusiano",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "777734e6-59ef-49c3-b6c8-e8caf9fc2bf1": {
             "id": "777734e6-59ef-49c3-b6c8-e8caf9fc2bf1",
@@ -12105,10 +12393,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Tiene sentido; no cualquiera puede lucir una moda así.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "7a5bcbb9-b0e7-4284-a3ff-5c359247dd69": {
             "id": "7a5bcbb9-b0e7-4284-a3ff-5c359247dd69",
@@ -12129,10 +12423,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡Hola de nuevo!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "7d3aef9c-3c76-4f49-8f7f-a67f10012202": {
             "id": "7d3aef9c-3c76-4f49-8f7f-a67f10012202",
@@ -12153,10 +12453,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡Hola, viajero! ¡Bienvenido al mejor planeta del mejor sistema solar de <b>TODA</b> la galaxia!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "7ee25df0-9d92-48a4-988e-97e5867a13d9": {
             "id": "7ee25df0-9d92-48a4-988e-97e5867a13d9",
@@ -12177,10 +12483,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Que el sol te bendiga",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "823b0113-340e-435a-b4f4-17394551ae4b": {
             "id": "823b0113-340e-435a-b4f4-17394551ae4b",
@@ -12202,10 +12514,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¿Quiénes son los {{neo-var:3e1d30e6-941b-450a-896d-b0512a29a678}}?",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "846d952f-17c3-4b71-aa9e-26bcb709cb09": {
             "id": "846d952f-17c3-4b71-aa9e-26bcb709cb09",
@@ -12226,10 +12544,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Ah, así que la Luz ha elegido a la Oscuridad como su recipiente. Ay, toda Luz se oscurece con el tiempo. ",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "850bde50-0989-41bd-a0fb-4ef5c590d72e": {
             "id": "850bde50-0989-41bd-a0fb-4ef5c590d72e",
@@ -12250,10 +12574,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡Alabado sea el sol!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "90811ced-66b6-4f46-bc60-d8f8bec3781a": {
             "id": "90811ced-66b6-4f46-bc60-d8f8bec3781a",
@@ -12274,10 +12604,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡Vaya, qué alegría verte!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "908d908c-83f9-4b18-a458-21da21e398e8": {
             "id": "908d908c-83f9-4b18-a458-21da21e398e8",
@@ -12298,10 +12634,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡Fabuloso! Oye, te recomendaría mantenerte lejos de los {{neo-var:49aba70d-30fc-4ae9-8b1c-c5fff5f14e4e}}. Se rumorea que están causando un aumento de erupciones solares, ¡pero no te preocupes! ¡Para eso está el sombrero!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "920bfdec-6ccd-4131-8fe4-3adcc4d0b96f": {
             "id": "920bfdec-6ccd-4131-8fe4-3adcc4d0b96f",
@@ -12322,10 +12664,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "92fe9254-9e61-40c6-aced-6f55692b0120": {
             "id": "92fe9254-9e61-40c6-aced-6f55692b0120",
@@ -12345,10 +12693,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Marte",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "954032ce-684f-452f-b3cc-507a21ccfad1": {
             "id": "954032ce-684f-452f-b3cc-507a21ccfad1",
@@ -12369,10 +12723,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡¿Cómo eres tan pobre?! Lograste perder el juego de una forma que nunca debería ocurrir, ¡felicidades!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "9ab92755-798e-4379-a6bf-a86ff24f0592": {
             "id": "9ab92755-798e-4379-a6bf-a86ff24f0592",
@@ -12389,14 +12749,14 @@
             ],
             "localeValues": {
                 "en-US": {
-                    "value": "",
+                    "value": null,
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T11:44:39.591Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T11:44:39.591Z"
         },
         "9dbab188-b84c-4a93-92f9-6cde5eae7874": {
             "id": "9dbab188-b84c-4a93-92f9-6cde5eae7874",
@@ -12418,10 +12778,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¿No eres ciego? A mí me suena bastante oscuro...",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "9f845505-9ef7-40c5-9d64-a92b0efe9660": {
             "id": "9f845505-9ef7-40c5-9d64-a92b0efe9660",
@@ -12443,10 +12809,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Eh, vale...",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "9fac6d09-220e-4f31-b27d-466241a4589d": {
             "id": "9fac6d09-220e-4f31-b27d-466241a4589d",
@@ -12468,10 +12840,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Comprar el sombrero <b>(</b>{{neo-var:89ea16d4-6d4a-4e55-a3ea-3d973a1ffd02}}<b> bits)</b>",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "a10d8465-256b-4457-a21b-1973b0cda541": {
             "id": "a10d8465-256b-4457-a21b-1973b0cda541",
@@ -12492,10 +12870,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Por supuesto, ¡disfruta tu visita a {{neo-var:e9fe0a2b-e192-4a75-b352-e26527e6b423}}!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "a5cb6fe5-e52c-4329-9595-f95415a01b88": {
             "id": "a5cb6fe5-e52c-4329-9595-f95415a01b88",
@@ -12512,14 +12896,14 @@
             ],
             "localeValues": {
                 "en-US": {
-                    "value": "",
+                    "value": null,
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T11:44:39.558Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T11:44:39.558Z"
         },
         "aa47a722-d5f3-4733-8358-767cad5030e9": {
             "id": "aa47a722-d5f3-4733-8358-767cad5030e9",
@@ -12541,10 +12925,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Sé que fuiste tú <i>(mentira)</i>",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "aa86767e-b0ee-45f6-a3bc-8631087d7208": {
             "id": "aa86767e-b0ee-45f6-a3bc-8631087d7208",
@@ -12565,10 +12955,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¿Extraño? Hmm... los {{neo-var:8c6427b4-9e59-4f38-8670-2090f21c4117}} son un grupo extraño, siempre mirando fijamente al sol. ¡Incluso con todas las erupciones solares que hemos tenido últimamente! Ciegos como murciélagos, sí.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "abc0dcf0-2d53-4f3c-890c-ac77f73c4601": {
             "id": "abc0dcf0-2d53-4f3c-890c-ac77f73c4601",
@@ -12589,10 +12985,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Colectivo Giro",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "aef5b669-4332-46f2-a4ca-d100ed06f4bc": {
             "id": "aef5b669-4332-46f2-a4ca-d100ed06f4bc",
@@ -12609,14 +13011,14 @@
             ],
             "localeValues": {
                 "en-US": {
-                    "value": "",
+                    "value": null,
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T11:44:39.600Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T11:44:39.600Z"
         },
         "b28d5afc-8a84-4e8a-ba46-c015d58128ab": {
             "id": "b28d5afc-8a84-4e8a-ba46-c015d58128ab",
@@ -12633,14 +13035,14 @@
             ],
             "localeValues": {
                 "en-US": {
-                    "value": "",
+                    "value": null,
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T11:44:41.536Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T11:44:41.536Z"
         },
         "b31a519f-977e-4704-a552-29d464909507": {
             "id": "b31a519f-977e-4704-a552-29d464909507",
@@ -12661,10 +13063,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Qué grupo tan raro. Son un culto que se mudó a {{neo-var:3a36f845-8745-458a-8b19-3c9fbd2afee9}} — el planeta más cercano al sol — para poder mirarlo todo el tiempo. Muy ciegos, sí.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "b3867593-d854-402b-a1a7-5517bec1b9eb": {
             "id": "b3867593-d854-402b-a1a7-5517bec1b9eb",
@@ -12680,14 +13088,14 @@
             ],
             "localeValues": {
                 "en-US": {
-                    "value": "",
+                    "value": null,
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T11:44:41.425Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T11:44:41.425Z"
         },
         "b4b85b2a-eb87-4b6b-8259-c060b7c6c28f": {
             "id": "b4b85b2a-eb87-4b6b-8259-c060b7c6c28f",
@@ -12708,10 +13116,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Abi doo abi dah",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "b527cc12-03ba-495d-82d7-ed957f70eb92": {
             "id": "b527cc12-03ba-495d-82d7-ed957f70eb92",
@@ -12732,10 +13146,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Iowano",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "b5c04882-1226-47f0-894d-78e45a6ee916": {
             "id": "b5c04882-1226-47f0-894d-78e45a6ee916",
@@ -12757,10 +13177,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡Para visitar {{neo-var:b3f0cc89-3530-4d6b-9eb4-8cc18d229d84}}, por supuesto! <i>(mentira)</i>",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "b8c58652-db74-4fa0-97ec-725f172a3488": {
             "id": "b8c58652-db74-4fa0-97ec-725f172a3488",
@@ -12781,10 +13207,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡Genial, ahora no moriré!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "bdbe6838-8a19-4731-9b08-c431a8574cad": {
             "id": "bdbe6838-8a19-4731-9b08-c431a8574cad",
@@ -12805,10 +13237,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Sombrero de recuerdo Earth OG",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "c59bdeaf-9f71-4970-a95f-058c7f54c18b": {
             "id": "c59bdeaf-9f71-4970-a95f-058c7f54c18b",
@@ -12828,10 +13266,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Titán",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "c5e359a7-bc03-4cb2-95ba-994ba370eee1": {
             "id": "c5e359a7-bc03-4cb2-95ba-994ba370eee1",
@@ -12852,10 +13296,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Europapas",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "c6c95b48-2422-4bd0-bb2e-07d125b74762": {
             "id": "c6c95b48-2422-4bd0-bb2e-07d125b74762",
@@ -12876,10 +13326,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Punto de Anclaje Caelus",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "c6f49670-1e6c-445d-827d-73c0f552327f": {
             "id": "c6f49670-1e6c-445d-827d-73c0f552327f",
@@ -12901,10 +13357,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¿Me estabais <i>esperando</i>?",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "c972a88a-97f0-4ca1-a9c0-c17aa091b840": {
             "id": "c972a88a-97f0-4ca1-a9c0-c17aa091b840",
@@ -12925,10 +13387,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡Hola, mundos!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "c9ec2854-89aa-4a36-bbd8-ece671852b77": {
             "id": "c9ec2854-89aa-4a36-bbd8-ece671852b77",
@@ -12948,10 +13416,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Calisto",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "d4369d97-75bb-4617-9857-085e7748ad20": {
             "id": "d4369d97-75bb-4617-9857-085e7748ad20",
@@ -12972,10 +13446,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "La Luz te honra, valiente viajero. Te estábamos esperando.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "d9a827c9-b293-40d7-b5af-6b3a0fc0c76a": {
             "id": "d9a827c9-b293-40d7-b5af-6b3a0fc0c76a",
@@ -12996,10 +13476,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¡Lo sabía! Antes de que continúes, ¿quieres comprar este {{neo-var:1e6fc91e-ad08-446e-afff-812af0476e0d}} tan especial? ¡Es verdaderamente la CIMA de la artesanía humana!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "dae6ab0c-4b82-4a11-8057-097a193fecea": {
             "id": "dae6ab0c-4b82-4a11-8057-097a193fecea",
@@ -13019,10 +13505,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Júpiter",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "e2906f6e-2703-4caf-b1c6-6e4287dbc662": {
             "id": "e2906f6e-2703-4caf-b1c6-6e4287dbc662",
@@ -13044,10 +13536,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Gracias por la advertencia",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "e4dbc0ba-684b-4fdf-a589-bfa15ffca317": {
             "id": "e4dbc0ba-684b-4fdf-a589-bfa15ffca317",
@@ -13068,10 +13566,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "¿Qué, aquí? ¡Más te vale darte la vuelta ahora mismo!",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "e692cce8-c8bd-4673-b516-1b24cfdfe014": {
             "id": "e692cce8-c8bd-4673-b516-1b24cfdfe014",
@@ -13092,10 +13596,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Diadema Etna",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "ebcfb8a2-b0db-4077-92e9-e84eee38a9f6": {
             "id": "ebcfb8a2-b0db-4077-92e9-e84eee38a9f6",
@@ -13116,10 +13626,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Ah, espera...",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "ecf76629-c56c-479d-9ac7-675976c0bf93": {
             "id": "ecf76629-c56c-479d-9ac7-675976c0bf93",
@@ -13140,10 +13656,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Hola",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "ede61345-580d-4c04-a061-3c789175566d": {
             "id": "ede61345-580d-4c04-a061-3c789175566d",
@@ -13159,14 +13681,14 @@
             ],
             "localeValues": {
                 "en-US": {
-                    "value": "",
+                    "value": null,
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T11:44:41.248Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T11:44:41.248Z"
         },
         "ee2f7b0b-786c-41ca-8578-6f348194d52c": {
             "id": "ee2f7b0b-786c-41ca-8578-6f348194d52c",
@@ -13186,10 +13708,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Plutón",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "f2234421-5322-4c0d-8217-685f8e4366fb": {
             "id": "f2234421-5322-4c0d-8217-685f8e4366fb",
@@ -13206,14 +13734,14 @@
             ],
             "localeValues": {
                 "en-US": {
-                    "value": "",
+                    "value": null,
                     "statusId": "localization-status-approved",
                     "localeComment": null,
-                    "updatedAt": "2026-05-25T02:00:27.578Z"
+                    "updatedAt": "2026-05-25T11:44:41.393Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T11:44:41.393Z"
         },
         "f6fef637-e07b-4de1-b9c5-0ce678e59545": {
             "id": "f6fef637-e07b-4de1-b9c5-0ce678e59545",
@@ -13234,10 +13762,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Como los OG del sistema, probablemente no querrás salir de {{neo-var:42b42e00-9b9c-4456-8100-38a8f3cd03f1}} durante tu estancia, pero eres <i>mayormente</i> bienvenido a irte cuando quieras.",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "fafce114-ab70-4813-a4e2-cb436b66aba6": {
             "id": "fafce114-ab70-4813-a4e2-cb436b66aba6",
@@ -13257,10 +13791,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Urano",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         },
         "fe5ab262-4a0f-4551-ab27-5fd1c97da128": {
             "id": "fe5ab262-4a0f-4551-ab27-5fd1c97da128",
@@ -13280,10 +13820,16 @@
                     "statusId": "localization-status-approved",
                     "localeComment": null,
                     "updatedAt": "2026-05-25T02:00:27.578Z"
+                },
+                "es-ES": {
+                    "value": "Venus",
+                    "statusId": "localization-status-approved",
+                    "localeComment": null,
+                    "updatedAt": "2026-05-25T22:47:42.207Z"
                 }
             },
             "createdAt": "2026-05-25T02:00:27.578Z",
-            "updatedAt": "2026-05-25T02:00:27.578Z"
+            "updatedAt": "2026-05-25T22:47:42.207Z"
         }
     }
 }

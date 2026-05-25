@@ -40,6 +40,7 @@ namespace NeoCompose.Runtime
             ProjectData data = JsonConvert.DeserializeObject<ProjectData>(projectJson)
                 ?? throw new System.InvalidOperationException("Neo Compose project JSON could not be deserialized.");
             NeoProjectDataValidator.Validate(data);
+            localizationOptions ??= NeoComposeConfig.LoadDefault()?.ToLocalizationOptions();
             var localization = NeoLocalization.LoadMain(
                 data.localization,
                 localizationFileSource ?? new NeoResourcesLocalizationLocaleFileSource(),

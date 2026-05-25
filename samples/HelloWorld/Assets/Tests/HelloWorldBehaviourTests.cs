@@ -6,6 +6,7 @@ using System.Linq;
 using NeoCompose.Runtime;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.UI;
 using HelloWorld.Assets.Scripts;
 using HelloWorld.Assets.Scripts.Neo;
 
@@ -84,12 +85,59 @@ namespace HelloWorld.Assets.Tests
             var client = HelloWorldNeo.Load(
                 File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
                 loadSave,
-                handleSave);
+                handleSave,
+                localizationOptions: EnglishLocalizationOptions());
 
             Assert.AreEqual(Planet.earth, client.Save.World);
             Assert.AreEqual("Hello", client.Assets.Computed.baseText);
 
             Assert.AreEqual("Hello Earth!", client.Assets.Computed.fullText);
+        }
+
+        [Test]
+        public void GeneratedSampleTypes_ExplicitSpanishLocalizationResolvesGeneratedText()
+        {
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
+
+            var client = HelloWorldNeo.Load(
+                File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
+                loadSave,
+                handleSave,
+                localizationOptions: SpanishLocalizationOptions());
+
+            Assert.AreEqual("es-ES", client.Localization.CurrentLocale);
+            Assert.AreEqual("Hola", client.Assets.Computed.baseText);
+            Assert.AreEqual("Tierra", Planet.earth.Text);
+            Assert.AreEqual("Hola Tierra!", client.Assets.Computed.fullText);
+        }
+
+        [Test]
+        public void GeneratedSampleTypes_LoadUsesResourcesConfigWhenLocalizationOptionsAreNull()
+        {
+            string defaultSaveBuffer = "";
+            string loadDefaultSave() => defaultSaveBuffer;
+            void handleDefaultSave(string file) => defaultSaveBuffer = file;
+            string explicitSaveBuffer = "";
+            string loadExplicitSave() => explicitSaveBuffer;
+            void handleExplicitSave(string file) => explicitSaveBuffer = file;
+            var projectJson = File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json"));
+            var configOptions = NeoComposeConfig.LoadDefault()!.ToLocalizationOptions();
+
+            var defaultClient = HelloWorldNeo.Load(
+                projectJson,
+                loadDefaultSave,
+                handleDefaultSave);
+            var explicitConfigClient = HelloWorldNeo.Load(
+                projectJson,
+                loadExplicitSave,
+                handleExplicitSave,
+                localizationOptions: configOptions);
+
+            Assert.AreEqual(explicitConfigClient.Localization.CurrentLocale, defaultClient.Localization.CurrentLocale);
+            Assert.AreEqual(explicitConfigClient.Assets.Computed.baseText, defaultClient.Assets.Computed.baseText);
+            Assert.AreEqual(explicitConfigClient.Assets.Computed.fullText, defaultClient.Assets.Computed.fullText);
         }
 
         [Test]
@@ -102,7 +150,8 @@ namespace HelloWorld.Assets.Tests
             var client = HelloWorldNeo.Load(
                 File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
                 loadSave,
-                handleSave);
+                handleSave,
+                localizationOptions: EnglishLocalizationOptions());
 
             var savedWorld = client.Save.World;
             Assert.AreSame(Planet.earth, savedWorld);
@@ -134,7 +183,8 @@ namespace HelloWorld.Assets.Tests
             var client = HelloWorldNeo.Load(
                 File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
                 loadSave,
-                handleSave);
+                handleSave,
+                localizationOptions: EnglishLocalizationOptions());
 
             var capitol = client.Assets.Outposts.FirstOrDefault(outpost =>
                 outpost.Name == "Capitol OG");
@@ -180,7 +230,8 @@ namespace HelloWorld.Assets.Tests
             var client = HelloWorldNeo.Load(
                 File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
                 loadSave,
-                handleSave);
+                handleSave,
+                localizationOptions: EnglishLocalizationOptions());
 
             _ = client.Save.Location.FullDisplayText;
             var displayTexts = client.Assets.Outposts
@@ -204,7 +255,8 @@ namespace HelloWorld.Assets.Tests
             var client = HelloWorldNeo.Load(
                 File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
                 loadSave,
-                handleSave);
+                handleSave,
+                localizationOptions: EnglishLocalizationOptions());
 
             var outposts = client.Assets.Outposts.ToArray();
             Assert.Greater(outposts.Length, 3);
@@ -234,7 +286,8 @@ namespace HelloWorld.Assets.Tests
             var client = HelloWorldNeo.Load(
                 File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
                 loadSave,
-                handleSave);
+                handleSave,
+                localizationOptions: EnglishLocalizationOptions());
 
             var firstRead = client.Assets.Outposts.ToArray();
             var secondRead = client.Assets.Outposts.ToArray();
@@ -266,7 +319,7 @@ namespace HelloWorld.Assets.Tests
                 var behaviour = go.AddComponent<HelloWorldBehaviour>();
                 behaviour.LoadClient();
 
-                Assert.AreEqual("Hello Earth!", behaviour.HelloWorldText);
+                Assert.AreEqual(HelloText(Planet.earth), behaviour.HelloWorldText);
                 Assert.AreEqual(Planet.earth, behaviour.World);
                 var startingOutpost = behaviour.CurrentOutpost;
                 CollectionAssert.AreEqual(
@@ -299,6 +352,54 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public void Behaviour_VisitedPlanetsPanelUsesLocalizedPlanetText()
+        {
+            string savePath = Path.Combine(Application.persistentDataPath, "save1.json");
+            if (File.Exists(savePath))
+            {
+                File.Delete(savePath);
+            }
+
+            var go = new GameObject("HelloWorld");
+            try
+            {
+                var behaviour = go.AddComponent<HelloWorldBehaviour>();
+                behaviour.LoadClient();
+
+                var texts = Object.FindObjectsByType<Text>(FindObjectsSortMode.None)
+                    .Select(text => text.text)
+                    .ToArray();
+
+                Assert.Contains(Planet.earth.Text, texts);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+                if (File.Exists(savePath))
+                {
+                    File.Delete(savePath);
+                }
+            }
+        }
+
+        [Test]
+        public void GeneratedSampleTypes_ExplicitSpanishVisitedPlanetTextResolvesEnumText()
+        {
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
+
+            var client = HelloWorldNeo.Load(
+                File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
+                loadSave,
+                handleSave,
+                localizationOptions: SpanishLocalizationOptions());
+
+            Assert.AreEqual("es-ES", client.Localization.CurrentLocale);
+            Assert.AreEqual("Tierra", client.Save.Visited[0].World.Text);
+        }
+
+        [Test]
         public void Behaviour_ResetSave_DiscardsUnsavedVisit()
         {
             string savePath = Path.Combine(Application.persistentDataPath, "save1.json");
@@ -321,7 +422,7 @@ namespace HelloWorld.Assets.Tests
 
                 behaviour.OnResetSave();
 
-                Assert.AreEqual("Hello Earth!", behaviour.HelloWorldText);
+                Assert.AreEqual(HelloText(Planet.earth), behaviour.HelloWorldText);
                 Assert.AreEqual(Planet.earth, behaviour.World);
                 CollectionAssert.AreEqual(
                     new[] { Planet.earth },
@@ -431,8 +532,26 @@ namespace HelloWorld.Assets.Tests
 
         private static string HelloText(Planet planet)
         {
-            var value = planet.optionId;
-            return $"Hello {char.ToUpperInvariant(value[0])}{value.Substring(1)}!";
+            var greeting = HelloWorldNeo.Instance.Assets.Computed.baseText;
+            return $"{greeting} {planet.Text}!";
+        }
+
+        private static NeoLocalizationOptions EnglishLocalizationOptions()
+        {
+            return new NeoLocalizationOptions
+            {
+                localeOverride = "en-US",
+                preloadSystemLocale = false,
+            };
+        }
+
+        private static NeoLocalizationOptions SpanishLocalizationOptions()
+        {
+            return new NeoLocalizationOptions
+            {
+                localeOverride = "es-ES",
+                preloadSystemLocale = false,
+            };
         }
     }
 }

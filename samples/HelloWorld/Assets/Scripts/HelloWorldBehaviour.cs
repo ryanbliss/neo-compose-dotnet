@@ -88,7 +88,7 @@ namespace HelloWorld.Assets.Scripts
             if (dialogue.Primary is ReadOnlyOutpost outpost)
             {
                 PrepareUI();
-                DialogueUI.Show(outpost.FullDisplayText, outpost.Image, $"Traveling to {outpost.Planet}...");
+                DialogueUI.Show(outpost.FullDisplayText, outpost.Image, $"Traveling to {outpost.Planet.Text}...");
             }
 
             dialogue.OnShow += OnDialogueShow;
