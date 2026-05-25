@@ -19,6 +19,26 @@ namespace NeoCompose.Runtime
 
         public NeoAttributeString(NeoClient client, StringAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, attribute, overrideValueId, ownership) { }
+
+        public string? Text => ResolveText(value);
+
+        public string? TextId
+        {
+            get
+            {
+                if (!attribute.localizable) return null;
+                if (value?.neoLocalizationMode == NeoStringLocalizationMode.Literal) return null;
+                return value?.value;
+            }
+        }
+
+        protected string? ResolveText(StringAttributeValue? row)
+        {
+            if (row?.value == null) return null;
+            if (!attribute.localizable) return row.value;
+            if (row.neoLocalizationMode == NeoStringLocalizationMode.Literal) return row.value;
+            return client.Localization.ResolveText(row.value);
+        }
     }
 
     /// <summary>
@@ -39,6 +59,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         public void Set(string? newValue)
         {
+            SetLiteralOverride(newValue);
+        }
+
+        public void SetLiteralOverride(string? newValue)
+        {
             if (attribute.required && newValue is null)
             {
                 throw new System.ArgumentNullException(
@@ -47,9 +72,10 @@ namespace NeoCompose.Runtime
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
 
-            if (value is StringAttributeValue existing)
+            if (TryGetWritableStringValue(out var existing))
             {
                 existing.value = newValue;
+                existing.neoLocalizationMode = NeoStringLocalizationMode.Literal;
                 existing.updatedAt = nowIso;
                 client.SetWritableValue(ownership, existing);
                 NotifyChanged();
@@ -63,10 +89,32 @@ namespace NeoCompose.Runtime
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = newValue,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
             };
             client.AddWritableValue(ownership, attribute.id, newRow);
             RefreshFromValueData();
             NotifyChanged();
+        }
+
+        private bool TryGetWritableStringValue(
+            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out StringAttributeValue? existing)
+        {
+            existing = null;
+            if (ownership == NeoValueOwnership.Asset)
+            {
+                existing = value;
+                return existing != null;
+            }
+
+            var currentValueId = valueId;
+            return currentValueId != null &&
+                client.TryGetWritableValue(ownership, currentValueId, out existing);
+        }
+
+        public void ClearOverride()
+        {
+            if (ownership == NeoValueOwnership.Asset) return;
+            client.RemoveWritableOverride(ownership, attribute.id);
         }
     }
 }

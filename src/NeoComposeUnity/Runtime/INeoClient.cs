@@ -20,6 +20,8 @@ namespace NeoCompose.Runtime
 
         NeoAttributeCustomWritable SessionRoot { get; }
 
+        NeoLocalization Localization { get; }
+
         /// <summary>
         /// Serializes the current save state to JSON without invoking the
         /// configured save handler.

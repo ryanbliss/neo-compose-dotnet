@@ -53,6 +53,11 @@ namespace NeoCompose.Runtime
             return match;
         }
 
+        public string GetOptionText(string optionId)
+        {
+            return client.Localization.ResolveText(GetOption(optionId).text);
+        }
+
         private JsonEnum ResolveEnum()
         {
             if (!client.TryGetEnum(attribute.enumId, out JsonEnum? match))

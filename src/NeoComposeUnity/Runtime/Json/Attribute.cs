@@ -115,7 +115,10 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>Mirror of TS-side <c>TAttributeString</c>.</summary>
-    public class StringAttribute : Attribute<string?> { }
+    public class StringAttribute : Attribute<string?>
+    {
+        public bool localizable = true;
+    }
 
     /// <summary>Mirror of TS-side <c>TAttributeDictionary</c>.</summary>
     public class DictionaryAttribute : Attribute<Dictionary<string, string>?>

@@ -52,6 +52,11 @@ namespace NeoCompose.Runtime
         public string? Description { get; }
 
         /// <summary>
+        /// Underlying localized text id for <see cref="Description"/>, when present.
+        /// </summary>
+        public string? DescriptionTextId { get; }
+
+        /// <summary>
         /// Dialogue group id that triggered this dialogue, when the dialogue belongs to a group.
         /// </summary>
         public string? GroupId { get; }
@@ -141,7 +146,10 @@ namespace NeoCompose.Runtime
             Context = context;
             Id = data.id;
             Name = data.name;
-            Description = data.description;
+            DescriptionTextId = data.description;
+            Description = data.description == null
+                ? null
+                : client.Localization.ResolveText(data.description);
             this.GroupId = groupId;
             LookupValueId = data.triggerNode?.dialogueGroupSettings?.lookupValueId;
             Primary = context.Primary;
@@ -288,7 +296,7 @@ namespace NeoCompose.Runtime
                 {
                     hiddenOptions.Add(new NeoDialogueHiddenTextOption(
                         optionModel.id,
-                        optionModel.text,
+                        client.Localization.ResolveText(optionModel.text),
                         optionModel.name));
                     continue;
                 }
@@ -354,14 +362,16 @@ namespace NeoCompose.Runtime
 
         private string InterpolateTextNodeText(DialogueTextNodeModel node)
         {
-            return NeoDialogueTextInterpolator.Interpolate(
+            string template = client.Localization.ResolveTextTemplate(node.text);
+            string interpolated = NeoDialogueTextInterpolator.Interpolate(
                 client,
-                node.text,
+                template,
                 node.variables,
                 Context,
                 memoryStore,
                 "text node",
                 node.id);
+            return client.Localization.FormatResolvedText(interpolated);
         }
 
         private string InterpolateOptionText(
@@ -372,14 +382,16 @@ namespace NeoCompose.Runtime
             try
             {
                 Context.OptionId = optionModel.id;
-                return NeoDialogueTextInterpolator.Interpolate(
+                string template = client.Localization.ResolveTextTemplate(optionModel.text);
+                string interpolated = NeoDialogueTextInterpolator.Interpolate(
                     client,
-                    optionModel.text,
+                    template,
                     optionModel.variables,
                     Context,
                     memoryStore,
                     "text option",
                     $"{textNodeId}/{optionModel.id}");
+                return client.Localization.FormatResolvedText(interpolated);
             }
             finally
             {

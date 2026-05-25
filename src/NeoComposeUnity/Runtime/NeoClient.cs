@@ -33,6 +33,7 @@ namespace NeoCompose.Runtime
         public NeoAttributeCustom AssetsRoot => assets;
         public NeoAttributeCustomWritable SaveRoot => save;
         public NeoAttributeCustomWritable SessionRoot => session;
+        public NeoLocalization Localization { get; }
 
         /// <summary>
         /// Flat registry of every constructed <see cref="NeoAttribute"/>,
@@ -125,12 +126,14 @@ namespace NeoCompose.Runtime
             ProjectData data,
             LoadSave loadSave,
             HandleSave handleSave,
-            NeoAssetDatabase? assetDatabase = null)
+            NeoAssetDatabase? assetDatabase = null,
+            NeoLocalization? localization = null)
         {
             this.data = data;
             this.loadSave = loadSave;
             this.handleSave = handleSave;
             this.assetDatabase = assetDatabase;
+            Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
             ValidateRootCustomAttribute(data.project.rootAssetsAttributeId, nameof(Project.rootAssetsAttributeId));
             ValidateRootCustomAttribute(data.project.rootSaveFileAttributeId, nameof(Project.rootSaveFileAttributeId));
             ValidateRootCustomAttribute(data.project.rootSessionAttributeId, nameof(Project.rootSessionAttributeId));
@@ -823,7 +826,11 @@ namespace NeoCompose.Runtime
                 NullAttributeValue n => new NullAttributeValue { value = n.value },
                 BoolAttributeValue b => new BoolAttributeValue { value = b.value },
                 NumberAttributeValue n => new NumberAttributeValue { value = n.value },
-                StringAttributeValue s => new StringAttributeValue { value = s.value },
+                StringAttributeValue s => new StringAttributeValue
+                {
+                    value = s.value,
+                    neoLocalizationMode = s.neoLocalizationMode,
+                },
                 ArrayAttributeValue a => new ArrayAttributeValue
                 {
                     value = a.value == null ? null : (string[])a.value.Clone(),
@@ -875,6 +882,16 @@ namespace NeoCompose.Runtime
             if (!saveData.attributeValueOverrides.Remove(attributeId)) return false;
             OnSaveOverrideChanged?.Invoke(attributeId, null);
             OnWritableOverrideChanged?.Invoke(NeoValueOwnership.Save, attributeId, null);
+            return true;
+        }
+
+        internal bool RemoveWritableOverride(NeoValueOwnership ownership, string attributeId)
+        {
+            if (ownership == NeoValueOwnership.Save) return RemoveSaveOverride(attributeId);
+            if (ownership == NeoValueOwnership.Asset) return false;
+            var store = GetWritableStore(ownership);
+            if (!store.attributeValueOverrides.Remove(attributeId)) return false;
+            OnWritableOverrideChanged?.Invoke(ownership, attributeId, null);
             return true;
         }
 

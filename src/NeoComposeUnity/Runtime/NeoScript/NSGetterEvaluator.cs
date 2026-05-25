@@ -665,7 +665,7 @@ namespace NeoCompose.Runtime.NeoScript
             if (record!.TryGetValue(schemaKey, out var at))
             {
                 return DispatchResult.Ok(
-                    ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx)));
+                    ResolveValueIfId(at, ctx, FindRowOwnershipByReference(receiver, ctx), attr));
             }
             return DispatchResult.NoInfo();
         }
@@ -1209,12 +1209,13 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? ResolveValueIfId(
             object? at,
             Context ctx,
-            NeoValueOwnership? preferredOwnership = null)
+            NeoValueOwnership? preferredOwnership = null,
+            JsonAttribute? attribute = null)
         {
             if (at is not string id) return at;
             var ownership = preferredOwnership ?? ctx.valueOwnership;
             if (!ctx.client.TryGetValue(ownership, id, out AttributeValue? row)) return at;
-            var v = UnwrapCached(row, ctx, ownership);
+            var v = UnwrapCached(row, ctx, ownership, attribute);
             if (v is object?[] arr && arr.Length == 1 && arr[0] is string singleId)
             {
                 if (ctx.client.TryGetValue(ownership, singleId, out AttributeValue? next))
@@ -1252,13 +1253,19 @@ namespace NeoCompose.Runtime.NeoScript
         // IDictionary, primitives, etc.).
         // ---------------------------------------------------------------
 
-        private static object? ExtractWireValue(AttributeValue row, NeoValueOwnership ownership)
+        private static object? ExtractWireValue(
+            AttributeValue row,
+            NeoValueOwnership ownership,
+            JsonAttribute? attribute,
+            Context ctx)
         {
             return row switch
             {
                 BoolAttributeValue b => b.value,
                 NumberAttributeValue n => n.value,
-                StringAttributeValue s => s.value,
+                StringAttributeValue s => attribute is StringAttribute stringAttribute
+                    ? ResolveStringValue(s, stringAttribute, ctx)
+                    : s.value,
                 ArrayAttributeValue a => a.value is null
                     ? null
                     : ToObjectArray(a.value),
@@ -1298,11 +1305,12 @@ namespace NeoCompose.Runtime.NeoScript
         private static object? UnwrapCached(
             AttributeValue row,
             Context ctx,
-            NeoValueOwnership ownership)
+            NeoValueOwnership ownership,
+            JsonAttribute? attribute = null)
         {
-            string cacheKey = RowCacheKey(ownership, row.id);
+            string cacheKey = RowCacheKey(ownership, row.id, attribute);
             if (ctx.rowUnwrapCache.TryGetValue(cacheKey, out var cached)) return cached;
-            var unwrapped = ExtractWireValue(row, ownership);
+            var unwrapped = ExtractWireValue(row, ownership, attribute, ctx);
             ctx.rowUnwrapCache[cacheKey] = unwrapped;
             // Reverse-index only object-shaped unwraps. Primitive
             // boxes don't have meaningful reference identity for our
@@ -1318,8 +1326,22 @@ namespace NeoCompose.Runtime.NeoScript
             return unwrapped;
         }
 
-        private static string RowCacheKey(NeoValueOwnership ownership, string rowId) =>
-            ownership.ToString() + ":" + rowId;
+        private static string RowCacheKey(
+            NeoValueOwnership ownership,
+            string rowId,
+            JsonAttribute? attribute = null) =>
+            ownership.ToString() + ":" + rowId + ":" + (attribute?.id ?? "");
+
+        private static string? ResolveStringValue(
+            StringAttributeValue value,
+            StringAttribute attribute,
+            Context ctx)
+        {
+            if (value.value == null) return null;
+            if (!attribute.localizable) return value.value;
+            if (value.neoLocalizationMode == NeoStringLocalizationMode.Literal) return value.value;
+            return ctx.client.Localization.ResolveText(value.value);
+        }
 
         private static object?[] ToObjectArray(string[] arr)
         {
@@ -1542,9 +1564,18 @@ namespace NeoCompose.Runtime.NeoScript
                     var labels = new List<string>(ids.Count);
                     foreach (var id in ids)
                     {
-                        labels.Add(jsonEnum.options.TryGetValue(id, out EnumOption opt)
-                            ? opt.text
-                            : id);
+                        if (!jsonEnum.options.TryGetValue(id, out EnumOption opt))
+                        {
+                            labels.Add(id);
+                        }
+                        else if (ctx.client.Localization.TryResolveText(opt.text, out var localized))
+                        {
+                            labels.Add(localized);
+                        }
+                        else
+                        {
+                            labels.Add(opt.text);
+                        }
                     }
                     return string.Join(", ", labels);
                 }

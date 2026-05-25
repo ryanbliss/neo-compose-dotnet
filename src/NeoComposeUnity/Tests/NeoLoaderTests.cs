@@ -1,11 +1,17 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System.IO;
+using System.Linq;
+using System.Collections.Generic;
 using NUnit.Framework;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using UnityEditor;
 
 namespace NeoCompose.Tests
 {
@@ -108,6 +114,542 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Hola", file.values["text-title"]);
             Assert.IsTrue(file.values.ContainsKey("text-missing"));
             Assert.IsNull(file.values["text-missing"]);
+        }
+
+        [Test]
+        public void NeoLoader_LoadsRootLocalizationLocale()
+        {
+            var projectJson = AddLocalizationMetadata(
+                LoadFixture("synth-example.json"),
+                "en-US",
+                "es-MX");
+            var source = new FakeLocalizationLocaleFileSource();
+            source.files["en-US"] = new ProjectLocalizationLocaleFile
+            {
+                schemaVersion = 1,
+                projectId = "test-project",
+                versionId = "version-1",
+                locale = "en-US",
+                formattingSyntax = "smart-format",
+                values = new Dictionary<string, string?>
+                {
+                    ["text-title"] = "Hello",
+                },
+            };
+
+            string saveBuffer = "";
+            var client = new NeoLoader().Load(
+                projectJson,
+                () => saveBuffer,
+                save => saveBuffer = save,
+                null,
+                new NeoLocalizationOptions(),
+                source);
+
+            Assert.AreEqual("en-US", client.Localization.RootLocale);
+            Assert.AreEqual("en-US", client.Localization.CurrentLocale);
+            CollectionAssert.AreEqual(new[] { "en-US", "es-MX" }, client.Localization.SupportedLocales);
+            CollectionAssert.AreEqual(new[] { "en-US" }, client.Localization.LoadedLocales.ToArray());
+        }
+
+        [Test]
+        public void NeoLoader_SelectsExactLocaleOverride()
+        {
+            var client = LoadClientWithLocalization(new NeoLocalizationOptions
+            {
+                localeOverride = "es-MX",
+                preloadSystemLocale = false,
+            });
+
+            Assert.AreEqual("es-MX", client.Localization.CurrentLocale);
+        }
+
+        [Test]
+        public void NeoLoader_SelectsLanguageLocaleOverride()
+        {
+            var client = LoadClientWithLocalization(new NeoLocalizationOptions
+            {
+                localeOverride = "es-ES",
+                preloadSystemLocale = false,
+            });
+
+            Assert.AreEqual("es-MX", client.Localization.CurrentLocale);
+        }
+
+        [Test]
+        public void NeoLocalization_SetLocaleFallsBackToRoot()
+        {
+            var client = LoadClientWithLocalization(new NeoLocalizationOptions
+            {
+                localeOverride = "fr-FR",
+                preloadSystemLocale = false,
+            });
+
+            Assert.AreEqual("en-US", client.Localization.CurrentLocale);
+
+            client.Localization.SetLocale("es-AR");
+
+            Assert.AreEqual("es-MX", client.Localization.CurrentLocale);
+
+            client.Localization.SetLocale("ja-JP");
+
+            Assert.AreEqual("en-US", client.Localization.CurrentLocale);
+        }
+
+        [Test]
+        public void NeoLocalization_ResolvesThroughFallbackChainAndCachesLoadedLocales()
+        {
+            var projectJson = AddLocalizationMetadata(
+                LoadFixture("synth-example.json"),
+                "en-US",
+                "es-MX");
+            var source = new FakeLocalizationLocaleFileSource();
+            source.files["en-US"] = LocaleFile("en-US", null, ("title", "Hello {name}"), ("root-only", "Root"));
+            source.files["es-MX"] = LocaleFile("es-MX", "en-US", ("title", "Hola {name}"), ("missing", null));
+
+            string saveBuffer = "";
+            var client = new NeoLoader().Load(
+                projectJson,
+                () => saveBuffer,
+                save => saveBuffer = save,
+                null,
+                new NeoLocalizationOptions
+                {
+                    localeOverride = "es-MX",
+                    preloadSystemLocale = false,
+                },
+                source);
+
+            var args = new Dictionary<string, object?> { ["name"] = "Ada" };
+
+            Assert.AreEqual("Hola Ada", client.Localization.ResolveText("title", args));
+            Assert.AreEqual("Root", client.Localization.ResolveText("root-only"));
+            CollectionAssert.AreEquivalent(new[] { "en-US", "es-MX" }, client.Localization.LoadedLocales);
+            Assert.AreEqual(1, source.loadCounts["es-MX"]);
+            Assert.AreEqual(1, source.loadCounts["en-US"]);
+
+            Assert.AreEqual("Hola Ada", client.Localization.ResolveText("title", args));
+            Assert.AreEqual(1, source.loadCounts["es-MX"]);
+        }
+
+        [Test]
+        public void NeoLocalization_StreamingModeDoesNotSynchronouslyLoadNonRootLocales()
+        {
+            var projectJson = AddLocalizationMetadata(
+                LoadFixture("synth-example.json"),
+                "en-US",
+                "es-MX");
+            var source = new FakeLocalizationLocaleFileSource();
+            source.files["en-US"] = LocaleFile("en-US", null, ("title", "Hello"));
+            source.files["es-MX"] = LocaleFile("es-MX", "en-US", ("title", "Hola"));
+
+            string saveBuffer = "";
+            var client = new NeoLoader().Load(
+                projectJson,
+                () => saveBuffer,
+                save => saveBuffer = save,
+                null,
+                new NeoLocalizationOptions
+                {
+                    localeOverride = "es-MX",
+                    preloadSystemLocale = false,
+                    useStreamingAssetsForNonRootLocales = true,
+                },
+                source);
+
+            Assert.AreEqual("Hello", client.Localization.ResolveText("title"));
+            Assert.IsFalse(source.loadCounts.ContainsKey("es-MX"));
+            CollectionAssert.AreEqual(new[] { "en-US" }, client.Localization.LoadedLocales.ToArray());
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task NeoLocalization_LoadAsyncLoadsStreamingFallbackChain()
+        {
+            var projectJson = AddLocalizationMetadata(
+                LoadFixture("synth-example.json"),
+                "en-US",
+                "es-MX");
+            var source = new FakeLocalizationLocaleFileSource();
+            source.files["en-US"] = LocaleFile("en-US", null, ("title", "Hello"));
+            source.streamingFiles["es-MX"] = LocaleFile("es-MX", "en-US", ("title", "Hola"));
+
+            string saveBuffer = "";
+            var client = new NeoLoader().Load(
+                projectJson,
+                () => saveBuffer,
+                save => saveBuffer = save,
+                null,
+                new NeoLocalizationOptions
+                {
+                    localeOverride = "es-MX",
+                    preloadSystemLocale = false,
+                    useStreamingAssetsForNonRootLocales = true,
+                },
+                source);
+
+            Assert.AreEqual("Hello", client.Localization.ResolveText("title"));
+
+            await client.Localization.LoadAsync();
+
+            Assert.AreEqual("Hola", client.Localization.ResolveText("title"));
+            CollectionAssert.AreEquivalent(new[] { "en-US", "es-MX" }, client.Localization.LoadedLocales);
+            Assert.AreEqual(1, source.streamingLoadCounts["es-MX"]);
+        }
+
+        [Test]
+        public async System.Threading.Tasks.Task NeoLocalization_LoadLocaleAsyncCachesStreamingLocale()
+        {
+            var client = LoadClientWithStreamingLocalization(out var source);
+
+            Assert.IsTrue(await client.Localization.LoadLocaleAsync("es-MX"));
+            Assert.IsTrue(await client.Localization.LoadLocaleAsync("es-MX"));
+
+            Assert.AreEqual("Hola", client.Localization.ResolveText("title"));
+            Assert.AreEqual(1, source.streamingLoadCounts["es-MX"]);
+        }
+
+        [Test]
+        public void NeoLocalization_RecoversFromUnknownTextIdAndFormatterErrors()
+        {
+            var projectJson = AddLocalizationMetadata(
+                LoadFixture("synth-example.json"),
+                "en-US",
+                "es-MX");
+            var source = new FakeLocalizationLocaleFileSource();
+            source.files["en-US"] = LocaleFile("en-US", null, ("bad-format", "{missing"));
+
+            string saveBuffer = "";
+            var client = new NeoLoader().Load(
+                projectJson,
+                () => saveBuffer,
+                save => saveBuffer = save,
+                null,
+                new NeoLocalizationOptions { preloadSystemLocale = false },
+                source);
+
+            Assert.AreEqual("unknown", client.Localization.ResolveText("unknown"));
+            Assert.AreEqual("{missing", client.Localization.ResolveText("bad-format"));
+        }
+
+        [Test]
+        public void ResourcesLocalizationLocaleFileSource_RecoversFromInvalidJson()
+        {
+            const string assetPath = "Assets/Resources/Neo/Localization/bad-json.json";
+            Directory.CreateDirectory(Path.GetDirectoryName(assetPath)!);
+            File.WriteAllText(assetPath, "{ invalid json");
+            AssetDatabase.Refresh();
+
+            try
+            {
+                var localization = new ProjectLocalizationExport
+                {
+                    rootLocale = "en-US",
+                    localeFileNames = new Dictionary<string, string>
+                    {
+                        ["en-US"] = "bad-json.json",
+                    },
+                };
+
+                var source = new NeoResourcesLocalizationLocaleFileSource();
+
+                Assert.IsFalse(source.TryLoadResourcesLocale(localization, "en-US", out var file));
+                Assert.IsNull(file);
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+                AssetDatabase.Refresh();
+            }
+        }
+
+        [Test]
+        public void NeoAttributeString_TextResolvesLocalizableTextIds()
+        {
+            var client = LoadLocalizedStringClient(localizable: true);
+            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
+            var node = new NeoAttributeString(client, attr, null);
+
+            Assert.AreEqual("text-title", node.TextId);
+            Assert.AreEqual("Localized Title", node.Text);
+        }
+
+        [Test]
+        public void NeoAttributeString_TextKeepsNonLocalizableStringsLiteral()
+        {
+            var client = LoadLocalizedStringClient(localizable: false);
+            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
+            var node = new NeoAttributeString(client, attr, null);
+
+            Assert.IsNull(node.TextId);
+            Assert.AreEqual("text-title", node.Text);
+        }
+
+        [Test]
+        public void NeoAttributeString_SetLiteralOverrideDoesNotOverwriteLocalizedValue()
+        {
+            var client = LoadLocalizedStringClient(localizable: true);
+            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
+            var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Save);
+
+            Assert.AreEqual("Localized Title", node.Text);
+
+            node.SetLiteralOverride("Manual Title");
+
+            Assert.AreEqual("Manual Title", node.Text);
+            Assert.IsNull(node.TextId);
+            Assert.AreEqual(NeoStringLocalizationMode.Literal, node.value!.neoLocalizationMode);
+
+            node.ClearOverride();
+
+            Assert.AreEqual("Localized Title", node.Text);
+            Assert.AreEqual("text-title", node.TextId);
+        }
+
+        [Test]
+        public void NeoAttributeString_SetLiteralOverrideSupportsNullUnlessRequired()
+        {
+            var client = LoadLocalizedStringClient(localizable: true);
+            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
+            var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Save);
+
+            node.SetLiteralOverride(null);
+
+            Assert.IsNull(node.Text);
+            Assert.IsNull(node.TextId);
+            Assert.AreEqual(NeoStringLocalizationMode.Literal, node.value!.neoLocalizationMode);
+
+            attr.required = true;
+
+            Assert.Throws<System.ArgumentNullException>(() => node.SetLiteralOverride(null));
+        }
+
+        private static NeoClient LoadClientWithLocalization(NeoLocalizationOptions options)
+        {
+            var projectJson = AddLocalizationMetadata(
+                LoadFixture("synth-example.json"),
+                "en-US",
+                "es-MX");
+            var source = new FakeLocalizationLocaleFileSource();
+            source.files["en-US"] = new ProjectLocalizationLocaleFile
+            {
+                schemaVersion = 1,
+                projectId = "test-project",
+                versionId = "version-1",
+                locale = "en-US",
+                formattingSyntax = "smart-format",
+            };
+
+            string saveBuffer = "";
+            return new NeoLoader().Load(
+                projectJson,
+                () => saveBuffer,
+                save => saveBuffer = save,
+                null,
+                options,
+                source);
+        }
+
+        private static NeoClient LoadLocalizedStringClient(bool localizable)
+        {
+            var projectJson = $@"{{
+  ""project"": {{
+    ""id"": ""project-1"",
+    ""rootAssetsAttributeId"": ""root-assets"",
+    ""rootSaveFileAttributeId"": ""root-save"",
+    ""rootSessionAttributeId"": ""root-session""
+  }},
+  ""attributes"": {{
+    ""root-assets"": {{
+      ""id"": ""root-assets"",
+      ""projectId"": ""project-1"",
+      ""name"": ""Assets"",
+      ""type"": 7,
+      ""customTypeId"": ""type-root"",
+      ""valueId"": ""assets-value""
+    }},
+    ""root-save"": {{
+      ""id"": ""root-save"",
+      ""projectId"": ""project-1"",
+      ""name"": ""Save"",
+      ""type"": 7,
+      ""customTypeId"": ""type-root""
+    }},
+    ""root-session"": {{
+      ""id"": ""root-session"",
+      ""projectId"": ""project-1"",
+      ""name"": ""Session"",
+      ""type"": 7,
+      ""customTypeId"": ""type-root""
+    }},
+    ""attr-title"": {{
+      ""id"": ""attr-title"",
+      ""projectId"": ""project-1"",
+      ""name"": ""Title"",
+      ""type"": 3,
+      ""valueId"": ""title-value"",
+      ""localizable"": {localizable.ToString().ToLowerInvariant()}
+    }}
+  }},
+  ""types"": {{
+    ""type-root"": {{
+      ""id"": ""type-root"",
+      ""projectId"": ""project-1"",
+      ""name"": ""Root"",
+      ""attributes"": {{ ""Title"": ""attr-title"" }}
+    }}
+  }},
+  ""values"": {{
+    ""assets-value"": {{
+      ""id"": ""assets-value"",
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z"",
+      ""value"": {{ ""Title"": ""title-value"" }},
+      ""typeId"": ""type-root""
+    }},
+    ""title-value"": {{
+      ""id"": ""title-value"",
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z"",
+      ""value"": ""text-title""
+    }}
+  }},
+  ""enums"": {{}},
+  ""dialogues"": {{}},
+  ""dialogueGroups"": {{}},
+  ""priorityGroups"": {{}},
+  ""localization"": {{
+    ""schemaVersion"": 1,
+    ""rootLocale"": ""en-US"",
+    ""supportedLocales"": [
+      {{ ""locale"": ""en-US"", ""sourceLocale"": null }}
+    ],
+    ""textIds"": [""text-title""],
+    ""rootLocaleFileName"": ""en-US.json"",
+    ""localeFileNames"": {{ ""en-US"": ""en-US.json"" }},
+    ""formatting"": {{ ""syntax"": ""smart-format"", ""sourceSyntax"": ""icu"" }}
+  }}
+}}";
+            var source = new FakeLocalizationLocaleFileSource();
+            source.files["en-US"] = LocaleFile("en-US", null, ("text-title", "Localized Title"));
+
+            string saveBuffer = "";
+            return new NeoLoader().Load(
+                projectJson,
+                () => saveBuffer,
+                save => saveBuffer = save,
+                null,
+                new NeoLocalizationOptions { preloadSystemLocale = false },
+                source);
+        }
+
+        private static T RequireAttribute<T>(NeoClient client, string id)
+            where T : Attribute
+        {
+            if (!client.TryGetAttribute(id, out T? attr))
+            {
+                Assert.Fail($"Fixture is missing attribute '{id}' of type {typeof(T).Name}");
+                throw new System.InvalidOperationException("unreachable");
+            }
+            return attr;
+        }
+
+        private static NeoClient LoadClientWithStreamingLocalization(
+            out FakeLocalizationLocaleFileSource source)
+        {
+            var projectJson = AddLocalizationMetadata(
+                LoadFixture("synth-example.json"),
+                "en-US",
+                "es-MX");
+            source = new FakeLocalizationLocaleFileSource();
+            source.files["en-US"] = LocaleFile("en-US", null, ("title", "Hello"));
+            source.streamingFiles["es-MX"] = LocaleFile("es-MX", "en-US", ("title", "Hola"));
+
+            string saveBuffer = "";
+            return new NeoLoader().Load(
+                projectJson,
+                () => saveBuffer,
+                save => saveBuffer = save,
+                null,
+                new NeoLocalizationOptions
+                {
+                    localeOverride = "es-MX",
+                    preloadSystemLocale = false,
+                    useStreamingAssetsForNonRootLocales = true,
+                },
+                source);
+        }
+
+        private static string AddLocalizationMetadata(
+            string projectJson,
+            string rootLocale,
+            string childLocale)
+        {
+            var json = JObject.Parse(projectJson);
+            json["localization"] = JObject.Parse($@"{{
+  ""schemaVersion"": 1,
+  ""rootLocale"": ""{rootLocale}"",
+  ""supportedLocales"": [
+    {{ ""locale"": ""{rootLocale}"", ""sourceLocale"": null }},
+    {{ ""locale"": ""{childLocale}"", ""sourceLocale"": ""{rootLocale}"" }}
+  ],
+  ""textIds"": [""text-title""],
+  ""rootLocaleFileName"": ""{rootLocale}.json"",
+  ""localeFileNames"": {{
+    ""{rootLocale}"": ""{rootLocale}.json"",
+    ""{childLocale}"": ""{childLocale}.json""
+  }},
+  ""formatting"": {{
+    ""syntax"": ""smart-format"",
+    ""sourceSyntax"": ""icu""
+  }}
+}}");
+            return json.ToString(Formatting.None);
+        }
+
+        private sealed class FakeLocalizationLocaleFileSource : INeoLocalizationLocaleFileSource
+        {
+            public readonly Dictionary<string, ProjectLocalizationLocaleFile> files = new();
+            public readonly Dictionary<string, ProjectLocalizationLocaleFile> streamingFiles = new();
+            public readonly Dictionary<string, int> loadCounts = new();
+            public readonly Dictionary<string, int> streamingLoadCounts = new();
+
+            public bool TryLoadResourcesLocale(
+                ProjectLocalizationExport localization,
+                string locale,
+                out ProjectLocalizationLocaleFile? file)
+            {
+                loadCounts[locale] = loadCounts.TryGetValue(locale, out var count) ? count + 1 : 1;
+                return files.TryGetValue(locale, out file);
+            }
+
+            public System.Threading.Tasks.Task<ProjectLocalizationLocaleFile?> LoadStreamingAssetsLocaleAsync(
+                ProjectLocalizationExport localization,
+                string locale,
+                string streamingAssetsRelativePath)
+            {
+                streamingLoadCounts[locale] = streamingLoadCounts.TryGetValue(locale, out var count)
+                    ? count + 1
+                    : 1;
+                streamingFiles.TryGetValue(locale, out var file);
+                return System.Threading.Tasks.Task.FromResult<ProjectLocalizationLocaleFile?>(file);
+            }
+        }
+
+        private static ProjectLocalizationLocaleFile LocaleFile(
+            string locale,
+            string? sourceLocale,
+            params (string id, string? value)[] values)
+        {
+            return new ProjectLocalizationLocaleFile
+            {
+                schemaVersion = 1,
+                projectId = "test-project",
+                versionId = "version-1",
+                locale = locale,
+                sourceLocale = sourceLocale,
+                formattingSyntax = "smart-format",
+                values = values.ToDictionary(entry => entry.id, entry => entry.value),
+            };
         }
     }
 }

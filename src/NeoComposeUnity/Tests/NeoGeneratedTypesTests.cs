@@ -67,6 +67,29 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedEnum_TextResolvesThroughLocalization()
+        {
+            var app = LoadGeneratedClient(out _);
+            app.Client.Localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
+            {
+                schemaVersion = 1,
+                projectId = "test-project",
+                versionId = "version-1",
+                locale = "en-US",
+                formattingSyntax = "smart-format",
+                values = new Dictionary<string, string?>
+                {
+                    ["Fire"] = "Localized Fire",
+                },
+            });
+
+            Assert.AreEqual("Fire", Element.fire.TextId);
+            Assert.AreEqual("Localized Fire", Element.fire.Text);
+            Assert.AreEqual("Localized Fire", Element.TextForOptionId("fire", app.Client));
+            Assert.AreEqual("modded-element", Element.TextIdForOptionId("modded-element"));
+        }
+
+        [Test]
         public void GeneratedRootClient_DisposeForwardsToRuntimeClient()
         {
             var app = LoadGeneratedClient(out _);
@@ -176,6 +199,35 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual("Typed Name Again", observed);
             Assert.AreEqual(2, changes);
+        }
+
+        [Test]
+        public void GeneratedWrapper_GetLocalizedTextId_ReturnsTextIdForFieldTokens()
+        {
+            var app = LoadGeneratedClient(out _);
+            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
+            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
+                app.Client,
+                derivedAttr,
+                null,
+                NeoValueOwnership.Save);
+            var generated = new Derived(app.Client, derivedNode);
+
+            generated.Name = "text-hero-name";
+            var nameNode = derivedNode.Get<NeoAttributeStringWritable>("Name");
+            nameNode.value!.neoLocalizationMode = NeoStringLocalizationMode.TextId;
+            app.Client.SetWritableValue(NeoValueOwnership.Save, nameNode.value);
+
+            Assert.AreEqual(
+                "text-hero-name",
+                generated.GetLocalizedTextId(Derived.Fields.Name));
+            Assert.IsNull(generated.GetLocalizedTextId(Derived.Fields.Health));
+
+            generated.Name = "Literal Name";
+
+            Assert.IsNull(generated.GetLocalizedTextId(Derived.Fields.Name));
+            Assert.Throws<System.ArgumentException>(
+                () => generated.GetLocalizedTextId(Hero.Fields.Name));
         }
 
         [Test]

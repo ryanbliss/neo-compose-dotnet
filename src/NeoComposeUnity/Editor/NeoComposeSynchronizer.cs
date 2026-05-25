@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -25,6 +26,7 @@ namespace NeoCompose.Unity.Editor
     public interface INeoComposeEditorAssetService
     {
         bool FileExists(string assetPath);
+        string[] FindFiles(string assetDirectory, string searchPattern);
         void EnsureDirectory(string assetDirectory);
         void WriteAllText(string assetPath, string content);
         void WriteAllBytes(string assetPath, byte[] content);
@@ -119,14 +121,20 @@ namespace NeoCompose.Unity.Editor
                 var projectJsonPath = NeoComposePathUtility.CombineAssetPath(
                     config.projectJsonDirectory,
                     NeoComposeEditorDefaults.ProjectJsonFileName);
+                var localizationPaths = BuildLocalizationFilePaths(
+                    config,
+                    exportResponse.localizationFiles,
+                    ReadLocalizationRootLocaleOrDefault(exportResponse.projectJson));
+                var existingReplacementPaths = new[] { generatedTypesPath, projectJsonPath }
+                    .Concat(localizationPaths.Values)
+                    .Where(assets.FileExists)
+                    .ToArray();
 
-                if ((assets.FileExists(generatedTypesPath) || assets.FileExists(projectJsonPath)) &&
+                if (existingReplacementPaths.Length > 0 &&
                     !confirmations.Confirm(
                         "Replace Neo Compose files?",
                         "Existing synchronized files will be replaced:\n\n" +
-                        generatedTypesPath +
-                        "\n" +
-                        projectJsonPath,
+                        string.Join("\n", existingReplacementPaths),
                         "Replace",
                         "Cancel"))
                 {
@@ -135,6 +143,11 @@ namespace NeoCompose.Unity.Editor
 
                 assets.EnsureDirectory(config.generatedTypesDirectory);
                 assets.EnsureDirectory(config.projectJsonDirectory);
+                var localizationSyncErrors = SynchronizeLocalizationFiles(
+                    config,
+                    exportResponse.localizationFiles,
+                    localizationPaths,
+                    onProgress);
                 var assetSyncErrors = await SynchronizeFilesAsync(config, exportResponse.projectJson, onProgress);
 
                 onProgress?.Invoke("Writing generated files...");
@@ -150,11 +163,12 @@ namespace NeoCompose.Unity.Editor
                 assets.SaveConfig(config);
                 assets.SchedulePostSynchronize(config, projectJsonPath);
 
-                if (assetSyncErrors.Length > 0)
+                var syncErrors = localizationSyncErrors.Concat(assetSyncErrors).ToArray();
+                if (syncErrors.Length > 0)
                 {
                     return NeoComposeSyncResult.Failure(
                         "Neo Compose files synchronized, but some assets failed:\n" +
-                        string.Join("\n", assetSyncErrors));
+                        string.Join("\n", syncErrors));
                 }
 
                 return NeoComposeSyncResult.Success("Neo Compose files synchronized.", exportResponse);
@@ -164,6 +178,99 @@ namespace NeoCompose.Unity.Editor
                 Debug.LogError(exception);
                 return NeoComposeSyncResult.Failure(exception.Message);
             }
+        }
+
+        private string[] SynchronizeLocalizationFiles(
+            NeoComposeConfig config,
+            List<NeoComposeUnityLocalizationFile> localizationFiles,
+            IReadOnlyDictionary<string, string> localizationPaths,
+            Action<string>? onProgress)
+        {
+            var errors = new List<string>();
+            if (localizationFiles.Count == 0) return errors.ToArray();
+
+            onProgress?.Invoke("Writing localization files...");
+            assets.EnsureDirectory(config.localizationResourcesDirectory);
+            if (config.useStreamingAssetsForNonRootLocales)
+            {
+                assets.EnsureDirectory(config.localizationStreamingAssetsDirectory);
+            }
+
+            var expectedPaths = new HashSet<string>(localizationPaths.Values);
+            DeleteStaleLocalizationFiles(config.localizationResourcesDirectory, expectedPaths);
+            if (config.useStreamingAssetsForNonRootLocales &&
+                config.localizationStreamingAssetsDirectory != config.localizationResourcesDirectory)
+            {
+                DeleteStaleLocalizationFiles(config.localizationStreamingAssetsDirectory, expectedPaths);
+            }
+
+            foreach (var file in localizationFiles)
+            {
+                if (!localizationPaths.TryGetValue(file.locale, out var assetPath)) continue;
+                try
+                {
+                    assets.WriteAllText(assetPath, file.content ?? "");
+                    assets.RefreshAsset(assetPath);
+                }
+                catch (Exception exception)
+                {
+                    errors.Add($"{file.locale}: {exception.Message}");
+                }
+            }
+
+            return errors.ToArray();
+        }
+
+        private void DeleteStaleLocalizationFiles(
+            string assetDirectory,
+            HashSet<string> expectedPaths)
+        {
+            foreach (var existingPath in assets.FindFiles(assetDirectory, "*.json"))
+            {
+                if (expectedPaths.Contains(existingPath)) continue;
+                assets.DeleteAsset(existingPath);
+            }
+        }
+
+        private static Dictionary<string, string> BuildLocalizationFilePaths(
+            NeoComposeConfig config,
+            List<NeoComposeUnityLocalizationFile> localizationFiles,
+            string rootLocale)
+        {
+            var paths = new Dictionary<string, string>();
+            foreach (var file in localizationFiles)
+            {
+                if (!IsSafeLocalizationFileName(file.fileName)) continue;
+                var directory =
+                    config.useStreamingAssetsForNonRootLocales &&
+                    !string.Equals(file.locale, rootLocale, StringComparison.Ordinal)
+                        ? config.localizationStreamingAssetsDirectory
+                        : config.localizationResourcesDirectory;
+                paths[file.locale] = NeoComposePathUtility.CombineAssetPath(directory, file.fileName);
+            }
+            return paths;
+        }
+
+        private static string ReadLocalizationRootLocaleOrDefault(string projectJson)
+        {
+            try
+            {
+                var root = JObject.Parse(projectJson)["localization"]?["rootLocale"]?.Value<string>();
+                return string.IsNullOrWhiteSpace(root) ? "en-US" : root!;
+            }
+            catch
+            {
+                return "en-US";
+            }
+        }
+
+        private static bool IsSafeLocalizationFileName(string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName)) return false;
+            if (fileName.Contains('/')) return false;
+            if (fileName.Contains('\\')) return false;
+            if (fileName.Contains("..")) return false;
+            return string.Equals(Path.GetExtension(fileName), ".json", StringComparison.OrdinalIgnoreCase);
         }
 
         private async Task<string[]> SynchronizeFilesAsync(
@@ -372,6 +479,14 @@ namespace NeoCompose.Unity.Editor
         public bool FileExists(string assetPath)
         {
             return File.Exists(assetPath);
+        }
+
+        public string[] FindFiles(string assetDirectory, string searchPattern)
+        {
+            if (!Directory.Exists(assetDirectory)) return Array.Empty<string>();
+            return Directory.GetFiles(assetDirectory, searchPattern)
+                .Select(NeoComposePathUtility.NormalizeSeparators)
+                .ToArray();
         }
 
         public void EnsureDirectory(string assetDirectory)

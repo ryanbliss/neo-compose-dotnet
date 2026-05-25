@@ -12,6 +12,8 @@ namespace NeoCompose.Runtime
         public const string ProjectJsonDirectory = "Assets/Resources/Neo";
         public const string LocalizationResourcesDirectory = "Assets/Resources/Neo/Localization";
         public const string LocalizationStreamingAssetsDirectory = "Assets/StreamingAssets/Neo/Localization";
+        public const string LocalizationResourcesPath = "Neo/Localization";
+        public const string LocalizationStreamingAssetsRelativePath = "Neo/Localization";
         public const string SpriteDirectory = "Assets/Resources/Neo/Files/Sprites";
         public const string AudioClipDirectory = "Assets/Resources/Neo/Files/Audio";
         public const string AssetDatabaseResourcePath = "Neo/NeoAssetDatabase";

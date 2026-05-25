@@ -20,6 +20,7 @@ namespace Assets.Scripts.Neo
         public NeoAttributeCustom AssetsRoot => Client.AssetsRoot;
         public NeoAttributeCustomWritable SaveRoot => Client.SaveRoot;
         public NeoAttributeCustomWritable SessionRoot => Client.SessionRoot;
+        public NeoLocalization Localization => Client.Localization;
         public ReadOnlyRoot Assets { get; }
         public Root Save { get; }
         public Root Session { get; }
@@ -82,9 +83,9 @@ namespace Assets.Scripts.Neo
             Dialogues = new NeoDialogues(this, dialogueOptions);
         }
 
-        public static TestProjectNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null)
+        public static TestProjectNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null, NeoLocalizationOptions? localizationOptions = null)
         {
-            var client = new NeoLoader().Load(projectJson, loadSave, handleSave, assetDatabase);
+            var client = new NeoLoader().Load(projectJson, loadSave, handleSave, assetDatabase, localizationOptions, null);
             return new TestProjectNeo(client, dialogueOptions);
         }
 
@@ -199,6 +200,8 @@ namespace Assets.Scripts.Neo
     {
         private static readonly Dictionary<string, Element> values = new Dictionary<string, Element>();
         public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
 
         private Element(string optionId)
         {
@@ -234,6 +237,21 @@ namespace Assets.Scripts.Neo
             };
         }
 
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "fire" => "Fire",
+                "ice" => "Ice",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? TestProjectNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
         public static implicit operator string(Element value) => value.optionId;
         public static implicit operator Element(string optionId) => FromOptionId(optionId);
         public override string ToString() => optionId;
@@ -267,7 +285,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").value?.value;
+                return node.Get<NeoAttributeString>("Name").Text;
             }
         }
 
@@ -286,6 +304,25 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<string?> Name = new("Name");
 
             public static readonly NeoField<int?> Health = new("Health");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+                [Fields.Health] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -338,6 +375,7 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 });
             }
             if (Health is not null)
@@ -371,11 +409,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").value?.value;
+                return node.Get<NeoAttributeString>("Name").Text;
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+                writableNode.SetStringLiteral("Name", value);
             }
         }
 
@@ -398,6 +436,25 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<string?> Name = new("Name");
 
             public static readonly NeoField<int?> Health = new("Health");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+                [Fields.Health] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -443,11 +500,11 @@ namespace Assets.Scripts.Neo
             });
         }
 
-        public NeoReadOnlyList<ReadOnlyHero> Heroes
+        public NeoReadOnlyList<ReadOnlyHero?> Heroes
         {
             get
             {
-                return new NeoReadOnlyList<ReadOnlyHero>(client, node.Get<NeoAttributeList>("Heroes"), (client, child) => ReadOnlyHero.Create(client, (NeoAttributeCustom)child));
+                return new NeoReadOnlyList<ReadOnlyHero?>(client, node.Get<NeoAttributeList>("Heroes"), (client, child) => ((NeoAttributeCustom)child).value is null ? null : ReadOnlyHero.Create(client, (NeoAttributeCustom)child));
             }
         }
 
@@ -481,13 +538,34 @@ namespace Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoReadOnlyList<ReadOnlyHero>> Heroes = new("Heroes");
+            public static readonly NeoField<NeoReadOnlyList<ReadOnlyHero?>> Heroes = new("Heroes");
 
             public static readonly NeoField<string> Manifest = new("Manifest");
 
             public static readonly NeoField<int> Score = new("Score");
 
             public static readonly NeoField<ReadOnlyNeoMemory> NeoMemory = new("NeoMemory");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Heroes] = () => null,
+                [Fields.Manifest] = () => null,
+                [Fields.Score] = () => null,
+                [Fields.NeoMemory] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -521,12 +599,12 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Root(IEnumerable<Hero>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null)
+        public Root(IEnumerable<Hero?>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null)
             : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Score, NeoMemory))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<Hero>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -539,7 +617,23 @@ namespace Assets.Scripts.Neo
                 var HeroesIds = new List<string>();
                 foreach (var entry in Heroes)
                 {
-                    HeroesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                    var entryValue = entry;
+                    if (entryValue is null)
+                    {
+                        var entryValueId = Guid.NewGuid().ToString();
+                        HeroesIds.Add(entryValueId);
+                        valueRows.Add(new ObjectAttributeValue
+                        {
+                            id = entryValueId,
+                            createdAt = nowIso,
+                            updatedAt = nowIso,
+                            value = null,
+                        });
+                    }
+                    else
+                    {
+                        HeroesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entryValue.valueId));
+                    }
                 }
                 valueRows.Add(new ArrayAttributeValue
                 {
@@ -580,11 +674,11 @@ namespace Assets.Scripts.Neo
             });
         }
 
-        public new NeoList<Hero> Heroes
+        public new NeoList<Hero?> Heroes
         {
             get
             {
-                return new NeoList<Hero>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Heroes"), (client, child) => Hero.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoList<Hero?>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Heroes"), (client, child) => ((NeoAttributeCustom)child).value is null ? null : Hero.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
@@ -626,13 +720,34 @@ namespace Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoList<Hero>> Heroes = new("Heroes");
+            public static readonly NeoField<NeoList<Hero?>> Heroes = new("Heroes");
 
             public static readonly NeoField<string> Manifest = new("Manifest");
 
             public static readonly NeoField<int> Score = new("Score");
 
             public static readonly NeoField<NeoMemory> NeoMemory = new("NeoMemory");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Heroes] = () => null,
+                [Fields.Manifest] = () => null,
+                [Fields.Score] = () => null,
+                [Fields.NeoMemory] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -686,7 +801,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").value?.value;
+                return node.Get<NeoAttributeString>("Name").Text;
             }
         }
 
@@ -695,6 +810,24 @@ namespace Assets.Scripts.Neo
             private Fields() {}
 
             public static readonly NeoField<string?> Name = new("Name");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -746,6 +879,7 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 });
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-base", value, valueRows);
@@ -769,11 +903,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").value?.value;
+                return node.Get<NeoAttributeString>("Name").Text;
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+                writableNode.SetStringLiteral("Name", value);
             }
         }
 
@@ -782,6 +916,24 @@ namespace Assets.Scripts.Neo
             private Fields() {}
 
             public static readonly NeoField<string?> Name = new("Name");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -841,6 +993,24 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<int?> Health = new("Health");
         }
 
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Health] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
         {
             return new Dictionary<INeoField, Func<object?>>
@@ -888,6 +1058,7 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 });
             }
             if (Health is not null)
@@ -921,11 +1092,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").value?.value;
+                return node.Get<NeoAttributeString>("Name").Text;
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+                writableNode.SetStringLiteral("Name", value);
             }
         }
 
@@ -948,6 +1119,25 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<string?> Name = new("Name");
 
             public static readonly NeoField<int?> Health = new("Health");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+                [Fields.Health] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -997,7 +1187,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").value?.value;
+                return node.Get<NeoAttributeString>("Name").Text;
             }
         }
 
@@ -1006,6 +1196,24 @@ namespace Assets.Scripts.Neo
             private Fields() {}
 
             public static readonly NeoField<string?> Name = new("Name");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -1055,6 +1263,7 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 });
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-override", value, valueRows);
@@ -1076,11 +1285,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").value?.value;
+                return node.Get<NeoAttributeString>("Name").Text;
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+                writableNode.SetStringLiteral("Name", value);
             }
         }
 
@@ -1089,6 +1298,24 @@ namespace Assets.Scripts.Neo
             private Fields() {}
 
             public static readonly NeoField<string?> Name = new("Name");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -1137,7 +1364,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("ChoiceId").value?.value ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
+                return node.Get<NeoAttributeString>("ChoiceId").Text ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
             }
         }
 
@@ -1146,6 +1373,24 @@ namespace Assets.Scripts.Neo
             private Fields() {}
 
             public static readonly NeoField<string> ChoiceId = new("ChoiceId");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.ChoiceId] = () => node.Get<NeoAttributeString>("ChoiceId").TextId,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -1195,6 +1440,7 @@ namespace Assets.Scripts.Neo
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = ChoiceId,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
             });
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-choice-log", value, valueRows);
         }
@@ -1215,11 +1461,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("ChoiceId").value?.value ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
+                return node.Get<NeoAttributeString>("ChoiceId").Text ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "ChoiceId", NeoGeneratedTypesSupport.Value(value));
+                writableNode.SetStringLiteral("ChoiceId", value);
             }
         }
 
@@ -1228,6 +1474,24 @@ namespace Assets.Scripts.Neo
             private Fields() {}
 
             public static readonly NeoField<string> ChoiceId = new("ChoiceId");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.ChoiceId] = () => node.Get<NeoAttributeString>("ChoiceId").TextId,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -1284,7 +1548,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("LastVisitedAt").value?.value;
+                return node.Get<NeoAttributeString>("LastVisitedAt").Text;
             }
         }
 
@@ -1292,7 +1556,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("MostRecentChoiceId").value?.value;
+                return node.Get<NeoAttributeString>("MostRecentChoiceId").Text;
             }
         }
 
@@ -1315,6 +1579,27 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<string?> MostRecentChoiceId = new("MostRecentChoiceId");
 
             public static readonly NeoField<NeoReadOnlyList<ReadOnlyNeoChoiceLog>> ChoiceHistory = new("ChoiceHistory");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.VisitCount] = () => null,
+                [Fields.LastVisitedAt] = () => node.Get<NeoAttributeString>("LastVisitedAt").TextId,
+                [Fields.MostRecentChoiceId] = () => node.Get<NeoAttributeString>("MostRecentChoiceId").TextId,
+                [Fields.ChoiceHistory] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -1381,6 +1666,7 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = LastVisitedAt,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 });
             }
             if (MostRecentChoiceId is not null)
@@ -1393,6 +1679,7 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = MostRecentChoiceId,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 });
             }
             if (ChoiceHistory is not null)
@@ -1443,11 +1730,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("LastVisitedAt").value?.value;
+                return node.Get<NeoAttributeString>("LastVisitedAt").Text;
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "LastVisitedAt", NeoGeneratedTypesSupport.Value(value));
+                writableNode.SetStringLiteral("LastVisitedAt", value);
             }
         }
 
@@ -1455,11 +1742,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("MostRecentChoiceId").value?.value;
+                return node.Get<NeoAttributeString>("MostRecentChoiceId").Text;
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "MostRecentChoiceId", NeoGeneratedTypesSupport.Value(value));
+                writableNode.SetStringLiteral("MostRecentChoiceId", value);
             }
         }
 
@@ -1482,6 +1769,27 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<string?> MostRecentChoiceId = new("MostRecentChoiceId");
 
             public static readonly NeoField<NeoList<NeoChoiceLog>> ChoiceHistory = new("ChoiceHistory");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.VisitCount] = () => null,
+                [Fields.LastVisitedAt] = () => node.Get<NeoAttributeString>("LastVisitedAt").TextId,
+                [Fields.MostRecentChoiceId] = () => node.Get<NeoAttributeString>("MostRecentChoiceId").TextId,
+                [Fields.ChoiceHistory] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -1541,7 +1849,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("LastVisitedAt").value?.value;
+                return node.Get<NeoAttributeString>("LastVisitedAt").Text;
             }
         }
 
@@ -1562,6 +1870,26 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<string?> LastVisitedAt = new("LastVisitedAt");
 
             public static readonly NeoField<NeoReadOnlyDictionary<ReadOnlyNeoTextNodeMemory>> TextNodeMemories = new("TextNodeMemories");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.VisitCount] = () => null,
+                [Fields.LastVisitedAt] = () => node.Get<NeoAttributeString>("LastVisitedAt").TextId,
+                [Fields.TextNodeMemories] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -1627,6 +1955,7 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = LastVisitedAt,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 });
             }
             if (TextNodeMemories is not null)
@@ -1677,11 +2006,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("LastVisitedAt").value?.value;
+                return node.Get<NeoAttributeString>("LastVisitedAt").Text;
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "LastVisitedAt", NeoGeneratedTypesSupport.Value(value));
+                writableNode.SetStringLiteral("LastVisitedAt", value);
             }
         }
 
@@ -1702,6 +2031,26 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<string?> LastVisitedAt = new("LastVisitedAt");
 
             public static readonly NeoField<NeoDictionary<NeoTextNodeMemory>> TextNodeMemories = new("TextNodeMemories");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.VisitCount] = () => null,
+                [Fields.LastVisitedAt] = () => node.Get<NeoAttributeString>("LastVisitedAt").TextId,
+                [Fields.TextNodeMemories] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -1761,6 +2110,24 @@ namespace Assets.Scripts.Neo
             private Fields() {}
 
             public static readonly NeoField<NeoReadOnlyDictionary<ReadOnlyNeoDialogueMemory>> DialogueMemories = new("DialogueMemories");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.DialogueMemories] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
@@ -1847,6 +2214,24 @@ namespace Assets.Scripts.Neo
             private Fields() {}
 
             public static readonly NeoField<NeoDictionary<NeoDialogueMemory>> DialogueMemories = new("DialogueMemories");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.DialogueMemories] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
         }
 
         private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
