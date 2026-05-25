@@ -1364,7 +1364,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("ChoiceId").Text ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
+                return node.Get<NeoAttributeString>("ChoiceId").value?.value ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
             }
         }
 
@@ -1379,7 +1379,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.ChoiceId] = () => node.Get<NeoAttributeString>("ChoiceId").TextId,
+                [Fields.ChoiceId] = () => null,
             };
         }
 
@@ -1461,11 +1461,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("ChoiceId").Text ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
+                return node.Get<NeoAttributeString>("ChoiceId").value?.value ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
             }
             set
             {
-                writableNode.SetStringLiteral("ChoiceId", value);
+                NeoGeneratedTypesSupport.SetValue(writableNode, "ChoiceId", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -1480,7 +1480,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.ChoiceId] = () => node.Get<NeoAttributeString>("ChoiceId").TextId,
+                [Fields.ChoiceId] = () => null,
             };
         }
 
@@ -1556,7 +1556,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("MostRecentChoiceId").Text;
+                return node.Get<NeoAttributeString>("MostRecentChoiceId").value?.value;
             }
         }
 
@@ -1587,7 +1587,7 @@ namespace Assets.Scripts.Neo
             {
                 [Fields.VisitCount] = () => null,
                 [Fields.LastVisitedAt] = () => node.Get<NeoAttributeString>("LastVisitedAt").TextId,
-                [Fields.MostRecentChoiceId] = () => node.Get<NeoAttributeString>("MostRecentChoiceId").TextId,
+                [Fields.MostRecentChoiceId] = () => null,
                 [Fields.ChoiceHistory] = () => null,
             };
         }
@@ -1742,11 +1742,11 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("MostRecentChoiceId").Text;
+                return node.Get<NeoAttributeString>("MostRecentChoiceId").value?.value;
             }
             set
             {
-                writableNode.SetStringLiteral("MostRecentChoiceId", value);
+                NeoGeneratedTypesSupport.SetValue(writableNode, "MostRecentChoiceId", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -1777,7 +1777,7 @@ namespace Assets.Scripts.Neo
             {
                 [Fields.VisitCount] = () => null,
                 [Fields.LastVisitedAt] = () => node.Get<NeoAttributeString>("LastVisitedAt").TextId,
-                [Fields.MostRecentChoiceId] = () => node.Get<NeoAttributeString>("MostRecentChoiceId").TextId,
+                [Fields.MostRecentChoiceId] = () => null,
                 [Fields.ChoiceHistory] = () => null,
             };
         }
