@@ -217,13 +217,13 @@ namespace NeoCompose.Unity.Editor
                 DrawDirectoryField("Localization Resources", ref config.localizationResourcesDirectory);
                 DrawDirectoryField("Localization StreamingAssets", ref config.localizationStreamingAssetsDirectory);
                 EditorGUI.BeginChangeCheck();
-                config.useStreamingAssetsForNonRootLocales = EditorGUILayout.Toggle(
-                    "Stream Non-Root Locales",
-                    config.useStreamingAssetsForNonRootLocales);
-                if (config.useStreamingAssetsForNonRootLocales)
+                config.useStreamingAssetsForNonMainLocales = EditorGUILayout.Toggle(
+                    "Stream Non-Main Locales",
+                    config.useStreamingAssetsForNonMainLocales);
+                if (config.useStreamingAssetsForNonMainLocales)
                 {
                     EditorGUILayout.HelpBox(
-                        "Non-root locale files synced to StreamingAssets require an explicit async preload before synchronous localized text getters can use them. Until preload completes, localized text falls back to loaded locales and the root locale.",
+                        "Non-main locale files synced to StreamingAssets require an explicit async preload before synchronous localized text getters can use them. Until preload completes, localized text falls back to loaded locales and the main locale.",
                         MessageType.Warning);
                 }
                 config.preloadSystemLocale = EditorGUILayout.Toggle(

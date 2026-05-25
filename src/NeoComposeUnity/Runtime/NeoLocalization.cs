@@ -17,12 +17,12 @@ namespace NeoCompose.Runtime
         private readonly ProjectLocalizationExport? export;
         private readonly INeoLocalizationLocaleFileSource? source;
         private readonly INeoLocalizationFormatter formatter;
-        private readonly bool useStreamingAssetsForNonRootLocales;
+        private readonly bool useStreamingAssetsForNonMainLocales;
         private readonly string streamingAssetsRelativePath;
         private readonly Dictionary<string, ProjectLocalizationLocale> localeConfigByLocale = new();
         private readonly Dictionary<string, ProjectLocalizationLocaleFile> loadedLocales = new();
 
-        public string RootLocale { get; }
+        public string MainLocale { get; }
         public string CurrentLocale { get; private set; }
         public IReadOnlyList<string> SupportedLocales { get; }
         public IReadOnlyCollection<string> LoadedLocales => loadedLocales.Keys;
@@ -36,10 +36,10 @@ namespace NeoCompose.Runtime
             this.export = export;
             this.source = source;
             this.formatter = formatter ?? new NeoSmartFormatLocalizationFormatter();
-            useStreamingAssetsForNonRootLocales = options?.useStreamingAssetsForNonRootLocales == true;
+            useStreamingAssetsForNonMainLocales = options?.useStreamingAssetsForNonMainLocales == true;
             streamingAssetsRelativePath =
                 options?.streamingAssetsRelativePath ?? NeoComposeDefaults.LocalizationStreamingAssetsRelativePath;
-            RootLocale = export?.rootLocale ?? "en-US";
+            MainLocale = export?.mainLocale ?? "en-US";
             foreach (var locale in export?.supportedLocales ?? System.Array.Empty<ProjectLocalizationLocale>())
             {
                 if (string.IsNullOrEmpty(locale.locale)) continue;
@@ -59,20 +59,20 @@ namespace NeoCompose.Runtime
             return new NeoLocalization(export);
         }
 
-        public static NeoLocalization LoadRoot(
+        public static NeoLocalization LoadMain(
             ProjectLocalizationExport? export,
             INeoLocalizationLocaleFileSource source,
             NeoLocalizationOptions? options = null)
         {
             var localization = new NeoLocalization(export, source, options);
-            if (export == null || string.IsNullOrEmpty(export.rootLocale))
+            if (export == null || string.IsNullOrEmpty(export.mainLocale))
             {
                 return localization;
             }
 
-            if (source.TryLoadResourcesLocale(export, export.rootLocale, out var rootFile) && rootFile != null)
+            if (source.TryLoadResourcesLocale(export, export.mainLocale, out var mainFile) && mainFile != null)
             {
-                localization.loadedLocales[rootFile.locale] = rootFile;
+                localization.loadedLocales[mainFile.locale] = mainFile;
             }
 
             return localization;
@@ -95,8 +95,8 @@ namespace NeoCompose.Runtime
             if (loadedLocales.ContainsKey(resolved)) return true;
             if (export == null || source == null) return false;
 
-            if (!useStreamingAssetsForNonRootLocales ||
-                string.Equals(resolved, RootLocale, System.StringComparison.OrdinalIgnoreCase))
+            if (!useStreamingAssetsForNonMainLocales ||
+                string.Equals(resolved, MainLocale, System.StringComparison.OrdinalIgnoreCase))
             {
                 return LoadLocale(resolved);
             }
@@ -198,12 +198,12 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            return ResolveSupportedLocale(RootLocale);
+            return ResolveSupportedLocale(MainLocale);
         }
 
         private string ResolveSupportedLocale(string locale)
         {
-            if (SupportedLocales.Count == 0) return RootLocale;
+            if (SupportedLocales.Count == 0) return MainLocale;
             var exact = SupportedLocales.FirstOrDefault(candidate =>
                 string.Equals(candidate, locale, System.StringComparison.OrdinalIgnoreCase));
             if (exact != null) return exact;
@@ -217,7 +217,7 @@ namespace NeoCompose.Runtime
             }
 
             return SupportedLocales.FirstOrDefault(candidate =>
-                string.Equals(candidate, RootLocale, System.StringComparison.OrdinalIgnoreCase)) ?? RootLocale;
+                string.Equals(candidate, MainLocale, System.StringComparison.OrdinalIgnoreCase)) ?? MainLocale;
         }
 
         private static string LocaleLanguage(string locale)
@@ -234,12 +234,12 @@ namespace NeoCompose.Runtime
             {
                 yield return current;
                 if (!localeConfigByLocale.TryGetValue(current, out var config)) break;
-                current = string.IsNullOrEmpty(config.sourceLocale) ? RootLocale : ResolveSupportedLocale(config.sourceLocale!);
+                current = string.IsNullOrEmpty(config.sourceLocale) ? MainLocale : ResolveSupportedLocale(config.sourceLocale!);
             }
 
-            if (!string.IsNullOrEmpty(RootLocale) && seen.Add(RootLocale))
+            if (!string.IsNullOrEmpty(MainLocale) && seen.Add(MainLocale))
             {
-                yield return RootLocale;
+                yield return MainLocale;
             }
         }
 
@@ -247,8 +247,8 @@ namespace NeoCompose.Runtime
         {
             if (loadedLocales.TryGetValue(locale, out var cached)) return cached;
             if (export == null || source == null) return null;
-            if (useStreamingAssetsForNonRootLocales &&
-                !string.Equals(locale, RootLocale, System.StringComparison.OrdinalIgnoreCase))
+            if (useStreamingAssetsForNonMainLocales &&
+                !string.Equals(locale, MainLocale, System.StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }

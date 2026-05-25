@@ -1250,13 +1250,13 @@ namespace NeoCompose.Tests
                 localization = new ProjectLocalizationExport
                 {
                     schemaVersion = 1,
-                    rootLocale = "en-US",
+                    mainLocale = "en-US",
                     supportedLocales = new[]
                     {
                         new ProjectLocalizationLocale { locale = "en-US" },
                     },
                     textIds = new[] { "text-string", "text-red" },
-                    rootLocaleFileName = "en-US.json",
+                    mainLocaleFileName = "en-US.json",
                     localeFileNames = new Dictionary<string, string>
                     {
                         ["en-US"] = "en-US.json",

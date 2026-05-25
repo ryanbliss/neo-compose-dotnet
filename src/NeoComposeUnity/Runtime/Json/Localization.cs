@@ -10,10 +10,10 @@ namespace NeoCompose.Runtime.Json
     public class ProjectLocalizationExport
     {
         public int schemaVersion;
-        public string rootLocale = null!;
+        public string mainLocale = null!;
         public ProjectLocalizationLocale[] supportedLocales = System.Array.Empty<ProjectLocalizationLocale>();
         public string[] textIds = System.Array.Empty<string>();
-        public string rootLocaleFileName = null!;
+        public string mainLocaleFileName = null!;
         public Dictionary<string, string> localeFileNames = new();
         public ProjectLocalizationFormatting formatting = new();
     }

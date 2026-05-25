@@ -75,14 +75,14 @@ strings through a SmartFormat-compatible formatter.
 
 This leads to the following default:
 
-- Root locale JSON is always written under `Assets/Resources/Neo/Localization`.
+- Main locale JSON is always written under `Assets/Resources/Neo/Localization`.
 - All locale JSON files are also written under
   `Assets/Resources/Neo/Localization` by default.
-- Non-root locales can optionally be written under
+- Non-main locales can optionally be written under
   `Assets/StreamingAssets/Neo/Localization`.
 - Synchronous generated getters always return a string. If async locale loading
   is enabled and the requested locale has not been loaded, getters fall back
-  through already-loaded locale packs and finally to the root locale.
+  through already-loaded locale packs and finally to the main locale.
 - Developers that opt into StreamingAssets should call an async preload API
   before reading localized runtime data.
 
@@ -99,10 +99,10 @@ interface IProjectUnityExport {
 
 interface IProjectUnityRuntimeLocalizationExport {
   schemaVersion: 1;
-  rootLocale: string;
+  mainLocale: string;
   supportedLocales: IProjectUnityRuntimeLocale[];
   textIds: string[];
-  rootLocaleFileName: string;
+  mainLocaleFileName: string;
   localeFileNames: Record<string, string>;
   formatting: {
     syntax: "smart-format";
@@ -246,7 +246,7 @@ public string localizationResourcesDirectory =
     "Assets/Resources/Neo/Localization";
 public string localizationStreamingAssetsDirectory =
     "Assets/StreamingAssets/Neo/Localization";
-public bool useStreamingAssetsForNonRootLocales = false;
+public bool useStreamingAssetsForNonMainLocales = false;
 public bool preloadSystemLocale = true;
 public string localeOverride = "";
 ```
@@ -256,10 +256,10 @@ Rules:
 - `localizationResourcesDirectory` must be an `Assets/Resources/...` path.
 - `localizationStreamingAssetsDirectory` must be an
   `Assets/StreamingAssets/...` path.
-- Root locale is always synchronized to `localizationResourcesDirectory`.
-- When `useStreamingAssetsForNonRootLocales` is false, every locale file is
+- Main locale is always synchronized to `localizationResourcesDirectory`.
+- When `useStreamingAssetsForNonMainLocales` is false, every locale file is
   synchronized to `localizationResourcesDirectory`.
-- When `useStreamingAssetsForNonRootLocales` is true, non-root locale files are
+- When `useStreamingAssetsForNonMainLocales` is true, non-main locale files are
   synchronized to `localizationStreamingAssetsDirectory`.
 - `localeOverride`, when non-empty, is the initial requested locale before
   game code changes it at runtime.
@@ -277,8 +277,8 @@ Synchronization steps:
 3. Confirm replacement when any existing generated, project, or localization
    files will be overwritten.
 4. Ensure configured localization directories exist.
-5. Write root locale JSON to `Assets/Resources/Neo/Localization`.
-6. Write non-root locale JSON to Resources or StreamingAssets based on config.
+5. Write main locale JSON to `Assets/Resources/Neo/Localization`.
+6. Write non-main locale JSON to Resources or StreamingAssets based on config.
 7. Delete previously synchronized locale files that are no longer in the
    export, but only within the configured Neo localization directories.
 8. Save `NeoComposeConfig`.
@@ -295,7 +295,7 @@ Add a runtime localization service owned by `NeoClient`:
 ```csharp
 public sealed class NeoLocalization
 {
-    public string RootLocale { get; }
+    public string MainLocale { get; }
     public string CurrentLocale { get; }
     public IReadOnlyList<string> SupportedLocales { get; }
     public IReadOnlyList<string> LoadedLocales { get; }
@@ -324,7 +324,7 @@ public sealed class NeoLocalizationOptions
 {
     public string? LocaleOverride { get; set; }
     public bool PreloadSystemLocale { get; set; } = true;
-    public bool UseStreamingAssetsForNonRootLocales { get; set; }
+    public bool UseStreamingAssetsForNonMainLocales { get; set; }
     public INeoLocalizationFormatter? Formatter { get; set; }
 }
 ```
@@ -332,13 +332,13 @@ public sealed class NeoLocalizationOptions
 Default load behavior:
 
 - Parse localization metadata from `project.json`.
-- Load the root locale synchronously from `Resources`.
+- Load the main locale synchronously from `Resources`.
 - Choose initial requested locale in this order:
   1. `NeoLocalizationOptions.LocaleOverride`
   2. `NeoComposeConfig.localeOverride`
   3. System locale.
-  4. Root locale.
-- Match locale by exact code first, then language-only match, then root locale.
+  4. Main locale.
+- Match locale by exact code first, then language-only match, then main locale.
 - If `preloadSystemLocale` is true and the selected locale is in Resources,
   synchronously load the selected locale and its fallback chain.
 - If selected/fallback locale files live in StreamingAssets, do not block
@@ -348,7 +348,7 @@ Synchronous fallback behavior:
 
 1. Try the current requested locale if loaded.
 2. Walk loaded fallback locales.
-3. Use root locale.
+3. Use main locale.
 4. Return `null` or empty string depending on the caller contract.
 
 Async load behavior:
@@ -518,7 +518,7 @@ preferred generated surface because the node already has a client reference.
 
 ## NSGetter Behavior
 
-The web evaluator already resolves localized string value ids to root locale
+The web evaluator already resolves localized string value ids to main locale
 values for authoring-time evaluation. The C# runtime should mirror runtime
 locale behavior instead:
 
@@ -536,8 +536,8 @@ Runtime resolution should be forgiving by default:
 
 - Unknown text id: log warning, return the id in development builds or empty
   string in release builds.
-- Missing locale file: log warning, fall back to root.
-- Invalid locale file JSON: log error, fall back to root.
+- Missing locale file: log warning, fall back to main locale.
+- Invalid locale file JSON: log error, fall back to main locale.
 - SmartFormat runtime error: log error with text id and locale, return the
   unformatted resolved string.
 
@@ -548,9 +548,9 @@ Strict mode can be added later for tests and CI builds.
 Implementation should include Unity tests for:
 
 - Deserializing localization metadata in `ProjectData`.
-- Loading root locale JSON from Resources.
+- Loading main locale JSON from Resources.
 - Synchronous locale fallback through exact, language match, source chain, and
-  root fallback.
+  main-locale fallback.
 - Cached multi-hop locale loading.
 - StreamingAssets async loading path using a mocked loader.
 - Localizable string attribute generated getters.
@@ -565,7 +565,7 @@ Implementation should include Unity tests for:
 - Enum display text localization.
 - NSGetter localized string dereference.
 - Export diagnostics for unsupported ICU to SmartFormat conversion.
-- Editor synchronization writing root locale to Resources and non-root locales
+- Editor synchronization writing main locale to Resources and non-main locales
   to the configured target.
 - Editor synchronization deleting stale synchronized locale files only inside
   Neo localization directories.

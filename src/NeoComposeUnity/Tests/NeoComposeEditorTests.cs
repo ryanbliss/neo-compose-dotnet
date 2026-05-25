@@ -117,7 +117,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(NeoComposeDefaults.ProjectJsonDirectory, config.projectJsonDirectory);
             Assert.AreEqual(NeoComposeDefaults.LocalizationResourcesDirectory, config.localizationResourcesDirectory);
             Assert.AreEqual(NeoComposeDefaults.LocalizationStreamingAssetsDirectory, config.localizationStreamingAssetsDirectory);
-            Assert.IsFalse(config.useStreamingAssetsForNonRootLocales);
+            Assert.IsFalse(config.useStreamingAssetsForNonMainLocales);
             Assert.IsTrue(config.preloadSystemLocale);
             Assert.AreEqual("", config.localeOverride);
             Assert.AreEqual(NeoComposeDefaults.SpriteDirectory, config.spriteDirectory);
@@ -155,7 +155,7 @@ namespace NeoCompose.Tests
             config.projectJsonDirectory = "Assets/CustomJson";
             config.localizationResourcesDirectory = "Assets/Resources/CustomLocalization";
             config.localizationStreamingAssetsDirectory = "Assets/StreamingAssets/CustomLocalization";
-            config.useStreamingAssetsForNonRootLocales = true;
+            config.useStreamingAssetsForNonMainLocales = true;
             config.preloadSystemLocale = false;
             config.localeOverride = "es-ES";
             config.spriteDirectory = "Assets/CustomSprites";
@@ -173,7 +173,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Assets/CustomJson", config.projectJsonDirectory);
             Assert.AreEqual("Assets/Resources/CustomLocalization", config.localizationResourcesDirectory);
             Assert.AreEqual("Assets/StreamingAssets/CustomLocalization", config.localizationStreamingAssetsDirectory);
-            Assert.IsTrue(config.useStreamingAssetsForNonRootLocales);
+            Assert.IsTrue(config.useStreamingAssetsForNonMainLocales);
             Assert.IsFalse(config.preloadSystemLocale);
             Assert.AreEqual("es-ES", config.localeOverride);
             Assert.AreEqual("Assets/CustomSprites", config.spriteDirectory);
@@ -337,10 +337,10 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public async Task Synchronizer_WritesNonRootLocalizationFilesToStreamingAssetsWhenEnabled()
+        public async Task Synchronizer_WritesNonMainLocalizationFilesToStreamingAssetsWhenEnabled()
         {
             var config = MakeConfig();
-            config.useStreamingAssetsForNonRootLocales = true;
+            config.useStreamingAssetsForNonMainLocales = true;
             var api = new FakeApiClient();
             api.exportResponse.projectJson = ProjectJsonWithLocalization("en-US");
             api.exportResponse.localizationFiles.Add(new NeoComposeUnityLocalizationFile
@@ -1041,7 +1041,7 @@ namespace NeoCompose.Tests
 }";
         }
 
-        private static string ProjectJsonWithLocalization(string rootLocale)
+        private static string ProjectJsonWithLocalization(string mainLocale)
         {
             return @"{
   ""project"": {
@@ -1053,7 +1053,7 @@ namespace NeoCompose.Tests
     }
   },
   ""localization"": {
-    ""rootLocale"": """ + rootLocale + @"""
+    ""mainLocale"": """ + mainLocale + @"""
   }
 }";
         }

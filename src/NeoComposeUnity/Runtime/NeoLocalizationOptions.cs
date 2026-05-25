@@ -8,7 +8,7 @@ namespace NeoCompose.Runtime
     public sealed class NeoLocalizationOptions
     {
         public string? localeOverride;
-        public bool useStreamingAssetsForNonRootLocales;
+        public bool useStreamingAssetsForNonMainLocales;
         public bool preloadSystemLocale = true;
         public string streamingAssetsRelativePath = NeoComposeDefaults.LocalizationStreamingAssetsRelativePath;
     }

@@ -18,7 +18,7 @@ namespace NeoCompose.Runtime
         public string projectJsonDirectory = NeoComposeDefaults.ProjectJsonDirectory;
         public string localizationResourcesDirectory = NeoComposeDefaults.LocalizationResourcesDirectory;
         public string localizationStreamingAssetsDirectory = NeoComposeDefaults.LocalizationStreamingAssetsDirectory;
-        public bool useStreamingAssetsForNonRootLocales;
+        public bool useStreamingAssetsForNonMainLocales;
         public bool preloadSystemLocale = true;
         public string localeOverride = "";
         public string spriteDirectory = NeoComposeDefaults.SpriteDirectory;

@@ -61,13 +61,13 @@ namespace NeoCompose.Tests
   ""enums"": {},
   ""localization"": {
     ""schemaVersion"": 1,
-    ""rootLocale"": ""en-US"",
+    ""mainLocale"": ""en-US"",
     ""supportedLocales"": [
       { ""locale"": ""en-US"", ""sourceLocale"": null },
       { ""locale"": ""es-ES"", ""sourceLocale"": ""en-US"" }
     ],
     ""textIds"": [""text-title""],
-    ""rootLocaleFileName"": ""en-US.json"",
+    ""mainLocaleFileName"": ""en-US.json"",
     ""localeFileNames"": {
       ""en-US"": ""en-US.json"",
       ""es-ES"": ""es-ES.json""
@@ -81,7 +81,7 @@ namespace NeoCompose.Tests
 
             Assert.IsNotNull(data);
             Assert.IsNotNull(data!.localization);
-            Assert.AreEqual("en-US", data.localization!.rootLocale);
+            Assert.AreEqual("en-US", data.localization!.mainLocale);
             Assert.AreEqual(2, data.localization.supportedLocales.Length);
             Assert.AreEqual("es-ES", data.localization.supportedLocales[1].locale);
             Assert.AreEqual("en-US", data.localization.supportedLocales[1].sourceLocale);
@@ -146,7 +146,7 @@ namespace NeoCompose.Tests
                 new NeoLocalizationOptions(),
                 source);
 
-            Assert.AreEqual("en-US", client.Localization.RootLocale);
+            Assert.AreEqual("en-US", client.Localization.MainLocale);
             Assert.AreEqual("en-US", client.Localization.CurrentLocale);
             CollectionAssert.AreEqual(new[] { "en-US", "es-MX" }, client.Localization.SupportedLocales);
             CollectionAssert.AreEqual(new[] { "en-US" }, client.Localization.LoadedLocales.ToArray());
@@ -233,7 +233,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoLocalization_StreamingModeDoesNotSynchronouslyLoadNonRootLocales()
+        public void NeoLocalization_StreamingModeDoesNotSynchronouslyLoadNonMainLocales()
         {
             var projectJson = AddLocalizationMetadata(
                 LoadFixture("synth-example.json"),
@@ -253,7 +253,7 @@ namespace NeoCompose.Tests
                 {
                     localeOverride = "es-MX",
                     preloadSystemLocale = false,
-                    useStreamingAssetsForNonRootLocales = true,
+                    useStreamingAssetsForNonMainLocales = true,
                 },
                 source);
 
@@ -283,7 +283,7 @@ namespace NeoCompose.Tests
                 {
                     localeOverride = "es-MX",
                     preloadSystemLocale = false,
-                    useStreamingAssetsForNonRootLocales = true,
+                    useStreamingAssetsForNonMainLocales = true,
                 },
                 source);
 
@@ -343,7 +343,7 @@ namespace NeoCompose.Tests
             {
                 var localization = new ProjectLocalizationExport
                 {
-                    rootLocale = "en-US",
+                    mainLocale = "en-US",
                     localeFileNames = new Dictionary<string, string>
                     {
                         ["en-US"] = "bad-json.json",
@@ -519,12 +519,12 @@ namespace NeoCompose.Tests
   ""priorityGroups"": {{}},
   ""localization"": {{
     ""schemaVersion"": 1,
-    ""rootLocale"": ""en-US"",
+    ""mainLocale"": ""en-US"",
     ""supportedLocales"": [
       {{ ""locale"": ""en-US"", ""sourceLocale"": null }}
     ],
     ""textIds"": [""text-title""],
-    ""rootLocaleFileName"": ""en-US.json"",
+    ""mainLocaleFileName"": ""en-US.json"",
     ""localeFileNames"": {{ ""en-US"": ""en-US.json"" }},
     ""formatting"": {{ ""syntax"": ""smart-format"", ""sourceSyntax"": ""icu"" }}
   }}
@@ -574,28 +574,28 @@ namespace NeoCompose.Tests
                 {
                     localeOverride = "es-MX",
                     preloadSystemLocale = false,
-                    useStreamingAssetsForNonRootLocales = true,
+                    useStreamingAssetsForNonMainLocales = true,
                 },
                 source);
         }
 
         private static string AddLocalizationMetadata(
             string projectJson,
-            string rootLocale,
+            string mainLocale,
             string childLocale)
         {
             var json = JObject.Parse(projectJson);
             json["localization"] = JObject.Parse($@"{{
   ""schemaVersion"": 1,
-  ""rootLocale"": ""{rootLocale}"",
+  ""mainLocale"": ""{mainLocale}"",
   ""supportedLocales"": [
-    {{ ""locale"": ""{rootLocale}"", ""sourceLocale"": null }},
-    {{ ""locale"": ""{childLocale}"", ""sourceLocale"": ""{rootLocale}"" }}
+    {{ ""locale"": ""{mainLocale}"", ""sourceLocale"": null }},
+    {{ ""locale"": ""{childLocale}"", ""sourceLocale"": ""{mainLocale}"" }}
   ],
   ""textIds"": [""text-title""],
-  ""rootLocaleFileName"": ""{rootLocale}.json"",
+  ""mainLocaleFileName"": ""{mainLocale}.json"",
   ""localeFileNames"": {{
-    ""{rootLocale}"": ""{rootLocale}.json"",
+    ""{mainLocale}"": ""{mainLocale}.json"",
     ""{childLocale}"": ""{childLocale}.json""
   }},
   ""formatting"": {{

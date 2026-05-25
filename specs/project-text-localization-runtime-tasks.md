@@ -49,7 +49,7 @@ metadata before changing runtime behavior.
 - [x] LRT-003 Add `localization` metadata to `IProjectUnityExport`.
 - [x] LRT-004 Add `localizationFiles` to the Unity editor export response.
 - [x] LRT-005 Build locale file names with stable, safe locale-code naming.
-- [x] LRT-006 Export root locale and supported locale fallback metadata.
+- [x] LRT-006 Export main locale and supported locale fallback metadata.
 - [x] LRT-007 Export raw locale values with `null` preserved for missing translations.
 - [x] LRT-008 Exclude localization status/comment/link metadata from runtime locale files.
 - [x] LRT-009 Add web tests for Unity export localization metadata shape.
@@ -110,9 +110,9 @@ alongside generated C# and `project.json`.
 ### File synchronization
 
 - [x] LRT-037 Add localization file writing to `NeoComposeSynchronizer`.
-- [x] LRT-038 Always write root locale JSON to the configured Resources localization directory.
-- [x] LRT-039 Write non-root locale JSON to Resources by default.
-- [x] LRT-040 When streaming is enabled, write non-root locale JSON to the configured StreamingAssets localization directory.
+- [x] LRT-038 Always write main locale JSON to the configured Resources localization directory.
+- [x] LRT-039 Write non-main locale JSON to Resources by default.
+- [x] LRT-040 When streaming is enabled, write non-main locale JSON to the configured StreamingAssets localization directory.
 - [x] LRT-041 Include existing localization files in replacement confirmation copy.
 - [x] LRT-042 Delete stale synchronized locale files only inside configured Neo localization directories.
 - [x] LRT-043 Refresh Unity assets after locale file writes and deletes.
@@ -121,9 +121,9 @@ alongside generated C# and `project.json`.
 ### Editor UI
 
 - [x] LRT-045 Add localization path fields to the Neo Compose editor window.
-- [x] LRT-046 Add toggle for StreamingAssets non-root locale synchronization.
+- [x] LRT-046 Add toggle for StreamingAssets non-main locale synchronization.
 - [x] LRT-047 Add locale override field to the Neo Compose editor window.
-- [x] LRT-048 Show a warning when streaming mode requires explicit async preload for non-root locale behavior.
+- [x] LRT-048 Show a warning when streaming mode requires explicit async preload for non-main locale behavior.
 - [x] LRT-049 Add editor tests for localization sync path selection.
 - [x] LRT-050 Add editor tests for stale locale cleanup.
 
@@ -133,7 +133,7 @@ alongside generated C# and `project.json`.
 
 ## Phase 4: Runtime locale loading and fallback
 
-Goal: add `NeoLocalization`, load root Resources locale synchronously, support
+Goal: add `NeoLocalization`, load main Resources locale synchronously, support
 progressive in-memory loading, and support optional async StreamingAssets
 loading.
 
@@ -142,27 +142,27 @@ loading.
 - [x] LRT-052 Add `INeoLocalizationFormatter`.
 - [x] LRT-053 Add default formatter wrapping `UnityEngine.Localization.SmartFormat`.
 - [x] LRT-054 Add locale file source abstraction for Resources and StreamingAssets reads.
-- [x] LRT-055 Load root locale synchronously from Resources during `NeoLoader.Load`.
+- [x] LRT-055 Load main locale synchronously from Resources during `NeoLoader.Load`.
 - [x] LRT-056 Add `NeoLocalizationOptions`.
 - [x] LRT-057 Add `NeoClient.Localization`.
-- [x] LRT-058 Add `NeoLocalization.RootLocale`, `CurrentLocale`, `SupportedLocales`, and `LoadedLocales`.
-- [x] LRT-059 Add tests for root locale loading.
+- [x] LRT-058 Add `NeoLocalization.MainLocale`, `CurrentLocale`, `SupportedLocales`, and `LoadedLocales`.
+- [x] LRT-059 Add tests for main locale loading.
 
 ### Locale selection
 
-- [x] LRT-060 Choose initial locale from explicit options, config override, system locale, then root locale.
+- [x] LRT-060 Choose initial locale from explicit options, config override, system locale, then main locale.
 - [x] LRT-061 Match locale codes exactly before language-only fallback.
-- [x] LRT-062 Fall back to root locale when no configured locale matches.
+- [x] LRT-062 Fall back to main locale when no configured locale matches.
 - [x] LRT-063 Add `SetLocale`.
 - [x] LRT-064 Add tests for exact locale matching.
 - [x] LRT-065 Add tests for language-only matching.
-- [x] LRT-066 Add tests for root fallback matching.
+- [x] LRT-066 Add tests for main-locale fallback matching.
 
 ### Resolution and caching
 
 - [x] LRT-067 Build locale source chain indexes.
 - [x] LRT-068 Add `ResolveText` and `TryResolveText`.
-- [x] LRT-069 Resolve through current locale, source chain, and root locale.
+- [x] LRT-069 Resolve through current locale, source chain, and main locale.
 - [x] LRT-070 Cache every loaded locale for the life of the `NeoClient`.
 - [x] LRT-071 Log and recover from unknown text ids.
 - [x] LRT-072 Log and recover from invalid locale file JSON.
@@ -177,7 +177,7 @@ loading.
 - [x] LRT-078 Add `LoadLocaleAsync`.
 - [x] LRT-079 Add `LoadAsync` that loads the selected locale and full fallback chain.
 - [x] LRT-080 Use UnityWebRequest-compatible reads for StreamingAssets async loading.
-- [x] LRT-081 Keep synchronous getters falling back to loaded locales/root when streaming locale files are not loaded yet.
+- [x] LRT-081 Keep synchronous getters falling back to loaded locales/main locale when streaming locale files are not loaded yet.
 - [x] LRT-082 Add tests for async fallback-chain loading.
 - [x] LRT-083 Add tests for sync fallback before async load completes.
 

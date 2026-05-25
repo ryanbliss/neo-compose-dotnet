@@ -25,7 +25,7 @@
     },
     "localization": {
         "schemaVersion": 1,
-        "rootLocale": "en-US",
+        "mainLocale": "en-US",
         "supportedLocales": [
             {
                 "locale": "en-US",
@@ -142,7 +142,7 @@
             "fafce114-ab70-4813-a4e2-cb436b66aba6",
             "fe5ab262-4a0f-4551-ab27-5fd1c97da128"
         ],
-        "rootLocaleFileName": "en-US.json",
+        "mainLocaleFileName": "en-US.json",
         "localeFileNames": {
             "en-US": "en-US.json",
             "es-ES": "es-ES.json"
@@ -10713,7 +10713,7 @@
     "localizationConfig": {
         "id": "localization-config",
         "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-        "rootLocale": "en-US",
+        "mainLocale": "en-US",
         "supportedLocales": [
             {
                 "locale": "en-US",
@@ -10738,7 +10738,7 @@
             "localization-status-update-needed",
             "localization-status-blocked-by-predecessor"
         ],
-        "rootLocaleDefaultStatusId": "localization-status-approved",
+        "mainLocaleDefaultStatusId": "localization-status-approved",
         "createdAt": "2026-05-25T02:00:27.578Z",
         "updatedAt": "2026-05-25T04:21:49.131Z"
     },

@@ -124,7 +124,7 @@ namespace NeoCompose.Unity.Editor
                 var localizationPaths = BuildLocalizationFilePaths(
                     config,
                     exportResponse.localizationFiles,
-                    ReadLocalizationRootLocaleOrDefault(exportResponse.projectJson));
+                    ReadLocalizationMainLocaleOrDefault(exportResponse.projectJson));
                 var existingReplacementPaths = new[] { generatedTypesPath, projectJsonPath }
                     .Concat(localizationPaths.Values)
                     .Where(assets.FileExists)
@@ -191,14 +191,14 @@ namespace NeoCompose.Unity.Editor
 
             onProgress?.Invoke("Writing localization files...");
             assets.EnsureDirectory(config.localizationResourcesDirectory);
-            if (config.useStreamingAssetsForNonRootLocales)
+            if (config.useStreamingAssetsForNonMainLocales)
             {
                 assets.EnsureDirectory(config.localizationStreamingAssetsDirectory);
             }
 
             var expectedPaths = new HashSet<string>(localizationPaths.Values);
             DeleteStaleLocalizationFiles(config.localizationResourcesDirectory, expectedPaths);
-            if (config.useStreamingAssetsForNonRootLocales &&
+            if (config.useStreamingAssetsForNonMainLocales &&
                 config.localizationStreamingAssetsDirectory != config.localizationResourcesDirectory)
             {
                 DeleteStaleLocalizationFiles(config.localizationStreamingAssetsDirectory, expectedPaths);
@@ -235,15 +235,15 @@ namespace NeoCompose.Unity.Editor
         private static Dictionary<string, string> BuildLocalizationFilePaths(
             NeoComposeConfig config,
             List<NeoComposeUnityLocalizationFile> localizationFiles,
-            string rootLocale)
+            string mainLocale)
         {
             var paths = new Dictionary<string, string>();
             foreach (var file in localizationFiles)
             {
                 if (!IsSafeLocalizationFileName(file.fileName)) continue;
                 var directory =
-                    config.useStreamingAssetsForNonRootLocales &&
-                    !string.Equals(file.locale, rootLocale, StringComparison.Ordinal)
+                    config.useStreamingAssetsForNonMainLocales &&
+                    !string.Equals(file.locale, mainLocale, StringComparison.Ordinal)
                         ? config.localizationStreamingAssetsDirectory
                         : config.localizationResourcesDirectory;
                 paths[file.locale] = NeoComposePathUtility.CombineAssetPath(directory, file.fileName);
@@ -251,12 +251,12 @@ namespace NeoCompose.Unity.Editor
             return paths;
         }
 
-        private static string ReadLocalizationRootLocaleOrDefault(string projectJson)
+        private static string ReadLocalizationMainLocaleOrDefault(string projectJson)
         {
             try
             {
-                var root = JObject.Parse(projectJson)["localization"]?["rootLocale"]?.Value<string>();
-                return string.IsNullOrWhiteSpace(root) ? "en-US" : root!;
+                var main = JObject.Parse(projectJson)["localization"]?["mainLocale"]?.Value<string>();
+                return string.IsNullOrWhiteSpace(main) ? "en-US" : main!;
             }
             catch
             {

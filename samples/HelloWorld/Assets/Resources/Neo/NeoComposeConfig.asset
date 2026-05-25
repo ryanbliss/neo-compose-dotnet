@@ -21,7 +21,7 @@ MonoBehaviour:
   projectJsonDirectory: Assets/Resources/Neo
   localizationResourcesDirectory: Assets/Resources/Neo/Localization
   localizationStreamingAssetsDirectory: Assets/StreamingAssets/Neo/Localization
-  useStreamingAssetsForNonRootLocales: 0
+  useStreamingAssetsForNonMainLocales: 0
   preloadSystemLocale: 1
   localeOverride: 
   spriteDirectory: Assets/Resources/Neo/Files/Sprites
