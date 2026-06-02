@@ -557,9 +557,9 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(entry);
             Assert.AreEqual("hero.png", entry!.FileName);
             Assert.AreEqual(expectedPath, entry.AssetPath);
-            Assert.AreEqual("1970-01-02T00:00:00.000Z", entry.FileUpdatedAt);
+            Assert.AreEqual("86400000", entry.FileUpdatedAt);
             Assert.AreEqual("texture-template-1", entry.TemplateId);
-            Assert.AreEqual("1970-01-03T00:00:00.000Z", entry.TemplateUpdatedAt);
+            Assert.AreEqual("172800000", entry.TemplateUpdatedAt);
             Assert.AreEqual("2026-05-13.2", entry.ImportSettingsVersion);
             Assert.AreSame(expectedSprite, entry.Sprites[0]);
             Assert.IsTrue(assets.savedAsset);

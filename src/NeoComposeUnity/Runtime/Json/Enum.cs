@@ -29,9 +29,7 @@ namespace NeoCompose.Runtime.Json
         public string projectId = null!;
         public string name = null!;
         public Dictionary<string, EnumOption> options = null!;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt = null!;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt = null!;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
     }
 }

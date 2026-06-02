@@ -1,149 +1,141 @@
 {
   "project": {
-    "_id": "test-project",
     "id": "test-project",
     "name": "Test Project",
+    "exportSettings": null,
     "rootAssetsAttributeId": "root-assets",
     "rootSaveFileAttributeId": "root-save",
     "rootSessionAttributeId": "root-session",
     "defaultPriorityGroupId": "default-priority-group",
-    "createdAt": "1970-01-01T00:00:00.000Z",
-    "updatedAt": "1970-01-01T00:00:00.000Z"
+    "defaultTextureTemplateId": null,
+    "defaultAudioClipTemplateId": null,
+    "createdAt": 0,
+    "updatedAt": 0
   },
   "attributes": {
     "root-assets": {
-      "_id": "cfe319e6-74c0-43a5-abc4-d73b73740167",
       "id": "root-assets",
       "name": "Assets",
       "type": 7,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-root"
     },
     "root-save": {
-      "_id": "3db51276-6af7-453b-8999-31178fb6af86",
       "id": "root-save",
       "name": "Save",
       "type": 7,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-root",
       "valueId": "v-root-save"
     },
     "root-session": {
-      "_id": "957ccf9a-3fcc-4014-a5f4-280626583f4b",
       "id": "root-session",
       "name": "Session",
       "type": 7,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-root",
       "valueId": "v-root-session"
     },
     "attr-name": {
-      "_id": "7f3c217d-728e-4b5f-8a9c-cdc34a6d5327",
       "id": "attr-name",
       "name": "Name",
       "type": 3,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "defaultValue": {
         "value": "Hero"
       }
     },
     "attr-altname": {
-      "_id": "67a7e50a-415e-4c28-9a5b-a25c5ffb037f",
       "id": "attr-altname",
       "name": "AltName",
       "type": 3,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "defaultValue": {
         "value": "AltHero"
       }
     },
     "attr-health": {
-      "_id": "85be8fe3-a5d6-4698-bc3a-c1b877b7d7c4",
       "id": "attr-health",
       "name": "Health",
       "type": 2,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "defaultValue": {
         "value": 100
       }
     },
     "attr-root-score": {
-      "_id": "bb37f264-de37-4bc1-923f-03771336d5f7",
       "id": "attr-root-score",
       "name": "Score",
       "type": 2,
       "locked": false,
       "required": true,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "valueId": "v-score",
       "defaultValue": {
         "value": 10
       }
     },
     "attr-speed": {
-      "_id": "897b34eb-104a-45d6-8ed0-f6d8baed13d3",
       "id": "attr-speed",
       "name": "Speed",
       "type": 4,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "defaultValue": {
         "value": 7.5
       }
     },
     "attr-isalive": {
-      "_id": "9da68dd2-bddb-452a-90bb-0d553eaf975d",
       "id": "attr-isalive",
       "name": "IsAlive",
       "type": 1,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "defaultValue": {
         "value": true
       }
     },
     "attr-hero": {
-      "_id": "d87acd5a-f4d5-44f6-93e3-0acc0ad14122",
       "id": "attr-hero",
       "name": "Hero",
       "type": 7,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-hero",
       "defaultValue": {
         "value": {
@@ -153,15 +145,14 @@
       }
     },
     "attr-inventory": {
-      "_id": "1c19ea2d-a9a7-461b-a3d3-cc317cccf223",
       "id": "attr-inventory",
       "name": "Inventory",
       "type": 5,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "entryAttributeId": "attr-name",
       "defaultValue": {
         "value": {
@@ -171,15 +162,14 @@
       }
     },
     "attr-tags": {
-      "_id": "ca2b5b68-0f07-4603-a597-eb53a8473ae7",
       "id": "attr-tags",
       "name": "Tags",
       "type": 6,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "entryAttributeId": "attr-name",
       "defaultValue": {
         "value": [
@@ -189,53 +179,49 @@
       }
     },
     "attr-heroes": {
-      "_id": "1b85a8a8-d858-461f-9bde-fe3e2f13eb8e",
       "id": "attr-heroes",
       "name": "Heroes",
       "type": 6,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "entryAttributeId": "attr-hero"
     },
     "attr-element": {
-      "_id": "4dd2a95c-be78-4aae-9239-5aff97130a2f",
       "id": "attr-element",
       "name": "Element",
       "type": 8,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "enumId": "enum-element",
       "multiselect": false
     },
     "attr-choice": {
-      "_id": "f755beac-a9c6-41d0-87b1-e329d994ac20",
       "id": "attr-choice",
       "name": "Choice",
       "type": 9,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "collectionAttributeId": "attr-tags",
       "multiselect": true
     },
     "attr-score": {
-      "_id": "624e9220-13fe-4eaa-98e0-cc375bda34f5",
       "id": "attr-score",
       "name": "Score",
       "type": 10,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "code": "// see compiled getter",
       "returnTypeInfo": {
         "type": 2,
@@ -552,15 +538,14 @@
       }
     },
     "attr-manifest": {
-      "_id": "8df435cc-928a-413a-b60b-3fd66269ff12",
       "id": "attr-manifest",
       "name": "Manifest",
       "type": 10,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "code": "// see compiled getter",
       "returnTypeInfo": {
         "type": 3,
@@ -626,15 +611,14 @@
       }
     },
     "attr-active": {
-      "_id": "c7c9764b-a1cc-4316-a559-733d100e5afe",
       "id": "attr-active",
       "name": "Active",
       "type": 10,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "code": "// see compiled getter",
       "returnTypeInfo": {
         "type": 1,
@@ -666,188 +650,174 @@
       }
     },
     "attr-base": {
-      "_id": "79a50810-9f10-4def-a702-3bae086e52b5",
       "id": "attr-base",
       "name": "BaseRecord",
       "type": 7,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-base"
     },
     "attr-derived": {
-      "_id": "0002a40f-1515-4dfd-ab9d-37f060f58959",
       "id": "attr-derived",
       "name": "DerivedRecord",
       "type": 7,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-derived"
     },
     "attr-override": {
-      "_id": "96386eb1-3119-44ef-ac3f-d3287c8c4bc3",
       "id": "attr-override",
       "name": "OverrideRecord",
       "type": 7,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-override"
     },
     "attr-choice-id": {
-      "_id": "ee56001c-9abb-48a2-ab95-7dd49acea15d",
       "id": "attr-choice-id",
       "name": "Choice ID",
       "type": 3,
       "locked": false,
       "required": true,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "attr-choice-log-entry": {
-      "_id": "013a1758-6e0e-4542-8ce3-37ed6d1b366f",
       "id": "attr-choice-log-entry",
       "name": "Choice Log Entry",
       "type": 7,
       "locked": false,
       "required": true,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-choice-log",
       "defaultValue": {
         "value": {}
       }
     },
     "attr-choice-history": {
-      "_id": "3a524331-cc25-4111-8dde-36a55dfa5276",
       "id": "attr-choice-history",
       "name": "Choice History",
       "type": 6,
       "locked": false,
       "required": true,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "entryAttributeId": "attr-choice-log-entry",
       "defaultValue": {
         "value": []
       }
     },
     "attr-visit-count": {
-      "_id": "a4b4da4e-ffea-48fc-8a5a-2627a6c7291d",
       "id": "attr-visit-count",
       "name": "Visit Count",
       "type": 2,
       "locked": false,
       "required": true,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "defaultValue": {
         "value": 0
       }
     },
     "attr-last-visited-at": {
-      "_id": "d03768e5-ab0e-4a35-8ca3-996271ab2b89",
       "id": "attr-last-visited-at",
       "name": "Last Visited At",
       "type": 3,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "attr-most-recent-choice-id": {
-      "_id": "59282340-0d9f-4d27-94ce-65bfb9f66d09",
       "id": "attr-most-recent-choice-id",
       "name": "Most Recent Choice ID",
       "type": 3,
       "locked": false,
       "required": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "attr-text-node-memory-entry": {
-      "_id": "b26bdce6-bcbc-4056-abe0-259b726600c1",
       "id": "attr-text-node-memory-entry",
       "name": "Text Node Memory Entry",
       "type": 7,
       "locked": false,
       "required": true,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-text-node-memory",
       "defaultValue": {
         "value": {}
       }
     },
     "attr-text-node-memories": {
-      "_id": "66fd0ae2-af20-43dd-a053-dea70c908399",
       "id": "attr-text-node-memories",
       "name": "Text Node Memories",
       "type": 5,
       "locked": false,
       "required": true,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "entryAttributeId": "attr-text-node-memory-entry",
       "defaultValue": {
         "value": {}
       }
     },
     "attr-dialogue-memory-entry": {
-      "_id": "ee9e3c62-04c8-47f0-bce3-b6d3b9a36268",
       "id": "attr-dialogue-memory-entry",
       "name": "Dialogue Memory Entry",
       "type": 7,
       "locked": false,
       "required": true,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-dialogue-memory",
       "defaultValue": {
         "value": {}
       }
     },
     "attr-dialogue-memories": {
-      "_id": "d849c8d7-7e54-4736-b398-b33c36c0dc21",
       "id": "attr-dialogue-memories",
       "name": "Dialogue Memories",
       "type": 5,
       "locked": false,
       "required": true,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "entryAttributeId": "attr-dialogue-memory-entry",
       "defaultValue": {
         "value": {}
       }
     },
     "attr-neo-memory": {
-      "_id": "53987fbc-d615-4d1c-87a6-c4abf831d731",
       "id": "attr-neo-memory",
       "name": "NeoMemory",
       "type": 7,
       "locked": false,
       "required": true,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "customTypeId": "type-neo-memory",
       "defaultValue": {
         "value": {}
@@ -856,7 +826,6 @@
   },
   "enums": {
     "enum-element": {
-      "_id": "enum-element",
       "id": "enum-element",
       "name": "Element",
       "options": {
@@ -868,13 +837,12 @@
         }
       },
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "types": {
     "type-hero": {
-      "_id": "type-hero",
       "id": "type-hero",
       "name": "Hero",
       "schema": {
@@ -884,11 +852,10 @@
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "type-root": {
-      "_id": "type-root",
       "id": "type-root",
       "name": "Root",
       "schema": {
@@ -900,11 +867,10 @@
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "type-base": {
-      "_id": "type-base",
       "id": "type-base",
       "name": "Base",
       "schema": {
@@ -913,11 +879,10 @@
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "type-derived": {
-      "_id": "type-derived",
       "id": "type-derived",
       "name": "Derived",
       "schema": {
@@ -927,11 +892,10 @@
       "isAbstract": false,
       "extendsTypeId": "type-base",
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "type-override": {
-      "_id": "type-override",
       "id": "type-override",
       "name": "Override",
       "schema": {
@@ -941,11 +905,10 @@
       "isAbstract": false,
       "extendsTypeId": "type-base",
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "type-choice-log": {
-      "_id": "type-choice-log",
       "id": "type-choice-log",
       "name": "NeoChoiceLog",
       "schema": {
@@ -954,11 +917,10 @@
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "type-text-node-memory": {
-      "_id": "type-text-node-memory",
       "id": "type-text-node-memory",
       "name": "NeoTextNodeMemory",
       "schema": {
@@ -970,11 +932,10 @@
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "type-dialogue-memory": {
-      "_id": "type-dialogue-memory",
       "id": "type-dialogue-memory",
       "name": "NeoDialogueMemory",
       "schema": {
@@ -985,11 +946,10 @@
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "type-neo-memory": {
-      "_id": "type-neo-memory",
       "id": "type-neo-memory",
       "name": "NeoMemory",
       "schema": {
@@ -998,106 +958,95 @@
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "values": {
     "v-num": {
-      "_id": "v-num",
       "id": "v-num",
       "projectId": "p-1",
       "value": 42,
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "v-str": {
-      "_id": "v-str",
       "id": "v-str",
       "projectId": "p-1",
       "value": "hello",
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "v-flag": {
-      "_id": "v-flag",
       "id": "v-flag",
       "projectId": "p-1",
       "value": true,
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "v-float": {
-      "_id": "v-float",
       "id": "v-float",
       "projectId": "p-1",
       "value": 3.14,
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "v-score": {
-      "_id": "v-score",
       "id": "v-score",
       "projectId": "p-1",
       "value": 10,
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "v-list": {
-      "_id": "v-list",
       "id": "v-list",
       "projectId": "p-1",
       "value": [
         "wood",
         "stone"
       ],
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "v-dict": {
-      "_id": "v-dict",
       "id": "v-dict",
       "projectId": "p-1",
       "value": {
         "Name": "v-name",
         "Level": "v-level"
       },
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "typeId": "type-hero"
     },
     "v-null": {
-      "_id": "v-null",
       "id": "v-null",
       "projectId": "p-1",
       "value": null,
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "v-root-save": {
-      "_id": "v-root-save",
       "id": "v-root-save",
       "projectId": "p-1",
       "value": {
         "Score": "v-score"
       },
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "typeId": "type-root"
     },
     "v-root-session": {
-      "_id": "v-root-session",
       "id": "v-root-session",
       "projectId": "p-1",
       "value": {},
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z",
+      "createdAt": 0,
+      "updatedAt": 0,
       "typeId": "type-root"
     }
   },
   "dialogues": {
     "dialogue-linked-hero": {
-      "_id": "dialogue-linked-hero",
       "id": "dialogue-linked-hero",
       "projectId": "test-project",
       "name": "Linked Hero",
@@ -1167,11 +1116,10 @@
           }
         }
       },
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "dialogue-ts-compiled-assign-add": {
-      "_id": "dialogue-ts-compiled-assign-add",
       "id": "dialogue-ts-compiled-assign-add",
       "projectId": "test-project",
       "name": "dialogue-ts-compiled-assign-add",
@@ -1370,11 +1318,10 @@
           ]
         }
       },
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "dialogue-ts-compiled-assign-subtract": {
-      "_id": "dialogue-ts-compiled-assign-subtract",
       "id": "dialogue-ts-compiled-assign-subtract",
       "projectId": "test-project",
       "name": "dialogue-ts-compiled-assign-subtract",
@@ -1573,11 +1520,10 @@
           ]
         }
       },
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "dialogue-ts-compiled-assign-multiply": {
-      "_id": "dialogue-ts-compiled-assign-multiply",
       "id": "dialogue-ts-compiled-assign-multiply",
       "projectId": "test-project",
       "name": "dialogue-ts-compiled-assign-multiply",
@@ -1776,11 +1722,10 @@
           ]
         }
       },
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "dialogue-ts-compiled-assign-divide": {
-      "_id": "dialogue-ts-compiled-assign-divide",
       "id": "dialogue-ts-compiled-assign-divide",
       "projectId": "test-project",
       "name": "dialogue-ts-compiled-assign-divide",
@@ -1979,11 +1924,10 @@
           ]
         }
       },
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "dialogue-ts-compiled-assign-modulo": {
-      "_id": "dialogue-ts-compiled-assign-modulo",
       "id": "dialogue-ts-compiled-assign-modulo",
       "projectId": "test-project",
       "name": "dialogue-ts-compiled-assign-modulo",
@@ -2182,11 +2126,10 @@
           ]
         }
       },
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "dialogue-ts-compiled-assign-increment": {
-      "_id": "dialogue-ts-compiled-assign-increment",
       "id": "dialogue-ts-compiled-assign-increment",
       "projectId": "test-project",
       "name": "dialogue-ts-compiled-assign-increment",
@@ -2385,11 +2328,10 @@
           ]
         }
       },
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "dialogue-ts-compiled-assign-decrement": {
-      "_id": "dialogue-ts-compiled-assign-decrement",
       "id": "dialogue-ts-compiled-assign-decrement",
       "projectId": "test-project",
       "name": "dialogue-ts-compiled-assign-decrement",
@@ -2588,13 +2530,12 @@
           ]
         }
       },
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "dialogueGroups": {
     "dialogue-group-standard": {
-      "_id": "dialogue-group-standard",
       "id": "dialogue-group-standard",
       "projectId": "test-project",
       "name": "Standard",
@@ -2602,13 +2543,12 @@
       "parentDialogueGroupId": null,
       "conditions": [],
       "priorityGroupIdOverride": null,
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "priorityGroups": {
     "default-priority-group": {
-      "_id": "default-priority-group",
       "id": "default-priority-group",
       "projectId": "test-project",
       "name": "Default",
@@ -2618,11 +2558,14 @@
           "name": "Low"
         }
       ],
-      "createdAt": "1970-01-01T00:00:00.000Z",
-      "updatedAt": "1970-01-01T00:00:00.000Z"
+      "createdAt": 0,
+      "updatedAt": 0
     }
   },
   "files": {},
   "textureTemplates": {},
-  "audioClipTemplates": {}
+  "audioClipTemplates": {},
+  "localizationConfig": null,
+  "localizationStatuses": {},
+  "localizedTexts": {}
 }

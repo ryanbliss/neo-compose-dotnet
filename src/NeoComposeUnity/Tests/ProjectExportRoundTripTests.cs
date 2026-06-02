@@ -4,6 +4,7 @@
 using System.IO;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace NeoCompose.Tests
@@ -64,6 +65,20 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(export.dialogueGroups);
             Assert.IsNotNull(export.priorityGroups);
             Assert.Greater(export.attributes.Count, 0);
+        }
+
+        [Test]
+        public void SynthFixture_TimestampsRoundTripAsEpochNumbers()
+        {
+            var export = Deserialize(LoadFixture("synth-example.json"));
+
+            Assert.AreEqual(0d, export.project.createdAt.EpochMilliseconds);
+            Assert.AreEqual(0d, export.attributes["attr-name"].updatedAt.EpochMilliseconds);
+            Assert.AreEqual(0d, export.values["v-num"].createdAt.EpochMilliseconds);
+
+            var serialized = JObject.Parse(JsonConvert.SerializeObject(export.project));
+            Assert.AreNotEqual(JTokenType.String, serialized["createdAt"]!.Type);
+            Assert.AreEqual(0d, serialized["createdAt"]!.Value<double>());
         }
 
         [Test]

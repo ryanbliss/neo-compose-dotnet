@@ -312,9 +312,7 @@ namespace NeoCompose.Runtime.Json
         public DialogueSettings settings = null!;
         public DialogueTriggerNode? triggerNode;
         public string? primaryLinkedValueId;
-        [JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt = null!;
-        [JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt = null!;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
     }
 }

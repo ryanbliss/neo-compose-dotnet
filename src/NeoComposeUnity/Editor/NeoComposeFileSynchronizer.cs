@@ -189,6 +189,11 @@ namespace NeoCompose.Unity.Editor
         {
             if (string.IsNullOrWhiteSpace(lhs)) return false;
             if (string.IsNullOrWhiteSpace(rhs)) return true;
+            if (NeoTimestamp.TryParse(lhs, out var lhsTimestamp) &&
+                NeoTimestamp.TryParse(rhs, out var rhsTimestamp))
+            {
+                return lhsTimestamp.CompareTo(rhsTimestamp) > 0;
+            }
             if (DateTime.TryParse(lhs, out var lhsDate) && DateTime.TryParse(rhs, out var rhsDate))
             {
                 return lhsDate.ToUniversalTime() > rhsDate.ToUniversalTime();

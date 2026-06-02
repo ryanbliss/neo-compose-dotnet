@@ -26,10 +26,8 @@ namespace NeoCompose.Runtime.Json
         public string? parentDialogueGroupId;
         public LogicCondition[] conditions = null!;
         public string? priorityGroupIdOverride;
-        [JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt = null!;
-        [JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt = null!;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
     }
 
     public class StandardDialogueGroup : DialogueGroup { }

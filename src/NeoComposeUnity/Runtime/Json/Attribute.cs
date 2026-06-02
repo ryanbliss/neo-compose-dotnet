@@ -47,10 +47,8 @@ namespace NeoCompose.Runtime.Json
         /// itself a stored value).
         /// </summary>
         public string? valueId;
-        [JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt = null!;
-        [JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt = null!;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
     }
 
     /// <summary>

@@ -14,8 +14,7 @@ namespace NeoCompose.Runtime.Json
         public double byteLength;
         public string storageKey = null!;
         public double? audioDurationSeconds;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt = null!;
+        public NeoTimestamp createdAt;
     }
 
     public sealed class ProjectFile
@@ -33,10 +32,8 @@ namespace NeoCompose.Runtime.Json
         public ProjectFilePendingReplacement? pendingReplacement;
         public FileUnityTextureImportSettings? unityTextureSettings;
         public FileUnityAudioClipImportSettings? unityAudioClipSettings;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt = null!;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt = null!;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
     }
 
     public sealed class FileUnityTextureImportSettings

@@ -20,9 +20,7 @@ namespace NeoCompose.Runtime.Json
         public string name = null!;
         public PriorityType[] options = null!;
         public object? system;
-        [JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt = null!;
-        [JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt = null!;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
     }
 }

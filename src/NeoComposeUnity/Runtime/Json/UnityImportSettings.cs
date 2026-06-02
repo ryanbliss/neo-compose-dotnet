@@ -61,10 +61,8 @@ namespace NeoCompose.Runtime.Json
         public JObject? cookieSettings;
         public JObject? singleChannelSettings;
         public JObject? swizzle;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt = null!;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt = null!;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
     }
 
     public sealed class UnitySpriteTextureSettingsTemplate
@@ -119,10 +117,8 @@ namespace NeoCompose.Runtime.Json
         public string sampleRateSetting = null!;
         public int? overrideSampleRate;
         public bool preloadAudioData;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt = null!;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt = null!;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
     }
 
     public sealed class UnitySpriteSlice

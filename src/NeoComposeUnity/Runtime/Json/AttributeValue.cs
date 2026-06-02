@@ -293,10 +293,8 @@ namespace NeoCompose.Runtime.Json
     public abstract class AttributeValue : AttributeValueBase
     {
         public string id { get; set; } = null!;
-        [JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt { get; set; } = null!;
-        [JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt { get; set; } = null!;
+        public NeoTimestamp createdAt { get; set; }
+        public NeoTimestamp updatedAt { get; set; }
     }
 
     /// <summary>

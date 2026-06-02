@@ -27,9 +27,7 @@ namespace NeoCompose.Runtime.Json
         public string? extendsTypeId;
         public bool hiddenInAttributeSelector;
         public bool isAbstract;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string createdAt = null!;
-        [Newtonsoft.Json.JsonConverter(typeof(TolerantStringConverter))]
-        public string updatedAt = null!;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
     }
 }
