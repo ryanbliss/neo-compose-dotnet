@@ -321,6 +321,7 @@ namespace NeoCompose.Runtime
             TAttributeValue value) where TAttributeValue : AttributeValue
         {
             GetWritableStore(ownership).values[value.id] = value;
+            TouchWritableStoreUpdatedAt(ownership);
             OnWritableValueChanged?.Invoke(ownership, value.id);
             if (ownership == NeoValueOwnership.Save)
             {
@@ -333,6 +334,15 @@ namespace NeoCompose.Runtime
             TAttributeValue value) where TAttributeValue : AttributeValue
         {
             GetWritableStore(ownership).values[value.id] = value;
+            TouchWritableStoreUpdatedAt(ownership);
+        }
+
+        private void TouchWritableStoreUpdatedAt(NeoValueOwnership ownership)
+        {
+            if (ownership == NeoValueOwnership.Save)
+            {
+                saveData.updatedAt = NeoTimestamp.Now();
+            }
         }
 
         internal void SetSavePayloadRows(object? payload)
@@ -965,6 +975,7 @@ namespace NeoCompose.Runtime
         internal bool RemoveSaveOverride(string attributeId)
         {
             if (!saveData.attributeValueOverrides.Remove(attributeId)) return false;
+            TouchWritableStoreUpdatedAt(NeoValueOwnership.Save);
             OnSaveOverrideChanged?.Invoke(attributeId, null);
             OnWritableOverrideChanged?.Invoke(NeoValueOwnership.Save, attributeId, null);
             return true;
@@ -1033,6 +1044,7 @@ namespace NeoCompose.Runtime
             }
             if (store.values.Remove(valueId))
             {
+                TouchWritableStoreUpdatedAt(ownership);
                 OnWritableValueChanged?.Invoke(ownership, valueId);
                 if (ownership == NeoValueOwnership.Save)
                 {
@@ -1085,6 +1097,7 @@ namespace NeoCompose.Runtime
             }
             if (store.values.Remove(valueId))
             {
+                TouchWritableStoreUpdatedAt(ownership);
                 OnWritableValueChanged?.Invoke(ownership, valueId);
                 if (ownership == NeoValueOwnership.Save)
                 {
@@ -1517,7 +1530,8 @@ namespace NeoCompose.Runtime
             ProjectSaveData empty = new()
             {
                 projectId = data.project.id,
-                version = "0.0.0",
+                version = BuildSaveVersionData(),
+                createdAt = NeoTimestamp.Now(),
                 // leave `values` and `attributeValueOverrides` empty until value(s) are set at runtime
                 values = new(),
                 attributeValueOverrides = new(),
@@ -1530,9 +1544,22 @@ namespace NeoCompose.Runtime
             return new()
             {
                 projectId = data.project.id,
-                version = "0.0.0",
+                version = BuildSaveVersionData(),
+                createdAt = NeoTimestamp.Now(),
                 values = new(),
                 attributeValueOverrides = new(),
+            };
+        }
+
+        protected VersionData BuildSaveVersionData()
+        {
+            string id = data.metadata?.versionId ?? "";
+            string label = data.metadata?.semver?.label ?? "";
+            if (string.IsNullOrWhiteSpace(label)) label = id;
+            return new VersionData
+            {
+                id = id,
+                label = label,
             };
         }
 
@@ -1568,6 +1595,7 @@ namespace NeoCompose.Runtime
                 new Dictionary<string, string>(),
                 rootSaveAttribute);
             saveData.attributeValueOverrides[rootSaveAttribute.id] = saveRootValueId;
+            TouchWritableStoreUpdatedAt(NeoValueOwnership.Save);
         }
 
         private void ValidateRootCustomAttribute(string attributeId, string projectFieldName)
@@ -1682,6 +1710,7 @@ namespace NeoCompose.Runtime
 
         protected void EmitHandleSave()
         {
+            saveData.updatedAt = NeoTimestamp.Now();
             handleSave.Invoke(SerializeSaveData());
             LoadUnsafe();
         }

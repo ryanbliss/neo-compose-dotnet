@@ -7,6 +7,22 @@ using System.Collections.Generic;
 
 namespace NeoCompose.Runtime.Json
 {
+    public class ProjectExportMetadataSemver
+    {
+        public string label = null!;
+        public int major;
+        public int minor;
+        public int patch;
+    }
+
+    public class ProjectExportMetadata
+    {
+        public int schemaVersion;
+        public string projectId = null!;
+        public string versionId = null!;
+        public ProjectExportMetadataSemver? semver;
+    }
+
     /// <summary>
     /// Top-level deserialization target — pass to
     /// <c>JsonConvert.DeserializeObject&lt;ProjectExport&gt;(json)</c>.
@@ -28,6 +44,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class ProjectData
     {
+        public ProjectExportMetadata? metadata;
         public Project project = null!;
         public Dictionary<string, Attribute> attributes = null!;
         public Dictionary<string, AttributeValue> values = null!;

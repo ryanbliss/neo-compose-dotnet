@@ -47,6 +47,85 @@ namespace NeoCompose.Tests
                 handleSave
             );
             Assert.IsNotNull(client);
+            var save = JsonConvert.DeserializeObject<ProjectSaveData>(saveBuffer);
+            Assert.IsNotNull(save);
+            Assert.AreEqual("test-project", save!.projectId);
+            Assert.AreEqual("version-1", save.version.id);
+            Assert.AreEqual("0.1.0", save.version.label);
+            Assert.Greater(save.createdAt.EpochMilliseconds, 0d);
+            Assert.GreaterOrEqual(save.updatedAt.EpochMilliseconds, save.createdAt.EpochMilliseconds);
+
+            var serialized = JObject.Parse(saveBuffer);
+            Assert.AreNotEqual(JTokenType.String, serialized["createdAt"]!.Type);
+            Assert.AreNotEqual(JTokenType.String, serialized["updatedAt"]!.Type);
+        }
+
+        [Test]
+        public void SaveData_SerializeDoesNotChangeUpdatedAt()
+        {
+            var saveBuffer = @"{
+  ""projectId"": ""project-1"",
+  ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
+  ""createdAt"": 100,
+  ""updatedAt"": 123,
+  ""values"": {},
+  ""attributeValueOverrides"": {}
+}";
+            var client = LoadLocalizedStringClient(localizable: true, saveBuffer);
+
+            var serializedBeforeSave = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual(100d, serializedBeforeSave["createdAt"]!.Value<double>());
+            var updatedAtBeforeSave = serializedBeforeSave["updatedAt"]!.Value<double>();
+
+            var serializedAgain = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual(updatedAtBeforeSave, serializedAgain["updatedAt"]!.Value<double>());
+
+        }
+
+        [Test]
+        public void SaveData_UpdatedAtChangesWhenSaveOverrideValueChanges()
+        {
+            var client = LoadLocalizedStringClient(
+                localizable: true,
+                @"{
+  ""projectId"": ""project-1"",
+  ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
+  ""createdAt"": 100,
+  ""updatedAt"": 123,
+  ""values"": {},
+  ""attributeValueOverrides"": {}
+}");
+            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
+            var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Save);
+
+            node.SetLiteralOverride("Manual Title");
+
+            var serialized = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual(100d, serialized["createdAt"]!.Value<double>());
+            Assert.Greater(serialized["updatedAt"]!.Value<double>(), 123d);
+        }
+
+        [Test]
+        public void SaveData_UpdatedAtDoesNotChangeWhenSessionOverrideValueChanges()
+        {
+            var client = LoadLocalizedStringClient(
+                localizable: true,
+                @"{
+  ""projectId"": ""project-1"",
+  ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
+  ""createdAt"": 100,
+  ""updatedAt"": 123,
+  ""values"": {},
+  ""attributeValueOverrides"": {}
+}");
+            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
+            var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Session);
+
+            node.SetLiteralOverride("Session Title");
+
+            var serialized = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual(100d, serialized["createdAt"]!.Value<double>());
+            Assert.AreEqual(123d, serialized["updatedAt"]!.Value<double>());
         }
 
         [Test]
@@ -449,7 +528,7 @@ namespace NeoCompose.Tests
                 source);
         }
 
-        private static NeoClient LoadLocalizedStringClient(bool localizable)
+        private static NeoClient LoadLocalizedStringClient(bool localizable, string initialSave = "")
         {
             var projectJson = $@"{{
   ""project"": {{
@@ -532,7 +611,7 @@ namespace NeoCompose.Tests
             var source = new FakeLocalizationLocaleFileSource();
             source.files["en-US"] = LocaleFile("en-US", null, ("text-title", "Localized Title"));
 
-            string saveBuffer = "";
+            string saveBuffer = initialSave;
             return new NeoLoader().Load(
                 projectJson,
                 () => saveBuffer,

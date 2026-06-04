@@ -260,7 +260,8 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(1, app.Save.Heroes.Count);
             var hero = app.Save.Heroes[0];
-            Assert.AreEqual("Ada", hero.Name);
+            Assert.IsNotNull(hero);
+            Assert.AreEqual("Ada", hero!.Name);
             Assert.AreEqual(7, hero.Health);
 
             var heroesNode = app.Client.save.Get<NeoAttributeListWritable>("Heroes");

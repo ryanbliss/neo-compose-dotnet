@@ -131,7 +131,7 @@ namespace NeoCompose.Unity.Editor
         {
             if (string.IsNullOrWhiteSpace(value)) return null;
 
-            var trimmed = value.Trim();
+            var trimmed = value!.Trim();
             if (long.TryParse(trimmed, NumberStyles.Integer, CultureInfo.InvariantCulture, out var integer))
             {
                 return NormalizeEpoch(integer);

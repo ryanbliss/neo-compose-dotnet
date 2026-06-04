@@ -1,4 +1,15 @@
 {
+  "metadata": {
+    "schemaVersion": 1,
+    "projectId": "test-project",
+    "versionId": "version-1",
+    "semver": {
+      "label": "0.1.0",
+      "major": 0,
+      "minor": 1,
+      "patch": 0
+    }
+  },
   "project": {
     "id": "test-project",
     "name": "Test Project",
