@@ -16,7 +16,7 @@ MonoBehaviour:
   projectId: 7cd65ee0-a3be-4162-b617-cba3ada4f8e8
   projectName: HelloWorld
   targetReleaseChannelId: development
-  versionId: 0281a621-aec9-47b9-9af5-0ec07bd3ebfb
+  versionId: bd05d3d2-a72f-49d5-881f-fcd1468614db
   generatedTypesDirectory: Assets/Scripts/Neo
   projectJsonDirectory: Assets/Resources/Neo
   localizationResourcesDirectory: Assets/Resources/Neo/Localization

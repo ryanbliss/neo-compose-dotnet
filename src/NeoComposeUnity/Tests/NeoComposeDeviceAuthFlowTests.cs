@@ -285,6 +285,8 @@ namespace NeoCompose.Tests
             public void Save(NeoComposeStoredToken token) => saved = token;
 
             public void Clear() => saved = null;
+
+            public NeoComposeTokenHint? PeekHint() => saved?.ToHint();
         }
     }
 }

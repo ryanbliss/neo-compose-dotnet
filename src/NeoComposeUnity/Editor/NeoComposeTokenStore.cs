@@ -20,6 +20,7 @@ namespace NeoCompose.Unity.Editor
         NeoComposeStoredToken? Load();
         void Save(NeoComposeStoredToken token);
         void Clear();
+        NeoComposeTokenHint? PeekHint();
     }
 
     /// <summary>
@@ -88,6 +89,8 @@ namespace NeoCompose.Unity.Editor
             return new NeoComposeStoredToken(
                 accessToken!,
                 hint.expiresAtUnixSeconds,
+                hint.updatedAtUnixSeconds,
+                hint.sessionCheckedAtUnixSeconds,
                 hint.scopes,
                 hint.authBaseUrl,
                 hint.displayName,

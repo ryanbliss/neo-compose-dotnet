@@ -41,18 +41,24 @@ namespace NeoCompose.Unity.Editor
     {
         private readonly INeoComposeAccessTokenProvider tokenProvider;
         private readonly INeoComposeHttpClient httpClient;
+        private readonly INeoComposeSessionRefresher sessionRefresher;
 
         public NeoComposeEditorApiClient()
-            : this(new NeoComposeTokenStoreAccessTokenProvider(), new NeoComposeUnityHttpClient())
+            : this(
+                new NeoComposeTokenStoreAccessTokenProvider(),
+                new NeoComposeUnityHttpClient(),
+                new NeoComposeSessionRefresher())
         {
         }
 
         public NeoComposeEditorApiClient(
             INeoComposeAccessTokenProvider tokenProvider,
-            INeoComposeHttpClient httpClient)
+            INeoComposeHttpClient httpClient,
+            INeoComposeSessionRefresher? sessionRefresher = null)
         {
             this.tokenProvider = tokenProvider;
             this.httpClient = httpClient;
+            this.sessionRefresher = sessionRefresher ?? new NeoComposeSessionRefresher();
         }
 
         public async Task<NeoComposeProjectListResponse> ListProjectsAsync(string apiBaseUrl, string? query)
@@ -197,6 +203,7 @@ namespace NeoCompose.Unity.Editor
         {
             // Fail fast before issuing the request when the user is signed out or
             // the token has expired.
+            await sessionRefresher.RefreshIfDueAsync(apiBaseUrl);
             var token = tokenProvider.GetAccessToken(apiBaseUrl);
             var response = await httpClient.SendAsync(url, "POST", body, token);
             return ReadResponse(url, operation, response);

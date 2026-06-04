@@ -47,7 +47,14 @@ namespace NeoCompose.Unity.Editor
     /// </summary>
     public sealed class NeoComposeSessionResponse
     {
+        [JsonProperty("session")] public NeoComposeSessionMetadata? session;
         [JsonProperty("user")] public NeoComposeProfileUser? user;
+    }
+
+    public sealed class NeoComposeSessionMetadata
+    {
+        [JsonProperty("expiresAt")] public string expiresAt = "";
+        [JsonProperty("updatedAt")] public string updatedAt = "";
     }
 
     public sealed class NeoComposeProfileUser

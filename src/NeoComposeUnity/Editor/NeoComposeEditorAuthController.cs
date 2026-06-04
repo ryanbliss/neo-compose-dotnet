@@ -25,23 +25,26 @@ namespace NeoCompose.Unity.Editor
     /// </summary>
     public sealed class NeoComposeEditorAuthController
     {
-        private readonly Func<string, NeoComposeTokenStore> storeFactory;
-        private readonly Func<string, NeoComposeTokenStore, NeoComposeDeviceAuthorizationFlow> flowFactory;
+        private readonly Func<string, INeoComposeTokenStore> storeFactory;
+        private readonly Func<string, INeoComposeTokenStore, NeoComposeDeviceAuthorizationFlow> flowFactory;
         private readonly INeoComposeTokenRevoker revoker;
+        private readonly INeoComposeSessionRefresher sessionRefresher;
         private readonly Func<DateTimeOffset> now;
 
         private CancellationTokenSource? signInCancellation;
 
         public NeoComposeEditorAuthController(
-            Func<string, NeoComposeTokenStore>? storeFactory = null,
-            Func<string, NeoComposeTokenStore, NeoComposeDeviceAuthorizationFlow>? flowFactory = null,
+            Func<string, INeoComposeTokenStore>? storeFactory = null,
+            Func<string, INeoComposeTokenStore, NeoComposeDeviceAuthorizationFlow>? flowFactory = null,
             Func<DateTimeOffset>? now = null,
-            INeoComposeTokenRevoker? revoker = null)
+            INeoComposeTokenRevoker? revoker = null,
+            INeoComposeSessionRefresher? sessionRefresher = null)
         {
             this.storeFactory = storeFactory ?? (apiBaseUrl => NeoComposeTokenStore.Create(apiBaseUrl));
             this.now = now ?? (() => DateTimeOffset.UtcNow);
             this.flowFactory = flowFactory ?? DefaultFlowFactory;
             this.revoker = revoker ?? new NeoComposeTokenRevoker();
+            this.sessionRefresher = sessionRefresher ?? new NeoComposeSessionRefresher();
         }
 
         public NeoComposeAuthState State { get; private set; } = NeoComposeAuthState.SignedOut;
@@ -84,6 +87,21 @@ namespace NeoCompose.Unity.Editor
             DisplayName = hint.displayName;
             DisplayEmail = hint.displayEmail;
             State = hint.IsExpired(now()) ? NeoComposeAuthState.Expired : NeoComposeAuthState.SignedIn;
+        }
+
+        public async Task<bool> RefreshSessionIfDueAsync(string apiBaseUrl)
+        {
+            try
+            {
+                var refreshed = await sessionRefresher.RefreshIfDueAsync(apiBaseUrl);
+                RefreshState(apiBaseUrl);
+                return refreshed;
+            }
+            catch (NeoComposeNotSignedInException exception)
+            {
+                HandleApiException(apiBaseUrl, exception);
+                return false;
+            }
         }
 
         /// <summary>
@@ -208,7 +226,7 @@ namespace NeoCompose.Unity.Editor
 
         private static NeoComposeDeviceAuthorizationFlow DefaultFlowFactory(
             string apiBaseUrl,
-            NeoComposeTokenStore store)
+            INeoComposeTokenStore store)
         {
             return new NeoComposeDeviceAuthorizationFlow(
                 new NeoComposeDeviceAuthTransport(),

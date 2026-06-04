@@ -29,7 +29,7 @@ namespace NeoCompose.Tests
         }
 
         private NeoComposeEditorAuthController NewController(
-            Func<string, NeoComposeTokenStore, NeoComposeDeviceAuthorizationFlow>? flowFactory = null,
+            Func<string, INeoComposeTokenStore, NeoComposeDeviceAuthorizationFlow>? flowFactory = null,
             INeoComposeTokenRevoker? revoker = null)
         {
             return new NeoComposeEditorAuthController(
@@ -217,7 +217,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual("", controller.DisplayName);
         }
 
-        private NeoComposeDeviceAuthorizationFlow NewFlow(FakeTransport transport, NeoComposeTokenStore tokenStore)
+        private NeoComposeDeviceAuthorizationFlow NewFlow(FakeTransport transport, INeoComposeTokenStore tokenStore)
         {
             return new NeoComposeDeviceAuthorizationFlow(
                 transport,

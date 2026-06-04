@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,12 +19,18 @@ namespace NeoCompose.Unity.Editor
     /// </summary>
     public readonly struct NeoComposeWebResponse
     {
-        public NeoComposeWebResponse(long statusCode, bool isConnectionError, string text, string error)
+        public NeoComposeWebResponse(
+            long statusCode,
+            bool isConnectionError,
+            string text,
+            string error,
+            IReadOnlyDictionary<string, string>? headers = null)
         {
             StatusCode = statusCode;
             IsConnectionError = isConnectionError;
             Text = text;
             Error = error;
+            Headers = headers ?? new Dictionary<string, string>();
         }
 
         /// <summary>HTTP status code, or 0 on a connection error/timeout.</summary>
@@ -38,8 +45,22 @@ namespace NeoCompose.Unity.Editor
 
         public string Text { get; }
         public string Error { get; }
+        public IReadOnlyDictionary<string, string> Headers { get; }
 
         public bool IsSuccessStatus => StatusCode >= 200 && StatusCode < 300;
+
+        public string? GetHeader(string name)
+        {
+            foreach (var header in Headers)
+            {
+                if (string.Equals(header.Key, name, StringComparison.OrdinalIgnoreCase))
+                {
+                    return header.Value;
+                }
+            }
+
+            return null;
+        }
     }
 
     /// <summary>
@@ -87,7 +108,8 @@ namespace NeoCompose.Unity.Editor
                 request.responseCode,
                 isConnectionError,
                 text,
-                request.error ?? "");
+                request.error ?? "",
+                request.GetResponseHeaders());
         }
 
         /// <summary>

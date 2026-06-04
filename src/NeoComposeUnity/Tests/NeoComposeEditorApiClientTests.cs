@@ -22,7 +22,7 @@ namespace NeoCompose.Tests
         public async Task EveryAuthorizedRequest_AttachesBearerToken()
         {
             var http = new FakeHttpClient();
-            var client = new NeoComposeEditorApiClient(new FakeProvider("the-token"), http);
+            var client = NewClient(new FakeProvider("the-token"), http);
 
             await client.ListProjectsAsync(ApiBaseUrl, null);
             await client.ListReleaseChannelsAsync(ApiBaseUrl, ProjectId);
@@ -40,12 +40,26 @@ namespace NeoCompose.Tests
             }
         }
 
+        [Test]
+        public async Task AuthorizedRequest_AsksSessionRefresherBeforeSendingApiRequest()
+        {
+            var http = new FakeHttpClient();
+            var refresher = new RecordingRefresher();
+            var client = NewClient(new FakeProvider("the-token"), http, refresher);
+
+            await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId);
+
+            Assert.AreEqual(1, refresher.refreshCalls);
+            Assert.AreEqual(ApiBaseUrl, refresher.lastApiBaseUrl);
+            Assert.AreEqual(1, http.sends.Count);
+        }
+
         // UAUTH-031
         [Test]
         public void AuthorizedRequest_FailsFastWhenSignedOut_WithoutSending()
         {
             var http = new FakeHttpClient();
-            var client = new NeoComposeEditorApiClient(new FakeProvider(null), http);
+            var client = NewClient(new FakeProvider(null), http);
 
             Assert.ThrowsAsync<NeoComposeNotSignedInException>(
                 async () => await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId));
@@ -57,7 +71,7 @@ namespace NeoCompose.Tests
         public async Task DownloadFile_DoesNotAttachBearerAndUsesDownloadPath()
         {
             var http = new FakeHttpClient();
-            var client = new NeoComposeEditorApiClient(new FakeProvider("the-token"), http);
+            var client = NewClient(new FakeProvider("the-token"), http);
 
             var bytes = await client.DownloadFileAsync("https://files.example.test/signed");
 
@@ -75,7 +89,7 @@ namespace NeoCompose.Tests
                 status = 401,
                 body = "{\"error\":\"Bearer token is invalid or expired.\"}",
             };
-            var client = new NeoComposeEditorApiClient(new FakeProvider("the-token"), http);
+            var client = NewClient(new FakeProvider("the-token"), http);
 
             Assert.ThrowsAsync<NeoComposeNotSignedInException>(
                 async () => await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId));
@@ -91,7 +105,7 @@ namespace NeoCompose.Tests
                 status = 403,
                 body = "{\"error\":\"Bearer token is missing required scope \\\"unity:settings:write\\\".\"}",
             };
-            var client = new NeoComposeEditorApiClient(new FakeProvider("the-token"), http);
+            var client = NewClient(new FakeProvider("the-token"), http);
 
             var ex = Assert.ThrowsAsync<NeoComposeApiAuthorizationException>(
                 async () => await client.UpdateProjectExportSettingsAsync(ApiBaseUrl, ProjectId, VersionId, "Ns", true));
@@ -108,7 +122,7 @@ namespace NeoCompose.Tests
         {
             var http = new FakeHttpClient { status = 403, body = "{}" };
             var provider = new FakeProvider("the-token");
-            var client = new NeoComposeEditorApiClient(provider, http);
+            var client = NewClient(provider, http);
 
             var ex = Assert.ThrowsAsync<NeoComposeApiAuthorizationException>(
                 async () => await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId));
@@ -170,6 +184,12 @@ namespace NeoCompose.Tests
         private static INeoComposeTokenStore StoreWith(NeoComposeStoredToken? token) =>
             new InMemoryTokenStore { saved = token };
 
+        private static NeoComposeEditorApiClient NewClient(
+            INeoComposeAccessTokenProvider provider,
+            INeoComposeHttpClient http,
+            INeoComposeSessionRefresher? refresher = null) =>
+            new NeoComposeEditorApiClient(provider, http, refresher ?? new NoopRefresher());
+
         private sealed class InMemoryTokenStore : INeoComposeTokenStore
         {
             public NeoComposeStoredToken? saved;
@@ -179,6 +199,8 @@ namespace NeoCompose.Tests
             public void Save(NeoComposeStoredToken token) => saved = token;
 
             public void Clear() => saved = null;
+
+            public NeoComposeTokenHint? PeekHint() => saved?.ToHint();
         }
 
         private sealed class FakeProvider : INeoComposeAccessTokenProvider
@@ -201,6 +223,24 @@ namespace NeoCompose.Tests
             {
                 value = token ?? "";
                 return token != null;
+            }
+        }
+
+        private sealed class NoopRefresher : INeoComposeSessionRefresher
+        {
+            public Task<bool> RefreshIfDueAsync(string apiBaseUrl) => Task.FromResult(false);
+        }
+
+        private sealed class RecordingRefresher : INeoComposeSessionRefresher
+        {
+            public int refreshCalls;
+            public string lastApiBaseUrl = "";
+
+            public Task<bool> RefreshIfDueAsync(string apiBaseUrl)
+            {
+                refreshCalls++;
+                lastApiBaseUrl = apiBaseUrl;
+                return Task.FromResult(false);
             }
         }
 

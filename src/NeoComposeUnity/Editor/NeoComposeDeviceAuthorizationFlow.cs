@@ -150,11 +150,13 @@ namespace NeoCompose.Unity.Editor
             var profile = await transport.GetProfileAsync(apiBaseUrl, token.accessToken, cancellationToken);
             var grantedScopes = SplitScopes(token.scope);
             var expirySeconds = token.expiresInSeconds > 0 ? token.expiresInSeconds : FallbackExpirySeconds;
-            var expiresAt = now().ToUnixTimeSeconds() + expirySeconds;
+            var issuedAt = now().ToUnixTimeSeconds();
+            var expiresAt = issuedAt + expirySeconds;
 
             var stored = new NeoComposeStoredToken(
                 token.accessToken,
                 expiresAt,
+                issuedAt,
                 grantedScopes,
                 NeoComposeAuthEndpoints.Origin(apiBaseUrl),
                 profile.name,

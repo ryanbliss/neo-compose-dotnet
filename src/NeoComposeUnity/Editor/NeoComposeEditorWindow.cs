@@ -29,6 +29,9 @@ namespace NeoCompose.Unity.Editor
         private string searchText = "";
         private string status = "";
         private bool loading;
+        private bool sessionRefreshInProgress;
+        private DateTimeOffset? lastSessionRefreshCheckedAt;
+        private DateTimeOffset? lastTokenRefreshedAt;
         private bool clearKeyboardFocusNextGui;
         private const float ContentPadding = 12f;
         private const float LabelWidth = 132f;
@@ -54,16 +57,57 @@ namespace NeoCompose.Unity.Editor
                 apiClient,
                 new NeoComposeEditorAssetService());
             auth.RefreshState(config.apiBaseUrl);
+            _ = RefreshSessionForVisiblePanelAsync();
+
             if (config.HasProject && auth.AreAuthSensitiveControlsEnabled)
             {
                 _ = RefreshVersionMetadataAsync(false);
             }
         }
 
+        private void OnFocus()
+        {
+            _ = RefreshSessionForVisiblePanelAsync();
+        }
+
         private void OnDisable()
         {
             // Do not let device-flow polling outlive the window.
             auth.CancelSignIn();
+        }
+
+        private async Task RefreshSessionForVisiblePanelAsync()
+        {
+            if (config == null || sessionRefreshInProgress) return;
+
+            auth.RefreshState(config.apiBaseUrl);
+            if (!auth.AreAuthSensitiveControlsEnabled) return;
+
+            sessionRefreshInProgress = true;
+            Repaint();
+            try
+            {
+                var refreshed = await auth.RefreshSessionIfDueAsync(config.apiBaseUrl);
+                lastSessionRefreshCheckedAt = DateTimeOffset.Now;
+                if (refreshed)
+                {
+                    lastTokenRefreshedAt = lastSessionRefreshCheckedAt;
+                    status = "Neo Compose session refreshed.";
+                }
+
+                Repaint();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(exception);
+                status = exception.Message;
+                Repaint();
+            }
+            finally
+            {
+                sessionRefreshInProgress = false;
+                Repaint();
+            }
         }
 
         private void OnGUI()
@@ -170,6 +214,8 @@ namespace NeoCompose.Unity.Editor
                 }
             }
 
+            RenderSessionRefreshStatus();
+
             EndSection();
         }
 
@@ -193,6 +239,33 @@ namespace NeoCompose.Unity.Editor
             }
 
             EditorGUILayout.EndHorizontal();
+        }
+
+        private void RenderSessionRefreshStatus()
+        {
+            if (sessionRefreshInProgress)
+            {
+                EditorGUILayout.Space(3);
+                EditorGUILayout.LabelField("Refreshing token...", MutedStyle());
+                return;
+            }
+
+            if (lastTokenRefreshedAt.HasValue)
+            {
+                EditorGUILayout.Space(3);
+                EditorGUILayout.LabelField(
+                    "Last refreshed at " + lastTokenRefreshedAt.Value.ToLocalTime().ToString("g"),
+                    MutedStyle());
+                return;
+            }
+
+            if (lastSessionRefreshCheckedAt.HasValue)
+            {
+                EditorGUILayout.Space(3);
+                EditorGUILayout.LabelField(
+                    "Last token check at " + lastSessionRefreshCheckedAt.Value.ToLocalTime().ToString("g"),
+                    MutedStyle());
+            }
         }
 
         private void RenderSignInControls(NeoComposeConfig config)

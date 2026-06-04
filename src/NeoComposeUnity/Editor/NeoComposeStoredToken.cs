@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using Newtonsoft.Json;
 
 namespace NeoCompose.Unity.Editor
 {
@@ -24,6 +25,8 @@ namespace NeoCompose.Unity.Editor
         public NeoComposeStoredToken(
             string accessToken,
             long expiresAtUnixSeconds,
+            long updatedAtUnixSeconds,
+            long sessionCheckedAtUnixSeconds,
             string[] scopes,
             string authBaseUrl,
             string displayName,
@@ -31,10 +34,35 @@ namespace NeoCompose.Unity.Editor
         {
             this.accessToken = accessToken;
             this.expiresAtUnixSeconds = expiresAtUnixSeconds;
+            this.updatedAtUnixSeconds = updatedAtUnixSeconds;
+            this.sessionCheckedAtUnixSeconds = sessionCheckedAtUnixSeconds;
             this.scopes = scopes;
             this.authBaseUrl = authBaseUrl;
             this.displayName = displayName;
             this.displayEmail = displayEmail;
+        }
+
+        public NeoComposeStoredToken(
+            string accessToken,
+            long expiresAtUnixSeconds,
+            string[] scopes,
+            string authBaseUrl,
+            string displayName,
+            string displayEmail)
+            : this(accessToken, expiresAtUnixSeconds, 0, 0, scopes, authBaseUrl, displayName, displayEmail)
+        {
+        }
+
+        public NeoComposeStoredToken(
+            string accessToken,
+            long expiresAtUnixSeconds,
+            long updatedAtUnixSeconds,
+            string[] scopes,
+            string authBaseUrl,
+            string displayName,
+            string displayEmail)
+            : this(accessToken, expiresAtUnixSeconds, updatedAtUnixSeconds, 0, scopes, authBaseUrl, displayName, displayEmail)
+        {
         }
 
         /// <summary>
@@ -48,6 +76,18 @@ namespace NeoCompose.Unity.Editor
         /// not issue refresh tokens, so expiry forces re-authentication.
         /// </summary>
         public long expiresAtUnixSeconds { get; }
+
+        /// <summary>
+        /// Last server-side session update time as a Unix timestamp in seconds.
+        /// Better Auth can extend the session after this time is old enough.
+        /// </summary>
+        public long updatedAtUnixSeconds { get; }
+
+        /// <summary>
+        /// Last local <c>get-session</c> check as a Unix timestamp in seconds.
+        /// Used only to throttle rolling-refresh probes.
+        /// </summary>
+        public long sessionCheckedAtUnixSeconds { get; }
 
         /// <summary>
         /// The scopes granted to this token.
@@ -82,6 +122,8 @@ namespace NeoCompose.Unity.Editor
         public NeoComposeTokenHint ToHint() =>
             new NeoComposeTokenHint(
                 expiresAtUnixSeconds,
+                updatedAtUnixSeconds,
+                sessionCheckedAtUnixSeconds,
                 scopes,
                 authBaseUrl,
                 displayName,
@@ -94,21 +136,49 @@ namespace NeoCompose.Unity.Editor
     /// </summary>
     public sealed class NeoComposeTokenHint
     {
+        [JsonConstructor]
         public NeoComposeTokenHint(
             long expiresAtUnixSeconds,
+            long updatedAtUnixSeconds,
+            long sessionCheckedAtUnixSeconds,
             string[] scopes,
             string authBaseUrl,
             string displayName,
             string displayEmail)
         {
             this.expiresAtUnixSeconds = expiresAtUnixSeconds;
+            this.updatedAtUnixSeconds = updatedAtUnixSeconds;
+            this.sessionCheckedAtUnixSeconds = sessionCheckedAtUnixSeconds;
             this.scopes = scopes;
             this.authBaseUrl = authBaseUrl;
             this.displayName = displayName;
             this.displayEmail = displayEmail;
         }
 
+        public NeoComposeTokenHint(
+            long expiresAtUnixSeconds,
+            string[] scopes,
+            string authBaseUrl,
+            string displayName,
+            string displayEmail)
+            : this(expiresAtUnixSeconds, 0, 0, scopes, authBaseUrl, displayName, displayEmail)
+        {
+        }
+
+        public NeoComposeTokenHint(
+            long expiresAtUnixSeconds,
+            long updatedAtUnixSeconds,
+            string[] scopes,
+            string authBaseUrl,
+            string displayName,
+            string displayEmail)
+            : this(expiresAtUnixSeconds, updatedAtUnixSeconds, 0, scopes, authBaseUrl, displayName, displayEmail)
+        {
+        }
+
         public long expiresAtUnixSeconds { get; }
+        public long updatedAtUnixSeconds { get; }
+        public long sessionCheckedAtUnixSeconds { get; }
         public string[] scopes { get; }
         public string authBaseUrl { get; }
         public string displayName { get; }
