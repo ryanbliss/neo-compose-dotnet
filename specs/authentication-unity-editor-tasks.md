@@ -10,10 +10,13 @@ SDK-side token storage, bearer-token wiring for Unity export / project-list /
 Unity-settings-edit calls, and a storage-only stub for the project-scoped
 runtime API key.
 
-Active chunk: nothing started. The editor currently calls the web API with no
-`Authorization` header, which is already broken against the new web backend.
-First chunk should land the token store (Phase 1) and the device-authorization
-client (Phase 2).
+Active chunk: Phases 1, 2, 4, 5 complete and verified. Phase 3's session
+controller (`NeoComposeEditorAuthController`) is implemented and tested (state
+transitions, sign-in, 401→expired+clear, 403→stay-signed-in). Remaining: wire the
+controller into `NeoComposeEditorWindow` IMGUI (the auth cell + control gating,
+UAUTH-023–027, 029), then Phase 6 disconnect/revoke, Phase 7 runtime-key stub,
+Phase 8 verification. The editor still calls the web API with no `Authorization`
+header until the window wiring lands.
 
 Scope reminders from the spec:
 
@@ -62,24 +65,24 @@ assembly.
 
 ### Token model and abstraction
 
-- [ ] UAUTH-001 Add `NeoComposeStoredToken` carrying access token, absolute expiry, granted scopes, issuing auth base URL, and signed-in display identity (name/email).
-- [ ] UAUTH-002 Add `INeoComposeTokenStore` with `Load()`, `Save(token)`, and `Clear()`.
-- [ ] UAUTH-003 Add a non-secret UI hint store (display name + expiry only) usable without unlocking the secret store, persisted outside `Assets/`.
+- [x] UAUTH-001 Add `NeoComposeStoredToken` carrying access token, absolute expiry, granted scopes, issuing auth base URL, and signed-in display identity (name/email).
+- [x] UAUTH-002 Add `INeoComposeTokenStore` with `Load()`, `Save(token)`, and `Clear()`.
+- [x] UAUTH-003 Add a non-secret UI hint store (display name + expiry only) usable without unlocking the secret store, persisted outside `Assets/`.
 
 ### OS-native storage implementations
 
-- [ ] UAUTH-004 Add macOS Keychain implementation, keyed per auth base URL.
-- [ ] UAUTH-005 Add Windows Credential Manager implementation, keyed per auth base URL.
-- [ ] UAUTH-006 Add Linux Secret Service/libsecret implementation, keyed per auth base URL.
-- [ ] UAUTH-007 Select the platform implementation at runtime behind `INeoComposeTokenStore`.
-- [ ] UAUTH-008 Add restricted-permission per-user file fallback outside the project tree when no native store is available, with a "secure storage unavailable" warning and no in-project/committed downgrade.
-- [ ] UAUTH-009 Ensure `Clear()` removes every artifact, including the non-secret hints.
+- [x] UAUTH-004 Add macOS Keychain implementation, keyed per auth base URL.
+- [x] UAUTH-005 Add Windows Credential Manager implementation, keyed per auth base URL.
+- [x] UAUTH-006 Add Linux Secret Service/libsecret implementation, keyed per auth base URL.
+- [x] UAUTH-007 Select the platform implementation at runtime behind `INeoComposeTokenStore`.
+- [x] UAUTH-008 Add restricted-permission per-user file fallback outside the project tree when no native store is available, with a "secure storage unavailable" warning and no in-project/committed downgrade.
+- [x] UAUTH-009 Ensure `Clear()` removes every artifact, including the non-secret hints.
 
 ### Phase 1 verification
 
-- [ ] UAUTH-010 Add tests that the store round-trips and clears tokens through a fake `INeoComposeTokenStore`.
-- [ ] UAUTH-011 Add tests asserting the default store never writes under `Assets/` or to plaintext `EditorPrefs`.
-- [ ] UAUTH-012 Run focused Unity token-store tests from the HelloWorld Unity Test Runner.
+- [x] UAUTH-010 Add tests that the store round-trips and clears tokens through a fake `INeoComposeTokenStore`.
+- [x] UAUTH-011 Add tests asserting the default store never writes under `Assets/` or to plaintext `EditorPrefs`.
+- [x] UAUTH-012 Run focused Unity token-store tests from the HelloWorld Unity Test Runner.
 
 ## Phase 2: Device-authorization flow client
 
@@ -89,19 +92,19 @@ exposed by the web app's Better Auth handler, resolving all endpoints from
 
 ### Device flow
 
-- [ ] UAUTH-013 Add a device-authorization client that requests a device code with `client_id=neo-compose-unity` and the registered scopes (`openid`, `profile:read`, `project:list`, `project:read`, `unity:export`, `unity:settings:write`).
-- [ ] UAUTH-014 Derive device-code, device-token, and verification endpoints from `NeoComposeConfig.apiBaseUrl` so one value retargets localhost/production.
-- [ ] UAUTH-015 Display the `user_code` as copyable text and open the verification URI (`/auth/device`) via `Application.OpenURL`.
-- [ ] UAUTH-016 Poll the device-token endpoint at the server `interval`, honoring `authorization_pending`, `slow_down`, `access_denied`, and `expired_token` (RFC 8628).
-- [ ] UAUTH-017 Enforce a hard overall timeout matching the device code `expires_in` with an actionable failure message.
-- [ ] UAUTH-018 Make polling cancelable (window close, user cancel, expiry) and never poll faster than the server `interval`.
-- [ ] UAUTH-019 On success, capture the bearer token, expiry, granted scopes, and `profile:read` identity and persist through the token store.
+- [x] UAUTH-013 Add a device-authorization client that requests a device code with `client_id=neo-compose-unity` and the registered scopes (`openid`, `profile:read`, `project:list`, `project:read`, `unity:export`, `unity:settings:write`).
+- [x] UAUTH-014 Derive device-code, device-token, and verification endpoints from `NeoComposeConfig.apiBaseUrl` so one value retargets localhost/production.
+- [x] UAUTH-015 Display the `user_code` as copyable text and open the verification URI (`/auth/device`) via `Application.OpenURL`.
+- [x] UAUTH-016 Poll the device-token endpoint at the server `interval`, honoring `authorization_pending`, `slow_down`, `access_denied`, and `expired_token` (RFC 8628).
+- [x] UAUTH-017 Enforce a hard overall timeout matching the device code `expires_in` with an actionable failure message.
+- [x] UAUTH-018 Make polling cancelable (window close, user cancel, expiry) and never poll faster than the server `interval`.
+- [x] UAUTH-019 On success, capture the bearer token, expiry, granted scopes, and `profile:read` identity and persist through the token store.
 
 ### Phase 2 verification
 
-- [ ] UAUTH-020 Add tests for the poller honoring `authorization_pending`, `slow_down`, `access_denied`, `expired_token`, and overall timeout using a fake clock and fake transport.
-- [ ] UAUTH-021 Add tests that a successful flow persists token, expiry, scopes, and identity through a fake token store.
-- [ ] UAUTH-022 Run focused Unity device-flow tests from the HelloWorld Unity Test Runner.
+- [x] UAUTH-020 Add tests for the poller honoring `authorization_pending`, `slow_down`, `access_denied`, `expired_token`, and overall timeout using a fake clock and fake transport.
+- [x] UAUTH-021 Add tests that a successful flow persists token, expiry, scopes, and identity through a fake token store.
+- [x] UAUTH-022 Run focused Unity device-flow tests from the HelloWorld Unity Test Runner.
 
 ## Phase 3: Editor auth cell and feature gating
 
@@ -119,7 +122,7 @@ self-launched browsers.
 
 ### Phase 3 verification
 
-- [ ] UAUTH-028 Add editor tests for cell state transitions (signed-out, signed-in, expired) and control gating.
+- [x] UAUTH-028 Add editor tests for cell state transitions (signed-out, signed-in, expired) and control gating.
 - [ ] UAUTH-029 Run focused Unity editor window tests from the HelloWorld Unity Test Runner.
 
 ## Phase 4: Bearer-token wiring into the API client
@@ -129,16 +132,16 @@ Goal: attach the bearer token to every authenticated request in
 
 ### Request authorization
 
-- [ ] UAUTH-030 Attach `Authorization: Bearer <token>` to `ListProjects`, `ListReleaseChannels`, `ListVersions`, `ListVersionStatuses`, `GetVersionMetadata`, `UpdateProjectExportSettings`, `ExportProject`, and `ExportProjectFileDownloads`.
-- [ ] UAUTH-031 Add a fail-fast typed "not signed in" error when no valid, unexpired token exists, instead of issuing an unauthenticated request.
-- [ ] UAUTH-032 Keep pre-signed file download URLs (`DownloadFileAsync`) bearer-free, since they are storage URLs.
-- [ ] UAUTH-033 Do not attempt per-route or per-project token minting; rely on the account token carrying all `neo-compose-unity` scopes.
+- [x] UAUTH-030 Attach `Authorization: Bearer <token>` to `ListProjects`, `ListReleaseChannels`, `ListVersions`, `ListVersionStatuses`, `GetVersionMetadata`, `UpdateProjectExportSettings`, `ExportProject`, and `ExportProjectFileDownloads`.
+- [x] UAUTH-031 Add a fail-fast typed "not signed in" error when no valid, unexpired token exists, instead of issuing an unauthenticated request.
+- [x] UAUTH-032 Keep pre-signed file download URLs (`DownloadFileAsync`) bearer-free, since they are storage URLs.
+- [x] UAUTH-033 Do not attempt per-route or per-project token minting; rely on the account token carrying all `neo-compose-unity` scopes.
 
 ### Phase 4 verification
 
-- [ ] UAUTH-034 Add tests that every auth-required request carries the bearer header and refuses to send without a valid token.
-- [ ] UAUTH-035 Add tests that pre-signed file downloads omit the bearer header.
-- [ ] UAUTH-036 Run focused Unity API client tests from the HelloWorld Unity Test Runner.
+- [x] UAUTH-034 Add tests that every auth-required request carries the bearer header and refuses to send without a valid token.
+- [x] UAUTH-035 Add tests that pre-signed file downloads omit the bearer header.
+- [x] UAUTH-036 Run focused Unity API client tests from the HelloWorld Unity Test Runner.
 
 ## Phase 5: Expiry and authorization-failure handling
 
@@ -147,17 +150,17 @@ Goal: distinguish authentication failure (`401`) from authorization failure
 
 ### Failure handling
 
-- [ ] UAUTH-037 On `401`, treat as signed-out: clear in-memory token, mark stored token expired, gate controls, and prompt re-sign-in via the auth cell.
-- [ ] UAUTH-038 On `403`, keep the user signed in and surface a capability-specific, non-destructive message identifying the missing capability and affected project.
-- [ ] UAUTH-039 Give the `unity:settings:write` settings-edit `403` a message clearly stating the user lacks permission to edit this project's Unity settings, not a broken sign-in.
-- [ ] UAUTH-040 Do not retry `403` as an auth problem and do not loop the device flow on `403`.
-- [ ] UAUTH-041 Proactively check the stored absolute expiry before issuing a request to present the expired state without a guaranteed round trip, while still handling server `401` for early-revoked tokens.
+- [x] UAUTH-037 On `401`, treat as signed-out: clear in-memory token, mark stored token expired, gate controls, and prompt re-sign-in via the auth cell.
+- [x] UAUTH-038 On `403`, keep the user signed in and surface a capability-specific, non-destructive message identifying the missing capability and affected project.
+- [x] UAUTH-039 Give the `unity:settings:write` settings-edit `403` a message clearly stating the user lacks permission to edit this project's Unity settings, not a broken sign-in.
+- [x] UAUTH-040 Do not retry `403` as an auth problem and do not loop the device flow on `403`.
+- [x] UAUTH-041 Proactively check the stored absolute expiry before issuing a request to present the expired state without a guaranteed round trip, while still handling server `401` for early-revoked tokens.
 
 ### Phase 5 verification
 
-- [ ] UAUTH-042 Add tests that `401` drives the signed-out/expired state and gating.
-- [ ] UAUTH-043 Add tests that `403` keeps the user signed in and surfaces the capability-specific message, including the `unity:settings:write` case.
-- [ ] UAUTH-044 Run focused Unity failure-handling tests from the HelloWorld Unity Test Runner.
+- [x] UAUTH-042 Add tests that `401` drives the signed-out/expired state and gating.
+- [x] UAUTH-043 Add tests that `403` keeps the user signed in and surfaces the capability-specific message, including the `unity:settings:write` case.
+- [x] UAUTH-044 Run focused Unity failure-handling tests from the HelloWorld Unity Test Runner.
 
 ## Phase 6: Disconnect and revocation
 

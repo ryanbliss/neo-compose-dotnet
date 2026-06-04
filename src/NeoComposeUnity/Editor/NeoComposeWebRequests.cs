@@ -1,0 +1,142 @@
+// Copyright (c) Ryan Bliss and contributors. All rights reserved.
+// Licensed under the MIT License.
+
+#nullable enable
+
+using System;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using UnityEngine.Networking;
+
+namespace NeoCompose.Unity.Editor
+{
+    /// <summary>
+    /// The outcome of a single HTTP request, including the body even for HTTP
+    /// error statuses so callers can parse structured error payloads (such as
+    /// RFC 8628 device-flow errors or 401/403 API responses).
+    /// </summary>
+    public readonly struct NeoComposeWebResponse
+    {
+        public NeoComposeWebResponse(long statusCode, bool isConnectionError, string text, string error)
+        {
+            StatusCode = statusCode;
+            IsConnectionError = isConnectionError;
+            Text = text;
+            Error = error;
+        }
+
+        /// <summary>HTTP status code, or 0 on a connection error/timeout.</summary>
+        public long StatusCode { get; }
+
+        /// <summary>
+        /// True for transport-level failures (no HTTP response): connection
+        /// errors, timeouts, or data processing errors. HTTP error statuses such
+        /// as 401/403/400 are <em>not</em> connection errors.
+        /// </summary>
+        public bool IsConnectionError { get; }
+
+        public string Text { get; }
+        public string Error { get; }
+
+        public bool IsSuccessStatus => StatusCode >= 200 && StatusCode < 300;
+    }
+
+    /// <summary>
+    /// Thin <see cref="UnityWebRequest"/> wrapper that resolves a Task when the
+    /// request completes, captures the response body for any HTTP status, and
+    /// enforces a hard timeout. Shared by the device-authorization transport and
+    /// the editor API client.
+    /// </summary>
+    public static class NeoComposeWebRequests
+    {
+        public const int DefaultTimeoutSeconds = 30;
+
+        public static async Task<NeoComposeWebResponse> SendAsync(
+            string url,
+            string method,
+            string? jsonBody = null,
+            string? bearerToken = null,
+            int timeoutSeconds = DefaultTimeoutSeconds,
+            CancellationToken cancellationToken = default)
+        {
+            using var request = new UnityWebRequest(url, method)
+            {
+                downloadHandler = new DownloadHandlerBuffer(),
+                timeout = timeoutSeconds,
+            };
+            if (jsonBody != null)
+            {
+                request.uploadHandler = new UploadHandlerRaw(Encoding.UTF8.GetBytes(jsonBody));
+                request.SetRequestHeader("Content-Type", "application/json");
+            }
+
+            request.SetRequestHeader("Accept", "application/json");
+            if (!string.IsNullOrWhiteSpace(bearerToken))
+            {
+                request.SetRequestHeader("Authorization", "Bearer " + bearerToken);
+            }
+
+            await SendOperationAsync(request, timeoutSeconds, cancellationToken);
+
+            var text = request.downloadHandler?.text ?? "";
+            var isConnectionError =
+                request.result == UnityWebRequest.Result.ConnectionError ||
+                request.result == UnityWebRequest.Result.DataProcessingError;
+            return new NeoComposeWebResponse(
+                request.responseCode,
+                isConnectionError,
+                text,
+                request.error ?? "");
+        }
+
+        /// <summary>
+        /// Downloads raw bytes from a pre-signed storage URL. No bearer token is
+        /// attached; these URLs carry their own signed authorization.
+        /// </summary>
+        public static async Task<byte[]> DownloadBytesAsync(
+            string url,
+            int timeoutSeconds = 120,
+            CancellationToken cancellationToken = default)
+        {
+            using var request = UnityWebRequest.Get(url);
+            request.timeout = timeoutSeconds;
+            await SendOperationAsync(request, timeoutSeconds, cancellationToken);
+            if (request.result != UnityWebRequest.Result.Success)
+            {
+                throw new InvalidOperationException(
+                    $"Neo Compose file download failed ({request.responseCode}) {url}: {request.error}");
+            }
+
+            return request.downloadHandler.data;
+        }
+
+        private static async Task SendOperationAsync(
+            UnityWebRequest request,
+            int timeoutSeconds,
+            CancellationToken cancellationToken)
+        {
+            var completion = new TaskCompletionSource<bool>();
+            var operation = request.SendWebRequest();
+            operation.completed += _ =>
+            {
+                if (!completion.Task.IsCompleted) completion.SetResult(true);
+            };
+
+            using var registration = cancellationToken.CanBeCanceled
+                ? cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken))
+                : default;
+
+            var timeout = Task.Delay(TimeSpan.FromSeconds(timeoutSeconds + 1));
+            var completed = await Task.WhenAny(completion.Task, timeout);
+            if (completed == completion.Task)
+            {
+                await completion.Task;
+                return;
+            }
+
+            request.Abort();
+            throw new TimeoutException($"HTTP request to {request.url} timed out after {timeoutSeconds} seconds.");
+        }
+    }
+}

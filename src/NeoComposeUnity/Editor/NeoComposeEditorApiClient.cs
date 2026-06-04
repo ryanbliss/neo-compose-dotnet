@@ -39,8 +39,21 @@ namespace NeoCompose.Unity.Editor
 
     public sealed class NeoComposeEditorApiClient : INeoComposeEditorApiClient
     {
-        private const int RequestTimeoutSeconds = 30;
-        private const int FileDownloadTimeoutSeconds = 120;
+        private readonly INeoComposeAccessTokenProvider tokenProvider;
+        private readonly INeoComposeHttpClient httpClient;
+
+        public NeoComposeEditorApiClient()
+            : this(new NeoComposeTokenStoreAccessTokenProvider(), new NeoComposeUnityHttpClient())
+        {
+        }
+
+        public NeoComposeEditorApiClient(
+            INeoComposeAccessTokenProvider tokenProvider,
+            INeoComposeHttpClient httpClient)
+        {
+            this.tokenProvider = tokenProvider;
+            this.httpClient = httpClient;
+        }
 
         public async Task<NeoComposeProjectListResponse> ListProjectsAsync(string apiBaseUrl, string? query)
         {
@@ -51,74 +64,45 @@ namespace NeoCompose.Unity.Editor
                 url += "?query=" + UnityWebRequest.EscapeURL(trimmedQuery);
             }
 
-            var json = await PostAsync(url);
-            var response = JsonConvert.DeserializeObject<NeoComposeProjectListResponse>(json);
-            if (response == null)
-            {
-                throw new InvalidOperationException("Neo Compose project list response was empty.");
-            }
-
-            return response;
+            var operation = new NeoComposeApiOperation("list Neo Compose projects", requiredScope: "project:list");
+            var json = await PostAuthorizedAsync(apiBaseUrl, url, operation);
+            return Deserialize<NeoComposeProjectListResponse>(json, "project list");
         }
 
         public async Task<NeoComposeProjectReleaseChannelListResponse> ListReleaseChannelsAsync(
             string apiBaseUrl,
             string projectId)
         {
-            if (string.IsNullOrWhiteSpace(projectId))
-            {
-                throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
-            }
-
+            RequireProjectId(projectId);
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/release-channels");
-            var json = await PostAsync(url);
-            var response = JsonConvert.DeserializeObject<NeoComposeProjectReleaseChannelListResponse>(json);
-            if (response == null)
-            {
-                throw new InvalidOperationException("Neo Compose release channel response was empty.");
-            }
-
-            return response;
+            var operation = new NeoComposeApiOperation(
+                "read this project's release channels", projectId, "project:read");
+            var json = await PostAuthorizedAsync(apiBaseUrl, url, operation);
+            return Deserialize<NeoComposeProjectReleaseChannelListResponse>(json, "release channel");
         }
 
         public async Task<NeoComposeProjectVersionListResponse> ListVersionsAsync(
             string apiBaseUrl,
             string projectId)
         {
-            if (string.IsNullOrWhiteSpace(projectId))
-            {
-                throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
-            }
-
+            RequireProjectId(projectId);
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/versions");
-            var json = await PostAsync(url);
-            var response = JsonConvert.DeserializeObject<NeoComposeProjectVersionListResponse>(json);
-            if (response == null)
-            {
-                throw new InvalidOperationException("Neo Compose project versions response was empty.");
-            }
-
-            return response;
+            var operation = new NeoComposeApiOperation(
+                "read this project's versions", projectId, "project:read");
+            var json = await PostAuthorizedAsync(apiBaseUrl, url, operation);
+            return Deserialize<NeoComposeProjectVersionListResponse>(json, "project versions");
         }
 
         public async Task<NeoComposeProjectVersionStatusListResponse> ListVersionStatusesAsync(
             string apiBaseUrl,
             string projectId)
         {
-            if (string.IsNullOrWhiteSpace(projectId))
-            {
-                throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
-            }
-
+            RequireProjectId(projectId);
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/version-statuses");
-            var json = await PostAsync(url);
-            var response = JsonConvert.DeserializeObject<NeoComposeProjectVersionStatusListResponse>(json);
-            if (response == null)
-            {
-                throw new InvalidOperationException("Neo Compose project version statuses response was empty.");
-            }
-
-            return response;
+            var operation = new NeoComposeApiOperation(
+                "read this project's version statuses", projectId, "project:read");
+            var json = await PostAuthorizedAsync(apiBaseUrl, url, operation);
+            return Deserialize<NeoComposeProjectVersionStatusListResponse>(json, "project version statuses");
         }
 
         public async Task<NeoComposeProjectVersionMetadataResponse> GetVersionMetadataAsync(
@@ -126,27 +110,15 @@ namespace NeoCompose.Unity.Editor
             string projectId,
             string versionId)
         {
-            if (string.IsNullOrWhiteSpace(projectId))
-            {
-                throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
-            }
-
-            if (string.IsNullOrWhiteSpace(versionId))
-            {
-                throw new ArgumentException("Version id cannot be empty.", nameof(versionId));
-            }
-
+            RequireProjectId(projectId);
+            RequireVersionId(versionId);
             var url = BuildUrl(
                 apiBaseUrl,
                 $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/versions/{UnityWebRequest.EscapeURL(versionId)}");
-            var json = await PostAsync(url);
-            var response = JsonConvert.DeserializeObject<NeoComposeProjectVersionMetadataResponse>(json);
-            if (response == null)
-            {
-                throw new InvalidOperationException("Neo Compose project version metadata response was empty.");
-            }
-
-            return response;
+            var operation = new NeoComposeApiOperation(
+                "read this project version", projectId, "project:read");
+            var json = await PostAuthorizedAsync(apiBaseUrl, url, operation);
+            return Deserialize<NeoComposeProjectVersionMetadataResponse>(json, "project version metadata");
         }
 
         public async Task<NeoComposeProjectEditResponse> UpdateProjectExportSettingsAsync(
@@ -156,16 +128,8 @@ namespace NeoCompose.Unity.Editor
             string namespaceForGeneratedTypes,
             bool singleton)
         {
-            if (string.IsNullOrWhiteSpace(projectId))
-            {
-                throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
-            }
-
-            if (string.IsNullOrWhiteSpace(versionId))
-            {
-                throw new ArgumentException("Version id cannot be empty.", nameof(versionId));
-            }
-
+            RequireProjectId(projectId);
+            RequireVersionId(versionId);
             var url = BuildUrl(
                 apiBaseUrl,
                 $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/versions/{UnityWebRequest.EscapeURL(versionId)}/edit");
@@ -180,14 +144,10 @@ namespace NeoCompose.Unity.Editor
                     },
                 },
             };
-            var json = await PostAsync(url, JsonConvert.SerializeObject(request));
-            var response = JsonConvert.DeserializeObject<NeoComposeProjectEditResponse>(json);
-            if (response == null)
-            {
-                throw new InvalidOperationException("Neo Compose project edit response was empty.");
-            }
-
-            return response;
+            var operation = new NeoComposeApiOperation(
+                "edit this project's Unity settings", projectId, "unity:settings:write");
+            var json = await PostAuthorizedAsync(apiBaseUrl, url, operation, JsonConvert.SerializeObject(request));
+            return Deserialize<NeoComposeProjectEditResponse>(json, "project edit");
         }
 
         public async Task<NeoComposeUnityExportResponse> ExportProjectAsync(
@@ -195,25 +155,13 @@ namespace NeoCompose.Unity.Editor
             string projectId,
             string versionId)
         {
-            if (string.IsNullOrWhiteSpace(projectId))
-            {
-                throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
-            }
-
-            if (string.IsNullOrWhiteSpace(versionId))
-            {
-                throw new ArgumentException("Version id cannot be empty.", nameof(versionId));
-            }
-
+            RequireProjectId(projectId);
+            RequireVersionId(versionId);
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export");
-            var json = await PostAsync(url, JsonConvert.SerializeObject(new { versionId }));
-            var response = JsonConvert.DeserializeObject<NeoComposeUnityExportResponse>(json);
-            if (response == null)
-            {
-                throw new InvalidOperationException("Neo Compose project export response was empty.");
-            }
-
-            return response;
+            var operation = new NeoComposeApiOperation("export this project", projectId, "unity:export");
+            var json = await PostAuthorizedAsync(
+                apiBaseUrl, url, operation, JsonConvert.SerializeObject(new { versionId }));
+            return Deserialize<NeoComposeUnityExportResponse>(json, "project export");
         }
 
         public async Task<NeoComposeUnityExportFileDownloadResponse> ExportProjectFileDownloadsAsync(
@@ -222,44 +170,110 @@ namespace NeoCompose.Unity.Editor
             string versionId,
             string[] fileIds)
         {
-            if (string.IsNullOrWhiteSpace(projectId))
-            {
-                throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
-            }
-
-            if (string.IsNullOrWhiteSpace(versionId))
-            {
-                throw new ArgumentException("Version id cannot be empty.", nameof(versionId));
-            }
-
+            RequireProjectId(projectId);
+            RequireVersionId(versionId);
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/export/files");
             var request = new NeoComposeUnityExportFileDownloadRequest
             {
                 versionId = versionId,
                 fileIds = fileIds,
             };
-            var json = await PostAsync(url, JsonConvert.SerializeObject(request));
-            var response = JsonConvert.DeserializeObject<NeoComposeUnityExportFileDownloadResponse>(json);
+            var operation = new NeoComposeApiOperation("download this project's files", projectId, "unity:export");
+            var json = await PostAuthorizedAsync(apiBaseUrl, url, operation, JsonConvert.SerializeObject(request));
+            return Deserialize<NeoComposeUnityExportFileDownloadResponse>(json, "file export");
+        }
+
+        public Task<byte[]> DownloadFileAsync(string downloadUrl)
+        {
+            // Pre-signed storage URL: no bearer token, the URL is self-authorizing.
+            return httpClient.DownloadAsync(downloadUrl);
+        }
+
+        private async Task<string> PostAuthorizedAsync(
+            string apiBaseUrl,
+            string url,
+            NeoComposeApiOperation operation,
+            string body = "")
+        {
+            // Fail fast before issuing the request when the user is signed out or
+            // the token has expired.
+            var token = tokenProvider.GetAccessToken(apiBaseUrl);
+            var response = await httpClient.SendAsync(url, "POST", body, token);
+            return ReadResponse(url, operation, response);
+        }
+
+        private static string ReadResponse(string url, NeoComposeApiOperation operation, NeoComposeWebResponse response)
+        {
+            if (response.IsConnectionError)
+            {
+                throw new InvalidOperationException(
+                    $"Neo Compose request failed (connection) {url}: {response.Error}");
+            }
+
+            if (response.IsSuccessStatus) return response.Text;
+
+            // 401: authentication failure. The session is gone or invalid; the
+            // caller routes to re-sign-in. The device flow has no refresh token,
+            // so this always means full re-authentication.
+            if (response.StatusCode == 401)
+            {
+                throw new NeoComposeNotSignedInException(
+                    "Your Neo Compose session is no longer valid. Sign in again to continue.");
+            }
+
+            // 403: authorization failure. The user stays signed in; surface a
+            // specific, non-destructive message. Never retry or re-auth.
+            if (response.StatusCode == 403)
+            {
+                throw new NeoComposeApiAuthorizationException(
+                    BuildForbiddenMessage(operation, response),
+                    operation.ProjectId,
+                    operation.RequiredScope);
+            }
+
+            throw new InvalidOperationException(
+                $"Neo Compose request failed ({response.StatusCode}) {url}: {response.Text}");
+        }
+
+        private static string BuildForbiddenMessage(NeoComposeApiOperation operation, NeoComposeWebResponse response)
+        {
+            var message = $"You don't have permission to {operation.Description}.";
+            if (!string.IsNullOrEmpty(operation.ProjectId))
+            {
+                message += $" (project {operation.ProjectId})";
+            }
+
+            var serverDetail = TryReadServerError(response.Text);
+            if (serverDetail != null) message += $" {serverDetail}";
+            return message;
+        }
+
+        private static string? TryReadServerError(string body)
+        {
+            if (string.IsNullOrWhiteSpace(body)) return null;
+            try
+            {
+                var error = JsonConvert.DeserializeObject<NeoComposeDeviceErrorResponse>(body);
+                if (error != null && error.error.Length > 0) return error.error;
+            }
+            catch (JsonException)
+            {
+                // Non-JSON body; ignore.
+            }
+
+            return null;
+        }
+
+        private static T Deserialize<T>(string json, string description)
+            where T : class
+        {
+            var response = JsonConvert.DeserializeObject<T>(json);
             if (response == null)
             {
-                throw new InvalidOperationException("Neo Compose file export response was empty.");
+                throw new InvalidOperationException($"Neo Compose {description} response was empty.");
             }
 
             return response;
-        }
-
-        public async Task<byte[]> DownloadFileAsync(string downloadUrl)
-        {
-            using var request = UnityWebRequest.Get(downloadUrl);
-            request.timeout = FileDownloadTimeoutSeconds;
-            await SendAsync(request, FileDownloadTimeoutSeconds, "Neo Compose file download");
-            if (request.result != UnityWebRequest.Result.Success)
-            {
-                throw new InvalidOperationException(
-                    $"Neo Compose file download failed ({request.responseCode}) {downloadUrl}: {request.error}");
-            }
-
-            return request.downloadHandler.data;
         }
 
         private static string BuildUrl(string apiBaseUrl, string path)
@@ -272,51 +286,20 @@ namespace NeoCompose.Unity.Editor
             return apiBaseUrl.Trim().TrimEnd('/') + path;
         }
 
-        private static async Task<string> PostAsync(string url, string body = "")
+        private static void RequireProjectId(string projectId)
         {
-            using var request = new UnityWebRequest(url, "POST");
-            request.timeout = RequestTimeoutSeconds;
-            request.downloadHandler = new DownloadHandlerBuffer();
-            request.uploadHandler = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(body));
-            request.SetRequestHeader("Content-Type", "application/json");
-
-            await SendAsync(request, RequestTimeoutSeconds, "Neo Compose API request");
-            if (request.result != UnityWebRequest.Result.Success)
+            if (string.IsNullOrWhiteSpace(projectId))
             {
-                throw new InvalidOperationException(
-                    $"Neo Compose request failed ({request.responseCode}) {url}: {request.error}");
+                throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
             }
-
-            return request.downloadHandler.text;
         }
 
-        private static async Task SendAsync(
-            UnityWebRequest request,
-            int timeoutSeconds,
-            string operationName)
+        private static void RequireVersionId(string versionId)
         {
-            var completion = new TaskCompletionSource<bool>();
-            var operation = request.SendWebRequest();
-            if (operation.isDone)
+            if (string.IsNullOrWhiteSpace(versionId))
             {
-                return;
+                throw new ArgumentException("Version id cannot be empty.", nameof(versionId));
             }
-
-            operation.completed += _ =>
-            {
-                if (!completion.Task.IsCompleted)
-                {
-                    completion.SetResult(true);
-                }
-            };
-            var timeout = Task.Delay(TimeSpan.FromSeconds(timeoutSeconds));
-            if (await Task.WhenAny(completion.Task, timeout) == completion.Task)
-            {
-                return;
-            }
-
-            request.Abort();
-            throw new TimeoutException($"{operationName} timed out after {timeoutSeconds} seconds.");
         }
     }
 }

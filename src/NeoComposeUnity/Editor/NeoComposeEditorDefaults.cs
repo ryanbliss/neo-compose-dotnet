@@ -18,5 +18,29 @@ namespace NeoCompose.Unity.Editor
         public const string GeneratedTypesFileName = "NeoGeneratedTypes.cs";
         public const string ProjectJsonFileName = "project.json";
         public const string AssetDatabaseFileName = "NeoAssetDatabase.asset";
+
+        /// <summary>
+        /// The registered first-party OAuth client id for the Unity Editor
+        /// device-authorization flow.
+        /// </summary>
+        public const string OAuthClientId = "neo-compose-unity";
+
+        /// <summary>
+        /// Space-delimited OAuth scopes requested by the Unity Editor device
+        /// flow. Mirrors the web registration for <see cref="OAuthClientId"/>.
+        /// </summary>
+        public const string OAuthScopes =
+            "openid profile:read project:list project:read unity:export unity:settings:write";
+
+        /// <summary>
+        /// Better Auth handler base path, relative to the configured origin.
+        /// Everything resolves through one origin (the config API base URL).
+        /// </summary>
+        public const string AuthBasePath = "/api/auth";
+
+        /// <summary>
+        /// Web verification page path, relative to the configured origin.
+        /// </summary>
+        public const string DeviceVerificationPath = "/auth/device";
     }
 }
