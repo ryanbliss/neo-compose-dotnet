@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -119,7 +120,7 @@ namespace NeoCompose.Runtime
         protected ProjectSaveData sessionData;
         protected LoadSave loadSave;
         protected HandleSave handleSave;
-        protected BuildSaveName? buildSaveName;
+        public NeoSaveOptions SaveOptions { get; }
         internal NeoAssetDatabase? assetDatabase;
         private IReadOnlyDictionary<string, NeoNativeFunctionInvoker>? nativeFunctionInvokers;
         private IReadOnlyDictionary<string, NeoDeferredNativeFunctionInvoker>? deferredNativeFunctionInvokers;
@@ -162,12 +163,12 @@ namespace NeoCompose.Runtime
             HandleSave handleSave,
             NeoAssetDatabase? assetDatabase = null,
             NeoLocalization? localization = null,
-            BuildSaveName? buildSaveName = null)
+            NeoSaveOptions? saveOptions = null)
         {
             this.data = data;
             this.loadSave = loadSave;
             this.handleSave = handleSave;
-            this.buildSaveName = buildSaveName;
+            SaveOptions = saveOptions ?? new NeoSaveOptions();
             this.assetDatabase = assetDatabase;
             Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
             ValidateRootCustomAttribute(data.project.rootAssetsAttributeId, nameof(Project.rootAssetsAttributeId));
@@ -1591,7 +1592,7 @@ namespace NeoCompose.Runtime
 
         protected string BuildNewSaveName()
         {
-            string? custom = buildSaveName?.Invoke();
+            string? custom = SaveOptions.BuildSaveName?.Invoke();
             return string.IsNullOrWhiteSpace(custom) ? BuildDefaultSaveName() : custom!;
         }
 
@@ -1765,9 +1766,176 @@ namespace NeoCompose.Runtime
 
         protected void EmitHandleSave()
         {
-            saveData.updatedAt = NeoTimestamp.Now();
+            var savedAt = NeoTimestamp.Now();
+            saveData.updatedAt = savedAt;
+            CaptureSaveDiagnostics(savedAt);
             handleSave.Invoke(SerializeSaveData());
             LoadUnsafe();
+        }
+
+        private void CaptureSaveDiagnostics(NeoTimestamp savedAt)
+        {
+            if (!SaveOptions.DiagnosticsEnabled)
+            {
+                saveData.platforms = null;
+                saveData.systems = null;
+                saveData.inputDevices = null;
+                return;
+            }
+
+            saveData.platforms ??= new List<GameRuntimePlatform>();
+            saveData.systems ??= new List<GameSystemInfo>();
+            saveData.inputDevices ??= new List<GameInputDeviceInfo>();
+
+            UpsertPlatform(saveData.platforms, CaptureRuntimePlatform(), savedAt);
+            UpsertSystem(saveData.systems, CaptureSystemInfo(), savedAt);
+            foreach (var device in CaptureInputDevices())
+            {
+                UpsertInputDevice(saveData.inputDevices, device, savedAt);
+            }
+        }
+
+        private static GameRuntimePlatform CaptureRuntimePlatform()
+        {
+            return new GameRuntimePlatform
+            {
+                kind = Application.platform.ToString(),
+            };
+        }
+
+        private static GameSystemInfo CaptureSystemInfo()
+        {
+            return new GameSystemInfo
+            {
+                deviceType = SystemInfo.deviceType.ToString(),
+                deviceModel = SystemInfo.deviceModel ?? "",
+                deviceName = SystemInfo.deviceName ?? "",
+                operatingSystem = SystemInfo.operatingSystem ?? "",
+            };
+        }
+
+        private static List<GameInputDeviceInfo> CaptureInputDevices()
+        {
+            var devices = new List<GameInputDeviceInfo>();
+            CaptureLegacyInputDevices(devices);
+            CaptureInputSystemDevices(devices);
+            return devices;
+        }
+
+        private static void CaptureLegacyInputDevices(List<GameInputDeviceInfo> devices)
+        {
+#if ENABLE_LEGACY_INPUT_MANAGER
+            var names = Input.GetJoystickNames();
+            for (int i = 0; i < names.Length; i++)
+            {
+                var name = names[i] ?? "";
+                if (string.IsNullOrWhiteSpace(name)) continue;
+                devices.Add(new GameInputDeviceInfo
+                {
+                    source = "legacy-input",
+                    kind = "joystick",
+                    name = name,
+                    displayName = name,
+                    layout = "",
+                    manufacturer = "",
+                    product = "",
+                    slot = i,
+                });
+            }
+#endif
+        }
+
+        private static void CaptureInputSystemDevices(List<GameInputDeviceInfo> devices)
+        {
+            var inputSystemType = System.Type.GetType("UnityEngine.InputSystem.InputSystem, Unity.InputSystem");
+            if (inputSystemType == null) return;
+            var devicesProperty = inputSystemType.GetProperty("devices", BindingFlags.Public | BindingFlags.Static);
+            if (devicesProperty?.GetValue(null) is not System.Collections.IEnumerable inputDevices) return;
+
+            foreach (var device in inputDevices)
+            {
+                if (device == null) continue;
+                var deviceType = device.GetType();
+                var description = deviceType.GetProperty("description")?.GetValue(device);
+                var descriptionType = description?.GetType();
+                var deviceClass = GetStringProperty(description, descriptionType, "deviceClass");
+                var layout = GetStringProperty(device, deviceType, "layout");
+                devices.Add(new GameInputDeviceInfo
+                {
+                    source = "input-system",
+                    kind = string.IsNullOrWhiteSpace(deviceClass) ? InferInputDeviceKind(layout) : deviceClass.ToLowerInvariant(),
+                    name = GetStringProperty(device, deviceType, "name"),
+                    displayName = GetStringProperty(device, deviceType, "displayName"),
+                    layout = layout,
+                    manufacturer = GetStringProperty(description, descriptionType, "manufacturer"),
+                    product = GetStringProperty(description, descriptionType, "product"),
+                    slot = null,
+                });
+            }
+        }
+
+        private static string GetStringProperty(object? target, System.Type? targetType, string propertyName)
+        {
+            if (target == null || targetType == null) return "";
+            return targetType.GetProperty(propertyName)?.GetValue(target)?.ToString() ?? "";
+        }
+
+        private static string InferInputDeviceKind(string layout)
+        {
+            if (layout.IndexOf("gamepad", System.StringComparison.OrdinalIgnoreCase) >= 0) return "gamepad";
+            if (layout.IndexOf("joystick", System.StringComparison.OrdinalIgnoreCase) >= 0) return "joystick";
+            if (layout.IndexOf("keyboard", System.StringComparison.OrdinalIgnoreCase) >= 0) return "keyboard";
+            if (layout.IndexOf("mouse", System.StringComparison.OrdinalIgnoreCase) >= 0) return "mouse";
+            if (layout.IndexOf("touch", System.StringComparison.OrdinalIgnoreCase) >= 0) return "touch";
+            return "unknown";
+        }
+
+        private static void UpsertPlatform(List<GameRuntimePlatform> platforms, GameRuntimePlatform next, NeoTimestamp savedAt)
+        {
+            var match = platforms.Find(existing => existing.kind == next.kind);
+            if (match == null)
+            {
+                next.lastSavedAt = savedAt;
+                platforms.Add(next);
+                return;
+            }
+            match.lastSavedAt = savedAt;
+        }
+
+        private static void UpsertSystem(List<GameSystemInfo> systems, GameSystemInfo next, NeoTimestamp savedAt)
+        {
+            var match = systems.Find(existing =>
+                existing.deviceType == next.deviceType
+                && existing.deviceModel == next.deviceModel
+                && existing.deviceName == next.deviceName
+                && existing.operatingSystem == next.operatingSystem);
+            if (match == null)
+            {
+                next.lastSavedAt = savedAt;
+                systems.Add(next);
+                return;
+            }
+            match.lastSavedAt = savedAt;
+        }
+
+        private static void UpsertInputDevice(List<GameInputDeviceInfo> devices, GameInputDeviceInfo next, NeoTimestamp savedAt)
+        {
+            var match = devices.Find(existing =>
+                existing.source == next.source
+                && existing.kind == next.kind
+                && existing.name == next.name
+                && existing.displayName == next.displayName
+                && existing.layout == next.layout
+                && existing.manufacturer == next.manufacturer
+                && existing.product == next.product
+                && existing.slot == next.slot);
+            if (match == null)
+            {
+                next.lastSavedAt = savedAt;
+                devices.Add(next);
+                return;
+            }
+            match.lastSavedAt = savedAt;
         }
 
         [MemberNotNull(nameof(saveData))]

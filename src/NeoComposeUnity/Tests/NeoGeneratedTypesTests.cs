@@ -78,7 +78,7 @@ namespace NeoCompose.Tests
                 LoadFixture("synth-example.json"),
                 loadSave,
                 handleSave,
-                buildSaveName: () => "patient-comet-808");
+                saveOptions: new NeoSaveOptions { BuildSaveName = () => "patient-comet-808" });
 
             Assert.IsNotNull(app);
             var save = JsonConvert.DeserializeObject<ProjectSaveData>(saveBuffer);

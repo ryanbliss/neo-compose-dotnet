@@ -8,6 +8,50 @@ using System.Collections.Generic;
 namespace NeoCompose.Runtime.Json
 {
     /// <summary>
+    /// Save metadata about a game runtime platform. Used for diagnostics.
+    /// </summary>
+    public class GameRuntimePlatform
+    {
+        /// <summary>
+        /// Platform kind, captured from Unity's <c>RuntimePlatform</c>.
+        /// </summary>
+        public string kind = null!;
+
+        /// <summary>
+        /// Last time this platform wrote to the save file.
+        /// </summary>
+        public NeoTimestamp lastSavedAt;
+    }
+
+    /// <summary>
+    /// Save metadata about system info. Used for diagnostics.
+    /// </summary>
+    public class GameSystemInfo
+    {
+        public string deviceType = null!;
+        public string deviceModel = null!;
+        public string deviceName = null!;
+        public string operatingSystem = null!;
+        public NeoTimestamp lastSavedAt;
+    }
+
+    /// <summary>
+    /// Save metadata about an input device snapshot. Used for diagnostics.
+    /// </summary>
+    public class GameInputDeviceInfo
+    {
+        public string source = null!;
+        public string kind = null!;
+        public string name = null!;
+        public string displayName = null!;
+        public string layout = null!;
+        public string manufacturer = null!;
+        public string product = null!;
+        public int? slot;
+        public NeoTimestamp lastSavedAt;
+    }
+
+    /// <summary>
     /// Project version captured by a save file.
     /// </summary>
     public class VersionData
@@ -66,6 +110,24 @@ namespace NeoCompose.Runtime.Json
         /// Loading or serializing the save does not update this value.
         /// </summary>
         public NeoTimestamp updatedAt;
+
+        /// <summary>
+        /// Platforms that have written to this save file, or null when
+        /// diagnostic logging is disabled.
+        /// </summary>
+        public List<GameRuntimePlatform>? platforms;
+
+        /// <summary>
+        /// Systems that have written to this save file, or null when
+        /// diagnostic logging is disabled.
+        /// </summary>
+        public List<GameSystemInfo>? systems;
+
+        /// <summary>
+        /// Input devices detected while writing this save file, or null
+        /// when diagnostic logging is disabled.
+        /// </summary>
+        public List<GameInputDeviceInfo>? inputDevices;
 
         /// <summary>
         /// Runtime-owned value rows keyed by value id. These rows shadow or

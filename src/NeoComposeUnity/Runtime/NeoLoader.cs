@@ -19,7 +19,7 @@ namespace NeoCompose.Runtime
             NeoClient.LoadSave loadSave,
             NeoClient.HandleSave handleSave,
             NeoAssetDatabase? assetDatabase = null,
-            NeoClient.BuildSaveName? buildSaveName = null)
+            NeoSaveOptions? saveOptions = null)
         {
             return Load(
                 projectJson,
@@ -28,7 +28,7 @@ namespace NeoCompose.Runtime
                 assetDatabase,
                 null,
                 null,
-                buildSaveName);
+                saveOptions);
         }
 
         public NeoClient Load(
@@ -38,7 +38,7 @@ namespace NeoCompose.Runtime
             NeoAssetDatabase? assetDatabase,
             NeoLocalizationOptions? localizationOptions,
             INeoLocalizationLocaleFileSource? localizationFileSource,
-            NeoClient.BuildSaveName? buildSaveName = null)
+            NeoSaveOptions? saveOptions = null)
         {
             ProjectData data = JsonConvert.DeserializeObject<ProjectData>(projectJson)
                 ?? throw new System.InvalidOperationException("Neo Compose project JSON could not be deserialized.");
@@ -48,7 +48,7 @@ namespace NeoCompose.Runtime
                 data.localization,
                 localizationFileSource ?? new NeoResourcesLocalizationLocaleFileSource(),
                 localizationOptions);
-            return new(data, loadSave, handleSave, assetDatabase ?? NeoAssetDatabase.LoadDefault(), localization, buildSaveName);
+            return new(data, loadSave, handleSave, assetDatabase ?? NeoAssetDatabase.LoadDefault(), localization, saveOptions);
         }
     }
 

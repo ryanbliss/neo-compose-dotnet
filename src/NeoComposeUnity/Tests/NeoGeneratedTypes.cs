@@ -83,9 +83,9 @@ namespace Assets.Scripts.Neo
             Dialogues = new NeoDialogues(this, dialogueOptions);
         }
 
-        public static TestProjectNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null, NeoLocalizationOptions? localizationOptions = null, NeoClient.BuildSaveName? buildSaveName = null)
+        public static TestProjectNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null, NeoLocalizationOptions? localizationOptions = null, NeoSaveOptions? saveOptions = null)
         {
-            var client = new NeoLoader().Load(projectJson, loadSave, handleSave, assetDatabase, localizationOptions, null, buildSaveName);
+            var client = new NeoLoader().Load(projectJson, loadSave, handleSave, assetDatabase, localizationOptions, null, saveOptions);
             return new TestProjectNeo(client, dialogueOptions);
         }
 

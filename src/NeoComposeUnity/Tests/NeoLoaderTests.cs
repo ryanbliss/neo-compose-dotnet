@@ -69,11 +69,46 @@ namespace NeoCompose.Tests
                 LoadFixture("synth-example.json"),
                 () => saveBuffer,
                 save => saveBuffer = save,
-                buildSaveName: () => "careful-lantern-777");
+                saveOptions: new NeoSaveOptions { BuildSaveName = () => "careful-lantern-777" });
 
             Assert.IsNotNull(client);
             var save = JsonConvert.DeserializeObject<ProjectSaveData>(saveBuffer);
             Assert.AreEqual("careful-lantern-777", save!.name);
+        }
+
+        [Test]
+        public void NeoLoader_WritesSaveDiagnosticsAndDedupesByCapturedValues()
+        {
+            string saveBuffer = "";
+            var client = new NeoLoader().Load(
+                LoadFixture("synth-example.json"),
+                () => saveBuffer,
+                save => saveBuffer = save);
+            client.Commit();
+
+            var serialized = JObject.Parse(saveBuffer);
+            Assert.AreEqual(1, serialized["platforms"]!.Count());
+            Assert.AreEqual(1, serialized["systems"]!.Count());
+            Assert.AreNotEqual(JTokenType.String, serialized["platforms"]![0]!["lastSavedAt"]!.Type);
+            Assert.AreNotEqual(JTokenType.String, serialized["systems"]![0]!["lastSavedAt"]!.Type);
+        }
+
+        [Test]
+        public void NeoLoader_ClearsSaveDiagnosticsWhenDisabledAtRuntime()
+        {
+            string saveBuffer = "";
+            var client = new NeoLoader().Load(
+                LoadFixture("synth-example.json"),
+                () => saveBuffer,
+                save => saveBuffer = save);
+
+            client.SaveOptions.DiagnosticsEnabled = false;
+            client.Commit();
+
+            var serialized = JObject.Parse(saveBuffer);
+            Assert.AreEqual(JTokenType.Null, serialized["platforms"]!.Type);
+            Assert.AreEqual(JTokenType.Null, serialized["systems"]!.Type);
+            Assert.AreEqual(JTokenType.Null, serialized["inputDevices"]!.Type);
         }
 
         [Test]
