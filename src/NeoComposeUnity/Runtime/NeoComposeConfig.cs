@@ -26,6 +26,19 @@ namespace NeoCompose.Runtime
         public string namespaceForGeneratedTypes = NeoComposeDefaults.NamespaceForGeneratedTypes;
         public bool singleton = NeoComposeDefaults.Singleton;
 
+        /// <summary>
+        /// Optional project-scoped, read-only runtime API key for a future
+        /// runtime-sync feature.
+        /// </summary>
+        /// <remarks>
+        /// Stored here only; nothing reads or validates it in this version, and
+        /// the runtime never uses it. Unlike the editor user sign-in token, this
+        /// key is intentionally bundled with the committed project config because
+        /// it is read-only and project-scoped. It is a low-trust secret and is
+        /// kept strictly separate from the editor OAuth token.
+        /// </remarks>
+        public string projectRuntimeApiKey = "";
+
         public bool HasProject => !string.IsNullOrWhiteSpace(projectId);
 
         public static NeoComposeConfig? LoadDefault()

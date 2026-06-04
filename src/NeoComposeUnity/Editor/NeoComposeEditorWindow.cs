@@ -17,6 +17,8 @@ namespace NeoCompose.Unity.Editor
     {
         private NeoComposeConfig? config;
         private INeoComposeEditorApiClient apiClient = new NeoComposeEditorApiClient();
+        private readonly NeoComposeEditorAuthController auth = new();
+        private NeoComposeDeviceCodeResponse? pendingDeviceCode;
         private NeoComposeSynchronizer? synchronizer;
         private NeoComposeProjectSettingsUpdater? projectSettingsUpdater;
         private readonly List<NeoComposeProjectSummary> projects = new();
@@ -51,10 +53,17 @@ namespace NeoCompose.Unity.Editor
             projectSettingsUpdater = new NeoComposeProjectSettingsUpdater(
                 apiClient,
                 new NeoComposeEditorAssetService());
-            if (config.HasProject)
+            auth.RefreshState(config.apiBaseUrl);
+            if (config.HasProject && auth.AreAuthSensitiveControlsEnabled)
             {
                 _ = RefreshVersionMetadataAsync(false);
             }
+        }
+
+        private void OnDisable()
+        {
+            // Do not let device-flow polling outlive the window.
+            auth.CancelSignIn();
         }
 
         private void OnGUI()
@@ -79,14 +88,18 @@ namespace NeoCompose.Unity.Editor
                 MutedStyle());
             EditorGUILayout.Space(2);
             RenderConnectionSection(config);
+            RenderAuthSection(config);
 
-            if (config.HasProject)
+            using (new EditorGUI.DisabledScope(!auth.AreAuthSensitiveControlsEnabled))
             {
-                RenderSelectedProject(config);
-            }
-            else
-            {
-                RenderProjectSearch(config);
+                if (config.HasProject)
+                {
+                    RenderSelectedProject(config);
+                }
+                else
+                {
+                    RenderProjectSearch(config);
+                }
             }
 
             if (!string.IsNullOrWhiteSpace(status))
@@ -110,7 +123,10 @@ namespace NeoCompose.Unity.Editor
                 if (EditorGUI.EndChangeCheck())
                 {
                     NeoComposeConfigProvider.Save(config);
-                    if (config.HasProject)
+                    // The sign-in token is keyed per origin, so changing the URL
+                    // can change the signed-in state.
+                    auth.RefreshState(config.apiBaseUrl);
+                    if (config.HasProject && auth.AreAuthSensitiveControlsEnabled)
                     {
                         _ = RefreshVersionMetadataAsync(false);
                     }
@@ -118,6 +134,159 @@ namespace NeoCompose.Unity.Editor
             }
 
             EndSection();
+        }
+
+        private void RenderAuthSection(NeoComposeConfig config)
+        {
+            BeginSection("Account");
+            switch (auth.State)
+            {
+                case NeoComposeAuthState.SignedIn:
+                    RenderSignedIn(config);
+                    break;
+                case NeoComposeAuthState.Expired:
+                    EditorGUILayout.HelpBox(
+                        auth.HasIdentity
+                            ? $"Your Neo Compose session for {auth.DisplayName} expired. Sign in again to continue."
+                            : "Your Neo Compose session expired. Sign in again to continue.",
+                        MessageType.Warning);
+                    RenderSignInControls(config);
+                    break;
+                default:
+                    EditorGUILayout.LabelField(
+                        "Sign in to Neo Compose to load projects, synchronize files, and edit settings.",
+                        MutedStyle());
+                    RenderSignInControls(config);
+                    break;
+            }
+
+            if (!string.IsNullOrWhiteSpace(auth.AuthorizationMessage))
+            {
+                EditorGUILayout.Space(3);
+                EditorGUILayout.HelpBox(auth.AuthorizationMessage, MessageType.Warning);
+                if (GUILayout.Button("Dismiss", GUILayout.Width(80)))
+                {
+                    auth.ClearAuthorizationMessage();
+                }
+            }
+
+            EndSection();
+        }
+
+        private void RenderSignedIn(NeoComposeConfig config)
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.BeginVertical();
+            EditorGUILayout.LabelField(
+                auth.DisplayName.Length > 0 ? auth.DisplayName : "Signed in",
+                ProjectNameStyle());
+            if (auth.DisplayEmail.Length > 0)
+            {
+                EditorGUILayout.LabelField(auth.DisplayEmail, MutedStyle());
+            }
+
+            EditorGUILayout.EndVertical();
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("Disconnect", GUILayout.Width(110)))
+            {
+                _ = DisconnectAsync(config);
+            }
+
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private void RenderSignInControls(NeoComposeConfig config)
+        {
+            if (auth.IsBusy)
+            {
+                if (pendingDeviceCode != null)
+                {
+                    EditorGUILayout.Space(2);
+                    EditorGUILayout.LabelField("Enter this code in your browser:", FormLabelStyle());
+                    EditorGUILayout.SelectableLabel(
+                        pendingDeviceCode.userCode,
+                        ProjectNameStyle(),
+                        GUILayout.Height(EditorGUIUtility.singleLineHeight + 4));
+                }
+
+                EditorGUILayout.BeginHorizontal();
+                EditorGUILayout.LabelField("Waiting for approval in your browser...", MutedStyle());
+                GUILayout.FlexibleSpace();
+                if (GUILayout.Button("Cancel", GUILayout.Width(80)))
+                {
+                    auth.CancelSignIn();
+                }
+
+                EditorGUILayout.EndHorizontal();
+                return;
+            }
+
+            EditorGUILayout.Space(3);
+            EditorGUILayout.BeginHorizontal();
+            if (GUILayout.Button("Sign in to Neo Compose", GUILayout.Width(190), GUILayout.Height(24)))
+            {
+                _ = BeginSignInAsync(config);
+            }
+
+            GUILayout.FlexibleSpace();
+            EditorGUILayout.EndHorizontal();
+        }
+
+        private async Task BeginSignInAsync(NeoComposeConfig config)
+        {
+            pendingDeviceCode = null;
+            status = "";
+            Repaint();
+
+            try
+            {
+                var result = await auth.SignInAsync(
+                    config.apiBaseUrl,
+                    code =>
+                    {
+                        pendingDeviceCode = code;
+                        status = $"Approve code {code.userCode} in your browser to finish signing in.";
+                        Repaint();
+                    });
+
+                if (result.IsSuccess)
+                {
+                    status = auth.DisplayName.Length > 0
+                        ? $"Signed in as {auth.DisplayName}."
+                        : "Signed in to Neo Compose.";
+                    if (config.HasProject)
+                    {
+                        await RefreshVersionMetadataAsync(false);
+                    }
+                }
+                else
+                {
+                    status = result.message;
+                }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(exception);
+                if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
+                status = exception.Message;
+            }
+            finally
+            {
+                pendingDeviceCode = null;
+                Repaint();
+            }
+        }
+
+        private async Task DisconnectAsync(NeoComposeConfig config)
+        {
+            auth.CancelSignIn();
+            await auth.DisconnectAsync(config.apiBaseUrl);
+            projects.Clear();
+            releaseChannels.Clear();
+            versions.Clear();
+            versionStatuses.Clear();
+            status = "Disconnected from Neo Compose.";
+            Repaint();
         }
 
         private void RenderProjectSearch(NeoComposeConfig config)
@@ -261,6 +430,27 @@ namespace NeoCompose.Unity.Editor
 
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
+            EndSection();
+
+            RenderRuntimeSyncSection(config);
+        }
+
+        private void RenderRuntimeSyncSection(NeoComposeConfig config)
+        {
+            BeginSection("Runtime Sync (preview)");
+            using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
+            {
+                EditorGUI.BeginChangeCheck();
+                config.projectRuntimeApiKey = EditorGUILayout.TextField(
+                    "Runtime API Key",
+                    config.projectRuntimeApiKey);
+                if (EditorGUI.EndChangeCheck())
+                {
+                    NeoComposeConfigProvider.Save(config);
+                }
+            }
+
+            EditorGUILayout.LabelField("Stored for upcoming runtime sync. Not used yet.", MutedStyle());
             EndSection();
         }
 
@@ -639,6 +829,7 @@ namespace NeoCompose.Unity.Editor
             catch (Exception exception)
             {
                 Debug.LogError(exception);
+                if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
                 status = exception.Message;
             }
             finally
@@ -703,6 +894,7 @@ namespace NeoCompose.Unity.Editor
             catch (Exception exception)
             {
                 Debug.LogError(exception);
+                if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
                 status = exception.Message;
             }
             finally
@@ -733,6 +925,7 @@ namespace NeoCompose.Unity.Editor
             catch (Exception exception)
             {
                 Debug.LogError(exception);
+                if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
                 status = exception.Message;
             }
             finally
@@ -759,6 +952,7 @@ namespace NeoCompose.Unity.Editor
             catch (Exception exception)
             {
                 Debug.LogError(exception);
+                if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
                 status = exception.Message;
             }
             finally

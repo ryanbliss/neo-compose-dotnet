@@ -195,6 +195,8 @@ namespace NeoCompose.Unity.Editor
 
         public static string GetSessionUrl(string apiBaseUrl) => AuthApiBase(apiBaseUrl) + "/get-session";
 
+        public static string SignOutUrl(string apiBaseUrl) => AuthApiBase(apiBaseUrl) + "/sign-out";
+
         /// <summary>
         /// Resolves the verification URI to open in the browser. Prefers the
         /// server-provided complete URI; otherwise resolves the (possibly

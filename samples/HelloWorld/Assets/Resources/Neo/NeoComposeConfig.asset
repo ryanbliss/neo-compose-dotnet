@@ -28,3 +28,4 @@ MonoBehaviour:
   audioClipDirectory: Assets/Resources/Neo/Files/Audio
   namespaceForGeneratedTypes: HelloWorld.Assets.Scripts.Neo
   singleton: 1
+  projectRuntimeApiKey: 

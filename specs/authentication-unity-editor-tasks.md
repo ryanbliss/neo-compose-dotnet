@@ -10,13 +10,13 @@ SDK-side token storage, bearer-token wiring for Unity export / project-list /
 Unity-settings-edit calls, and a storage-only stub for the project-scoped
 runtime API key.
 
-Active chunk: Phases 1, 2, 4, 5 complete and verified. Phase 3's session
-controller (`NeoComposeEditorAuthController`) is implemented and tested (state
-transitions, sign-in, 401→expired+clear, 403→stay-signed-in). Remaining: wire the
-controller into `NeoComposeEditorWindow` IMGUI (the auth cell + control gating,
-UAUTH-023–027, 029), then Phase 6 disconnect/revoke, Phase 7 runtime-key stub,
-Phase 8 verification. The editor still calls the web API with no `Authorization`
-header until the window wiring lands.
+Active chunk: Phases 1–7 complete and verified. The editor now requires sign-in:
+the auth cell drives the device flow, all API calls carry the bearer token,
+401→re-auth and 403→capability message are wired, Disconnect revokes server-side,
+and the runtime-key stub is stored (unused). All automated verification is green
+(282/282 EditMode tests, package + sample). Only the Phase 8 manual web-app
+walkthroughs remain (UAUTH-056, UAUTH-057), to be run by the maintainer against a
+running web app.
 
 Scope reminders from the spec:
 
@@ -114,16 +114,16 @@ self-launched browsers.
 
 ### Auth cell UX
 
-- [ ] UAUTH-023 Render an auth cell above project search/actions in `NeoComposeEditorWindow`.
-- [ ] UAUTH-024 Signed-out state: show "Sign in to Neo Compose" call to action with a short explanation; do not steal focus or open a browser automatically.
-- [ ] UAUTH-025 Signed-in state: show identity (name/email hint) and a "Disconnect" action.
-- [ ] UAUTH-026 Expired state: show "Session expired, sign in again" with the same gating as signed-out, preserving the selected project/version config.
-- [ ] UAUTH-027 Disable/grey project search, version metadata, export/sync, and settings-edit controls while signed out or expired.
+- [x] UAUTH-023 Render an auth cell above project search/actions in `NeoComposeEditorWindow`.
+- [x] UAUTH-024 Signed-out state: show "Sign in to Neo Compose" call to action with a short explanation; do not steal focus or open a browser automatically.
+- [x] UAUTH-025 Signed-in state: show identity (name/email hint) and a "Disconnect" action.
+- [x] UAUTH-026 Expired state: show "Session expired, sign in again" with the same gating as signed-out, preserving the selected project/version config.
+- [x] UAUTH-027 Disable/grey project search, version metadata, export/sync, and settings-edit controls while signed out or expired.
 
 ### Phase 3 verification
 
 - [x] UAUTH-028 Add editor tests for cell state transitions (signed-out, signed-in, expired) and control gating.
-- [ ] UAUTH-029 Run focused Unity editor window tests from the HelloWorld Unity Test Runner.
+- [x] UAUTH-029 Run focused Unity editor window tests from the HelloWorld Unity Test Runner.
 
 ## Phase 4: Bearer-token wiring into the API client
 
@@ -169,14 +169,14 @@ clears local credentials.
 
 ### Disconnect
 
-- [ ] UAUTH-045 Best-effort revoke the token server-side via Better Auth session sign-out/revoke using the current bearer token (no RFC 7009 endpoint exists; the device token is session-backed).
-- [ ] UAUTH-046 Always call `INeoComposeTokenStore.Clear()` and reset to signed-out even when the server revoke fails or times out.
-- [ ] UAUTH-047 Return the auth cell to its signed-out call to action after disconnect.
+- [x] UAUTH-045 Best-effort revoke the token server-side via Better Auth session sign-out/revoke using the current bearer token (no RFC 7009 endpoint exists; the device token is session-backed).
+- [x] UAUTH-046 Always call `INeoComposeTokenStore.Clear()` and reset to signed-out even when the server revoke fails or times out.
+- [x] UAUTH-047 Return the auth cell to its signed-out call to action after disconnect.
 
 ### Phase 6 verification
 
-- [ ] UAUTH-048 Add tests that disconnect clears local storage even when the server revoke call fails.
-- [ ] UAUTH-049 Run focused Unity disconnect tests from the HelloWorld Unity Test Runner.
+- [x] UAUTH-048 Add tests that disconnect clears local storage even when the server revoke call fails.
+- [x] UAUTH-049 Run focused Unity disconnect tests from the HelloWorld Unity Test Runner.
 
 ## Phase 7: Runtime API key storage stub
 
@@ -186,15 +186,15 @@ OAuth token.
 
 ### Runtime key config
 
-- [ ] UAUTH-050 Add an optional project-scoped runtime API key field to the committed project config surface (`NeoComposeConfig`/project config), distinct from the user OAuth token storage.
-- [ ] UAUTH-051 Make the key optional so its absence blocks no editor flow in this pass.
-- [ ] UAUTH-052 Store and round-trip the value with no validation, network use, or runtime wiring; never read it from the runtime assembly.
-- [ ] UAUTH-053 Add editor help text noting it is a read-only, project-scoped runtime key for a future runtime-sync feature and a low-trust secret.
+- [x] UAUTH-050 Add an optional project-scoped runtime API key field to the committed project config surface (`NeoComposeConfig`/project config), distinct from the user OAuth token storage.
+- [x] UAUTH-051 Make the key optional so its absence blocks no editor flow in this pass.
+- [x] UAUTH-052 Store and round-trip the value with no validation, network use, or runtime wiring; never read it from the runtime assembly.
+- [x] UAUTH-053 Add editor help text noting it is a read-only, project-scoped runtime key for a future runtime-sync feature and a low-trust secret.
 
 ### Phase 7 verification
 
-- [ ] UAUTH-054 Add tests that the runtime key persists in project config, is optional, and is never read by the runtime assembly in this pass.
-- [ ] UAUTH-055 Run focused Unity runtime-key storage tests from the HelloWorld Unity Test Runner.
+- [x] UAUTH-054 Add tests that the runtime key persists in project config, is optional, and is never read by the runtime assembly in this pass.
+- [x] UAUTH-055 Run focused Unity runtime-key storage tests from the HelloWorld Unity Test Runner.
 
 ## Phase 8: End-to-end verification
 
@@ -205,6 +205,6 @@ web app and confirm no regressions.
 
 - [ ] UAUTH-056 Walk the full device flow end to end against a running web app, switching `apiBaseUrl` between localhost and production.
 - [ ] UAUTH-057 Verify an authorized export/sync and a `unity:settings:write` settings edit succeed, and that a user lacking settings permission gets the specific `403` message.
-- [ ] UAUTH-058 Run the full `src/NeoComposeUnity/Tests/` suite from the HelloWorld Unity Test Runner.
-- [ ] UAUTH-059 Run the full `samples/HelloWorld/Assets/Tests/` suite from the HelloWorld Unity Test Runner.
-- [ ] UAUTH-060 Verify no pre-existing failures remain.
+- [x] UAUTH-058 Run the full `src/NeoComposeUnity/Tests/` suite from the HelloWorld Unity Test Runner.
+- [x] UAUTH-059 Run the full `samples/HelloWorld/Assets/Tests/` suite from the HelloWorld Unity Test Runner.
+- [x] UAUTH-060 Verify no pre-existing failures remain.

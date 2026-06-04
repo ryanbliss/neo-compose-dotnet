@@ -3,9 +3,11 @@
 
 #nullable enable
 
+using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using UnityEngine.Networking;
 
 namespace NeoCompose.Unity.Editor
 {
@@ -43,6 +45,13 @@ namespace NeoCompose.Unity.Editor
             string scope,
             CancellationToken cancellationToken)
         {
+            // The device flow is a fresh, cookie-less OAuth exchange. UnityWebRequest
+            // keeps a shared editor cookie jar, so a stale Better Auth session cookie
+            // left over from a previous sign-in/sign-out would be replayed here and
+            // rejected with a 403 by the device-code endpoint. Clear the origin's
+            // cookies first so each device-code request starts clean.
+            ClearOriginCookies(apiBaseUrl);
+
             var body = JsonConvert.SerializeObject(new { client_id = clientId, scope });
             var response = await NeoComposeWebRequests.SendAsync(
                 NeoComposeAuthEndpoints.DeviceCodeUrl(apiBaseUrl),
@@ -131,6 +140,14 @@ namespace NeoCompose.Unity.Editor
             if (session?.user == null) return NeoComposeUserProfile.Empty;
 
             return new NeoComposeUserProfile(session.user.name, session.user.email);
+        }
+
+        private static void ClearOriginCookies(string apiBaseUrl)
+        {
+            if (Uri.TryCreate(NeoComposeAuthEndpoints.Origin(apiBaseUrl), UriKind.Absolute, out var origin))
+            {
+                UnityWebRequest.ClearCookieCache(origin);
+            }
         }
 
         private static NeoComposeDevicePollResult MapPollError(

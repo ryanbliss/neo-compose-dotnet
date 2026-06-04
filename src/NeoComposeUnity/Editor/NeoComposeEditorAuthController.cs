@@ -27,6 +27,7 @@ namespace NeoCompose.Unity.Editor
     {
         private readonly Func<string, NeoComposeTokenStore> storeFactory;
         private readonly Func<string, NeoComposeTokenStore, NeoComposeDeviceAuthorizationFlow> flowFactory;
+        private readonly INeoComposeTokenRevoker revoker;
         private readonly Func<DateTimeOffset> now;
 
         private CancellationTokenSource? signInCancellation;
@@ -34,11 +35,13 @@ namespace NeoCompose.Unity.Editor
         public NeoComposeEditorAuthController(
             Func<string, NeoComposeTokenStore>? storeFactory = null,
             Func<string, NeoComposeTokenStore, NeoComposeDeviceAuthorizationFlow>? flowFactory = null,
-            Func<DateTimeOffset>? now = null)
+            Func<DateTimeOffset>? now = null,
+            INeoComposeTokenRevoker? revoker = null)
         {
             this.storeFactory = storeFactory ?? (apiBaseUrl => NeoComposeTokenStore.Create(apiBaseUrl));
             this.now = now ?? (() => DateTimeOffset.UtcNow);
             this.flowFactory = flowFactory ?? DefaultFlowFactory;
+            this.revoker = revoker ?? new NeoComposeTokenRevoker();
         }
 
         public NeoComposeAuthState State { get; private set; } = NeoComposeAuthState.SignedOut;
@@ -162,12 +165,37 @@ namespace NeoCompose.Unity.Editor
         public void ClearAuthorizationMessage() => AuthorizationMessage = null;
 
         /// <summary>
-        /// Clears the local sign-in and returns to the signed-out state.
-        /// Server-side revocation is layered on in the disconnect flow.
+        /// Clears the local sign-in and returns to the signed-out state without
+        /// contacting the server.
         /// </summary>
         public void ClearLocal(string apiBaseUrl)
         {
             storeFactory(apiBaseUrl).Clear();
+            SetSignedOut();
+        }
+
+        /// <summary>
+        /// Disconnects: best-effort server-side revoke followed by an
+        /// unconditional local clear. Local credentials are always removed, even
+        /// when the revoke call fails or times out.
+        /// </summary>
+        public async Task DisconnectAsync(string apiBaseUrl)
+        {
+            var store = storeFactory(apiBaseUrl);
+            var token = store.Load();
+            if (token != null && token.HasAccessToken)
+            {
+                try
+                {
+                    await revoker.RevokeAsync(apiBaseUrl, token.accessToken);
+                }
+                catch (Exception)
+                {
+                    // Best effort: never let a failed revoke block local clearing.
+                }
+            }
+
+            store.Clear();
             SetSignedOut();
         }
 

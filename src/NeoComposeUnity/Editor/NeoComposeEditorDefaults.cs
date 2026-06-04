@@ -30,7 +30,7 @@ namespace NeoCompose.Unity.Editor
         /// flow. Mirrors the web registration for <see cref="OAuthClientId"/>.
         /// </summary>
         public const string OAuthScopes =
-            "openid profile:read project:list project:read unity:export unity:settings:write";
+            "openid profile:read project:list project:read project:version:read project:version:status:read project:release-channel:read unity:export unity:settings:write";
 
         /// <summary>
         /// Better Auth handler base path, relative to the configured origin.

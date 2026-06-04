@@ -29,12 +29,14 @@ namespace NeoCompose.Tests
         }
 
         private NeoComposeEditorAuthController NewController(
-            Func<string, NeoComposeTokenStore, NeoComposeDeviceAuthorizationFlow>? flowFactory = null)
+            Func<string, NeoComposeTokenStore, NeoComposeDeviceAuthorizationFlow>? flowFactory = null,
+            INeoComposeTokenRevoker? revoker = null)
         {
             return new NeoComposeEditorAuthController(
                 _ => store,
                 flowFactory,
-                () => clockNow);
+                () => clockNow,
+                revoker);
         }
 
         private void SaveValidToken(string name = "Ada", string email = "ada@example.test")
@@ -169,6 +171,37 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(store.Load(), "403 must not clear the token.");
         }
 
+        // UAUTH-045 / UAUTH-046
+        [Test]
+        public async Task DisconnectAsync_RevokesWithTokenThenClears()
+        {
+            SaveValidToken();
+            var revoker = new RecordingRevoker();
+            var controller = NewController(revoker: revoker);
+            controller.RefreshState(ApiBaseUrl);
+
+            await controller.DisconnectAsync(ApiBaseUrl);
+
+            Assert.AreEqual("access", revoker.revokedToken, "Disconnect must revoke the current token server-side.");
+            Assert.AreEqual(NeoComposeAuthState.SignedOut, controller.State);
+            Assert.IsNull(store.Load());
+        }
+
+        // UAUTH-046 / UAUTH-048
+        [Test]
+        public async Task DisconnectAsync_ClearsLocalEvenWhenRevokeFails()
+        {
+            SaveValidToken();
+            var revoker = new RecordingRevoker { throwOnRevoke = true };
+            var controller = NewController(revoker: revoker);
+            controller.RefreshState(ApiBaseUrl);
+
+            await controller.DisconnectAsync(ApiBaseUrl);
+
+            Assert.AreEqual(NeoComposeAuthState.SignedOut, controller.State);
+            Assert.IsNull(store.Load(), "Local credentials must be cleared even when revoke fails.");
+        }
+
         // UAUTH-025
         [Test]
         public void ClearLocal_ReturnsToSignedOut()
@@ -230,6 +263,19 @@ namespace NeoCompose.Tests
                 CancellationToken cancellationToken)
             {
                 return Task.FromResult(profile);
+            }
+        }
+
+        private sealed class RecordingRevoker : INeoComposeTokenRevoker
+        {
+            public string? revokedToken;
+            public bool throwOnRevoke;
+
+            public Task RevokeAsync(string apiBaseUrl, string accessToken)
+            {
+                revokedToken = accessToken;
+                if (throwOnRevoke) throw new InvalidOperationException("revoke failed");
+                return Task.CompletedTask;
             }
         }
 

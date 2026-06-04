@@ -76,7 +76,7 @@ namespace NeoCompose.Unity.Editor
             RequireProjectId(projectId);
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/release-channels");
             var operation = new NeoComposeApiOperation(
-                "read this project's release channels", projectId, "project:read");
+                "read this project's release channels", projectId, "project:release-channel:read");
             var json = await PostAuthorizedAsync(apiBaseUrl, url, operation);
             return Deserialize<NeoComposeProjectReleaseChannelListResponse>(json, "release channel");
         }
@@ -88,7 +88,7 @@ namespace NeoCompose.Unity.Editor
             RequireProjectId(projectId);
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/versions");
             var operation = new NeoComposeApiOperation(
-                "read this project's versions", projectId, "project:read");
+                "read this project's versions", projectId, "project:version:read");
             var json = await PostAuthorizedAsync(apiBaseUrl, url, operation);
             return Deserialize<NeoComposeProjectVersionListResponse>(json, "project versions");
         }
@@ -100,7 +100,7 @@ namespace NeoCompose.Unity.Editor
             RequireProjectId(projectId);
             var url = BuildUrl(apiBaseUrl, $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/version-statuses");
             var operation = new NeoComposeApiOperation(
-                "read this project's version statuses", projectId, "project:read");
+                "read this project's version statuses", projectId, "project:version:status:read");
             var json = await PostAuthorizedAsync(apiBaseUrl, url, operation);
             return Deserialize<NeoComposeProjectVersionStatusListResponse>(json, "project version statuses");
         }
@@ -116,7 +116,7 @@ namespace NeoCompose.Unity.Editor
                 apiBaseUrl,
                 $"/api/projects/{UnityWebRequest.EscapeURL(projectId)}/versions/{UnityWebRequest.EscapeURL(versionId)}");
             var operation = new NeoComposeApiOperation(
-                "read this project version", projectId, "project:read");
+                "read this project version", projectId, "project:version:read");
             var json = await PostAuthorizedAsync(apiBaseUrl, url, operation);
             return Deserialize<NeoComposeProjectVersionMetadataResponse>(json, "project version metadata");
         }
