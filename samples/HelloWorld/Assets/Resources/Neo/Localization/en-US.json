@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-  "versionId": "0281a621-aec9-47b9-9af5-0ec07bd3ebfb",
+  "versionId": "bd05d3d2-a72f-49d5-881f-fcd1468614db",
   "locale": "en-US",
   "sourceLocale": null,
   "formattingSyntax": "smart-format",
@@ -86,7 +86,7 @@
     "b4b85b2a-eb87-4b6b-8259-c060b7c6c28f": "Abi doo abi dah",
     "b527cc12-03ba-495d-82d7-ed957f70eb92": "Iowan",
     "b5c04882-1226-47f0-894d-78e45a6ee916": "To visit {{neo-var:b3f0cc89-3530-4d6b-9eb4-8cc18d229d84}}, of course! <i>(lie)</i>",
-    "b8c58652-db74-4fa0-97ec-725f172a3488": "Great, now I won't die!",
+    "b8c58652-db74-4fa0-97ec-725f172a3488": "Great, now I WON'T die!",
     "bdbe6838-8a19-4731-9b08-c431a8574cad": "Earth OG Souvenir Hat",
     "c59bdeaf-9f71-4970-a95f-058c7f54c18b": "Titan",
     "c5e359a7-bc03-4cb2-95ba-994ba370eee1": "Europapas",
