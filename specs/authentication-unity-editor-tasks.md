@@ -204,7 +204,7 @@ web app and confirm no regressions.
 ### Manual and suite verification
 
 - [ ] UAUTH-056 Walk the full device flow end to end against a running web app, switching `apiBaseUrl` between localhost and production.
-- [ ] UAUTH-057 Verify an authorized export/sync and a `unity:settings:write` settings edit succeed, and that a user lacking settings permission gets the specific `403` message.
+- [x] UAUTH-057 Verify an authorized export/sync and a `unity:settings:write` settings edit succeed, and that a user lacking settings permission gets the specific `403` message.
 - [x] UAUTH-058 Run the full `src/NeoComposeUnity/Tests/` suite from the HelloWorld Unity Test Runner.
 - [x] UAUTH-059 Run the full `samples/HelloWorld/Assets/Tests/` suite from the HelloWorld Unity Test Runner.
 - [x] UAUTH-060 Verify no pre-existing failures remain.
