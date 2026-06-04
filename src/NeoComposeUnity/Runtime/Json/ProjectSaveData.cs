@@ -38,6 +38,13 @@ namespace NeoCompose.Runtime.Json
     public class ProjectSaveData
     {
         /// <summary>
+        /// Human-readable save name. New save files get a generated name by
+        /// default, and hosts can override generation through
+        /// <c>NeoClient.BuildSaveName</c>.
+        /// </summary>
+        public string name = null!;
+
+        /// <summary>
         /// Stable project id for the authored project this save belongs to.
         /// </summary>
         public string projectId = null!;

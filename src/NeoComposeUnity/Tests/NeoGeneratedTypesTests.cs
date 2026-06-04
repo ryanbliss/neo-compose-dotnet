@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace NeoCompose.Tests
@@ -64,6 +65,24 @@ namespace NeoCompose.Tests
             Assert.AreEqual("fire", Element.fire.optionId);
             Assert.IsTrue(Element.IsKnown("fire"));
             Assert.IsFalse(Element.IsKnown("modded-element"));
+        }
+
+        [Test]
+        public void GeneratedLoad_PassesCustomSaveNameBuilderToNeoClient()
+        {
+            string saveBuffer = "";
+            string loadSave() => saveBuffer;
+            void handleSave(string file) => saveBuffer = file;
+
+            var app = TestProjectNeo.Load(
+                LoadFixture("synth-example.json"),
+                loadSave,
+                handleSave,
+                buildSaveName: () => "patient-comet-808");
+
+            Assert.IsNotNull(app);
+            var save = JsonConvert.DeserializeObject<ProjectSaveData>(saveBuffer);
+            Assert.AreEqual("patient-comet-808", save!.name);
         }
 
         [Test]

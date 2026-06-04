@@ -49,6 +49,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(client);
             var save = JsonConvert.DeserializeObject<ProjectSaveData>(saveBuffer);
             Assert.IsNotNull(save);
+            AssertGeneratedSaveName(save!.name);
             Assert.AreEqual("test-project", save!.projectId);
             Assert.AreEqual("version-1", save.version.id);
             Assert.AreEqual("0.1.0", save.version.label);
@@ -61,9 +62,43 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoLoader_UsesCustomSaveNameBuilderForNewSaves()
+        {
+            string saveBuffer = "";
+            var client = new NeoLoader().Load(
+                LoadFixture("synth-example.json"),
+                () => saveBuffer,
+                save => saveBuffer = save,
+                buildSaveName: () => "careful-lantern-777");
+
+            Assert.IsNotNull(client);
+            var save = JsonConvert.DeserializeObject<ProjectSaveData>(saveBuffer);
+            Assert.AreEqual("careful-lantern-777", save!.name);
+        }
+
+        [Test]
+        public void NeoLoader_PreservesLoadedSaveName()
+        {
+            var saveBuffer = @"{
+  ""name"": ""ancient-button-321"",
+  ""projectId"": ""project-1"",
+  ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
+  ""createdAt"": 100,
+  ""updatedAt"": 123,
+  ""values"": {},
+  ""attributeValueOverrides"": {}
+}";
+            var client = LoadLocalizedStringClient(localizable: true, saveBuffer);
+
+            var serialized = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual("ancient-button-321", serialized["name"]!.Value<string>());
+        }
+
+        [Test]
         public void SaveData_SerializeDoesNotChangeUpdatedAt()
         {
             var saveBuffer = @"{
+  ""name"": ""quiet-fox-456"",
   ""projectId"": ""project-1"",
   ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
   ""createdAt"": 100,
@@ -74,6 +109,7 @@ namespace NeoCompose.Tests
             var client = LoadLocalizedStringClient(localizable: true, saveBuffer);
 
             var serializedBeforeSave = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual("quiet-fox-456", serializedBeforeSave["name"]!.Value<string>());
             Assert.AreEqual(100d, serializedBeforeSave["createdAt"]!.Value<double>());
             var updatedAtBeforeSave = serializedBeforeSave["updatedAt"]!.Value<double>();
 
@@ -88,6 +124,7 @@ namespace NeoCompose.Tests
             var client = LoadLocalizedStringClient(
                 localizable: true,
                 @"{
+  ""name"": ""quiet-fox-456"",
   ""projectId"": ""project-1"",
   ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
   ""createdAt"": 100,
@@ -111,6 +148,7 @@ namespace NeoCompose.Tests
             var client = LoadLocalizedStringClient(
                 localizable: true,
                 @"{
+  ""name"": ""quiet-fox-456"",
   ""projectId"": ""project-1"",
   ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
   ""createdAt"": 100,
@@ -126,6 +164,18 @@ namespace NeoCompose.Tests
             var serialized = JObject.Parse(client.SerializeSaveData());
             Assert.AreEqual(100d, serialized["createdAt"]!.Value<double>());
             Assert.AreEqual(123d, serialized["updatedAt"]!.Value<double>());
+        }
+
+        private static void AssertGeneratedSaveName(string name)
+        {
+            Assert.IsFalse(string.IsNullOrWhiteSpace(name));
+            var parts = name.Split('-');
+            Assert.AreEqual(3, parts.Length);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(parts[0]));
+            Assert.IsFalse(string.IsNullOrWhiteSpace(parts[1]));
+            Assert.IsTrue(int.TryParse(parts[2], out var suffix));
+            Assert.GreaterOrEqual(suffix, 100);
+            Assert.LessOrEqual(suffix, 999);
         }
 
         [Test]

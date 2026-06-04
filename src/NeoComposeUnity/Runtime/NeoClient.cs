@@ -18,6 +18,7 @@ namespace NeoCompose.Runtime
     {
         public delegate string LoadSave();
         public delegate void HandleSave(string content);
+        public delegate string BuildSaveName();
         public delegate object? NeoNativeFunctionInvoker(
             NeoClient client,
             object? receiver,
@@ -118,20 +119,55 @@ namespace NeoCompose.Runtime
         protected ProjectSaveData sessionData;
         protected LoadSave loadSave;
         protected HandleSave handleSave;
+        protected BuildSaveName? buildSaveName;
         internal NeoAssetDatabase? assetDatabase;
         private IReadOnlyDictionary<string, NeoNativeFunctionInvoker>? nativeFunctionInvokers;
         private IReadOnlyDictionary<string, NeoDeferredNativeFunctionInvoker>? deferredNativeFunctionInvokers;
+        private static readonly object saveNameRandomLock = new();
+        private static readonly System.Random saveNameRandom = new();
+        private static readonly string[] saveNameAdjectives =
+        {
+            "wandering",
+            "enduring",
+            "brave",
+            "curious",
+            "lucky",
+            "moonlit",
+            "gentle",
+            "nimble",
+            "steadfast",
+            "bright",
+            "hidden",
+            "wild",
+        };
+        private static readonly string[] saveNameNouns =
+        {
+            "cat",
+            "mouse",
+            "fox",
+            "sparrow",
+            "otter",
+            "lantern",
+            "comet",
+            "river",
+            "meadow",
+            "acorn",
+            "button",
+            "cloud",
+        };
 
         public NeoClient(
             ProjectData data,
             LoadSave loadSave,
             HandleSave handleSave,
             NeoAssetDatabase? assetDatabase = null,
-            NeoLocalization? localization = null)
+            NeoLocalization? localization = null,
+            BuildSaveName? buildSaveName = null)
         {
             this.data = data;
             this.loadSave = loadSave;
             this.handleSave = handleSave;
+            this.buildSaveName = buildSaveName;
             this.assetDatabase = assetDatabase;
             Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
             ValidateRootCustomAttribute(data.project.rootAssetsAttributeId, nameof(Project.rootAssetsAttributeId));
@@ -1529,6 +1565,7 @@ namespace NeoCompose.Runtime
         {
             ProjectSaveData empty = new()
             {
+                name = BuildNewSaveName(),
                 projectId = data.project.id,
                 version = BuildSaveVersionData(),
                 createdAt = NeoTimestamp.Now(),
@@ -1543,12 +1580,30 @@ namespace NeoCompose.Runtime
         {
             return new()
             {
+                name = "",
                 projectId = data.project.id,
                 version = BuildSaveVersionData(),
                 createdAt = NeoTimestamp.Now(),
                 values = new(),
                 attributeValueOverrides = new(),
             };
+        }
+
+        protected string BuildNewSaveName()
+        {
+            string? custom = buildSaveName?.Invoke();
+            return string.IsNullOrWhiteSpace(custom) ? BuildDefaultSaveName() : custom!;
+        }
+
+        private static string BuildDefaultSaveName()
+        {
+            lock (saveNameRandomLock)
+            {
+                string adjective = saveNameAdjectives[saveNameRandom.Next(saveNameAdjectives.Length)];
+                string noun = saveNameNouns[saveNameRandom.Next(saveNameNouns.Length)];
+                int suffix = saveNameRandom.Next(100, 1000);
+                return $"{adjective}-{noun}-{suffix}";
+            }
         }
 
         protected VersionData BuildSaveVersionData()
