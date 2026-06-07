@@ -1560,7 +1560,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (value is null)
                 {
-                    writableNode.Remove("AnimatedImage");
+                    writableNode.Unset("AnimatedImage");
                     return;
                 }
                 NeoGeneratedTypesSupport.SetValue(writableNode, "AnimatedImage", NeoGeneratedTypesSupport.ValueReference(value));
@@ -3701,7 +3701,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (value is null)
                 {
-                    writableNode.Remove("AnimatedImage");
+                    writableNode.Unset("AnimatedImage");
                     return;
                 }
                 NeoGeneratedTypesSupport.SetValue(writableNode, "AnimatedImage", NeoGeneratedTypesSupport.ValueReference(value));
@@ -4546,7 +4546,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 if (value is null)
                 {
-                    writableNode.Remove("AnimatedImage");
+                    writableNode.Unset("AnimatedImage");
                     return;
                 }
                 NeoGeneratedTypesSupport.SetValue(writableNode, "AnimatedImage", NeoGeneratedTypesSupport.ValueReference(value));

@@ -631,5 +631,37 @@ namespace NeoCompose.Runtime
             client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, removedValueId);
             NotifyChanged();
         }
+
+        /// <summary>
+        /// Explicitly unsets the optional schema-keyed field under
+        /// <paramref name="key"/> by stamping a removal tombstone at the child's
+        /// stable value id, so the field resolves as unset rather than the
+        /// authored default. Sparse: the record keeps the key and is left
+        /// untouched (contrast <see cref="Remove"/>, which drops the key and
+        /// reverts to the authored default). No-op when the key is not bound to a
+        /// value. Throws if the field is required.
+        /// </summary>
+        public void Unset(string key)
+        {
+            string? attributeId = LookupMergedAttributeId(key);
+            if (attributeId is null)
+            {
+                throw new System.Collections.Generic.KeyNotFoundException(
+                    $"Merged schema for type {type.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
+            }
+            if (client.TryGetAttribute(attributeId, out Attribute? childAttribute)
+                && childAttribute.required)
+            {
+                throw new System.InvalidOperationException(
+                    $"Cannot unset required field '{key}'.");
+            }
+            if (value?.value is null || !value.value.TryGetValue(key, out string childValueId))
+            {
+                return;
+            }
+            client.WriteTombstone(ownership, childValueId);
+            ReinitializeChildren();
+            NotifyChildChanged(key);
+        }
     }
 }

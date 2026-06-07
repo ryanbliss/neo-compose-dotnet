@@ -319,5 +319,44 @@ namespace NeoCompose.Tests
             Assert.IsFalse(client.TryGetValue<AttributeValue>("test-gca", out _));
             Assert.IsFalse(client.TryGetValue<AttributeValue>("test-gcb", out _));
         }
+
+        // -----------------------------------------------------------------
+        // Tombstone removal (mark: "removed").
+        // -----------------------------------------------------------------
+
+        [Test]
+        public void CustomUnset_TombstonesFieldSparsely_ResolvesUnset()
+        {
+            var client = LoadClient();
+            var heroAttr = RequireAttribute<CustomAttribute>(client, "attr-hero");
+            var hero = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(client, heroAttr, null);
+            NeoGeneratedTypesSupport.SetValue(
+                hero, "Name", NeoGeneratedTypesSupport.Value("Aragorn"));
+            string nameId = hero.Get<NeoAttributeString>("Name").overrideValueId!;
+
+            hero.Unset("Name");
+
+            // Sparse: the record still references the key (it is not dropped), but
+            // the child resolves as unset through the tombstone at its stable id.
+            Assert.IsTrue(hero.value!.value!.ContainsKey("Name"));
+            Assert.AreEqual(nameId, hero.value.value["Name"]);
+            Assert.IsTrue(client.sessionValues.TryGetValue(nameId, out AttributeValue? row));
+            Assert.IsTrue(row!.IsRemoved);
+            Assert.IsTrue(hero.TryGet("Name", out NeoAttributeString? refetched));
+            Assert.IsNull(refetched!.value);
+        }
+
+        [Test]
+        public void CustomUnset_RequiredField_Throws()
+        {
+            var client = LoadClient();
+            var heroAttr = RequireAttribute<CustomAttribute>(client, "attr-hero");
+            var hero = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(client, heroAttr, null);
+            NeoGeneratedTypesSupport.SetValue(
+                hero, "Name", NeoGeneratedTypesSupport.Value("Aragorn"));
+            RequireAttribute<StringAttribute>(client, "attr-name").required = true;
+
+            Assert.Throws<System.InvalidOperationException>(() => hero.Unset("Name"));
+        }
     }
 }

@@ -455,6 +455,32 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Writes a removal <b>tombstone</b> (<see cref="NeoValueMarks.Removed"/>)
+        /// at <paramref name="id"/> so resolution returns <b>unset</b> instead of
+        /// falling through to the authored default. This is sparse explicit
+        /// removal — only the single tombstone row is shadowed; the parent record
+        /// is untouched. (Contrast <see cref="RemoveWritableShadow"/>, which drops
+        /// the shadow so the authored default resurfaces.) The tombstone reuses
+        /// the resolved row's shape when one exists, else a minimal marker.
+        /// </summary>
+        internal void WriteTombstone(NeoValueOwnership ownership, string id)
+        {
+            if (ownership == NeoValueOwnership.Asset)
+            {
+                throw new System.InvalidOperationException(
+                    "Cannot tombstone an asset-owned value.");
+            }
+            string nowIso = System.DateTime.UtcNow.ToString("o");
+            AttributeValue tombstone = TryGetOverlaidValue(ownership, id, out AttributeValue? current)
+                ? CloneValueRow(current)
+                : new NullAttributeValue { id = id, createdAt = nowIso, updatedAt = nowIso };
+            tombstone.id = id;
+            tombstone.mark = NeoValueMarks.Removed;
+            tombstone.updatedAt = nowIso;
+            SetWritableValue(ownership, tombstone);
+        }
+
+        /// <summary>
         /// Drops the writable shadow at <paramref name="id"/> so resolution
         /// falls back through the overlay to the authored default. Notifies
         /// bound nodes so they refresh. Returns true when a shadow was
