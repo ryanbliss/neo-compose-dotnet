@@ -86,27 +86,10 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, DialogueGroup> dialogueGroups => data.dialogueGroups;
         internal IReadOnlyDictionary<string, PriorityGroup> priorityGroups => data.priorityGroups;
         internal IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
-        internal IReadOnlyDictionary<string, string> saveOverrides => saveData.attributeValueOverrides;
         internal IReadOnlyDictionary<string, AttributeValue> sessionValues => sessionData.values;
-        internal IReadOnlyDictionary<string, string> sessionOverrides => sessionData.attributeValueOverrides;
         internal Project project => data.project;
         internal bool IsDisposed => isDisposed;
 
-        /// <summary>
-        /// Fired when the entry for <c>attributeId</c> in
-        /// <see cref="ProjectSaveData.attributeValueOverrides"/> is
-        /// added, replaced, or removed. Subscribers (notably
-        /// <see cref="NeoAttribute"/>) recompute their resolved
-        /// <c>valueId</c> chain and refresh their <c>value</c>.
-        ///
-        /// <para>The second argument is the *new* value id (or
-        /// <c>null</c> if removed). Wire mutations of
-        /// <see cref="Attribute.valueId"/> directly on the DTO
-        /// don't fire here — those are out of band; consumers that
-        /// mutate the wire DTO should call the affected node's
-        /// refresh hook manually.</para>
-        /// </summary>
-        internal event System.Action<string, string?>? OnSaveOverrideChanged;
         /// <summary>
         /// Fired whenever a save-side value row is added, replaced, or
         /// removed. The argument is the affected value id.
@@ -114,7 +97,6 @@ namespace NeoCompose.Runtime
         /// coarse invalidation signal after <c>*Writable</c> mutations.
         /// </summary>
         internal event System.Action<string>? OnSaveValueChanged;
-        internal event System.Action<NeoValueOwnership, string, string?>? OnWritableOverrideChanged;
         internal event System.Action<NeoValueOwnership, string>? OnWritableValueChanged;
 
         internal void EnsureNotDisposed()
@@ -201,6 +183,7 @@ namespace NeoCompose.Runtime
             ValidateFunctionAttributes();
             LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
+            BuildAuthoredOwnershipMap();
             InitializeSaveDefaults();
             InitializeSessionDefaults();
             assets = new(this, data.project.rootAssetsAttributeId, null);
@@ -220,9 +203,7 @@ namespace NeoCompose.Runtime
             assets.Dispose();
             save.Dispose();
             session.Dispose();
-            OnSaveOverrideChanged = null;
             OnSaveValueChanged = null;
-            OnWritableOverrideChanged = null;
             OnWritableValueChanged = null;
         }
 
@@ -326,6 +307,44 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        // Save and Session graphs are disjoint subtrees of the authored asset graph.
+        // Precomputed once at load, this maps every authored value id to the
+        // writable graph it belongs to — so a *sparse* overlay can still answer
+        // "is this value writable here?" before the value has been shadowed into the
+        // writable store (runtime-minted ids are caught by store membership below).
+        private readonly Dictionary<string, NeoValueOwnership> authoredOwnership = new();
+
+        private void BuildAuthoredOwnershipMap()
+        {
+            MarkAuthoredOwnership(data.project.rootSaveFileAttributeId, NeoValueOwnership.Save);
+            MarkAuthoredOwnership(data.project.rootSessionAttributeId, NeoValueOwnership.Session);
+        }
+
+        private void MarkAuthoredOwnership(string rootAttributeId, NeoValueOwnership ownership)
+        {
+            if (!data.attributes.TryGetValue(rootAttributeId, out Attribute rootAttribute)
+                || rootAttribute.valueId is null)
+            {
+                return;
+            }
+            WalkAuthoredOwnership(rootAttribute.valueId, rootAttribute, ownership, new HashSet<string>());
+        }
+
+        private void WalkAuthoredOwnership(
+            string valueId,
+            Attribute? attribute,
+            NeoValueOwnership ownership,
+            HashSet<string> visited)
+        {
+            if (!visited.Add(valueId)) return;
+            authoredOwnership[valueId] = ownership;
+            if (!data.values.TryGetValue(valueId, out AttributeValue row)) return;
+            foreach (var child in EnumerateOwnedChildLinks(row, attribute))
+            {
+                WalkAuthoredOwnership(child.valueId, child.attribute, ownership, visited);
+            }
+        }
+
         internal bool TryGetValueOwnership(string id, out NeoValueOwnership ownership)
         {
             if (sessionData.values.ContainsKey(id))
@@ -338,6 +357,12 @@ namespace NeoCompose.Runtime
                 ownership = NeoValueOwnership.Save;
                 return true;
             }
+            // Reachable from a writable root but not yet shadowed (sparse): still
+            // writable in that store.
+            if (authoredOwnership.TryGetValue(id, out ownership))
+            {
+                return true;
+            }
             if (data.values.ContainsKey(id))
             {
                 ownership = NeoValueOwnership.Asset;
@@ -347,9 +372,16 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        /// <summary>
+        /// Test/seed helper: shadow a save value at its stable id. Value ids are
+        /// stable instance identities, so seeding a value is just a write at its
+        /// own id; <paramref name="attributeId"/> is retained for call-site
+        /// readability but no longer maps through an override table.
+        /// </summary>
         internal void AddSaveValue<TAttributeValue>(string attributeId, TAttributeValue value) where TAttributeValue : AttributeValue
         {
-            AddWritableValue(NeoValueOwnership.Save, attributeId, value);
+            _ = attributeId;
+            SetWritableValue(NeoValueOwnership.Save, value);
         }
 
         internal void SetSaveValue<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
@@ -360,21 +392,6 @@ namespace NeoCompose.Runtime
         internal void SetSaveValueSilently<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
         {
             SetWritableValueSilently(NeoValueOwnership.Save, value);
-        }
-
-        internal void AddWritableValue<TAttributeValue>(
-            NeoValueOwnership ownership,
-            string attributeId,
-            TAttributeValue value) where TAttributeValue : AttributeValue
-        {
-            var store = GetWritableStore(ownership);
-            store.attributeValueOverrides[attributeId] = value.id;
-            SetWritableValue(ownership, value);
-            OnWritableOverrideChanged?.Invoke(ownership, attributeId, value.id);
-            if (ownership == NeoValueOwnership.Save)
-            {
-                OnSaveOverrideChanged?.Invoke(attributeId, value.id);
-            }
         }
 
         /// <summary>
@@ -416,6 +433,46 @@ namespace NeoCompose.Runtime
         /// authored asset object it may have resolved through.
         /// </summary>
         internal AttributeValue CloneRowForWrite(AttributeValue row) => CloneValueRow(row);
+
+        /// <summary>
+        /// Ensures the value at <paramref name="id"/> is present in the
+        /// <paramref name="ownership"/> store as a writable shadow — cloning
+        /// the resolved (authored or already-owned) row at the <b>same</b>
+        /// id when nothing is shadowed yet. No-op when already shadowed.
+        /// This is the row-level clone-on-write primitive: because ids are
+        /// stable, shadowing the single mutated row is sufficient (its
+        /// parent already references this id). Returns false when there is
+        /// no row to shadow.
+        /// </summary>
+        internal bool EnsureWritableShadow(NeoValueOwnership ownership, string id)
+        {
+            if (ownership == NeoValueOwnership.Asset) return false;
+            var store = GetWritableStore(ownership);
+            if (store.values.ContainsKey(id)) return true;
+            if (!TryGetOverlaidValue(ownership, id, out AttributeValue? resolved)) return false;
+            SetWritableValueSilently(ownership, CloneValueRow(resolved));
+            return true;
+        }
+
+        /// <summary>
+        /// Drops the writable shadow at <paramref name="id"/> so resolution
+        /// falls back through the overlay to the authored default. Notifies
+        /// bound nodes so they refresh. Returns true when a shadow was
+        /// removed.
+        /// </summary>
+        internal bool RemoveWritableShadow(NeoValueOwnership ownership, string id)
+        {
+            if (ownership == NeoValueOwnership.Asset) return false;
+            var store = GetWritableStore(ownership);
+            if (!store.values.Remove(id)) return false;
+            TouchWritableStoreUpdatedAt(ownership);
+            OnWritableValueChanged?.Invoke(ownership, id);
+            if (ownership == NeoValueOwnership.Save)
+            {
+                OnSaveValueChanged?.Invoke(id);
+            }
+            return true;
+        }
 
         internal void SetWritableValue<TAttributeValue>(
             NeoValueOwnership ownership,
@@ -702,26 +759,6 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            foreach (var pair in sessionData.attributeValueOverrides)
-            {
-                if (pair.Value == valueId
-                    && TryGetAttribute(pair.Key, out Attribute? sessionAttribute))
-                {
-                    attribute = sessionAttribute;
-                    return true;
-                }
-            }
-
-            foreach (var pair in saveData.attributeValueOverrides)
-            {
-                if (pair.Value == valueId
-                    && TryGetAttribute(pair.Key, out Attribute? saveAttribute))
-                {
-                    attribute = saveAttribute;
-                    return true;
-                }
-            }
-
             foreach (var parent in EnumerateAllValueRows())
             {
                 if (parent.Value is not ObjectAttributeValue objectValue
@@ -831,24 +868,6 @@ namespace NeoCompose.Runtime
                     return true;
                 }
             }
-            foreach (var pair in sessionData.attributeValueOverrides)
-            {
-                if (pair.Value == valueId
-                    && TryGetAttribute(pair.Key, out Attribute? sessionAttribute))
-                {
-                    attribute = sessionAttribute;
-                    return true;
-                }
-            }
-            foreach (var pair in saveData.attributeValueOverrides)
-            {
-                if (pair.Value == valueId
-                    && TryGetAttribute(pair.Key, out Attribute? saveAttribute))
-                {
-                    attribute = saveAttribute;
-                    return true;
-                }
-            }
             attribute = null;
             return false;
         }
@@ -858,170 +877,6 @@ namespace NeoCompose.Runtime
             foreach (var pair in sessionData.values) yield return pair;
             foreach (var pair in saveData.values) yield return pair;
             foreach (var pair in data.values) yield return pair;
-        }
-
-        internal bool TryMaterializeSavePath(string rowId)
-        {
-            return TryMaterializeSavePath(rowId, out _);
-        }
-
-        internal bool TryMaterializeSavePath(string rowId, [NotNullWhen(true)] out string? materializedRowId)
-        {
-            return TryMaterializeWritablePath(NeoValueOwnership.Save, rowId, out materializedRowId);
-        }
-
-        internal bool TryMaterializeWritablePath(
-            NeoValueOwnership ownership,
-            string rowId,
-            [NotNullWhen(true)] out string? materializedRowId)
-        {
-            materializedRowId = null;
-            if (ownership == NeoValueOwnership.Asset)
-            {
-                throw new System.InvalidOperationException("Asset-owned values cannot be materialized into a writable store.");
-            }
-            var store = GetWritableStore(ownership);
-            if (store.values.ContainsKey(rowId))
-            {
-                materializedRowId = rowId;
-                return true;
-            }
-
-            NeoAttributeCustomWritable rootNode = ownership == NeoValueOwnership.Save ? save : session;
-            string rootAttributeId = ownership == NeoValueOwnership.Save
-                ? project.rootSaveFileAttributeId
-                : project.rootSessionAttributeId;
-            string? rootValueId = rootNode.value?.id;
-            if (string.IsNullOrEmpty(rootValueId)) return false;
-
-            var path = new List<string>();
-            if (!TryFindValuePath(ownership, rootValueId!, rowId, new HashSet<string>(), path))
-            {
-                return false;
-            }
-
-            var remappedIds = new Dictionary<string, string>();
-            for (int i = 0; i < path.Count; i++)
-            {
-                string pathValueId = path[i];
-                // Stable-id overlay: a save shadows an authored value at the SAME
-                // id (never a remap). Materializing a path just clones rows into
-                // the writable store under their existing ids so they can be
-                // mutated without touching the shared asset objects.
-                remappedIds[pathValueId] = pathValueId;
-            }
-
-            for (int i = path.Count - 1; i >= 0; i--)
-            {
-                string pathValueId = path[i];
-                bool alreadyWritable = store.values.TryGetValue(pathValueId, out AttributeValue? existingWritable);
-                // Fall through to the authored default when the row isn't already in
-                // the (sparse) writable store, so materializing a path clones the
-                // authored rows in at their stable ids.
-                if (!alreadyWritable && !TryGetValue(pathValueId, out existingWritable))
-                {
-                    return false;
-                }
-
-                var clone = CloneValueRow(existingWritable!);
-                clone.id = remappedIds[pathValueId];
-                if (i < path.Count - 1)
-                {
-                    RemapDirectChildLink(clone, path[i + 1], remappedIds[path[i + 1]]);
-                }
-                if (i == 0)
-                {
-                    if (alreadyWritable)
-                    {
-                        SetWritableValue(ownership, clone);
-                    }
-                    else
-                    {
-                        AddWritableValue(ownership, rootAttributeId, clone);
-                    }
-                }
-                else
-                {
-                    SetWritableValue(ownership, clone);
-                }
-            }
-            materializedRowId = remappedIds[rowId];
-            return true;
-        }
-
-        private bool TryFindValuePath(
-            NeoValueOwnership ownership,
-            string currentValueId,
-            string targetValueId,
-            HashSet<string> visited,
-            List<string> path)
-        {
-            if (!visited.Add(currentValueId)) return false;
-            path.Add(currentValueId);
-            if (currentValueId == targetValueId) return true;
-
-            // Fall through to the authored graph: under a sparse overlay the path
-            // from the root to a target row lives in the asset store until written.
-            if (TryGetValue(currentValueId, out AttributeValue? row))
-            {
-                switch (row)
-                {
-                    case ObjectAttributeValue obj when obj.value != null:
-                        foreach (var childValueId in obj.value.Values)
-                        {
-                            if (TryFindValuePath(ownership, childValueId, targetValueId, visited, path))
-                            {
-                                return true;
-                            }
-                        }
-                        break;
-                    case ArrayAttributeValue arr when arr.value != null:
-                        foreach (var childValueId in arr.value)
-                        {
-                            if (TryFindValuePath(ownership, childValueId, targetValueId, visited, path))
-                            {
-                                return true;
-                            }
-                        }
-                        break;
-                }
-            }
-
-            path.RemoveAt(path.Count - 1);
-            return false;
-        }
-
-        private static void RemapDirectChildLink(
-            AttributeValue row,
-            string oldChildValueId,
-            string newChildValueId)
-        {
-            switch (row)
-            {
-                case ObjectAttributeValue obj when obj.value != null:
-                {
-                    var keys = new List<string>(obj.value.Keys);
-                    foreach (var key in keys)
-                    {
-                        if (obj.value[key] == oldChildValueId)
-                        {
-                            obj.value[key] = newChildValueId;
-                        }
-                    }
-                    break;
-                }
-                case ArrayAttributeValue arr when arr.value != null:
-                {
-                    for (int i = 0; i < arr.value.Length; i++)
-                    {
-                        if (arr.value[i] == oldChildValueId)
-                        {
-                            arr.value[i] = newChildValueId;
-                        }
-                    }
-                    break;
-                }
-            }
         }
 
         private static AttributeValue CloneValueRow(AttributeValue row)
@@ -1066,39 +921,6 @@ namespace NeoCompose.Runtime
             clone.updatedAt = row.updatedAt;
             clone.typeId = row.typeId;
             return clone;
-        }
-
-        /// <summary>
-        /// Removes the save-side override for <paramref name="attributeId"/>
-        /// (i.e., the entry in
-        /// <see cref="ProjectSaveData.attributeValueOverrides"/>). Fires
-        /// <see cref="OnSaveOverrideChanged"/> with a null value id so
-        /// subscribers refresh accordingly. Returns true if an entry
-        /// was actually removed; false if nothing was registered.
-        ///
-        /// <para>Note: this only removes the override mapping. The
-        /// underlying value row in <see cref="ProjectSaveData.values"/>
-        /// stays — call
-        /// <see cref="RemoveSaveValueAndDescendants"/> if you also want
-        /// to GC it (and any nested values).</para>
-        /// </summary>
-        internal bool RemoveSaveOverride(string attributeId)
-        {
-            if (!saveData.attributeValueOverrides.Remove(attributeId)) return false;
-            TouchWritableStoreUpdatedAt(NeoValueOwnership.Save);
-            OnSaveOverrideChanged?.Invoke(attributeId, null);
-            OnWritableOverrideChanged?.Invoke(NeoValueOwnership.Save, attributeId, null);
-            return true;
-        }
-
-        internal bool RemoveWritableOverride(NeoValueOwnership ownership, string attributeId)
-        {
-            if (ownership == NeoValueOwnership.Save) return RemoveSaveOverride(attributeId);
-            if (ownership == NeoValueOwnership.Asset) return false;
-            var store = GetWritableStore(ownership);
-            if (!store.attributeValueOverrides.Remove(attributeId)) return false;
-            OnWritableOverrideChanged?.Invoke(ownership, attributeId, null);
-            return true;
         }
 
         /// <summary>
@@ -1216,26 +1038,6 @@ namespace NeoCompose.Runtime
             }
         }
 
-        /// <summary>
-        /// Returns the save's override value-id for the given attribute,
-        /// or null if no override is registered. Used by
-        /// <see cref="NeoAttribute"/> to resolve `valueId` after a Set
-        /// creates a new top-level save row.
-        /// </summary>
-        internal bool TryGetSaveOverrideValueId(string attributeId, [NotNullWhen(true)] out string? valueId)
-        {
-            return saveData.attributeValueOverrides.TryGetValue(attributeId, out valueId);
-        }
-
-        internal bool TryGetWritableOverrideValueId(
-            NeoValueOwnership ownership,
-            string attributeId,
-            [NotNullWhen(true)] out string? valueId)
-        {
-            valueId = null;
-            if (ownership == NeoValueOwnership.Asset) return false;
-            return GetWritableStore(ownership).attributeValueOverrides.TryGetValue(attributeId, out valueId);
-        }
 
         internal bool TryGetWritableValue<TValue>(
             NeoValueOwnership ownership,
@@ -1287,14 +1089,10 @@ namespace NeoCompose.Runtime
             string? collectionValueId)
         {
             if (collectionValueId is not null) return collectionValueId;
-            if (TryGetWritableOverrideValueId(NeoValueOwnership.Session, collectionAttribute.id, out string? sessionValueId))
-            {
-                return sessionValueId;
-            }
-            if (TryGetSaveOverrideValueId(collectionAttribute.id, out string? saveValueId))
-            {
-                return saveValueId;
-            }
+            // Stable-id overlay: the collection resolves by its authored id
+            // (a save/session shadows that id in place), so there is no
+            // override-map hop — fall through to the schema binding /
+            // authored valueId.
             if (TryFindBoundValueIdForAttribute(collectionAttribute.id, out string? boundValueId))
             {
                 return boundValueId;
@@ -1643,9 +1441,8 @@ namespace NeoCompose.Runtime
                 projectId = data.project.id,
                 version = BuildSaveVersionData(),
                 createdAt = NeoTimestamp.Now(),
-                // leave `values` and `attributeValueOverrides` empty until value(s) are set at runtime
+                // leave `values` empty until value(s) are written at runtime (sparse overlay)
                 values = new(),
-                attributeValueOverrides = new(),
             };
             return empty;
         }
@@ -1659,7 +1456,6 @@ namespace NeoCompose.Runtime
                 version = BuildSaveVersionData(),
                 createdAt = NeoTimestamp.Now(),
                 values = new(),
-                attributeValueOverrides = new(),
             };
         }
 
@@ -1692,40 +1488,15 @@ namespace NeoCompose.Runtime
             };
         }
 
-        private void InitializeSessionDefaults()
-        {
-            if (!data.attributes.TryGetValue(data.project.rootSessionAttributeId, out Attribute rootSessionAttribute)
-                || rootSessionAttribute.valueId is null)
-            {
-                return;
-            }
-            string sessionRootValueId = CloneValueGraphToOwnership(
-                NeoValueOwnership.Session,
-                rootSessionAttribute.valueId,
-                new Dictionary<string, string>(),
-                rootSessionAttribute);
-            sessionData.attributeValueOverrides[rootSessionAttribute.id] = sessionRootValueId;
-        }
+        // Sparse overlay: Save/Session stores start empty. The root and
+        // every authored default resolve by their stable id through
+        // <see cref="TryGetOverlaidValue"/> (save/session value ?? authored),
+        // so there is nothing to seed up-front — a value only enters a
+        // writable store when it is first written (clone-on-write at its
+        // stable id). Eager full-graph cloning is intentionally gone.
+        private void InitializeSessionDefaults() { }
 
-        private void InitializeSaveDefaults()
-        {
-            if (!data.attributes.TryGetValue(data.project.rootSaveFileAttributeId, out Attribute rootSaveAttribute)
-                || rootSaveAttribute.valueId is null)
-            {
-                return;
-            }
-            if (saveData.attributeValueOverrides.ContainsKey(rootSaveAttribute.id))
-            {
-                return;
-            }
-            string saveRootValueId = CloneValueGraphToOwnership(
-                NeoValueOwnership.Save,
-                rootSaveAttribute.valueId,
-                new Dictionary<string, string>(),
-                rootSaveAttribute);
-            saveData.attributeValueOverrides[rootSaveAttribute.id] = saveRootValueId;
-            TouchWritableStoreUpdatedAt(NeoValueOwnership.Save);
-        }
+        private void InitializeSaveDefaults() { }
 
         private void ValidateRootCustomAttribute(string attributeId, string projectFieldName)
         {
@@ -1801,12 +1572,10 @@ namespace NeoCompose.Runtime
 
         private HashSet<string> BuildReachableWritableValueIds(NeoValueOwnership ownership)
         {
+            // Sparse stable-id overlay: reachability is rooted at the save/session
+            // root attribute's authored value id (a write shadows that id in
+            // place), then walks the overlaid graph. There is no override map.
             var reachable = new HashSet<string>();
-            var store = GetWritableStore(ownership);
-            foreach (var valueId in store.attributeValueOverrides.Values)
-            {
-                MarkReachableValue(ownership, valueId, reachable);
-            }
             string rootAttributeId = ownership == NeoValueOwnership.Save
                 ? data.project.rootSaveFileAttributeId
                 : data.project.rootSessionAttributeId;

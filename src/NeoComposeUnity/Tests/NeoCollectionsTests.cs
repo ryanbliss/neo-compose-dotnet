@@ -107,7 +107,12 @@ namespace NeoCompose.Tests
         public void NeoLookupSet_AddRemoveClear_TracksUniqueLookupSelections()
         {
             var client = LoadClient(out _);
-            client.AddSaveValue("attr-tags", new ArrayAttributeValue
+            var choiceAttr = RequireAttribute<LookupAttribute>(client, "attr-choice");
+            // Stable-id overlay: pin the lookup to its target collection value by
+            // id and shadow that value in the save store (the old override-map
+            // rebind of attr-tags is gone).
+            choiceAttr.collectionValueId = "v-tags-target";
+            client.SetSaveValue(new ArrayAttributeValue
             {
                 id = "v-tags-target",
                 createdAt = "now",
@@ -115,7 +120,6 @@ namespace NeoCompose.Tests
                 value = new[] { "v-a", "v-b" },
             });
 
-            var choiceAttr = RequireAttribute<LookupAttribute>(client, "attr-choice");
             var choiceNode = (NeoAttributeLookupWritable)NeoAttribute.CreateWritable(
                 client,
                 choiceAttr,

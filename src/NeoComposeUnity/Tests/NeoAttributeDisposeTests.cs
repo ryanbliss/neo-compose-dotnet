@@ -18,12 +18,10 @@ namespace NeoCompose.Tests
     ///     <see cref="NeoClient.nodes"/>.
     ///   - Disposing a collection-type parent recursively disposes all
     ///     descendants in <c>childAttributes</c>.
-    ///   - <see cref="NeoClient.AddSaveValue"/> +
-    ///     <see cref="NeoClient.RemoveSaveOverride"/> fire
-    ///     <see cref="NeoClient.OnSaveOverrideChanged"/> with the new
-    ///     value-id (or null on removal); subscribed
-    ///     <see cref="NeoAttribute"/> nodes refresh their resolved
-    ///     <c>value</c> via the chain.
+    ///   - A writable <c>Set</c> shadows the value at its stable id and a
+    ///     bound <see cref="NeoAttribute"/> refreshes its resolved <c>value</c>
+    ///     via <see cref="NeoClient.OnSaveValueChanged"/>; <c>ClearOverride</c>
+    ///     drops the shadow back to the authored default.
         ///   - <c>*Writable.Remove</c>/<c>RemoveAt</c> on collection types
     ///     dispose the orphaned child node AND cascade-delete the
     ///     orphaned value graph from
@@ -128,106 +126,66 @@ namespace NeoCompose.Tests
         }
 
         // -----------------------------------------------------------------
-        // OnSaveOverrideChanged event.
+        // Save value change events.
         // -----------------------------------------------------------------
 
         [Test]
-        public void AddSaveValue_FiresOnSaveOverrideChanged()
+        public void AddSaveValue_FiresOnSaveValueChanged()
         {
             var client = LoadClient();
-            string? observedAttrId = null;
             string? observedValueId = null;
-            client.OnSaveOverrideChanged += (attrId, vid) =>
-            {
-                observedAttrId = attrId;
-                observedValueId = vid;
-            };
+            client.OnSaveValueChanged += vid => observedValueId = vid;
 
-            var newRow = new StringAttributeValue
+            client.AddSaveValue("attr-name", new StringAttributeValue
             {
                 id = "v-new",
-
                 createdAt = "now",
                 updatedAt = "now",
                 value = "fresh",
-            };
-            client.AddSaveValue("attr-name", newRow);
+            });
 
-            Assert.AreEqual("attr-name", observedAttrId);
             Assert.AreEqual("v-new", observedValueId);
         }
 
         [Test]
-        public void RemoveSaveOverride_FiresOnSaveOverrideChangedWithNullId()
-        {
-            var client = LoadClient();
-            // Seed an override.
-            client.AddSaveValue("attr-name", new StringAttributeValue
-            {
-                id = "v-seed",
-                createdAt = "now", updatedAt = "now", value = "seeded",
-            });
-
-            string? observedValueId = "sentinel";
-            client.OnSaveOverrideChanged += (attrId, vid) =>
-            {
-                if (attrId == "attr-name") observedValueId = vid;
-            };
-
-            bool removed = client.RemoveSaveOverride("attr-name");
-            Assert.IsTrue(removed);
-            Assert.IsNull(observedValueId, "Removal fires the event with newValueId == null");
-        }
-
-        [Test]
-        public void NeoAttribute_RefreshesValue_OnSaveOverrideChanged()
+        public void NeoAttribute_TracksValue_AfterWritableSet()
         {
             var client = LoadClient();
             var nameAttr = RequireAttribute<StringAttribute>(client, "attr-name");
-            // attr-name has no static valueId in the fixture, so the
-            // freshly-constructed node has value == null.
-            var node = (NeoAttributeString)NeoAttribute.CreateWritable(
+            // attr-name has no authored valueId in the fixture, so the
+            // freshly-constructed standalone node has value == null until set.
+            var node = (NeoAttributeStringWritable)NeoAttribute.CreateWritable(
                 client,
                 nameAttr,
                 null,
                 NeoValueOwnership.Save);
             Assert.IsNull(node.value);
 
-            // Add a save override → event fires → node refreshes from
-            // the resolved chain → value tracks the new row.
-            var newRow = new StringAttributeValue
-            {
-                id = "v-new",
-                createdAt = "now", updatedAt = "now", value = "after-set",
-            };
-            client.AddSaveValue("attr-name", newRow);
+            // Stable-id overlay: a write mints a value bound to this
+            // (parentless) node and tracks it directly — no override-map hop.
+            node.SetLiteralOverride("after-set");
 
             Assert.IsNotNull(node.value);
             Assert.AreEqual("after-set", node.value!.value);
         }
 
         [Test]
-        public void NeoAttribute_ValueBecomesNull_WhenSaveOverrideRemoved()
+        public void NeoAttribute_ValueRevertsToDefault_WhenWritableShadowCleared()
         {
             var client = LoadClient();
             var nameAttr = RequireAttribute<StringAttribute>(client, "attr-name");
-            client.AddSaveValue("attr-name", new StringAttributeValue
-            {
-                id = "v-seed",
-                createdAt = "now", updatedAt = "now", value = "seeded",
-            });
-
-            var node = (NeoAttributeString)NeoAttribute.CreateWritable(
+            var node = (NeoAttributeStringWritable)NeoAttribute.CreateWritable(
                 client,
                 nameAttr,
                 null,
                 NeoValueOwnership.Save);
+            node.SetLiteralOverride("seeded");
             Assert.IsNotNull(node.value);
 
-            client.RemoveSaveOverride("attr-name");
+            node.ClearOverride();
 
-            // attr-name has no static valueId, no override → value chain
-            // resolves to null → cached value cleared.
+            // attr-name has no authored default → clearing the shadow leaves
+            // the resolved value null.
             Assert.IsNull(node.value);
         }
 

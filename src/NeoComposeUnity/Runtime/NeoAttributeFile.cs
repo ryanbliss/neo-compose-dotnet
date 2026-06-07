@@ -47,25 +47,24 @@ namespace NeoCompose.Runtime
             }
 
             string nowIso = System.DateTime.UtcNow.ToString("o");
-            if (value is SpriteAttributeValue existing)
+            var writable = EnsureWritableValue();
+            if (writable is not null)
             {
-                existing.value = newValue;
-                existing.updatedAt = nowIso;
-                client.SetWritableValue(ownership, existing);
+                writable.value = newValue;
+                writable.updatedAt = nowIso;
+                client.SetWritableValue(ownership, writable);
                 NotifyChanged();
                 return;
             }
 
-            string newValueId = System.Guid.NewGuid().ToString();
             SpriteAttributeValue newRow = new()
             {
-                id = newValueId,
+                id = System.Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = newValue,
             };
-            client.AddWritableValue(ownership, attribute.id, newRow);
-            RefreshFromValueData();
+            BindNewValue(newRow);
             NotifyChanged();
         }
 
@@ -121,25 +120,24 @@ namespace NeoCompose.Runtime
             }
 
             string nowIso = System.DateTime.UtcNow.ToString("o");
-            if (value is FileAttributeValue existing)
+            var writable = EnsureWritableValue();
+            if (writable is not null)
             {
-                existing.value = newValue;
-                existing.updatedAt = nowIso;
-                client.SetWritableValue(ownership, existing);
+                writable.value = newValue;
+                writable.updatedAt = nowIso;
+                client.SetWritableValue(ownership, writable);
                 NotifyChanged();
                 return;
             }
 
-            string newValueId = System.Guid.NewGuid().ToString();
             FileAttributeValue newRow = new()
             {
-                id = newValueId,
+                id = System.Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = newValue,
             };
-            client.AddWritableValue(ownership, attribute.id, newRow);
-            RefreshFromValueData();
+            BindNewValue(newRow);
             NotifyChanged();
         }
 

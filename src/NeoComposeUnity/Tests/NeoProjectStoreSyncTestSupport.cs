@@ -43,7 +43,6 @@ namespace NeoCompose.Tests
                 projectId = "project-1",
                 version = new VersionData { id = "v1", label = "1.0" },
                 values = NeoSaveValues.Empty,
-                attributeValueOverrides = new Dictionary<string, string>(),
                 createdAt = 1,
                 updatedAt = 2,
                 synchronizedAt = 3,

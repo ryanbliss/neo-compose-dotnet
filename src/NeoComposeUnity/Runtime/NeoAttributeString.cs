@@ -53,9 +53,10 @@ namespace NeoCompose.Runtime
             : base(client, attribute, overrideValueId, ownership) { }
 
         /// <summary>
-        /// Sets the underlying string. Updates an existing value row in
-        /// place when one exists; otherwise creates a fresh row and
-        /// registers it under the save's <c>attributeValueOverrides</c>.
+        /// Sets the underlying string. Clone-on-writes the existing value
+        /// row (shadowing the authored default at its stable id) when one
+        /// is bound; otherwise mints a fresh row and binds it through the
+        /// parent container.
         /// </summary>
         public void Set(string? newValue)
         {
@@ -72,49 +73,39 @@ namespace NeoCompose.Runtime
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
 
-            if (TryGetWritableStringValue(out var existing))
+            var writable = EnsureWritableValue();
+            if (writable is not null)
             {
-                existing.value = newValue;
-                existing.neoLocalizationMode = NeoStringLocalizationMode.Literal;
-                existing.updatedAt = nowIso;
-                client.SetWritableValue(ownership, existing);
+                writable.value = newValue;
+                writable.neoLocalizationMode = NeoStringLocalizationMode.Literal;
+                writable.updatedAt = nowIso;
+                client.SetWritableValue(ownership, writable);
                 NotifyChanged();
                 return;
             }
 
-            string newValueId = System.Guid.NewGuid().ToString();
             StringAttributeValue newRow = new()
             {
-                id = newValueId,
+                id = System.Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = newValue,
                 neoLocalizationMode = NeoStringLocalizationMode.Literal,
             };
-            client.AddWritableValue(ownership, attribute.id, newRow);
-            RefreshFromValueData();
+            BindNewValue(newRow);
             NotifyChanged();
         }
 
-        private bool TryGetWritableStringValue(
-            [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out StringAttributeValue? existing)
-        {
-            existing = null;
-            if (ownership == NeoValueOwnership.Asset)
-            {
-                existing = value;
-                return existing != null;
-            }
-
-            var currentValueId = valueId;
-            return currentValueId != null &&
-                client.TryGetWritableValue(ownership, currentValueId, out existing);
-        }
-
+        /// <summary>
+        /// Drops this node's Save/Session shadow so it reverts to the
+        /// authored default (the overlay falls through to the asset row).
+        /// </summary>
         public void ClearOverride()
         {
             if (ownership == NeoValueOwnership.Asset) return;
-            client.RemoveWritableOverride(ownership, attribute.id);
+            string? id = valueId;
+            if (id is null) return;
+            client.RemoveWritableShadow(ownership, id);
         }
     }
 }

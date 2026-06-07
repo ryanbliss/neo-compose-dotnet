@@ -20,10 +20,9 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// Content shared by every save shape — the parts that describe the saved
     /// game state rather than where it lives. The authored project export remains
-    /// the immutable default graph; a save only carries the value rows runtime
-    /// code created or changed (<see cref="values"/>, opaque) plus the bridge from
-    /// authored attribute ids to those rows
-    /// (<see cref="attributeValueOverrides"/>, structured).
+    /// the immutable default graph; a save is a sparse overlay carrying only the
+    /// value rows runtime code created or changed (<see cref="values"/>, opaque),
+    /// each keyed by its stable value id (<c>save.values[id] ?? authored</c>).
     /// </summary>
     public abstract class NeoGameSaveBase
     {
@@ -41,12 +40,6 @@ namespace NeoCompose.Runtime.Json
         /// access. See <see cref="NeoSaveValues"/>.
         /// </summary>
         public NeoSaveValues values = NeoSaveValues.Empty;
-
-        /// <summary>
-        /// Maps authored attribute ids to the current writable value-row id.
-        /// Schema-independent and always structured.
-        /// </summary>
-        public Dictionary<string, string> attributeValueOverrides = new();
 
         /// <summary>Platforms that wrote this save, or null when diagnostics are off.</summary>
         public List<GameRuntimePlatform>? platforms;
@@ -164,7 +157,6 @@ namespace NeoCompose.Runtime.Json
                 projectId = remote.projectId,
                 version = remote.version,
                 values = remote.values,
-                attributeValueOverrides = remote.attributeValueOverrides,
                 platforms = remote.platforms,
                 systems = remote.systems,
                 inputDevices = remote.inputDevices,

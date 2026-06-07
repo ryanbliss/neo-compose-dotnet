@@ -74,10 +74,12 @@ namespace NeoCompose.Runtime.Json
     /// Save file envelope for runtime-owned values.
     ///
     /// <para>The authored export in <see cref="ProjectData"/> remains the
-    /// immutable asset/default graph. A save file only stores values that
-    /// runtime code has created or changed, then uses
-    /// <see cref="attributeValueOverrides"/> to point stable attribute ids at
-    /// those writable value rows.</para>
+    /// immutable asset/default graph. A save file is a <b>sparse overlay</b>:
+    /// it stores only the value rows runtime code has created or changed, each
+    /// keyed by its <b>stable value id</b>. Resolution is
+    /// <c>save.values[id] ?? authored.values[id]</c> — a save row shadows the
+    /// authored default at the same id, so there is no override-map
+    /// indirection.</para>
     /// </summary>
     public class ProjectSaveData
     {
@@ -160,22 +162,11 @@ namespace NeoCompose.Runtime.Json
         public List<GameInputDeviceInfo>? inputDevices;
 
         /// <summary>
-        /// Runtime-owned value rows keyed by value id. These rows shadow or
-        /// extend the authored value graph without mutating
-        /// <see cref="ProjectData.values"/>.
+        /// Runtime-owned value rows keyed by their stable value id. Each row
+        /// shadows the authored default at the same id (sparse overlay:
+        /// <c>save.values[id] ?? authored.values[id]</c>); a row may carry a
+        /// <c>mark: "removed"</c> tombstone to express an explicit unset.
         /// </summary>
         public Dictionary<string, AttributeValue> values = null!;
-
-        /// <summary>
-        /// Maps authored attribute ids to the current writable value row id
-        /// for that attribute.
-        ///
-        /// <para>Resolution checks this map before falling back to the
-        /// authored <c>Attribute.valueId</c>, so it is the top-level bridge
-        /// from stable schema attributes to save/session values. It is not
-        /// localization-specific; localization string overrides are just one
-        /// kind of value that can be represented here.</para>
-        /// </summary>
-        public Dictionary<string, string> attributeValueOverrides = null!;
     }
 }

@@ -41,8 +41,6 @@ namespace NeoCompose.Tests
             Assert.That(save.snapshotHash, Is.EqualTo("hash-1"));
             Assert.That(save.releaseChannelId, Is.EqualTo("channel-dev"));
             Assert.That(save.author.id, Is.EqualTo("user-1"));
-            // attributeValueOverrides is always structured.
-            Assert.That(save.attributeValueOverrides["attr-1"], Is.EqualTo("v1"));
             // values stayed opaque: the raw token is preserved, not pre-typed.
             Assert.That(save.values.Raw.Type, Is.EqualTo(JTokenType.Object));
             Assert.That((bool)save.values.Raw["v1"]!["value"]!, Is.True);
@@ -105,7 +103,6 @@ namespace NeoCompose.Tests
             Assert.That(reloaded.serverId, Is.EqualTo("server-1"));
             Assert.That(reloaded.snapshotId, Is.EqualTo("snap-1"));
             Assert.That(reloaded.snapshotHash, Is.EqualTo("hash-1"));
-            Assert.That(reloaded.attributeValueOverrides["attr-1"], Is.EqualTo("v1"));
             Assert.That((bool)reloaded.values.Raw["v1"]!["value"]!, Is.True);
             Assert.That(reloaded.IsLocalOnly, Is.False);
         }
@@ -133,7 +130,6 @@ namespace NeoCompose.Tests
                 name = "Scratch",
                 projectId = "project-1",
                 values = NeoSaveValues.Empty,
-                attributeValueOverrides = new Dictionary<string, string>(),
             };
 
             Assert.That(local.IsLocalOnly, Is.True);

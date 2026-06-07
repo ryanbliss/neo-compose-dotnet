@@ -423,7 +423,6 @@ namespace NeoCompose.Runtime
                 version = local.version,
                 targetReleaseChannelId = core.TargetReleaseChannelId,
                 values = local.values,
-                attributeValueOverrides = local.attributeValueOverrides,
                 platforms = local.platforms,
                 systems = local.systems,
                 inputDevices = local.inputDevices,

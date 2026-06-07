@@ -178,7 +178,6 @@ namespace NeoCompose.Tests
                 version = new VersionData { id = "v1", label = "1.0" },
                 targetReleaseChannelId = "channel-dev",
                 values = NeoSaveValues.Empty,
-                attributeValueOverrides = new Dictionary<string, string>(),
             };
 
         private static NeoApiClient NewClient(

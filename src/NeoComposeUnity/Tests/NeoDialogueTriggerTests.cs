@@ -797,15 +797,13 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.saveOverrides.TryGetValue("root-save", out string rootSaveValueId));
-            // Stable-id overlay: a save shadows the authored value at the SAME id,
-            // so the materialized root/leaf ids equal the authored value ids (no
-            // remap). The write itself is verified by the value assertion below.
-            Assert.AreEqual("root-save-default-value", rootSaveValueId);
-            Assert.IsTrue(client.saveValues.TryGetValue(rootSaveValueId, out AttributeValue? saveRootUntyped));
+            // Stable-id overlay: a save shadows the authored values at their SAME
+            // ids (no override-map hop, no eager root clone). The dialogue write
+            // shadows the root record + the Score leaf it touched.
+            Assert.IsTrue(client.saveValues.TryGetValue("root-save-default-value", out AttributeValue? saveRootUntyped));
             var saveRoot = (ObjectAttributeValue)saveRootUntyped;
             Assert.AreEqual("score-default-value", saveRoot.value!["Score"]);
-            Assert.IsTrue(client.saveValues.TryGetValue(saveRoot.value["Score"], out AttributeValue? scoreUntyped));
+            Assert.IsTrue(client.saveValues.TryGetValue("score-default-value", out AttributeValue? scoreUntyped));
             var score = (NumberAttributeValue)scoreUntyped;
             Assert.AreEqual(22, score!.value);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
@@ -822,13 +820,9 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.sessionOverrides.TryGetValue("root-session", out string rootSessionValueId));
-            Assert.IsTrue(client.sessionValues.TryGetValue(rootSessionValueId, out AttributeValue? sessionRootUntyped));
-            var sessionRoot = (ObjectAttributeValue)sessionRootUntyped;
-            Assert.IsTrue(sessionRoot.value!.TryGetValue("Foo", out string sessionFooValueId));
-            // Stable-id overlay: the session shadows the authored value at the same id.
-            Assert.AreEqual("session-foo-default-value", sessionFooValueId);
-            Assert.IsTrue(client.sessionValues.TryGetValue(sessionFooValueId, out AttributeValue? sessionFooUntyped));
+            // Inferred session ownership: the Foo leaf is shadowed in the SESSION
+            // store at its authored id (stable-id overlay), never the save store.
+            Assert.IsTrue(client.sessionValues.TryGetValue("session-foo-default-value", out AttributeValue? sessionFooUntyped));
             var sessionFoo = (BoolAttributeValue)sessionFooUntyped;
             Assert.AreEqual(true, sessionFoo.value);
             Assert.IsFalse(client.saveValues.ContainsKey("session-foo-default-value"));
@@ -955,12 +949,33 @@ namespace NeoCompose.Tests
         public void ActionsNode_CollectionCall_ClearDictionaryPreservesSharedSaveValue()
         {
             var client = CreateClient();
-            client.AddSaveValue("root-save", new ObjectAttributeValue
+            // Stable-id overlay: make the shared value reachable from the save
+            // root (via the root's Items list) so the GC preserves it when the
+            // unrelated dict entry is cleared — there is no override-map rebind.
+            client.SetSaveValue(new ObjectAttributeValue
             {
-                id = "root-save-value",
+                id = "root-save-default-value",
                 createdAt = Now,
                 updatedAt = Now,
                 typeId = "type-root",
+                value = new Dictionary<string, string>
+                {
+                    ["Items"] = "shared-items-list",
+                },
+            });
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "shared-items-list",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new[] { "shared-item-value" },
+            });
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "shared-item-value",
+                createdAt = Now,
+                updatedAt = Now,
+                typeId = "type-item",
                 value = new Dictionary<string, string>(),
             });
             client.SetSaveValue(new ObjectAttributeValue
@@ -970,7 +985,7 @@ namespace NeoCompose.Tests
                 updatedAt = Now,
                 value = new Dictionary<string, string>
                 {
-                    ["slot"] = "root-save-value",
+                    ["slot"] = "shared-item-value",
                 },
             });
             var root = new TestDialogues(client);
@@ -980,8 +995,8 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(client.TryGetValue("dict-value", out ObjectAttributeValue? dict));
             Assert.AreEqual(0, dict!.value!.Count);
-            Assert.IsTrue(client.TryGetValue("root-save-value", out ObjectAttributeValue? rootRow));
-            Assert.AreEqual("type-root", rootRow!.typeId);
+            Assert.IsTrue(client.TryGetValue("shared-item-value", out ObjectAttributeValue? rootRow));
+            Assert.AreEqual("type-item", rootRow!.typeId);
         }
 
         [Test]
@@ -1088,17 +1103,10 @@ namespace NeoCompose.Tests
         public void ActionsNode_LookupSetAdd_NotifiesExistingLookupSetWrapper()
         {
             var client = CreateClient();
-            client.AddSaveValue("root-save", new ObjectAttributeValue
-            {
-                id = "root-save-with-inventory-value",
-                createdAt = Now,
-                updatedAt = Now,
-                typeId = "type-root",
-                value = new Dictionary<string, string>
-                {
-                    ["Inventory"] = "save-inventory-value",
-                },
-            });
+            // The lookup-add action targets the inventory collection by its value
+            // id directly (a stable instance id). Shadow that id and bind the
+            // wrapper to the same id so the action's write notifies the wrapper —
+            // no override-map rebind of the root.
             client.SetSaveValue(new ArrayAttributeValue
             {
                 id = "save-inventory-value",
@@ -1106,8 +1114,12 @@ namespace NeoCompose.Tests
                 updatedAt = Now,
                 value = new string[0],
             });
-            var inventoryNode = client.save.GetOrCreateLookup("Inventory");
-            Assert.AreEqual("save-inventory-value", inventoryNode.overrideValueId);
+            Assert.IsTrue(client.TryGetAttribute("attr-inventory", out LookupAttribute? inventoryAttr));
+            var inventoryNode = (NeoAttributeLookupWritable)NeoAttribute.CreateWritable(
+                client,
+                inventoryAttr!,
+                "save-inventory-value",
+                NeoValueOwnership.Save);
             var inventory = new NeoLookupSet<TestLookupValue>(
                 client,
                 inventoryNode,
@@ -1218,12 +1230,33 @@ namespace NeoCompose.Tests
         public void ActionsNode_CollectionCall_ClearPreservesSharedSaveValue()
         {
             var client = CreateClient();
-            client.AddSaveValue("root-save", new ObjectAttributeValue
+            // Stable-id overlay: make the shared value reachable from the save
+            // root (via the root's Items list) so the GC preserves it when the
+            // unrelated list entry is cleared — there is no override-map rebind.
+            client.SetSaveValue(new ObjectAttributeValue
             {
-                id = "root-save-value",
+                id = "root-save-default-value",
                 createdAt = Now,
                 updatedAt = Now,
                 typeId = "type-root",
+                value = new Dictionary<string, string>
+                {
+                    ["Items"] = "shared-items-list",
+                },
+            });
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "shared-items-list",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new[] { "shared-item-value" },
+            });
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "shared-item-value",
+                createdAt = Now,
+                updatedAt = Now,
+                typeId = "type-item",
                 value = new Dictionary<string, string>(),
             });
             client.SetSaveValue(new ArrayAttributeValue
@@ -1231,7 +1264,7 @@ namespace NeoCompose.Tests
                 id = "list-value",
                 createdAt = Now,
                 updatedAt = Now,
-                value = new[] { "root-save-value" },
+                value = new[] { "shared-item-value" },
             });
             var root = new TestDialogues(client);
             Assert.IsTrue(root.TryTrigger("dialogue-action-list-clear", out NeoDialogue dialogue));
@@ -1240,8 +1273,8 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(client.TryGetValue("list-value", out ArrayAttributeValue? list));
             Assert.AreEqual(0, list!.value!.Length);
-            Assert.IsTrue(client.TryGetValue("root-save-value", out ObjectAttributeValue? rootRow));
-            Assert.AreEqual("type-root", rootRow!.typeId);
+            Assert.IsTrue(client.TryGetValue("shared-item-value", out ObjectAttributeValue? rootRow));
+            Assert.AreEqual("type-item", rootRow!.typeId);
         }
 
         [Test]

@@ -21,9 +21,9 @@ namespace NeoCompose.Runtime.Json
     /// load. Deserializing eagerly would throw on those; keeping the values opaque
     /// preserves them byte-for-byte for a later clone/migration.</para>
     ///
-    /// <para><see cref="attributeValueOverrides"/> (the authored-id → value-id
-    /// bridge), by contrast, is always structured: it is a flat string map that is
-    /// schema-independent and safe to read for any save.</para>
+    /// <para>The values map is a sparse overlay keyed by stable value id
+    /// (<c>save.values[id] ?? authored</c>) — there is no separate
+    /// authored-id → value-id bridge map.</para>
     /// </summary>
     [JsonConverter(typeof(NeoSaveValuesConverter))]
     public sealed class NeoSaveValues

@@ -347,18 +347,15 @@ namespace NeoCompose.Runtime
         public TNeoAttribute GetOrCreateCollection<TNeoAttribute>(string key)
             where TNeoAttribute : NeoAttribute
         {
-            if (TryGet(key, out TNeoAttribute? existing))
+            // A child that already resolves a value (authored default or a
+            // prior write) is returned as-is — clone-on-write happens lazily
+            // on its first mutation. A child with no resolved value (optional
+            // key absent from the record, no authored default) is bound to an
+            // empty collection now, so the returned node tracks its array/map
+            // by a stable id instead of mint-binding mid-mutation.
+            if (TryGet(key, out TNeoAttribute? existing) && existing.value is not null)
             {
-                if (ownership != NeoValueOwnership.Asset
-                    && existing.overrideValueId is not null
-                    && !client.TryGetWritableValue(ownership, existing.overrideValueId, out AttributeValue? _)
-                    && client.TryMaterializeWritablePath(ownership, existing.overrideValueId, out _))
-                {
-                    RefreshFromValueData();
-                    ReinitializeChildren();
-                    if (TryGet(key, out existing)) return existing;
-                }
-                return existing!;
+                return existing;
             }
 
             string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
@@ -386,18 +383,9 @@ namespace NeoCompose.Runtime
 
         public NeoAttributeLookupWritable GetOrCreateLookup(string key)
         {
-            if (TryGet(key, out NeoAttributeLookupWritable? existing))
+            if (TryGet(key, out NeoAttributeLookupWritable? existing) && existing.value is not null)
             {
-                if (ownership != NeoValueOwnership.Asset
-                    && existing.overrideValueId is not null
-                    && !client.TryGetWritableValue(ownership, existing.overrideValueId, out AttributeValue? _)
-                    && client.TryMaterializeWritablePath(ownership, existing.overrideValueId, out _))
-                {
-                    RefreshFromValueData();
-                    ReinitializeChildren();
-                    if (TryGet(key, out existing)) return existing!;
-                }
-                return existing!;
+                return existing;
             }
 
             string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
@@ -425,18 +413,9 @@ namespace NeoCompose.Runtime
             string key,
             string? initialValue = null)
         {
-            if (TryGet(key, out NeoAttributeStringWritable? existing))
+            if (TryGet(key, out NeoAttributeStringWritable? existing) && existing.value is not null)
             {
-                if (ownership != NeoValueOwnership.Asset
-                    && existing.overrideValueId is not null
-                    && !client.TryGetWritableValue(ownership, existing.overrideValueId, out AttributeValue? _)
-                    && client.TryMaterializeWritablePath(ownership, existing.overrideValueId, out _))
-                {
-                    RefreshFromValueData();
-                    ReinitializeChildren();
-                    if (TryGet(key, out existing)) return existing!;
-                }
-                return existing!;
+                return existing;
             }
 
             string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
@@ -484,10 +463,11 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Sets the schema-keyed child to <paramref name="setValue"/>.
-        /// Updates the existing entry in place when one exists; otherwise
-        /// creates a fresh value row, registers it under
-        /// <c>attributeValueOverrides</c>, and links it into the parent
-        /// record's value-map.
+        /// Reuses the existing entry's stable id when one is bound
+        /// (clone-on-writing the record + entry rows so they shadow the
+        /// authored defaults); otherwise mints a fresh value row and links
+        /// it into the record's (clone-on-write) value-map under
+        /// <paramref name="key"/>.
         /// </summary>
         internal void SetSerializedValue(string key, NeoValueWritePayload? setValue)
         {
@@ -516,23 +496,16 @@ namespace NeoCompose.Runtime
 
             if (value?.value is not null
                 && value.value.TryGetValue(key, out string existingValueId)
-                && ownership != NeoValueOwnership.Asset
-                && !client.TryGetWritableValue(ownership, existingValueId, out AttributeValue? _)
-                && client.TryMaterializeWritablePath(ownership, existingValueId, out _))
-            {
-                RefreshFromValueData();
-                ReinitializeChildren();
-            }
-
-            if (value?.value is not null
-                && value.value.TryGetValue(key, out existingValueId)
                 && client.TryGetValue(ownership, existingValueId, out AttributeValue? existing))
             {
                 if (setValue?.isValueReference == true)
                 {
-                    value.value[key] = client.ImportValueReference(ownership, setValue.valueId!);
-                    value.updatedAt = nowIso;
-                    client.SetWritableValue(ownership, value);
+                    string importedValueId = client.ImportValueReference(ownership, setValue.valueId!);
+                    ObjectAttributeValue record = EnsureWritableObject(nowIso);
+                    record.value![key] = importedValueId;
+                    record.updatedAt = nowIso;
+                    client.SetWritableValue(ownership, record);
+                    value = record;
                     client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, existingValueId);
                     ReinitializeChildren();
                     NotifyChildChanged(key);
@@ -540,6 +513,8 @@ namespace NeoCompose.Runtime
                 }
                 bool childWillSelfNotify = childAttributes.TryGetValue(key, out NeoAttribute? existingChild)
                     && ChildSelfNotifies(existingChild);
+                // Reuse the entry's stable id: a fresh row at the same id
+                // shadows the authored default in the writable store.
                 AttributeValue next = AttributeValueFactory.Create(
                     childAttribute,
                     setValue?.value,
@@ -556,20 +531,8 @@ namespace NeoCompose.Runtime
                 return;
             }
 
-            if (value is not null
-                && ownership != NeoValueOwnership.Asset
-                && !client.TryGetWritableValue(ownership, value.id, out ObjectAttributeValue? _)
-                && client.TryMaterializeWritablePath(ownership, value.id, out _))
-            {
-                RefreshFromValueData();
-                ReinitializeChildren();
-            }
-
-            // No existing value row — create one + link it under the
-            // parent record. The new child row goes into saveData.values
-            // directly; the parent's value-map gets the new id appended;
-            // the parent itself is re-saved so the new key/id pair
-            // persists.
+            // No existing entry for this key — mint a fresh value row and
+            // link it under the record's value-map.
             string newValueId;
             if (setValue?.isValueReference == true)
             {
@@ -584,29 +547,55 @@ namespace NeoCompose.Runtime
                 client.SetWritableValue(ownership, newValueRow);
             }
 
-            // Make sure the parent has a value to link into. If we're
-            // setting on a Custom that has never had a value, we need
-            // to materialize one first.
-            if (value is null)
-            {
-                ObjectAttributeValue parentRow = new()
-                {
-                    id = System.Guid.NewGuid().ToString(),
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = new Dictionary<string, string>(),
-                };
-                client.AddWritableValue(ownership, attribute.id, parentRow);
-                RefreshFromValueData();
-            }
-
-            value!.value ??= new Dictionary<string, string>();
-            value.value[key] = newValueId;
-            value.updatedAt = nowIso;
-            client.SetWritableValue(ownership, value);
+            ObjectAttributeValue keyedRecord = EnsureWritableObject(nowIso);
+            keyedRecord.value![key] = newValueId;
+            keyedRecord.updatedAt = nowIso;
+            client.SetWritableValue(ownership, keyedRecord);
+            value = keyedRecord;
 
             ReinitializeChildren();
             NotifyChildChanged(key);
+        }
+
+        internal override void BindChildValueId(NeoAttribute child, string childValueId)
+        {
+            if (!TryGetSchemaKeyForChild(child, out string? key))
+            {
+                throw new System.InvalidOperationException(
+                    $"Cannot bind a child value on Custom '{attribute.id}': child is not a registered schema field.");
+            }
+            string nowIso = System.DateTime.UtcNow.ToString("o");
+            ObjectAttributeValue record = EnsureWritableObject(nowIso);
+            record.value![key] = childValueId;
+            record.updatedAt = nowIso;
+            client.SetWritableValue(ownership, record);
+            value = record;
+            ReinitializeChildren();
+            NotifyChildChanged(key);
+        }
+
+        /// <summary>
+        /// Returns the record's own object row guaranteed writable (a
+        /// clone-on-write shadow at the stable id), minting + binding a
+        /// fresh empty record through the parent when nothing is bound yet.
+        /// </summary>
+        private ObjectAttributeValue EnsureWritableObject(string nowIso)
+        {
+            var writable = EnsureWritableValue();
+            if (writable is not null)
+            {
+                writable.value ??= new Dictionary<string, string>();
+                return writable;
+            }
+            ObjectAttributeValue record = new()
+            {
+                id = System.Guid.NewGuid().ToString(),
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new Dictionary<string, string>(),
+            };
+            BindNewValue(record);
+            return record;
         }
 
         /// <summary>
@@ -620,12 +609,17 @@ namespace NeoCompose.Runtime
         public void Remove(string key)
         {
             if (value?.value is null) return;
-            if (!value.value.TryGetValue(key, out string removedValueId)) return;
+            if (!value.value.ContainsKey(key)) return;
             string nowIso = System.DateTime.UtcNow.ToString("o");
 
-            value.value.Remove(key);
-            value.updatedAt = nowIso;
-            client.SetWritableValue(ownership, value);
+            // Clone-on-write the record (shadowing the authored default at
+            // its stable id) and drop the key.
+            ObjectAttributeValue record = EnsureWritableObject(nowIso);
+            string removedValueId = record.value![key];
+            record.value.Remove(key);
+            record.updatedAt = nowIso;
+            client.SetWritableValue(ownership, record);
+            value = record;
 
             if (childAttributes.TryGetValue(key, out NeoAttribute? child))
             {

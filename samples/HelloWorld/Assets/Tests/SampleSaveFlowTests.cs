@@ -202,7 +202,6 @@ namespace HelloWorld.Assets.Tests
                     projectId = "project-1",
                     version = request.version,
                     values = request.values,
-                    attributeValueOverrides = request.attributeValueOverrides,
                     createdAt = 1,
                     updatedAt = 2,
                     synchronizedAt = 3,

@@ -274,16 +274,6 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            foreach (var pair in client.saveOverrides)
-            {
-                if (pair.Value != valueId) continue;
-                if (client.TryGetAttribute(pair.Key, out Attribute? saveAttribute))
-                {
-                    attribute = saveAttribute;
-                    return true;
-                }
-            }
-
             foreach (var parent in EnumerateValues(client))
             {
                 if (parent.Value is not ObjectAttributeValue objectValue
@@ -1158,15 +1148,16 @@ namespace NeoCompose.Runtime
 
             if (saved)
             {
+                // Stable-id overlay: a value reachable from the save/session
+                // root reports that ownership directly (see the authored
+                // ownership map); the returned writable node clone-on-writes
+                // its own row at its stable id on first mutation, so there is
+                // no path to pre-materialize here.
                 if (!client.TryGetValueOwnership(valueId, out NeoValueOwnership ownership)
                     || (ownership != NeoValueOwnership.Save && ownership != NeoValueOwnership.Session))
                 {
-                    if (!client.TryMaterializeSavePath(valueId))
-                    {
-                        throw new InvalidOperationException(
-                            "NSGetter returned an asset-owned custom value where a saved value was expected.");
-                    }
-                    ownership = NeoValueOwnership.Save;
+                    throw new InvalidOperationException(
+                        "NSGetter returned an asset-owned custom value where a saved value was expected.");
                 }
 
                 return savedFactory(
