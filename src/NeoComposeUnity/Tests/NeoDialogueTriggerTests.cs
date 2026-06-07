@@ -798,10 +798,13 @@ namespace NeoCompose.Tests
             dialogue.Start();
 
             Assert.IsTrue(client.saveOverrides.TryGetValue("root-save", out string rootSaveValueId));
-            Assert.AreNotEqual("root-save-default-value", rootSaveValueId);
+            // Stable-id overlay: a save shadows the authored value at the SAME id,
+            // so the materialized root/leaf ids equal the authored value ids (no
+            // remap). The write itself is verified by the value assertion below.
+            Assert.AreEqual("root-save-default-value", rootSaveValueId);
             Assert.IsTrue(client.saveValues.TryGetValue(rootSaveValueId, out AttributeValue? saveRootUntyped));
             var saveRoot = (ObjectAttributeValue)saveRootUntyped;
-            Assert.AreNotEqual("score-default-value", saveRoot.value!["Score"]);
+            Assert.AreEqual("score-default-value", saveRoot.value!["Score"]);
             Assert.IsTrue(client.saveValues.TryGetValue(saveRoot.value["Score"], out AttributeValue? scoreUntyped));
             var score = (NumberAttributeValue)scoreUntyped;
             Assert.AreEqual(22, score!.value);
@@ -823,7 +826,8 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.sessionValues.TryGetValue(rootSessionValueId, out AttributeValue? sessionRootUntyped));
             var sessionRoot = (ObjectAttributeValue)sessionRootUntyped;
             Assert.IsTrue(sessionRoot.value!.TryGetValue("Foo", out string sessionFooValueId));
-            Assert.AreNotEqual("session-foo-default-value", sessionFooValueId);
+            // Stable-id overlay: the session shadows the authored value at the same id.
+            Assert.AreEqual("session-foo-default-value", sessionFooValueId);
             Assert.IsTrue(client.sessionValues.TryGetValue(sessionFooValueId, out AttributeValue? sessionFooUntyped));
             var sessionFoo = (BoolAttributeValue)sessionFooUntyped;
             Assert.AreEqual(true, sessionFoo.value);

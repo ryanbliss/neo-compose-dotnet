@@ -377,6 +377,46 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// Stable-id overlay resolution for a writable (Save/Session) node: the
+        /// ownership store's row when present — a removal tombstone
+        /// (<see cref="AttributeValue.IsRemoved"/>) resolves as <b>unset</b>
+        /// (returns false, never falling through) — otherwise the authored asset
+        /// default. This is the shadow rule <c>save.values[id] ?? authored</c>
+        /// shared with the web overlay, and is what lets a save stay sparse:
+        /// untouched values read through to the defaults by their stable id.
+        /// </summary>
+        internal bool TryGetOverlaidValue<TValue>(
+            NeoValueOwnership ownership,
+            string id,
+            [NotNullWhen(true)] out TValue? value) where TValue : AttributeValue
+        {
+            value = null;
+            if (ownership != NeoValueOwnership.Asset)
+            {
+                var store = GetWritableStore(ownership);
+                if (store.values.TryGetValue(id, out AttributeValue overlaid))
+                {
+                    if (overlaid.IsRemoved) return false; // explicit unset; no fallthrough
+                    value = overlaid as TValue;
+                    return value is not null;
+                }
+            }
+            if (data.values.TryGetValue(id, out AttributeValue assetRow))
+            {
+                value = assetRow as TValue;
+                return value is not null;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Returns a writable clone of <paramref name="row"/> keeping its id, so a
+        /// writable <c>Set</c> can mutate + shadow it without touching the shared
+        /// authored asset object it may have resolved through.
+        /// </summary>
+        internal AttributeValue CloneRowForWrite(AttributeValue row) => CloneValueRow(row);
+
         internal void SetWritableValue<TAttributeValue>(
             NeoValueOwnership ownership,
             TAttributeValue value) where TAttributeValue : AttributeValue
@@ -504,7 +544,9 @@ namespace NeoCompose.Runtime
             }
 
             var clone = CloneValueRow(sourceRow);
-            clone.id = System.Guid.NewGuid().ToString();
+            // Stable-id overlay: the copy keeps the authored id (it shadows that
+            // id in the target store), never a fresh GUID.
+            clone.id = sourceRow.id;
             remappedIds[sourceValueId] = clone.id;
 
             switch (clone)
@@ -862,16 +904,21 @@ namespace NeoCompose.Runtime
             for (int i = 0; i < path.Count; i++)
             {
                 string pathValueId = path[i];
-                remappedIds[pathValueId] = store.values.ContainsKey(pathValueId)
-                    ? pathValueId
-                    : System.Guid.NewGuid().ToString();
+                // Stable-id overlay: a save shadows an authored value at the SAME
+                // id (never a remap). Materializing a path just clones rows into
+                // the writable store under their existing ids so they can be
+                // mutated without touching the shared asset objects.
+                remappedIds[pathValueId] = pathValueId;
             }
 
             for (int i = path.Count - 1; i >= 0; i--)
             {
                 string pathValueId = path[i];
                 bool alreadyWritable = store.values.TryGetValue(pathValueId, out AttributeValue? existingWritable);
-                if (!alreadyWritable && !TryGetValue(ownership, pathValueId, out existingWritable))
+                // Fall through to the authored default when the row isn't already in
+                // the (sparse) writable store, so materializing a path clones the
+                // authored rows in at their stable ids.
+                if (!alreadyWritable && !TryGetValue(pathValueId, out existingWritable))
                 {
                     return false;
                 }
@@ -913,7 +960,9 @@ namespace NeoCompose.Runtime
             path.Add(currentValueId);
             if (currentValueId == targetValueId) return true;
 
-            if (TryGetValue(ownership, currentValueId, out AttributeValue? row))
+            // Fall through to the authored graph: under a sparse overlay the path
+            // from the root to a target row lives in the asset store until written.
+            if (TryGetValue(currentValueId, out AttributeValue? row))
             {
                 switch (row)
                 {

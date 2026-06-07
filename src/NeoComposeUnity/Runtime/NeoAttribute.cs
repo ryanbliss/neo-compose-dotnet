@@ -305,7 +305,7 @@ namespace NeoCompose.Runtime
             get
             {
                 if (valueId is null) return null;
-                if (!client.TryGetValue(ownership, valueId, out TValue? match)) return null;
+                if (!client.TryGetOverlaidValue(ownership, valueId, out TValue? match)) return null;
                 return match;
             }
         }

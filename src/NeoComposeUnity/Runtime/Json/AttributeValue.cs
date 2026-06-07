@@ -295,6 +295,26 @@ namespace NeoCompose.Runtime.Json
         public string id { get; set; } = null!;
         public NeoTimestamp createdAt { get; set; }
         public NeoTimestamp updatedAt { get; set; }
+
+        /// <summary>
+        /// Save-overlay tombstone marker. When set to
+        /// <see cref="NeoValueMarks.Removed"/>, this row represents an
+        /// <b>explicitly removed/emptied</b> optional value and resolves as
+        /// unset/null — distinct from the row being absent (which falls through
+        /// to the authored default). Null for ordinary values. Only meaningful in
+        /// the Save/Session overlay stores; authored asset rows never carry it.
+        /// </summary>
+        public string? mark { get; set; }
+
+        /// <summary>True when this row is a removal tombstone.</summary>
+        public bool IsRemoved => mark == NeoValueMarks.Removed;
+    }
+
+    /// <summary>Well-known values for <see cref="AttributeValue.mark"/>.</summary>
+    public static class NeoValueMarks
+    {
+        /// <summary>An optional value that the save explicitly emptied (resolves as unset, not default).</summary>
+        public const string Removed = "removed";
     }
 
     /// <summary>
