@@ -659,7 +659,7 @@ namespace NeoCompose.Runtime
             {
                 return;
             }
-            client.WriteTombstone(ownership, childValueId);
+            client.WriteRemovalTombstone(ownership, childValueId);
             ReinitializeChildren();
             NotifyChildChanged(key);
         }

@@ -455,13 +455,16 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Writes a removal <b>tombstone</b> (<see cref="NeoValueMarks.Removed"/>)
-        /// at <paramref name="id"/> so resolution returns <b>unset</b> instead of
-        /// falling through to the authored default. This is sparse explicit
-        /// removal — only the single tombstone row is shadowed; the parent record
-        /// is untouched. (Contrast <see cref="RemoveWritableShadow"/>, which drops
-        /// the shadow so the authored default resurfaces.) The tombstone reuses
-        /// the resolved row's shape when one exists, else a minimal marker.
+        /// Writes a minimal removal <b>tombstone</b>
+        /// (<see cref="NeoValueMarks.Removed"/>) at <paramref name="id"/> so
+        /// resolution returns <b>unset</b> instead of falling through to the
+        /// authored default. This is sparse explicit removal — only the single
+        /// tombstone row is shadowed; the parent record is untouched. (Contrast
+        /// <see cref="RemoveWritableShadow"/>, which drops the shadow so the
+        /// authored default resurfaces.) The marker carries no payload or child
+        /// references, so the replaced value's owned descendants become
+        /// collectable — see <see cref="WriteRemovalTombstone"/> for the hard-remove
+        /// variant that reclaims them.
         /// </summary>
         internal void WriteTombstone(NeoValueOwnership ownership, string id)
         {
@@ -471,13 +474,56 @@ namespace NeoCompose.Runtime
                     "Cannot tombstone an asset-owned value.");
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
-            AttributeValue tombstone = TryGetOverlaidValue(ownership, id, out AttributeValue? current)
-                ? CloneValueRow(current)
-                : new NullAttributeValue { id = id, createdAt = nowIso, updatedAt = nowIso };
-            tombstone.id = id;
-            tombstone.mark = NeoValueMarks.Removed;
-            tombstone.updatedAt = nowIso;
+            // Minimal marker — no payload, no child links. Resolution only checks
+            // `mark`, so the stored value is genuinely null and the removed value's
+            // children are no longer referenced through it.
+            var tombstone = new NullAttributeValue
+            {
+                id = id,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                mark = NeoValueMarks.Removed,
+            };
             SetWritableValue(ownership, tombstone);
+        }
+
+        /// <summary>
+        /// Hard-removes the value at <paramref name="id"/>: stamps a minimal
+        /// removal <see cref="WriteTombstone">tombstone</see> in its place and
+        /// reclaims the replaced value's now-orphaned descendants from the writable
+        /// store (mirroring the collection <c>Remove</c> ops' GC). Descendants
+        /// still referenced elsewhere are preserved by the reachability check, and
+        /// authored-only rows are never touched.
+        /// </summary>
+        internal void WriteRemovalTombstone(NeoValueOwnership ownership, string id)
+        {
+            var formerChildIds = new List<string>();
+            if (TryGetOverlaidValue(ownership, id, out AttributeValue? replaced))
+            {
+                CollectDirectChildValueIds(replaced, formerChildIds);
+            }
+            WriteTombstone(ownership, id);
+            if (formerChildIds.Count == 0) return;
+            // Build reachability after the tombstone replaces the value, so the
+            // former children are seen as orphaned (unless shared elsewhere).
+            var reachable = BuildReachableWritableValueIds(ownership);
+            foreach (var childId in formerChildIds)
+            {
+                RemoveWritableValueAndDescendantsIfUnlinked(ownership, childId, reachable);
+            }
+        }
+
+        private static void CollectDirectChildValueIds(AttributeValue row, List<string> into)
+        {
+            switch (row)
+            {
+                case ObjectAttributeValue obj when obj.value is not null:
+                    into.AddRange(obj.value.Values);
+                    break;
+                case ArrayAttributeValue arr when arr.value is not null:
+                    into.AddRange(arr.value);
+                    break;
+            }
         }
 
         /// <summary>

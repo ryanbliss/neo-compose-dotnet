@@ -358,5 +358,52 @@ namespace NeoCompose.Tests
 
             Assert.Throws<System.InvalidOperationException>(() => hero.Unset("Name"));
         }
+
+        [Test]
+        public void CustomUnset_HardRemovesField_ReclaimsOrphanedSubtree()
+        {
+            var client = LoadClient();
+            // Shadow the save root referencing a Heroes list → one hero → a Name
+            // leaf, all written into the save store.
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "v-root-save", typeId = "type-root", createdAt = "x", updatedAt = "x",
+                value = new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["Heroes"] = "heroes-list",
+                },
+            });
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "heroes-list", createdAt = "x", updatedAt = "x",
+                value = new[] { "hero-1" },
+            });
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "hero-1", typeId = "type-hero", createdAt = "x", updatedAt = "x",
+                value = new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["Name"] = "hero-1-name",
+                },
+            });
+            client.SetSaveValue(new StringAttributeValue
+            {
+                id = "hero-1-name", createdAt = "x", updatedAt = "x", value = "Aragorn",
+            });
+            Assert.IsTrue(client.saveValues.ContainsKey("hero-1"));
+            Assert.IsTrue(client.saveValues.ContainsKey("hero-1-name"));
+
+            client.save.Unset("Heroes");
+
+            // The Heroes list is tombstoned in place; the orphaned hero + its Name
+            // leaf are reclaimed from the save store (hard remove).
+            Assert.IsTrue(client.saveValues.TryGetValue("heroes-list", out AttributeValue? listRow));
+            Assert.IsTrue(listRow!.IsRemoved);
+            Assert.IsFalse(client.saveValues.ContainsKey("hero-1"));
+            Assert.IsFalse(client.saveValues.ContainsKey("hero-1-name"));
+            // Sparse: the root still references the Heroes slot (record untouched).
+            var rootRow = (ObjectAttributeValue)client.saveValues["v-root-save"];
+            Assert.AreEqual("heroes-list", rootRow.value!["Heroes"]);
+        }
     }
 }
