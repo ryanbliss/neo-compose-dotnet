@@ -285,13 +285,31 @@ namespace NeoCompose.Runtime
             return new NeoSaveSynchronizer(core, clone.customId, isNewDraft: false);
         }
 
-        /// <summary>Archives a save (cloud + local + list).</summary>
+        /// <summary>
+        /// Archives a save (cloud + local + list). The cloud archive runs only
+        /// when the save still has a cloud copy (<see cref="NeoSaveListEntry.existsRemotely"/>),
+        /// so a local-only save — including one whose server copy was deleted and
+        /// reconciled to local-only by <see cref="RefreshSavesAsync"/> — skips it.
+        /// A stale entry that still claims a cloud copy is tolerated: a
+        /// <see cref="NeoComposeNotFoundException"/> (the server copy is already
+        /// gone) falls through to the local delete rather than failing the whole
+        /// operation. Other cloud failures (auth/offline) propagate so the local
+        /// file is not dropped while the cloud copy survives.
+        /// </summary>
         public async Awaitable ArchiveAsync(string customId)
         {
             var core = RequireReady();
-            if (core.ApiClient != null)
+            bool existsRemotely = core.TryGetEntry(customId, out var entry) && entry.existsRemotely;
+            if (core.ApiClient != null && existsRemotely)
             {
-                await core.ApiClient.ArchiveSaveAsync(customId);
+                try
+                {
+                    await core.ApiClient.ArchiveSaveAsync(customId);
+                }
+                catch (NeoComposeNotFoundException)
+                {
+                    // Already deleted server-side — clean up the local orphan.
+                }
             }
 
             await core.LocalStore.DeleteSaveAsync(customId);

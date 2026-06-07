@@ -225,6 +225,12 @@ namespace NeoCompose.Runtime
                     operation.RequiredScope);
             }
 
+            if (response.StatusCode == 404)
+            {
+                throw new NeoComposeNotFoundException(
+                    $"Neo Compose could not find the resource for '{operation.Description}' ({url}): {response.Text}");
+            }
+
             throw new InvalidOperationException(
                 $"Neo Compose request failed ({response.StatusCode}) {url}: {response.Text}");
         }

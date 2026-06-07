@@ -50,4 +50,20 @@ namespace NeoCompose.Runtime
         public string? ProjectId { get; }
         public string? RequiredScope { get; }
     }
+
+    /// <summary>
+    /// Thrown when the server could not resolve the requested resource (HTTP
+    /// 404) — e.g. archiving or reading a save that no longer exists in the
+    /// cloud (it was deleted server-side while a stale copy lingers locally).
+    /// Callers that hold a local fallback (the project store's delete path) can
+    /// catch this to proceed with local cleanup rather than surfacing a hard
+    /// failure.
+    /// </summary>
+    public sealed class NeoComposeNotFoundException : Exception
+    {
+        public NeoComposeNotFoundException(string message)
+            : base(message)
+        {
+        }
+    }
 }

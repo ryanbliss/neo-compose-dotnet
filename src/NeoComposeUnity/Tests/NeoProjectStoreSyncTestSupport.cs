@@ -23,8 +23,21 @@ namespace NeoCompose.Tests
         public static string SaveContent(string name, string values = "{}") =>
             "{\"name\":\"" + name + "\",\"projectId\":\"project-1\"," +
             "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
-            "\"values\":" + values + ",\"attributeValueOverrides\":{}," +
+            "\"values\":" + values + "," +
             "\"createdAt\":1,\"updatedAt\":2}";
+
+        /// <summary>
+        /// A local save that has already synced to the cloud (non-empty
+        /// <c>serverId</c> ⇒ <see cref="LocalGameSave.IsLocalOnly"/> is false).
+        /// Used to simulate an orphaned save whose cloud copy was later deleted.
+        /// </summary>
+        public static string SyncedSaveContent(string name) =>
+            "{\"name\":\"" + name + "\",\"projectId\":\"project-1\"," +
+            "\"releaseChannelId\":\"" + TargetChannel + "\"," +
+            "\"serverId\":\"server-1\",\"snapshotId\":\"snap-1\",\"snapshotHash\":\"hash-1\"," +
+            "\"synchronizedAt\":3," +
+            "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
+            "\"values\":{},\"createdAt\":1,\"updatedAt\":2}";
 
         public static RemoteGameSave Remote(
             string id,
@@ -108,9 +121,12 @@ namespace NeoCompose.Tests
             return NeoAwaitable.FromResult(cloneResult);
         }
 
+        public Exception? archiveThrows;
+
         public Awaitable ArchiveSaveAsync(string customId)
         {
             archivedSaves.Add(customId);
+            if (archiveThrows != null) throw archiveThrows;
             return NeoAwaitable.Completed();
         }
 

@@ -117,6 +117,7 @@ namespace NeoCompose.Runtime
 
             if (ApiClient != null)
             {
+                bool cloudListed = false;
                 try
                 {
                     var remoteList = await ApiClient.ListSavesAsync(TargetReleaseChannelId);
@@ -128,6 +129,7 @@ namespace NeoCompose.Runtime
                     // Stamp freshness only on a successful cloud list, so a failed
                     // refresh never serves stale heads from a prior fetch.
                     lastListRefreshAt = now();
+                    cloudListed = true;
                 }
                 catch (Exception ex)
                 {
@@ -138,6 +140,14 @@ namespace NeoCompose.Runtime
                     Debug.LogWarning(
                         $"[NeoCompose] Could not load the cloud save list (showing local saves " +
                         $"only). {ex.GetType().Name}: {ex.Message}");
+                }
+
+                // Reconcile only against a successful cloud list — a failed fetch
+                // can't distinguish "deleted server-side" from "offline", so it must
+                // not downgrade anything.
+                if (cloudListed)
+                {
+                    ReconcileOrphanedLocalSaves();
                 }
             }
 
@@ -195,6 +205,27 @@ namespace NeoCompose.Runtime
                 needsMigration = !local.TryDeserializeValues(out _),
                 archivedAt = null,
             };
+        }
+
+        /// <summary>
+        /// After a successful cloud list, downgrades any local save that claims a
+        /// cloud copy (<see cref="NeoSaveListEntry.existsRemotely"/>) but was absent
+        /// from the fetched list — it was deleted server-side while a stale copy
+        /// lingered locally. Without this, such a save keeps reading as "synced"
+        /// and the delete path tries to archive a cloud copy that no longer exists.
+        /// Saves on a different channel still appear in the list (with
+        /// <c>requiresClone</c>), so they are correctly left alone.
+        /// </summary>
+        private void ReconcileOrphanedLocalSaves()
+        {
+            foreach (var entry in saves.Values)
+            {
+                if (entry.existsRemotely && !remoteCache.ContainsKey(entry.customId))
+                {
+                    entry.existsRemotely = false;
+                    entry.isLocalOnly = true;
+                }
+            }
         }
 
         private void MergeRemote(RemoteGameSave remote, bool requiresClone)

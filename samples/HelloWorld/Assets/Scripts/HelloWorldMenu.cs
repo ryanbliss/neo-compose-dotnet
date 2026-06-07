@@ -134,15 +134,17 @@ namespace HelloWorld.Assets.Scripts
 
         /// <summary>
         /// "Delete" always removes the local save file. Confirmation copy is the
-        /// sample's responsibility (the SDK won't prompt): signed-in players can
-        /// recover from the cloud, signed-out players are warned the data is gone.
+        /// sample's responsibility (the SDK won't prompt): a save with a cloud copy
+        /// is archived and recoverable from the web app, while a local-only save —
+        /// never synced, or whose cloud copy was already deleted — is gone for good.
         /// </summary>
         private void OnDelete(string customId)
         {
-            bool signedIn = store?.Authentication?.IsSignedIn == true;
-            string subtitle = signedIn
+            bool existsRemotely = store != null
+                && store.Saves.Any(s => s.customId == customId && s.existsRemotely);
+            string subtitle = existsRemotely
                 ? "Your save file will be recoverable at app.neocompose.com"
-                : "You will not be able to recover your data unless you log in prior to deleting your account.";
+                : "This permanently deletes the local save file. It has no cloud copy, so it cannot be recovered.";
             menu.ShowPrompt(
                 "Are you sure you want to do this?",
                 subtitle,
