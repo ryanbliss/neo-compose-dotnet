@@ -9,6 +9,16 @@ namespace NeoCompose.Unity.Editor
     {
         public const string ApiBaseUrl = global::NeoCompose.Runtime.NeoComposeDefaults.ApiBaseUrl;
         public const string ConfigPath = "Assets/Resources/Neo/NeoComposeConfig.asset";
+
+        /// <summary>File name of the gitignored runtime secret asset (sits next to the config).</summary>
+        public const string RuntimeSecretFileName = "NeoComposeRuntimeSecret.asset";
+
+        /// <summary>
+        /// Environment variable a CI build reads the runtime API key from when the
+        /// gitignored secret asset is absent (a fresh checkout). Baked into the build
+        /// by <c>NeoComposeRuntimeSecretBuildProcessor</c>.
+        /// </summary>
+        public const string RuntimeApiKeyEnvVar = "NEO_COMPOSE_RUNTIME_API_KEY";
         public const string GeneratedTypesDirectory = global::NeoCompose.Runtime.NeoComposeDefaults.GeneratedTypesDirectory;
         public const string ProjectJsonDirectory = global::NeoCompose.Runtime.NeoComposeDefaults.ProjectJsonDirectory;
         public const string LocalizationResourcesDirectory = global::NeoCompose.Runtime.NeoComposeDefaults.LocalizationResourcesDirectory;

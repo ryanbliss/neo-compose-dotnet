@@ -29,19 +29,6 @@ namespace NeoCompose.Runtime
         public bool singleton = NeoComposeDefaults.Singleton;
 
         /// <summary>
-        /// Optional project-scoped, read-only runtime API key for a future
-        /// runtime-sync feature.
-        /// </summary>
-        /// <remarks>
-        /// Stored here only; nothing reads or validates it in this version, and
-        /// the runtime never uses it. Unlike the editor user sign-in token, this
-        /// key is intentionally bundled with the committed project config because
-        /// it is read-only and project-scoped. It is a low-trust secret and is
-        /// kept strictly separate from the editor OAuth token.
-        /// </remarks>
-        public string projectRuntimeApiKey = "";
-
-        /// <summary>
         /// Per-project runtime OAuth client id used by the runtime device flow to
         /// authenticate a player for cloud save sync.
         /// </summary>
@@ -136,11 +123,14 @@ namespace NeoCompose.Runtime
         /// <remarks>
         /// Save scopes (<c>save:*</c>) are authorized by the runtime OAuth client;
         /// runtime-data / secure-channel scopes (<c>runtime:*</c>) are authorized by
-        /// <see cref="projectRuntimeApiKey"/>. The runtime degrades to local-only at
-        /// runtime, but the editor surfaces this warning so the gap is caught before
-        /// shipping. Pure and engine-free so it can be unit tested.
+        /// the runtime API key (now stored in the gitignored
+        /// <see cref="NeoComposeRuntimeSecret"/>, so it is passed in via
+        /// <paramref name="runtimeApiKey"/> rather than read off the committed
+        /// config). The runtime degrades to local-only at runtime, but the editor
+        /// surfaces this warning so the gap is caught before shipping. Pure and
+        /// engine-free so it can be unit tested.
         /// </remarks>
-        public bool TryGetCloudSaveSyncWarning(out string? warning)
+        public bool TryGetCloudSaveSyncWarning(string? runtimeApiKey, out string? warning)
         {
             warning = null;
             if (!enableOAuthCloudSync) return false;
@@ -165,7 +155,7 @@ namespace NeoCompose.Runtime
                     "Enable runtime OAuth for the project and synchronize, or disable cloud save sync.";
                 return true;
             }
-            if (requiresApiKey && string.IsNullOrWhiteSpace(projectRuntimeApiKey))
+            if (requiresApiKey && string.IsNullOrWhiteSpace(runtimeApiKey))
             {
                 warning =
                     "Cloud save sync requests a runtime-data scope but no runtime API key is " +

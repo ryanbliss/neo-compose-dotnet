@@ -16,6 +16,11 @@ namespace NeoCompose.Unity.Editor
     public sealed class NeoComposeEditorWindow : EditorWindow
     {
         private NeoComposeConfig? config;
+        // The runtime API key lives in a gitignored secret asset, not the committed
+        // config. Cached here so the password field doesn't hit the AssetDatabase
+        // every repaint; created on first edit (or by Synchronize).
+        private NeoComposeRuntimeSecret? runtimeSecret;
+        private string runtimeApiKey = "";
         private INeoComposeEditorApiClient apiClient = new NeoComposeEditorApiClient();
         private readonly NeoComposeEditorAuthController auth = new();
         private NeoComposeDeviceCodeResponse? pendingDeviceCode;
@@ -64,6 +69,8 @@ namespace NeoCompose.Unity.Editor
         private void OnEnable()
         {
             config = NeoComposeConfigProvider.LoadOrCreate();
+            runtimeSecret = NeoComposeRuntimeSecretProvider.Find();
+            runtimeApiKey = runtimeSecret?.RuntimeApiKey ?? "";
             synchronizer = new NeoComposeSynchronizer(
                 apiClient,
                 new NeoComposeEditorDialogConfirmationService(),
@@ -583,14 +590,24 @@ namespace NeoCompose.Unity.Editor
                     config.runtimeOAuthOverridden = true;
                 }
 
-                // Project-scoped runtime API key (developer-editable).
-                config.projectRuntimeApiKey = EditorGUILayout.TextField(
-                    new GUIContent("Runtime API Key", "Project-scoped key for runtime-data sync and secure release channels."),
-                    config.projectRuntimeApiKey);
-
                 if (EditorGUI.EndChangeCheck())
                 {
                     NeoComposeConfigProvider.Save(config);
+                }
+
+                // Project-scoped runtime API key — masked, and stored in the
+                // gitignored secret asset (never the committed config), so it ships
+                // in builds but isn't checked in. Created (with its .gitignore) on
+                // first edit if Synchronize hasn't already done so.
+                var editedKey = EditorGUILayout.PasswordField(
+                    new GUIContent("Runtime API Key", "Project-scoped key for runtime-data sync and secure release channels. Stored in a gitignored asset, not committed to source control."),
+                    runtimeApiKey);
+                if (editedKey != runtimeApiKey)
+                {
+                    runtimeApiKey = editedKey;
+                    runtimeSecret ??= NeoComposeRuntimeSecretProvider.EnsureAssetAndGitignore();
+                    runtimeSecret.RuntimeApiKey = runtimeApiKey;
+                    NeoComposeRuntimeSecretProvider.Save(runtimeSecret);
                 }
 
                 if (config.runtimeOAuthOverridden && GUILayout.Button(
@@ -602,7 +619,7 @@ namespace NeoCompose.Unity.Editor
                 }
             }
 
-            if (config.TryGetCloudSaveSyncWarning(out var cloudSyncWarning))
+            if (config.TryGetCloudSaveSyncWarning(runtimeApiKey, out var cloudSyncWarning))
             {
                 EditorGUILayout.HelpBox(cloudSyncWarning, MessageType.Warning);
             }
@@ -1080,6 +1097,10 @@ namespace NeoCompose.Unity.Editor
             {
                 var result = await synchronizer.SynchronizeAsync(config, UpdateProgressStatus);
                 RefreshConfigForDisplay();
+                // Bootstrap the gitignored runtime-secret asset + its .gitignore so a
+                // freshly linked project is git-safe before any key is pasted.
+                runtimeSecret = NeoComposeRuntimeSecretProvider.EnsureAssetAndGitignore();
+                runtimeApiKey = runtimeSecret.RuntimeApiKey;
                 if (config != null && config.HasProject)
                 {
                     await RefreshVersionMetadataAsync(false);

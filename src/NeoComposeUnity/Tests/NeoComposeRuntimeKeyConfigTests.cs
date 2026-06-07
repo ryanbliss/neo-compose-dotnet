@@ -13,28 +13,33 @@ namespace NeoCompose.Tests
     {
         // UAUTH-051 / UAUTH-052 / UAUTH-054
         [Test]
-        public void RuntimeApiKey_IsOptionalAndRoundTrips()
+        public void RuntimeApiKey_LivesInSecretAsset_NotTheCommittedConfig()
         {
-            var config = ScriptableObject.CreateInstance<NeoComposeConfig>();
+            // The key is no longer a field on the committed config — it moved to the
+            // separate, gitignored secret asset so it never lands in source control.
+            var secret = ScriptableObject.CreateInstance<NeoComposeRuntimeSecret>();
             try
             {
-                // Optional: absent by default and not required to use a project.
-                Assert.AreEqual("", config.projectRuntimeApiKey);
-                Assert.IsFalse(config.HasProject);
+                Assert.AreEqual("", secret.RuntimeApiKey, "Defaults to empty (optional).");
 
-                config.projectId = "project-1";
-                Assert.IsTrue(config.HasProject, "A missing runtime key must not block project use.");
+                secret.RuntimeApiKey = "ncrk_live_example";
+                Assert.AreEqual("ncrk_live_example", secret.RuntimeApiKey);
 
-                config.projectRuntimeApiKey = "rk_live_example";
-                Assert.AreEqual("rk_live_example", config.projectRuntimeApiKey);
-
-                // Clearing the project must not touch the project-wide runtime key.
-                config.ClearProject();
-                Assert.AreEqual("rk_live_example", config.projectRuntimeApiKey);
+                // A missing runtime key must never block using a project.
+                var config = ScriptableObject.CreateInstance<NeoComposeConfig>();
+                try
+                {
+                    config.projectId = "project-1";
+                    Assert.IsTrue(config.HasProject);
+                }
+                finally
+                {
+                    Object.DestroyImmediate(config);
+                }
             }
             finally
             {
-                Object.DestroyImmediate(config);
+                Object.DestroyImmediate(secret);
             }
         }
     }

@@ -81,7 +81,7 @@ namespace NeoCompose.Tests
             var config = MakeConfig();
             config.enableOAuthCloudSync = false;
 
-            Assert.IsFalse(config.TryGetCloudSaveSyncWarning(out var warning));
+            Assert.IsFalse(config.TryGetCloudSaveSyncWarning(null, out var warning));
             Assert.IsNull(warning);
         }
 
@@ -92,7 +92,7 @@ namespace NeoCompose.Tests
             config.enableOAuthCloudSync = true;
             config.runtimeOAuthScopes = new[] { "project:project-1:save:read" };
 
-            Assert.IsTrue(config.TryGetCloudSaveSyncWarning(out var warning));
+            Assert.IsTrue(config.TryGetCloudSaveSyncWarning(null, out var warning));
             StringAssert.Contains("client id", warning);
         }
 
@@ -104,7 +104,7 @@ namespace NeoCompose.Tests
             config.runtimeOAuthClientId = "client-1";
             config.runtimeOAuthScopes = new[] { "project:project-1:save:read" };
 
-            Assert.IsFalse(config.TryGetCloudSaveSyncWarning(out _));
+            Assert.IsFalse(config.TryGetCloudSaveSyncWarning(null, out _));
         }
 
         [Test]
@@ -115,7 +115,7 @@ namespace NeoCompose.Tests
             config.runtimeOAuthClientId = "client-1";
             config.runtimeOAuthScopes = new[] { "project:project-1:save:read", "project:project-1:runtime:read" };
 
-            Assert.IsTrue(config.TryGetCloudSaveSyncWarning(out var warning));
+            Assert.IsTrue(config.TryGetCloudSaveSyncWarning(null, out var warning));
             StringAssert.Contains("runtime API key", warning);
         }
 
@@ -125,10 +125,9 @@ namespace NeoCompose.Tests
             var config = MakeConfig();
             config.enableOAuthCloudSync = true;
             config.runtimeOAuthClientId = "client-1";
-            config.projectRuntimeApiKey = "rk_live_123";
             config.runtimeOAuthScopes = new[] { "project:project-1:runtime:read" };
 
-            Assert.IsFalse(config.TryGetCloudSaveSyncWarning(out _));
+            Assert.IsFalse(config.TryGetCloudSaveSyncWarning("ncrk_live_123", out _));
         }
 
         [Test]

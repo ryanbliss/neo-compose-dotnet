@@ -161,7 +161,9 @@ namespace NeoCompose.Unity.Editor
                 config.namespaceForGeneratedTypes = ReadUnityNamespaceOrDefault(exportResponse.projectJson);
                 config.singleton = ReadUnitySingletonOrDefault(exportResponse.projectJson);
                 ApplyRuntimeOAuthConfig(config, exportResponse.runtimeOAuth);
-                if (config.TryGetCloudSaveSyncWarning(out var cloudSyncWarning))
+                if (config.TryGetCloudSaveSyncWarning(
+                        NeoComposeRuntimeSecretProvider.LoadRuntimeApiKey(),
+                        out var cloudSyncWarning))
                 {
                     Debug.LogWarning(cloudSyncWarning);
                 }

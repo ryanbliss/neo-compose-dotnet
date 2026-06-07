@@ -22,6 +22,12 @@ namespace NeoCompose.Runtime
         public const string LocalizationResourcesPath = "Neo/Localization";
         public const string LocalizationStreamingAssetsRelativePath = "Neo/Localization";
         public const string ConfigResourcePath = "Neo/NeoComposeConfig";
+
+        /// <summary>
+        /// Resources-relative path (no extension) of the gitignored runtime secret
+        /// asset (<see cref="NeoComposeRuntimeSecret"/>) holding the runtime API key.
+        /// </summary>
+        public const string RuntimeSecretResourcePath = "Neo/NeoComposeRuntimeSecret";
         public const string SpriteDirectory = "Assets/Resources/Neo/Files/Sprites";
         public const string AudioClipDirectory = "Assets/Resources/Neo/Files/Audio";
         public const string AssetDatabaseResourcePath = "Neo/NeoAssetDatabase";
