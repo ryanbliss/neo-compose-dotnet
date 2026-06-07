@@ -757,7 +757,7 @@ namespace NeoCompose.Tests
             double initialValue,
             double expectedValue)
         {
-            var client = new NeoLoader().Load(LoadFixture("synth-example.json"), () => "", _ => { });
+            var client = NeoTestSaveStack.LoadClient(LoadFixture("synth-example.json"));
             var scoreNode = client.save.Get<NeoAttributeIntWritable>("Score");
             scoreNode.Set((int)initialValue);
             var root = new TestDialogues(client);
@@ -2408,8 +2408,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            string buffer = "";
-            return new NeoClient(data, () => buffer, save => buffer = save);
+            return NeoTestSaveStack.ClientFromSchema(data);
         }
 
         private static NeoClient CreateClientWithLocalization(

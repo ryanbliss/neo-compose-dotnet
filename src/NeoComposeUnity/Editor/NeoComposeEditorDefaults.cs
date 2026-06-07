@@ -36,11 +36,11 @@ namespace NeoCompose.Unity.Editor
         /// Better Auth handler base path, relative to the configured origin.
         /// Everything resolves through one origin (the config API base URL).
         /// </summary>
-        public const string AuthBasePath = "/api/auth";
+        public const string AuthBasePath = global::NeoCompose.Runtime.NeoComposeDefaults.AuthBasePath;
 
         /// <summary>
         /// Web verification page path, relative to the configured origin.
         /// </summary>
-        public const string DeviceVerificationPath = "/auth/device";
+        public const string DeviceVerificationPath = global::NeoCompose.Runtime.NeoComposeDefaults.DeviceVerificationPath;
     }
 }

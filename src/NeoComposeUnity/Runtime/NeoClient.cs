@@ -17,8 +17,6 @@ namespace NeoCompose.Runtime
     /// </summary>
     public class NeoClient : INeoClient
     {
-        public delegate string LoadSave();
-        public delegate void HandleSave(string content);
         public delegate string BuildSaveName();
         public delegate object? NeoNativeFunctionInvoker(
             NeoClient client,
@@ -36,6 +34,25 @@ namespace NeoCompose.Runtime
         public NeoAttributeCustomWritable SaveRoot => save;
         public NeoAttributeCustomWritable SessionRoot => session;
         public NeoLocalization Localization { get; }
+
+        /// <summary>
+        /// The active-save abstraction this client persists through (normally a
+        /// <see cref="NeoSaveSynchronizer"/>). Exposed so callers can reach the
+        /// synchronizer's lifecycle events and active-save state.
+        /// </summary>
+        public INeoSaveLoader Synchronizer => loader;
+
+        /// <summary>
+        /// The cloud save transport, or null when the active loader is local-only or
+        /// a custom <see cref="INeoSaveLoader"/> without one.
+        /// </summary>
+        public INeoApiClient? ApiClient => (loader as NeoSaveSynchronizer)?.ApiClient;
+
+        /// <summary>
+        /// The runtime authentication backing cloud sync, or null when local-only or a
+        /// custom loader without one.
+        /// </summary>
+        public NeoAuthentication? Authentication => (loader as NeoSaveSynchronizer)?.Authentication;
 
         /// <summary>
         /// Flat registry of every constructed <see cref="NeoAttribute"/>,
@@ -118,8 +135,7 @@ namespace NeoCompose.Runtime
         protected ProjectData data;
         protected ProjectSaveData saveData;
         protected ProjectSaveData sessionData;
-        protected LoadSave loadSave;
-        protected HandleSave handleSave;
+        private readonly INeoSaveLoader loader;
         public NeoSaveOptions SaveOptions { get; }
         internal NeoAssetDatabase? assetDatabase;
         private IReadOnlyDictionary<string, NeoNativeFunctionInvoker>? nativeFunctionInvokers;
@@ -157,17 +173,25 @@ namespace NeoCompose.Runtime
             "cloud",
         };
 
+        /// <summary>
+        /// Constructs a client over an <see cref="INeoSaveLoader"/> (normally a
+        /// <see cref="NeoSaveSynchronizer"/>). The project schema comes from
+        /// <see cref="INeoSaveLoader.Schema"/>; <paramref name="loadedSaveContent"/> is
+        /// the already-resolved active-save JSON (or null for a brand-new draft, in
+        /// which case the client builds save defaults from the schema and persists
+        /// nothing until the first <see cref="CommitAsync"/>). Use
+        /// <see cref="NeoLoader.Load"/> to resolve the content asynchronously before
+        /// constructing.
+        /// </summary>
         public NeoClient(
-            ProjectData data,
-            LoadSave loadSave,
-            HandleSave handleSave,
+            INeoSaveLoader loader,
+            string? loadedSaveContent = null,
             NeoAssetDatabase? assetDatabase = null,
             NeoLocalization? localization = null,
             NeoSaveOptions? saveOptions = null)
         {
-            this.data = data;
-            this.loadSave = loadSave;
-            this.handleSave = handleSave;
+            this.loader = loader ?? throw new System.ArgumentNullException(nameof(loader));
+            this.data = loader.Schema;
             SaveOptions = saveOptions ?? new NeoSaveOptions();
             this.assetDatabase = assetDatabase;
             Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
@@ -175,7 +199,7 @@ namespace NeoCompose.Runtime
             ValidateRootCustomAttribute(data.project.rootSaveFileAttributeId, nameof(Project.rootSaveFileAttributeId));
             ValidateRootCustomAttribute(data.project.rootSessionAttributeId, nameof(Project.rootSessionAttributeId));
             ValidateFunctionAttributes();
-            LoadOrCreateSafe();
+            LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
             InitializeSaveDefaults();
             InitializeSessionDefaults();
@@ -1683,7 +1707,7 @@ namespace NeoCompose.Runtime
             return JsonConvert.SerializeObject(saveData);
         }
 
-        public void Commit()
+        public async Awaitable CommitAsync(bool replaceSnapshot = false)
         {
             var unlinkedValueIds = FindUnlinkedSaveValueIds();
             if (unlinkedValueIds.Count > 0)
@@ -1691,9 +1715,12 @@ namespace NeoCompose.Runtime
                 Debug.LogWarning(
                     $"NeoCompose save contains {unlinkedValueIds.Count} unlinked value(s). " +
                     "This can happen when generated factory values are created but never assigned. " +
-                    "Call RunGarbageCollector() before Commit() to delete unlinked values.");
+                    "Call RunGarbageCollector() before CommitAsync() to delete unlinked values.");
             }
-            EmitHandleSave();
+            var savedAt = NeoTimestamp.Now();
+            saveData.updatedAt = savedAt;
+            CaptureSaveDiagnostics(savedAt);
+            await loader.CommitSaveContentAsync(SerializeSaveData(), replaceSnapshot);
         }
 
         public int RunGarbageCollector()
@@ -1762,15 +1789,6 @@ namespace NeoCompose.Runtime
             {
                 MarkReachableValue(ownership, child.valueId, reachable, child.attribute);
             }
-        }
-
-        protected void EmitHandleSave()
-        {
-            var savedAt = NeoTimestamp.Now();
-            saveData.updatedAt = savedAt;
-            CaptureSaveDiagnostics(savedAt);
-            handleSave.Invoke(SerializeSaveData());
-            LoadUnsafe();
         }
 
         private void CaptureSaveDiagnostics(NeoTimestamp savedAt)
@@ -1938,25 +1956,21 @@ namespace NeoCompose.Runtime
             match.lastSavedAt = savedAt;
         }
 
+        /// <summary>
+        /// Adopts the loader-resolved active-save content, or builds save defaults
+        /// from the schema when there is nothing to load (a brand-new draft, or
+        /// content that failed to parse). Persistence is the loader's job — nothing
+        /// is written here; the first <see cref="CommitAsync"/> persists the draft.
+        /// </summary>
         [MemberNotNull(nameof(saveData))]
-        protected void LoadOrCreateSafe()
+        private void LoadSaveDataOrDefault(string? content)
         {
-            string saveJson = "";
-            try
-            {
-                saveJson = loadSave.Invoke();
-            }
-            catch (System.Exception)
-            {
-                // Host couldn't supply a save file at all — fall through to default.
-            }
-
             ProjectSaveData? parsed = null;
-            if (!string.IsNullOrEmpty(saveJson))
+            if (!string.IsNullOrEmpty(content))
             {
                 try
                 {
-                    parsed = DeserializeSaveData(saveJson);
+                    parsed = DeserializeSaveData(content);
                 }
                 catch (System.Exception exception)
                 {
@@ -1964,25 +1978,9 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            // `DeserializeSaveData` returns null on an empty / whitespace
-            // string without throwing, so a successful-but-empty load
-            // still needs the default-build fallback.
-            if (parsed == null)
-            {
-                saveData = BuildDefaultSaveData();
-                EmitHandleSave();
-            }
-            else
-            {
-                saveData = parsed;
-            }
-        }
-
-        protected void LoadUnsafe()
-        {
-            string saveJson = loadSave.Invoke();
-            ProjectSaveData? parsed = DeserializeSaveData(saveJson);
-            if (parsed != null) saveData = parsed;
+            // `DeserializeSaveData` returns null on empty/whitespace without throwing,
+            // so a null/empty resolution still needs the default-build fallback.
+            saveData = parsed ?? BuildDefaultSaveData();
         }
     }
 }

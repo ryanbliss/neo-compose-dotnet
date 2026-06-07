@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine.Networking;
 
+using NeoCompose.Runtime;
+
 namespace NeoCompose.Unity.Editor
 {
     public interface INeoComposeEditorApiClient
@@ -45,9 +47,9 @@ namespace NeoCompose.Unity.Editor
 
         public NeoComposeEditorApiClient()
             : this(
-                new NeoComposeTokenStoreAccessTokenProvider(),
+                new NeoComposeTokenStoreAccessTokenProvider(apiBaseUrl => NeoComposeTokenStore.Create(apiBaseUrl)),
                 new NeoComposeUnityHttpClient(),
-                new NeoComposeSessionRefresher())
+                new NeoComposeSessionRefresher(apiBaseUrl => NeoComposeTokenStore.Create(apiBaseUrl)))
         {
         }
 
@@ -58,7 +60,7 @@ namespace NeoCompose.Unity.Editor
         {
             this.tokenProvider = tokenProvider;
             this.httpClient = httpClient;
-            this.sessionRefresher = sessionRefresher ?? new NeoComposeSessionRefresher();
+            this.sessionRefresher = sessionRefresher ?? new NeoComposeSessionRefresher(apiBaseUrl => NeoComposeTokenStore.Create(apiBaseUrl));
         }
 
         public async Task<NeoComposeProjectListResponse> ListProjectsAsync(string apiBaseUrl, string? query)

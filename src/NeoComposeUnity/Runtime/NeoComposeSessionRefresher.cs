@@ -8,7 +8,8 @@ using System.Globalization;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 
-namespace NeoCompose.Unity.Editor
+
+namespace NeoCompose.Runtime
 {
     public interface INeoComposeSessionRefresher
     {
@@ -26,11 +27,11 @@ namespace NeoCompose.Unity.Editor
         private readonly Func<DateTimeOffset> now;
 
         public NeoComposeSessionRefresher(
-            Func<string, INeoComposeTokenStore>? storeFactory = null,
+            Func<string, INeoComposeTokenStore> storeFactory,
             INeoComposeHttpClient? httpClient = null,
             Func<DateTimeOffset>? now = null)
         {
-            this.storeFactory = storeFactory ?? (apiBaseUrl => NeoComposeTokenStore.Create(apiBaseUrl));
+            this.storeFactory = storeFactory;
             this.httpClient = httpClient ?? new NeoComposeUnityHttpClient();
             this.now = now ?? (() => DateTimeOffset.UtcNow);
         }

@@ -4,8 +4,8 @@
 #nullable enable
 
 using System;
+using UnityEngine;
 using NeoCompose.Runtime.Json;
-using Newtonsoft.Json;
 
 namespace NeoCompose.Runtime
 {
@@ -14,41 +14,37 @@ namespace NeoCompose.Runtime
     /// </summary>
     public class NeoLoader
     {
-        public NeoClient Load(
-            string projectJson,
-            NeoClient.LoadSave loadSave,
-            NeoClient.HandleSave handleSave,
+        /// <summary>
+        /// Builds a <see cref="NeoClient"/> over an <see cref="INeoSaveLoader"/>
+        /// (normally a <see cref="NeoSaveSynchronizer"/> from a
+        /// <see cref="NeoProjectStore"/>). The project schema comes from the loader's
+        /// owning store — there is no <c>projectJson</c> argument. Resolves the active
+        /// save's content asynchronously (conflict / migration / clone handled by the
+        /// loader) before constructing the client.
+        /// </summary>
+        public async Awaitable<NeoClient> Load(
+            INeoSaveLoader loader,
             NeoAssetDatabase? assetDatabase = null,
+            NeoLocalizationOptions? localizationOptions = null,
+            INeoLocalizationLocaleFileSource? localizationFileSource = null,
             NeoSaveOptions? saveOptions = null)
         {
-            return Load(
-                projectJson,
-                loadSave,
-                handleSave,
-                assetDatabase,
-                null,
-                null,
-                saveOptions);
-        }
-
-        public NeoClient Load(
-            string projectJson,
-            NeoClient.LoadSave loadSave,
-            NeoClient.HandleSave handleSave,
-            NeoAssetDatabase? assetDatabase,
-            NeoLocalizationOptions? localizationOptions,
-            INeoLocalizationLocaleFileSource? localizationFileSource,
-            NeoSaveOptions? saveOptions = null)
-        {
-            ProjectData data = JsonConvert.DeserializeObject<ProjectData>(projectJson)
-                ?? throw new System.InvalidOperationException("Neo Compose project JSON could not be deserialized.");
+            if (loader == null) throw new ArgumentNullException(nameof(loader));
+            ProjectData data = loader.Schema
+                ?? throw new InvalidOperationException("Neo Compose save loader has no project schema.");
             NeoProjectDataValidator.Validate(data);
             localizationOptions ??= NeoComposeConfig.LoadDefault()?.ToLocalizationOptions();
             var localization = NeoLocalization.LoadMain(
                 data.localization,
                 localizationFileSource ?? new NeoResourcesLocalizationLocaleFileSource(),
                 localizationOptions);
-            return new(data, loadSave, handleSave, assetDatabase ?? NeoAssetDatabase.LoadDefault(), localization, saveOptions);
+            string? content = await loader.LoadSaveContentAsync();
+            return new NeoClient(
+                loader,
+                content,
+                assetDatabase ?? NeoAssetDatabase.LoadDefault(),
+                localization,
+                saveOptions);
         }
     }
 

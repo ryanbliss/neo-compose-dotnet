@@ -42,11 +42,7 @@ namespace NeoCompose.Tests
 
         private static NeoClient LoadClient()
         {
-            var loader = new NeoLoader();
-            string saveBuffer = "";
-            string loadSave() => saveBuffer;
-            void handleSave(string file) => saveBuffer = file;
-            return loader.Load(LoadFixture("synth-example.json"), loadSave, handleSave);
+            return NeoTestSaveStack.LoadClient(LoadFixture("synth-example.json"));
         }
 
         private static NSGetterAttribute RequireNSGetter(NeoClient client, string id)
@@ -1099,7 +1095,7 @@ namespace NeoCompose.Tests
                     [receiverType.id] = receiverType,
                 },
             };
-            return new NeoClient(data, () => "", _ => { });
+            return NeoTestSaveStack.ClientFromSchema(data);
         }
 
         private static NeoClient LoadGeneratedValueSurfaceClient(
@@ -1268,7 +1264,7 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            var client = new NeoClient(data, () => "", _ => { });
+            var client = NeoTestSaveStack.ClientFromSchema(data);
             client.Localization.TryAddLoadedLocale(new ProjectLocalizationLocaleFile
             {
                 schemaVersion = 1,

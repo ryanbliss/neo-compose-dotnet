@@ -89,6 +89,36 @@ namespace NeoCompose.Runtime.Json
         public string name = null!;
 
         /// <summary>
+        /// Stable client-owned save id for the active save graph, or null for the
+        /// session graph / a not-yet-identified save. Bridges this in-memory graph
+        /// to its persisted <see cref="LocalGameSave"/> and cloud
+        /// <see cref="RemoteGameSave"/> counterparts.
+        /// </summary>
+        public string? customId;
+
+        /// <summary>Release channel the active save targets, or null for the session graph.</summary>
+        public string? releaseChannelId;
+
+        /// <summary>Server document id once the save has synchronized; null otherwise.</summary>
+        public string? serverId;
+
+        /// <summary>
+        /// The head snapshot id the in-memory graph was loaded from. Sent as the
+        /// commit's conflict base so a moved head produces a typed conflict rather
+        /// than a silent overwrite. Null for a local-only or session graph.
+        /// </summary>
+        public string? snapshotId;
+
+        /// <summary>Hash of the loaded head snapshot; null for a local-only / session graph.</summary>
+        public string? snapshotHash;
+
+        /// <summary>
+        /// Last successful cloud sync time as epoch milliseconds; null when never
+        /// synced. Plain nullable so a JSON <c>null</c> round-trips to null.
+        /// </summary>
+        public double? synchronizedAt;
+
+        /// <summary>
         /// Stable project id for the authored project this save belongs to.
         /// </summary>
         public string projectId = null!;

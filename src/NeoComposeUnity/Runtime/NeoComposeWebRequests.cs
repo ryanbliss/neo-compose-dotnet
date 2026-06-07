@@ -8,9 +8,10 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using UnityEngine;
 using UnityEngine.Networking;
 
-namespace NeoCompose.Unity.Editor
+namespace NeoCompose.Runtime
 {
     /// <summary>
     /// The outcome of a single HTTP request, including the body even for HTTP
@@ -138,6 +139,17 @@ namespace NeoCompose.Unity.Editor
             int timeoutSeconds,
             CancellationToken cancellationToken)
         {
+            // Always link Unity's exit token so an in-flight request is cancelled
+            // when the developer stops Play mode (or the player quits). Without this
+            // the UnityWebRequest keeps running, and its completion fires into a
+            // torn-down editor — crashing it or flooding the console. The runtime
+            // surface is allocation-free Awaitable; this Task layer is the one place
+            // that composes a request against a timeout (which Awaitable can't), so
+            // it is also where we make HTTP a good citizen on shutdown.
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken, Application.exitCancellationToken);
+            var token = linked.Token;
+
             var completion = new TaskCompletionSource<bool>();
             var operation = request.SendWebRequest();
             operation.completed += _ =>
@@ -145,9 +157,13 @@ namespace NeoCompose.Unity.Editor
                 if (!completion.Task.IsCompleted) completion.SetResult(true);
             };
 
-            using var registration = cancellationToken.CanBeCanceled
-                ? cancellationToken.Register(() => completion.TrySetCanceled(cancellationToken))
-                : default;
+            // Abort the native request immediately on cancel, not just when the
+            // using-scope unwinds, so nothing keeps downloading after Stop.
+            using var registration = token.Register(() =>
+            {
+                if (!request.isDone) request.Abort();
+                completion.TrySetCanceled(token);
+            });
 
             var timeout = Task.Delay(TimeSpan.FromSeconds(timeoutSeconds + 1));
             var completed = await Task.WhenAny(completion.Task, timeout);

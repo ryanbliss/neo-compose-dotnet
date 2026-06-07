@@ -5,7 +5,8 @@
 
 using System;
 
-namespace NeoCompose.Unity.Editor
+
+namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Thrown when an authenticated editor request is attempted without a valid,
@@ -41,10 +42,10 @@ namespace NeoCompose.Unity.Editor
         private readonly Func<DateTimeOffset> now;
 
         public NeoComposeTokenStoreAccessTokenProvider(
-            Func<string, INeoComposeTokenStore>? storeFactory = null,
+            Func<string, INeoComposeTokenStore> storeFactory,
             Func<DateTimeOffset>? now = null)
         {
-            this.storeFactory = storeFactory ?? (apiBaseUrl => NeoComposeTokenStore.Create(apiBaseUrl));
+            this.storeFactory = storeFactory;
             this.now = now ?? (() => DateTimeOffset.UtcNow);
         }
 

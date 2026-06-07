@@ -5,7 +5,8 @@
 
 using System.Threading.Tasks;
 
-namespace NeoCompose.Unity.Editor
+
+namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Best-effort server-side revocation of a Neo Compose Unity token.

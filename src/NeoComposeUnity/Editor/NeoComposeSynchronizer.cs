@@ -160,6 +160,11 @@ namespace NeoCompose.Unity.Editor
 
                 config.namespaceForGeneratedTypes = ReadUnityNamespaceOrDefault(exportResponse.projectJson);
                 config.singleton = ReadUnitySingletonOrDefault(exportResponse.projectJson);
+                ApplyRuntimeOAuthConfig(config, exportResponse.runtimeOAuth);
+                if (config.TryGetCloudSaveSyncWarning(out var cloudSyncWarning))
+                {
+                    Debug.LogWarning(cloudSyncWarning);
+                }
                 assets.SaveConfig(config);
                 assets.SchedulePostSynchronize(config, projectJsonPath);
 
@@ -448,6 +453,47 @@ namespace NeoCompose.Unity.Editor
             catch
             {
                 return NeoComposeDefaults.NamespaceForGeneratedTypes;
+            }
+        }
+
+        /// <summary>
+        /// Writes the synced runtime OAuth fields (<c>runtimeOAuthClientId</c> /
+        /// <c>runtimeOAuthScopes</c>) from the export bundle. These are always
+        /// overwritten — the bundle is the source of truth for the selected version,
+        /// so a version predating the introduction marker (or a disabled client)
+        /// clears them. <c>enableOAuthCloudSync</c> is developer-owned and is seeded
+        /// <c>true</c> only the first time a client becomes available; it is never
+        /// force-overwritten thereafter.
+        /// </summary>
+        public static void ApplyRuntimeOAuthConfig(
+            NeoComposeConfig config,
+            NeoComposeUnityRuntimeOAuthConfig? runtimeOAuth)
+        {
+            bool hadClientBefore = config.HasRuntimeOAuthClient;
+
+            // A developer override sticks: leave the hand-edited client id / scopes
+            // alone instead of overwriting them from the export bundle.
+            if (!config.runtimeOAuthOverridden)
+            {
+                if (runtimeOAuth == null || !runtimeOAuth.configuredForVersion)
+                {
+                    config.runtimeOAuthClientId = "";
+                    config.runtimeOAuthScopes = Array.Empty<string>();
+                }
+                else
+                {
+                    config.runtimeOAuthClientId = runtimeOAuth.runtimeOAuthClientId ?? "";
+                    config.runtimeOAuthScopes = runtimeOAuth.scopes ?? Array.Empty<string>();
+                }
+            }
+
+            // Convenience seed: turn the developer-owned toggle on the first time a
+            // client becomes available. Guarded on "no client before" so it never
+            // re-enables a toggle the developer deliberately turned off while a client
+            // was already present.
+            if (!hadClientBefore && config.HasRuntimeOAuthClient)
+            {
+                config.enableOAuthCloudSync = true;
             }
         }
 

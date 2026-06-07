@@ -72,7 +72,7 @@ namespace HelloWorld.Assets.Scripts
             EnsureBuilt();
             for (var i = optionStack.childCount - 1; i >= 0; i--)
             {
-                DestroyObject(optionStack.GetChild(i).gameObject);
+                SampleUI.DestroyObject(optionStack.GetChild(i).gameObject);
             }
         }
 
@@ -123,7 +123,7 @@ namespace HelloWorld.Assets.Scripts
             Reset();
             if (root != null)
             {
-                DestroyObject(root);
+                SampleUI.DestroyObject(root);
                 root = null;
             }
         }
@@ -132,7 +132,7 @@ namespace HelloWorld.Assets.Scripts
         {
             if (root != null) return;
 
-            EnsureEventSystem();
+            SampleUI.EnsureEventSystem();
 
             root = new GameObject("Dialogue UI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = root.GetComponent<Canvas>();
@@ -150,7 +150,7 @@ namespace HelloWorld.Assets.Scripts
             scaler.referenceResolution = new Vector2(1920f, 1080f);
             scaler.matchWidthOrHeight = 0.5f;
 
-            var overlay = CreateRect(root.transform, "Overlay");
+            var overlay = SampleUI.CreateRect(root.transform, "Overlay");
             overlay.anchorMin = Vector2.zero;
             overlay.anchorMax = Vector2.one;
             overlay.offsetMin = Vector2.zero;
@@ -166,7 +166,7 @@ namespace HelloWorld.Assets.Scripts
 
         private static RectTransform CreatePanel(Transform parent)
         {
-            var panel = CreateRect(parent, "Dialogue Panel");
+            var panel = SampleUI.CreateRect(parent, "Dialogue Panel");
             panel.anchorMin = new Vector2(0.12f, 0f);
             panel.anchorMax = new Vector2(0.88f, 0f);
             panel.pivot = new Vector2(0.5f, 0f);
@@ -189,7 +189,7 @@ namespace HelloWorld.Assets.Scripts
 
         private void BuildPanelContent(Transform parent)
         {
-            var speakerRow = CreateRect(parent, "Speaker");
+            var speakerRow = SampleUI.CreateRect(parent, "Speaker");
             speakerRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 32f;
             var speakerLayout = speakerRow.gameObject.AddComponent<HorizontalLayoutGroup>();
             speakerLayout.spacing = 10f;
@@ -199,7 +199,7 @@ namespace HelloWorld.Assets.Scripts
             speakerLayout.childForceExpandHeight = false;
             speakerLayout.childForceExpandWidth = false;
 
-            var imageRect = CreateRect(speakerRow, "Image");
+            var imageRect = SampleUI.CreateRect(speakerRow, "Image");
             var imageLayout = imageRect.gameObject.AddComponent<LayoutElement>();
             imageLayout.preferredWidth = 30f;
             imageLayout.preferredHeight = 30f;
@@ -210,11 +210,11 @@ namespace HelloWorld.Assets.Scripts
             speakerImage.raycastTarget = false;
             speakerImage.enabled = false;
 
-            speakerText = CreateText(speakerRow, "", 22, new Color(0.58f, 0.72f, 1f), FontStyle.Bold);
+            speakerText = SampleUI.CreateText(speakerRow, "", 22, new Color(0.58f, 0.72f, 1f), FontStyle.Bold);
             speakerText.gameObject.GetComponent<LayoutElement>().flexibleWidth = 1f;
             speakerText.verticalOverflow = VerticalWrapMode.Overflow;
 
-            bodyText = CreateText(parent, "", 28, new Color(0.96f, 0.98f, 1f), FontStyle.Normal);
+            bodyText = SampleUI.CreateText(parent, "", 28, new Color(0.96f, 0.98f, 1f), FontStyle.Normal);
             bodyText.alignment = TextAnchor.UpperLeft;
             bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
             bodyText.verticalOverflow = VerticalWrapMode.Overflow;
@@ -222,7 +222,7 @@ namespace HelloWorld.Assets.Scripts
             bodyLayout.preferredHeight = 92f;
             bodyLayout.flexibleHeight = 1f;
 
-            optionStack = CreateRect(parent, "Options");
+            optionStack = SampleUI.CreateRect(parent, "Options");
             optionStack.gameObject.AddComponent<LayoutElement>().preferredHeight = 150f;
             var layout = optionStack.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.spacing = 8f;
@@ -235,7 +235,7 @@ namespace HelloWorld.Assets.Scripts
 
         private void CreateOptionButton(string label, bool selectable, Action action, bool alreadyChosen)
         {
-            var rect = CreateRect(optionStack, label);
+            var rect = SampleUI.CreateRect(optionStack, label);
             var layout = rect.gameObject.AddComponent<LayoutElement>();
             layout.preferredHeight = 44f;
             layout.minHeight = 44f;
@@ -255,7 +255,7 @@ namespace HelloWorld.Assets.Scripts
                 action();
             });
 
-            var text = CreateText(
+            var text = SampleUI.CreateText(
                 rect,
                 label,
                 17,
@@ -267,31 +267,6 @@ namespace HelloWorld.Assets.Scripts
             text.rectTransform.offsetMin = new Vector2(18f, 0f);
             text.rectTransform.offsetMax = new Vector2(-18f, 0f);
         }
-
-        private static Text CreateText(Transform parent, string value, int fontSize, Color color, FontStyle fontStyle)
-        {
-            var rect = CreateRect(parent, "Text");
-            var text = rect.gameObject.AddComponent<Text>();
-            text.text = value;
-            text.font = BuiltInFont;
-            text.fontSize = fontSize;
-            text.fontStyle = fontStyle;
-            text.color = color;
-            text.alignment = TextAnchor.MiddleLeft;
-            text.raycastTarget = false;
-            var layout = rect.gameObject.AddComponent<LayoutElement>();
-            layout.preferredHeight = Mathf.Ceil(fontSize * 1.45f);
-            return text;
-        }
-
-        private static RectTransform CreateRect(Transform parent, string name)
-        {
-            var rect = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
-            rect.SetParent(parent, false);
-            rect.localScale = Vector3.one;
-            return rect;
-        }
-
         private static ColorBlock ButtonColors(bool alreadyChosen = false)
         {
             if (alreadyChosen)
@@ -319,29 +294,6 @@ namespace HelloWorld.Assets.Scripts
                 fadeDuration = 0.08f,
             };
         }
-
-        private static void EnsureEventSystem()
-        {
-            if (UnityEngine.Object.FindFirstObjectByType<EventSystem>() != null) return;
-
-            _ = new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
-        }
-
-        private static void DestroyObject(UnityEngine.Object target)
-        {
-            if (Application.isPlaying)
-            {
-                UnityEngine.Object.Destroy(target);
-                return;
-            }
-
-            UnityEngine.Object.DestroyImmediate(target);
-        }
-
-        private static Font BuiltInFont =>
-            Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf") ??
-            Resources.GetBuiltinResource<Font>("Arial.ttf");
-
         private sealed class SpeakerImageAnimator : MonoBehaviour
         {
             private Coroutine current;

@@ -8,7 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace NeoCompose.Unity.Editor
+
+namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Drives the OAuth 2.0 Device Authorization Grant for the
@@ -40,8 +41,8 @@ namespace NeoCompose.Unity.Editor
             Func<DateTimeOffset> now,
             Func<int, CancellationToken, Task> delaySeconds,
             Action<string> openVerificationUri,
-            string clientId = NeoComposeEditorDefaults.OAuthClientId,
-            string scopes = NeoComposeEditorDefaults.OAuthScopes)
+            string clientId,
+            string scopes)
         {
             this.transport = transport;
             this.tokenStore = tokenStore;
@@ -50,18 +51,6 @@ namespace NeoCompose.Unity.Editor
             this.openVerificationUri = openVerificationUri;
             this.clientId = clientId;
             this.scopes = scopes;
-        }
-
-        public static NeoComposeDeviceAuthorizationFlow Create(
-            string apiBaseUrl,
-            INeoComposeDeviceAuthTransport? transport = null)
-        {
-            return new NeoComposeDeviceAuthorizationFlow(
-                transport ?? new NeoComposeDeviceAuthTransport(),
-                NeoComposeTokenStore.Create(apiBaseUrl),
-                () => DateTimeOffset.UtcNow,
-                (seconds, token) => Task.Delay(TimeSpan.FromSeconds(seconds), token),
-                Application.OpenURL);
         }
 
         /// <summary>

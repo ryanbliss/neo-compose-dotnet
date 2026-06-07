@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using UnityEngine.Networking;
 
-namespace NeoCompose.Unity.Editor
+namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Transport for the Better Auth device-authorization endpoints. Abstracted

@@ -6,7 +6,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace NeoCompose.Unity.Editor
+namespace NeoCompose.Runtime
 {
     /// <summary>
     /// A persisted Neo Compose Unity OAuth bearer token plus the non-secret

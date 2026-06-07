@@ -5,11 +5,12 @@
 
 using System;
 
-namespace NeoCompose.Unity.Editor
+namespace NeoCompose.Runtime
 {
     /// <summary>
-    /// Describes the editor operation behind a request so authorization failures
-    /// can produce a specific, actionable message.
+    /// Describes the API operation behind a request so authorization failures
+    /// can produce a specific, actionable message. Shared by the editor and
+    /// runtime API clients.
     /// </summary>
     public readonly struct NeoComposeApiOperation
     {

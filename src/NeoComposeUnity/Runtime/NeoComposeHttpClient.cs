@@ -5,7 +5,8 @@
 
 using System.Threading.Tasks;
 
-namespace NeoCompose.Unity.Editor
+
+namespace NeoCompose.Runtime
 {
     /// <summary>
     /// HTTP seam for the editor API client. Abstracted so request authorization

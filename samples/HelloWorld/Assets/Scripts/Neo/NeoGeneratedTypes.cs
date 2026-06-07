@@ -128,15 +128,21 @@ namespace HelloWorld.Assets.Scripts.Neo
             Dialogues = new NeoDialogues(this, dialogueOptions);
         }
 
-        public static HelloWorldNeo Load(string projectJson, NeoClient.LoadSave loadSave, NeoClient.HandleSave handleSave, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null, NeoLocalizationOptions? localizationOptions = null, NeoSaveOptions? saveOptions = null)
+        public static async Awaitable<HelloWorldNeo> Load(INeoSaveLoader synchronizer, NeoDialogueRuntimeOptions? dialogueOptions = null, NeoAssetDatabase? assetDatabase = null, NeoLocalizationOptions? localizationOptions = null, NeoSaveOptions? saveOptions = null)
         {
-            var client = new NeoLoader().Load(projectJson, loadSave, handleSave, assetDatabase, localizationOptions, null, saveOptions);
+            var client = await new NeoLoader().Load(synchronizer, assetDatabase, localizationOptions, null, saveOptions);
             return new HelloWorldNeo(client, dialogueOptions);
         }
 
+        public INeoSaveLoader Synchronizer => Client.Synchronizer;
+
+        public INeoApiClient? ApiClient => Client.ApiClient;
+
+        public NeoAuthentication? Authentication => Client.Authentication;
+
         public string SerializeSaveData() => Client.SerializeSaveData();
 
-        public void Commit() => Client.Commit();
+        public Awaitable CommitAsync(bool replaceSnapshot = false) => Client.CommitAsync(replaceSnapshot);
 
         public int RunGarbageCollector() => Client.RunGarbageCollector();
 

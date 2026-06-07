@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using NeoCompose.Unity.Editor;
 using NUnit.Framework;
 
+using NeoCompose.Runtime;
+
 namespace NeoCompose.Tests
 {
     public class NeoComposeDeviceAuthFlowTests
@@ -150,7 +152,9 @@ namespace NeoCompose.Tests
                     clock.Advance(TimeSpan.FromSeconds(seconds));
                     return Task.CompletedTask;
                 },
-                _ => transport.openedVerificationCount++);
+                _ => transport.openedVerificationCount++,
+                "neo-compose-unity",
+                "openid profile:read");
 
             var result = await flow.AuthorizeAsync(ApiBaseUrl, null, CancellationToken.None);
 
@@ -220,7 +224,9 @@ namespace NeoCompose.Tests
                     token.ThrowIfCancellationRequested();
                     return Task.CompletedTask;
                 },
-                _ => transport.openedVerificationCount++);
+                _ => transport.openedVerificationCount++,
+                "neo-compose-unity",
+                "openid profile:read");
         }
 
         private sealed class FakeClock

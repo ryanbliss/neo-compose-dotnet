@@ -24,12 +24,8 @@ namespace NeoCompose.Tests
 
         private static NeoClient LoadClient(out string saveBuffer)
         {
-            var loader = new NeoLoader();
-            string buffer = "";
-            string loadSave() => buffer;
-            void handleSave(string file) => buffer = file;
-            var client = loader.Load(LoadFixture("synth-example.json"), loadSave, handleSave);
-            saveBuffer = buffer;
+            var client = NeoTestSaveStack.LoadClient(LoadFixture("synth-example.json"));
+            saveBuffer = client.SerializeSaveData();
             return client;
         }
 
@@ -183,7 +179,7 @@ namespace NeoCompose.Tests
                 UnityEngine.LogType.Warning,
                 new System.Text.RegularExpressions.Regex(
                     "NeoCompose save contains 1 unlinked value"));
-            Assert.DoesNotThrow(() => host.Commit());
+            Assert.DoesNotThrow(() => host.CommitAsync().GetAwaiter().GetResult());
         }
     }
 }

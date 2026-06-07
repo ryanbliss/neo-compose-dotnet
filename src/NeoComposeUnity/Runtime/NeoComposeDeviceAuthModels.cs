@@ -6,7 +6,7 @@
 using System;
 using Newtonsoft.Json;
 
-namespace NeoCompose.Unity.Editor
+namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Response from <c>POST /api/auth/device/code</c>.
@@ -194,7 +194,7 @@ namespace NeoCompose.Unity.Editor
         }
 
         public static string AuthApiBase(string apiBaseUrl) =>
-            Origin(apiBaseUrl) + NeoComposeEditorDefaults.AuthBasePath;
+            Origin(apiBaseUrl) + NeoComposeDefaults.AuthBasePath;
 
         public static string DeviceCodeUrl(string apiBaseUrl) => AuthApiBase(apiBaseUrl) + "/device/code";
 
@@ -223,7 +223,7 @@ namespace NeoCompose.Unity.Editor
                 return ResolveAgainstOrigin(apiBaseUrl, response.verificationUri);
             }
 
-            return Origin(apiBaseUrl) + NeoComposeEditorDefaults.DeviceVerificationPath +
+            return Origin(apiBaseUrl) + NeoComposeDefaults.DeviceVerificationPath +
                 "?user_code=" + UnityWebRequestEscape(response.userCode);
         }
 
