@@ -24,12 +24,8 @@ namespace NeoCompose.Tests
 
         private static NeoClient LoadClient(out string saveBuffer)
         {
-            var loader = new NeoLoader();
-            string buffer = "";
-            string loadSave() => buffer;
-            void handleSave(string file) => buffer = file;
-            var client = loader.Load(LoadFixture("synth-example.json"), loadSave, handleSave);
-            saveBuffer = buffer;
+            var client = NeoTestSaveStack.LoadClient(LoadFixture("synth-example.json"));
+            saveBuffer = client.SerializeSaveData();
             return client;
         }
 
@@ -111,7 +107,12 @@ namespace NeoCompose.Tests
         public void NeoLookupSet_AddRemoveClear_TracksUniqueLookupSelections()
         {
             var client = LoadClient(out _);
-            client.AddSaveValue("attr-tags", new ArrayAttributeValue
+            var choiceAttr = RequireAttribute<LookupAttribute>(client, "attr-choice");
+            // Stable-id overlay: pin the lookup to its target collection value by
+            // id and shadow that value in the save store (the old override-map
+            // rebind of attr-tags is gone).
+            choiceAttr.collectionValueId = "v-tags-target";
+            client.SetSaveValue(new ArrayAttributeValue
             {
                 id = "v-tags-target",
                 createdAt = "now",
@@ -119,7 +120,6 @@ namespace NeoCompose.Tests
                 value = new[] { "v-a", "v-b" },
             });
 
-            var choiceAttr = RequireAttribute<LookupAttribute>(client, "attr-choice");
             var choiceNode = (NeoAttributeLookupWritable)NeoAttribute.CreateWritable(
                 client,
                 choiceAttr,
@@ -183,7 +183,7 @@ namespace NeoCompose.Tests
                 UnityEngine.LogType.Warning,
                 new System.Text.RegularExpressions.Regex(
                     "NeoCompose save contains 1 unlinked value"));
-            Assert.DoesNotThrow(() => host.Commit());
+            Assert.DoesNotThrow(() => host.CommitAsync().GetAwaiter().GetResult());
         }
     }
 }

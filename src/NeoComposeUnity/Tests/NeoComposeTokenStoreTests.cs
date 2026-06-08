@@ -10,6 +10,8 @@ using NeoCompose.Unity.Editor;
 using NUnit.Framework;
 using UnityEditor;
 
+using NeoCompose.Runtime;
+
 namespace NeoCompose.Tests
 {
     public class NeoComposeTokenStoreTests

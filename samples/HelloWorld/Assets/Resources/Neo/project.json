@@ -20,8 +20,8 @@
             }
         ],
         "projectDocumentContentHash": "efb0342242e6ea7600620fcda86d078283c8d1589bad01c3452e1e6d160ca1f8",
-        "codegenContractHash": "c4b95d5811626d26df589a11010096b824e8dd861c3ba25bf6afac1a146e6842",
-        "runtimeDataContractHash": "9c6d9488c818d96040f4600e7871956a1e45d409bfad3159ec9c456cdf277ac6"
+        "codegenContractHash": "0b0cc1bbc34582b2281bd6bc2d5a95eb351fec04ad90a491f0f8318e9458b95c",
+        "runtimeDataContractHash": "267c39a0d78f87e00ecac774520128c92ff34cbf98f33d3a10f5e076ba64cefa"
     },
     "localization": {
         "schemaVersion": 1,

@@ -6,34 +6,17 @@
 using System;
 using Newtonsoft.Json;
 using UnityEditor;
+using NeoCompose.Runtime;
 
 namespace NeoCompose.Unity.Editor
 {
     /// <summary>
-    /// Persists the signed-in Neo Compose Unity user token. Editor-only; never
-    /// referenced from the runtime assembly. The access token is stored only in
-    /// the OS-native secret store, while non-secret hints are stored separately
-    /// so auth UI can render without unlocking the secret store.
+    /// Editor <c>EditorPrefs</c>-backed non-secret hint store. The store
+    /// interfaces (<see cref="INeoComposeTokenStore"/> /
+    /// <see cref="INeoComposeTokenHintStore"/>) and the token model now live in
+    /// the runtime asmdef so the shared device-flow / refresh core can use them;
+    /// the OS-secret-store concrete below stays editor-only.
     /// </summary>
-    public interface INeoComposeTokenStore
-    {
-        NeoComposeStoredToken? Load();
-        void Save(NeoComposeStoredToken token);
-        void Clear();
-        NeoComposeTokenHint? PeekHint();
-    }
-
-    /// <summary>
-    /// Stores small, non-secret hint strings keyed by a stable key. Backed by
-    /// <c>EditorPrefs</c> in production. Must never hold the access token.
-    /// </summary>
-    public interface INeoComposeTokenHintStore
-    {
-        string? Read(string key);
-        void Write(string key, string value);
-        void Delete(string key);
-    }
-
     public sealed class NeoComposeEditorPrefsTokenHintStore : INeoComposeTokenHintStore
     {
         public string? Read(string key) =>

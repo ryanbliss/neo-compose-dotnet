@@ -185,25 +185,24 @@ namespace NeoCompose.Runtime
 
             string nowIso = System.DateTime.UtcNow.ToString("o");
 
-            if (value is ArrayAttributeValue existing)
+            var writable = EnsureWritableValue();
+            if (writable is not null)
             {
-                existing.value = normalized;
-                existing.updatedAt = nowIso;
-                client.SetWritableValue(ownership, existing);
+                writable.value = normalized;
+                writable.updatedAt = nowIso;
+                client.SetWritableValue(ownership, writable);
                 NotifyChanged();
                 return;
             }
 
-            string newValueId = System.Guid.NewGuid().ToString();
             ArrayAttributeValue newRow = new()
             {
-                id = newValueId,
+                id = System.Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = normalized,
             };
-            client.AddWritableValue(ownership, attribute.id, newRow);
-            RefreshFromValueData();
+            BindNewValue(newRow);
             NotifyChanged();
         }
 

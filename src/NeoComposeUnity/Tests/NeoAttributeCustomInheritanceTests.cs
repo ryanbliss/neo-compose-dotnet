@@ -38,11 +38,7 @@ namespace NeoCompose.Tests
 
         private static NeoClient LoadClient()
         {
-            var loader = new NeoLoader();
-            string saveBuffer = "";
-            string loadSave() => saveBuffer;
-            void handleSave(string file) => saveBuffer = file;
-            return loader.Load(LoadFixture("synth-example.json"), loadSave, handleSave);
+            return NeoTestSaveStack.LoadClient(LoadFixture("synth-example.json"));
         }
 
         private static NeoAttributeCustom CreateCustom(NeoClient client, string attributeId)

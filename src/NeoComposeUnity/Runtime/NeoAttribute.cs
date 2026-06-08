@@ -102,6 +102,25 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Binds <paramref name="childValueId"/> into this container's
+        /// value row so a <paramref name="child"/> that minted a
+        /// brand-new value (no authored default and not previously bound)
+        /// becomes reachable by its stable id. Container types
+        /// (<see cref="NeoAttributeCustom"/> /
+        /// <see cref="NeoAttributeDictionary"/>) override this to write the
+        /// key→id pair into their own (clone-on-write) value map and
+        /// re-walk children. The base throws — leaves and list-positional
+        /// entries don't bind children this way (list entries always carry
+        /// an id at construction).
+        /// </summary>
+        internal virtual void BindChildValueId(NeoAttribute child, string childValueId)
+        {
+            throw new System.InvalidOperationException(
+                $"Attribute '{attribute.id}' ({GetType().Name}) cannot bind a child value id; "
+                + "only Custom and Dictionary containers bind unkeyed child values.");
+        }
+
+        /// <summary>
         /// Read-only factory — instantiates the matching
         /// <c>NeoAttribute{Kind}</c> for the given attribute. Use
         /// <see cref="CreateWritable"/> when constructing a writeable
@@ -277,22 +296,29 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Resolves the current value-id via the chain:
-        /// <c>overrideValueId</c> → save-side
-        /// <c>attributeValueOverrides[attribute.id]</c> → static
-        /// <c>attribute.valueId</c>. Returns null if nothing is bound.
+        /// <c>overrideValueId</c> (the id this node was bound to by its
+        /// parent's value-map) → static <c>attribute.valueId</c> (the
+        /// authored default, used by the root and by directly-resolved
+        /// attributes). Returns null if nothing is bound.
+        ///
+        /// <para>Value ids are stable instance identities: a Save/Session
+        /// shadows an authored value at the <b>same</b> id, so resolution
+        /// is identical for asset/save/session — the per-ownership choice
+        /// of which row wins happens in
+        /// <see cref="NeoClient.TryGetOverlaidValue"/>. There is no longer
+        /// an <c>attributeValueOverrides</c> indirection hop.</para>
         /// </summary>
-        protected string? valueId
-        {
-            get
-            {
-                if (overrideValueId is not null) return overrideValueId;
-                if (client.TryGetWritableOverrideValueId(ownership, attribute.id, out string? saveValId))
-                {
-                    return saveValId;
-                }
-                return attribute.valueId;
-            }
-        }
+        protected string? valueId => overrideValueId ?? boundValueId ?? attribute.valueId;
+
+        /// <summary>
+        /// Id minted by <see cref="BindNewValue"/> for a <b>parentless</b>
+        /// node that had no authored default (a standalone writable root in
+        /// isolation — real saves hang every value off a root that carries
+        /// an authored <c>valueId</c>). Kept in-memory on the node rather
+        /// than in a shared attribute-keyed map, so it never mis-keys
+        /// sibling collection items that share a template attribute id.
+        /// </summary>
+        private string? boundValueId;
 
         /// <summary>
         /// Live read of the bound value through
@@ -305,7 +331,7 @@ namespace NeoCompose.Runtime
             get
             {
                 if (valueId is null) return null;
-                if (!client.TryGetValue(ownership, valueId, out TValue? match)) return null;
+                if (!client.TryGetOverlaidValue(ownership, valueId, out TValue? match)) return null;
                 return match;
             }
         }
@@ -318,9 +344,8 @@ namespace NeoCompose.Runtime
             : base(client, attribute, overrideValueId, ownership)
         {
             InitFromValueData();
-            // Subscribe before registering so the first save-override
-            // change is observable from the moment the node exists.
-            client.OnWritableOverrideChanged += HandleWritableOverrideChanged;
+            // Subscribe before registering so the first value-row change is
+            // observable from the moment the node exists.
             client.OnWritableValueChanged += HandleWritableValueChanged;
             // Last step in the base ctor — children walked from a
             // collection-type derived ctor body run after this, but they
@@ -338,7 +363,6 @@ namespace NeoCompose.Runtime
             : base(client, ResolveAttribute(client, attributeId), overrideValueId, ownership)
         {
             InitFromValueData();
-            client.OnWritableOverrideChanged += HandleWritableOverrideChanged;
             client.OnWritableValueChanged += HandleWritableValueChanged;
             client.RegisterNode(this);
         }
@@ -346,26 +370,8 @@ namespace NeoCompose.Runtime
         public override void Dispose()
         {
             if (isDisposed) return;
-            client.OnWritableOverrideChanged -= HandleWritableOverrideChanged;
             client.OnWritableValueChanged -= HandleWritableValueChanged;
             base.Dispose();
-        }
-
-        /// <summary>
-        /// Subscribed to <see cref="NeoClient.OnSaveOverrideChanged"/>;
-        /// short-circuits if the changed attribute isn't this node's,
-        /// otherwise forwards to the overridable
-        /// <see cref="OnValueIdChainChanged"/> so collection types can
-        /// also re-walk children.
-        /// </summary>
-        private void HandleWritableOverrideChanged(
-            NeoValueOwnership changedOwnership,
-            string changedAttributeId,
-            string? newValueId)
-        {
-            if (changedOwnership != ownership) return;
-            if (changedAttributeId != attribute.id) return;
-            OnValueIdChainChanged();
         }
 
         private void HandleWritableValueChanged(
@@ -383,14 +389,13 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Called when the resolved <see cref="valueId"/> chain changes
-        /// for this node — typically because
-        /// <c>attributeValueOverrides[attribute.id]</c> in
-        /// <see cref="ProjectSaveData"/> was added or removed. Default
-        /// implementation refreshes <see cref="value"/> from
-        /// <see cref="valueData"/> (so it tracks the new id, including
-        /// becoming null when nothing is bound). Collection-type
-        /// subclasses override to also re-walk their children.
+        /// Called when this node's bound value row changes (its
+        /// <see cref="valueId"/> was written, shadowed, or its shadow
+        /// dropped). Default implementation refreshes <see cref="value"/>
+        /// from <see cref="valueData"/> (so it tracks the row, including
+        /// becoming null when the shadow is cleared and there is no authored
+        /// default). Collection-type subclasses override to also re-walk
+        /// their children.
         /// </summary>
         protected virtual void OnValueIdChainChanged()
         {
@@ -437,6 +442,67 @@ namespace NeoCompose.Runtime
         {
             var data = valueData;
             if (data is not null) Initialize(data);
+        }
+
+        /// <summary>
+        /// Returns this node's value row guaranteed to be writable — i.e.
+        /// present in the node's own Save/Session store — so a mutator can
+        /// change it in place and persist. When the resolved value is the
+        /// shared authored asset row (sparse overlay; nothing shadowed
+        /// yet) a clone is registered at the <b>same</b> id and
+        /// <see cref="value"/> is retargeted to it. Value ids are stable
+        /// instance identities: the parent already references this id, so
+        /// shadowing needs no relink and no path materialization. A write
+        /// also clears any removal tombstone (resurrecting the slot).
+        /// Returns null only when nothing is bound — callers handle that by
+        /// minting + binding a fresh row via <see cref="BindNewValue"/>.
+        /// </summary>
+        protected TValue? EnsureWritableValue()
+        {
+            if (ownership == NeoValueOwnership.Asset) return value;
+            string? id = valueId;
+            if (id is null) return null;
+            if (client.TryGetWritableValue(ownership, id, out TValue? owned))
+            {
+                owned.mark = null;
+                value = owned;
+                return owned;
+            }
+            if (!client.TryGetOverlaidValue(ownership, id, out TValue? authored)) return null;
+            var clone = (TValue)client.CloneRowForWrite(authored);
+            client.SetWritableValueSilently(ownership, clone);
+            value = clone;
+            return clone;
+        }
+
+        /// <summary>
+        /// Persists a freshly-minted <paramref name="newRow"/> for a node
+        /// that had no bound value, then binds its id into the parent
+        /// container's value map (via <see cref="BindChildValueId"/>) so it
+        /// is reachable by the parent's stable reference. The bind re-walks
+        /// the parent's children, which replaces this (now-stale) node with
+        /// one bound to <paramref name="newRow"/>'s id; callers re-fetch
+        /// through the parent. Throws when there is no parent to bind into
+        /// (a value-less root — which shouldn't occur for valid projects,
+        /// whose roots carry an authored <c>valueId</c>).
+        /// </summary>
+        protected void BindNewValue(TValue newRow)
+        {
+            if (ownership == NeoValueOwnership.Asset)
+            {
+                throw new System.InvalidOperationException(
+                    $"Cannot bind a new value on an asset-owned attribute '{attribute.id}'.");
+            }
+            client.SetWritableValue(ownership, newRow);
+            value = newRow;
+            if (parent is not null)
+            {
+                parent.BindChildValueId(this, newRow.id);
+                return;
+            }
+            // Parentless root with no authored default — remember the minted
+            // id on the node so its own resolution chain finds it.
+            boundValueId = newRow.id;
         }
 
         /// <summary>

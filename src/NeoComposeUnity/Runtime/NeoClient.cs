@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -16,8 +17,7 @@ namespace NeoCompose.Runtime
     /// </summary>
     public class NeoClient : INeoClient
     {
-        public delegate string LoadSave();
-        public delegate void HandleSave(string content);
+        public delegate string BuildSaveName();
         public delegate object? NeoNativeFunctionInvoker(
             NeoClient client,
             object? receiver,
@@ -34,6 +34,25 @@ namespace NeoCompose.Runtime
         public NeoAttributeCustomWritable SaveRoot => save;
         public NeoAttributeCustomWritable SessionRoot => session;
         public NeoLocalization Localization { get; }
+
+        /// <summary>
+        /// The active-save abstraction this client persists through (normally a
+        /// <see cref="NeoSaveSynchronizer"/>). Exposed so callers can reach the
+        /// synchronizer's lifecycle events and active-save state.
+        /// </summary>
+        public INeoSaveLoader Synchronizer => loader;
+
+        /// <summary>
+        /// The cloud save transport, or null when the active loader is local-only or
+        /// a custom <see cref="INeoSaveLoader"/> without one.
+        /// </summary>
+        public INeoApiClient? ApiClient => (loader as NeoSaveSynchronizer)?.ApiClient;
+
+        /// <summary>
+        /// The runtime authentication backing cloud sync, or null when local-only or a
+        /// custom loader without one.
+        /// </summary>
+        public NeoAuthentication? Authentication => (loader as NeoSaveSynchronizer)?.Authentication;
 
         /// <summary>
         /// Flat registry of every constructed <see cref="NeoAttribute"/>,
@@ -67,27 +86,10 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, DialogueGroup> dialogueGroups => data.dialogueGroups;
         internal IReadOnlyDictionary<string, PriorityGroup> priorityGroups => data.priorityGroups;
         internal IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
-        internal IReadOnlyDictionary<string, string> saveOverrides => saveData.attributeValueOverrides;
         internal IReadOnlyDictionary<string, AttributeValue> sessionValues => sessionData.values;
-        internal IReadOnlyDictionary<string, string> sessionOverrides => sessionData.attributeValueOverrides;
         internal Project project => data.project;
         internal bool IsDisposed => isDisposed;
 
-        /// <summary>
-        /// Fired when the entry for <c>attributeId</c> in
-        /// <see cref="ProjectSaveData.attributeValueOverrides"/> is
-        /// added, replaced, or removed. Subscribers (notably
-        /// <see cref="NeoAttribute"/>) recompute their resolved
-        /// <c>valueId</c> chain and refresh their <c>value</c>.
-        ///
-        /// <para>The second argument is the *new* value id (or
-        /// <c>null</c> if removed). Wire mutations of
-        /// <see cref="Attribute.valueId"/> directly on the DTO
-        /// don't fire here — those are out of band; consumers that
-        /// mutate the wire DTO should call the affected node's
-        /// refresh hook manually.</para>
-        /// </summary>
-        internal event System.Action<string, string?>? OnSaveOverrideChanged;
         /// <summary>
         /// Fired whenever a save-side value row is added, replaced, or
         /// removed. The argument is the affected value id.
@@ -95,7 +97,6 @@ namespace NeoCompose.Runtime
         /// coarse invalidation signal after <c>*Writable</c> mutations.
         /// </summary>
         internal event System.Action<string>? OnSaveValueChanged;
-        internal event System.Action<NeoValueOwnership, string, string?>? OnWritableOverrideChanged;
         internal event System.Action<NeoValueOwnership, string>? OnWritableValueChanged;
 
         internal void EnsureNotDisposed()
@@ -116,30 +117,73 @@ namespace NeoCompose.Runtime
         protected ProjectData data;
         protected ProjectSaveData saveData;
         protected ProjectSaveData sessionData;
-        protected LoadSave loadSave;
-        protected HandleSave handleSave;
+        private readonly INeoSaveLoader loader;
+        public NeoSaveOptions SaveOptions { get; }
         internal NeoAssetDatabase? assetDatabase;
         private IReadOnlyDictionary<string, NeoNativeFunctionInvoker>? nativeFunctionInvokers;
         private IReadOnlyDictionary<string, NeoDeferredNativeFunctionInvoker>? deferredNativeFunctionInvokers;
-
-        public NeoClient(
-            ProjectData data,
-            LoadSave loadSave,
-            HandleSave handleSave,
-            NeoAssetDatabase? assetDatabase = null,
-            NeoLocalization? localization = null)
+        private static readonly object saveNameRandomLock = new();
+        private static readonly System.Random saveNameRandom = new();
+        private static readonly string[] saveNameAdjectives =
         {
-            this.data = data;
-            this.loadSave = loadSave;
-            this.handleSave = handleSave;
+            "wandering",
+            "enduring",
+            "brave",
+            "curious",
+            "lucky",
+            "moonlit",
+            "gentle",
+            "nimble",
+            "steadfast",
+            "bright",
+            "hidden",
+            "wild",
+        };
+        private static readonly string[] saveNameNouns =
+        {
+            "cat",
+            "mouse",
+            "fox",
+            "sparrow",
+            "otter",
+            "lantern",
+            "comet",
+            "river",
+            "meadow",
+            "acorn",
+            "button",
+            "cloud",
+        };
+
+        /// <summary>
+        /// Constructs a client over an <see cref="INeoSaveLoader"/> (normally a
+        /// <see cref="NeoSaveSynchronizer"/>). The project schema comes from
+        /// <see cref="INeoSaveLoader.Schema"/>; <paramref name="loadedSaveContent"/> is
+        /// the already-resolved active-save JSON (or null for a brand-new draft, in
+        /// which case the client builds save defaults from the schema and persists
+        /// nothing until the first <see cref="CommitAsync"/>). Use
+        /// <see cref="NeoLoader.Load"/> to resolve the content asynchronously before
+        /// constructing.
+        /// </summary>
+        public NeoClient(
+            INeoSaveLoader loader,
+            string? loadedSaveContent = null,
+            NeoAssetDatabase? assetDatabase = null,
+            NeoLocalization? localization = null,
+            NeoSaveOptions? saveOptions = null)
+        {
+            this.loader = loader ?? throw new System.ArgumentNullException(nameof(loader));
+            this.data = loader.Schema;
+            SaveOptions = saveOptions ?? new NeoSaveOptions();
             this.assetDatabase = assetDatabase;
             Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
             ValidateRootCustomAttribute(data.project.rootAssetsAttributeId, nameof(Project.rootAssetsAttributeId));
             ValidateRootCustomAttribute(data.project.rootSaveFileAttributeId, nameof(Project.rootSaveFileAttributeId));
             ValidateRootCustomAttribute(data.project.rootSessionAttributeId, nameof(Project.rootSessionAttributeId));
             ValidateFunctionAttributes();
-            LoadOrCreateSafe();
+            LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
+            BuildAuthoredOwnershipMap();
             InitializeSaveDefaults();
             InitializeSessionDefaults();
             assets = new(this, data.project.rootAssetsAttributeId, null);
@@ -159,9 +203,7 @@ namespace NeoCompose.Runtime
             assets.Dispose();
             save.Dispose();
             session.Dispose();
-            OnSaveOverrideChanged = null;
             OnSaveValueChanged = null;
-            OnWritableOverrideChanged = null;
             OnWritableValueChanged = null;
         }
 
@@ -265,6 +307,44 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        // Save and Session graphs are disjoint subtrees of the authored asset graph.
+        // Precomputed once at load, this maps every authored value id to the
+        // writable graph it belongs to — so a *sparse* overlay can still answer
+        // "is this value writable here?" before the value has been shadowed into the
+        // writable store (runtime-minted ids are caught by store membership below).
+        private readonly Dictionary<string, NeoValueOwnership> authoredOwnership = new();
+
+        private void BuildAuthoredOwnershipMap()
+        {
+            MarkAuthoredOwnership(data.project.rootSaveFileAttributeId, NeoValueOwnership.Save);
+            MarkAuthoredOwnership(data.project.rootSessionAttributeId, NeoValueOwnership.Session);
+        }
+
+        private void MarkAuthoredOwnership(string rootAttributeId, NeoValueOwnership ownership)
+        {
+            if (!data.attributes.TryGetValue(rootAttributeId, out Attribute rootAttribute)
+                || rootAttribute.valueId is null)
+            {
+                return;
+            }
+            WalkAuthoredOwnership(rootAttribute.valueId, rootAttribute, ownership, new HashSet<string>());
+        }
+
+        private void WalkAuthoredOwnership(
+            string valueId,
+            Attribute? attribute,
+            NeoValueOwnership ownership,
+            HashSet<string> visited)
+        {
+            if (!visited.Add(valueId)) return;
+            authoredOwnership[valueId] = ownership;
+            if (!data.values.TryGetValue(valueId, out AttributeValue row)) return;
+            foreach (var child in EnumerateOwnedChildLinks(row, attribute))
+            {
+                WalkAuthoredOwnership(child.valueId, child.attribute, ownership, visited);
+            }
+        }
+
         internal bool TryGetValueOwnership(string id, out NeoValueOwnership ownership)
         {
             if (sessionData.values.ContainsKey(id))
@@ -277,6 +357,12 @@ namespace NeoCompose.Runtime
                 ownership = NeoValueOwnership.Save;
                 return true;
             }
+            // Reachable from a writable root but not yet shadowed (sparse): still
+            // writable in that store.
+            if (authoredOwnership.TryGetValue(id, out ownership))
+            {
+                return true;
+            }
             if (data.values.ContainsKey(id))
             {
                 ownership = NeoValueOwnership.Asset;
@@ -286,9 +372,16 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        /// <summary>
+        /// Test/seed helper: shadow a save value at its stable id. Value ids are
+        /// stable instance identities, so seeding a value is just a write at its
+        /// own id; <paramref name="attributeId"/> is retained for call-site
+        /// readability but no longer maps through an override table.
+        /// </summary>
         internal void AddSaveValue<TAttributeValue>(string attributeId, TAttributeValue value) where TAttributeValue : AttributeValue
         {
-            AddWritableValue(NeoValueOwnership.Save, attributeId, value);
+            _ = attributeId;
+            SetWritableValue(NeoValueOwnership.Save, value);
         }
 
         internal void SetSaveValue<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
@@ -301,19 +394,156 @@ namespace NeoCompose.Runtime
             SetWritableValueSilently(NeoValueOwnership.Save, value);
         }
 
-        internal void AddWritableValue<TAttributeValue>(
+        /// <summary>
+        /// Stable-id overlay resolution for a writable (Save/Session) node: the
+        /// ownership store's row when present — a removal tombstone
+        /// (<see cref="AttributeValue.IsRemoved"/>) resolves as <b>unset</b>
+        /// (returns false, never falling through) — otherwise the authored asset
+        /// default. This is the shadow rule <c>save.values[id] ?? authored</c>
+        /// shared with the web overlay, and is what lets a save stay sparse:
+        /// untouched values read through to the defaults by their stable id.
+        /// </summary>
+        internal bool TryGetOverlaidValue<TValue>(
             NeoValueOwnership ownership,
-            string attributeId,
-            TAttributeValue value) where TAttributeValue : AttributeValue
+            string id,
+            [NotNullWhen(true)] out TValue? value) where TValue : AttributeValue
         {
+            value = null;
+            if (ownership != NeoValueOwnership.Asset)
+            {
+                var store = GetWritableStore(ownership);
+                if (store.values.TryGetValue(id, out AttributeValue overlaid))
+                {
+                    if (overlaid.IsRemoved) return false; // explicit unset; no fallthrough
+                    value = overlaid as TValue;
+                    return value is not null;
+                }
+            }
+            if (data.values.TryGetValue(id, out AttributeValue assetRow))
+            {
+                value = assetRow as TValue;
+                return value is not null;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Returns a writable clone of <paramref name="row"/> keeping its id, so a
+        /// writable <c>Set</c> can mutate + shadow it without touching the shared
+        /// authored asset object it may have resolved through.
+        /// </summary>
+        internal AttributeValue CloneRowForWrite(AttributeValue row) => CloneValueRow(row);
+
+        /// <summary>
+        /// Ensures the value at <paramref name="id"/> is present in the
+        /// <paramref name="ownership"/> store as a writable shadow — cloning
+        /// the resolved (authored or already-owned) row at the <b>same</b>
+        /// id when nothing is shadowed yet. No-op when already shadowed.
+        /// This is the row-level clone-on-write primitive: because ids are
+        /// stable, shadowing the single mutated row is sufficient (its
+        /// parent already references this id). Returns false when there is
+        /// no row to shadow.
+        /// </summary>
+        internal bool EnsureWritableShadow(NeoValueOwnership ownership, string id)
+        {
+            if (ownership == NeoValueOwnership.Asset) return false;
             var store = GetWritableStore(ownership);
-            store.attributeValueOverrides[attributeId] = value.id;
-            SetWritableValue(ownership, value);
-            OnWritableOverrideChanged?.Invoke(ownership, attributeId, value.id);
+            if (store.values.ContainsKey(id)) return true;
+            if (!TryGetOverlaidValue(ownership, id, out AttributeValue? resolved)) return false;
+            SetWritableValueSilently(ownership, CloneValueRow(resolved));
+            return true;
+        }
+
+        /// <summary>
+        /// Writes a minimal removal <b>tombstone</b>
+        /// (<see cref="NeoValueMarks.Removed"/>) at <paramref name="id"/> so
+        /// resolution returns <b>unset</b> instead of falling through to the
+        /// authored default. This is sparse explicit removal — only the single
+        /// tombstone row is shadowed; the parent record is untouched. (Contrast
+        /// <see cref="RemoveWritableShadow"/>, which drops the shadow so the
+        /// authored default resurfaces.) The marker carries no payload or child
+        /// references, so the replaced value's owned descendants become
+        /// collectable — see <see cref="WriteRemovalTombstone"/> for the hard-remove
+        /// variant that reclaims them.
+        /// </summary>
+        internal void WriteTombstone(NeoValueOwnership ownership, string id)
+        {
+            if (ownership == NeoValueOwnership.Asset)
+            {
+                throw new System.InvalidOperationException(
+                    "Cannot tombstone an asset-owned value.");
+            }
+            string nowIso = System.DateTime.UtcNow.ToString("o");
+            // Minimal marker — no payload, no child links. Resolution only checks
+            // `mark`, so the stored value is genuinely null and the removed value's
+            // children are no longer referenced through it.
+            var tombstone = new NullAttributeValue
+            {
+                id = id,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                mark = NeoValueMarks.Removed,
+            };
+            SetWritableValue(ownership, tombstone);
+        }
+
+        /// <summary>
+        /// Hard-removes the value at <paramref name="id"/>: stamps a minimal
+        /// removal <see cref="WriteTombstone">tombstone</see> in its place and
+        /// reclaims the replaced value's now-orphaned descendants from the writable
+        /// store (mirroring the collection <c>Remove</c> ops' GC). Descendants
+        /// still referenced elsewhere are preserved by the reachability check, and
+        /// authored-only rows are never touched.
+        /// </summary>
+        internal void WriteRemovalTombstone(NeoValueOwnership ownership, string id)
+        {
+            var formerChildIds = new List<string>();
+            if (TryGetOverlaidValue(ownership, id, out AttributeValue? replaced))
+            {
+                CollectDirectChildValueIds(replaced, formerChildIds);
+            }
+            WriteTombstone(ownership, id);
+            if (formerChildIds.Count == 0) return;
+            // Build reachability after the tombstone replaces the value, so the
+            // former children are seen as orphaned (unless shared elsewhere).
+            var reachable = BuildReachableWritableValueIds(ownership);
+            foreach (var childId in formerChildIds)
+            {
+                RemoveWritableValueAndDescendantsIfUnlinked(ownership, childId, reachable);
+            }
+        }
+
+        private static void CollectDirectChildValueIds(AttributeValue row, List<string> into)
+        {
+            switch (row)
+            {
+                case ObjectAttributeValue obj when obj.value is not null:
+                    into.AddRange(obj.value.Values);
+                    break;
+                case ArrayAttributeValue arr when arr.value is not null:
+                    into.AddRange(arr.value);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Drops the writable shadow at <paramref name="id"/> so resolution
+        /// falls back through the overlay to the authored default. Notifies
+        /// bound nodes so they refresh. Returns true when a shadow was
+        /// removed.
+        /// </summary>
+        internal bool RemoveWritableShadow(NeoValueOwnership ownership, string id)
+        {
+            if (ownership == NeoValueOwnership.Asset) return false;
+            var store = GetWritableStore(ownership);
+            if (!store.values.Remove(id)) return false;
+            TouchWritableStoreUpdatedAt(ownership);
+            OnWritableValueChanged?.Invoke(ownership, id);
             if (ownership == NeoValueOwnership.Save)
             {
-                OnSaveOverrideChanged?.Invoke(attributeId, value.id);
+                OnSaveValueChanged?.Invoke(id);
             }
+            return true;
         }
 
         internal void SetWritableValue<TAttributeValue>(
@@ -321,6 +551,7 @@ namespace NeoCompose.Runtime
             TAttributeValue value) where TAttributeValue : AttributeValue
         {
             GetWritableStore(ownership).values[value.id] = value;
+            TouchWritableStoreUpdatedAt(ownership);
             OnWritableValueChanged?.Invoke(ownership, value.id);
             if (ownership == NeoValueOwnership.Save)
             {
@@ -333,6 +564,15 @@ namespace NeoCompose.Runtime
             TAttributeValue value) where TAttributeValue : AttributeValue
         {
             GetWritableStore(ownership).values[value.id] = value;
+            TouchWritableStoreUpdatedAt(ownership);
+        }
+
+        private void TouchWritableStoreUpdatedAt(NeoValueOwnership ownership)
+        {
+            if (ownership == NeoValueOwnership.Save)
+            {
+                saveData.updatedAt = NeoTimestamp.Now();
+            }
         }
 
         internal void SetSavePayloadRows(object? payload)
@@ -433,7 +673,9 @@ namespace NeoCompose.Runtime
             }
 
             var clone = CloneValueRow(sourceRow);
-            clone.id = System.Guid.NewGuid().ToString();
+            // Stable-id overlay: the copy keeps the authored id (it shadows that
+            // id in the target store), never a fresh GUID.
+            clone.id = sourceRow.id;
             remappedIds[sourceValueId] = clone.id;
 
             switch (clone)
@@ -589,26 +831,6 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            foreach (var pair in sessionData.attributeValueOverrides)
-            {
-                if (pair.Value == valueId
-                    && TryGetAttribute(pair.Key, out Attribute? sessionAttribute))
-                {
-                    attribute = sessionAttribute;
-                    return true;
-                }
-            }
-
-            foreach (var pair in saveData.attributeValueOverrides)
-            {
-                if (pair.Value == valueId
-                    && TryGetAttribute(pair.Key, out Attribute? saveAttribute))
-                {
-                    attribute = saveAttribute;
-                    return true;
-                }
-            }
-
             foreach (var parent in EnumerateAllValueRows())
             {
                 if (parent.Value is not ObjectAttributeValue objectValue
@@ -718,24 +940,6 @@ namespace NeoCompose.Runtime
                     return true;
                 }
             }
-            foreach (var pair in sessionData.attributeValueOverrides)
-            {
-                if (pair.Value == valueId
-                    && TryGetAttribute(pair.Key, out Attribute? sessionAttribute))
-                {
-                    attribute = sessionAttribute;
-                    return true;
-                }
-            }
-            foreach (var pair in saveData.attributeValueOverrides)
-            {
-                if (pair.Value == valueId
-                    && TryGetAttribute(pair.Key, out Attribute? saveAttribute))
-                {
-                    attribute = saveAttribute;
-                    return true;
-                }
-            }
             attribute = null;
             return false;
         }
@@ -745,163 +949,6 @@ namespace NeoCompose.Runtime
             foreach (var pair in sessionData.values) yield return pair;
             foreach (var pair in saveData.values) yield return pair;
             foreach (var pair in data.values) yield return pair;
-        }
-
-        internal bool TryMaterializeSavePath(string rowId)
-        {
-            return TryMaterializeSavePath(rowId, out _);
-        }
-
-        internal bool TryMaterializeSavePath(string rowId, [NotNullWhen(true)] out string? materializedRowId)
-        {
-            return TryMaterializeWritablePath(NeoValueOwnership.Save, rowId, out materializedRowId);
-        }
-
-        internal bool TryMaterializeWritablePath(
-            NeoValueOwnership ownership,
-            string rowId,
-            [NotNullWhen(true)] out string? materializedRowId)
-        {
-            materializedRowId = null;
-            if (ownership == NeoValueOwnership.Asset)
-            {
-                throw new System.InvalidOperationException("Asset-owned values cannot be materialized into a writable store.");
-            }
-            var store = GetWritableStore(ownership);
-            if (store.values.ContainsKey(rowId))
-            {
-                materializedRowId = rowId;
-                return true;
-            }
-
-            NeoAttributeCustomWritable rootNode = ownership == NeoValueOwnership.Save ? save : session;
-            string rootAttributeId = ownership == NeoValueOwnership.Save
-                ? project.rootSaveFileAttributeId
-                : project.rootSessionAttributeId;
-            string? rootValueId = rootNode.value?.id;
-            if (string.IsNullOrEmpty(rootValueId)) return false;
-
-            var path = new List<string>();
-            if (!TryFindValuePath(ownership, rootValueId!, rowId, new HashSet<string>(), path))
-            {
-                return false;
-            }
-
-            var remappedIds = new Dictionary<string, string>();
-            for (int i = 0; i < path.Count; i++)
-            {
-                string pathValueId = path[i];
-                remappedIds[pathValueId] = store.values.ContainsKey(pathValueId)
-                    ? pathValueId
-                    : System.Guid.NewGuid().ToString();
-            }
-
-            for (int i = path.Count - 1; i >= 0; i--)
-            {
-                string pathValueId = path[i];
-                bool alreadyWritable = store.values.TryGetValue(pathValueId, out AttributeValue? existingWritable);
-                if (!alreadyWritable && !TryGetValue(ownership, pathValueId, out existingWritable))
-                {
-                    return false;
-                }
-
-                var clone = CloneValueRow(existingWritable!);
-                clone.id = remappedIds[pathValueId];
-                if (i < path.Count - 1)
-                {
-                    RemapDirectChildLink(clone, path[i + 1], remappedIds[path[i + 1]]);
-                }
-                if (i == 0)
-                {
-                    if (alreadyWritable)
-                    {
-                        SetWritableValue(ownership, clone);
-                    }
-                    else
-                    {
-                        AddWritableValue(ownership, rootAttributeId, clone);
-                    }
-                }
-                else
-                {
-                    SetWritableValue(ownership, clone);
-                }
-            }
-            materializedRowId = remappedIds[rowId];
-            return true;
-        }
-
-        private bool TryFindValuePath(
-            NeoValueOwnership ownership,
-            string currentValueId,
-            string targetValueId,
-            HashSet<string> visited,
-            List<string> path)
-        {
-            if (!visited.Add(currentValueId)) return false;
-            path.Add(currentValueId);
-            if (currentValueId == targetValueId) return true;
-
-            if (TryGetValue(ownership, currentValueId, out AttributeValue? row))
-            {
-                switch (row)
-                {
-                    case ObjectAttributeValue obj when obj.value != null:
-                        foreach (var childValueId in obj.value.Values)
-                        {
-                            if (TryFindValuePath(ownership, childValueId, targetValueId, visited, path))
-                            {
-                                return true;
-                            }
-                        }
-                        break;
-                    case ArrayAttributeValue arr when arr.value != null:
-                        foreach (var childValueId in arr.value)
-                        {
-                            if (TryFindValuePath(ownership, childValueId, targetValueId, visited, path))
-                            {
-                                return true;
-                            }
-                        }
-                        break;
-                }
-            }
-
-            path.RemoveAt(path.Count - 1);
-            return false;
-        }
-
-        private static void RemapDirectChildLink(
-            AttributeValue row,
-            string oldChildValueId,
-            string newChildValueId)
-        {
-            switch (row)
-            {
-                case ObjectAttributeValue obj when obj.value != null:
-                {
-                    var keys = new List<string>(obj.value.Keys);
-                    foreach (var key in keys)
-                    {
-                        if (obj.value[key] == oldChildValueId)
-                        {
-                            obj.value[key] = newChildValueId;
-                        }
-                    }
-                    break;
-                }
-                case ArrayAttributeValue arr when arr.value != null:
-                {
-                    for (int i = 0; i < arr.value.Length; i++)
-                    {
-                        if (arr.value[i] == oldChildValueId)
-                        {
-                            arr.value[i] = newChildValueId;
-                        }
-                    }
-                    break;
-                }
-            }
         }
 
         private static AttributeValue CloneValueRow(AttributeValue row)
@@ -946,38 +993,6 @@ namespace NeoCompose.Runtime
             clone.updatedAt = row.updatedAt;
             clone.typeId = row.typeId;
             return clone;
-        }
-
-        /// <summary>
-        /// Removes the save-side override for <paramref name="attributeId"/>
-        /// (i.e., the entry in
-        /// <see cref="ProjectSaveData.attributeValueOverrides"/>). Fires
-        /// <see cref="OnSaveOverrideChanged"/> with a null value id so
-        /// subscribers refresh accordingly. Returns true if an entry
-        /// was actually removed; false if nothing was registered.
-        ///
-        /// <para>Note: this only removes the override mapping. The
-        /// underlying value row in <see cref="ProjectSaveData.values"/>
-        /// stays — call
-        /// <see cref="RemoveSaveValueAndDescendants"/> if you also want
-        /// to GC it (and any nested values).</para>
-        /// </summary>
-        internal bool RemoveSaveOverride(string attributeId)
-        {
-            if (!saveData.attributeValueOverrides.Remove(attributeId)) return false;
-            OnSaveOverrideChanged?.Invoke(attributeId, null);
-            OnWritableOverrideChanged?.Invoke(NeoValueOwnership.Save, attributeId, null);
-            return true;
-        }
-
-        internal bool RemoveWritableOverride(NeoValueOwnership ownership, string attributeId)
-        {
-            if (ownership == NeoValueOwnership.Save) return RemoveSaveOverride(attributeId);
-            if (ownership == NeoValueOwnership.Asset) return false;
-            var store = GetWritableStore(ownership);
-            if (!store.attributeValueOverrides.Remove(attributeId)) return false;
-            OnWritableOverrideChanged?.Invoke(ownership, attributeId, null);
-            return true;
         }
 
         /// <summary>
@@ -1033,6 +1048,7 @@ namespace NeoCompose.Runtime
             }
             if (store.values.Remove(valueId))
             {
+                TouchWritableStoreUpdatedAt(ownership);
                 OnWritableValueChanged?.Invoke(ownership, valueId);
                 if (ownership == NeoValueOwnership.Save)
                 {
@@ -1085,6 +1101,7 @@ namespace NeoCompose.Runtime
             }
             if (store.values.Remove(valueId))
             {
+                TouchWritableStoreUpdatedAt(ownership);
                 OnWritableValueChanged?.Invoke(ownership, valueId);
                 if (ownership == NeoValueOwnership.Save)
                 {
@@ -1093,26 +1110,6 @@ namespace NeoCompose.Runtime
             }
         }
 
-        /// <summary>
-        /// Returns the save's override value-id for the given attribute,
-        /// or null if no override is registered. Used by
-        /// <see cref="NeoAttribute"/> to resolve `valueId` after a Set
-        /// creates a new top-level save row.
-        /// </summary>
-        internal bool TryGetSaveOverrideValueId(string attributeId, [NotNullWhen(true)] out string? valueId)
-        {
-            return saveData.attributeValueOverrides.TryGetValue(attributeId, out valueId);
-        }
-
-        internal bool TryGetWritableOverrideValueId(
-            NeoValueOwnership ownership,
-            string attributeId,
-            [NotNullWhen(true)] out string? valueId)
-        {
-            valueId = null;
-            if (ownership == NeoValueOwnership.Asset) return false;
-            return GetWritableStore(ownership).attributeValueOverrides.TryGetValue(attributeId, out valueId);
-        }
 
         internal bool TryGetWritableValue<TValue>(
             NeoValueOwnership ownership,
@@ -1164,14 +1161,10 @@ namespace NeoCompose.Runtime
             string? collectionValueId)
         {
             if (collectionValueId is not null) return collectionValueId;
-            if (TryGetWritableOverrideValueId(NeoValueOwnership.Session, collectionAttribute.id, out string? sessionValueId))
-            {
-                return sessionValueId;
-            }
-            if (TryGetSaveOverrideValueId(collectionAttribute.id, out string? saveValueId))
-            {
-                return saveValueId;
-            }
+            // Stable-id overlay: the collection resolves by its authored id
+            // (a save/session shadows that id in place), so there is no
+            // override-map hop — fall through to the schema binding /
+            // authored valueId.
             if (TryFindBoundValueIdForAttribute(collectionAttribute.id, out string? boundValueId))
             {
                 return boundValueId;
@@ -1516,11 +1509,12 @@ namespace NeoCompose.Runtime
         {
             ProjectSaveData empty = new()
             {
+                name = BuildNewSaveName(),
                 projectId = data.project.id,
-                version = "0.0.0",
-                // leave `values` and `attributeValueOverrides` empty until value(s) are set at runtime
+                version = BuildSaveVersionData(),
+                createdAt = NeoTimestamp.Now(),
+                // leave `values` empty until value(s) are written at runtime (sparse overlay)
                 values = new(),
-                attributeValueOverrides = new(),
             };
             return empty;
         }
@@ -1529,46 +1523,52 @@ namespace NeoCompose.Runtime
         {
             return new()
             {
+                name = "",
                 projectId = data.project.id,
-                version = "0.0.0",
+                version = BuildSaveVersionData(),
+                createdAt = NeoTimestamp.Now(),
                 values = new(),
-                attributeValueOverrides = new(),
             };
         }
 
-        private void InitializeSessionDefaults()
+        protected string BuildNewSaveName()
         {
-            if (!data.attributes.TryGetValue(data.project.rootSessionAttributeId, out Attribute rootSessionAttribute)
-                || rootSessionAttribute.valueId is null)
-            {
-                return;
-            }
-            string sessionRootValueId = CloneValueGraphToOwnership(
-                NeoValueOwnership.Session,
-                rootSessionAttribute.valueId,
-                new Dictionary<string, string>(),
-                rootSessionAttribute);
-            sessionData.attributeValueOverrides[rootSessionAttribute.id] = sessionRootValueId;
+            string? custom = SaveOptions.BuildSaveName?.Invoke();
+            return string.IsNullOrWhiteSpace(custom) ? BuildDefaultSaveName() : custom!;
         }
 
-        private void InitializeSaveDefaults()
+        private static string BuildDefaultSaveName()
         {
-            if (!data.attributes.TryGetValue(data.project.rootSaveFileAttributeId, out Attribute rootSaveAttribute)
-                || rootSaveAttribute.valueId is null)
+            lock (saveNameRandomLock)
             {
-                return;
+                string adjective = saveNameAdjectives[saveNameRandom.Next(saveNameAdjectives.Length)];
+                string noun = saveNameNouns[saveNameRandom.Next(saveNameNouns.Length)];
+                int suffix = saveNameRandom.Next(100, 1000);
+                return $"{adjective}-{noun}-{suffix}";
             }
-            if (saveData.attributeValueOverrides.ContainsKey(rootSaveAttribute.id))
-            {
-                return;
-            }
-            string saveRootValueId = CloneValueGraphToOwnership(
-                NeoValueOwnership.Save,
-                rootSaveAttribute.valueId,
-                new Dictionary<string, string>(),
-                rootSaveAttribute);
-            saveData.attributeValueOverrides[rootSaveAttribute.id] = saveRootValueId;
         }
+
+        protected VersionData BuildSaveVersionData()
+        {
+            string id = data.metadata?.versionId ?? "";
+            string label = data.metadata?.semver?.label ?? "";
+            if (string.IsNullOrWhiteSpace(label)) label = id;
+            return new VersionData
+            {
+                id = id,
+                label = label,
+            };
+        }
+
+        // Sparse overlay: Save/Session stores start empty. The root and
+        // every authored default resolve by their stable id through
+        // <see cref="TryGetOverlaidValue"/> (save/session value ?? authored),
+        // so there is nothing to seed up-front — a value only enters a
+        // writable store when it is first written (clone-on-write at its
+        // stable id). Eager full-graph cloning is intentionally gone.
+        private void InitializeSessionDefaults() { }
+
+        private void InitializeSaveDefaults() { }
 
         private void ValidateRootCustomAttribute(string attributeId, string projectFieldName)
         {
@@ -1599,7 +1599,7 @@ namespace NeoCompose.Runtime
             return JsonConvert.SerializeObject(saveData);
         }
 
-        public void Commit()
+        public async Awaitable CommitAsync(bool replaceSnapshot = false)
         {
             var unlinkedValueIds = FindUnlinkedSaveValueIds();
             if (unlinkedValueIds.Count > 0)
@@ -1607,9 +1607,12 @@ namespace NeoCompose.Runtime
                 Debug.LogWarning(
                     $"NeoCompose save contains {unlinkedValueIds.Count} unlinked value(s). " +
                     "This can happen when generated factory values are created but never assigned. " +
-                    "Call RunGarbageCollector() before Commit() to delete unlinked values.");
+                    "Call RunGarbageCollector() before CommitAsync() to delete unlinked values.");
             }
-            EmitHandleSave();
+            var savedAt = NeoTimestamp.Now();
+            saveData.updatedAt = savedAt;
+            CaptureSaveDiagnostics(savedAt);
+            await loader.CommitSaveContentAsync(SerializeSaveData(), replaceSnapshot);
         }
 
         public int RunGarbageCollector()
@@ -1641,12 +1644,10 @@ namespace NeoCompose.Runtime
 
         private HashSet<string> BuildReachableWritableValueIds(NeoValueOwnership ownership)
         {
+            // Sparse stable-id overlay: reachability is rooted at the save/session
+            // root attribute's authored value id (a write shadows that id in
+            // place), then walks the overlaid graph. There is no override map.
             var reachable = new HashSet<string>();
-            var store = GetWritableStore(ownership);
-            foreach (var valueId in store.attributeValueOverrides.Values)
-            {
-                MarkReachableValue(ownership, valueId, reachable);
-            }
             string rootAttributeId = ownership == NeoValueOwnership.Save
                 ? data.project.rootSaveFileAttributeId
                 : data.project.rootSessionAttributeId;
@@ -1680,31 +1681,186 @@ namespace NeoCompose.Runtime
             }
         }
 
-        protected void EmitHandleSave()
+        private void CaptureSaveDiagnostics(NeoTimestamp savedAt)
         {
-            handleSave.Invoke(SerializeSaveData());
-            LoadUnsafe();
+            if (!SaveOptions.DiagnosticsEnabled)
+            {
+                saveData.platforms = null;
+                saveData.systems = null;
+                saveData.inputDevices = null;
+                return;
+            }
+
+            saveData.platforms ??= new List<GameRuntimePlatform>();
+            saveData.systems ??= new List<GameSystemInfo>();
+            saveData.inputDevices ??= new List<GameInputDeviceInfo>();
+
+            UpsertPlatform(saveData.platforms, CaptureRuntimePlatform(), savedAt);
+            UpsertSystem(saveData.systems, CaptureSystemInfo(), savedAt);
+            foreach (var device in CaptureInputDevices())
+            {
+                UpsertInputDevice(saveData.inputDevices, device, savedAt);
+            }
         }
 
-        [MemberNotNull(nameof(saveData))]
-        protected void LoadOrCreateSafe()
+        private static GameRuntimePlatform CaptureRuntimePlatform()
         {
-            string saveJson = "";
-            try
+            return new GameRuntimePlatform
             {
-                saveJson = loadSave.Invoke();
-            }
-            catch (System.Exception)
-            {
-                // Host couldn't supply a save file at all — fall through to default.
-            }
+                kind = Application.platform.ToString(),
+            };
+        }
 
+        private static GameSystemInfo CaptureSystemInfo()
+        {
+            return new GameSystemInfo
+            {
+                deviceType = SystemInfo.deviceType.ToString(),
+                deviceModel = SystemInfo.deviceModel ?? "",
+                deviceName = SystemInfo.deviceName ?? "",
+                operatingSystem = SystemInfo.operatingSystem ?? "",
+            };
+        }
+
+        private static List<GameInputDeviceInfo> CaptureInputDevices()
+        {
+            var devices = new List<GameInputDeviceInfo>();
+            CaptureLegacyInputDevices(devices);
+            CaptureInputSystemDevices(devices);
+            return devices;
+        }
+
+        private static void CaptureLegacyInputDevices(List<GameInputDeviceInfo> devices)
+        {
+#if ENABLE_LEGACY_INPUT_MANAGER
+            var names = Input.GetJoystickNames();
+            for (int i = 0; i < names.Length; i++)
+            {
+                var name = names[i] ?? "";
+                if (string.IsNullOrWhiteSpace(name)) continue;
+                devices.Add(new GameInputDeviceInfo
+                {
+                    source = "legacy-input",
+                    kind = "joystick",
+                    name = name,
+                    displayName = name,
+                    layout = "",
+                    manufacturer = "",
+                    product = "",
+                    slot = i,
+                });
+            }
+#endif
+        }
+
+        private static void CaptureInputSystemDevices(List<GameInputDeviceInfo> devices)
+        {
+            var inputSystemType = System.Type.GetType("UnityEngine.InputSystem.InputSystem, Unity.InputSystem");
+            if (inputSystemType == null) return;
+            var devicesProperty = inputSystemType.GetProperty("devices", BindingFlags.Public | BindingFlags.Static);
+            if (devicesProperty?.GetValue(null) is not System.Collections.IEnumerable inputDevices) return;
+
+            foreach (var device in inputDevices)
+            {
+                if (device == null) continue;
+                var deviceType = device.GetType();
+                var description = deviceType.GetProperty("description")?.GetValue(device);
+                var descriptionType = description?.GetType();
+                var deviceClass = GetStringProperty(description, descriptionType, "deviceClass");
+                var layout = GetStringProperty(device, deviceType, "layout");
+                devices.Add(new GameInputDeviceInfo
+                {
+                    source = "input-system",
+                    kind = string.IsNullOrWhiteSpace(deviceClass) ? InferInputDeviceKind(layout) : deviceClass.ToLowerInvariant(),
+                    name = GetStringProperty(device, deviceType, "name"),
+                    displayName = GetStringProperty(device, deviceType, "displayName"),
+                    layout = layout,
+                    manufacturer = GetStringProperty(description, descriptionType, "manufacturer"),
+                    product = GetStringProperty(description, descriptionType, "product"),
+                    slot = null,
+                });
+            }
+        }
+
+        private static string GetStringProperty(object? target, System.Type? targetType, string propertyName)
+        {
+            if (target == null || targetType == null) return "";
+            return targetType.GetProperty(propertyName)?.GetValue(target)?.ToString() ?? "";
+        }
+
+        private static string InferInputDeviceKind(string layout)
+        {
+            if (layout.IndexOf("gamepad", System.StringComparison.OrdinalIgnoreCase) >= 0) return "gamepad";
+            if (layout.IndexOf("joystick", System.StringComparison.OrdinalIgnoreCase) >= 0) return "joystick";
+            if (layout.IndexOf("keyboard", System.StringComparison.OrdinalIgnoreCase) >= 0) return "keyboard";
+            if (layout.IndexOf("mouse", System.StringComparison.OrdinalIgnoreCase) >= 0) return "mouse";
+            if (layout.IndexOf("touch", System.StringComparison.OrdinalIgnoreCase) >= 0) return "touch";
+            return "unknown";
+        }
+
+        private static void UpsertPlatform(List<GameRuntimePlatform> platforms, GameRuntimePlatform next, NeoTimestamp savedAt)
+        {
+            var match = platforms.Find(existing => existing.kind == next.kind);
+            if (match == null)
+            {
+                next.lastSavedAt = savedAt;
+                platforms.Add(next);
+                return;
+            }
+            match.lastSavedAt = savedAt;
+        }
+
+        private static void UpsertSystem(List<GameSystemInfo> systems, GameSystemInfo next, NeoTimestamp savedAt)
+        {
+            var match = systems.Find(existing =>
+                existing.deviceType == next.deviceType
+                && existing.deviceModel == next.deviceModel
+                && existing.deviceName == next.deviceName
+                && existing.operatingSystem == next.operatingSystem);
+            if (match == null)
+            {
+                next.lastSavedAt = savedAt;
+                systems.Add(next);
+                return;
+            }
+            match.lastSavedAt = savedAt;
+        }
+
+        private static void UpsertInputDevice(List<GameInputDeviceInfo> devices, GameInputDeviceInfo next, NeoTimestamp savedAt)
+        {
+            var match = devices.Find(existing =>
+                existing.source == next.source
+                && existing.kind == next.kind
+                && existing.name == next.name
+                && existing.displayName == next.displayName
+                && existing.layout == next.layout
+                && existing.manufacturer == next.manufacturer
+                && existing.product == next.product
+                && existing.slot == next.slot);
+            if (match == null)
+            {
+                next.lastSavedAt = savedAt;
+                devices.Add(next);
+                return;
+            }
+            match.lastSavedAt = savedAt;
+        }
+
+        /// <summary>
+        /// Adopts the loader-resolved active-save content, or builds save defaults
+        /// from the schema when there is nothing to load (a brand-new draft, or
+        /// content that failed to parse). Persistence is the loader's job — nothing
+        /// is written here; the first <see cref="CommitAsync"/> persists the draft.
+        /// </summary>
+        [MemberNotNull(nameof(saveData))]
+        private void LoadSaveDataOrDefault(string? content)
+        {
             ProjectSaveData? parsed = null;
-            if (!string.IsNullOrEmpty(saveJson))
+            if (!string.IsNullOrEmpty(content))
             {
                 try
                 {
-                    parsed = DeserializeSaveData(saveJson);
+                    parsed = DeserializeSaveData(content);
                 }
                 catch (System.Exception exception)
                 {
@@ -1712,25 +1868,9 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            // `DeserializeSaveData` returns null on an empty / whitespace
-            // string without throwing, so a successful-but-empty load
-            // still needs the default-build fallback.
-            if (parsed == null)
-            {
-                saveData = BuildDefaultSaveData();
-                EmitHandleSave();
-            }
-            else
-            {
-                saveData = parsed;
-            }
-        }
-
-        protected void LoadUnsafe()
-        {
-            string saveJson = loadSave.Invoke();
-            ProjectSaveData? parsed = DeserializeSaveData(saveJson);
-            if (parsed != null) saveData = parsed;
+            // `DeserializeSaveData` returns null on empty/whitespace without throwing,
+            // so a null/empty resolution still needs the default-build fallback.
+            saveData = parsed ?? BuildDefaultSaveData();
         }
     }
 }

@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
 using NUnit.Framework;
 
 namespace NeoCompose.Tests
@@ -26,15 +27,11 @@ namespace NeoCompose.Tests
             out string saveBuffer,
             NeoDialogueRuntimeOptions? dialogueOptions = null)
         {
-            string buffer = "";
-            string loadSave() => buffer;
-            void handleSave(string file) => buffer = file;
-            var app = TestProjectNeo.Load(
-                LoadFixture("synth-example.json"),
-                loadSave,
-                handleSave,
-                dialogueOptions);
-            saveBuffer = buffer;
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var app = TestProjectNeo.Load(stack.Synchronizer, dialogueOptions)
+                .GetAwaiter()
+                .GetResult();
+            saveBuffer = app.SerializeSaveData();
             return app;
         }
 
@@ -64,6 +61,21 @@ namespace NeoCompose.Tests
             Assert.AreEqual("fire", Element.fire.optionId);
             Assert.IsTrue(Element.IsKnown("fire"));
             Assert.IsFalse(Element.IsKnown("modded-element"));
+        }
+
+        [Test]
+        public void GeneratedLoad_PassesCustomSaveNameBuilderToNeoClient()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var app = TestProjectNeo.Load(
+                stack.Synchronizer,
+                saveOptions: new NeoSaveOptions { BuildSaveName = () => "patient-comet-808" })
+                .GetAwaiter()
+                .GetResult();
+
+            Assert.IsNotNull(app);
+            var save = JsonConvert.DeserializeObject<ProjectSaveData>(app.SerializeSaveData());
+            Assert.AreEqual("patient-comet-808", save!.name);
         }
 
         [Test]
@@ -260,7 +272,8 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(1, app.Save.Heroes.Count);
             var hero = app.Save.Heroes[0];
-            Assert.AreEqual("Ada", hero.Name);
+            Assert.IsNotNull(hero);
+            Assert.AreEqual("Ada", hero!.Name);
             Assert.AreEqual(7, hero.Health);
 
             var heroesNode = app.Client.save.Get<NeoAttributeListWritable>("Heroes");
@@ -426,7 +439,7 @@ namespace NeoCompose.Tests
             string serializedBeforeCommit = app.SerializeSaveData();
             Assert.IsFalse(serializedBeforeCommit.Contains(transientScore.ToString()));
 
-            app.Commit();
+            app.CommitAsync().GetAwaiter().GetResult();
 
             Assert.AreEqual(transientScore, app.Session.Score);
             Assert.IsFalse(app.SerializeSaveData().Contains(transientScore.ToString()));
@@ -435,26 +448,18 @@ namespace NeoCompose.Tests
         [Test]
         public void GeneratedSession_ReloadStartsFromAuthoredDefaults()
         {
-            string saveBuffer = "";
-            string loadSave() => saveBuffer;
-            void handleSave(string file) => saveBuffer = file;
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
 
-            var first = TestProjectNeo.Load(
-                LoadFixture("synth-example.json"),
-                loadSave,
-                handleSave);
+            var first = TestProjectNeo.Load(stack.Synchronizer).GetAwaiter().GetResult();
             first.Session.Score = 777777;
             first.Save.Score = 12;
-            first.Commit();
+            first.CommitAsync().GetAwaiter().GetResult();
 
-            var second = TestProjectNeo.Load(
-                LoadFixture("synth-example.json"),
-                loadSave,
-                handleSave);
+            var second = TestProjectNeo.Load(stack.Reopen()).GetAwaiter().GetResult();
 
             Assert.AreEqual(12, second.Save.Score);
             Assert.AreEqual(10, second.Session.Score);
-            Assert.IsFalse(saveBuffer.Contains("777777"));
+            Assert.IsFalse(stack.PersistedContent()!.Contains("777777"));
         }
 
         [Test]

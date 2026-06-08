@@ -9,6 +9,8 @@ using System.Threading.Tasks;
 using NeoCompose.Unity.Editor;
 using NUnit.Framework;
 
+using NeoCompose.Runtime;
+
 namespace NeoCompose.Tests
 {
     public class NeoComposeEditorApiClientTests

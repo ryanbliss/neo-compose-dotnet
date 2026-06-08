@@ -90,11 +90,27 @@ namespace NeoCompose.Unity.Editor
 
                 Run(projectJson, projectData, assetDatabasePath, generatedProjectType);
                 ClearPending();
+                SetStatus("Neo Compose files synchronized.");
             }
             catch (Exception exception)
             {
                 ClearPending();
+                SetStatus("Synchronized, but post-sync validation failed: " + exception.Message);
                 Debug.LogError(exception);
+            }
+        }
+
+        /// <summary>
+        /// Writes the terminal status the editor window reads, then repaints any open
+        /// window so the message replaces the last mid-sync progress line (which a
+        /// domain reload can otherwise leave stuck).
+        /// </summary>
+        private static void SetStatus(string message)
+        {
+            SessionState.SetString(NeoComposeEditorWindow.StatusSessionKey, message);
+            foreach (var window in Resources.FindObjectsOfTypeAll<NeoComposeEditorWindow>())
+            {
+                window.Repaint();
             }
         }
 
@@ -104,13 +120,10 @@ namespace NeoCompose.Unity.Editor
             string assetDatabasePath,
             Type generatedProjectType)
         {
-            string currentSaveJson = "";
             using var project = LoadGeneratedProject(
                 generatedProjectType,
                 projectJson,
-                assetDatabasePath,
-                () => currentSaveJson,
-                content => currentSaveJson = content);
+                assetDatabasePath);
             MethodInfo resolveMethod = generatedProjectType.GetMethod(
                     "ResolveDialogueValue",
                     BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
@@ -141,14 +154,25 @@ namespace NeoCompose.Unity.Editor
         private static IDisposable LoadGeneratedProject(
             Type generatedProjectType,
             string projectJson,
-            string assetDatabasePath,
-            NeoClient.LoadSave loadSave,
-            NeoClient.HandleSave handleSave)
+            string assetDatabasePath)
         {
             NeoAssetDatabase? assetDatabase = string.IsNullOrWhiteSpace(assetDatabasePath)
                 ? null
                 : AssetDatabase.LoadAssetAtPath<NeoAssetDatabase>(assetDatabasePath);
-            NeoClient client = new NeoLoader().Load(projectJson, loadSave, handleSave, assetDatabase);
+            // Editor validation only needs a constructed client over the just-synced
+            // schema; a from-scratch local draft (empty save built from defaults) is
+            // enough to enumerate generated values. The store/synchronizer load
+            // completes synchronously over the in-hand JSON + in-memory store, so it's
+            // safe to drive the async path inline here.
+            var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(projectJson),
+                localStore: new NeoInMemoryLocalSaveStore());
+            store.LoadAsync().GetAwaiter().GetResult();
+            NeoSaveSynchronizer synchronizer = store.CreateNew();
+            NeoClient client = new NeoLoader()
+                .Load(synchronizer, assetDatabase)
+                .GetAwaiter()
+                .GetResult();
 
             ConstructorInfo? constructor = generatedProjectType.GetConstructor(
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,

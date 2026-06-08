@@ -10,6 +10,8 @@ using System.Threading.Tasks;
 using NeoCompose.Unity.Editor;
 using NUnit.Framework;
 
+using NeoCompose.Runtime;
+
 namespace NeoCompose.Tests
 {
     public class NeoComposeEditorAuthControllerTests
@@ -224,7 +226,9 @@ namespace NeoCompose.Tests
                 tokenStore,
                 () => clockNow,
                 (_, _) => Task.CompletedTask,
-                _ => { });
+                _ => { },
+                "neo-compose-unity",
+                "openid profile:read");
         }
 
         private sealed class FakeTransport : INeoComposeDeviceAuthTransport

@@ -16,6 +16,11 @@ namespace NeoCompose.Unity.Editor
     public sealed class NeoComposeEditorWindow : EditorWindow
     {
         private NeoComposeConfig? config;
+        // The runtime API key lives in a gitignored secret asset, not the committed
+        // config. Cached here so the password field doesn't hit the AssetDatabase
+        // every repaint; created on first edit (or by Synchronize).
+        private NeoComposeRuntimeSecret? runtimeSecret;
+        private string runtimeApiKey = "";
         private INeoComposeEditorApiClient apiClient = new NeoComposeEditorApiClient();
         private readonly NeoComposeEditorAuthController auth = new();
         private NeoComposeDeviceCodeResponse? pendingDeviceCode;
@@ -27,7 +32,22 @@ namespace NeoCompose.Unity.Editor
         private readonly List<NeoComposeProjectVersionStatus> versionStatuses = new();
         private Vector2 scroll;
         private string searchText = "";
-        private string status = "";
+
+        /// <summary>
+        /// SessionState key for the status line. Backing the status with SessionState
+        /// keeps the last message across the domain reload a synchronize triggers (the
+        /// generated C# recompiles), so it never gets stuck on a mid-flight progress
+        /// message — see <see cref="NeoComposePostSynchronizeProcessor"/>, which writes
+        /// the success message here after the reload settles.
+        /// </summary>
+        internal const string StatusSessionKey = "NeoCompose.EditorWindow.Status";
+
+        private string status
+        {
+            get => SessionState.GetString(StatusSessionKey, "");
+            set => SessionState.SetString(StatusSessionKey, value ?? "");
+        }
+
         private bool loading;
         private bool sessionRefreshInProgress;
         private DateTimeOffset? lastSessionRefreshCheckedAt;
@@ -49,6 +69,8 @@ namespace NeoCompose.Unity.Editor
         private void OnEnable()
         {
             config = NeoComposeConfigProvider.LoadOrCreate();
+            runtimeSecret = NeoComposeRuntimeSecretProvider.Find();
+            runtimeApiKey = runtimeSecret?.RuntimeApiKey ?? "";
             synchronizer = new NeoComposeSynchronizer(
                 apiClient,
                 new NeoComposeEditorDialogConfirmationService(),
@@ -214,8 +236,6 @@ namespace NeoCompose.Unity.Editor
                 }
             }
 
-            RenderSessionRefreshStatus();
-
             EndSection();
         }
 
@@ -238,34 +258,45 @@ namespace NeoCompose.Unity.Editor
                 _ = DisconnectAsync(config);
             }
 
+            RenderSessionStatusIcon();
+
             EditorGUILayout.EndHorizontal();
         }
 
-        private void RenderSessionRefreshStatus()
+        /// <summary>
+        /// A compact session-health glyph to the right of Disconnect — a checkmark for
+        /// a valid token (spinner while refreshing) — with the "last token check /
+        /// refreshed" detail as its hover tooltip.
+        /// </summary>
+        private void RenderSessionStatusIcon()
         {
-            if (sessionRefreshInProgress)
-            {
-                EditorGUILayout.Space(3);
-                EditorGUILayout.LabelField("Refreshing token...", MutedStyle());
-                return;
-            }
+            string tooltip = BuildSessionStatusTooltip();
+            if (string.IsNullOrEmpty(tooltip)) return;
 
+            var previousColor = GUI.color;
+            GUI.color = sessionRefreshInProgress
+                ? new Color(0.85f, 0.80f, 0.45f)
+                : new Color(0.40f, 0.80f, 0.52f);
+            GUILayout.Label(
+                new GUIContent(sessionRefreshInProgress ? "↻" : "✓", tooltip),
+                SessionStatusIconStyle(),
+                GUILayout.Width(20),
+                GUILayout.Height(18));
+            GUI.color = previousColor;
+        }
+
+        private string BuildSessionStatusTooltip()
+        {
+            if (sessionRefreshInProgress) return "Refreshing token…";
             if (lastTokenRefreshedAt.HasValue)
             {
-                EditorGUILayout.Space(3);
-                EditorGUILayout.LabelField(
-                    "Last refreshed at " + lastTokenRefreshedAt.Value.ToLocalTime().ToString("g"),
-                    MutedStyle());
-                return;
+                return "Last refreshed at " + lastTokenRefreshedAt.Value.ToLocalTime().ToString("g");
             }
-
             if (lastSessionRefreshCheckedAt.HasValue)
             {
-                EditorGUILayout.Space(3);
-                EditorGUILayout.LabelField(
-                    "Last token check at " + lastSessionRefreshCheckedAt.Value.ToLocalTime().ToString("g"),
-                    MutedStyle());
+                return "Last token check at " + lastSessionRefreshCheckedAt.Value.ToLocalTime().ToString("g");
             }
+            return "";
         }
 
         private void RenderSignInControls(NeoComposeConfig config)
@@ -456,8 +487,17 @@ namespace NeoCompose.Unity.Editor
             {
                 DrawDirectoryField("Generated Types", ref config.generatedTypesDirectory);
                 DrawDirectoryField("Project JSON", ref config.projectJsonDirectory);
-                DrawDirectoryField("Localization Resources", ref config.localizationResourcesDirectory);
-                DrawDirectoryField("Localization StreamingAssets", ref config.localizationStreamingAssetsDirectory);
+                DrawDirectoryField("Sprites", ref config.spriteDirectory);
+                DrawDirectoryField("Audio Clips", ref config.audioClipDirectory);
+            }
+
+            EndSection();
+
+            BeginSection("Localization");
+            using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
+            {
+                DrawDirectoryField("Resources", ref config.localizationResourcesDirectory);
+                DrawDirectoryField("StreamingAssets", ref config.localizationStreamingAssetsDirectory);
                 EditorGUI.BeginChangeCheck();
                 config.useStreamingAssetsForNonMainLocales = EditorGUILayout.Toggle(
                     "Stream Non-Main Locales",
@@ -476,11 +516,13 @@ namespace NeoCompose.Unity.Editor
                 {
                     NeoComposeConfigProvider.Save(config);
                 }
-                DrawDirectoryField("Sprites", ref config.spriteDirectory);
-                DrawDirectoryField("Audio Clips", ref config.audioClipDirectory);
             }
 
             EndSection();
+
+            // Cloud Save Sync sits just above the synchronize actions so its config
+            // and warnings are visible right next to Synchronize + the status line.
+            RenderRuntimeSyncSection(config);
 
             BeginSection("Project Assets");
             EditorGUILayout.LabelField(
@@ -504,26 +546,84 @@ namespace NeoCompose.Unity.Editor
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
             EndSection();
-
-            RenderRuntimeSyncSection(config);
         }
 
         private void RenderRuntimeSyncSection(NeoComposeConfig config)
         {
-            BeginSection("Runtime Sync (preview)");
+            BeginSection("Cloud Save Sync");
             using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
             {
                 EditorGUI.BeginChangeCheck();
-                config.projectRuntimeApiKey = EditorGUILayout.TextField(
-                    "Runtime API Key",
-                    config.projectRuntimeApiKey);
+
+                // Developer-owned master switch. Synchronize seeds it on the first
+                // available client, but never overwrites a deliberate choice.
+                config.enableOAuthCloudSync = EditorGUILayout.Toggle(
+                    new GUIContent(
+                        "Enable Cloud Saves",
+                        "When on, runtime saves sync to the cloud using the runtime OAuth client below. When off, saves stay local-only."),
+                    config.enableOAuthCloudSync);
+
+                // Pre-filled from the web portal on Synchronize, but developer-editable.
+                // Editing marks the config overridden so a later Synchronize won't
+                // clobber the manual values.
+                var previousClientId = config.runtimeOAuthClientId;
+                config.runtimeOAuthClientId = EditorGUILayout.TextField(
+                    new GUIContent("Runtime OAuth Client", "Pre-filled on Synchronize; edit to override the runtime OAuth client id."),
+                    config.runtimeOAuthClientId);
+
+                var currentScopes = config.runtimeOAuthScopes != null
+                    ? string.Join(" ", config.runtimeOAuthScopes)
+                    : "";
+                var editedScopes = EditorGUILayout.TextField(
+                    new GUIContent("Runtime OAuth Scopes", "Space-delimited. Pre-filled on Synchronize; edit to override."),
+                    currentScopes);
+                bool scopesEdited = editedScopes != currentScopes;
+                if (scopesEdited)
+                {
+                    config.runtimeOAuthScopes = editedScopes.Split(
+                        new[] { ' ', '\t', '\n', '\r' },
+                        System.StringSplitOptions.RemoveEmptyEntries);
+                }
+
+                if (config.runtimeOAuthClientId != previousClientId || scopesEdited)
+                {
+                    config.runtimeOAuthOverridden = true;
+                }
+
                 if (EditorGUI.EndChangeCheck())
                 {
                     NeoComposeConfigProvider.Save(config);
                 }
+
+                // Project-scoped runtime API key — masked, and stored in the
+                // gitignored secret asset (never the committed config), so it ships
+                // in builds but isn't checked in. Created (with its .gitignore) on
+                // first edit if Synchronize hasn't already done so.
+                var editedKey = EditorGUILayout.PasswordField(
+                    new GUIContent("Runtime API Key", "Project-scoped key for runtime-data sync and secure release channels. Stored in a gitignored asset, not committed to source control."),
+                    runtimeApiKey);
+                if (editedKey != runtimeApiKey)
+                {
+                    runtimeApiKey = editedKey;
+                    runtimeSecret ??= NeoComposeRuntimeSecretProvider.EnsureAssetAndGitignore();
+                    runtimeSecret.RuntimeApiKey = runtimeApiKey;
+                    NeoComposeRuntimeSecretProvider.Save(runtimeSecret);
+                }
+
+                if (config.runtimeOAuthOverridden && GUILayout.Button(
+                        new GUIContent("Reset override", "Resume filling the client id and scopes from Synchronize."),
+                        GUILayout.Width(120)))
+                {
+                    config.runtimeOAuthOverridden = false;
+                    NeoComposeConfigProvider.Save(config);
+                }
             }
 
-            EditorGUILayout.LabelField("Stored for upcoming runtime sync. Not used yet.", MutedStyle());
+            if (config.TryGetCloudSaveSyncWarning(runtimeApiKey, out var cloudSyncWarning))
+            {
+                EditorGUILayout.HelpBox(cloudSyncWarning, MessageType.Warning);
+            }
+
             EndSection();
         }
 
@@ -806,6 +906,15 @@ namespace NeoCompose.Unity.Editor
             };
         }
 
+        private static GUIStyle SessionStatusIconStyle()
+        {
+            return new GUIStyle(EditorStyles.boldLabel)
+            {
+                fontSize = 15,
+                alignment = TextAnchor.MiddleCenter,
+            };
+        }
+
         private static GUIStyle SectionTitleStyle()
         {
             return new GUIStyle(EditorStyles.boldLabel)
@@ -988,6 +1097,10 @@ namespace NeoCompose.Unity.Editor
             {
                 var result = await synchronizer.SynchronizeAsync(config, UpdateProgressStatus);
                 RefreshConfigForDisplay();
+                // Bootstrap the gitignored runtime-secret asset + its .gitignore so a
+                // freshly linked project is git-safe before any key is pasted.
+                runtimeSecret = NeoComposeRuntimeSecretProvider.EnsureAssetAndGitignore();
+                runtimeApiKey = runtimeSecret.RuntimeApiKey;
                 if (config != null && config.HasProject)
                 {
                     await RefreshVersionMetadataAsync(false);

@@ -455,16 +455,17 @@ namespace NeoCompose.Runtime
 
         private static string EnsureWritableRow(NeoClient client, string rowId, NeoValueOwnership ownership)
         {
-            if (!client.TryGetValueOwnership(rowId, out NeoValueOwnership currentOwnership)
-                || currentOwnership != ownership)
+            // Stable-id clone-on-write: shadow the single row at its own id
+            // in the target store (no path walking — the parent already
+            // references this id). The row must be reachable from the target
+            // writable root; otherwise it isn't mutable in that store.
+            if (ownership == NeoValueOwnership.Asset
+                || !client.TryGetValueOwnership(rowId, out NeoValueOwnership currentOwnership)
+                || currentOwnership != ownership
+                || !client.EnsureWritableShadow(ownership, rowId))
             {
-                if (ownership == NeoValueOwnership.Asset
-                    || !client.TryMaterializeWritablePath(ownership, rowId, out string? materializedRowId))
-                {
-                    throw new NSGetterRuntimeError(
-                        $"Cannot mutate value '{rowId}' because it is not {ownership.ToString().ToLowerInvariant()}-owned.");
-                }
-                return materializedRowId;
+                throw new NSGetterRuntimeError(
+                    $"Cannot mutate value '{rowId}' because it is not {ownership.ToString().ToLowerInvariant()}-owned.");
             }
             return rowId;
         }
@@ -939,14 +940,10 @@ namespace NeoCompose.Runtime
                 }
                 parent.value ??= new Dictionary<string, string>();
                 var now = DateTime.UtcNow.ToString("o");
+                // Reusing the entry's stable id below clone-on-writes it
+                // (a fresh row at the same id shadows the authored default),
+                // so no path pre-materialization is needed.
                 if (parent.value.TryGetValue(key, out string existingId)
-                    && !client.TryGetWritableValue(ownership, existingId, out AttributeValue? _)
-                    && client.TryMaterializeWritablePath(ownership, existingId, out _))
-                {
-                    client.TryGetValue(ownership, writableParentRowId, out parent);
-                    parent!.value ??= new Dictionary<string, string>();
-                }
-                if (parent.value.TryGetValue(key, out existingId)
                     && client.TryGetValue(ownership, existingId, out AttributeValue? existing))
                 {
                     if (TryGetCustomValueReferenceId(

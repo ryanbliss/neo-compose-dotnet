@@ -9,6 +9,16 @@ namespace NeoCompose.Unity.Editor
     {
         public const string ApiBaseUrl = global::NeoCompose.Runtime.NeoComposeDefaults.ApiBaseUrl;
         public const string ConfigPath = "Assets/Resources/Neo/NeoComposeConfig.asset";
+
+        /// <summary>File name of the gitignored runtime secret asset (sits next to the config).</summary>
+        public const string RuntimeSecretFileName = "NeoComposeRuntimeSecret.asset";
+
+        /// <summary>
+        /// Environment variable a CI build reads the runtime API key from when the
+        /// gitignored secret asset is absent (a fresh checkout). Baked into the build
+        /// by <c>NeoComposeRuntimeSecretBuildProcessor</c>.
+        /// </summary>
+        public const string RuntimeApiKeyEnvVar = "NEO_COMPOSE_RUNTIME_API_KEY";
         public const string GeneratedTypesDirectory = global::NeoCompose.Runtime.NeoComposeDefaults.GeneratedTypesDirectory;
         public const string ProjectJsonDirectory = global::NeoCompose.Runtime.NeoComposeDefaults.ProjectJsonDirectory;
         public const string LocalizationResourcesDirectory = global::NeoCompose.Runtime.NeoComposeDefaults.LocalizationResourcesDirectory;
@@ -36,11 +46,11 @@ namespace NeoCompose.Unity.Editor
         /// Better Auth handler base path, relative to the configured origin.
         /// Everything resolves through one origin (the config API base URL).
         /// </summary>
-        public const string AuthBasePath = "/api/auth";
+        public const string AuthBasePath = global::NeoCompose.Runtime.NeoComposeDefaults.AuthBasePath;
 
         /// <summary>
         /// Web verification page path, relative to the configured origin.
         /// </summary>
-        public const string DeviceVerificationPath = "/auth/device";
+        public const string DeviceVerificationPath = global::NeoCompose.Runtime.NeoComposeDefaults.DeviceVerificationPath;
     }
 }

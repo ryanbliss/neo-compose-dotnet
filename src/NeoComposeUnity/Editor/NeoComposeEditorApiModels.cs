@@ -121,6 +121,21 @@ namespace NeoCompose.Unity.Editor
         public string? projectDocumentContentHash;
         public string? codegenContractHash;
         public string? runtimeDataContractHash;
+        public NeoComposeUnityRuntimeOAuthConfig? runtimeOAuth;
+    }
+
+    /// <summary>
+    /// Per-project runtime OAuth config carried in the export bundle so the editor
+    /// can pre-fill <see cref="NeoCompose.Runtime.NeoComposeConfig"/>.
+    /// Introduction-gated server-side: <see cref="configuredForVersion"/> is false
+    /// (and <see cref="runtimeOAuthClientId"/> null) for versions predating the
+    /// client's introduction, disabled clients, and projects with no runtime client.
+    /// </summary>
+    public sealed class NeoComposeUnityRuntimeOAuthConfig
+    {
+        public bool configuredForVersion;
+        public string? runtimeOAuthClientId;
+        public string[] scopes = System.Array.Empty<string>();
     }
 
     public sealed class NeoComposeUnityLocalizationFile

@@ -33,20 +33,171 @@ namespace NeoCompose.Tests
             // surface lands.
             var instance = new NeoLoader();
             Assert.IsNotNull(instance);
-            // In-memory save round-trip: `handleSave` writes to a
-            // closed-over string; `loadSave` reads it back. Mimics what
-            // a real host (PlayerPrefs, file I/O, etc.) does so
-            // NeoClient's bootstrap (BuildDefaultSaveData →
-            // EmitHandleSave → LoadUnsafe) round-trips correctly.
-            string saveBuffer = "";
-            string loadSave() => saveBuffer;
-            void handleSave(string file) => saveBuffer = file;
-            var client = instance.Load(
-                LoadFixture("synth-example.json"),
-                loadSave,
-                handleSave
-            );
+            // A fresh draft builds default save data; committing persists it to the
+            // local store (the durable round-trip the removed handleSave delegate used
+            // to perform), so the persisted JSON can be inspected here.
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var client = stack.Load();
             Assert.IsNotNull(client);
+            client.CommitAsync().GetAwaiter().GetResult();
+            string saveBuffer = stack.PersistedContent()!;
+            var save = JsonConvert.DeserializeObject<ProjectSaveData>(saveBuffer);
+            Assert.IsNotNull(save);
+            AssertGeneratedSaveName(save!.name);
+            Assert.AreEqual("test-project", save!.projectId);
+            Assert.AreEqual("version-1", save.version.id);
+            Assert.AreEqual("0.1.0", save.version.label);
+            Assert.Greater(save.createdAt.EpochMilliseconds, 0d);
+            Assert.GreaterOrEqual(save.updatedAt.EpochMilliseconds, save.createdAt.EpochMilliseconds);
+
+            var serialized = JObject.Parse(saveBuffer);
+            Assert.AreNotEqual(JTokenType.String, serialized["createdAt"]!.Type);
+            Assert.AreNotEqual(JTokenType.String, serialized["updatedAt"]!.Type);
+        }
+
+        [Test]
+        public void NeoLoader_UsesCustomSaveNameBuilderForNewSaves()
+        {
+            var client = NeoTestSaveStack.LoadClient(
+                LoadFixture("synth-example.json"),
+                localizationOptions: null,
+                localizationFileSource: null,
+                options: new NeoSaveOptions { BuildSaveName = () => "careful-lantern-777" });
+
+            Assert.IsNotNull(client);
+            var save = JsonConvert.DeserializeObject<ProjectSaveData>(client.SerializeSaveData());
+            Assert.AreEqual("careful-lantern-777", save!.name);
+        }
+
+        [Test]
+        public void NeoLoader_WritesSaveDiagnosticsAndDedupesByCapturedValues()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var client = stack.Load();
+            client.CommitAsync().GetAwaiter().GetResult();
+
+            var serialized = JObject.Parse(stack.PersistedContent()!);
+            Assert.AreEqual(1, serialized["platforms"]!.Count());
+            Assert.AreEqual(1, serialized["systems"]!.Count());
+            Assert.AreNotEqual(JTokenType.String, serialized["platforms"]![0]!["lastSavedAt"]!.Type);
+            Assert.AreNotEqual(JTokenType.String, serialized["systems"]![0]!["lastSavedAt"]!.Type);
+        }
+
+        [Test]
+        public void NeoLoader_ClearsSaveDiagnosticsWhenDisabledAtRuntime()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var client = stack.Load();
+
+            client.SaveOptions.DiagnosticsEnabled = false;
+            client.CommitAsync().GetAwaiter().GetResult();
+
+            var serialized = JObject.Parse(stack.PersistedContent()!);
+            Assert.AreEqual(JTokenType.Null, serialized["platforms"]!.Type);
+            Assert.AreEqual(JTokenType.Null, serialized["systems"]!.Type);
+            Assert.AreEqual(JTokenType.Null, serialized["inputDevices"]!.Type);
+        }
+
+        [Test]
+        public void NeoLoader_PreservesLoadedSaveName()
+        {
+            var saveBuffer = @"{
+  ""name"": ""ancient-button-321"",
+  ""projectId"": ""project-1"",
+  ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
+  ""createdAt"": 100,
+  ""updatedAt"": 123,
+  ""values"": {},
+  ""attributeValueOverrides"": {}
+}";
+            var client = LoadLocalizedStringClient(localizable: true, saveBuffer);
+
+            var serialized = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual("ancient-button-321", serialized["name"]!.Value<string>());
+        }
+
+        [Test]
+        public void SaveData_SerializeDoesNotChangeUpdatedAt()
+        {
+            var saveBuffer = @"{
+  ""name"": ""quiet-fox-456"",
+  ""projectId"": ""project-1"",
+  ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
+  ""createdAt"": 100,
+  ""updatedAt"": 123,
+  ""values"": {},
+  ""attributeValueOverrides"": {}
+}";
+            var client = LoadLocalizedStringClient(localizable: true, saveBuffer);
+
+            var serializedBeforeSave = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual("quiet-fox-456", serializedBeforeSave["name"]!.Value<string>());
+            Assert.AreEqual(100d, serializedBeforeSave["createdAt"]!.Value<double>());
+            var updatedAtBeforeSave = serializedBeforeSave["updatedAt"]!.Value<double>();
+
+            var serializedAgain = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual(updatedAtBeforeSave, serializedAgain["updatedAt"]!.Value<double>());
+
+        }
+
+        [Test]
+        public void SaveData_UpdatedAtChangesWhenSaveOverrideValueChanges()
+        {
+            var client = LoadLocalizedStringClient(
+                localizable: true,
+                @"{
+  ""name"": ""quiet-fox-456"",
+  ""projectId"": ""project-1"",
+  ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
+  ""createdAt"": 100,
+  ""updatedAt"": 123,
+  ""values"": {},
+  ""attributeValueOverrides"": {}
+}");
+            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
+            var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Save);
+
+            node.SetLiteralOverride("Manual Title");
+
+            var serialized = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual(100d, serialized["createdAt"]!.Value<double>());
+            Assert.Greater(serialized["updatedAt"]!.Value<double>(), 123d);
+        }
+
+        [Test]
+        public void SaveData_UpdatedAtDoesNotChangeWhenSessionOverrideValueChanges()
+        {
+            var client = LoadLocalizedStringClient(
+                localizable: true,
+                @"{
+  ""name"": ""quiet-fox-456"",
+  ""projectId"": ""project-1"",
+  ""version"": { ""id"": ""version-1"", ""label"": ""0.1.0"" },
+  ""createdAt"": 100,
+  ""updatedAt"": 123,
+  ""values"": {},
+  ""attributeValueOverrides"": {}
+}");
+            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
+            var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Session);
+
+            node.SetLiteralOverride("Session Title");
+
+            var serialized = JObject.Parse(client.SerializeSaveData());
+            Assert.AreEqual(100d, serialized["createdAt"]!.Value<double>());
+            Assert.AreEqual(123d, serialized["updatedAt"]!.Value<double>());
+        }
+
+        private static void AssertGeneratedSaveName(string name)
+        {
+            Assert.IsFalse(string.IsNullOrWhiteSpace(name));
+            var parts = name.Split('-');
+            Assert.AreEqual(3, parts.Length);
+            Assert.IsFalse(string.IsNullOrWhiteSpace(parts[0]));
+            Assert.IsFalse(string.IsNullOrWhiteSpace(parts[1]));
+            Assert.IsTrue(int.TryParse(parts[2], out var suffix));
+            Assert.GreaterOrEqual(suffix, 100);
+            Assert.LessOrEqual(suffix, 999);
         }
 
         [Test]
@@ -137,14 +288,7 @@ namespace NeoCompose.Tests
                 },
             };
 
-            string saveBuffer = "";
-            var client = new NeoLoader().Load(
-                projectJson,
-                () => saveBuffer,
-                save => saveBuffer = save,
-                null,
-                new NeoLocalizationOptions(),
-                source);
+            var client = NeoTestSaveStack.LoadClient(projectJson, new NeoLocalizationOptions(), source);
 
             Assert.AreEqual("en-US", client.Localization.MainLocale);
             Assert.AreEqual("en-US", client.Localization.CurrentLocale);
@@ -207,12 +351,8 @@ namespace NeoCompose.Tests
             source.files["en-US"] = LocaleFile("en-US", null, ("title", "Hello {name}"), ("root-only", "Root"));
             source.files["es-MX"] = LocaleFile("es-MX", "en-US", ("title", "Hola {name}"), ("missing", null));
 
-            string saveBuffer = "";
-            var client = new NeoLoader().Load(
+            var client = NeoTestSaveStack.LoadClient(
                 projectJson,
-                () => saveBuffer,
-                save => saveBuffer = save,
-                null,
                 new NeoLocalizationOptions
                 {
                     localeOverride = "es-MX",
@@ -243,12 +383,8 @@ namespace NeoCompose.Tests
             source.files["en-US"] = LocaleFile("en-US", null, ("title", "Hello"));
             source.files["es-MX"] = LocaleFile("es-MX", "en-US", ("title", "Hola"));
 
-            string saveBuffer = "";
-            var client = new NeoLoader().Load(
+            var client = NeoTestSaveStack.LoadClient(
                 projectJson,
-                () => saveBuffer,
-                save => saveBuffer = save,
-                null,
                 new NeoLocalizationOptions
                 {
                     localeOverride = "es-MX",
@@ -273,12 +409,8 @@ namespace NeoCompose.Tests
             source.files["en-US"] = LocaleFile("en-US", null, ("title", "Hello"));
             source.streamingFiles["es-MX"] = LocaleFile("es-MX", "en-US", ("title", "Hola"));
 
-            string saveBuffer = "";
-            var client = new NeoLoader().Load(
+            var client = NeoTestSaveStack.LoadClient(
                 projectJson,
-                () => saveBuffer,
-                save => saveBuffer = save,
-                null,
                 new NeoLocalizationOptions
                 {
                     localeOverride = "es-MX",
@@ -318,12 +450,8 @@ namespace NeoCompose.Tests
             var source = new FakeLocalizationLocaleFileSource();
             source.files["en-US"] = LocaleFile("en-US", null, ("bad-format", "{missing"));
 
-            string saveBuffer = "";
-            var client = new NeoLoader().Load(
+            var client = NeoTestSaveStack.LoadClient(
                 projectJson,
-                () => saveBuffer,
-                save => saveBuffer = save,
-                null,
                 new NeoLocalizationOptions { preloadSystemLocale = false },
                 source);
 
@@ -439,17 +567,10 @@ namespace NeoCompose.Tests
                 formattingSyntax = "smart-format",
             };
 
-            string saveBuffer = "";
-            return new NeoLoader().Load(
-                projectJson,
-                () => saveBuffer,
-                save => saveBuffer = save,
-                null,
-                options,
-                source);
+            return NeoTestSaveStack.LoadClient(projectJson, options, source);
         }
 
-        private static NeoClient LoadLocalizedStringClient(bool localizable)
+        private static NeoClient LoadLocalizedStringClient(bool localizable, string initialSave = "")
         {
             var projectJson = $@"{{
   ""project"": {{
@@ -532,14 +653,11 @@ namespace NeoCompose.Tests
             var source = new FakeLocalizationLocaleFileSource();
             source.files["en-US"] = LocaleFile("en-US", null, ("text-title", "Localized Title"));
 
-            string saveBuffer = "";
-            return new NeoLoader().Load(
+            return NeoTestSaveStack.LoadClient(
                 projectJson,
-                () => saveBuffer,
-                save => saveBuffer = save,
-                null,
                 new NeoLocalizationOptions { preloadSystemLocale = false },
-                source);
+                source,
+                initialSaveContent: string.IsNullOrEmpty(initialSave) ? null : initialSave);
         }
 
         private static T RequireAttribute<T>(NeoClient client, string id)
@@ -564,12 +682,8 @@ namespace NeoCompose.Tests
             source.files["en-US"] = LocaleFile("en-US", null, ("title", "Hello"));
             source.streamingFiles["es-MX"] = LocaleFile("es-MX", "en-US", ("title", "Hola"));
 
-            string saveBuffer = "";
-            return new NeoLoader().Load(
+            return NeoTestSaveStack.LoadClient(
                 projectJson,
-                () => saveBuffer,
-                save => saveBuffer = save,
-                null,
                 new NeoLocalizationOptions
                 {
                     localeOverride = "es-MX",

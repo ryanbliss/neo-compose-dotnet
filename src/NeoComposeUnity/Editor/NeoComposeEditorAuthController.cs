@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 
+using NeoCompose.Runtime;
+
 namespace NeoCompose.Unity.Editor
 {
     public enum NeoComposeAuthState
@@ -44,7 +46,7 @@ namespace NeoCompose.Unity.Editor
             this.now = now ?? (() => DateTimeOffset.UtcNow);
             this.flowFactory = flowFactory ?? DefaultFlowFactory;
             this.revoker = revoker ?? new NeoComposeTokenRevoker();
-            this.sessionRefresher = sessionRefresher ?? new NeoComposeSessionRefresher();
+            this.sessionRefresher = sessionRefresher ?? new NeoComposeSessionRefresher(apiBaseUrl => NeoComposeTokenStore.Create(apiBaseUrl));
         }
 
         public NeoComposeAuthState State { get; private set; } = NeoComposeAuthState.SignedOut;
@@ -233,7 +235,9 @@ namespace NeoCompose.Unity.Editor
                 store,
                 () => DateTimeOffset.UtcNow,
                 (seconds, token) => Task.Delay(TimeSpan.FromSeconds(seconds), token),
-                Application.OpenURL);
+                Application.OpenURL,
+                NeoComposeEditorDefaults.OAuthClientId,
+                NeoComposeEditorDefaults.OAuthScopes);
         }
     }
 }

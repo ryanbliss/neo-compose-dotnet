@@ -123,8 +123,10 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Appends a new entry to the end of the list. If the parent
-        /// list itself has no stored value yet, materialises one first.
+        /// Appends a new entry to the end of the list. Clone-on-writes the
+        /// list's own array row (shadowing the authored default at its
+        /// stable id) before appending; mints + binds an empty array row
+        /// first when the list has no bound value yet.
         /// </summary>
         internal void AddSerialized(NeoValueWritePayload? entryValue)
         {
@@ -135,7 +137,7 @@ namespace NeoCompose.Runtime
                     "Cannot be null when entry attribute is required");
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
-            EnsureParentExists(nowIso);
+            ArrayAttributeValue parentRow = EnsureWritableArray(nowIso);
 
             string newValueId;
             if (entryValue?.isValueReference == true)
@@ -151,22 +153,26 @@ namespace NeoCompose.Runtime
                 client.SetWritableValue(ownership, newValueRow);
             }
 
-            string[] currentArr = value!.value ?? System.Array.Empty<string>();
+            string[] currentArr = parentRow.value ?? System.Array.Empty<string>();
             string[] nextArr = new string[currentArr.Length + 1];
             System.Array.Copy(currentArr, nextArr, currentArr.Length);
             nextArr[currentArr.Length] = newValueId;
-            value.value = nextArr;
-            value.updatedAt = nowIso;
-            client.SetWritableValue(ownership, value);
+            parentRow.value = nextArr;
+            parentRow.updatedAt = nowIso;
+            client.SetWritableValue(ownership, parentRow);
+            // List/Dictionary nodes don't refresh their cached value on a write
+            // event, so retarget explicitly to the just-shadowed row.
+            value = parentRow;
 
             childAttributes.Add(CreateChild(client, entryAttribute, newValueId));
             NotifyChanged();
         }
 
         /// <summary>
-        /// Replaces the entry at <paramref name="index"/>. Updates the
-        /// existing value row in place rather than swapping ids, so
-        /// any other references to that value see the change.
+        /// Replaces the entry at <paramref name="index"/>. Reuses the
+        /// existing entry's stable id (other references to it see the
+        /// change) and clone-on-writes the list's own array row only when a
+        /// value-reference swap changes which id sits in the slot.
         /// </summary>
         internal void SetSerialized(int index, NeoValueWritePayload? entryValue)
         {
@@ -183,20 +189,14 @@ namespace NeoCompose.Runtime
             string nowIso = System.DateTime.UtcNow.ToString("o");
             string entryValueId = value.value[index];
 
-            if (ownership != NeoValueOwnership.Asset
-                && !client.TryGetWritableValue(ownership, entryValueId, out AttributeValue? _)
-                && client.TryMaterializeWritablePath(ownership, entryValueId, out _))
-            {
-                RefreshFromValueData();
-                entryValueId = value!.value[index];
-            }
-
             if (entryValue?.isValueReference == true)
             {
                 string importedValueId = client.ImportValueReference(ownership, entryValue.valueId!);
-                value.value[index] = importedValueId;
-                value.updatedAt = nowIso;
-                client.SetWritableValue(ownership, value);
+                ArrayAttributeValue parentRow = EnsureWritableArray(nowIso);
+                parentRow.value![index] = importedValueId;
+                parentRow.updatedAt = nowIso;
+                client.SetWritableValue(ownership, parentRow);
+                value = parentRow;
                 client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, entryValueId);
                 childAttributes[index].Dispose();
                 childAttributes[index] = CreateChild(client, entryAttribute, importedValueId);
@@ -223,10 +223,11 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Removes the entry at <paramref name="index"/>. Disposes the
-        /// child <see cref="NeoAttribute"/> bound to that slot,
-        /// re-saves the parent so the array shrinks, and cascade-deletes
-        /// the orphaned value graph from <see cref="ProjectSaveData.values"/>.
+        /// Removes the entry at <paramref name="index"/>. Clone-on-writes
+        /// the list's own array row so the shrink shadows the authored
+        /// default at its stable id, disposes the child
+        /// <see cref="NeoAttribute"/> bound to that slot, and cascade-deletes
+        /// the orphaned value graph from the writable store.
         /// </summary>
         public void RemoveAt(int index)
         {
@@ -235,19 +236,20 @@ namespace NeoCompose.Runtime
                 throw new System.ArgumentOutOfRangeException(nameof(index));
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
-            string removedValueId = value.value[index];
+            ArrayAttributeValue parentRow = EnsureWritableArray(nowIso);
+            string[] currentArr = parentRow.value!;
+            string removedValueId = currentArr[index];
 
-            // Build the new array without the removed slot + persist.
-            string[] currentArr = value.value;
             string[] nextArr = new string[currentArr.Length - 1];
             for (int i = 0, j = 0; i < currentArr.Length; i++)
             {
                 if (i == index) continue;
                 nextArr[j++] = currentArr[i];
             }
-            value.value = nextArr;
-            value.updatedAt = nowIso;
-            client.SetWritableValue(ownership, value);
+            parentRow.value = nextArr;
+            parentRow.updatedAt = nowIso;
+            client.SetWritableValue(ownership, parentRow);
+            value = parentRow;
 
             // Dispose the child node + drop our reference. Its own
             // Dispose recursively disposes any descendants the entry
@@ -256,22 +258,23 @@ namespace NeoCompose.Runtime
             removedChild.Dispose();
             childAttributes.RemoveAt(index);
 
-            // GC the orphaned value graph from the save file.
+            // GC the orphaned value graph from the writable store.
             client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, removedValueId);
             NotifyChanged();
         }
 
-        private void EnsureParentExists(string nowIso)
+        /// <summary>
+        /// Returns the list's own array row guaranteed writable (a
+        /// clone-on-write shadow at the stable id), minting + binding a
+        /// fresh empty array through the parent when nothing is bound yet.
+        /// </summary>
+        private ArrayAttributeValue EnsureWritableArray(string nowIso)
         {
-            if (value is not null)
+            var writable = EnsureWritableValue();
+            if (writable is not null)
             {
-                if (ownership != NeoValueOwnership.Asset
-                    && !client.TryGetWritableValue(ownership, value.id, out ArrayAttributeValue? _)
-                    && client.TryMaterializeWritablePath(ownership, value.id, out _))
-                {
-                    RefreshFromValueData();
-                }
-                return;
+                writable.value ??= System.Array.Empty<string>();
+                return writable;
             }
             ArrayAttributeValue parentRow = new()
             {
@@ -280,8 +283,8 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = System.Array.Empty<string>(),
             };
-            client.AddWritableValue(ownership, attribute.id, parentRow);
-            RefreshFromValueData();
+            BindNewValue(parentRow);
+            return parentRow;
         }
     }
 }

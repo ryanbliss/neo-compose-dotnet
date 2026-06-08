@@ -41,25 +41,24 @@ namespace NeoCompose.Runtime
             string nowIso = System.DateTime.UtcNow.ToString("o");
             double? doubleValue = newValue.HasValue ? newValue.Value : (double?)null;
 
-            if (value is NumberAttributeValue existing)
+            var writable = EnsureWritableValue();
+            if (writable is not null)
             {
-                existing.value = doubleValue;
-                existing.updatedAt = nowIso;
-                client.SetWritableValue(ownership, existing);
+                writable.value = doubleValue;
+                writable.updatedAt = nowIso;
+                client.SetWritableValue(ownership, writable);
                 NotifyChanged();
                 return;
             }
 
-            string newValueId = System.Guid.NewGuid().ToString();
             NumberAttributeValue newRow = new()
             {
-                id = newValueId,
+                id = System.Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = doubleValue,
             };
-            client.AddWritableValue(ownership, attribute.id, newRow);
-            RefreshFromValueData();
+            BindNewValue(newRow);
             NotifyChanged();
         }
     }

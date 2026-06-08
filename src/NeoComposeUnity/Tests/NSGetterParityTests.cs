@@ -41,11 +41,7 @@ namespace NeoCompose.Tests
 
         private static NeoClient LoadProjectClient()
         {
-            var loader = new NeoLoader();
-            string saveBuffer = "";
-            string loadSave() => saveBuffer;
-            void handleSave(string file) => saveBuffer = file;
-            return loader.Load(LoadFixture("project-example.json"), loadSave, handleSave);
+            return NeoTestSaveStack.LoadClient(LoadFixture("project-example.json"));
         }
 
         private class ExpectedEntry
