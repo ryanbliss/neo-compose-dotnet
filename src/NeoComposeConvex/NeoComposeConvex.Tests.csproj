@@ -1,0 +1,64 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>NeoCompose.Convex.Tests</RootNamespace>
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+    <UnityTestRunnerDir Condition="'$(UnityTestRunnerDir)' == ''">../../samples/HelloWorld/Library/ScriptAssemblies</UnityTestRunnerDir>
+    <ConvexClientAssembliesDir Condition="'$(ConvexClientAssembliesDir)' == ''">$(MSBuildThisFileDirectory)../../samples/HelloWorld/Library/ScriptAssemblies</ConvexClientAssembliesDir>
+    <ConvexPackageCacheDir Condition="'$(ConvexPackageCacheDir)' == ''">$(MSBuildThisFileDirectory)../../samples/HelloWorld/Library/PackageCache</ConvexPackageCacheDir>
+    <!-- IDE-only shim — Unity drives the actual test compile via
+         Tests/NeoCompose.Unity.Convex.Tests.asmdef. This csproj gives VSCode /
+         Rider IntelliSense over the Convex test sources when the monorepo is
+         opened outside Unity. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Override the default `**/*.cs` glob so we only compile this folder's
+         own Tests subtree; Runtime / Editor sources belong to sibling shims. -->
+    <Compile Remove="**/*.cs" />
+    <Compile Include="Tests/**/*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="NeoComposeConvex.csproj" />
+    <ProjectReference Include="NeoComposeConvexEditor.csproj" />
+    <ProjectReference Include="../NeoComposeUnity/NeoComposeUnity.csproj" />
+    <ProjectReference Include="../NeoComposeUnity/NeoComposeUnityEditor.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEditor.CoreModule">
+      <HintPath>$(UnityManagedDir)/UnityEditor.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TestRunner">
+      <HintPath>$(UnityTestRunnerDir)/UnityEngine.TestRunner.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEditor.TestRunner">
+      <HintPath>$(UnityTestRunnerDir)/UnityEditor.TestRunner.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- The Convex tests construct the real client options against
+         Convex.Client types and assert over System.Text.Json payloads. -->
+    <Reference Include="Convex.Client" Condition="Exists('$(ConvexClientAssembliesDir)/Convex.Client.dll')">
+      <HintPath>$(ConvexClientAssembliesDir)/Convex.Client.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="$(ConvexPackageCacheDir)/com.ryanbliss.convex-dotnet-unity@*/Runtime/Plugins/*.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- NUnit symbols for IntelliSense; Unity supplies `nunit.framework.dll`
+         from `com.unity.ext.nunit` at runtime. The version tracks the Unity
+         Test Framework (NUnit 3.x). -->
+    <PackageReference Include="NUnit" Version="3.13.3" />
+    <!-- Self-contained IntelliSense regardless of reference resolution order. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>
