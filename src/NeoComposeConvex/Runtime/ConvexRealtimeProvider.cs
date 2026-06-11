@@ -280,11 +280,63 @@ namespace NeoCompose.Convex
             var args = new Dictionary<string, object?>
             {
                 ["projectId"] = projectId,
-                ["save"] = ToJsonElement(request),
+                ["save"] = ToWireArgs(request),
                 ["replaceSnapshot"] = replaceSnapshot,
             };
             var json = await current.MutateAsync("gameSaves:commit", args, CancellationToken.None);
             return ParseCommitResult(json);
+        }
+
+        public async Awaitable<NeoCommitResult> ForkLiveAsync(NeoLiveForkRequest request)
+        {
+            ThrowIfDisposed();
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            var current = socket;
+            if (current == null || State != NeoRealtimeConnectionState.Connected)
+            {
+                throw new InvalidOperationException(
+                    "Realtime live fork requires a connected provider; check CanCommit first.");
+            }
+
+            var args = new Dictionary<string, object?>
+            {
+                ["projectId"] = projectId,
+                ["save"] = ToWireArgs(request),
+            };
+            var json = await current.MutateAsync(
+                "gameSaves:forkLiveSnapshot", args, CancellationToken.None);
+            return ParseCommitResult(json);
+        }
+
+        public async Awaitable<NeoLivePatchResult> PatchLiveAsync(NeoLivePatchRequest request)
+        {
+            ThrowIfDisposed();
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            var current = socket;
+            if (current == null || State != NeoRealtimeConnectionState.Connected)
+            {
+                throw new InvalidOperationException(
+                    "Realtime live patch requires a connected provider; check CanCommit first.");
+            }
+
+            var args = new Dictionary<string, object?>
+            {
+                ["projectId"] = projectId,
+                ["customId"] = request.customId,
+                ["snapshotId"] = request.snapshotId,
+                ["patch"] = ToWireArgs(request.patch),
+            };
+            var json = await current.MutateAsync(
+                "gameSaves:patchLiveSnapshot", args, CancellationToken.None);
+            return ParseLivePatchResult(json);
         }
 
         /// <summary>
@@ -356,7 +408,8 @@ namespace NeoCompose.Convex
 
         private static NeoSaveFileList ParseSaveFileList(string json)
         {
-            var list = JsonConvert.DeserializeObject<NeoSaveFileList>(json);
+            var list = JsonConvert.DeserializeObject<NeoSaveFileList>(
+                json, NeoSaveJson.ContentSettings);
             if (list == null)
             {
                 throw new InvalidOperationException(
@@ -366,9 +419,79 @@ namespace NeoCompose.Convex
             return list;
         }
 
+        /// <summary>Parses a mutation result envelope without Newtonsoft's date
+        /// auto-detection: nested save payloads re-serialize via ToString() and
+        /// any date-looking value strings must survive byte for byte.</summary>
+        private static JObject ParseResultEnvelope(string json)
+        {
+            using (var reader = new JsonTextReader(new System.IO.StringReader(json))
+            {
+                DateParseHandling = DateParseHandling.None,
+            })
+            {
+                return JObject.Load(reader);
+            }
+        }
+
+        private static NeoLivePatchResult ParseLivePatchResult(string json)
+        {
+            var result = ParseResultEnvelope(json);
+            var kind = (string?)result["kind"];
+            if (kind == null)
+            {
+                throw new InvalidOperationException(
+                    "Realtime live patch result did not include a \"kind\" field.");
+            }
+
+            if (kind == "patched")
+            {
+                var snapshotId = (string?)result["snapshotId"];
+                if (snapshotId == null)
+                {
+                    throw new InvalidOperationException(
+                        "Realtime live patch result was patched but did not include the snapshotId.");
+                }
+
+                var snapshotHash = (string?)result["snapshotHash"];
+                if (snapshotHash == null)
+                {
+                    throw new InvalidOperationException(
+                        "Realtime live patch result was patched but did not include the snapshotHash.");
+                }
+
+                var synchronizedAt = result["synchronizedAt"];
+                if (synchronizedAt == null)
+                {
+                    throw new InvalidOperationException(
+                        "Realtime live patch result was patched but did not include synchronizedAt.");
+                }
+
+                return NeoLivePatchResult.Patched(
+                    snapshotId,
+                    snapshotHash,
+                    synchronizedAt.ToObject<NeoTimestamp>());
+            }
+
+            if (kind == "staleTarget")
+            {
+                var serverHead = result["serverHead"];
+                if (serverHead == null)
+                {
+                    throw new InvalidOperationException(
+                        "Realtime live patch result was a stale target but did not include the server head.");
+                }
+
+                return NeoLivePatchResult.StaleTarget(ParseRemoteGameSave(serverHead.ToString()));
+            }
+
+            throw new InvalidOperationException(
+                $"Realtime live patch result had an unknown kind \"{kind}\".");
+        }
+
         private static RemoteGameSave ParseRemoteGameSave(string json)
         {
-            var save = JsonConvert.DeserializeObject<RemoteGameSave>(json);
+            var save = JsonConvert.DeserializeObject<RemoteGameSave>(
+                json, NeoSaveJson.ContentSettings);
             if (save == null)
             {
                 throw new InvalidOperationException(
@@ -379,22 +502,77 @@ namespace NeoCompose.Convex
         }
 
         /// <summary>
-        /// Newtonsoft-serialized core DTO re-parsed as a System.Text.Json element
-        /// so the vendored serializer transmits it verbatim — the two JSON stacks
-        /// never disagree about the wire shape.
+        /// Newtonsoft-serialized core DTO converted into the plain
+        /// dictionary/list/primitive graph the vendored Convex serializer
+        /// transmits verbatim. The vendored serializer reflects public
+        /// <b>properties</b> of unknown objects (our DTOs expose fields) and
+        /// knows nothing about <c>JsonElement</c> or <c>JToken</c> — both leak
+        /// wrong shapes onto the wire (a <c>JsonElement</c> arrives as
+        /// <c>{"valueKind":…}</c>). Plain dictionaries are its lingua franca.
         /// </summary>
-        private static System.Text.Json.JsonElement ToJsonElement(object value)
+        internal static object? ToWireArgs(object value)
         {
-            var json = JsonConvert.SerializeObject(value);
-            using (var document = System.Text.Json.JsonDocument.Parse(json))
+            return ToPlainGraph(JToken.FromObject(value));
+        }
+
+        private static object? ToPlainGraph(JToken token)
+        {
+            switch (token.Type)
             {
-                return document.RootElement.Clone();
+                case JTokenType.Object:
+                {
+                    var result = new Dictionary<string, object?>();
+                    foreach (var property in ((JObject)token).Properties())
+                    {
+                        result[property.Name] = ToPlainGraph(property.Value);
+                    }
+
+                    return result;
+                }
+                case JTokenType.Array:
+                {
+                    var result = new List<object?>();
+                    foreach (var item in (JArray)token)
+                    {
+                        result.Add(ToPlainGraph(item));
+                    }
+
+                    return result;
+                }
+                case JTokenType.Integer:
+                    // Convex wire numbers are float64: a CLR long would be
+                    // encoded as a bigint ($integer) and rejected by v.number()
+                    // validators. Integral JSON round-trips losslessly within
+                    // double precision, same as JSON itself.
+                    return token.ToObject<double>();
+                case JTokenType.Float:
+                    return token.ToObject<double>();
+                case JTokenType.Boolean:
+                    return token.ToObject<bool>();
+                case JTokenType.String:
+                    return token.ToObject<string>();
+                case JTokenType.Null:
+                case JTokenType.Undefined:
+                    return null;
+                case JTokenType.Date:
+                case JTokenType.Guid:
+                case JTokenType.TimeSpan:
+                case JTokenType.Uri:
+                    // Defensive: content parsed before the DateParseHandling.None
+                    // chokepoints (e.g. an old local-store file read by a previous
+                    // SDK version) can still carry coerced tokens. Emit them as the
+                    // JSON string Newtonsoft itself would have written, instead of
+                    // failing the whole flush.
+                    return JsonConvert.SerializeObject(token).Trim('"');
+                default:
+                    throw new InvalidOperationException(
+                        $"Realtime args contained an unsupported JSON token of type {token.Type}.");
             }
         }
 
         private static NeoCommitResult ParseCommitResult(string json)
         {
-            var result = JObject.Parse(json);
+            var result = ParseResultEnvelope(json);
             var kind = (string?)result["kind"];
             if (kind == null)
             {

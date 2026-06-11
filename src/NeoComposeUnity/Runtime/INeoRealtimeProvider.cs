@@ -63,5 +63,22 @@ namespace NeoCompose.Runtime
         /// conflict result.
         /// </summary>
         Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot);
+
+        /// <summary>
+        /// First flush of a live session: forks the save's head into a new
+        /// live snapshot with the patch applied (see
+        /// <c>specs/live-save-sessions.md</c>). Same typed conflict contract
+        /// as <see cref="CommitAsync"/>. No REST fallback exists — live mode
+        /// requires the socket; offline flushes queue and compose.
+        /// </summary>
+        Awaitable<NeoCommitResult> ForkLiveAsync(NeoLiveForkRequest request);
+
+        /// <summary>
+        /// In-place per-key merge into the live head snapshot: every session
+        /// flush after the fork, and nothing else. The returned
+        /// <see cref="NeoLivePatchResult.snapshotHash"/> is the caller's
+        /// echo-suppression token.
+        /// </summary>
+        Awaitable<NeoLivePatchResult> PatchLiveAsync(NeoLivePatchRequest request);
     }
 }

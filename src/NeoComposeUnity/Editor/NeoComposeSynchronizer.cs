@@ -21,6 +21,15 @@ namespace NeoCompose.Unity.Editor
     public interface INeoComposeConfirmationService
     {
         bool Confirm(string title, string message, string ok, string cancel);
+
+        /// <summary>
+        /// Confirmation for replacing already-synchronized files (generated C#,
+        /// project.json, localization, file assets). Split from
+        /// <see cref="Confirm"/> so the "Ask me before overwriting files"
+        /// preference can auto-approve exactly these prompts — destructive
+        /// one-offs (stale-asset deletion, error overrides) always ask.
+        /// </summary>
+        bool ConfirmReplaceFiles(string title, string message, string ok, string cancel);
     }
 
     public interface INeoComposeEditorAssetService
@@ -131,7 +140,7 @@ namespace NeoCompose.Unity.Editor
                     .ToArray();
 
                 if (existingReplacementPaths.Length > 0 &&
-                    !confirmations.Confirm(
+                    !confirmations.ConfirmReplaceFiles(
                         "Replace Neo Compose files?",
                         "Existing synchronized files will be replaced:\n\n" +
                         string.Join("\n", existingReplacementPaths),
@@ -529,9 +538,37 @@ namespace NeoCompose.Unity.Editor
 
     public sealed class NeoComposeEditorDialogConfirmationService : INeoComposeConfirmationService
     {
+        private readonly Func<bool> askBeforeOverwritingFiles;
+        private readonly Func<string, string, string, string, bool> displayDialog;
+
+        public NeoComposeEditorDialogConfirmationService()
+            : this(
+                () => NeoComposeEditorSyncPreferences.AskBeforeOverwritingFiles,
+                EditorUtility.DisplayDialog)
+        {
+        }
+
+        /// <summary>Seam constructor so the preference gate is unit-testable
+        /// without popping modal dialogs.</summary>
+        public NeoComposeEditorDialogConfirmationService(
+            Func<bool> askBeforeOverwritingFiles,
+            Func<string, string, string, string, bool> displayDialog)
+        {
+            this.askBeforeOverwritingFiles = askBeforeOverwritingFiles;
+            this.displayDialog = displayDialog;
+        }
+
         public bool Confirm(string title, string message, string ok, string cancel)
         {
-            return EditorUtility.DisplayDialog(title, message, ok, cancel);
+            return displayDialog(title, message, ok, cancel);
+        }
+
+        public bool ConfirmReplaceFiles(string title, string message, string ok, string cancel)
+        {
+            // "Ask me before overwriting files" is opt-in: the default
+            // auto-approves replacement of regenerable synchronized files.
+            if (!askBeforeOverwritingFiles()) return true;
+            return displayDialog(title, message, ok, cancel);
         }
     }
 

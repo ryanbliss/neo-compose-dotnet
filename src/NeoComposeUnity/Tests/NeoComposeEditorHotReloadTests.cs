@@ -23,6 +23,11 @@ namespace NeoCompose.Tests
                 Prompts++;
                 return Answer;
             }
+
+            public bool ConfirmReplaceFiles(string title, string message, string ok, string cancel)
+            {
+                return Confirm(title, message, ok, cancel);
+            }
         }
 
         private ScriptedConfirmationService confirmation = null!;

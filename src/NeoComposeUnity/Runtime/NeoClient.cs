@@ -6,6 +6,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
+using System.Threading.Tasks;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using UnityEngine;
@@ -98,6 +99,67 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal event System.Action<string>? OnSaveValueChanged;
         internal event System.Action<NeoValueOwnership, string>? OnWritableValueChanged;
+
+        // --- Live auto-save (specs/live-save-sessions.md) -------------------
+        // While a live session is active, every save-value write schedules an
+        // automatic commit: the game never calls CommitAsync to stream into
+        // its live snapshot. A short coalescing delay batches the burst of
+        // writes a single frame/action produces into one serialize + stage;
+        // the synchronizer's own debounce then throttles the network flush.
+        private bool liveAutoCommitScheduled;
+        private bool suppressLiveAutoCommit;
+        internal double LiveAutoCommitDelaySeconds = 0.3;
+        internal System.Func<double, Awaitable> LiveAutoCommitDelay = DefaultLiveAutoCommitDelay;
+
+        /// <summary>Single chokepoint for save-value change notifications: raises
+        /// the invalidation events and, in a live session, schedules the
+        /// auto-commit that streams the change to the live snapshot.</summary>
+        private void RaiseSaveValueChanged(string id)
+        {
+            OnSaveValueChanged?.Invoke(id);
+            ScheduleLiveAutoCommit();
+        }
+
+        private void ScheduleLiveAutoCommit()
+        {
+            if (liveAutoCommitScheduled || suppressLiveAutoCommit) return;
+            if (loader is not NeoSaveSynchronizer synchronizer) return;
+            if (!synchronizer.IsLiveSessionActive) return;
+            liveAutoCommitScheduled = true;
+            RunLiveAutoCommit();
+        }
+
+        /// <summary><c>async void</c> on purpose: fire-and-forget off a setter;
+        /// never throws past its own catch.</summary>
+        private async void RunLiveAutoCommit()
+        {
+            try
+            {
+                await LiveAutoCommitDelay(LiveAutoCommitDelaySeconds);
+                if (loader is not NeoSaveSynchronizer synchronizer) return;
+                if (!synchronizer.IsLiveSessionActive) return;
+                // No unlinked-values warning: transient factory values mid-action
+                // are normal between explicit saves, and the auto-commit cadence
+                // would turn the hint into spam.
+                await CommitCoreAsync(replaceSnapshot: false, warnUnlinked: false);
+            }
+            catch (System.Exception exception)
+            {
+                Debug.LogWarning(
+                    "[NeoCompose] Live auto-save failed; the change is still staged locally " +
+                    $"and retries on the next save-value write. " +
+                    $"{exception.GetType().Name}: {exception.Message}");
+            }
+            finally
+            {
+                liveAutoCommitScheduled = false;
+            }
+        }
+
+        private static async Awaitable DefaultLiveAutoCommitDelay(double seconds)
+        {
+            await Task.Delay(System.TimeSpan.FromSeconds(seconds));
+        }
 
         internal void EnsureNotDisposed()
         {
@@ -541,7 +603,7 @@ namespace NeoCompose.Runtime
             OnWritableValueChanged?.Invoke(ownership, id);
             if (ownership == NeoValueOwnership.Save)
             {
-                OnSaveValueChanged?.Invoke(id);
+                RaiseSaveValueChanged(id);
             }
             return true;
         }
@@ -555,7 +617,7 @@ namespace NeoCompose.Runtime
             OnWritableValueChanged?.Invoke(ownership, value.id);
             if (ownership == NeoValueOwnership.Save)
             {
-                OnSaveValueChanged?.Invoke(value.id);
+                RaiseSaveValueChanged(value.id);
             }
         }
 
@@ -657,7 +719,7 @@ namespace NeoCompose.Runtime
             sourceStore.values.Remove(valueId);
             OnWritableValueChanged?.Invoke(sourceOwnership, valueId);
             OnWritableValueChanged?.Invoke(targetOwnership, valueId);
-            if (targetOwnership == NeoValueOwnership.Save) OnSaveValueChanged?.Invoke(valueId);
+            if (targetOwnership == NeoValueOwnership.Save) RaiseSaveValueChanged(valueId);
         }
 
         private string CloneValueGraphToOwnership(
@@ -1052,7 +1114,7 @@ namespace NeoCompose.Runtime
                 OnWritableValueChanged?.Invoke(ownership, valueId);
                 if (ownership == NeoValueOwnership.Save)
                 {
-                    OnSaveValueChanged?.Invoke(valueId);
+                    RaiseSaveValueChanged(valueId);
                 }
             }
         }
@@ -1105,7 +1167,7 @@ namespace NeoCompose.Runtime
                 OnWritableValueChanged?.Invoke(ownership, valueId);
                 if (ownership == NeoValueOwnership.Save)
                 {
-                    OnSaveValueChanged?.Invoke(valueId);
+                    RaiseSaveValueChanged(valueId);
                 }
             }
         }
@@ -1599,15 +1661,91 @@ namespace NeoCompose.Runtime
             return JsonConvert.SerializeObject(saveData);
         }
 
-        public async Awaitable CommitAsync(bool replaceSnapshot = false)
+        /// <summary>
+        /// Applies an externally-merged save content blob into the running
+        /// value graph <b>in place</b> — the inbound side of live save sessions
+        /// (<c>specs/live-save-sessions.md</c>): a co-editor (e.g. the web
+        /// tool) patched the session's live snapshot and the synchronizer
+        /// delivered the merged content via
+        /// <see cref="NeoSaveSynchronizer.OnLiveContentChanged"/>. Each changed
+        /// overlay row is re-shadowed at its stable id, raising the same typed
+        /// change events a local write raises (so generated subscriptions like
+        /// <c>Save.OnChanged(...)</c> fire), and rows the incoming content no
+        /// longer carries fall back to the authored defaults.
+        /// </summary>
+        public void ApplyExternalSaveContent(string content)
         {
-            var unlinkedValueIds = FindUnlinkedSaveValueIds();
-            if (unlinkedValueIds.Count > 0)
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                throw new System.ArgumentException(
+                    "External save content cannot be empty.", nameof(content));
+            }
+
+            if (!LocalGameSaveLoader.TryLoad(content, out var incoming))
+            {
+                throw new System.InvalidOperationException(
+                    "External save content could not be parsed as a save file.");
+            }
+
+            if (!incoming.TryDeserializeValues(out var rows))
             {
                 Debug.LogWarning(
-                    $"NeoCompose save contains {unlinkedValueIds.Count} unlinked value(s). " +
-                    "This can happen when generated factory values are created but never assigned. " +
-                    "Call RunGarbageCollector() before CommitAsync() to delete unlinked values.");
+                    "[NeoCompose] External save content's values cannot be read against the " +
+                    "current schema; skipping the live apply (the cloud copy is untouched).");
+                return;
+            }
+
+            // An inbound apply is already server state: re-shadowing it must
+            // raise the typed change events but never loop back into the live
+            // auto-commit (the synchronizer's baseline already covers it).
+            suppressLiveAutoCommit = true;
+            try
+            {
+                // Shadows the incoming content no longer carries fall back to the
+                // authored defaults (the web's "Reset to default").
+                var removedIds = new List<string>();
+                foreach (var id in saveValues.Keys)
+                {
+                    if (!rows.ContainsKey(id)) removedIds.Add(id);
+                }
+
+                foreach (var id in removedIds)
+                {
+                    RemoveWritableShadow(NeoValueOwnership.Save, id);
+                }
+
+                foreach (var row in rows.Values)
+                {
+                    if (saveValues.TryGetValue(row.id, out var existing)
+                        && JsonConvert.SerializeObject(existing) == JsonConvert.SerializeObject(row))
+                    {
+                        continue; // unchanged: don't disturb bound nodes
+                    }
+
+                    SetSaveValue(row);
+                }
+            }
+            finally
+            {
+                suppressLiveAutoCommit = false;
+            }
+        }
+
+        public Awaitable CommitAsync(bool replaceSnapshot = false) =>
+            CommitCoreAsync(replaceSnapshot, warnUnlinked: true);
+
+        private async Awaitable CommitCoreAsync(bool replaceSnapshot, bool warnUnlinked)
+        {
+            if (warnUnlinked)
+            {
+                var unlinkedValueIds = FindUnlinkedSaveValueIds();
+                if (unlinkedValueIds.Count > 0)
+                {
+                    Debug.LogWarning(
+                        $"NeoCompose save contains {unlinkedValueIds.Count} unlinked value(s). " +
+                        "This can happen when generated factory values are created but never assigned. " +
+                        "Call RunGarbageCollector() before CommitAsync() to delete unlinked values.");
+                }
             }
             var savedAt = NeoTimestamp.Now();
             saveData.updatedAt = savedAt;

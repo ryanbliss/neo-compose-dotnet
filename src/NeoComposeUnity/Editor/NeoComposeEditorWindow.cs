@@ -51,10 +51,32 @@ namespace NeoCompose.Unity.Editor
         /// </summary>
         internal const string StatusSessionKey = "NeoCompose.EditorWindow.Status";
 
+        /// <summary>
+        /// SessionState key for the status line's severity (a
+        /// <see cref="MessageType"/> int), persisted alongside
+        /// <see cref="StatusSessionKey"/> so the help box keeps its colour
+        /// across the domain reload a synchronize triggers.
+        /// </summary>
+        internal const string StatusSeveritySessionKey = "NeoCompose.EditorWindow.StatusSeverity";
+
+        /// <summary>Plain assignment is informational; error paths use
+        /// <see cref="SetStatus"/> to colour the line.</summary>
         private string status
         {
             get => SessionState.GetString(StatusSessionKey, "");
-            set => SessionState.SetString(StatusSessionKey, value ?? "");
+            set => SetStatus(value, MessageType.Info);
+        }
+
+        private MessageType statusSeverity
+        {
+            get => (MessageType)SessionState.GetInt(StatusSeveritySessionKey, (int)MessageType.Info);
+            set => SessionState.SetInt(StatusSeveritySessionKey, (int)value);
+        }
+
+        private void SetStatus(string? message, MessageType severity)
+        {
+            SessionState.SetString(StatusSessionKey, message ?? "");
+            statusSeverity = severity;
         }
 
         private bool loading;
@@ -63,8 +85,19 @@ namespace NeoCompose.Unity.Editor
         private DateTimeOffset? lastTokenRefreshedAt;
         private bool clearKeyboardFocusNextGui;
         private const float ContentPadding = 12f;
-        private const float LabelWidth = 132f;
-        private const float ProjectLabelWidth = 84f;
+        // Wide enough for the longest form label ("Stream Non-Main Locales")
+        // so nothing ellipsizes mid-word.
+        private const float LabelWidth = 170f;
+        // Shared height for label + button status rows so glyphs, text, and
+        // buttons sit on one vertical centre line.
+        private const float RowControlHeight = 20f;
+
+        // EditorPrefs keys persisting each configuration foldout's open state.
+        private const string ExportSettingsFoldoutKey = "NeoCompose.EditorWindow.Foldout.ExportSettings";
+        private const string OutputFoldoutKey = "NeoCompose.EditorWindow.Foldout.Output";
+        private const string LocalizationFoldoutKey = "NeoCompose.EditorWindow.Foldout.Localization";
+        private const string CloudSaveSyncFoldoutKey = "NeoCompose.EditorWindow.Foldout.CloudSaveSync";
+        private const string AdvancedFoldoutKey = "NeoCompose.EditorWindow.Foldout.Advanced";
         private const float BrowseButtonWidth = 72f;
         private const float RemoveButtonWidth = 76f;
 
@@ -137,7 +170,7 @@ namespace NeoCompose.Unity.Editor
             catch (Exception exception)
             {
                 Debug.LogError(exception);
-                status = exception.Message;
+                SetStatus(exception.Message, MessageType.Error);
                 Repaint();
             }
             finally
@@ -173,8 +206,7 @@ namespace NeoCompose.Unity.Editor
                 "Synchronize generated Unity files from the Neo Compose web app.",
                 MutedStyle());
             EditorGUILayout.Space(2);
-            RenderConnectionSection(config);
-            RenderAuthSection(config);
+            RenderAccountSection(config);
 
             using (new EditorGUI.DisabledScope(!auth.AreAuthSensitiveControlsEnabled))
             {
@@ -188,10 +220,30 @@ namespace NeoCompose.Unity.Editor
                 }
             }
 
+            // Outside the auth-disabled scope: the API URL must stay editable
+            // while signed out (it decides where sign-in goes).
+            RenderAdvancedSection(config);
+
             if (!string.IsNullOrWhiteSpace(status))
             {
                 EditorGUILayout.Space(8);
-                EditorGUILayout.HelpBox(status, MessageType.Info);
+                // Overlay the dismiss button centred against the help box's
+                // actual drawn rect — robust to however many lines the message
+                // wraps to. A FlexibleSpace column instead balloons to fill the
+                // empty scroll area below, which is what mislaid it before.
+                const float dismissSize = 20f;
+                const float dismissMargin = 4f;
+                EditorGUILayout.HelpBox(status, statusSeverity);
+                var helpRect = GUILayoutUtility.GetLastRect();
+                var dismissRect = new Rect(
+                    helpRect.xMax - dismissSize - dismissMargin,
+                    helpRect.y + (helpRect.height - dismissSize) / 2f,
+                    dismissSize,
+                    dismissSize);
+                if (GUI.Button(dismissRect, new GUIContent("✕", "Dismiss")))
+                {
+                    status = "";
+                }
             }
 
             EditorGUILayout.EndVertical();
@@ -201,30 +253,13 @@ namespace NeoCompose.Unity.Editor
             EditorGUILayout.EndScrollView();
         }
 
-        private void RenderConnectionSection(NeoComposeConfig config)
-        {
-            BeginSection("Connection");
-            using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
-            {
-                EditorGUI.BeginChangeCheck();
-                config.apiBaseUrl = EditorGUILayout.TextField("API Base URL", config.apiBaseUrl);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    NeoComposeConfigProvider.Save(config);
-                    // The sign-in token is keyed per origin, so changing the URL
-                    // can change the signed-in state.
-                    auth.RefreshState(config.apiBaseUrl);
-                    if (config.HasProject && auth.AreAuthSensitiveControlsEnabled)
-                    {
-                        _ = RefreshVersionMetadataAsync(false);
-                    }
-                }
-            }
-
-            EndSection();
-        }
-
-        private void RenderAuthSection(NeoComposeConfig config)
+        /// <summary>
+        /// One card for "who am I talking to, as whom": sign-in state plus the
+        /// API base URL it is keyed by. Merging the former Connection + Account
+        /// sections removes one box from the stack — the URL is a set-once field
+        /// that doesn't deserve its own section.
+        /// </summary>
+        private void RenderAccountSection(NeoComposeConfig config)
         {
             BeginSection("Account");
             switch (auth.State)
@@ -255,6 +290,38 @@ namespace NeoCompose.Unity.Editor
                 if (GUILayout.Button("Dismiss", GUILayout.Width(80)))
                 {
                     auth.ClearAuthorizationMessage();
+                }
+            }
+
+            EndSection();
+        }
+
+        /// <summary>
+        /// Rarely-touched plumbing (the API base URL) lives at the very bottom,
+        /// collapsed. Rendered in both the project-selected and project-search
+        /// states because changing the URL matters most before sign-in.
+        /// </summary>
+        private void RenderAdvancedSection(NeoComposeConfig config)
+        {
+            if (BeginFoldoutSection("Advanced", AdvancedFoldoutKey))
+            {
+                using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
+                {
+                    EditorGUI.BeginChangeCheck();
+                    config.apiBaseUrl = EditorGUILayout.TextField(
+                        new GUIContent("API Base URL", "The Neo Compose web app this editor talks to."),
+                        config.apiBaseUrl);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        NeoComposeConfigProvider.Save(config);
+                        // The sign-in token is keyed per origin, so changing the URL
+                        // can change the signed-in state.
+                        auth.RefreshState(config.apiBaseUrl);
+                        if (config.HasProject && auth.AreAuthSensitiveControlsEnabled)
+                        {
+                            _ = RefreshVersionMetadataAsync(false);
+                        }
+                    }
                 }
             }
 
@@ -387,14 +454,14 @@ namespace NeoCompose.Unity.Editor
                 }
                 else
                 {
-                    status = result.message;
+                    SetStatus(result.message, MessageType.Warning);
                 }
             }
             catch (Exception exception)
             {
                 Debug.LogError(exception);
                 if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
-                status = exception.Message;
+                SetStatus(exception.Message, MessageType.Error);
             }
             finally
             {
@@ -446,13 +513,42 @@ namespace NeoCompose.Unity.Editor
             EndSection();
         }
 
+        /// <summary>
+        /// The everyday surface reads top-to-bottom as "what am I synced to → do
+        /// it": one Project card (identity + version), then the Synchronize card
+        /// with its options. The set-once configuration (export settings, output
+        /// folders, localization, cloud saves) collapses into foldout cards below
+        /// so the window stays scannable in a docked layout.
+        /// </summary>
         private void RenderSelectedProject(NeoComposeConfig config)
         {
-            BeginSection("Selected Project");
+            RenderProjectSection(config);
+            RenderSynchronizeSection(config);
+
+            EditorGUILayout.Space(6);
+            EditorGUILayout.LabelField("Configuration", SectionTitleStyle());
+            RenderExportSettingsSection(config);
+            RenderOutputSection(config);
+            RenderLocalizationSection(config);
+            RenderRuntimeSyncSection(config);
+        }
+
+        private void RenderProjectSection(NeoComposeConfig config)
+        {
+            BeginSection("Project");
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Project", FormLabelStyle(), GUILayout.Width(ProjectLabelWidth));
             EditorGUILayout.LabelField(config.projectName, ProjectNameStyle());
             GUILayout.FlexibleSpace();
+            // The raw id is developer plumbing — keep it off the card and one
+            // click away (full value in the tooltip for a quick eyeball).
+            if (GUILayout.Button(
+                    new GUIContent("Copy ID", $"Copy the project ID to the clipboard\n{config.projectId}"),
+                    GUILayout.Width(70)))
+            {
+                EditorGUIUtility.systemCopyBuffer = config.projectId;
+                status = "Project ID copied to the clipboard.";
+            }
+
             if (GUILayout.Button("Remove", GUILayout.Width(RemoveButtonWidth)))
             {
                 config.ClearProject();
@@ -464,93 +560,39 @@ namespace NeoCompose.Unity.Editor
             }
 
             EditorGUILayout.EndHorizontal();
-
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Project ID", FormLabelStyle(), GUILayout.Width(ProjectLabelWidth));
-            EditorGUILayout.SelectableLabel(
-                config.projectId,
-                ProjectIdStyle(),
-                GUILayout.Height(EditorGUIUtility.singleLineHeight));
-            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space(4);
+            RenderVersionSelectionContent(config);
             EndSection();
+        }
 
-            RenderVersionSelection(config);
-
-            BeginSection("Export Settings");
-            using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
-            {
-                EditorGUI.BeginChangeCheck();
-                config.namespaceForGeneratedTypes = EditorGUILayout.TextField(
-                    "Unity Namespace",
-                    config.namespaceForGeneratedTypes);
-                config.singleton = EditorGUILayout.Toggle("Singleton", config.singleton);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    NeoComposeConfigProvider.Save(config);
-                }
-            }
-
-            EditorGUILayout.Space(3);
-            EditorGUILayout.BeginHorizontal();
-            using (new EditorGUI.DisabledScope(loading || !CanSaveUnityExportSettings(config)))
-            {
-                if (GUILayout.Button("Save to web", GUILayout.Width(120), GUILayout.Height(24)))
-                {
-                    _ = SaveUnityExportSettingsAsync();
-                }
-            }
-
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.EndHorizontal();
-            EndSection();
-
-            BeginSection("Output");
-            using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
-            {
-                DrawDirectoryField("Generated Types", ref config.generatedTypesDirectory);
-                DrawDirectoryField("Project JSON", ref config.projectJsonDirectory);
-                DrawDirectoryField("Sprites", ref config.spriteDirectory);
-                DrawDirectoryField("Audio Clips", ref config.audioClipDirectory);
-            }
-
-            EndSection();
-
-            BeginSection("Localization");
-            using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
-            {
-                DrawDirectoryField("Resources", ref config.localizationResourcesDirectory);
-                DrawDirectoryField("StreamingAssets", ref config.localizationStreamingAssetsDirectory);
-                EditorGUI.BeginChangeCheck();
-                config.useStreamingAssetsForNonMainLocales = EditorGUILayout.Toggle(
-                    "Stream Non-Main Locales",
-                    config.useStreamingAssetsForNonMainLocales);
-                if (config.useStreamingAssetsForNonMainLocales)
-                {
-                    EditorGUILayout.HelpBox(
-                        "Non-main locale files synced to StreamingAssets require an explicit async preload before synchronous localized text getters can use them. Until preload completes, localized text falls back to loaded locales and the main locale.",
-                        MessageType.Warning);
-                }
-                config.preloadSystemLocale = EditorGUILayout.Toggle(
-                    "Preload System Locale",
-                    config.preloadSystemLocale);
-                config.localeOverride = EditorGUILayout.TextField("Locale Override", config.localeOverride);
-                if (EditorGUI.EndChangeCheck())
-                {
-                    NeoComposeConfigProvider.Save(config);
-                }
-            }
-
-            EndSection();
-
-            // Cloud Save Sync sits just above the synchronize actions so its config
-            // and warnings are visible right next to Synchronize + the status line.
-            RenderRuntimeSyncSection(config);
-
-            BeginSection("Project Assets");
+        /// <summary>
+        /// State first (live-sync glyph row), behaviour second (the toggles),
+        /// action last — the Synchronize button row closes the card so the eye
+        /// lands on it after reading what the sync will do.
+        /// </summary>
+        private void RenderSynchronizeSection(NeoComposeConfig config)
+        {
+            BeginSection("Synchronize");
             EditorGUILayout.LabelField(
-                "Writes NeoGeneratedTypes.cs and project.json to the configured folders.",
+                "Writes generated files and assets to the configured folders.",
                 MutedStyle());
-            EditorGUILayout.Space(3);
+            EditorGUILayout.Space(2);
+            DrawRealtimeStatusRow();
+
+            var askBeforeOverwriting = NeoComposeEditorSyncPreferences.AskBeforeOverwritingFiles;
+            var nextAskBeforeOverwriting = EditorGUILayout.ToggleLeft(
+                new GUIContent(
+                    "Ask me before overwriting files",
+                    "When on, Synchronize asks before replacing existing generated files and " +
+                    "synchronized assets. When off, they are replaced without prompting — " +
+                    "both for manual Synchronize and auto-sync."),
+                askBeforeOverwriting);
+            if (nextAskBeforeOverwriting != askBeforeOverwriting)
+            {
+                NeoComposeEditorSyncPreferences.AskBeforeOverwritingFiles = nextAskBeforeOverwriting;
+            }
+
+            EditorGUILayout.Space(6);
             EditorGUILayout.BeginHorizontal();
             using (new EditorGUI.DisabledScope(loading || !CanSynchronize(config)))
             {
@@ -567,7 +609,88 @@ namespace NeoCompose.Unity.Editor
 
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
-            DrawRealtimeStatusRow();
+            EndSection();
+        }
+
+        private void RenderExportSettingsSection(NeoComposeConfig config)
+        {
+            if (BeginFoldoutSection("Export Settings", ExportSettingsFoldoutKey))
+            {
+                using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
+                {
+                    EditorGUI.BeginChangeCheck();
+                    config.namespaceForGeneratedTypes = EditorGUILayout.TextField(
+                        "Unity Namespace",
+                        config.namespaceForGeneratedTypes);
+                    config.singleton = EditorGUILayout.Toggle("Singleton", config.singleton);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        NeoComposeConfigProvider.Save(config);
+                    }
+                }
+
+                EditorGUILayout.Space(3);
+                EditorGUILayout.BeginHorizontal();
+                using (new EditorGUI.DisabledScope(loading || !CanSaveUnityExportSettings(config)))
+                {
+                    if (GUILayout.Button("Save to web", GUILayout.Width(120), GUILayout.Height(24)))
+                    {
+                        _ = SaveUnityExportSettingsAsync();
+                    }
+                }
+
+                GUILayout.FlexibleSpace();
+                EditorGUILayout.EndHorizontal();
+            }
+
+            EndSection();
+        }
+
+        private void RenderOutputSection(NeoComposeConfig config)
+        {
+            if (BeginFoldoutSection("Output Folders", OutputFoldoutKey))
+            {
+                using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
+                {
+                    DrawDirectoryField("Generated Types", ref config.generatedTypesDirectory);
+                    DrawDirectoryField("Project JSON", ref config.projectJsonDirectory);
+                    DrawDirectoryField("Sprites", ref config.spriteDirectory);
+                    DrawDirectoryField("Audio Clips", ref config.audioClipDirectory);
+                }
+            }
+
+            EndSection();
+        }
+
+        private void RenderLocalizationSection(NeoComposeConfig config)
+        {
+            if (BeginFoldoutSection("Localization", LocalizationFoldoutKey))
+            {
+                using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
+                {
+                    DrawDirectoryField("Resources", ref config.localizationResourcesDirectory);
+                    DrawDirectoryField("StreamingAssets", ref config.localizationStreamingAssetsDirectory);
+                    EditorGUI.BeginChangeCheck();
+                    config.useStreamingAssetsForNonMainLocales = EditorGUILayout.Toggle(
+                        "Stream Non-Main Locales",
+                        config.useStreamingAssetsForNonMainLocales);
+                    if (config.useStreamingAssetsForNonMainLocales)
+                    {
+                        EditorGUILayout.HelpBox(
+                            "Non-main locale files synced to StreamingAssets require an explicit async preload before synchronous localized text getters can use them. Until preload completes, localized text falls back to loaded locales and the main locale.",
+                            MessageType.Warning);
+                    }
+                    config.preloadSystemLocale = EditorGUILayout.Toggle(
+                        "Preload System Locale",
+                        config.preloadSystemLocale);
+                    config.localeOverride = EditorGUILayout.TextField("Locale Override", config.localeOverride);
+                    if (EditorGUI.EndChangeCheck())
+                    {
+                        NeoComposeConfigProvider.Save(config);
+                    }
+                }
+            }
+
             EndSection();
         }
 
@@ -583,38 +706,59 @@ namespace NeoCompose.Unity.Editor
 
             var hasConvexUrl = !string.IsNullOrWhiteSpace(config.convexUrl);
             var state = realtime?.State ?? NeoRealtimeConnectionState.Disconnected;
-            string label;
+            // The same status-glyph language as the Account section's session
+            // checkmark, so connection health reads consistently across the
+            // window; the words live in the hover tooltip.
+            string glyph;
+            Color glyphColor;
+            string stateLabel;
             switch (state)
             {
                 case NeoRealtimeConnectionState.Connected:
-                    label = "Connected";
+                    glyph = "✓";
+                    glyphColor = new Color(0.40f, 0.80f, 0.52f);
+                    stateLabel = "connected";
                     break;
                 case NeoRealtimeConnectionState.Connecting:
-                    label = "Connecting…";
+                    glyph = "↻";
+                    glyphColor = new Color(0.85f, 0.80f, 0.45f);
+                    stateLabel = "connecting…";
                     break;
                 case NeoRealtimeConnectionState.Denied:
-                    label = "Denied — sign in again, then reconnect";
+                    glyph = "✕";
+                    glyphColor = new Color(0.90f, 0.45f, 0.45f);
+                    stateLabel = "denied";
                     break;
                 default:
-                    label = "Off";
+                    glyph = "○";
+                    glyphColor = new Color(0.55f, 0.55f, 0.55f);
+                    stateLabel = "off";
                     break;
             }
 
-            EditorGUILayout.Space(6);
-            EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField(
-                new GUIContent(
-                    $"Live sync: {label}",
-                    hasConvexUrl
-                        ? "Live updates for versions and remote edits over the project's " +
-                          "Convex deployment."
-                        : "Synchronize once to receive the project's Convex URL; live sync " +
-                          "becomes available after that."),
-                MutedStyle());
+            var liveSyncTooltip = hasConvexUrl
+                ? $"Live sync is {stateLabel}. Live updates for versions and remote edits " +
+                  "over the project's Convex deployment."
+                : "Synchronize once to receive the project's Convex URL; live sync " +
+                  "becomes available after that.";
+
+            EditorGUILayout.BeginHorizontal(GUILayout.Height(RowControlHeight));
+            var previousColor = GUI.color;
+            GUI.color = glyphColor;
+            GUILayout.Label(
+                new GUIContent(glyph, liveSyncTooltip),
+                SessionStatusIconStyle(),
+                GUILayout.Width(20),
+                GUILayout.Height(RowControlHeight));
+            GUI.color = previousColor;
+            GUILayout.Label(
+                new GUIContent("Live sync", liveSyncTooltip),
+                RowLabelStyle(),
+                GUILayout.Height(RowControlHeight));
             GUILayout.FlexibleSpace();
             if (state == NeoRealtimeConnectionState.Connected)
             {
-                if (GUILayout.Button("Disconnect", GUILayout.Width(90)))
+                if (GUILayout.Button("Disconnect", GUILayout.Width(90), GUILayout.Height(RowControlHeight)))
                 {
                     _ = DisconnectRealtimeAsync();
                 }
@@ -623,7 +767,7 @@ namespace NeoCompose.Unity.Editor
             {
                 using (new EditorGUI.DisabledScope(!auth.AreAuthSensitiveControlsEnabled))
                 {
-                    if (GUILayout.Button("Connect", GUILayout.Width(90)))
+                    if (GUILayout.Button("Connect", GUILayout.Width(90), GUILayout.Height(RowControlHeight)))
                     {
                         _ = ConnectRealtimeAsync();
                     }
@@ -631,6 +775,13 @@ namespace NeoCompose.Unity.Editor
             }
 
             EditorGUILayout.EndHorizontal();
+
+            if (state == NeoRealtimeConnectionState.Denied)
+            {
+                EditorGUILayout.HelpBox(
+                    "Live sync was denied. Sign in again, then reconnect.",
+                    MessageType.Warning);
+            }
 
             using (new EditorGUI.DisabledScope(!hasConvexUrl))
             {
@@ -794,7 +945,20 @@ namespace NeoCompose.Unity.Editor
 
         private void RenderRuntimeSyncSection(NeoComposeConfig config)
         {
-            BeginSection("Cloud Save Sync");
+            // The warning renders even while collapsed: a configuration gap must
+            // not hide behind a closed foldout.
+            var hasCloudSyncWarning = config.TryGetCloudSaveSyncWarning(runtimeApiKey, out var cloudSyncWarning);
+            if (!BeginFoldoutSection("Cloud Save Sync", CloudSaveSyncFoldoutKey))
+            {
+                if (hasCloudSyncWarning)
+                {
+                    EditorGUILayout.HelpBox(cloudSyncWarning, MessageType.Warning);
+                }
+
+                EndSection();
+                return;
+            }
+
             using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
             {
                 EditorGUI.BeginChangeCheck();
@@ -863,7 +1027,7 @@ namespace NeoCompose.Unity.Editor
                 }
             }
 
-            if (config.TryGetCloudSaveSyncWarning(runtimeApiKey, out var cloudSyncWarning))
+            if (hasCloudSyncWarning)
             {
                 EditorGUILayout.HelpBox(cloudSyncWarning, MessageType.Warning);
             }
@@ -871,9 +1035,12 @@ namespace NeoCompose.Unity.Editor
             EndSection();
         }
 
-        private void RenderVersionSelection(NeoComposeConfig config)
+        /// <summary>
+        /// Release channel + version picking, drawn inside the Project card (no
+        /// section chrome of its own).
+        /// </summary>
+        private void RenderVersionSelectionContent(NeoComposeConfig config)
         {
-            BeginSection("Version");
             if (releaseChannels.Count == 0 || versions.Count == 0 || versionStatuses.Count == 0)
             {
                 EditorGUILayout.LabelField(
@@ -887,7 +1054,6 @@ namespace NeoCompose.Unity.Editor
                     }
                 }
 
-                EndSection();
                 return;
             }
 
@@ -920,6 +1086,7 @@ namespace NeoCompose.Unity.Editor
                 {
                     var versionIndex = Math.Max(0, Array.FindIndex(options, version => version.id == config.versionId));
                     if (versionIndex >= options.Length) versionIndex = 0;
+                    EditorGUILayout.BeginHorizontal();
                     EditorGUI.BeginChangeCheck();
                     var nextVersionIndex = EditorGUILayout.Popup(
                         "Version",
@@ -930,23 +1097,25 @@ namespace NeoCompose.Unity.Editor
                         config.versionId = options[nextVersionIndex].id;
                         NeoComposeConfigProvider.Save(config);
                     }
+
+                    // The refresh action rides the row it refreshes instead of
+                    // claiming a row of its own.
+                    using (new EditorGUI.DisabledScope(loading))
+                    {
+                        if (GUILayout.Button(
+                                new GUIContent("↻", "Refresh release channels and versions"),
+                                GUILayout.Width(24)))
+                        {
+                            _ = RefreshVersionMetadataAsync(true);
+                        }
+                    }
+
+                    EditorGUILayout.EndHorizontal();
                 }
             }
 
             RenderVersionWarnings(config);
             RenderUpdateAvailable(config);
-            EditorGUILayout.BeginHorizontal();
-            using (new EditorGUI.DisabledScope(loading))
-            {
-                if (GUILayout.Button("Refresh Versions", GUILayout.Width(128)))
-                {
-                    _ = RefreshVersionMetadataAsync(true);
-                }
-            }
-
-            GUILayout.FlexibleSpace();
-            EditorGUILayout.EndHorizontal();
-            EndSection();
         }
 
         private void SelectReleaseChannel(NeoComposeConfig config, string channelId)
@@ -985,7 +1154,8 @@ namespace NeoCompose.Unity.Editor
             {
                 using (new EditorGUIUtilityLabelWidthScope(LabelWidth))
                 {
-                    EditorGUILayout.LabelField("Status", statusForVersion.name);
+                    // Bold value so it doesn't read as a second label.
+                    EditorGUILayout.LabelField("Status", statusForVersion.name, EditorStyles.boldLabel);
                 }
             }
 
@@ -1137,6 +1307,30 @@ namespace NeoCompose.Unity.Editor
             EditorGUILayout.Space(1);
         }
 
+        /// <summary>
+        /// A collapsible section card. Open state persists per-user in
+        /// EditorPrefs (collapsed by default — these hold set-once
+        /// configuration). Callers must call <see cref="EndSection"/> whether or
+        /// not the body rendered.
+        /// </summary>
+        private static bool BeginFoldoutSection(string title, string prefKey)
+        {
+            EditorGUILayout.BeginVertical(SectionBoxStyle());
+            var expanded = EditorPrefs.GetBool(prefKey, false);
+            var next = EditorGUILayout.Foldout(expanded, title, true, FoldoutTitleStyle());
+            if (next != expanded)
+            {
+                EditorPrefs.SetBool(prefKey, next);
+            }
+
+            if (next)
+            {
+                EditorGUILayout.Space(2);
+            }
+
+            return next;
+        }
+
         private static void EndSection()
         {
             EditorGUILayout.EndVertical();
@@ -1159,6 +1353,24 @@ namespace NeoCompose.Unity.Editor
             };
         }
 
+        /// <summary>Label that centres vertically inside a fixed-height row.</summary>
+        private static GUIStyle RowLabelStyle()
+        {
+            return new GUIStyle(EditorStyles.label)
+            {
+                alignment = TextAnchor.MiddleLeft,
+            };
+        }
+
+        private static GUIStyle FoldoutTitleStyle()
+        {
+            return new GUIStyle(EditorStyles.foldout)
+            {
+                fontStyle = FontStyle.Bold,
+                fontSize = 12,
+            };
+        }
+
         private static GUIStyle SectionTitleStyle()
         {
             return new GUIStyle(EditorStyles.boldLabel)
@@ -1173,16 +1385,6 @@ namespace NeoCompose.Unity.Editor
             return new GUIStyle(EditorStyles.boldLabel)
             {
                 fontSize = 13,
-            };
-        }
-
-        private static GUIStyle ProjectIdStyle()
-        {
-            return new GUIStyle(EditorStyles.miniLabel)
-            {
-                fontSize = 10,
-                wordWrap = false,
-                clipping = TextClipping.Clip,
             };
         }
 
@@ -1256,7 +1458,7 @@ namespace NeoCompose.Unity.Editor
             {
                 Debug.LogError(exception);
                 if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
-                status = exception.Message;
+                SetStatus(exception.Message, MessageType.Error);
             }
             finally
             {
@@ -1325,7 +1527,7 @@ namespace NeoCompose.Unity.Editor
             {
                 Debug.LogError(exception);
                 if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
-                status = exception.Message;
+                SetStatus(exception.Message, MessageType.Error);
             }
             finally
             {
@@ -1353,14 +1555,14 @@ namespace NeoCompose.Unity.Editor
                 {
                     await RefreshVersionMetadataAsync(false);
                 }
-                status = result.message;
+                SetStatus(result.message, result.success ? MessageType.Info : MessageType.Error);
                 ScheduleAssetRefresh();
             }
             catch (Exception exception)
             {
                 Debug.LogError(exception);
                 if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
-                status = exception.Message;
+                SetStatus(exception.Message, MessageType.Error);
             }
             finally
             {
@@ -1381,13 +1583,13 @@ namespace NeoCompose.Unity.Editor
             {
                 var result = await projectSettingsUpdater.UpdateUnityExportSettingsAsync(config);
                 RefreshConfigForDisplay();
-                status = result.message;
+                SetStatus(result.message, result.success ? MessageType.Info : MessageType.Error);
             }
             catch (Exception exception)
             {
                 Debug.LogError(exception);
                 if (config != null) auth.HandleApiException(config.apiBaseUrl, exception);
-                status = exception.Message;
+                SetStatus(exception.Message, MessageType.Error);
             }
             finally
             {

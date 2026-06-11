@@ -66,7 +66,7 @@ namespace NeoCompose.Unity.Editor
                 .Where(assets.FileExists)
                 .ToArray();
             if (replacePaths.Length > 0 &&
-                !confirmations.Confirm(
+                !confirmations.ConfirmReplaceFiles(
                     "Replace Neo Compose assets?",
                     $"{replacePaths.Length} synchronized asset file(s) will be replaced.",
                     "Replace",

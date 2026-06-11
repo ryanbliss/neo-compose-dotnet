@@ -9,6 +9,20 @@ using Newtonsoft.Json;
 namespace NeoCompose.Runtime.Json
 {
     /// <summary>
+    /// Shared settings for parsing save content envelopes. Date parsing is
+    /// disabled because save values are an opaque JSON overlay: Newtonsoft's
+    /// default turns any date-looking string inside <c>values</c> into a
+    /// <c>JTokenType.Date</c>, silently reformatting the player's data on the
+    /// next round-trip and producing tokens the realtime wire converter cannot
+    /// transmit. Strings stay strings, byte for byte.
+    /// </summary>
+    public static class NeoSaveJson
+    {
+        public static readonly JsonSerializerSettings ContentSettings =
+            new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
+    }
+
+    /// <summary>
     /// Deserializes a single cloud save JSON envelope into a
     /// <see cref="RemoteGameSave"/>, keeping its value rows opaque (see
     /// <see cref="NeoSaveValues"/>). <see cref="Load"/> throws on a malformed or
@@ -24,7 +38,8 @@ namespace NeoCompose.Runtime.Json
                 throw new InvalidOperationException("Remote save JSON was empty.");
             }
 
-            var save = JsonConvert.DeserializeObject<RemoteGameSave>(json);
+            var save = JsonConvert.DeserializeObject<RemoteGameSave>(
+                json, NeoSaveJson.ContentSettings);
             if (save == null)
             {
                 throw new InvalidOperationException("Remote save JSON could not be deserialized.");
@@ -39,7 +54,8 @@ namespace NeoCompose.Runtime.Json
             if (string.IsNullOrWhiteSpace(json)) return false;
             try
             {
-                var parsed = JsonConvert.DeserializeObject<RemoteGameSave>(json);
+                var parsed = JsonConvert.DeserializeObject<RemoteGameSave>(
+                    json, NeoSaveJson.ContentSettings);
                 if (parsed == null) return false;
                 save = parsed;
                 return true;
@@ -65,7 +81,8 @@ namespace NeoCompose.Runtime.Json
                 throw new InvalidOperationException("Local save JSON was empty.");
             }
 
-            var save = JsonConvert.DeserializeObject<LocalGameSave>(json);
+            var save = JsonConvert.DeserializeObject<LocalGameSave>(
+                json, NeoSaveJson.ContentSettings);
             if (save == null)
             {
                 throw new InvalidOperationException("Local save JSON could not be deserialized.");
@@ -80,7 +97,8 @@ namespace NeoCompose.Runtime.Json
             if (string.IsNullOrWhiteSpace(json)) return false;
             try
             {
-                var parsed = JsonConvert.DeserializeObject<LocalGameSave>(json);
+                var parsed = JsonConvert.DeserializeObject<LocalGameSave>(
+                    json, NeoSaveJson.ContentSettings);
                 if (parsed == null) return false;
                 save = parsed;
                 return true;

@@ -103,6 +103,14 @@ namespace NeoCompose.Runtime.Json
         /// (a <see cref="NeoTimestamp"/> converter would collapse null to 0).
         /// </summary>
         public double? archivedAt;
+
+        /// <summary>
+        /// The play session that forked the head snapshot, or null for classic
+        /// commit/clone snapshots. Non-null marks the head as a live snapshot,
+        /// patchable in place via the live-session flow (see
+        /// <c>specs/live-save-sessions.md</c>).
+        /// </summary>
+        public string? liveSessionId;
     }
 
     /// <summary>
@@ -139,6 +147,16 @@ namespace NeoCompose.Runtime.Json
         /// synced. Plain nullable so a JSON <c>null</c> round-trips to null.
         /// </summary>
         public double? synchronizedAt;
+
+        /// <summary>
+        /// Local-store-only marker: true when this persisted copy is exactly
+        /// the server-acknowledged state of a live-session flush (nothing was
+        /// staged after it). Lets a later load adopt an in-place co-edited
+        /// live snapshot silently instead of raising a conflict — there is
+        /// nothing local to lose. Never sent to the server (commit requests
+        /// are built field by field).
+        /// </summary>
+        public bool liveFlushed;
 
         /// <summary>True when this save has never been synchronized to the cloud.</summary>
         public bool IsLocalOnly => string.IsNullOrEmpty(serverId);

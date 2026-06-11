@@ -66,6 +66,36 @@ Lifecycle: the store connects during `LoadAsync` when already signed in; call
 `realtime.Dispose()`. A credential rejection parks the provider in the
 `Denied` state (no auto-retry) until an explicit reconnect.
 
+## Live save sessions
+
+**Registering a realtime provider changes the default save behavior** (opt
+out with `NeoSaveOptions.LiveSessionsEnabled = false`): instead of appending
+a cloud snapshot per save, each play session forks the save's head into one
+**live snapshot** on its first change and then streams throttled per-key
+patches into it (trailing 500 ms debounce, 2 s max latency, best-effort flush
+on teardown). See `specs/live-save-sessions.md`.
+
+**The game never calls save while live.** Every save-value write (e.g.
+`neo.Save.Bits = 900`) schedules an automatic commit through a short
+coalescing delay, so changes stream to the web tool as they happen. Explicit
+`CommitAsync` still works (and remains how classic, non-live cloud saves are
+written).
+
+- The web tool sees the running game's edits in real time on the live
+  snapshot (and shows a LIVE badge while writes are recent).
+- Web-side edits to the live snapshot auto-apply into the running game:
+  `NeoSaveSynchronizer.OnLiveContentChanged` delivers the merged content, and
+  `NeoClient.ApplyExternalSaveContent` re-shadows changed rows in place,
+  raising the same typed change events local writes raise. Locally dirty
+  (unflushed) keys always win until they flush.
+- Offline saves stage locally and compose into one patch on reconnect; the
+  head moving under a session resolves through the existing `OnConflict`
+  contract. Local durability is unchanged — the local store is still written
+  on every save, before any network work.
+- Each session leaves one frozen snapshot behind; the backend archives
+  live-session snapshots beyond a configurable cap (default 10) and never
+  touches manually created ones.
+
 ## Editor: live lists + hot reload
 
 Zero setup. With this package installed, the Neo Compose window connects

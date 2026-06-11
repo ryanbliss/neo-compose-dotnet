@@ -33,6 +33,11 @@ namespace NeoCompose.Tests
                 localStore: local,
                 apiClient: api,
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
+                // These tests pin the CLASSIC commit transport selection
+                // (provider vs REST fallback); live sessions would intercept
+                // the commit into the staged flush pipeline instead — that
+                // path is covered by NeoLiveSaveSessionTests.
+                options: new NeoSaveOptions { LiveSessionsEnabled = false },
                 realtimeProvider: realtime);
             await store.LoadAsync();
             return (store, api, local, realtime);
@@ -320,6 +325,12 @@ namespace NeoCompose.Tests
         public readonly Queue<NeoCommitResult> commitResults = new();
         public readonly List<(NeoSaveCommitRequest request, bool replaceSnapshot)> commits = new();
         public Exception? commitThrows;
+        public readonly Queue<NeoCommitResult> forkResults = new();
+        public readonly List<NeoLiveForkRequest> forks = new();
+        public Exception? forkThrows;
+        public readonly Queue<NeoLivePatchResult> livePatchResults = new();
+        public readonly List<NeoLivePatchRequest> livePatches = new();
+        public Exception? livePatchThrows;
         public bool canCommit;
         public int ConnectCalls;
         public int DisconnectCalls;
@@ -378,6 +389,20 @@ namespace NeoCompose.Tests
             commits.Add((request, replaceSnapshot));
             if (commitThrows != null) throw commitThrows;
             return NeoAwaitable.FromResult(commitResults.Dequeue());
+        }
+
+        public Awaitable<NeoCommitResult> ForkLiveAsync(NeoLiveForkRequest request)
+        {
+            forks.Add(request);
+            if (forkThrows != null) throw forkThrows;
+            return NeoAwaitable.FromResult(forkResults.Dequeue());
+        }
+
+        public Awaitable<NeoLivePatchResult> PatchLiveAsync(NeoLivePatchRequest request)
+        {
+            livePatches.Add(request);
+            if (livePatchThrows != null) throw livePatchThrows;
+            return NeoAwaitable.FromResult(livePatchResults.Dequeue());
         }
 
         public void SetState(NeoRealtimeConnectionState state)
