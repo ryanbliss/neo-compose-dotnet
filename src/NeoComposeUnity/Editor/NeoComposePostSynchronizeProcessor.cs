@@ -108,6 +108,11 @@ namespace NeoCompose.Unity.Editor
         private static void SetStatus(string message)
         {
             SessionState.SetString(NeoComposeEditorWindow.StatusSessionKey, message);
+            // The post-reload message is informational; without this a stale
+            // error severity from an earlier failed attempt would colour it.
+            SessionState.SetInt(
+                NeoComposeEditorWindow.StatusSeveritySessionKey,
+                (int)MessageType.Info);
             foreach (var window in Resources.FindObjectsOfTypeAll<NeoComposeEditorWindow>())
             {
                 window.Repaint();

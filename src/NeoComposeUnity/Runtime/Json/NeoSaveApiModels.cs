@@ -31,6 +31,14 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>Optional snapshot display name; the server generates one when null.</summary>
         public string? snapshotName;
+
+        /// <summary>
+        /// Live save sessions: a live session creating a brand-new save passes
+        /// its session id so the created head is a live snapshot from snapshot
+        /// one (the session then patches it in place). The server honors this
+        /// only on the create branch; commits to an existing save stay classic.
+        /// </summary>
+        public string? liveSessionId;
     }
 
     /// <summary>Optional inputs to a clone: rename, source snapshot, destination channel.</summary>

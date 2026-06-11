@@ -122,6 +122,12 @@ namespace NeoCompose.Unity.Editor
         public string? codegenContractHash;
         public string? runtimeDataContractHash;
         public NeoComposeUnityRuntimeOAuthConfig? runtimeOAuth;
+
+        /// <summary>
+        /// Convex deployment URL for realtime sync; null when the server has
+        /// none configured (the editor then leaves the config field alone).
+        /// </summary>
+        public string? convexUrl;
     }
 
     /// <summary>

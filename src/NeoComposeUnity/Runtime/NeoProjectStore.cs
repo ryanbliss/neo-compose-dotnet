@@ -24,7 +24,7 @@ namespace NeoCompose.Runtime
     /// valid only once Ready. The schema is config-driven by default so the
     /// generated client no longer needs a <c>projectJson</c> argument.
     /// </remarks>
-    public sealed class NeoProjectStore
+    public sealed class NeoProjectStore : IDisposable
     {
         private readonly IProjectDataSource dataSource;
         private readonly INeoLocalSaveStore localStore;
@@ -33,8 +33,10 @@ namespace NeoCompose.Runtime
         private readonly NeoSaveOptions options;
         private readonly bool requireCloudCommit;
         private readonly NeoAuthentication? authentication;
+        private readonly INeoRealtimeProvider? realtimeProvider;
 
         private InternalProjectStore? core;
+        private bool disposed;
 
         /// <summary>
         /// Builds a project store. With no arguments everything is inferred from the
@@ -55,6 +57,17 @@ namespace NeoCompose.Runtime
         /// <param name="apiClient">An explicit cloud transport; when set, wins over the config master switch.</param>
         /// <param name="authentication">An explicit authentication; its api client is used when no <paramref name="apiClient"/> is given.</param>
         /// <param name="targetReleaseChannelId">Defaults to the config's target channel.</param>
+        /// <param name="realtimeProvider">
+        /// Optional realtime transport (explicit registration; see
+        /// <c>specs/convex-realtime-sync.md</c>). The store owns it from here:
+        /// an unconfigured <see cref="INeoRealtimeConfigurable"/> provider is
+        /// configured from the project config + this store's authentication,
+        /// the socket connects around the sign-in lifecycle (during
+        /// <see cref="LoadAsync"/> when already signed in, and automatically on
+        /// later sign-in), and it is disposed with <see cref="Dispose"/>.
+        /// Requires cloud sync — with no API client the registration is dropped
+        /// with a warning (and disposed).
+        /// </param>
         public NeoProjectStore(
             NeoComposeConfig? config = null,
             IProjectDataSource? dataSource = null,
@@ -63,7 +76,8 @@ namespace NeoCompose.Runtime
             NeoAuthentication? authentication = null,
             string? targetReleaseChannelId = null,
             NeoSaveOptions? options = null,
-            bool requireCloudCommit = false)
+            bool requireCloudCommit = false,
+            INeoRealtimeProvider? realtimeProvider = null)
         {
             // Only fall back to the Resources config when a config-derived default is
             // actually needed — so tests that inject their own data source stay isolated.
@@ -85,6 +99,81 @@ namespace NeoCompose.Runtime
             this.requireCloudCommit = requireCloudCommit;
             this.targetReleaseChannelId = targetReleaseChannelId ?? config?.targetReleaseChannelId ?? "";
             this.authentication = ResolveAuthentication(config, apiClient, authentication, out this.apiClient);
+            this.realtimeProvider = ResolveRealtimeProvider(
+                realtimeProvider, config, this.authentication, this.apiClient);
+        }
+
+        /// <summary>
+        /// Realtime registration. The store owns the provider from the moment
+        /// it is passed in — it is disposed with the store, or immediately when
+        /// the registration is dropped here. An unconfigured
+        /// <see cref="INeoRealtimeConfigurable"/> provider is configured from
+        /// the project config + the store's authentication, so the socket
+        /// credential always derives from the same sign-in the REST client
+        /// uses; a provider constructed with explicit options is left as-is.
+        /// Every drop is graceful (warn, never throw): realtime is an overlay,
+        /// and the REST/local store must come up regardless.
+        /// </summary>
+        private static INeoRealtimeProvider? ResolveRealtimeProvider(
+            INeoRealtimeProvider? provider,
+            NeoComposeConfig? config,
+            NeoAuthentication? authentication,
+            INeoApiClient? apiClient)
+        {
+            if (provider == null) return null;
+
+            if (apiClient == null)
+            {
+                Debug.LogWarning(
+                    "[NeoCompose] A realtime provider was registered but cloud sync is disabled " +
+                    "(no API client); realtime stays off for this project store.");
+                provider.Dispose();
+                return null;
+            }
+
+            if (provider is not INeoRealtimeConfigurable { IsConfigured: false } configurable)
+            {
+                return provider;
+            }
+
+            config ??= NeoComposeConfig.LoadDefault();
+            if (config == null)
+            {
+                Debug.LogWarning(
+                    "[NeoCompose] The realtime provider needs configuration but no " +
+                    "NeoComposeConfig was found in Resources; realtime stays off. Pass a " +
+                    "config to NeoProjectStore or construct the provider with explicit options.");
+                provider.Dispose();
+                return null;
+            }
+
+            if (string.IsNullOrWhiteSpace(config.convexUrl))
+            {
+                Debug.LogWarning(
+                    "[NeoCompose] The realtime provider needs configuration but the config has " +
+                    "no Convex URL; realtime stays off. Synchronize the project in the editor " +
+                    "to receive it (NeoComposeConfig.convexUrl).");
+                provider.Dispose();
+                return null;
+            }
+
+            if (authentication == null)
+            {
+                Debug.LogWarning(
+                    "[NeoCompose] The realtime provider needs configuration but the store has " +
+                    "no NeoAuthentication to derive the socket credential from (an explicit " +
+                    "apiClient was supplied without one); realtime stays off. Pass " +
+                    "authentication, or construct the provider with explicit options.");
+                provider.Dispose();
+                return null;
+            }
+
+            configurable.Configure(new NeoRealtimeProviderContext(
+                config.convexUrl,
+                config.apiBaseUrl,
+                config.projectId,
+                authentication.AccessTokenProvider));
+            return provider;
         }
 
         /// <summary>
@@ -134,6 +223,10 @@ namespace NeoCompose.Runtime
         /// <summary>The runtime authentication backing cloud sync, or null when local-only.</summary>
         public NeoAuthentication? Authentication => authentication;
 
+        /// <summary>The registered realtime transport, or null (including when it
+        /// was dropped because cloud sync is off).</summary>
+        public INeoRealtimeProvider? RealtimeProvider => realtimeProvider;
+
         public NeoProjectStoreState State { get; private set; } = NeoProjectStoreState.Idle;
 
         /// <summary>The project schema; valid once Ready.</summary>
@@ -154,6 +247,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         public async Awaitable LoadAsync()
         {
+            ThrowIfDisposed();
             if (State == NeoProjectStoreState.Loading)
             {
                 throw new InvalidOperationException("Neo Compose project store is already loading.");
@@ -178,9 +272,12 @@ namespace NeoCompose.Runtime
                     targetReleaseChannelId,
                     options,
                     requireCloudCommit,
-                    authentication);
+                    authentication,
+                    now: null,
+                    realtimeProvider);
                 core.ListChanged += () => OnListChanged?.Invoke();
                 await core.RefreshListAsync();
+                await BringUpRealtimeAsync();
                 State = NeoProjectStoreState.Ready;
             }
             catch (Exception)
@@ -192,6 +289,159 @@ namespace NeoCompose.Runtime
 
         /// <summary>Re-reads the save list from local + cloud.</summary>
         public Awaitable RefreshSavesAsync() => RequireReady().RefreshListAsync();
+
+        /// <summary>
+        /// Hooks the provider's state events (re-attaching subscriptions on every
+        /// Connected transition), ties the socket to the sign-in lifecycle, and,
+        /// when the player is already signed in, connects. A failed connect only
+        /// warns: loading never depends on realtime, and the REST/local paths
+        /// stand unchanged.
+        /// </summary>
+        private async Awaitable BringUpRealtimeAsync()
+        {
+            if (realtimeProvider == null || core == null) return;
+
+            // Unhook-then-hook so a re-load never double-subscribes.
+            realtimeProvider.OnConnectionStateChanged -= OnRealtimeConnectionStateChanged;
+            realtimeProvider.OnConnectionStateChanged += OnRealtimeConnectionStateChanged;
+            if (authentication != null)
+            {
+                authentication.OnStateChanged -= OnAuthenticationStateChanged;
+                authentication.OnStateChanged += OnAuthenticationStateChanged;
+            }
+
+            if (realtimeProvider.State == NeoRealtimeConnectionState.Connected)
+            {
+                core.AttachRealtimeSubscriptions();
+                return;
+            }
+
+            if (authentication is not { IsSignedIn: true }) return;
+            await ConnectRealtimeBestEffortAsync("during project load");
+        }
+
+        private void OnRealtimeConnectionStateChanged(NeoRealtimeConnectionState state)
+        {
+            if (state != NeoRealtimeConnectionState.Connected) return;
+            core?.AttachRealtimeSubscriptions();
+        }
+
+        /// <summary>
+        /// The sign-in lifecycle drives the socket: a successful sign-in
+        /// connects realtime automatically, and sign-out / expiry tears it down
+        /// so no socket outlives its credential. Both directions are
+        /// best-effort — they warn rather than throw into the authentication
+        /// flow, and saves keep working over REST/local either way.
+        /// </summary>
+        private async void OnAuthenticationStateChanged(NeoAuthenticationState state)
+        {
+            if (disposed || realtimeProvider == null) return;
+
+            if (state == NeoAuthenticationState.SignedIn)
+            {
+                await ConnectRealtimeBestEffortAsync("after sign-in");
+                return;
+            }
+
+            if (state != NeoAuthenticationState.SignedOut
+                && state != NeoAuthenticationState.Expired)
+            {
+                return;
+            }
+
+            try
+            {
+                core?.DetachRealtimeSubscriptions();
+                await realtimeProvider.DisconnectAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    $"[NeoCompose] Realtime disconnect after sign-out failed; the socket is " +
+                    $"torn down locally regardless. " +
+                    $"{exception.GetType().Name}: {exception.Message}");
+            }
+        }
+
+        private async Awaitable ConnectRealtimeBestEffortAsync(string when)
+        {
+            try
+            {
+                await realtimeProvider!.ConnectAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    $"[NeoCompose] Realtime connect failed {when}; continuing with " +
+                    $"REST/local saves. {exception.GetType().Name}: {exception.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Explicitly connects the registered realtime provider — the call a game
+        /// makes after a successful sign-in (load-time connect only happens when
+        /// already signed in).
+        /// </summary>
+        public async Awaitable ConnectRealtimeAsync()
+        {
+            ThrowIfDisposed();
+            RequireReady();
+            if (realtimeProvider == null)
+            {
+                throw new InvalidOperationException(
+                    "No realtime provider is registered for this project store.");
+            }
+
+            await realtimeProvider.ConnectAsync();
+        }
+
+        /// <summary>
+        /// Explicitly disconnects realtime (sign-out teardown). Call before
+        /// signing out so no socket outlives its credential.
+        /// </summary>
+        public async Awaitable DisconnectRealtimeAsync()
+        {
+            ThrowIfDisposed();
+            if (realtimeProvider == null)
+            {
+                throw new InvalidOperationException(
+                    "No realtime provider is registered for this project store.");
+            }
+
+            core?.DetachRealtimeSubscriptions();
+            await realtimeProvider.DisconnectAsync();
+        }
+
+        /// <summary>
+        /// Tears down realtime: unhooks the sign-in lifecycle, detaches
+        /// subscriptions, and disposes the registered provider (the store owns
+        /// it). The local/REST save layers need no teardown. Safe to call
+        /// repeatedly; the store is unusable afterwards.
+        /// </summary>
+        public void Dispose()
+        {
+            if (disposed) return;
+            disposed = true;
+
+            if (authentication != null)
+            {
+                authentication.OnStateChanged -= OnAuthenticationStateChanged;
+            }
+            if (realtimeProvider != null)
+            {
+                realtimeProvider.OnConnectionStateChanged -= OnRealtimeConnectionStateChanged;
+                core?.DetachRealtimeSubscriptions();
+                realtimeProvider.Dispose();
+            }
+        }
+
+        private void ThrowIfDisposed()
+        {
+            if (disposed)
+            {
+                throw new ObjectDisposedException(nameof(NeoProjectStore));
+            }
+        }
 
         /// <summary>Returns a synchronizer for an existing save (local and/or cloud).</summary>
         public NeoSaveSynchronizer Open(string customId)
@@ -333,6 +583,7 @@ namespace NeoCompose.Runtime
 
         private InternalProjectStore RequireReady()
         {
+            ThrowIfDisposed();
             if (State == NeoProjectStoreState.Idle)
             {
                 throw new InvalidOperationException(

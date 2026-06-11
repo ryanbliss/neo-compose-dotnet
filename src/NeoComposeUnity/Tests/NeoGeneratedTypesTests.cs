@@ -46,6 +46,61 @@ namespace NeoCompose.Tests
             return attr;
         }
 
+        /// <summary>
+        /// Inbound live save sessions (specs/live-save-sessions.md): a merged
+        /// content blob applies into the running value graph in place, raising
+        /// the same typed change events local writes raise, and rows the blob
+        /// no longer carries fall back to authored defaults.
+        /// </summary>
+        [Test]
+        public void ApplyExternalSaveContent_AppliesInboundLiveEditsInPlace()
+        {
+            var app = LoadGeneratedClient(out _);
+
+            // Capture content with Score=2 as the "inbound co-editor edit".
+            app.Save.Score = 2;
+            var inbound = app.SerializeSaveData();
+
+            // The running game has since moved on locally.
+            app.Save.Score = 1;
+            Assert.AreEqual(1, app.Save.Score);
+
+            var changed = new System.Collections.Generic.List<int>();
+            using var subscription = app.Save.OnChanged(
+                Root.Fields.Score, (score) => changed.Add(score));
+
+            app.Client.ApplyExternalSaveContent(inbound);
+
+            Assert.AreEqual(2, app.Save.Score, "the inbound row re-shadowed the value");
+            Assert.That(changed, Has.Count.EqualTo(1), "typed subscription fired once");
+
+            // Re-applying identical content disturbs nothing.
+            app.Client.ApplyExternalSaveContent(inbound);
+            Assert.That(changed, Has.Count.EqualTo(1));
+        }
+
+        /// <summary>
+        /// Shadows the inbound content no longer carries (the web's "Reset to
+        /// default") fall back to the authored value graph.
+        /// </summary>
+        [Test]
+        public void ApplyExternalSaveContent_RestoresDroppedShadowsToAuthored()
+        {
+            var app = LoadGeneratedClient(out _);
+            var authoredScore = app.Save.Score;
+            var pristine = app.SerializeSaveData();
+
+            app.Save.Score = authoredScore + 5;
+            Assert.AreEqual(authoredScore + 5, app.Save.Score);
+
+            app.Client.ApplyExternalSaveContent(pristine);
+
+            Assert.AreEqual(
+                authoredScore,
+                app.Save.Score,
+                "the dropped shadow falls back to the authored default");
+        }
+
         [Test]
         public void GeneratedRootClient_WrapsClientAndEnumHelpersSupportUnknownIds()
         {

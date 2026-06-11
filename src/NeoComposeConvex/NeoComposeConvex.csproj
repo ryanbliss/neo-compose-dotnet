@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>NeoCompose.Convex</RootNamespace>
+    <!-- Override UnityManagedDir via env var or a local Directory.Build.props if your Unity install differs -->
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+    <!-- The vendored realtime client (com.ryanbliss.convex-dotnet-unity) is
+         only resolved inside a Unity project that lists it as a dependency —
+         here, the HelloWorld sample. Unity compiles `Convex.Client` from the
+         package source into the sample's `ScriptAssemblies`; the client's
+         third-party dependencies (System.Text.Json, System.Reactive, …) stay
+         as plugin DLLs in the package cache. Both are pointed at the sample's
+         `Library` so the IDE can resolve `Convex.Client.*` over this package's
+         source. Override if your sample Library lives elsewhere. -->
+    <ConvexClientAssembliesDir Condition="'$(ConvexClientAssembliesDir)' == ''">$(MSBuildThisFileDirectory)../../samples/HelloWorld/Library/ScriptAssemblies</ConvexClientAssembliesDir>
+    <ConvexPackageCacheDir Condition="'$(ConvexPackageCacheDir)' == ''">$(MSBuildThisFileDirectory)../../samples/HelloWorld/Library/PackageCache</ConvexPackageCacheDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Editor-only files live in NeoComposeConvexEditor.csproj; Tests have
+         their own Unity Test Framework asmdef and shim. Exclude obj to avoid
+         the default `**/*.cs` glob sweeping sibling AssemblyInfo files (see
+         Directory.Build.props). -->
+    <Compile Remove="Editor\**" />
+    <Compile Remove="Tests\**" />
+    <Compile Remove="obj\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The core seam this provider implements (NeoCompose.Runtime). -->
+    <ProjectReference Include="../NeoComposeUnity/NeoComposeUnity.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- The vendored realtime client, Unity-compiled from the
+         convex-dotnet-unity package source. -->
+    <Reference Include="Convex.Client" Condition="Exists('$(ConvexClientAssembliesDir)/Convex.Client.dll')">
+      <HintPath>$(ConvexClientAssembliesDir)/Convex.Client.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- The client's third-party dependencies ship as plugin DLLs in the
+         package cache. The `@*` segment spans the cache's content-hash
+         suffix, which changes whenever the package is re-resolved. -->
+    <Reference Include="$(ConvexPackageCacheDir)/com.ryanbliss.convex-dotnet-unity@*/Runtime/Plugins/*.dll" Private="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Newtonsoft.Json — the provider (de)serializes core DTOs across the
+         socket seam with it. Unity supplies the DLL at runtime via the
+         `com.unity.nuget.newtonsoft-json` UPM package; this NuGet reference is
+         purely for the IDE shim's IntelliSense. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>

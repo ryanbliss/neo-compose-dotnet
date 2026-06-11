@@ -93,6 +93,18 @@ namespace NeoCompose.Runtime
                 request.SetRequestHeader("Content-Type", "application/json");
             }
 
+            // Authentication is bearer-only, so the request must never carry
+            // cookies: better-auth Set-Cookies session and cached-JWT cookies
+            // on its endpoints, UnityWebRequest's process-wide cookie jar
+            // replays them across editor and play mode (and across ports on
+            // the same host), and the server resolves identity cookie-first —
+            // a play-mode runtime sign-in would hijack the editor's identity
+            // (and vice versa). Setting a Cookie header does NOT suppress the
+            // jar (the engine appends its own Cookie line regardless), so the
+            // jar is cleared for this host before every send. This also drops
+            // jar cookies for any non-SDK UnityWebRequest to the same host,
+            // which is the intended zero-trust posture for the auth host.
+            UnityWebRequest.ClearCookieCache(new Uri(url));
             request.SetRequestHeader("Accept", "application/json");
             if (!string.IsNullOrWhiteSpace(bearerToken))
             {

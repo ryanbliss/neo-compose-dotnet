@@ -36,5 +36,6 @@ MonoBehaviour:
   - project:7cd65ee0-a3be-4162-b617-cba3ada4f8e8:save:write
   - project:7cd65ee0-a3be-4162-b617-cba3ada4f8e8:save:archive
   - project:7cd65ee0-a3be-4162-b617-cba3ada4f8e8:runtime:read
+  convexUrl: https://enduring-mouse-881.convex.cloud
   enableOAuthCloudSync: 1
   runtimeOAuthOverridden: 0

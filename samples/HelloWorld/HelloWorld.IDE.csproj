@@ -25,9 +25,17 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference
-      Include="..\..\src\NeoComposeUnity\NeoComposeUnity.csproj"
-      AdditionalProperties="NeoComposeUnityPackageAssembliesDir=$(MSBuildProjectDirectory)/$(UnityScriptAssembliesDir)" />
+    <!-- NeoComposeUnity.csproj self-defaults NeoComposeUnityPackageAssembliesDir
+         to this sample's ScriptAssemblies, so no AdditionalProperties are
+         needed (and passing them would fork it into a second build instance
+         alongside the Convex shim's reference below). -->
+    <ProjectReference Include="..\..\src\NeoComposeUnity\NeoComposeUnity.csproj" />
+    <!-- The sample registers the Convex realtime provider (`using
+         NeoCompose.Convex`). The package's compiled `NeoCompose.Unity.Convex.dll`
+         is excluded from the ScriptAssemblies glob below (the `NeoCompose.Unity*`
+         exclude), so the namespace resolves through this source shim instead —
+         giving go-to-definition into the package source, not a decompiled DLL. -->
+    <ProjectReference Include="..\..\src\NeoComposeConvex\NeoComposeConvex.csproj" />
   </ItemGroup>
 
   <ItemGroup>

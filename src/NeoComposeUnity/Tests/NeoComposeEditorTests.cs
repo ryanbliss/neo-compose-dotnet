@@ -1219,6 +1219,54 @@ namespace NeoCompose.Tests
             }
         }
 
+        [Test]
+        public void DialogConfirmations_SkipReplacePromptWhenAskBeforeOverwritingIsOff()
+        {
+            var dialogShown = false;
+            var service = new NeoComposeEditorDialogConfirmationService(
+                askBeforeOverwritingFiles: () => false,
+                displayDialog: (title, message, ok, cancel) =>
+                {
+                    dialogShown = true;
+                    return false;
+                });
+
+            Assert.IsTrue(service.ConfirmReplaceFiles("t", "m", "ok", "cancel"));
+            Assert.IsFalse(dialogShown);
+        }
+
+        [Test]
+        public void DialogConfirmations_ShowReplacePromptWhenAskBeforeOverwritingIsOn()
+        {
+            var dialogShown = false;
+            var service = new NeoComposeEditorDialogConfirmationService(
+                askBeforeOverwritingFiles: () => true,
+                displayDialog: (title, message, ok, cancel) =>
+                {
+                    dialogShown = true;
+                    return false;
+                });
+
+            Assert.IsFalse(service.ConfirmReplaceFiles("t", "m", "ok", "cancel"));
+            Assert.IsTrue(dialogShown);
+        }
+
+        [Test]
+        public void DialogConfirmations_NonReplacePromptsAlwaysShowRegardlessOfPreference()
+        {
+            var dialogShown = false;
+            var service = new NeoComposeEditorDialogConfirmationService(
+                askBeforeOverwritingFiles: () => false,
+                displayDialog: (title, message, ok, cancel) =>
+                {
+                    dialogShown = true;
+                    return true;
+                });
+
+            Assert.IsTrue(service.Confirm("t", "m", "ok", "cancel"));
+            Assert.IsTrue(dialogShown);
+        }
+
         private sealed class FakeConfirmationService : INeoComposeConfirmationService
         {
             private readonly Queue<bool> responses = new();
@@ -1237,6 +1285,13 @@ namespace NeoCompose.Tests
                 calls.Add(title);
                 if (responses.Count == 0) return true;
                 return responses.Dequeue();
+            }
+
+            // The fake plays the "user was asked" role for both prompt kinds; the
+            // preference gate itself is covered by the dialog-service tests.
+            public bool ConfirmReplaceFiles(string title, string message, string ok, string cancel)
+            {
+                return Confirm(title, message, ok, cancel);
             }
         }
 

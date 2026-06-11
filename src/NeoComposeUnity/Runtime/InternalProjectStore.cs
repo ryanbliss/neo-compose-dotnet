@@ -33,6 +33,7 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, RemoteGameSave> remoteCache = new();
         private readonly Func<DateTimeOffset> now;
         private DateTimeOffset lastListRefreshAt = DateTimeOffset.MinValue;
+        private IDisposable? realtimeListSubscription;
 
         public InternalProjectStore(
             ProjectData schema,
@@ -42,7 +43,8 @@ namespace NeoCompose.Runtime
             NeoSaveOptions? options = null,
             bool requireCloudCommit = false,
             NeoAuthentication? authentication = null,
-            Func<DateTimeOffset>? now = null)
+            Func<DateTimeOffset>? now = null,
+            INeoRealtimeProvider? realtimeProvider = null)
         {
             Schema = schema ?? throw new ArgumentNullException(nameof(schema));
             LocalStore = localStore ?? throw new ArgumentNullException(nameof(localStore));
@@ -52,6 +54,7 @@ namespace NeoCompose.Runtime
             RequireCloudCommit = requireCloudCommit;
             Authentication = authentication;
             this.now = now ?? (() => DateTimeOffset.UtcNow);
+            RealtimeProvider = realtimeProvider;
         }
 
         /// <summary>
@@ -84,6 +87,65 @@ namespace NeoCompose.Runtime
 
         /// <summary>True when cloud sync is active (an API client is present).</summary>
         public bool CloudEnabled => ApiClient != null;
+
+        /// <summary>
+        /// The optional realtime transport (see
+        /// <c>specs/convex-realtime-sync.md</c>); null in REST/local-only builds.
+        /// </summary>
+        public INeoRealtimeProvider? RealtimeProvider { get; }
+
+        /// <summary>
+        /// (Re)attaches the live save-list subscription. A no-op unless the
+        /// provider is currently connected; safe to call on every Connected
+        /// transition (the previous subscription is replaced).
+        /// </summary>
+        internal void AttachRealtimeSubscriptions()
+        {
+            realtimeListSubscription?.Dispose();
+            realtimeListSubscription = null;
+            if (RealtimeProvider == null) return;
+            if (RealtimeProvider.State != NeoRealtimeConnectionState.Connected) return;
+            realtimeListSubscription = RealtimeProvider.SubscribeSaveList(
+                TargetReleaseChannelId, ApplyRealtimeSaveList);
+        }
+
+        internal void DetachRealtimeSubscriptions()
+        {
+            realtimeListSubscription?.Dispose();
+            realtimeListSubscription = null;
+        }
+
+        /// <summary>
+        /// Applies a pushed cloud save list: the same merge + freshness + orphan
+        /// reconciliation a successful <see cref="RefreshListAsync"/> cloud fetch
+        /// performs, without touching the local entries.
+        /// </summary>
+        internal void ApplyRealtimeSaveList(NeoSaveFileList remoteList)
+        {
+            remoteCache.Clear();
+            foreach (var remote in remoteList.saves)
+            {
+                remoteCache[remote.id] = remote;
+                MergeRemote(remote, remoteList.RequiresClone(remote.id));
+            }
+
+            lastListRefreshAt = now();
+            ReconcileOrphanedLocalSaves();
+            ListChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// Applies a pushed cloud head for one save: primes the fresh-remote
+        /// cache (so the next load skips the per-save fetch) and updates the
+        /// browse list entry.
+        /// </summary>
+        internal void RecordRealtimeRemoteHead(RemoteGameSave remote)
+        {
+            remoteCache[remote.id] = remote;
+            lastListRefreshAt = now();
+            MergeRemote(remote, remote.releaseChannelId != TargetReleaseChannelId);
+            ListChanged?.Invoke();
+        }
 
         public string ProjectId => Schema.metadata?.projectId ?? "";
 

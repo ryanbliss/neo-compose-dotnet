@@ -61,7 +61,20 @@ namespace HelloWorld.Assets.Scripts
             neo = loaded;
             neo.Save.Inventory.OnChanged += OnInventoryChanged;
             bitsSubscription = neo.Save.OnChanged(Save.Fields.Bits, OnBitsChanged);
+            // Live save sessions: a co-editor (the web tool) patching this play
+            // session's live snapshot lands here as merged content; applying it
+            // in place raises the same typed change events as local writes (the
+            // Bits / Inventory subscriptions above), then the HUD re-renders.
+            synchronizer.OnLiveContentChanged -= OnLiveContentChanged;
+            synchronizer.OnLiveContentChanged += OnLiveContentChanged;
             TriggerDialogue();
+        }
+
+        private void OnLiveContentChanged(string content)
+        {
+            if (neo == null) return;
+            neo.Client.ApplyExternalSaveContent(content);
+            UpdateUI();
         }
 
         public string HelloWorldText => neo.Assets.Computed.fullText;
@@ -219,6 +232,7 @@ namespace HelloWorld.Assets.Scripts
             // torn down mid-load — guard rather than assume.
             if (neo == null) return;
             ClearDialogue();
+            synchronizer.OnLiveContentChanged -= OnLiveContentChanged;
             bitsSubscription?.Dispose();
             bitsSubscription = null;
             neo.Dispose();

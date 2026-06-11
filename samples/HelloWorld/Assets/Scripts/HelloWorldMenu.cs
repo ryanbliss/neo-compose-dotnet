@@ -4,6 +4,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && !UNITY_WEBGL
+using NeoCompose.Convex;
+#endif
 using NeoCompose.Runtime;
 using UnityEngine;
 
@@ -22,6 +25,12 @@ namespace HelloWorld.Assets.Scripts
     /// <see cref="HelloWorldGameplay.OnDestroy"/>). The menu never touches the client
     /// directly. The synchronizer's conflict / migration / clone events are wired to
     /// menu dialogs, since resolving them is a menu (UI) concern.
+    ///
+    /// Rendering is one-way and event-driven: flows mutate state (the store, or
+    /// the local auth fields) and mark the menu dirty; <see cref="Update"/> renders
+    /// at most once per frame. <see cref="NeoProjectStore.OnListChanged"/> is the
+    /// single data signal — manual refreshes, archives, clones, and realtime pushes
+    /// all arrive through it, so there is no separate "realtime" render path.
     /// </remarks>
     public sealed class HelloWorldMenu : MonoBehaviour
     {
@@ -29,6 +38,9 @@ namespace HelloWorld.Assets.Scripts
         private NeoProjectStore store;
         private HelloWorldGameplay gameplay;
         private bool authBusy;
+        private bool menuVisible;
+        private bool menuLoading;
+        private bool menuDirty;
         private string pendingUserCode = "";
         private string pendingVerificationUri = "";
 
@@ -37,8 +49,32 @@ namespace HelloWorld.Assets.Scripts
             ShowMenu();
         }
 
+        /// <summary>
+        /// The single render path: every state change — manual flows, sign-in
+        /// progress, and realtime list pushes alike — marks the menu dirty, and
+        /// the next frame renders at most once. Bursts (a load fires several
+        /// list events back-to-back) coalesce into one visual update instead of
+        /// rebuilding the list per event.
+        /// </summary>
+        internal void Update()
+        {
+            if (!menuDirty || !menuVisible || menu == null) return;
+            menuDirty = false;
+            RenderMenu();
+        }
+
+        private void MarkMenuDirty() => menuDirty = true;
+
         internal void OnDestroy()
         {
+            if (store != null)
+            {
+                store.OnListChanged -= MarkMenuDirty;
+                // The store owns its realtime provider; disposing the store
+                // tears the socket down with it.
+                store.Dispose();
+                store = null;
+            }
             menu?.Dispose();
             menu = null;
         }
@@ -57,13 +93,16 @@ namespace HelloWorld.Assets.Scripts
         {
             menu ??= new MenuUI();
             menu.SetMenuVisible(true);
-            RenderMenu(loading: true);
+            menuVisible = true;
+            menuLoading = true;
+            MarkMenuDirty();
 
             if (store == null)
             {
-                // Everything (schema, save store, cloud per `enableOAuthCloudSync`) is
-                // inferred from the project's NeoComposeConfig in Resources.
-                store = new NeoProjectStore();
+                store = BuildProjectStore();
+                // The one data-change signal everything funnels through: manual
+                // refreshes, archives, clones, and realtime pushes all raise it.
+                store.OnListChanged += MarkMenuDirty;
                 await store.LoadAsync();
             }
             else
@@ -72,7 +111,30 @@ namespace HelloWorld.Assets.Scripts
             }
 
             if (this == null) return;
-            RenderMenu(loading: false);
+            menuLoading = false;
+            MarkMenuDirty();
+        }
+
+        /// <summary>
+        /// Builds the project store. Everything (schema, save store, cloud per
+        /// <c>enableOAuthCloudSync</c>) is inferred from the project's
+        /// NeoComposeConfig in Resources. Registering the realtime provider is
+        /// all it takes for live save sync: the store configures it from the
+        /// same config and sign-in, connects it around the sign-in lifecycle,
+        /// and disposes it with the store.
+        /// </summary>
+        private NeoProjectStore BuildProjectStore()
+        {
+            return new NeoProjectStore(
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && !UNITY_WEBGL
+                // Realtime is gated to the editor + development builds here —
+                // the free dev-sync posture. It is production-capable: remove
+                // the guard to ship it (see NeoComposeDotnet
+                // specs/convex-realtime-sync.md). WebGL is excluded because the
+                // transport needs System.Net.WebSockets.
+                realtimeProvider: new ConvexRealtimeProvider()
+#endif
+            );
         }
 
         /// <summary>
@@ -95,13 +157,13 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        private void RenderMenu(bool loading)
+        private void RenderMenu()
         {
             IReadOnlyList<NeoSaveListEntry> activeSaves = store == null
                 ? Array.Empty<NeoSaveListEntry>()
                 : store.Saves.Where(save => !save.IsArchived).ToList();
             menu.Render(
-                loading,
+                menuLoading,
                 activeSaves,
                 BuildAuthInfo(),
                 onCreateNew: OnCreateNew,
@@ -158,20 +220,18 @@ namespace HelloWorld.Assets.Scripts
         private async Awaitable DeleteAsync(string customId)
         {
             // ArchiveAsync deletes the local file and (when signed in) archives the
-            // cloud copy so it stays recoverable from the web app.
+            // cloud copy so it stays recoverable from the web app. The list event
+            // it raises re-renders the menu — no explicit render needed.
             await store.ArchiveAsync(customId);
-            if (this == null) return;
-            RenderMenu(loading: false);
         }
 
         private void OnClone(string customId) => Run(CloneAsync(customId));
 
         private async Awaitable CloneAsync(string customId)
         {
+            // CloneAsync records the clone into the list itself (raising the list
+            // event); no follow-up refresh or explicit render needed.
             await store.CloneAsync(customId);
-            await store.RefreshSavesAsync();
-            if (this == null) return;
-            RenderMenu(loading: false);
         }
 
         // ── Authentication ────────────────────────────────────────────────────
@@ -183,7 +243,7 @@ namespace HelloWorld.Assets.Scripts
 
             authBusy = true;
             auth.OnDeviceAuthorizationPrompt += OnDevicePrompt;
-            RenderMenu(loading: false);
+            MarkMenuDirty();
             try
             {
                 await auth.SignInAsync();
@@ -204,11 +264,13 @@ namespace HelloWorld.Assets.Scripts
                 pendingVerificationUri = "";
                 if (this != null)
                 {
+                    MarkMenuDirty();
                     if (store.Authentication?.IsSignedIn == true)
                     {
+                        // The store connects its realtime provider on sign-in
+                        // by itself; only the list needs a refresh here.
                         await store.RefreshSavesAsync();
                     }
-                    if (this != null) RenderMenu(loading: false);
                 }
             }
         }
@@ -218,7 +280,7 @@ namespace HelloWorld.Assets.Scripts
             if (this == null) return;
             pendingUserCode = code.userCode;
             pendingVerificationUri = code.verificationUri;
-            RenderMenu(loading: false);
+            MarkMenuDirty();
         }
 
         // ── Gameplay transitions ──────────────────────────────────────────────
@@ -226,6 +288,7 @@ namespace HelloWorld.Assets.Scripts
         private async Awaitable EnterGameplayAsync(NeoSaveSynchronizer synchronizer)
         {
             menu.SetMenuVisible(false);
+            menuVisible = false;
             // Cover the transition with a loading overlay — loading a cloud save can
             // hit the network, and any lifecycle prompt renders above it.
             menu.ShowLoadingOverlay("Loading…");

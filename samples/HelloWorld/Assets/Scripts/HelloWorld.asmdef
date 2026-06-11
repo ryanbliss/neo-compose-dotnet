@@ -3,6 +3,7 @@
     "rootNamespace": "HelloWorld",
     "references": [
         "NeoCompose.Unity",
+        "NeoCompose.Unity.Convex",
         "UnityEngine.UI"
     ],
     "includePlatforms": [],

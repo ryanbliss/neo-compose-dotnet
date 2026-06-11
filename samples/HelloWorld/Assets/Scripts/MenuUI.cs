@@ -56,9 +56,23 @@ namespace HelloWorld.Assets.Scripts
         private Text authButtonLabel;
         private Text loadingLabel;
         private RectTransform saveList;
+        private Text emptyListLabel;
         private Button createButton;
         private GameObject modal;
         private GameObject loadingOverlay;
+
+        // Save rows are pooled by customId and updated in place: a re-render of
+        // the same list touches nothing visually, so refresh bursts (load +
+        // realtime pushes) cannot flicker the list. Rows are destroyed only
+        // when their save leaves the list.
+        private readonly Dictionary<string, SaveRow> saveRows = new();
+
+        private sealed class SaveRow
+        {
+            public GameObject Root;
+            public Text Name;
+            public GameObject MigrationWarning;
+        }
 
         public void Render(
             bool loading,
@@ -79,7 +93,7 @@ namespace HelloWorld.Assets.Scripts
             RenderAuthCell(auth, onSignIn);
             if (!loading)
             {
-                RebuildSaveList(saves, onContinue, onClone, onDelete);
+                RenderSaveList(saves, onContinue, onClone, onDelete);
             }
         }
 
@@ -207,6 +221,7 @@ namespace HelloWorld.Assets.Scripts
         {
             DismissPrompt();
             HideLoadingOverlay();
+            saveRows.Clear();
             if (root != null) SampleUI.DestroyObject(root);
         }
 
@@ -230,38 +245,51 @@ namespace HelloWorld.Assets.Scripts
                 : "Sign in to browse and sync cloud saves.";
         }
 
-        private void RebuildSaveList(
+        private void RenderSaveList(
             IReadOnlyList<NeoSaveListEntry> saves,
             Action<string> onContinue,
             Action<string> onClone,
             Action<string> onDelete)
         {
-            for (var i = saveList.childCount - 1; i >= 0; i--)
+            emptyListLabel.gameObject.SetActive(saves.Count == 0);
+
+            var seen = new HashSet<string>();
+            for (var i = 0; i < saves.Count; i++)
             {
-                SampleUI.DestroyObject(saveList.GetChild(i).gameObject);
+                var save = saves[i];
+                seen.Add(save.customId);
+                if (!saveRows.TryGetValue(save.customId, out var row))
+                {
+                    row = CreateSaveRow(save.customId, onContinue, onClone, onDelete);
+                    saveRows[save.customId] = row;
+                }
+
+                UpdateSaveRow(row, save);
+                // Child 0 is the empty-list label; rows follow in list order.
+                row.Root.transform.SetSiblingIndex(i + 1);
             }
 
-            if (saves.Count == 0)
+            if (saveRows.Count == seen.Count) return;
+            var removed = new List<string>();
+            foreach (var entry in saveRows)
             {
-                var empty = SampleUI.CreateText(saveList, "No saves yet — create a new game to begin.", 15,
-                    new Color(0.54f, 0.61f, 0.73f), FontStyle.Normal);
-                FixedHeight(empty.gameObject, 28f);
-                return;
+                if (seen.Contains(entry.Key)) continue;
+                SampleUI.DestroyObject(entry.Value.Root);
+                removed.Add(entry.Key);
             }
 
-            foreach (var save in saves)
+            foreach (var customId in removed)
             {
-                CreateSaveRow(save, onContinue, onClone, onDelete);
+                saveRows.Remove(customId);
             }
         }
 
-        private void CreateSaveRow(
-            NeoSaveListEntry save,
+        private SaveRow CreateSaveRow(
+            string customId,
             Action<string> onContinue,
             Action<string> onClone,
             Action<string> onDelete)
         {
-            var customId = save.customId;
             var row = SampleUI.CreateRect(saveList, $"Save {customId}");
             FixedHeight(row.gameObject, 52f);
             row.gameObject.AddComponent<Image>().color = new Color(0.11f, 0.14f, 0.20f, 1f);
@@ -274,23 +302,41 @@ namespace HelloWorld.Assets.Scripts
             layout.childForceExpandWidth = false;
             layout.childForceExpandHeight = false;
 
-            string badge = save.isLocalOnly ? "local" : "synced";
-            var label = $"{Name(save)}  <size=11><color=#7C8AA3>({badge})</color></size>";
-            var nameText = SampleUI.CreateText(row, label, 15, new Color(0.92f, 0.96f, 1f), FontStyle.Bold);
+            var nameText = SampleUI.CreateText(row, "", 15, new Color(0.92f, 0.96f, 1f), FontStyle.Bold);
             nameText.supportRichText = true;
             nameText.gameObject.GetComponent<LayoutElement>().flexibleWidth = 1f;
 
-            if (save.needsMigration)
-            {
-                var warn = SampleUI.CreateText(row, "needs migration", 12, new Color(0.95f, 0.74f, 0.4f), FontStyle.Italic);
-                warn.alignment = TextAnchor.MiddleRight;
-                warn.gameObject.GetComponent<LayoutElement>().preferredWidth = 118f;
-            }
+            var warn = SampleUI.CreateText(row, "needs migration", 12, new Color(0.95f, 0.74f, 0.4f), FontStyle.Italic);
+            warn.alignment = TextAnchor.MiddleRight;
+            warn.gameObject.GetComponent<LayoutElement>().preferredWidth = 118f;
+            warn.gameObject.SetActive(false);
 
             SampleUI.CreateButton(row, "Continue", 104f, 34f, true, () => onContinue(customId));
             // Clone and Delete work whether the save is local-only or cloud-synced.
             SampleUI.CreateButton(row, "Clone", 76f, 34f, false, () => onClone(customId));
             SampleUI.CreateButton(row, "Delete", 80f, 34f, false, () => onDelete(customId));
+
+            return new SaveRow
+            {
+                Root = row.gameObject,
+                Name = nameText,
+                MigrationWarning = warn.gameObject,
+            };
+        }
+
+        private static void UpdateSaveRow(SaveRow row, NeoSaveListEntry save)
+        {
+            string badge = save.isLocalOnly ? "local" : "synced";
+            var label = $"{Name(save)}  <size=11><color=#7C8AA3>({badge})</color></size>";
+            if (row.Name.text != label)
+            {
+                row.Name.text = label;
+            }
+
+            if (row.MigrationWarning.activeSelf != save.needsMigration)
+            {
+                row.MigrationWarning.SetActive(save.needsMigration);
+            }
         }
 
         private static string Name(NeoSaveListEntry save) =>
@@ -344,6 +390,14 @@ namespace HelloWorld.Assets.Scripts
             listLayout.childControlWidth = true;
             listLayout.childForceExpandHeight = false;
             listLayout.childForceExpandWidth = true;
+
+            // Child 0 of the list, toggled rather than recreated; save rows
+            // insert after it in list order.
+            emptyListLabel = SampleUI.CreateText(
+                saveList, "No saves yet — create a new game to begin.", 15,
+                new Color(0.54f, 0.61f, 0.73f), FontStyle.Normal);
+            FixedHeight(emptyListLabel.gameObject, 28f);
+            emptyListLabel.gameObject.SetActive(false);
 
             createButton = SampleUI.CreateButton(panel, "Create new game", 0f, 44f, true, () => onCreateNew());
             var createLayout = createButton.gameObject.GetComponent<LayoutElement>();

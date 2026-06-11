@@ -5,6 +5,14 @@
     <RootNamespace>NeoCompose</RootNamespace>
     <!-- Override UnityManagedDir via env var or a local Directory.Build.props if your Unity install differs -->
     <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+    <!-- UPM packages Unity compiles into a project's Library (e.g.
+         Unity.Localization) live in its ScriptAssemblies. Default to the
+         HelloWorld sample's so this shim resolves them whether it is loaded
+         standalone (the solution's own node) or referenced by a sibling shim —
+         every reference then shares one project instance with no per-reference
+         AdditionalProperties to fragment it. Override if your sample Library
+         lives elsewhere. -->
+    <NeoComposeUnityPackageAssembliesDir Condition="'$(NeoComposeUnityPackageAssembliesDir)' == ''">$(MSBuildThisFileDirectory)../../samples/HelloWorld/Library/ScriptAssemblies</NeoComposeUnityPackageAssembliesDir>
   </PropertyGroup>
 
   <ItemGroup>

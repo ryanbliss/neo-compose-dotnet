@@ -52,6 +52,18 @@ namespace NeoCompose.Runtime
         public string[] runtimeOAuthScopes = Array.Empty<string>();
 
         /// <summary>
+        /// Convex deployment URL (e.g. <c>https://&lt;deployment&gt;.convex.cloud</c>)
+        /// the optional realtime sync plugin connects to.
+        /// </summary>
+        /// <remarks>
+        /// Hand-edited for now; a later phase syncs it from the export bundle the
+        /// same way <see cref="runtimeOAuthClientId"/> is (see
+        /// <c>specs/convex-realtime-sync.md</c>). Empty means realtime sync stays
+        /// off regardless of plugin registration.
+        /// </remarks>
+        public string convexUrl = "";
+
+        /// <summary>
         /// Master switch for cloud save sync. <b>Developer-owned, not synced.</b>
         /// </summary>
         /// <remarks>

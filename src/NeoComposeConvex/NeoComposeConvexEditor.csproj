@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>NeoCompose.Convex.Editor</RootNamespace>
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Only compile Editor files -->
+    <Compile Remove="**\*.cs" />
+    <Compile Include="Editor\*.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The runtime provider this facade wraps, plus the core editor seam
+         (NeoComposeEditorRealtime.ProviderFactory) it self-registers into. -->
+    <ProjectReference Include="NeoComposeConvex.csproj" />
+    <ProjectReference Include="../NeoComposeUnity/NeoComposeUnity.csproj" />
+    <ProjectReference Include="../NeoComposeUnity/NeoComposeUnityEditor.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UnityWebRequestModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.UnityWebRequestModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEditor.CoreModule">
+      <HintPath>$(UnityManagedDir)/UnityEditor.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The editor facade parses pushed payloads with Newtonsoft.Json.Linq. -->
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+</Project>
