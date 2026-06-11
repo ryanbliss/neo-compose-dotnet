@@ -1,0 +1,27 @@
+{
+    "name": "NeoCompose.Unity.Convex.Tests",
+    "rootNamespace": "NeoCompose.Convex.Tests",
+    "references": [
+        "NeoCompose.Unity.Convex",
+        "Convex.Client",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "autoReferenced": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "System.Reactive.dll",
+        "System.Text.Json.dll"
+    ],
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
