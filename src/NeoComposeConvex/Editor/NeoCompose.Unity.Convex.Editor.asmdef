@@ -1,12 +1,14 @@
 {
-    "name": "HelloWorld",
-    "rootNamespace": "HelloWorld",
+    "name": "NeoCompose.Unity.Convex.Editor",
+    "rootNamespace": "NeoCompose.Convex.Editor",
     "references": [
-        "NeoCompose.Unity",
         "NeoCompose.Unity.Convex",
-        "UnityEngine.UI"
+        "NeoCompose.Unity",
+        "NeoCompose.Unity.Editor"
     ],
-    "includePlatforms": [],
+    "includePlatforms": [
+        "Editor"
+    ],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

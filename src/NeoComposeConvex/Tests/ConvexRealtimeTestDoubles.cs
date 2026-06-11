@@ -120,7 +120,53 @@ namespace NeoCompose.Convex.Tests
             return Task.CompletedTask;
         }
 
+        public readonly List<(string functionName, Dictionary<string, object?> args)> Observations =
+            new List<(string, Dictionary<string, object?>)>();
+
+        private readonly List<(string functionName, Action<string> onJson, Action<Exception> onError)>
+            jsonObservers = new List<(string, Action<string>, Action<Exception>)>();
+
+        public IDisposable ObserveQuery(
+            string functionName, object args, Action<string> onJson, Action<Exception> onError)
+        {
+            Observations.Add((functionName, (Dictionary<string, object?>)args));
+            jsonObservers.Add((functionName, onJson, onError));
+            return new SubscriptionHandle();
+        }
+
+        public void PushJson(string functionName, string json)
+        {
+            foreach (var observer in jsonObservers.ToArray())
+            {
+                if (observer.functionName == functionName) observer.onJson(json);
+            }
+        }
+
+        public readonly List<(string functionName, Dictionary<string, object?> args)> Mutations =
+            new List<(string, Dictionary<string, object?>)>();
+
+        public Func<string, string>? MutateImpl;
+
+        public Task<string> MutateAsync(
+            string functionName, object args, CancellationToken cancellationToken)
+        {
+            Mutations.Add((functionName, (Dictionary<string, object?>)args));
+            if (MutateImpl == null)
+            {
+                throw new InvalidOperationException("FakeRealtimeSocket has no MutateImpl.");
+            }
+
+            return Task.FromResult(MutateImpl(functionName));
+        }
+
         public void Dispose() => Disposed = true;
+
+        private sealed class SubscriptionHandle : IDisposable
+        {
+            public void Dispose()
+            {
+            }
+        }
 
         public void PushState(ConnectionState state) => stateSubject.OnNext(state);
 

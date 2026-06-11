@@ -24,6 +24,7 @@ namespace NeoCompose.Convex
         public ConvexRealtimeOptions(
             string convexUrl,
             string apiBaseUrl,
+            string projectId,
             INeoComposeAccessTokenProvider sessionTokenProvider,
             INeoComposeHttpClient? httpClient = null,
             Func<DateTimeOffset>? now = null)
@@ -39,9 +40,14 @@ namespace NeoCompose.Convex
             {
                 throw new ArgumentException("API base URL cannot be empty.", nameof(apiBaseUrl));
             }
+            if (string.IsNullOrWhiteSpace(projectId))
+            {
+                throw new ArgumentException("Project id cannot be empty.", nameof(projectId));
+            }
 
             this.convexUrl = convexUrl.Trim().TrimEnd('/');
             this.apiBaseUrl = apiBaseUrl.Trim().TrimEnd('/');
+            this.projectId = projectId.Trim();
             this.sessionTokenProvider = sessionTokenProvider
                 ?? throw new ArgumentNullException(nameof(sessionTokenProvider));
             this.httpClient = httpClient;
@@ -51,6 +57,8 @@ namespace NeoCompose.Convex
         public string convexUrl { get; }
 
         public string apiBaseUrl { get; }
+
+        public string projectId { get; }
 
         public INeoComposeAccessTokenProvider sessionTokenProvider { get; }
 

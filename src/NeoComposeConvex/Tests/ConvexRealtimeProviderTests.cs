@@ -35,6 +35,7 @@ namespace NeoCompose.Convex.Tests
             var options = new ConvexRealtimeOptions(
                 "https://deployment.convex.cloud/",
                 "https://api.example",
+                "project-1",
                 tokens,
                 http,
                 () => now);
@@ -76,7 +77,7 @@ namespace NeoCompose.Convex.Tests
                 () => throw new NeoComposeNotSignedInException("Session expired (test).");
             var provider = CreateProvider();
 
-            Assert.ThrowsAsync<NeoComposeNotSignedInException>(() => provider.ConnectAsync());
+            Assert.ThrowsAsync<NeoComposeNotSignedInException>(async () => await provider.ConnectAsync());
 
             Assert.That(provider.State, Is.EqualTo(NeoRealtimeConnectionState.Denied));
             Assert.That(socket.Disposed, Is.True);
@@ -89,7 +90,7 @@ namespace NeoCompose.Convex.Tests
                 () => throw new InvalidOperationException("socket refused (test)");
             var provider = CreateProvider();
 
-            Assert.ThrowsAsync<InvalidOperationException>(() => provider.ConnectAsync());
+            Assert.ThrowsAsync<InvalidOperationException>(async () => await provider.ConnectAsync());
 
             Assert.That(provider.State, Is.EqualTo(NeoRealtimeConnectionState.Disconnected));
             Assert.That(socket.Disposed, Is.True);
@@ -170,7 +171,7 @@ namespace NeoCompose.Convex.Tests
             socket.EnsureConnectedImpl =
                 () => throw new NeoComposeNotSignedInException("Session expired (test).");
             var provider = CreateProvider();
-            Assert.ThrowsAsync<NeoComposeNotSignedInException>(() => provider.ConnectAsync());
+            Assert.ThrowsAsync<NeoComposeNotSignedInException>(async () => await provider.ConnectAsync());
 
             // Player signs in again; an explicit reconnect is allowed.
             var freshSocket = new FakeRealtimeSocket();

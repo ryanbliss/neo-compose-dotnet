@@ -6,4 +6,5 @@
   <Project Path="NeoCompose.Unity.Editor.csproj" />
   <Project Path="Tests.csproj" />
   <Project Path="NeoCompose.Unity.Convex.csproj" />
+  <Project Path="NeoCompose.Unity.Convex.Editor.csproj" />
 </Solution>

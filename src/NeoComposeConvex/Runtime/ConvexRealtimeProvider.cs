@@ -4,11 +4,14 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 using Convex.Client.Features.Security.Authentication;
 using Convex.Client.Infrastructure.Connection;
 using NeoCompose.Runtime;
+using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace NeoCompose.Convex
@@ -30,10 +33,11 @@ namespace NeoCompose.Convex
     /// e.g. re-sign-in) is required. State events are raised on the thread the
     /// provider was constructed on (Unity main thread in production).
     /// </remarks>
-    public sealed class ConvexRealtimeProvider : IDisposable
+    public sealed class ConvexRealtimeProvider : INeoRealtimeProvider
     {
         private readonly Func<IConvexRealtimeSocket> socketFactory;
         private readonly Action<Action> dispatch;
+        private readonly string projectId;
 
         private IConvexRealtimeSocket? socket;
         private IDisposable? stateSubscription;
@@ -61,6 +65,7 @@ namespace NeoCompose.Convex
 
             JwtProvider = new ConvexJwtTokenProvider(
                 options.apiBaseUrl, options.sessionTokenProvider, options.httpClient, options.now);
+            projectId = options.projectId;
             this.socketFactory = socketFactory
                 ?? (() => new ConvexClientRealtimeSocket(options.convexUrl));
             this.dispatch = dispatcher ?? CreateContextDispatcher();
@@ -79,7 +84,7 @@ namespace NeoCompose.Convex
         /// Connects (or reconnects after an explicit disconnect / denial). No-op
         /// while already connecting or connected.
         /// </summary>
-        public async Task ConnectAsync(CancellationToken cancellationToken = default)
+        public async Awaitable ConnectAsync(CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
             if (State == NeoRealtimeConnectionState.Connecting
@@ -114,7 +119,7 @@ namespace NeoCompose.Convex
         /// unconditional local teardown. Call before clearing the token store so
         /// no socket outlives its credential.
         /// </summary>
-        public async Task DisconnectAsync()
+        public async Awaitable DisconnectAsync()
         {
             ThrowIfDisposed();
             var current = socket;
@@ -145,6 +150,228 @@ namespace NeoCompose.Convex
             if (disposed) return;
             disposed = true;
             TearDownSocket();
+        }
+
+        /// <summary>True when connected; the synchronizer's transport check.</summary>
+        public bool CanCommit => State == NeoRealtimeConnectionState.Connected;
+
+        public IDisposable SubscribeSaveList(
+            string? targetReleaseChannelId, Action<NeoSaveFileList> onChanged)
+        {
+            if (onChanged == null)
+            {
+                throw new ArgumentNullException(nameof(onChanged));
+            }
+
+            return SubscribeCore(
+                "gameSaves:list",
+                new Dictionary<string, object?>
+                {
+                    ["projectId"] = projectId,
+                    ["targetReleaseChannelId"] = targetReleaseChannelId,
+                },
+                ParseSaveFileList,
+                onChanged);
+        }
+
+        public IDisposable SubscribeSaveHead(string customId, Action<RemoteGameSave> onChanged)
+        {
+            if (string.IsNullOrWhiteSpace(customId))
+            {
+                throw new ArgumentException("Save customId cannot be empty.", nameof(customId));
+            }
+            if (onChanged == null)
+            {
+                throw new ArgumentNullException(nameof(onChanged));
+            }
+
+            return SubscribeCore(
+                "gameSaves:get",
+                new Dictionary<string, object?>
+                {
+                    ["projectId"] = projectId,
+                    ["customId"] = customId,
+                },
+                ParseRemoteGameSave,
+                onChanged);
+        }
+
+        public async Awaitable<NeoCommitResult> CommitAsync(
+            NeoSaveCommitRequest request, bool replaceSnapshot)
+        {
+            ThrowIfDisposed();
+            if (request == null)
+            {
+                throw new ArgumentNullException(nameof(request));
+            }
+
+            var current = socket;
+            if (current == null || State != NeoRealtimeConnectionState.Connected)
+            {
+                throw new InvalidOperationException(
+                    "Realtime commit requires a connected provider; check CanCommit first.");
+            }
+
+            var args = new Dictionary<string, object?>
+            {
+                ["projectId"] = projectId,
+                ["save"] = ToJsonElement(request),
+                ["replaceSnapshot"] = replaceSnapshot,
+            };
+            var json = await current.MutateAsync("gameSaves:commit", args, CancellationToken.None);
+            return ParseCommitResult(json);
+        }
+
+        /// <summary>
+        /// Raw-JSON subscription for sibling assemblies (the editor facade)
+        /// building non-save subscriptions on the same connection machinery.
+        /// Same gating and dispatcher semantics as the typed subscriptions.
+        /// </summary>
+        internal IDisposable SubscribeRaw(
+            string functionName, Dictionary<string, object?> args, Action<string> onJson)
+        {
+            if (onJson == null)
+            {
+                throw new ArgumentNullException(nameof(onJson));
+            }
+
+            return SubscribeCore(functionName, args, json => json, onJson);
+        }
+
+        /// <summary>
+        /// Shared subscription plumbing: skip (inert) while not connected, parse
+        /// pushed JSON into the core DTO, and deliver on the dispatcher. Parse
+        /// and subscription errors are logged, never thrown into the socket.
+        /// </summary>
+        private IDisposable SubscribeCore<T>(
+            string functionName,
+            Dictionary<string, object?> args,
+            Func<string, T> parse,
+            Action<T> onChanged)
+        {
+            ThrowIfDisposed();
+            var current = socket;
+            if (current == null || State != NeoRealtimeConnectionState.Connected)
+            {
+                Debug.LogWarning(
+                    $"[NeoCompose] Realtime subscription to {functionName} skipped: the provider " +
+                    "is not connected. It re-attaches on the next Connected transition.");
+                return EmptyDisposable.Instance;
+            }
+
+            return current.ObserveQuery(
+                functionName,
+                args,
+                json => dispatch(() =>
+                {
+                    if (disposed) return;
+                    T value;
+                    try
+                    {
+                        value = parse(json);
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.LogError(
+                            $"[NeoCompose] Realtime payload from {functionName} could not be " +
+                            $"parsed: {exception.Message}");
+                        return;
+                    }
+
+                    onChanged(value);
+                }),
+                error => dispatch(() =>
+                {
+                    if (disposed) return;
+                    Debug.LogWarning(
+                        $"[NeoCompose] Realtime subscription to {functionName} errored: " +
+                        $"{error.GetType().Name}: {error.Message}");
+                }));
+        }
+
+        private static NeoSaveFileList ParseSaveFileList(string json)
+        {
+            var list = JsonConvert.DeserializeObject<NeoSaveFileList>(json);
+            if (list == null)
+            {
+                throw new InvalidOperationException(
+                    "Realtime save list payload deserialized to null.");
+            }
+
+            return list;
+        }
+
+        private static RemoteGameSave ParseRemoteGameSave(string json)
+        {
+            var save = JsonConvert.DeserializeObject<RemoteGameSave>(json);
+            if (save == null)
+            {
+                throw new InvalidOperationException(
+                    "Realtime save head payload deserialized to null.");
+            }
+
+            return save;
+        }
+
+        /// <summary>
+        /// Newtonsoft-serialized core DTO re-parsed as a System.Text.Json element
+        /// so the vendored serializer transmits it verbatim — the two JSON stacks
+        /// never disagree about the wire shape.
+        /// </summary>
+        private static System.Text.Json.JsonElement ToJsonElement(object value)
+        {
+            var json = JsonConvert.SerializeObject(value);
+            using (var document = System.Text.Json.JsonDocument.Parse(json))
+            {
+                return document.RootElement.Clone();
+            }
+        }
+
+        private static NeoCommitResult ParseCommitResult(string json)
+        {
+            var result = JObject.Parse(json);
+            var kind = (string?)result["kind"];
+            if (kind == null)
+            {
+                throw new InvalidOperationException(
+                    "Realtime commit result did not include a \"kind\" field.");
+            }
+
+            if (kind == "committed")
+            {
+                var save = result["save"];
+                if (save == null)
+                {
+                    throw new InvalidOperationException(
+                        "Realtime commit result was committed but did not include the save.");
+                }
+
+                return NeoCommitResult.Committed(ParseRemoteGameSave(save.ToString()));
+            }
+
+            if (kind == "conflict")
+            {
+                var serverHead = result["serverHead"];
+                if (serverHead == null)
+                {
+                    throw new InvalidOperationException(
+                        "Realtime commit result was a conflict but did not include the server head.");
+                }
+
+                return NeoCommitResult.Conflict(ParseRemoteGameSave(serverHead.ToString()));
+            }
+
+            throw new InvalidOperationException(
+                $"Realtime commit result had an unknown kind \"{kind}\".");
+        }
+
+        private sealed class EmptyDisposable : IDisposable
+        {
+            public static readonly EmptyDisposable Instance = new EmptyDisposable();
+
+            public void Dispose()
+            {
+            }
         }
 
         private void EnsureSocket()

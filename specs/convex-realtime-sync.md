@@ -584,30 +584,66 @@ until phase 4, so they can land independently.
 
 ### Phase 4 — Runtime saves
 
-- [ ] Core seam: `INeoRealtimeProvider` + `NeoRealtimeConnectionState` in
-      `NeoCompose.Unity`
-- [ ] Store-options registration property + `InternalProjectStore` lifecycle
-      (connect after sign-in, disconnect on sign-out/disposal)
-- [ ] Save-list subscription feeding the list cache + `OnSaveListChanged`
-- [ ] Save-head subscription priming the fresh-remote cache +
-      `OnRemoteHeadChanged` (opt-in, never auto-applies)
-- [ ] Commit-over-socket when `CanCommit`, REST fallback, shared
-      conflict-continuation flow (transport as parameter)
-- [ ] Synchronizer tests against a fake `INeoRealtimeProvider`
+- [x] Core seam: `INeoRealtimeProvider` in `NeoCompose.Unity` (the enum landed
+      in phase 2); core DTOs only, callbacks on the main thread
+- [x] Registration via the `NeoProjectStore` constructor's `realtimeProvider`
+      parameter (dropped with a warning when cloud sync is off). Lifecycle:
+      `LoadAsync` hooks state events, re-attaches subscriptions on every
+      Connected transition, and auto-connects when already signed in;
+      `ConnectRealtimeAsync` / `DisconnectRealtimeAsync` give the game
+      explicit post-sign-in / pre-sign-out control; the caller owns provider
+      disposal
+- [x] Save-list subscription feeding the list cache through the existing
+      `OnListChanged` event (no new event needed — the browse UI already
+      listens to it); pushed lists reuse the refresh merge + freshness +
+      orphan reconciliation
+- [x] Save-head subscription priming the fresh-remote cache +
+      `OnRemoteHeadChanged` (opt-in, never auto-applies, never raises
+      `OnConflict` on its own); attaches on each successful load, follows a
+      post-clone id switch, drops on archive/`Dispose`
+- [x] Commit-over-socket when `CanCommit` with one REST retry on provider
+      failure; the rebased keep-local conflict write uses the same transport
+      selection (`CommitTransportAsync`)
+- [x] Synchronizer/store tests against a fake `INeoRealtimeProvider`
+      (8 tests) + provider save-bridge tests against the fake socket
+      (function names, args, STJ↔Newtonsoft mapping, typed conflict — 7
+      tests); full sample suite 408/408
+- [ ] Known limitation (follow-up): a synchronizer loaded while disconnected
+      does not retro-attach its head subscription when realtime connects
+      later — reload the save or accept REST freshness until then
 
 ### Phase 5 — Editor
 
-- [ ] Editor seam + provider registration in `NeoComposeEditorWindow`
-- [ ] Live release-channel/version lists (manual refresh retained)
-- [ ] Hot-reload: sync-signal subscription → confirmation seam →
-      `SynchronizeAsync`; "Auto-sync on remote changes" toggle (default off)
-- [ ] Editor sync applies the exported `convexUrl` to
-      `NeoComposeConfig.convexUrl` (mirrors `ApplyRuntimeOAuthConfig`,
-      null-leaves-alone semantics)
+- [x] Editor seam (`INeoComposeEditorRealtimeProvider` +
+      `NeoComposeEditorRealtime.ProviderFactory` registration point in the
+      core Editor assembly). Unlike the runtime's explicit registration, the
+      plugin's editor assembly self-registers via `[InitializeOnLoad]` — the
+      "auto when signed in, zero setup" decision; the window still gates on
+      sign-in + a synced `convexUrl`, and hides the UI entirely when no
+      plugin is installed
+- [x] Auto bring-up in `NeoComposeEditorWindow` (OnEnable + post-session-
+      refresh), a "Live sync" status row next to Synchronize with
+      Connect/Disconnect controls, and teardown on window disable
+- [x] Live release-channel/version lists: `projectVersions:listMetadata`
+      subscription signal → existing REST metadata reload (signal-then-pull;
+      manual refresh retained)
+- [x] Hot-reload: `projectExportData:exportSignal` subscription →
+      `NeoComposeEditorHotReloadController` (first push = baseline; new head
+      → confirmation seam → `SynchronizeAsync`; declined heads not re-asked) +
+      "Auto-sync on remote changes" toggle (EditorPrefs, default off);
+      subscription follows the version-dropdown selection
+- [x] Editor sync applies the exported `convexUrl` to
+      `NeoComposeConfig.convexUrl` (`ApplyConvexUrl`, null-leaves-alone)
+- [x] Tests: hot-reload controller matrix (6), convexUrl apply (2), editor
+      facade bridge (3); full sample suite 419/419
 
 ### Phase 6 — Sample + docs
 
-- [ ] HelloWorld wiring + production-gate demonstration
-      (`#if UNITY_EDITOR || DEVELOPMENT_BUILD` + config bool)
-- [ ] Package README (setup, registration, degradation semantics, WebGL
-      unsupported)
+- [x] HelloWorld wiring (`HelloWorldMenu.BuildProjectStore`): provider
+      registered behind `#if UNITY_EDITOR || DEVELOPMENT_BUILD`, sharing the
+      store's `NeoAuthentication`; realtime connected after a fresh sign-in
+      (best-effort); provider disposed with the menu
+- [x] Package README (`src/NeoComposeConvex/README.md`): the two-manifest-line
+      install (UPM git-dependency limitation), runtime registration +
+      lifecycle, editor zero-setup behavior, degradation semantics, WebGL
+      unsupported

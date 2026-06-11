@@ -3,7 +3,9 @@
     "rootNamespace": "NeoCompose.Convex.Tests",
     "references": [
         "NeoCompose.Unity.Convex",
+        "NeoCompose.Unity.Convex.Editor",
         "NeoCompose.Unity",
+        "NeoCompose.Unity.Editor",
         "Convex.Client",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"

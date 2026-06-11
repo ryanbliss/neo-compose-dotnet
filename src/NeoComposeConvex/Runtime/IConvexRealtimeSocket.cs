@@ -30,5 +30,19 @@ namespace NeoCompose.Convex
         Task EnsureConnectedAsync(CancellationToken cancellationToken);
 
         Task ClearAuthAsync(CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Live Convex query subscription. The payload crosses this seam as raw
+        /// JSON text so the vendored System.Text.Json types never leak into the
+        /// provider (which maps to core DTOs with Newtonsoft).
+        /// </summary>
+        IDisposable ObserveQuery(
+            string functionName,
+            object args,
+            Action<string> onJson,
+            Action<Exception> onError);
+
+        /// <summary>One-shot Convex mutation; returns the result as raw JSON text.</summary>
+        Task<string> MutateAsync(string functionName, object args, CancellationToken cancellationToken);
     }
 }

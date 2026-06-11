@@ -28,12 +28,13 @@ namespace NeoCompose.Runtime
     /// cloud commit is required vs. best-effort per
     /// <see cref="InternalProjectStore.RequireCloudCommit"/> (default best-effort).
     /// </remarks>
-    public sealed class NeoSaveSynchronizer : INeoSaveLoader
+    public sealed class NeoSaveSynchronizer : INeoSaveLoader, IDisposable
     {
         private readonly InternalProjectStore core;
         private readonly bool isNewDraft;
         private readonly string? draftName;
         private LocalGameSave? active;
+        private IDisposable? realtimeHeadSubscription;
 
         internal NeoSaveSynchronizer(
             InternalProjectStore core,
@@ -77,6 +78,14 @@ namespace NeoCompose.Runtime
         public event Action<string>? OnSnapshotArchived;
         public event Action<string>? OnSaveArchived;
 
+        /// <summary>
+        /// Raised (opt-in) when a realtime push shows the cloud head diverging
+        /// from the active local state — another device committed mid-session.
+        /// Never auto-applies and never triggers <see cref="OnConflict"/> on its
+        /// own; the existing conflict flow still runs only at load/commit time.
+        /// </summary>
+        public event Action<RemoteGameSave>? OnRemoteHeadChanged;
+
         public async Awaitable<string?> LoadSaveContentAsync()
         {
             // A from-scratch draft has nothing to load; the client builds defaults.
@@ -117,6 +126,7 @@ namespace NeoCompose.Runtime
 
                 active = loaded;
                 State = NeoSaveSynchronizerState.Ready;
+                AttachRealtimeHead();
                 OnLoaded?.Invoke(loaded);
                 return migrated;
             }
@@ -183,6 +193,33 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Commit transport selection: the realtime provider when connected,
+        /// otherwise REST. A provider failure (the socket can die between the
+        /// <see cref="INeoRealtimeProvider.CanCommit"/> check and the call) falls
+        /// back to one REST attempt so a flaky socket never costs a save.
+        /// </summary>
+        private async Awaitable<NeoCommitResult> CommitTransportAsync(
+            NeoSaveCommitRequest request, bool replaceSnapshot)
+        {
+            var realtime = core.RealtimeProvider;
+            if (realtime != null && realtime.CanCommit)
+            {
+                try
+                {
+                    return await realtime.CommitAsync(request, replaceSnapshot);
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogWarning(
+                        $"[NeoCompose] Realtime commit for save \"{CustomId}\" failed; retrying " +
+                        $"over REST. {exception.GetType().Name}: {exception.Message}");
+                }
+            }
+
+            return await core.ApiClient!.CommitAsync(request, replaceSnapshot);
+        }
+
+        /// <summary>
         /// Cloud commit path: send the local edit; resolve a 409 through
         /// <see cref="OnConflict"/>. Returns the committed remote head, or null when
         /// a best-effort cloud commit failed (the local commit still stands).
@@ -192,7 +229,7 @@ namespace NeoCompose.Runtime
             NeoCommitResult result;
             try
             {
-                result = await core.ApiClient!.CommitAsync(
+                result = await CommitTransportAsync(
                     BuildCommitRequest(local, active?.snapshotId), replaceSnapshot);
             }
             catch (Exception ex)
@@ -237,7 +274,7 @@ namespace NeoCompose.Runtime
 
             // Keep local: write a NEW head on top of the server head — never a
             // destructive overwrite, so neither side's data is lost.
-            var rebased = await core.ApiClient!.CommitAsync(
+            var rebased = await CommitTransportAsync(
                 BuildCommitRequest(local, serverHead.snapshotId), replaceSnapshot: false);
             if (rebased.IsConflict)
             {
@@ -349,6 +386,40 @@ namespace NeoCompose.Runtime
             return await continuation.Completion;
         }
 
+        /// <summary>
+        /// (Re)subscribes to the active save's realtime cloud head. A pushed head
+        /// primes the store's fresh-remote cache (the next load/commit sees it
+        /// without a fetch) and raises <see cref="OnRemoteHeadChanged"/> when it
+        /// diverges from the active local state. A no-op without a connected
+        /// provider; re-runs on every successful load so a post-clone id switch
+        /// follows the new save.
+        /// </summary>
+        private void AttachRealtimeHead()
+        {
+            realtimeHeadSubscription?.Dispose();
+            realtimeHeadSubscription = null;
+            var realtime = core.RealtimeProvider;
+            if (realtime == null) return;
+            realtimeHeadSubscription = realtime.SubscribeSaveHead(CustomId, OnRealtimeRemoteHead);
+        }
+
+        private void OnRealtimeRemoteHead(RemoteGameSave remote)
+        {
+            core.RecordRealtimeRemoteHead(remote);
+            if (active != null && remote.snapshotHash != active.snapshotHash)
+            {
+                OnRemoteHeadChanged?.Invoke(remote);
+            }
+        }
+
+        /// <summary>Releases the realtime head subscription (the rest of the
+        /// synchronizer holds no unmanaged state).</summary>
+        public void Dispose()
+        {
+            realtimeHeadSubscription?.Dispose();
+            realtimeHeadSubscription = null;
+        }
+
         /// <summary>Archives the active save (cloud + list); raises <see cref="OnSaveArchived"/>.</summary>
         public async Awaitable ArchiveAsync()
         {
@@ -359,6 +430,8 @@ namespace NeoCompose.Runtime
 
             await core.LocalStore.DeleteSaveAsync(CustomId);
             core.RecordArchivedSave(CustomId);
+            realtimeHeadSubscription?.Dispose();
+            realtimeHeadSubscription = null;
             OnSaveArchived?.Invoke(CustomId);
         }
 

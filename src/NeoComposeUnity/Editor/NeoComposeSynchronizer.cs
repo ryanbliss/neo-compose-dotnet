@@ -161,6 +161,7 @@ namespace NeoCompose.Unity.Editor
                 config.namespaceForGeneratedTypes = ReadUnityNamespaceOrDefault(exportResponse.projectJson);
                 config.singleton = ReadUnitySingletonOrDefault(exportResponse.projectJson);
                 ApplyRuntimeOAuthConfig(config, exportResponse.runtimeOAuth);
+                ApplyConvexUrl(config, exportResponse.convexUrl);
                 if (config.TryGetCloudSaveSyncWarning(
                         NeoComposeRuntimeSecretProvider.LoadRuntimeApiKey(),
                         out var cloudSyncWarning))
@@ -497,6 +498,18 @@ namespace NeoCompose.Unity.Editor
             {
                 config.enableOAuthCloudSync = true;
             }
+        }
+
+        /// <summary>
+        /// Writes the synced Convex deployment URL from the export bundle. Null
+        /// means the server has none configured and the field is left alone (a
+        /// hand-entered URL survives syncing against such a server); a present
+        /// value is the source of truth and overwrites.
+        /// </summary>
+        public static void ApplyConvexUrl(NeoComposeConfig config, string? convexUrl)
+        {
+            if (convexUrl == null) return;
+            config.convexUrl = convexUrl.Trim();
         }
 
         private static bool ReadUnitySingletonOrDefault(string projectJson)

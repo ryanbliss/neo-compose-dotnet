@@ -26,11 +26,20 @@ namespace NeoCompose.Unity.Editor
         private NeoComposeDeviceCodeResponse? pendingDeviceCode;
         private NeoComposeSynchronizer? synchronizer;
         private NeoComposeProjectSettingsUpdater? projectSettingsUpdater;
+        private INeoComposeEditorRealtimeProvider? realtime;
+        private IDisposable? realtimeMetadataSubscription;
+        private IDisposable? realtimeSignalSubscription;
+        private string? realtimeSignalVersionId;
+        private bool realtimeBringUpInProgress;
+
+        /// <summary>EditorPrefs key for the hot-reload auto-sync opt-in.</summary>
+        internal const string AutoSyncPrefKey = "NeoCompose.EditorWindow.AutoSyncOnRemoteChanges";
         private readonly List<NeoComposeProjectSummary> projects = new();
         private readonly List<NeoComposeProjectReleaseChannel> releaseChannels = new();
         private readonly List<NeoComposeProjectVersion> versions = new();
         private readonly List<NeoComposeProjectVersionStatus> versionStatuses = new();
         private Vector2 scroll;
+        private Vector2 windowScroll;
         private string searchText = "";
 
         /// <summary>
@@ -85,6 +94,8 @@ namespace NeoCompose.Unity.Editor
             {
                 _ = RefreshVersionMetadataAsync(false);
             }
+
+            _ = BringUpRealtimeAsync();
         }
 
         private void OnFocus()
@@ -96,6 +107,7 @@ namespace NeoCompose.Unity.Editor
         {
             // Do not let device-flow polling outlive the window.
             auth.CancelSignIn();
+            TearDownRealtime();
         }
 
         private async Task RefreshSessionForVisiblePanelAsync()
@@ -117,6 +129,9 @@ namespace NeoCompose.Unity.Editor
                     status = "Neo Compose session refreshed.";
                 }
 
+                // Signed-in and refreshed: the moment realtime can come up
+                // (covers a sign-in that completed since the last focus).
+                _ = BringUpRealtimeAsync();
                 Repaint();
             }
             catch (Exception exception)
@@ -141,8 +156,13 @@ namespace NeoCompose.Unity.Editor
                 return;
             }
 
+            // Follows version-dropdown changes; a no-op string compare per frame.
+            EnsureRealtimeSignalSubscription();
             ClearKeyboardFocusIfRequested();
 
+            // The whole window scrolls: the section stack is taller than most
+            // docked layouts.
+            windowScroll = EditorGUILayout.BeginScrollView(windowScroll);
             EditorGUILayout.Space(8);
             EditorGUILayout.BeginHorizontal();
             GUILayout.Space(ContentPadding);
@@ -177,6 +197,8 @@ namespace NeoCompose.Unity.Editor
             EditorGUILayout.EndVertical();
             GUILayout.Space(ContentPadding);
             EditorGUILayout.EndHorizontal();
+            EditorGUILayout.Space(8);
+            EditorGUILayout.EndScrollView();
         }
 
         private void RenderConnectionSection(NeoComposeConfig config)
@@ -545,7 +567,229 @@ namespace NeoCompose.Unity.Editor
 
             GUILayout.FlexibleSpace();
             EditorGUILayout.EndHorizontal();
+            DrawRealtimeStatusRow();
             EndSection();
+        }
+
+        /// <summary>
+        /// Live-sync status + controls. Hidden entirely when no realtime plugin
+        /// is installed (the registration point is null), so the stock editor
+        /// experience is unchanged.
+        /// </summary>
+        private void DrawRealtimeStatusRow()
+        {
+            if (NeoComposeEditorRealtime.ProviderFactory == null) return;
+            if (config == null || !config.HasProject) return;
+
+            var hasConvexUrl = !string.IsNullOrWhiteSpace(config.convexUrl);
+            var state = realtime?.State ?? NeoRealtimeConnectionState.Disconnected;
+            string label;
+            switch (state)
+            {
+                case NeoRealtimeConnectionState.Connected:
+                    label = "Connected";
+                    break;
+                case NeoRealtimeConnectionState.Connecting:
+                    label = "Connecting…";
+                    break;
+                case NeoRealtimeConnectionState.Denied:
+                    label = "Denied — sign in again, then reconnect";
+                    break;
+                default:
+                    label = "Off";
+                    break;
+            }
+
+            EditorGUILayout.Space(6);
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField(
+                new GUIContent(
+                    $"Live sync: {label}",
+                    hasConvexUrl
+                        ? "Live updates for versions and remote edits over the project's " +
+                          "Convex deployment."
+                        : "Synchronize once to receive the project's Convex URL; live sync " +
+                          "becomes available after that."),
+                MutedStyle());
+            GUILayout.FlexibleSpace();
+            if (state == NeoRealtimeConnectionState.Connected)
+            {
+                if (GUILayout.Button("Disconnect", GUILayout.Width(90)))
+                {
+                    _ = DisconnectRealtimeAsync();
+                }
+            }
+            else if (state != NeoRealtimeConnectionState.Connecting && hasConvexUrl)
+            {
+                using (new EditorGUI.DisabledScope(!auth.AreAuthSensitiveControlsEnabled))
+                {
+                    if (GUILayout.Button("Connect", GUILayout.Width(90)))
+                    {
+                        _ = ConnectRealtimeAsync();
+                    }
+                }
+            }
+
+            EditorGUILayout.EndHorizontal();
+
+            using (new EditorGUI.DisabledScope(!hasConvexUrl))
+            {
+                var autoSync = EditorPrefs.GetBool(AutoSyncPrefKey, false);
+                var tooltip = hasConvexUrl
+                    ? "Skip the confirmation prompt and synchronize whenever remote changes " +
+                      "land on the selected version."
+                    : "Synchronize once to receive the project's Convex URL; auto-sync " +
+                      "becomes available after that.";
+                var newAutoSync = EditorGUILayout.ToggleLeft(
+                    new GUIContent("Auto-sync on remote changes", tooltip), autoSync);
+                if (newAutoSync != autoSync)
+                {
+                    EditorPrefs.SetBool(AutoSyncPrefKey, newAutoSync);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Auto bring-up: connects when a realtime plugin is installed, the
+        /// synced config has a Convex URL, and the editor is signed in — the
+        /// zero-setup path. No-op otherwise; never throws into the caller.
+        /// </summary>
+        private async Task BringUpRealtimeAsync()
+        {
+            if (realtimeBringUpInProgress) return;
+            if (realtime != null && realtime.State != NeoRealtimeConnectionState.Disconnected) return;
+            if (config == null || !config.HasProject) return;
+            if (string.IsNullOrWhiteSpace(config.convexUrl)) return;
+            if (NeoComposeEditorRealtime.ProviderFactory == null) return;
+            if (!auth.AreAuthSensitiveControlsEnabled) return;
+
+            await ConnectRealtimeAsync();
+        }
+
+        /// <summary>Explicit connect (also the Connect button): builds the
+        /// provider on first use, then connects. Failures warn and leave the
+        /// editor REST-only.</summary>
+        private async Task ConnectRealtimeAsync()
+        {
+            if (config == null || realtimeBringUpInProgress) return;
+            var factory = NeoComposeEditorRealtime.ProviderFactory;
+            if (factory == null) return;
+
+            realtimeBringUpInProgress = true;
+            try
+            {
+                if (realtime == null)
+                {
+                    realtime = factory(new NeoComposeEditorRealtimeContext(
+                        config.apiBaseUrl,
+                        config.convexUrl,
+                        config.projectId,
+                        auth.CreateAccessTokenProvider()));
+                    realtime.OnConnectionStateChanged += OnRealtimeConnectionStateChanged;
+                }
+
+                await realtime.ConnectAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    $"[NeoCompose] Editor live sync could not connect; staying REST-only " +
+                    $"(use the Connect button to retry). " +
+                    $"{exception.GetType().Name}: {exception.Message}");
+            }
+            finally
+            {
+                realtimeBringUpInProgress = false;
+                Repaint();
+            }
+        }
+
+        private void OnRealtimeConnectionStateChanged(NeoRealtimeConnectionState state)
+        {
+            if (state == NeoRealtimeConnectionState.Connected)
+            {
+                AttachRealtimeSubscriptions();
+            }
+
+            Repaint();
+        }
+
+        private void AttachRealtimeSubscriptions()
+        {
+            if (realtime == null || config == null) return;
+            realtimeMetadataSubscription?.Dispose();
+            realtimeMetadataSubscription = realtime.SubscribeVersionMetadata(
+                config.projectId,
+                () => _ = RefreshVersionMetadataAsync(false));
+            realtimeSignalVersionId = null;
+            EnsureRealtimeSignalSubscription();
+        }
+
+        /// <summary>
+        /// Keeps the hot-reload signal subscription pointed at the selected
+        /// version; called whenever the selection may have changed. Cheap and
+        /// idempotent (string compare) so callers don't need to dedupe.
+        /// </summary>
+        private void EnsureRealtimeSignalSubscription()
+        {
+            if (realtime == null || config == null) return;
+            if (realtime.State != NeoRealtimeConnectionState.Connected) return;
+
+            var versionId = config.versionId;
+            if (string.IsNullOrWhiteSpace(versionId))
+            {
+                realtimeSignalSubscription?.Dispose();
+                realtimeSignalSubscription = null;
+                realtimeSignalVersionId = null;
+                return;
+            }
+
+            if (versionId == realtimeSignalVersionId) return;
+
+            realtimeSignalSubscription?.Dispose();
+            var hotReload = new NeoComposeEditorHotReloadController(
+                new NeoComposeEditorDialogConfirmationService(),
+                SynchronizeAsync,
+                () => EditorPrefs.GetBool(AutoSyncPrefKey, false));
+            realtimeSignalSubscription = realtime.SubscribeExportSignal(
+                config.projectId, versionId, hotReload.HandleSignal);
+            realtimeSignalVersionId = versionId;
+        }
+
+        private async Task DisconnectRealtimeAsync()
+        {
+            realtimeMetadataSubscription?.Dispose();
+            realtimeMetadataSubscription = null;
+            realtimeSignalSubscription?.Dispose();
+            realtimeSignalSubscription = null;
+            realtimeSignalVersionId = null;
+            if (realtime == null) return;
+
+            try
+            {
+                await realtime.DisconnectAsync();
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    $"[NeoCompose] Editor live sync disconnect failed (the socket is dropped " +
+                    $"regardless). {exception.GetType().Name}: {exception.Message}");
+            }
+
+            Repaint();
+        }
+
+        private void TearDownRealtime()
+        {
+            realtimeMetadataSubscription?.Dispose();
+            realtimeMetadataSubscription = null;
+            realtimeSignalSubscription?.Dispose();
+            realtimeSignalSubscription = null;
+            realtimeSignalVersionId = null;
+            if (realtime == null) return;
+            realtime.OnConnectionStateChanged -= OnRealtimeConnectionStateChanged;
+            realtime.Dispose();
+            realtime = null;
         }
 
         private void RenderRuntimeSyncSection(NeoComposeConfig config)
@@ -1067,6 +1311,10 @@ namespace NeoCompose.Unity.Editor
                 {
                     NeoComposeConfigProvider.Save(config);
                 }
+
+                // The selection may have just been auto-filled; keep the
+                // hot-reload signal pointed at it.
+                EnsureRealtimeSignalSubscription();
 
                 if (showStatus)
                 {
