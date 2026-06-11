@@ -1,12 +1,9 @@
 ﻿<Solution>
-  <Project Path="MCPForUnity.Runtime.csproj" />
-  <Project Path="Convex.Client.csproj" />
-  <Project Path="MCPForUnity.Editor.csproj" />
+  <Project Path="NeoCompose.Unity.Convex.Tests.csproj" />
   <Project Path="NeoCompose.Unity.csproj" />
   <Project Path="NeoCompose.Unity.Tests.csproj" />
   <Project Path="HelloWorld.csproj" />
   <Project Path="NeoCompose.Unity.Editor.csproj" />
   <Project Path="Tests.csproj" />
-  <Project Path="NeoCompose.Unity.Convex.Tests.csproj" />
   <Project Path="NeoCompose.Unity.Convex.csproj" />
 </Solution>

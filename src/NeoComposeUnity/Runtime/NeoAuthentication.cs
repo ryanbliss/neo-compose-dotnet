@@ -92,6 +92,14 @@ namespace NeoCompose.Runtime
         public string? CurrentAccessToken =>
             accessTokenProvider.TryGetAccessToken(options.apiBaseUrl, out var token) ? token : null;
 
+        /// <summary>
+        /// The token provider bound to this authentication's store. The seam
+        /// optional plugins (e.g. Convex realtime sync) use to derive their own
+        /// credentials from the signed-in session without touching credential
+        /// storage directly.
+        /// </summary>
+        public INeoComposeAccessTokenProvider AccessTokenProvider => accessTokenProvider;
+
         public bool TryGetAccessToken(out string token) =>
             accessTokenProvider.TryGetAccessToken(options.apiBaseUrl, out token);
 

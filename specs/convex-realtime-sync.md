@@ -539,29 +539,48 @@ until phase 4, so they can land independently.
 
 ### Phase 2 — Auth + lifecycle
 
-- [ ] Core: expose the token store / access-token provider read-only from
-      `NeoAuthentication` (+ editor auth controller) for plugin JWT minting
-- [ ] `NeoComposeConfig.convexUrl` (hand-edited until the export bundle
+- [x] Core: `NeoAuthentication.AccessTokenProvider` +
+      `NeoComposeEditorAuthController.CreateAccessTokenProvider()` expose the
+      session-token seam read-only for plugin JWT minting; core also gains the
+      `NeoRealtimeConnectionState` enum (pulled forward from phase 4 so the
+      provider has no throwaway state type)
+- [x] `NeoComposeConfig.convexUrl` (hand-edited until the export bundle
       carries it)
-- [ ] `ConvexJwtTokenProvider`: mint via
+- [x] `ConvexJwtTokenProvider`: mint via
       `GET {apiBaseUrl}/api/auth/convex/token`, cache to `exp − 60s`,
-      distinct errors per failure step
-- [ ] `ConvexRealtimeProvider`: connect/disconnect, state events, reconnect
-      backoff + jitter, `Denied` (no auto-retry) semantics
-- [ ] Sign-out teardown (disconnect + `ClearAuthAsync` before store clear)
-- [ ] Provider unit tests against a fake `IConvexClient`: state transitions,
-      JWT mint/refresh/expiry, teardown, main-thread marshaling
+      distinct errors per failure step, thread-safe, classifies credential
+      rejection vs transient failure for the Denied decision
+- [x] `ConvexRealtimeProvider`: connect/disconnect, state events (dispatched
+      on the construction thread), `Denied` (no auto-retry; explicit
+      reconnect allowed) semantics; transient reconnects ride the vendored
+      client's backoff-with-jitter policy and surface as `Connecting`
+- [x] Sign-out teardown: `DisconnectAsync` = best-effort `ClearAuthAsync` +
+      unconditional local teardown + JWT cache invalidation (host wiring to
+      `SignOutAsync` lands with phase-4 registration)
+- [x] Provider unit tests against a fake socket seam
+      (`IConvexRealtimeSocket`): state transitions, denial vs transient,
+      JWT mint/refresh/expiry/cache, teardown, dispatcher marshaling
+      (19 tests; full sample suite 393/393)
 
 ### Phase 3 — Web repo companion (neo-compose)
 
-- [ ] convex-test: scoped runtime session admitted/rejected matrix on public
-      `gameSaves.list` / `get` (websocket-equivalent identity)
-- [ ] convex-test: runtime grant passes the `commit` create gate
-      (`requireCurrentAuthUserCanWriteSavesToReleaseChannel`); fix gate if not
-- [ ] Sync-signal query (head/version/content-hash shape) + scope + tests
-- [ ] Export bundle carries the Convex deployment URL
-- [ ] Editor-list scope verification: `projectVersions.listMetadata` + channel
-      list admit the editor grant's scopes
+- [x] convex-test: scoped runtime session admitted/rejected matrix on public
+      `gameSaves.list` / `get` (websocket-equivalent identity with the
+      `sessionId` claim; `gameSaves.test.ts`)
+- [x] convex-test: runtime grant passes the `commit` create gate — verified,
+      no gate fix needed (channel read is inferred from templated
+      `save:write` for the scoped session; rejected without it)
+- [x] Sync-signal query: `projectExportData.exportSignal(projectId,
+      versionId)` → latest `projectVersionTransactions` head
+      `{ versionId, transactionId, transactionHash, transactionAt } | null`,
+      scope `unity:export`, one indexed row read
+      (`projectExportSignal.test.ts`)
+- [x] Export bundle carries the Convex deployment URL:
+      `IProjectUnityEditorVersionExportResponse.convexUrl` (null when the
+      server has no `NEXT_PUBLIC_CONVEX_URL` — editor leaves config alone)
+- [x] Editor-list scope verification: `projectVersions.listMetadata` (which
+      also returns the channel list) admits `project:version:read`, rejects
+      without it (`runtimeScopeGate.auth.test.ts`)
 
 ### Phase 4 — Runtime saves
 
@@ -582,6 +601,9 @@ until phase 4, so they can land independently.
 - [ ] Live release-channel/version lists (manual refresh retained)
 - [ ] Hot-reload: sync-signal subscription → confirmation seam →
       `SynchronizeAsync`; "Auto-sync on remote changes" toggle (default off)
+- [ ] Editor sync applies the exported `convexUrl` to
+      `NeoComposeConfig.convexUrl` (mirrors `ApplyRuntimeOAuthConfig`,
+      null-leaves-alone semantics)
 
 ### Phase 6 — Sample + docs
 

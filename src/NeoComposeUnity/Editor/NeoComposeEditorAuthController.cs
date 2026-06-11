@@ -49,6 +49,15 @@ namespace NeoCompose.Unity.Editor
             this.sessionRefresher = sessionRefresher ?? new NeoComposeSessionRefresher(apiBaseUrl => NeoComposeTokenStore.Create(apiBaseUrl));
         }
 
+        /// <summary>
+        /// Builds a token provider over this controller's per-origin store —
+        /// the seam optional plugins (e.g. Convex realtime sync in the editor)
+        /// use to derive their own credentials from the signed-in session
+        /// without touching credential storage directly.
+        /// </summary>
+        public INeoComposeAccessTokenProvider CreateAccessTokenProvider() =>
+            new NeoComposeTokenStoreAccessTokenProvider(storeFactory, now);
+
         public NeoComposeAuthState State { get; private set; } = NeoComposeAuthState.SignedOut;
         public string DisplayName { get; private set; } = "";
         public string DisplayEmail { get; private set; } = "";
