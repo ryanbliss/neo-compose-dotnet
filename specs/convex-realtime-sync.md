@@ -647,3 +647,29 @@ until phase 4, so they can land independently.
       install (UPM git-dependency limitation), runtime registration +
       lifecycle, editor zero-setup behavior, degradation semantics, WebGL
       unsupported
+
+### Phase 7 — Registration DevX sweep
+
+The Phase 6 wiring made the sample build its own config/auth/options chain
+just to register the provider (~25 lines, three `#if` blocks). Registration
+is now one constructor argument; the store owns everything else.
+
+- [x] Deferred configuration seam in core (`INeoRealtimeConfigurable` +
+      `NeoRealtimeProviderContext`): a provider constructed with no arguments
+      reports `IsConfigured == false` and the registering `NeoProjectStore`
+      injects the Convex URL / API origin / project / session token provider
+      from its own config + authentication — the socket credential is always
+      single-sourced with the REST client. Explicit-options construction
+      bypasses it (manual low-level path unchanged)
+- [x] Store owns the provider: configured-or-dropped in the constructor
+      (graceful warn + dispose per distinct missing precondition), disposed
+      via the new `NeoProjectStore.Dispose()`
+- [x] Sign-in lifecycle drives the socket (`NeoAuthentication.OnStateChanged`):
+      the store connects realtime on `SignedIn` and tears it down on
+      sign-out/expiry — no manual `ConnectRealtimeAsync` after sign-in (the
+      explicit connect/disconnect APIs remain as low-level escape hatches)
+- [x] Sample reduced to a single registration line behind one
+      `#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && !UNITY_WEBGL` guard;
+      `OnDestroy` disposes the store instead of tracking the provider
+- [x] Tests: provider configure matrix (4), store configure/drop/dispose +
+      sign-in lifecycle (4 new)

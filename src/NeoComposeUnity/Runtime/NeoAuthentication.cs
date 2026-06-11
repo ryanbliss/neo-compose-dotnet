@@ -72,7 +72,28 @@ namespace NeoCompose.Runtime
             RefreshState();
         }
 
-        public NeoAuthenticationState State { get; private set; } = NeoAuthenticationState.SignedOut;
+        private NeoAuthenticationState state = NeoAuthenticationState.SignedOut;
+
+        public NeoAuthenticationState State
+        {
+            get => state;
+            private set
+            {
+                if (state == value) return;
+                state = value;
+                OnStateChanged?.Invoke(value);
+            }
+        }
+
+        /// <summary>
+        /// Raised whenever <see cref="State"/> changes value (sign-in,
+        /// sign-out, expiry). Session-dependent transports hang off this — the
+        /// project store connects its realtime provider on
+        /// <see cref="NeoAuthenticationState.SignedIn"/> and tears it down on
+        /// sign-out/expiry, so no socket outlives its credential.
+        /// </summary>
+        public event Action<NeoAuthenticationState>? OnStateChanged;
+
         public string DisplayName { get; private set; } = "";
         public string DisplayEmail { get; private set; } = "";
         public bool IsBusy { get; private set; }
@@ -258,9 +279,11 @@ namespace NeoCompose.Runtime
 
         private void SetSignedOut()
         {
-            State = NeoAuthenticationState.SignedOut;
+            // Clear the identity before raising the state event so subscribers
+            // observe a fully signed-out authentication.
             DisplayName = "";
             DisplayEmail = "";
+            State = NeoAuthenticationState.SignedOut;
         }
 
         private static INeoComposeTokenStore CreateDefaultStore(NeoAuthenticationOptions options)

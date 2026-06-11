@@ -170,7 +170,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Registration_IsDroppedWithoutCloudSync()
+        public void Registration_IsDroppedAndDisposedWithoutCloudSync()
         {
             var realtime = new FakeRealtimeProvider();
             var store = new NeoProjectStore(
@@ -180,10 +180,131 @@ namespace NeoCompose.Tests
                 realtimeProvider: realtime);
 
             Assert.That(store.RealtimeProvider, Is.Null);
+            Assert.That(realtime.DisposeCalls, Is.EqualTo(1), "the store owns dropped providers");
+        }
+
+        [Test]
+        public void Registration_ConfiguresAnUnconfiguredProviderFromConfigAndAuth()
+        {
+            var config = ScriptableObject.CreateInstance<NeoComposeConfig>();
+            config.projectId = "project-1";
+            config.apiBaseUrl = "https://api.example";
+            config.convexUrl = "https://deployment.convex.cloud";
+            var auth = CreateSignedOutAuthentication(new TestTokenStore());
+            var realtime = new FakeRealtimeProvider { IsConfigured = false };
+
+            var store = new NeoProjectStore(
+                config: config,
+                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                localStore: new NeoInMemoryLocalSaveStore(),
+                apiClient: new FakeApiClient(),
+                authentication: auth,
+                targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
+                realtimeProvider: realtime);
+
+            Assert.That(store.RealtimeProvider, Is.SameAs(realtime));
+            Assert.That(realtime.ConfiguredContext, Is.Not.Null);
+            Assert.That(
+                realtime.ConfiguredContext!.ConvexUrl,
+                Is.EqualTo("https://deployment.convex.cloud"));
+            Assert.That(realtime.ConfiguredContext.ApiBaseUrl, Is.EqualTo("https://api.example"));
+            Assert.That(realtime.ConfiguredContext.ProjectId, Is.EqualTo("project-1"));
+            Assert.That(
+                realtime.ConfiguredContext.SessionTokenProvider,
+                Is.SameAs(auth.AccessTokenProvider),
+                "the socket credential must derive from the store's own sign-in");
+        }
+
+        [Test]
+        public void Registration_DropsAnUnconfiguredProviderWhenTheConfigHasNoConvexUrl()
+        {
+            var config = ScriptableObject.CreateInstance<NeoComposeConfig>();
+            config.projectId = "project-1";
+            config.apiBaseUrl = "https://api.example";
+            var auth = CreateSignedOutAuthentication(new TestTokenStore());
+            var realtime = new FakeRealtimeProvider { IsConfigured = false };
+
+            var store = new NeoProjectStore(
+                config: config,
+                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                localStore: new NeoInMemoryLocalSaveStore(),
+                apiClient: new FakeApiClient(),
+                authentication: auth,
+                targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
+                realtimeProvider: realtime);
+
+            Assert.That(store.RealtimeProvider, Is.Null);
+            Assert.That(realtime.ConfiguredContext, Is.Null);
+            Assert.That(realtime.DisposeCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task SignInLifecycle_ConnectsAndDisconnectsRealtime()
+        {
+            var tokenStore = new TestTokenStore();
+            var auth = CreateSignedOutAuthentication(tokenStore);
+            var realtime = new FakeRealtimeProvider();
+            var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
+                localStore: new NeoInMemoryLocalSaveStore(),
+                apiClient: new FakeApiClient(),
+                authentication: auth,
+                targetReleaseChannelId: NeoSaveTestSupport.TargetChannel,
+                realtimeProvider: realtime);
+            await store.LoadAsync();
+            Assert.That(realtime.ConnectCalls, Is.EqualTo(0), "signed out at load: no connect");
+
+            // Sign-in (a token appears and the state flips) connects realtime
+            // without any explicit call from the game.
+            tokenStore.token = new NeoComposeStoredToken(
+                "access-token", long.MaxValue, new[] { "openid" },
+                "https://api.example", "Ada Lovelace", "ada@example.test");
+            auth.RefreshState();
+            Assert.That(auth.IsSignedIn, Is.True);
+            Assert.That(realtime.ConnectCalls, Is.EqualTo(1));
+            Assert.That(realtime.ListSubscriptions, Has.Count.EqualTo(1), "attached on connect");
+
+            // Sign-out tears the socket down so it never outlives the credential.
+            tokenStore.token = null;
+            auth.RefreshState();
+            Assert.That(realtime.DisconnectCalls, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task Dispose_DisposesTheOwnedProviderOnceAndBlocksFurtherUse()
+        {
+            var (store, _, _, realtime) =
+                await ReadyStoreWithRealtimeAsync(NeoRealtimeConnectionState.Connected);
+
+            store.Dispose();
+            store.Dispose();
+
+            Assert.That(realtime.DisposeCalls, Is.EqualTo(1));
+            Assert.Throws<ObjectDisposedException>(() => store.Open("save-1"));
+        }
+
+        private static NeoAuthentication CreateSignedOutAuthentication(TestTokenStore tokenStore) =>
+            new NeoAuthentication(
+                new NeoAuthenticationOptions(
+                    "https://api.example", "project-1", "client-1", "openid"),
+                tokenStore,
+                now: () => DateTimeOffset.FromUnixTimeSeconds(0));
+
+        internal sealed class TestTokenStore : INeoComposeTokenStore
+        {
+            public NeoComposeStoredToken? token;
+
+            public NeoComposeStoredToken? Load() => token;
+
+            public void Save(NeoComposeStoredToken value) => token = value;
+
+            public void Clear() => token = null;
+
+            public NeoComposeTokenHint? PeekHint() => token?.ToHint();
         }
     }
 
-    internal sealed class FakeRealtimeProvider : INeoRealtimeProvider
+    internal sealed class FakeRealtimeProvider : INeoRealtimeProvider, INeoRealtimeConfigurable
     {
         public NeoRealtimeConnectionState State { get; set; } =
             NeoRealtimeConnectionState.Disconnected;
@@ -202,6 +323,25 @@ namespace NeoCompose.Tests
         public bool canCommit;
         public int ConnectCalls;
         public int DisconnectCalls;
+        public int DisposeCalls;
+
+        // Configured by default so the store leaves the fake alone; set false
+        // to exercise the store's deferred-configuration path.
+        public bool IsConfigured { get; set; } = true;
+
+        public NeoRealtimeProviderContext? ConfiguredContext { get; private set; }
+
+        public void Configure(NeoRealtimeProviderContext context)
+        {
+            if (IsConfigured)
+            {
+                throw new InvalidOperationException(
+                    "Configure must only be called while unconfigured (test).");
+            }
+
+            ConfiguredContext = context;
+            IsConfigured = true;
+        }
 
         public bool CanCommit => canCommit;
 
@@ -264,6 +404,7 @@ namespace NeoCompose.Tests
 
         public void Dispose()
         {
+            DisposeCalls++;
         }
 
         private sealed class SubscriptionHandle : IDisposable

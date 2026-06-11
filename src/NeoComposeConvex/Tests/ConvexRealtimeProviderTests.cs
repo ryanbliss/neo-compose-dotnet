@@ -42,6 +42,60 @@ namespace NeoCompose.Convex.Tests
             return new ConvexRealtimeProvider(options, () => socket, dispatcher.Dispatch);
         }
 
+        private ConvexRealtimeProvider CreateUnconfiguredProvider() =>
+            new ConvexRealtimeProvider(options: null, () => socket, dispatcher.Dispatch);
+
+        private NeoRealtimeProviderContext CreateContext() =>
+            new NeoRealtimeProviderContext(
+                "https://deployment.convex.cloud/",
+                "https://api.example",
+                "project-1",
+                tokens);
+
+        [Test]
+        public void UnconfiguredProviderReportsAndRefusesToConnect()
+        {
+            var provider = CreateUnconfiguredProvider();
+
+            Assert.That(provider.IsConfigured, Is.False);
+            var exception = Assert.ThrowsAsync<InvalidOperationException>(
+                async () => await provider.ConnectAsync());
+            Assert.That(exception!.Message, Does.Contain("not configured"));
+        }
+
+        [Test]
+        public async Task ConfigureEnablesTheProviderWithTheInjectedContext()
+        {
+            var provider = CreateUnconfiguredProvider();
+
+            provider.Configure(CreateContext());
+
+            Assert.That(provider.IsConfigured, Is.True);
+            await provider.ConnectAsync();
+            Assert.That(provider.State, Is.EqualTo(NeoRealtimeConnectionState.Connected));
+            Assert.That(socket.AuthProvider, Is.SameAs(provider.JwtProvider));
+        }
+
+        [Test]
+        public void ConfigureTwiceThrows()
+        {
+            var provider = CreateUnconfiguredProvider();
+            provider.Configure(CreateContext());
+
+            var exception = Assert.Throws<InvalidOperationException>(
+                () => provider.Configure(CreateContext()));
+            Assert.That(exception!.Message, Does.Contain("already configured"));
+        }
+
+        [Test]
+        public void OptionsConstructionIsAlreadyConfigured()
+        {
+            var provider = CreateProvider();
+
+            Assert.That(provider.IsConfigured, Is.True);
+            Assert.Throws<InvalidOperationException>(() => provider.Configure(CreateContext()));
+        }
+
         [Test]
         public async Task ConnectTransitionsThroughConnectingToConnected()
         {
@@ -121,7 +175,7 @@ namespace NeoCompose.Convex.Tests
             // An authoritative credential rejection recorded by the JWT pipeline…
             http.Responses.Enqueue(new NeoComposeWebResponse(401, false, "", ""));
             Assert.ThrowsAsync<NeoComposeNotSignedInException>(
-                () => provider.JwtProvider.GetTokenAsync());
+                () => provider.JwtProvider!.GetTokenAsync());
 
             // …surfaced through the socket's auth-failed event enters Denied…
             socket.RaiseAuthFailed("Server rejected token (test).");
@@ -143,7 +197,7 @@ namespace NeoCompose.Convex.Tests
 
             http.Responses.Enqueue(new NeoComposeWebResponse(0, true, "", "timeout"));
             Assert.ThrowsAsync<InvalidOperationException>(
-                () => provider.JwtProvider.GetTokenAsync());
+                () => provider.JwtProvider!.GetTokenAsync());
 
             socket.RaiseAuthFailed("Transient mint failure (test).");
             dispatcher.Flush();

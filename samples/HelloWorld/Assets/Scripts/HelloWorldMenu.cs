@@ -34,9 +34,6 @@ namespace HelloWorld.Assets.Scripts
     {
         private MenuUI menu;
         private NeoProjectStore store;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        private INeoRealtimeProvider realtimeProvider;
-#endif
         private HelloWorldGameplay gameplay;
         private bool authBusy;
         private bool menuVisible;
@@ -68,14 +65,16 @@ namespace HelloWorld.Assets.Scripts
 
         internal void OnDestroy()
         {
-            if (store != null) store.OnListChanged -= MarkMenuDirty;
+            if (store != null)
+            {
+                store.OnListChanged -= MarkMenuDirty;
+                // The store owns its realtime provider; disposing the store
+                // tears the socket down with it.
+                store.Dispose();
+                store = null;
+            }
             menu?.Dispose();
             menu = null;
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            // The registering code owns the realtime provider's lifetime.
-            realtimeProvider?.Dispose();
-            realtimeProvider = null;
-#endif
         }
 
         /// <summary>
@@ -117,39 +116,21 @@ namespace HelloWorld.Assets.Scripts
         /// <summary>
         /// Builds the project store. Everything (schema, save store, cloud per
         /// <c>enableOAuthCloudSync</c>) is inferred from the project's
-        /// NeoComposeConfig in Resources; on top of that, realtime save sync is
-        /// registered when the synced config carries a Convex URL.
+        /// NeoComposeConfig in Resources. Registering the realtime provider is
+        /// all it takes for live save sync: the store configures it from the
+        /// same config and sign-in, connects it around the sign-in lifecycle,
+        /// and disposes it with the store.
         /// </summary>
         private NeoProjectStore BuildProjectStore()
         {
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-            var config = NeoComposeConfig.LoadDefault();
-            NeoAuthentication auth = null;
-
-            // Realtime is gated to the editor + development builds here — the
-            // free dev-sync posture. It is production-capable: remove the guard
-            // to ship it (see NeoComposeDotnet specs/convex-realtime-sync.md).
-
-            if (config != null
-                && config.enableOAuthCloudSync
-                && !string.IsNullOrWhiteSpace(config.convexUrl)
-                && config.TryBuildAuthenticationOptions(out var authOptions))
-            {
-                // The provider derives its socket credential from the same
-                // authentication the store uses, so sign-in state stays single-sourced.
-                auth = new NeoAuthentication(authOptions);
-                realtimeProvider = new ConvexRealtimeProvider(new ConvexRealtimeOptions(
-                    config.convexUrl,
-                    config.apiBaseUrl,
-                    config.projectId,
-                    auth.AccessTokenProvider));
-            }
-#endif
             return new NeoProjectStore(
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                config: config,
-                authentication: auth,
-                realtimeProvider: realtimeProvider
+#if (UNITY_EDITOR || DEVELOPMENT_BUILD) && !UNITY_WEBGL
+                // Realtime is gated to the editor + development builds here —
+                // the free dev-sync posture. It is production-capable: remove
+                // the guard to ship it (see NeoComposeDotnet
+                // specs/convex-realtime-sync.md). WebGL is excluded because the
+                // transport needs System.Net.WebSockets.
+                realtimeProvider: new ConvexRealtimeProvider()
 #endif
             );
         }
@@ -284,35 +265,13 @@ namespace HelloWorld.Assets.Scripts
                     MarkMenuDirty();
                     if (store.Authentication?.IsSignedIn == true)
                     {
+                        // The store connects its realtime provider on sign-in
+                        // by itself; only the list needs a refresh here.
                         await store.RefreshSavesAsync();
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-                        await ConnectRealtimeAfterSignInAsync();
-#endif
                     }
                 }
             }
         }
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
-        /// <summary>
-        /// Load-time realtime connect only happens when already signed in, so a
-        /// fresh sign-in brings realtime up explicitly. Best-effort: saves work
-        /// over REST/local either way.
-        /// </summary>
-        private async Awaitable ConnectRealtimeAfterSignInAsync()
-        {
-            if (store?.RealtimeProvider == null) return;
-            try
-            {
-                await store.ConnectRealtimeAsync();
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning(
-                    $"Realtime connect after sign-in failed; saves stay REST-only. " +
-                    $"{exception.GetType().Name}: {exception.Message}");
-            }
-        }
-#endif
 
         private void OnDevicePrompt(NeoComposeDeviceCodeResponse code)
         {

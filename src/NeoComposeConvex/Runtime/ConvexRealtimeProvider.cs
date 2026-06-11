@@ -33,23 +33,39 @@ namespace NeoCompose.Convex
     /// e.g. re-sign-in) is required. State events are raised on the thread the
     /// provider was constructed on (Unity main thread in production).
     /// </remarks>
-    public sealed class ConvexRealtimeProvider : INeoRealtimeProvider
+    public sealed class ConvexRealtimeProvider : INeoRealtimeProvider, INeoRealtimeConfigurable
     {
-        private readonly Func<IConvexRealtimeSocket> socketFactory;
+        private readonly Func<IConvexRealtimeSocket>? socketFactoryOverride;
         private readonly Action<Action> dispatch;
-        private readonly string projectId;
 
+        private Func<IConvexRealtimeSocket>? socketFactory;
+        private string? projectId;
         private IConvexRealtimeSocket? socket;
         private IDisposable? stateSubscription;
         private bool disposed;
 
+        /// <summary>
+        /// The zero-configuration path: register the provider with a
+        /// <c>NeoProjectStore</c> and the store injects the project's Convex
+        /// URL, API origin, and signed-in session from its own config (see
+        /// <see cref="INeoRealtimeConfigurable"/>).
+        /// </summary>
+        public ConvexRealtimeProvider()
+            : this(options: null, socketFactory: null, dispatcher: null)
+        {
+        }
+
+        /// <summary>The manual path: explicit options, no store configuration.</summary>
         public ConvexRealtimeProvider(ConvexRealtimeOptions options)
-            : this(options, socketFactory: null, dispatcher: null)
+            : this(
+                options ?? throw new ArgumentNullException(nameof(options)),
+                socketFactory: null,
+                dispatcher: null)
         {
         }
 
         internal ConvexRealtimeProvider(
-            ConvexRealtimeOptions options,
+            ConvexRealtimeOptions? options,
             Func<IConvexRealtimeSocket>? socketFactory,
             Action<Action>? dispatcher)
         {
@@ -58,22 +74,63 @@ namespace NeoCompose.Convex
                 "Convex realtime sync is not supported on WebGL: the transport requires " +
                 "System.Net.WebSockets, which Unity WebGL does not provide.");
 #else
-            if (options == null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
-
-            JwtProvider = new ConvexJwtTokenProvider(
-                options.apiBaseUrl, options.sessionTokenProvider, options.httpClient, options.now);
-            projectId = options.projectId;
-            this.socketFactory = socketFactory
-                ?? (() => new ConvexClientRealtimeSocket(options.convexUrl));
+            socketFactoryOverride = socketFactory;
             this.dispatch = dispatcher ?? CreateContextDispatcher();
+            if (options != null)
+            {
+                ApplyOptions(options);
+            }
 #endif
         }
 
-        /// <summary>The JWT mint/refresh pipeline backing the socket's auth.</summary>
-        internal ConvexJwtTokenProvider JwtProvider { get; }
+        /// <summary>
+        /// The JWT mint/refresh pipeline backing the socket's auth; null until
+        /// the provider is configured.
+        /// </summary>
+        internal ConvexJwtTokenProvider? JwtProvider { get; private set; }
+
+        /// <summary>
+        /// True once the provider knows its Convex deployment and session
+        /// source — either constructed with <see cref="ConvexRealtimeOptions"/>
+        /// or configured by the registering store.
+        /// </summary>
+        public bool IsConfigured => JwtProvider != null;
+
+        /// <summary>
+        /// Deferred configuration (see <see cref="INeoRealtimeConfigurable"/>):
+        /// the registering <c>NeoProjectStore</c> injects the shared context so
+        /// <c>new ConvexRealtimeProvider()</c> needs no arguments.
+        /// </summary>
+        public void Configure(NeoRealtimeProviderContext context)
+        {
+            ThrowIfDisposed();
+            if (context == null)
+            {
+                throw new ArgumentNullException(nameof(context));
+            }
+            if (IsConfigured)
+            {
+                throw new InvalidOperationException(
+                    "ConvexRealtimeProvider is already configured. Construct it with " +
+                    "ConvexRealtimeOptions or let the registering NeoProjectStore configure " +
+                    "it — not both.");
+            }
+
+            ApplyOptions(new ConvexRealtimeOptions(
+                context.ConvexUrl,
+                context.ApiBaseUrl,
+                context.ProjectId,
+                context.SessionTokenProvider));
+        }
+
+        private void ApplyOptions(ConvexRealtimeOptions options)
+        {
+            JwtProvider = new ConvexJwtTokenProvider(
+                options.apiBaseUrl, options.sessionTokenProvider, options.httpClient, options.now);
+            projectId = options.projectId;
+            socketFactory = socketFactoryOverride
+                ?? (() => new ConvexClientRealtimeSocket(options.convexUrl));
+        }
 
         public NeoRealtimeConnectionState State { get; private set; } =
             NeoRealtimeConnectionState.Disconnected;
@@ -87,6 +144,14 @@ namespace NeoCompose.Convex
         public async Awaitable ConnectAsync(CancellationToken cancellationToken = default)
         {
             ThrowIfDisposed();
+            if (!IsConfigured)
+            {
+                throw new InvalidOperationException(
+                    "ConvexRealtimeProvider is not configured: register it with a " +
+                    "NeoProjectStore (which injects the project's Convex URL and signed-in " +
+                    "session from its config) or construct it with ConvexRealtimeOptions " +
+                    "before connecting.");
+            }
             if (State == NeoRealtimeConnectionState.Connecting
                 || State == NeoRealtimeConnectionState.Connected)
             {
@@ -97,7 +162,7 @@ namespace NeoCompose.Convex
             try
             {
                 EnsureSocket();
-                await socket!.SetAuthTokenProviderAsync(JwtProvider, cancellationToken);
+                await socket!.SetAuthTokenProviderAsync(JwtProvider!, cancellationToken);
                 await socket.EnsureConnectedAsync(cancellationToken);
                 SetState(MapConnectionState(socket.ConnectionState));
             }
@@ -141,7 +206,7 @@ namespace NeoCompose.Convex
             }
 
             TearDownSocket();
-            JwtProvider.Invalidate();
+            JwtProvider?.Invalidate();
             SetState(NeoRealtimeConnectionState.Disconnected);
         }
 
@@ -377,7 +442,8 @@ namespace NeoCompose.Convex
         private void EnsureSocket()
         {
             if (socket != null) return;
-            socket = socketFactory();
+            // Only reachable from ConnectAsync, after the IsConfigured guard.
+            socket = socketFactory!();
             stateSubscription = socket.ConnectionStateChanges.Subscribe(
                 new ConnectionStateObserver(OnSocketConnectionState));
             socket.AuthenticationStateChanged += OnSocketAuthenticationStateChanged;
@@ -405,7 +471,7 @@ namespace NeoCompose.Convex
                 // Only a credential rejection is terminal; a transient mint
                 // failure (connection blip) leaves the client's own retry loop
                 // in charge.
-                if (JwtProvider.LastFailureWasAuthRejection)
+                if (JwtProvider is { LastFailureWasAuthRejection: true })
                 {
                     EnterDenied();
                 }
@@ -415,7 +481,7 @@ namespace NeoCompose.Convex
         private void EnterDenied()
         {
             TearDownSocket();
-            JwtProvider.Invalidate();
+            JwtProvider?.Invalidate();
             SetState(NeoRealtimeConnectionState.Denied);
         }
 
