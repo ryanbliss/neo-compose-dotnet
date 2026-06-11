@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "efb0342242e6ea7600620fcda86d078283c8d1589bad01c3452e1e6d160ca1f8",
-        "codegenContractHash": "0b0cc1bbc34582b2281bd6bc2d5a95eb351fec04ad90a491f0f8318e9458b95c",
-        "runtimeDataContractHash": "267c39a0d78f87e00ecac774520128c92ff34cbf98f33d3a10f5e076ba64cefa"
+        "projectDocumentContentHash": "ac67b2999e73c603104f10cce9b84ae8d4011438a6d7da7d20cd7a44fc149685",
+        "codegenContractHash": "569147b04a68f1ed38d85f6a2f2da94d7e0b47066abb59acdc67159468ec76ab",
+        "runtimeDataContractHash": "35674d49ee22465124a139ee145c3795af89427bb192ef8b1a5005f01ec8f173"
     },
     "localization": {
         "schemaVersion": 1,
@@ -3032,7 +3032,7 @@
             "id": "086ec638-a35e-4148-8dcd-2c111c9afe15",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": null,
-            "updatedAt": 1778572839705,
+            "updatedAt": 1780970976839,
             "value": false
         },
         "0a5924c6-5603-49d5-9c2d-a83cdb68b790": {
@@ -4600,7 +4600,7 @@
             "id": "ce434a34-59a3-4a26-bdef-02902c992f88",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": null,
-            "updatedAt": 1778920322704,
+            "updatedAt": 1780971015671,
             "value": 1000
         },
         "ce69b994-4559-4d02-8ac1-c568f20b64ca": {
@@ -5129,6 +5129,8 @@
                             "type": 1
                         }
                     ],
+                    "createdAt": 1779142544612,
+                    "dialogueId": "2e65254c-7b5a-4bf0-ba4a-319352b403e3",
                     "id": "6c0f65a0-409f-4002-b898-1dec6d22ebaa",
                     "layout": {
                         "height": 160,
@@ -5145,9 +5147,13 @@
                     ],
                     "name": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "type": 2
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                    "type": 2,
+                    "updatedAt": 1779142544612
                 },
                 "eeb47238-5622-43d3-b873-9118439f8ab0": {
+                    "createdAt": 1779142544612,
+                    "dialogueId": "2e65254c-7b5a-4bf0-ba4a-319352b403e3",
                     "id": "eeb47238-5622-43d3-b873-9118439f8ab0",
                     "layout": {
                         "height": 160,
@@ -5165,9 +5171,11 @@
                     "name": null,
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "7a5bcbb9-b0e7-4284-a3ff-5c359247dd69",
                     "toNodeId": "6c0f65a0-409f-4002-b898-1dec6d22ebaa",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779142544612
                 }
             },
             "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -5177,6 +5185,7 @@
             },
             "triggerNode": {
                 "conditions": [],
+                "createdAt": 1779142544612,
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
                     "lookupValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -5185,6 +5194,7 @@
                         "relativeOrder": null
                     }
                 },
+                "dialogueId": "2e65254c-7b5a-4bf0-ba4a-319352b403e3",
                 "id": "2b36f4cf-c31c-4a13-bc61-8737e7f0685a",
                 "layout": {
                     "height": 160,
@@ -5202,9 +5212,12 @@
                 "name": null,
                 "occurrenceLimitSettings": null,
                 "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "toNodeId": "eeb47238-5622-43d3-b873-9118439f8ab0",
-                "type": 0
+                "type": 0,
+                "updatedAt": 1779142544612
             },
+            "triggerNodeId": "2b36f4cf-c31c-4a13-bc61-8737e7f0685a",
             "updatedAt": 1779142544612
         },
         "3e842799-4859-4fbc-a317-8640bc6875e5": {
@@ -5220,6 +5233,8 @@
             "name": "Capitol OG Intro",
             "nodes": {
                 "050f1583-b0fa-44a4-964b-74d2c267aad8": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "050f1583-b0fa-44a4-964b-74d2c267aad8",
                     "layout": {
                         "height": 160,
@@ -5404,8 +5419,10 @@
                         "saveChoice": null
                     },
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "67f47805-cbdc-42aa-ba85-56dfb984414c",
                     "type": 1,
+                    "updatedAt": 1779227008937,
                     "variables": {
                         "c3049b7f-c8a3-46fb-89ae-0be3372d8ee7": {
                             "displayPath": "Outpost > Planet",
@@ -5861,6 +5878,8 @@
                             "type": 0
                         }
                     ],
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "0f2865ae-afae-475a-a7c4-e1910d6fa8fe",
                     "layout": {
                         "height": 160,
@@ -5881,10 +5900,14 @@
                     ],
                     "name": "Add item action",
                     "primaryLinkedValueId": "ca105d9d-2885-4f33-80d4-206d5e207173",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "toNodeId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
-                    "type": 2
+                    "type": 2,
+                    "updatedAt": 1779227008937
                 },
                 "0fd9e64b-e419-4adf-ac59-f3bc54ad11a0": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "0fd9e64b-e419-4adf-ac59-f3bc54ad11a0",
                     "layout": {
                         "height": 160,
@@ -5906,9 +5929,11 @@
                     "name": "Optional Mercurial lore",
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "b31a519f-977e-4704-a552-29d464909507",
                     "toNodeId": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8",
                     "type": 1,
+                    "updatedAt": 1779227008937,
                     "variables": {
                         "3a36f845-8745-458a-8b19-3c9fbd2afee9": {
                             "displayPath": "Assets > Outposts > Mercurial > Planet",
@@ -6091,6 +6116,8 @@
                             "type": 0
                         }
                     ],
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "32014fbd-2fa1-40e9-840c-567f4d421952",
                     "layout": {
                         "height": 160,
@@ -6107,10 +6134,14 @@
                     ],
                     "name": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "toNodeId": "c246e26f-2736-4930-8a15-7e0155ca8573",
-                    "type": 2
+                    "type": 2,
+                    "updatedAt": 1779227008937
                 },
                 "37137d01-a012-423b-9760-ef9bc8b9f1c2": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "37137d01-a012-423b-9760-ef9bc8b9f1c2",
                     "layout": {
                         "height": 160,
@@ -6144,8 +6175,10 @@
                         "saveChoice": true
                     },
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "e4dbc0ba-684b-4fdf-a589-bfa15ffca317",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779227008937
                 },
                 "3d2bccf1-71e6-4f85-99ef-a4a2c208a52e": {
                     "actions": [
@@ -6319,6 +6352,8 @@
                             "type": 0
                         }
                     ],
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "3d2bccf1-71e6-4f85-99ef-a4a2c208a52e",
                     "layout": {
                         "height": 160,
@@ -6339,9 +6374,13 @@
                     ],
                     "name": "UNLOCK MERCIAL",
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
-                    "type": 2
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                    "type": 2,
+                    "updatedAt": 1779227008937
                 },
                 "4246b2de-dfd3-4de5-b2c0-f340026a8625": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "4246b2de-dfd3-4de5-b2c0-f340026a8625",
                     "layout": {
                         "height": 160,
@@ -6359,11 +6398,15 @@
                     "name": "Not fashionable",
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "777734e6-59ef-49c3-b6c8-e8caf9fc2bf1",
                     "toNodeId": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779227008937
                 },
                 "4620eef5-e9d4-4b2e-93cf-b1f039dbd79b": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "4620eef5-e9d4-4b2e-93cf-b1f039dbd79b",
                     "layout": {
                         "height": 160,
@@ -6381,9 +6424,11 @@
                     "name": "Enjoy your visit!",
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "a10d8465-256b-4457-a21b-1973b0cda541",
                     "toNodeId": "3d2bccf1-71e6-4f85-99ef-a4a2c208a52e",
                     "type": 1,
+                    "updatedAt": 1779227008937,
                     "variables": {
                         "e9fe0a2b-e192-4a75-b352-e26527e6b423": {
                             "displayPath": "Outpost > Planet",
@@ -6536,6 +6581,8 @@
                     }
                 },
                 "46e5522e-fe64-49f3-b67e-fb0b1b2ba9d0": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "46e5522e-fe64-49f3-b67e-fb0b1b2ba9d0",
                     "layout": {
                         "height": 160,
@@ -6553,10 +6600,14 @@
                     "name": "Impossible to reach",
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "954032ce-684f-452f-b3cc-507a21ccfad1",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779227008937
                 },
                 "55cd604a-448b-4eb4-bd13-aa8c0f8143c9": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "55cd604a-448b-4eb4-bd13-aa8c0f8143c9",
                     "layout": {
                         "height": 160,
@@ -6574,9 +6625,11 @@
                     "name": "Intro",
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "f6fef637-e07b-4de1-b9c5-0ce678e59545",
                     "toNodeId": "050f1583-b0fa-44a4-964b-74d2c267aad8",
                     "type": 1,
+                    "updatedAt": 1779227008937,
                     "variables": {
                         "42b42e00-9b9c-4456-8100-38a8f3cd03f1": {
                             "displayPath": "Outpost > Planet",
@@ -6729,6 +6782,8 @@
                     }
                 },
                 "7a457b41-7a06-43d2-a3e4-c6d2f1bbf41b": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "7a457b41-7a06-43d2-a3e4-c6d2f1bbf41b",
                     "layout": {
                         "height": 160,
@@ -6746,11 +6801,15 @@
                     "name": "Jerk",
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "1be8eaba-ceeb-4f97-98a8-a132659d672d",
                     "toNodeId": "d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779227008937
                 },
                 "85859d34-8444-410d-8c77-fed6401527c5": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "85859d34-8444-410d-8c77-fed6401527c5",
                     "layout": {
                         "height": 160,
@@ -6772,9 +6831,11 @@
                     "name": "Strange cult",
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "aa86767e-b0ee-45f6-a3bc-8631087d7208",
                     "toNodeId": "3d2bccf1-71e6-4f85-99ef-a4a2c208a52e",
                     "type": 1,
+                    "updatedAt": 1779227008937,
                     "variables": {
                         "8c6427b4-9e59-4f38-8670-2090f21c4117": {
                             "displayPath": "Mercurial > Name",
@@ -6918,6 +6979,8 @@
                     }
                 },
                 "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8",
                     "layout": {
                         "height": 160,
@@ -7096,8 +7159,10 @@
                         "saveChoice": null
                     },
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "5e5272c9-3e63-498b-bfa7-32975a6c07b8",
                     "type": 1,
+                    "updatedAt": 1779227008937,
                     "variables": {
                         "895da7f1-82ed-4eab-842d-f5dd4c25399a": {
                             "displayPath": "Assets > Outposts > Mercurial > Name",
@@ -7241,6 +7306,8 @@
                     }
                 },
                 "887487ff-d89b-409e-849d-2a72633d92be": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "887487ff-d89b-409e-849d-2a72633d92be",
                     "layout": {
                         "height": 160,
@@ -7411,7 +7478,9 @@
                         }
                     ],
                     "primaryLinkedValueId": "ca105d9d-2885-4f33-80d4-206d5e207173",
-                    "type": 3
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                    "type": 3,
+                    "updatedAt": 1779227008937
                 },
                 "9d3b6734-3e17-4f92-a2d0-79931808728b": {
                     "actions": [
@@ -7475,6 +7544,8 @@
                             "type": 0
                         }
                     ],
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "9d3b6734-3e17-4f92-a2d0-79931808728b",
                     "layout": {
                         "height": 160,
@@ -7491,10 +7562,14 @@
                     ],
                     "name": "Lose reputation action",
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "toNodeId": "7a457b41-7a06-43d2-a3e4-c6d2f1bbf41b",
-                    "type": 2
+                    "type": 2,
+                    "updatedAt": 1779227008937
                 },
                 "b5be7c15-28f8-4dda-a400-d48dfee783cb": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "b5be7c15-28f8-4dda-a400-d48dfee783cb",
                     "layout": {
                         "height": 160,
@@ -7516,9 +7591,11 @@
                     "name": "Optional Mercurial lore",
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "251c967a-dff1-4af9-962e-8d22cc40cbad",
                     "toNodeId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
                     "type": 1,
+                    "updatedAt": 1779227008937,
                     "variables": {
                         "23aec2a1-e952-4c13-86fb-e0cede15f33c": {
                             "displayPath": "Assets > Outposts > Mercurial > Planet",
@@ -7671,6 +7748,8 @@
                     }
                 },
                 "c246e26f-2736-4930-8a15-7e0155ca8573": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "c246e26f-2736-4930-8a15-7e0155ca8573",
                     "layout": {
                         "height": 160,
@@ -7688,11 +7767,15 @@
                     "name": "Welcome!",
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "7d3aef9c-3c76-4f49-8f7f-a67f10012202",
                     "toNodeId": "55cd604a-448b-4eb4-bd13-aa8c0f8143c9",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779227008937
                 },
                 "d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5",
                     "layout": {
                         "height": 160,
@@ -7714,9 +7797,11 @@
                     "name": "Blame the mercurials",
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "561bfa28-4549-40a9-9549-343c052c8537",
                     "toNodeId": "3d2bccf1-71e6-4f85-99ef-a4a2c208a52e",
                     "type": 1,
+                    "updatedAt": 1779227008937,
                     "variables": {
                         "d922e051-7714-43df-814f-92f977494e03": {
                             "displayPath": "Mercurial > Name",
@@ -7860,6 +7945,8 @@
                     }
                 },
                 "d4a4adee-a368-44d7-9d5c-b8483a8ed53a": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
                     "layout": {
                         "height": 160,
@@ -8039,8 +8126,10 @@
                         "saveChoice": null
                     },
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "908d908c-83f9-4b18-a458-21da21e398e8",
                     "type": 1,
+                    "updatedAt": 1779227008937,
                     "variables": {
                         "49aba70d-30fc-4ae9-8b1c-c5fff5f14e4e": {
                             "displayPath": "Assets > Outposts > Mercurial > Name",
@@ -8184,6 +8273,8 @@
                     }
                 },
                 "d8f50e6c-86a2-4b77-8309-7304355ce6bc": {
+                    "createdAt": 1779227008937,
+                    "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                     "id": "d8f50e6c-86a2-4b77-8309-7304355ce6bc",
                     "layout": {
                         "height": 160,
@@ -8362,8 +8453,10 @@
                         "saveChoice": false
                     },
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "d9a827c9-b293-40d7-b5af-6b3a0fc0c76a",
                     "type": 1,
+                    "updatedAt": 1779227008937,
                     "variables": {
                         "1e6fc91e-ad08-446e-afff-812af0476e0d": {
                             "displayPath": "Earth OG Souvenir Hat > Name",
@@ -8514,6 +8607,7 @@
             },
             "triggerNode": {
                 "conditions": [],
+                "createdAt": 1779227008937,
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
                     "lookupValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -8522,6 +8616,7 @@
                         "relativeOrder": 0
                     }
                 },
+                "dialogueId": "3e842799-4859-4fbc-a317-8640bc6875e5",
                 "id": "17d6690c-5649-4e6c-b252-bb237c884b5b",
                 "layout": {
                     "height": 160,
@@ -8541,9 +8636,12 @@
                     "count": 1
                 },
                 "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "toNodeId": "32014fbd-2fa1-40e9-840c-567f4d421952",
-                "type": 0
+                "type": 0,
+                "updatedAt": 1779227008937
             },
+            "triggerNodeId": "17d6690c-5649-4e6c-b252-bb237c884b5b",
             "updatedAt": 1779227008937
         },
         "50c76b46-1ac7-4c30-962d-0164a1f65637": {
@@ -8559,6 +8657,8 @@
             "name": "Shuffle 1",
             "nodes": {
                 "4dca4c60-300f-48db-8edd-4fcd3da840b9": {
+                    "createdAt": 1778819477546,
+                    "dialogueId": "50c76b46-1ac7-4c30-962d-0164a1f65637",
                     "id": "4dca4c60-300f-48db-8edd-4fcd3da840b9",
                     "layout": {
                         "height": 160,
@@ -8576,8 +8676,10 @@
                     "name": null,
                     "optionSettings": null,
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "850bde50-0989-41bd-a0fb-4ef5c590d72e",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1778819477546
                 }
             },
             "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
@@ -8587,6 +8689,7 @@
             },
             "triggerNode": {
                 "conditions": [],
+                "createdAt": 1778819477546,
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
                     "lookupValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
@@ -8595,6 +8698,7 @@
                         "relativeOrder": null
                     }
                 },
+                "dialogueId": "50c76b46-1ac7-4c30-962d-0164a1f65637",
                 "id": "84bc85cd-c1b6-4a19-a3c5-342f25e962f3",
                 "layout": {
                     "height": 160,
@@ -8612,9 +8716,12 @@
                 "name": null,
                 "occurrenceLimitSettings": null,
                 "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "toNodeId": "4dca4c60-300f-48db-8edd-4fcd3da840b9",
-                "type": 0
+                "type": 0,
+                "updatedAt": 1778819477546
             },
+            "triggerNodeId": "84bc85cd-c1b6-4a19-a3c5-342f25e962f3",
             "updatedAt": 1778819477546
         },
         "5385d04c-b623-40f5-8032-c97d4f90073d": {
@@ -8636,6 +8743,7 @@
             },
             "triggerNode": {
                 "conditions": [],
+                "createdAt": 1778665718945,
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
                     "lookupValueId": "ed141cc4-304c-40cd-8229-105f1ee9b99c",
@@ -8644,6 +8752,7 @@
                         "relativeOrder": 0
                     }
                 },
+                "dialogueId": "5385d04c-b623-40f5-8032-c97d4f90073d",
                 "id": "6b726f5c-6195-4548-9d12-15b1d6f1bd08",
                 "layout": {
                     "height": 160,
@@ -8661,8 +8770,11 @@
                 "name": null,
                 "occurrenceLimitSettings": null,
                 "primaryLinkedValueId": "ed141cc4-304c-40cd-8229-105f1ee9b99c",
-                "type": 0
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                "type": 0,
+                "updatedAt": 1778665718945
             },
+            "triggerNodeId": "6b726f5c-6195-4548-9d12-15b1d6f1bd08",
             "updatedAt": 1778665718945
         },
         "6efd8f7b-7491-4646-b4cc-05589bca92ab": {
@@ -8673,6 +8785,8 @@
             "name": "I'm blue, if I were green....",
             "nodes": {
                 "22afb4c9-46b0-4ffa-a3a0-abc946721097": {
+                    "createdAt": 1778473619420,
+                    "dialogueId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
                     "id": "22afb4c9-46b0-4ffa-a3a0-abc946721097",
                     "layout": {
                         "height": 160,
@@ -8685,10 +8799,14 @@
                     "name": null,
                     "optionSettings": null,
                     "primaryLinkedValueId": null,
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "b4b85b2a-eb87-4b6b-8259-c060b7c6c28f",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1778473619420
                 },
                 "22e6b6be-b2be-4114-a1e9-501d09e3959d": {
+                    "createdAt": 1778473619420,
+                    "dialogueId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
                     "id": "22e6b6be-b2be-4114-a1e9-501d09e3959d",
                     "layout": {
                         "height": 160,
@@ -8701,10 +8819,14 @@
                     "name": null,
                     "optionSettings": null,
                     "primaryLinkedValueId": null,
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "37ca7f98-8bf2-4771-b094-810dbd41abc0",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1778473619420
                 },
                 "71534395-bb0a-4ae0-8d99-490699904b3a": {
+                    "createdAt": 1778473619420,
+                    "dialogueId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
                     "id": "71534395-bb0a-4ae0-8d99-490699904b3a",
                     "layout": {
                         "height": 160,
@@ -8899,9 +9021,13 @@
                         }
                     ],
                     "primaryLinkedValueId": null,
-                    "type": 3
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                    "type": 3,
+                    "updatedAt": 1778473619420
                 },
                 "7a077aef-98d5-42c5-b5a6-d0f5e23ce6bd": {
+                    "createdAt": 1778473619420,
+                    "dialogueId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
                     "id": "7a077aef-98d5-42c5-b5a6-d0f5e23ce6bd",
                     "layout": {
                         "height": 160,
@@ -8914,10 +9040,14 @@
                     "name": null,
                     "optionSettings": null,
                     "primaryLinkedValueId": null,
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "ebcfb8a2-b0db-4077-92e9-e84eee38a9f6",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1778473619420
                 },
                 "7af2e9ea-375b-48fa-83d0-44a388793cb4": {
+                    "createdAt": 1778473619420,
+                    "dialogueId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
                     "id": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
                     "layout": {
                         "height": 160,
@@ -9027,10 +9157,14 @@
                         "saveChoice": null
                     },
                     "primaryLinkedValueId": null,
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "2e6c7b85-9439-44be-843d-76629ace737c",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1778473619420
                 },
                 "8f2d3768-9174-4e0e-89f0-35de3079e804": {
+                    "createdAt": 1778473619420,
+                    "dialogueId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
                     "id": "8f2d3768-9174-4e0e-89f0-35de3079e804",
                     "layout": {
                         "height": 160,
@@ -9043,8 +9177,10 @@
                     "name": null,
                     "optionSettings": null,
                     "primaryLinkedValueId": null,
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "5f0b0049-0a7b-4847-8bb5-0ab1da42284d",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1778473619420
                 },
                 "e21fadb4-7bfc-40ed-b216-a346251a36a9": {
                     "actions": [
@@ -9119,6 +9255,8 @@
                             "type": 0
                         }
                     ],
+                    "createdAt": 1778473619420,
+                    "dialogueId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
                     "id": "e21fadb4-7bfc-40ed-b216-a346251a36a9",
                     "layout": {
                         "height": 160,
@@ -9130,9 +9268,13 @@
                     "linkedValues": [],
                     "name": null,
                     "primaryLinkedValueId": null,
-                    "type": 2
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                    "type": 2,
+                    "updatedAt": 1778473619420
                 },
                 "e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf": {
+                    "createdAt": 1778473619420,
+                    "dialogueId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
                     "id": "e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf",
                     "layout": {
                         "height": 160,
@@ -9145,11 +9287,15 @@
                     "name": "Blue",
                     "optionSettings": null,
                     "primaryLinkedValueId": null,
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "1b3856d2-6f8a-4de4-8d11-81b5beb893c8",
                     "toNodeId": "e21fadb4-7bfc-40ed-b216-a346251a36a9",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1778473619420
                 },
                 "f1ea2b09-de7a-42fd-95a8-a829a457bf71": {
+                    "createdAt": 1778473619420,
+                    "dialogueId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
                     "id": "f1ea2b09-de7a-42fd-95a8-a829a457bf71",
                     "layout": {
                         "height": 160,
@@ -9162,9 +9308,11 @@
                     "name": "Green",
                     "optionSettings": null,
                     "primaryLinkedValueId": null,
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "b8c58652-db74-4fa0-97ec-725f172a3488",
                     "toNodeId": "71534395-bb0a-4ae0-8d99-490699904b3a",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1778473619420
                 }
             },
             "primaryLinkedValueId": null,
@@ -9174,7 +9322,9 @@
             },
             "triggerNode": {
                 "conditions": [],
+                "createdAt": 1778473619420,
                 "dialogueGroupSettings": null,
+                "dialogueId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
                 "id": "88d14e7a-6d38-448e-bb62-a4dd242dca4c",
                 "layout": {
                     "height": 160,
@@ -9186,9 +9336,12 @@
                 "linkedValues": [],
                 "occurrenceLimitSettings": null,
                 "primaryLinkedValueId": null,
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "toNodeId": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
-                "type": 0
+                "type": 0,
+                "updatedAt": 1778473619420
             },
+            "triggerNodeId": "88d14e7a-6d38-448e-bb62-a4dd242dca4c",
             "updatedAt": 1778473619420
         },
         "71478d85-4586-4ca8-8b95-226a391a9a5f": {
@@ -9265,6 +9418,8 @@
                             "type": 0
                         }
                     ],
+                    "createdAt": 1779620472073,
+                    "dialogueId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
                     "id": "0db6ce1c-481f-4e70-9a0b-54a10697a737",
                     "layout": {
                         "height": 160,
@@ -9281,10 +9436,14 @@
                     ],
                     "name": "Increase rep",
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "toNodeId": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6",
-                    "type": 2
+                    "type": 2,
+                    "updatedAt": 1779620472073
                 },
                 "2e4e76db-6945-4110-ab51-e15ae15b8ec2": {
+                    "createdAt": 1779620472073,
+                    "dialogueId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
                     "id": "2e4e76db-6945-4110-ab51-e15ae15b8ec2",
                     "layout": {
                         "height": 160,
@@ -9318,10 +9477,14 @@
                         "saveChoice": true
                     },
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "d4369d97-75bb-4617-9857-085e7748ad20",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779620472073
                 },
                 "38b616a1-d31e-4ae4-868c-9bc7bca30cb6": {
+                    "createdAt": 1779620472073,
+                    "dialogueId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
                     "id": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6",
                     "layout": {
                         "height": 160,
@@ -9354,8 +9517,10 @@
                         "saveChoice": null
                     },
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "2b9d011b-8ac4-4dc7-933f-03fcffa6c13a",
                     "type": 1,
+                    "updatedAt": 1779620472073,
                     "variables": {
                         "3d9bdd31-0547-4497-9386-8948d560d35f": {
                             "displayPath": "Outpost > Planet",
@@ -9508,6 +9673,8 @@
                     }
                 },
                 "766e702b-009e-4b28-9f5b-b2cb3fe00ec9": {
+                    "createdAt": 1779620472073,
+                    "dialogueId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
                     "id": "766e702b-009e-4b28-9f5b-b2cb3fe00ec9",
                     "layout": {
                         "height": 160,
@@ -9525,10 +9692,14 @@
                     "name": "Cosmos crieth",
                     "optionSettings": null,
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "3e0fc211-9087-48de-808e-6bb57d6d637a",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779620472073
                 },
                 "8493e593-ab92-41ba-a04d-da2835244bb2": {
+                    "createdAt": 1779620472073,
+                    "dialogueId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
                     "id": "8493e593-ab92-41ba-a04d-da2835244bb2",
                     "layout": {
                         "height": 160,
@@ -9562,10 +9733,14 @@
                         "saveChoice": null
                     },
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "375a1c06-8da5-4e98-9b06-408bd3a16d01",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779620472073
                 },
                 "9cf20311-811b-4418-8833-00e98e498f55": {
+                    "createdAt": 1779620472073,
+                    "dialogueId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
                     "id": "9cf20311-811b-4418-8833-00e98e498f55",
                     "layout": {
                         "height": 160,
@@ -9599,8 +9774,10 @@
                         "saveChoice": null
                     },
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "0d85d4fa-2686-4ba7-9684-e7c120051eb8",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779620472073
                 },
                 "9d741da4-f8f3-40f7-b05b-3ff1fae32952": {
                     "actions": [
@@ -9664,6 +9841,8 @@
                             "type": 0
                         }
                     ],
+                    "createdAt": 1779620472073,
+                    "dialogueId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
                     "id": "9d741da4-f8f3-40f7-b05b-3ff1fae32952",
                     "layout": {
                         "height": 160,
@@ -9680,10 +9859,14 @@
                     ],
                     "name": "Decrease rep",
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "toNodeId": "b3ece249-34d0-446b-a16a-9c09e6500f39",
-                    "type": 2
+                    "type": 2,
+                    "updatedAt": 1779620472073
                 },
                 "b3ece249-34d0-446b-a16a-9c09e6500f39": {
+                    "createdAt": 1779620472073,
+                    "dialogueId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
                     "id": "b3ece249-34d0-446b-a16a-9c09e6500f39",
                     "layout": {
                         "height": 160,
@@ -9711,8 +9894,10 @@
                         "saveChoice": false
                     },
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "846d952f-17c3-4b71-aa9e-26bcb709cb09",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779620472073
                 }
             },
             "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
@@ -9722,6 +9907,7 @@
             },
             "triggerNode": {
                 "conditions": [],
+                "createdAt": 1779620472073,
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
                     "lookupValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
@@ -9730,6 +9916,7 @@
                         "relativeOrder": 0
                     }
                 },
+                "dialogueId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
                 "id": "0f8979d3-3778-4e1a-84a8-c25012d9a299",
                 "layout": {
                     "height": 160,
@@ -9749,9 +9936,12 @@
                     "count": 1
                 },
                 "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "toNodeId": "2e4e76db-6945-4110-ab51-e15ae15b8ec2",
-                "type": 0
+                "type": 0,
+                "updatedAt": 1779620472073
             },
+            "triggerNodeId": "0f8979d3-3778-4e1a-84a8-c25012d9a299",
             "updatedAt": 1779620472073
         },
         "911d074c-e2e6-4fdc-933a-11f1cde605a0": {
@@ -9767,6 +9957,8 @@
             "name": "Shuffle 2",
             "nodes": {
                 "38fd172c-d4fb-4c62-823c-9300c6832e3c": {
+                    "createdAt": 1778819492259,
+                    "dialogueId": "911d074c-e2e6-4fdc-933a-11f1cde605a0",
                     "id": "38fd172c-d4fb-4c62-823c-9300c6832e3c",
                     "layout": {
                         "height": 160,
@@ -9784,8 +9976,10 @@
                     "name": null,
                     "optionSettings": null,
                     "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "7ee25df0-9d92-48a4-988e-97e5867a13d9",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1778819492259
                 }
             },
             "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
@@ -9795,6 +9989,7 @@
             },
             "triggerNode": {
                 "conditions": [],
+                "createdAt": 1778819492259,
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
                     "lookupValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
@@ -9803,6 +9998,7 @@
                         "relativeOrder": null
                     }
                 },
+                "dialogueId": "911d074c-e2e6-4fdc-933a-11f1cde605a0",
                 "id": "2de198bd-088b-4479-a520-617204310796",
                 "layout": {
                     "height": 160,
@@ -9820,9 +10016,12 @@
                 "name": null,
                 "occurrenceLimitSettings": null,
                 "primaryLinkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "toNodeId": "38fd172c-d4fb-4c62-823c-9300c6832e3c",
-                "type": 0
+                "type": 0,
+                "updatedAt": 1778819492259
             },
+            "triggerNodeId": "2de198bd-088b-4479-a520-617204310796",
             "updatedAt": 1778819492259
         },
         "f7c77cd0-bf01-421f-aecf-f245921bbeec": {
@@ -9846,6 +10045,8 @@
                             "type": 1
                         }
                     ],
+                    "createdAt": 1779142529322,
+                    "dialogueId": "f7c77cd0-bf01-421f-aecf-f245921bbeec",
                     "id": "477b4036-d9e7-4b5a-9591-451f834064d5",
                     "layout": {
                         "height": 160,
@@ -9862,9 +10063,13 @@
                     ],
                     "name": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "type": 2
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                    "type": 2,
+                    "updatedAt": 1779142529322
                 },
                 "5b0605a8-4a4c-479b-bcb5-6dffca4e3f4a": {
+                    "createdAt": 1779142529322,
+                    "dialogueId": "f7c77cd0-bf01-421f-aecf-f245921bbeec",
                     "id": "5b0605a8-4a4c-479b-bcb5-6dffca4e3f4a",
                     "layout": {
                         "height": 160,
@@ -9882,9 +10087,11 @@
                     "name": null,
                     "optionSettings": null,
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                     "text": "90811ced-66b6-4f46-bc60-d8f8bec3781a",
                     "toNodeId": "477b4036-d9e7-4b5a-9591-451f834064d5",
-                    "type": 1
+                    "type": 1,
+                    "updatedAt": 1779142529322
                 }
             },
             "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -9894,6 +10101,7 @@
             },
             "triggerNode": {
                 "conditions": [],
+                "createdAt": 1779142529322,
                 "dialogueGroupSettings": {
                     "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
                     "lookupValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
@@ -9902,6 +10110,7 @@
                         "relativeOrder": null
                     }
                 },
+                "dialogueId": "f7c77cd0-bf01-421f-aecf-f245921bbeec",
                 "id": "a57e479c-c1ee-4ef9-bcc3-1bc88275f841",
                 "layout": {
                     "height": 160,
@@ -9919,9 +10128,12 @@
                 "name": null,
                 "occurrenceLimitSettings": null,
                 "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "toNodeId": "5b0605a8-4a4c-479b-bcb5-6dffca4e3f4a",
-                "type": 0
+                "type": 0,
+                "updatedAt": 1779142529322
             },
+            "triggerNodeId": "a57e479c-c1ee-4ef9-bcc3-1bc88275f841",
             "updatedAt": 1779142529322
         }
     },
@@ -10899,11 +11111,11 @@
             "links": [
                 {
                     "choiceId": "2563de09-b1fe-4a7d-aac5-784372b6a6fe",
-                    "fieldPath": "nodes.38b616a1-d31e-4ae4-868c-9bc7bca30cb6.optionSettings.options.2563de09-b1fe-4a7d-aac5-784372b6a6fe.text",
+                    "fieldPath": "optionSettings.options.2563de09-b1fe-4a7d-aac5-784372b6a6fe.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -10929,11 +11141,11 @@
             "id": "0d85d4fa-2686-4ba7-9684-e7c120051eb8",
             "links": [
                 {
-                    "fieldPath": "nodes.9cf20311-811b-4418-8833-00e98e498f55.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "9cf20311-811b-4418-8833-00e98e498f55",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "9cf20311-811b-4418-8833-00e98e498f55",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11049,11 +11261,11 @@
             "links": [
                 {
                     "choiceId": "2a487f51-3909-46bd-b3d4-80cfaccfff97",
-                    "fieldPath": "nodes.9cf20311-811b-4418-8833-00e98e498f55.optionSettings.options.2a487f51-3909-46bd-b3d4-80cfaccfff97.text",
+                    "fieldPath": "optionSettings.options.2a487f51-3909-46bd-b3d4-80cfaccfff97.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "9cf20311-811b-4418-8833-00e98e498f55",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "9cf20311-811b-4418-8833-00e98e498f55",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11080,11 +11292,11 @@
             "links": [
                 {
                     "choiceId": "217c325e-fb32-48be-9a3b-0483def242f6",
-                    "fieldPath": "nodes.38b616a1-d31e-4ae4-868c-9bc7bca30cb6.optionSettings.options.217c325e-fb32-48be-9a3b-0483def242f6.text",
+                    "fieldPath": "optionSettings.options.217c325e-fb32-48be-9a3b-0483def242f6.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11227,11 +11439,11 @@
             "id": "1b3856d2-6f8a-4de4-8d11-81b5beb893c8",
             "links": [
                 {
-                    "fieldPath": "nodes.e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf",
-                    "recordId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
-                    "recordKind": "dialogue"
+                    "recordId": "e29aa544-f1a4-4ffe-a8d4-7cdd9e4a6cbf",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11257,11 +11469,11 @@
             "id": "1be8eaba-ceeb-4f97-98a8-a132659d672d",
             "links": [
                 {
-                    "fieldPath": "nodes.7a457b41-7a06-43d2-a3e4-c6d2f1bbf41b.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "7a457b41-7a06-43d2-a3e4-c6d2f1bbf41b",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "7a457b41-7a06-43d2-a3e4-c6d2f1bbf41b",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11288,11 +11500,11 @@
             "links": [
                 {
                     "choiceId": "a003dda5-7faf-493d-bc4d-10320e4f5275",
-                    "fieldPath": "nodes.2e4e76db-6945-4110-ab51-e15ae15b8ec2.optionSettings.options.a003dda5-7faf-493d-bc4d-10320e4f5275.text",
+                    "fieldPath": "optionSettings.options.a003dda5-7faf-493d-bc4d-10320e4f5275.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "2e4e76db-6945-4110-ab51-e15ae15b8ec2",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "2e4e76db-6945-4110-ab51-e15ae15b8ec2",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11347,11 +11559,11 @@
             "id": "251c967a-dff1-4af9-962e-8d22cc40cbad",
             "links": [
                 {
-                    "fieldPath": "nodes.b5be7c15-28f8-4dda-a400-d48dfee783cb.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "b5be7c15-28f8-4dda-a400-d48dfee783cb",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "b5be7c15-28f8-4dda-a400-d48dfee783cb",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11407,11 +11619,11 @@
             "id": "2b9d011b-8ac4-4dc7-933f-03fcffa6c13a",
             "links": [
                 {
-                    "fieldPath": "nodes.38b616a1-d31e-4ae4-868c-9bc7bca30cb6.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "38b616a1-d31e-4ae4-868c-9bc7bca30cb6",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11467,11 +11679,11 @@
             "id": "2e6c7b85-9439-44be-843d-76629ace737c",
             "links": [
                 {
-                    "fieldPath": "nodes.7af2e9ea-375b-48fa-83d0-44a388793cb4.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
-                    "recordId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
-                    "recordKind": "dialogue"
+                    "recordId": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11498,11 +11710,11 @@
             "links": [
                 {
                     "choiceId": "2d63d4be-9f49-472c-92a8-d93a9da268c5",
-                    "fieldPath": "nodes.87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8.optionSettings.options.2d63d4be-9f49-472c-92a8-d93a9da268c5.text",
+                    "fieldPath": "optionSettings.options.2d63d4be-9f49-472c-92a8-d93a9da268c5.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11529,11 +11741,11 @@
             "links": [
                 {
                     "choiceId": "7a2bfc68-b904-4123-aea5-96bb2721c7ab",
-                    "fieldPath": "nodes.d8f50e6c-86a2-4b77-8309-7304355ce6bc.optionSettings.options.7a2bfc68-b904-4123-aea5-96bb2721c7ab.text",
+                    "fieldPath": "optionSettings.options.7a2bfc68-b904-4123-aea5-96bb2721c7ab.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "d8f50e6c-86a2-4b77-8309-7304355ce6bc",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "d8f50e6c-86a2-4b77-8309-7304355ce6bc",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11560,11 +11772,11 @@
             "links": [
                 {
                     "choiceId": "f60e18fa-7180-4873-80ea-71132f191bfe",
-                    "fieldPath": "nodes.87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8.optionSettings.options.f60e18fa-7180-4873-80ea-71132f191bfe.text",
+                    "fieldPath": "optionSettings.options.f60e18fa-7180-4873-80ea-71132f191bfe.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11590,11 +11802,11 @@
             "id": "375a1c06-8da5-4e98-9b06-408bd3a16d01",
             "links": [
                 {
-                    "fieldPath": "nodes.8493e593-ab92-41ba-a04d-da2835244bb2.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "8493e593-ab92-41ba-a04d-da2835244bb2",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "8493e593-ab92-41ba-a04d-da2835244bb2",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11620,11 +11832,11 @@
             "id": "37ca7f98-8bf2-4771-b094-810dbd41abc0",
             "links": [
                 {
-                    "fieldPath": "nodes.22e6b6be-b2be-4114-a1e9-501d09e3959d.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "22e6b6be-b2be-4114-a1e9-501d09e3959d",
-                    "recordId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
-                    "recordKind": "dialogue"
+                    "recordId": "22e6b6be-b2be-4114-a1e9-501d09e3959d",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11710,11 +11922,11 @@
             "id": "3e0fc211-9087-48de-808e-6bb57d6d637a",
             "links": [
                 {
-                    "fieldPath": "nodes.766e702b-009e-4b28-9f5b-b2cb3fe00ec9.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "766e702b-009e-4b28-9f5b-b2cb3fe00ec9",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "766e702b-009e-4b28-9f5b-b2cb3fe00ec9",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11741,11 +11953,11 @@
             "links": [
                 {
                     "choiceId": "cba68531-cc21-4ea4-93e6-b032aeba72c1",
-                    "fieldPath": "nodes.8493e593-ab92-41ba-a04d-da2835244bb2.optionSettings.options.cba68531-cc21-4ea4-93e6-b032aeba72c1.text",
+                    "fieldPath": "optionSettings.options.cba68531-cc21-4ea4-93e6-b032aeba72c1.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "8493e593-ab92-41ba-a04d-da2835244bb2",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "8493e593-ab92-41ba-a04d-da2835244bb2",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11938,11 +12150,11 @@
             "links": [
                 {
                     "choiceId": "9db7758b-856c-451b-af19-2b65473cf0fb",
-                    "fieldPath": "nodes.9cf20311-811b-4418-8833-00e98e498f55.optionSettings.options.9db7758b-856c-451b-af19-2b65473cf0fb.text",
+                    "fieldPath": "optionSettings.options.9db7758b-856c-451b-af19-2b65473cf0fb.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "9cf20311-811b-4418-8833-00e98e498f55",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "9cf20311-811b-4418-8833-00e98e498f55",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -11969,11 +12181,11 @@
             "links": [
                 {
                     "choiceId": "cad38db0-e13d-4b5a-ac57-d7b732d32d62",
-                    "fieldPath": "nodes.7af2e9ea-375b-48fa-83d0-44a388793cb4.optionSettings.options.cad38db0-e13d-4b5a-ac57-d7b732d32d62.text",
+                    "fieldPath": "optionSettings.options.cad38db0-e13d-4b5a-ac57-d7b732d32d62.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
-                    "recordId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
-                    "recordKind": "dialogue"
+                    "recordId": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12028,11 +12240,11 @@
             "id": "561bfa28-4549-40a9-9549-343c052c8537",
             "links": [
                 {
-                    "fieldPath": "nodes.d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12059,11 +12271,11 @@
             "links": [
                 {
                     "choiceId": "fc75b9da-ce50-4316-a201-4d280588a644",
-                    "fieldPath": "nodes.7af2e9ea-375b-48fa-83d0-44a388793cb4.optionSettings.options.fc75b9da-ce50-4316-a201-4d280588a644.text",
+                    "fieldPath": "optionSettings.options.fc75b9da-ce50-4316-a201-4d280588a644.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
-                    "recordId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
-                    "recordKind": "dialogue"
+                    "recordId": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12113,11 +12325,11 @@
             "links": [
                 {
                     "choiceId": "73b12994-15b0-407a-84c1-64337cdcaf27",
-                    "fieldPath": "nodes.050f1583-b0fa-44a4-964b-74d2c267aad8.optionSettings.options.73b12994-15b0-407a-84c1-64337cdcaf27.text",
+                    "fieldPath": "optionSettings.options.73b12994-15b0-407a-84c1-64337cdcaf27.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "050f1583-b0fa-44a4-964b-74d2c267aad8",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "050f1583-b0fa-44a4-964b-74d2c267aad8",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12143,11 +12355,11 @@
             "id": "5e5272c9-3e63-498b-bfa7-32975a6c07b8",
             "links": [
                 {
-                    "fieldPath": "nodes.87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "87a0a8b0-2cdd-4c73-b0a7-1cef41005eb8",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12202,11 +12414,11 @@
             "id": "5f0b0049-0a7b-4847-8bb5-0ab1da42284d",
             "links": [
                 {
-                    "fieldPath": "nodes.8f2d3768-9174-4e0e-89f0-35de3079e804.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "8f2d3768-9174-4e0e-89f0-35de3079e804",
-                    "recordId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
-                    "recordKind": "dialogue"
+                    "recordId": "8f2d3768-9174-4e0e-89f0-35de3079e804",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12233,11 +12445,11 @@
             "links": [
                 {
                     "choiceId": "b24ed163-2369-4bcb-9f1e-12712cb0c3be",
-                    "fieldPath": "nodes.37137d01-a012-423b-9760-ef9bc8b9f1c2.optionSettings.options.b24ed163-2369-4bcb-9f1e-12712cb0c3be.text",
+                    "fieldPath": "optionSettings.options.b24ed163-2369-4bcb-9f1e-12712cb0c3be.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "37137d01-a012-423b-9760-ef9bc8b9f1c2",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "37137d01-a012-423b-9760-ef9bc8b9f1c2",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12264,11 +12476,11 @@
             "links": [
                 {
                     "choiceId": "f9e82eb4-756b-4763-9a34-c6e18dcfc858",
-                    "fieldPath": "nodes.7af2e9ea-375b-48fa-83d0-44a388793cb4.optionSettings.options.f9e82eb4-756b-4763-9a34-c6e18dcfc858.text",
+                    "fieldPath": "optionSettings.options.f9e82eb4-756b-4763-9a34-c6e18dcfc858.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
-                    "recordId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
-                    "recordKind": "dialogue"
+                    "recordId": "7af2e9ea-375b-48fa-83d0-44a388793cb4",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12324,11 +12536,11 @@
             "id": "67f47805-cbdc-42aa-ba85-56dfb984414c",
             "links": [
                 {
-                    "fieldPath": "nodes.050f1583-b0fa-44a4-964b-74d2c267aad8.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "050f1583-b0fa-44a4-964b-74d2c267aad8",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "050f1583-b0fa-44a4-964b-74d2c267aad8",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12384,11 +12596,11 @@
             "id": "777734e6-59ef-49c3-b6c8-e8caf9fc2bf1",
             "links": [
                 {
-                    "fieldPath": "nodes.4246b2de-dfd3-4de5-b2c0-f340026a8625.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "4246b2de-dfd3-4de5-b2c0-f340026a8625",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "4246b2de-dfd3-4de5-b2c0-f340026a8625",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12414,11 +12626,11 @@
             "id": "7a5bcbb9-b0e7-4284-a3ff-5c359247dd69",
             "links": [
                 {
-                    "fieldPath": "nodes.eeb47238-5622-43d3-b873-9118439f8ab0.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "eeb47238-5622-43d3-b873-9118439f8ab0",
-                    "recordId": "2e65254c-7b5a-4bf0-ba4a-319352b403e3",
-                    "recordKind": "dialogue"
+                    "recordId": "eeb47238-5622-43d3-b873-9118439f8ab0",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12444,18 +12656,18 @@
             "id": "7d3aef9c-3c76-4f49-8f7f-a67f10012202",
             "links": [
                 {
-                    "fieldPath": "nodes.c246e26f-2736-4930-8a15-7e0155ca8573.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "c246e26f-2736-4930-8a15-7e0155ca8573",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "c246e26f-2736-4930-8a15-7e0155ca8573",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
                 "en-US": {
                     "localeComment": null,
                     "statusId": "localization-status-approved",
-                    "updatedAt": 1779674427578,
+                    "updatedAt": 1781074653282,
                     "value": "Hello, traveler! Welcome to the best planet of the best solar system in the <b>ENTIRE</b> galaxy!"
                 },
                 "es-ES": {
@@ -12467,18 +12679,18 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
-            "updatedAt": 1779749262207
+            "updatedAt": 1781074653282
         },
         "7ee25df0-9d92-48a4-988e-97e5867a13d9": {
             "createdAt": 1779674427578,
             "id": "7ee25df0-9d92-48a4-988e-97e5867a13d9",
             "links": [
                 {
-                    "fieldPath": "nodes.38fd172c-d4fb-4c62-823c-9300c6832e3c.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "38fd172c-d4fb-4c62-823c-9300c6832e3c",
-                    "recordId": "911d074c-e2e6-4fdc-933a-11f1cde605a0",
-                    "recordKind": "dialogue"
+                    "recordId": "38fd172c-d4fb-4c62-823c-9300c6832e3c",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12505,11 +12717,11 @@
             "links": [
                 {
                     "choiceId": "933f4e34-2bed-4899-a4c6-840fe6e04ece",
-                    "fieldPath": "nodes.d4a4adee-a368-44d7-9d5c-b8483a8ed53a.optionSettings.options.933f4e34-2bed-4899-a4c6-840fe6e04ece.text",
+                    "fieldPath": "optionSettings.options.933f4e34-2bed-4899-a4c6-840fe6e04ece.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12535,11 +12747,11 @@
             "id": "846d952f-17c3-4b71-aa9e-26bcb709cb09",
             "links": [
                 {
-                    "fieldPath": "nodes.b3ece249-34d0-446b-a16a-9c09e6500f39.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "b3ece249-34d0-446b-a16a-9c09e6500f39",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "b3ece249-34d0-446b-a16a-9c09e6500f39",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12565,11 +12777,11 @@
             "id": "850bde50-0989-41bd-a0fb-4ef5c590d72e",
             "links": [
                 {
-                    "fieldPath": "nodes.4dca4c60-300f-48db-8edd-4fcd3da840b9.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "4dca4c60-300f-48db-8edd-4fcd3da840b9",
-                    "recordId": "50c76b46-1ac7-4c30-962d-0164a1f65637",
-                    "recordKind": "dialogue"
+                    "recordId": "4dca4c60-300f-48db-8edd-4fcd3da840b9",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12595,11 +12807,11 @@
             "id": "90811ced-66b6-4f46-bc60-d8f8bec3781a",
             "links": [
                 {
-                    "fieldPath": "nodes.5b0605a8-4a4c-479b-bcb5-6dffca4e3f4a.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "5b0605a8-4a4c-479b-bcb5-6dffca4e3f4a",
-                    "recordId": "f7c77cd0-bf01-421f-aecf-f245921bbeec",
-                    "recordKind": "dialogue"
+                    "recordId": "5b0605a8-4a4c-479b-bcb5-6dffca4e3f4a",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12625,18 +12837,18 @@
             "id": "908d908c-83f9-4b18-a458-21da21e398e8",
             "links": [
                 {
-                    "fieldPath": "nodes.d4a4adee-a368-44d7-9d5c-b8483a8ed53a.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
                 "en-US": {
                     "localeComment": null,
                     "statusId": "localization-status-approved",
-                    "updatedAt": 1779674427578,
+                    "updatedAt": 1781073295791,
                     "value": "Fabulous! Hey, I'd recommend staying away from the {{neo-var:49aba70d-30fc-4ae9-8b1c-c5fff5f14e4e}}s. Rumor has it they are causing an uptick in solar flares, but don't worry! That's what the hat is for!"
                 },
                 "es-ES": {
@@ -12648,7 +12860,7 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
-            "updatedAt": 1779749262207
+            "updatedAt": 1781073295791
         },
         "920bfdec-6ccd-4131-8fe4-3adcc4d0b96f": {
             "createdAt": 1779674427578,
@@ -12714,11 +12926,11 @@
             "id": "954032ce-684f-452f-b3cc-507a21ccfad1",
             "links": [
                 {
-                    "fieldPath": "nodes.46e5522e-fe64-49f3-b67e-fb0b1b2ba9d0.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "46e5522e-fe64-49f3-b67e-fb0b1b2ba9d0",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "46e5522e-fe64-49f3-b67e-fb0b1b2ba9d0",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12769,11 +12981,11 @@
             "links": [
                 {
                     "choiceId": "f0ddb88a-d569-4e0f-92a7-832498b79d21",
-                    "fieldPath": "nodes.8493e593-ab92-41ba-a04d-da2835244bb2.optionSettings.options.f0ddb88a-d569-4e0f-92a7-832498b79d21.text",
+                    "fieldPath": "optionSettings.options.f0ddb88a-d569-4e0f-92a7-832498b79d21.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "8493e593-ab92-41ba-a04d-da2835244bb2",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "8493e593-ab92-41ba-a04d-da2835244bb2",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12800,11 +13012,11 @@
             "links": [
                 {
                     "choiceId": "5b1decc8-d84e-44d5-adc7-948049017535",
-                    "fieldPath": "nodes.b3ece249-34d0-446b-a16a-9c09e6500f39.optionSettings.options.5b1decc8-d84e-44d5-adc7-948049017535.text",
+                    "fieldPath": "optionSettings.options.5b1decc8-d84e-44d5-adc7-948049017535.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "b3ece249-34d0-446b-a16a-9c09e6500f39",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "b3ece249-34d0-446b-a16a-9c09e6500f39",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12831,11 +13043,11 @@
             "links": [
                 {
                     "choiceId": "e1fd78a9-c6e7-48a9-b9d8-26cdb8fd3608",
-                    "fieldPath": "nodes.d8f50e6c-86a2-4b77-8309-7304355ce6bc.optionSettings.options.e1fd78a9-c6e7-48a9-b9d8-26cdb8fd3608.text",
+                    "fieldPath": "optionSettings.options.e1fd78a9-c6e7-48a9-b9d8-26cdb8fd3608.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "d8f50e6c-86a2-4b77-8309-7304355ce6bc",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "d8f50e6c-86a2-4b77-8309-7304355ce6bc",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12861,11 +13073,11 @@
             "id": "a10d8465-256b-4457-a21b-1973b0cda541",
             "links": [
                 {
-                    "fieldPath": "nodes.4620eef5-e9d4-4b2e-93cf-b1f039dbd79b.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "4620eef5-e9d4-4b2e-93cf-b1f039dbd79b",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "4620eef5-e9d4-4b2e-93cf-b1f039dbd79b",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12916,11 +13128,11 @@
             "links": [
                 {
                     "choiceId": "5e6af9dc-e006-4e13-8937-0eee7764186d",
-                    "fieldPath": "nodes.37137d01-a012-423b-9760-ef9bc8b9f1c2.optionSettings.options.5e6af9dc-e006-4e13-8937-0eee7764186d.text",
+                    "fieldPath": "optionSettings.options.5e6af9dc-e006-4e13-8937-0eee7764186d.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "37137d01-a012-423b-9760-ef9bc8b9f1c2",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "37137d01-a012-423b-9760-ef9bc8b9f1c2",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -12946,11 +13158,11 @@
             "id": "aa86767e-b0ee-45f6-a3bc-8631087d7208",
             "links": [
                 {
-                    "fieldPath": "nodes.85859d34-8444-410d-8c77-fed6401527c5.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "85859d34-8444-410d-8c77-fed6401527c5",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "85859d34-8444-410d-8c77-fed6401527c5",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13054,11 +13266,11 @@
             "id": "b31a519f-977e-4704-a552-29d464909507",
             "links": [
                 {
-                    "fieldPath": "nodes.0fd9e64b-e419-4adf-ac59-f3bc54ad11a0.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "0fd9e64b-e419-4adf-ac59-f3bc54ad11a0",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "0fd9e64b-e419-4adf-ac59-f3bc54ad11a0",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13107,11 +13319,11 @@
             "id": "b4b85b2a-eb87-4b6b-8259-c060b7c6c28f",
             "links": [
                 {
-                    "fieldPath": "nodes.22afb4c9-46b0-4ffa-a3a0-abc946721097.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "22afb4c9-46b0-4ffa-a3a0-abc946721097",
-                    "recordId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
-                    "recordKind": "dialogue"
+                    "recordId": "22afb4c9-46b0-4ffa-a3a0-abc946721097",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13168,11 +13380,11 @@
             "links": [
                 {
                     "choiceId": "1d446373-0dc1-4540-9405-ac2de3c8faa9",
-                    "fieldPath": "nodes.050f1583-b0fa-44a4-964b-74d2c267aad8.optionSettings.options.1d446373-0dc1-4540-9405-ac2de3c8faa9.text",
+                    "fieldPath": "optionSettings.options.1d446373-0dc1-4540-9405-ac2de3c8faa9.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "050f1583-b0fa-44a4-964b-74d2c267aad8",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "050f1583-b0fa-44a4-964b-74d2c267aad8",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13198,11 +13410,11 @@
             "id": "b8c58652-db74-4fa0-97ec-725f172a3488",
             "links": [
                 {
-                    "fieldPath": "nodes.f1ea2b09-de7a-42fd-95a8-a829a457bf71.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "f1ea2b09-de7a-42fd-95a8-a829a457bf71",
-                    "recordId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
-                    "recordKind": "dialogue"
+                    "recordId": "f1ea2b09-de7a-42fd-95a8-a829a457bf71",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13348,11 +13560,11 @@
             "links": [
                 {
                     "choiceId": "82eeb3bc-f377-4127-bcf8-4072b5b3aba7",
-                    "fieldPath": "nodes.2e4e76db-6945-4110-ab51-e15ae15b8ec2.optionSettings.options.82eeb3bc-f377-4127-bcf8-4072b5b3aba7.text",
+                    "fieldPath": "optionSettings.options.82eeb3bc-f377-4127-bcf8-4072b5b3aba7.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "2e4e76db-6945-4110-ab51-e15ae15b8ec2",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "2e4e76db-6945-4110-ab51-e15ae15b8ec2",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13437,11 +13649,11 @@
             "id": "d4369d97-75bb-4617-9857-085e7748ad20",
             "links": [
                 {
-                    "fieldPath": "nodes.2e4e76db-6945-4110-ab51-e15ae15b8ec2.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "2e4e76db-6945-4110-ab51-e15ae15b8ec2",
-                    "recordId": "71478d85-4586-4ca8-8b95-226a391a9a5f",
-                    "recordKind": "dialogue"
+                    "recordId": "2e4e76db-6945-4110-ab51-e15ae15b8ec2",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13467,11 +13679,11 @@
             "id": "d9a827c9-b293-40d7-b5af-6b3a0fc0c76a",
             "links": [
                 {
-                    "fieldPath": "nodes.d8f50e6c-86a2-4b77-8309-7304355ce6bc.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "d8f50e6c-86a2-4b77-8309-7304355ce6bc",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "d8f50e6c-86a2-4b77-8309-7304355ce6bc",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13527,11 +13739,11 @@
             "links": [
                 {
                     "choiceId": "2019213b-8f57-41ec-8089-13c3023eee94",
-                    "fieldPath": "nodes.d4a4adee-a368-44d7-9d5c-b8483a8ed53a.optionSettings.options.2019213b-8f57-41ec-8089-13c3023eee94.text",
+                    "fieldPath": "optionSettings.options.2019213b-8f57-41ec-8089-13c3023eee94.text",
                     "kind": "dialogue-choice-text",
                     "nodeId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "d4a4adee-a368-44d7-9d5c-b8483a8ed53a",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13557,11 +13769,11 @@
             "id": "e4dbc0ba-684b-4fdf-a589-bfa15ffca317",
             "links": [
                 {
-                    "fieldPath": "nodes.37137d01-a012-423b-9760-ef9bc8b9f1c2.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "37137d01-a012-423b-9760-ef9bc8b9f1c2",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "37137d01-a012-423b-9760-ef9bc8b9f1c2",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13617,11 +13829,11 @@
             "id": "ebcfb8a2-b0db-4077-92e9-e84eee38a9f6",
             "links": [
                 {
-                    "fieldPath": "nodes.7a077aef-98d5-42c5-b5a6-d0f5e23ce6bd.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "7a077aef-98d5-42c5-b5a6-d0f5e23ce6bd",
-                    "recordId": "6efd8f7b-7491-4646-b4cc-05589bca92ab",
-                    "recordKind": "dialogue"
+                    "recordId": "7a077aef-98d5-42c5-b5a6-d0f5e23ce6bd",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
@@ -13753,18 +13965,18 @@
             "id": "f6fef637-e07b-4de1-b9c5-0ce678e59545",
             "links": [
                 {
-                    "fieldPath": "nodes.55cd604a-448b-4eb4-bd13-aa8c0f8143c9.text",
+                    "fieldPath": "text",
                     "kind": "dialogue-node-text",
                     "nodeId": "55cd604a-448b-4eb4-bd13-aa8c0f8143c9",
-                    "recordId": "3e842799-4859-4fbc-a317-8640bc6875e5",
-                    "recordKind": "dialogue"
+                    "recordId": "55cd604a-448b-4eb4-bd13-aa8c0f8143c9",
+                    "recordKind": "dialogue-node"
                 }
             ],
             "localeValues": {
                 "en-US": {
                     "localeComment": null,
                     "statusId": "localization-status-approved",
-                    "updatedAt": 1779674427578,
+                    "updatedAt": 1781073853815,
                     "value": "As the OGs of the system, you probably won't want to leave {{neo-var:42b42e00-9b9c-4456-8100-38a8f3cd03f1}} during your stay, but you're <i>mostly</i> welcome to leave whenever you want!"
                 },
                 "es-ES": {
@@ -13776,7 +13988,7 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
-            "updatedAt": 1779749262207
+            "updatedAt": 1781073853815
         },
         "fafce114-ab70-4813-a4e2-cb436b66aba6": {
             "createdAt": 1779674427578,
