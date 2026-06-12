@@ -228,6 +228,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void VersionSelection_DisplayLabel_BranchesShowNameNotPlaceholderSemver()
+        {
+            var release = Version("v-1-0-0", "draft", 1, 0, 0);
+            release.kind = "release";
+            var branch = Version("v-branch", "draft", 1, 0, 0);
+            branch.kind = "branch";
+            branch.name = "cli-proof";
+            var legacy = Version("v-0-1-1", "draft", 0, 1, 1);
+
+            Assert.AreEqual("1.0.0", NeoComposeVersionSelectionUtility.DisplayLabel(release));
+            Assert.AreEqual("cli-proof", NeoComposeVersionSelectionUtility.DisplayLabel(branch));
+            Assert.AreEqual("0.1.1", NeoComposeVersionSelectionUtility.DisplayLabel(legacy));
+        }
+
+        [Test]
+        public void VersionSelection_DisplayLabel_EscapesSlashesSoUnityPopupsDoNotNest()
+        {
+            var branch = Version("v-branch", "draft", 0, 1, 1);
+            branch.kind = "branch";
+            branch.name = "feature/solar-flares";
+
+            StringAssert.DoesNotContain("/", NeoComposeVersionSelectionUtility.DisplayLabel(branch));
+            StringAssert.Contains("solar-flares", NeoComposeVersionSelectionUtility.DisplayLabel(branch));
+        }
+
+        [Test]
         public void VersionSelection_KeepsPinnedArchivedVersionInDropdown()
         {
             var statuses = new[]

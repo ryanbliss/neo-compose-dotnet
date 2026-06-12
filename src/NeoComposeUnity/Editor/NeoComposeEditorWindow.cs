@@ -1208,7 +1208,7 @@ namespace NeoCompose.Unity.Editor
                     NeoComposeConfigProvider.Save(config);
                     if (EditorUtility.DisplayDialog(
                             "Synchronize latest version?",
-                            $"Version {latest.semver.label} is now selected. Synchronize generated files now?",
+                            $"Version {NeoComposeVersionSelectionUtility.DisplayLabel(latest)} is now selected. Synchronize generated files now?",
                             "Synchronize",
                             "Not Now"))
                     {
@@ -1236,9 +1236,7 @@ namespace NeoCompose.Unity.Editor
 
         private static string FormatVersionOption(NeoComposeProjectVersion version)
         {
-            var label = string.IsNullOrWhiteSpace(version.semver.label)
-                ? version.id
-                : version.semver.label;
+            var label = NeoComposeVersionSelectionUtility.DisplayLabel(version);
             return string.IsNullOrWhiteSpace(version.archivedAt) ? label : label + " (archived)";
         }
 

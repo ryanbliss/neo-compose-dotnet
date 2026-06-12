@@ -44,6 +44,12 @@ namespace NeoCompose.Unity.Editor
         public NeoComposeProjectVersionSemver semver = new();
         public string statusId = "";
         public string? archivedAt;
+
+        /// <summary>"branch" | "release"; legacy rows omit it (treated as releases).</summary>
+        public string? kind;
+
+        /// <summary>Branch name; branches carry a placeholder semver, so display this instead.</summary>
+        public string? name;
     }
 
     public sealed class NeoComposeProjectVersionStatus
