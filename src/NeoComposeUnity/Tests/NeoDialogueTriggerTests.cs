@@ -852,6 +852,58 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ActionsNode_CollectionCall_LookupAdd_StoresAssetEntryRef()
+        {
+            var client = CreateClient();
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "default-inventory-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new string[0],
+            });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add", out NeoDialogue dialogue));
+
+            System.Exception? error = null;
+            dialogue.OnError += ex => error = ex;
+            dialogue.Start();
+
+            Assert.IsNull(error, error?.Message);
+            Assert.IsTrue(client.TryGetValue("default-inventory-value", out ArrayAttributeValue? lookup));
+            CollectionAssert.AreEqual(new[] { "asset-item-value-b" }, lookup!.value);
+        }
+
+        [Test]
+        public void ActionsNode_CollectionCall_LookupAdd_AppendsWhenLookupAlreadyHasEntry()
+        {
+            // Field repro: the FIRST grant works into an empty inventory, the
+            // SECOND threw "Cannot mutate '<first item>' ... not save-owned"
+            // because the resolved lookup read mapped back to the looked-up
+            // asset row instead of the save-side ref list.
+            var client = CreateClient();
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "default-inventory-value",
+                createdAt = Now,
+                updatedAt = Now,
+                value = new[] { "asset-item-value" },
+            });
+            var root = new TestDialogues(client);
+            Assert.IsTrue(root.TryTrigger("dialogue-action-lookup-add", out NeoDialogue dialogue));
+
+            System.Exception? error = null;
+            dialogue.OnError += ex => error = ex;
+            dialogue.Start();
+
+            Assert.IsNull(error, error?.Message);
+            Assert.IsTrue(client.TryGetValue("default-inventory-value", out ArrayAttributeValue? lookup));
+            CollectionAssert.AreEqual(
+                new[] { "asset-item-value", "asset-item-value-b" },
+                lookup!.value);
+        }
+
+        [Test]
         public void ActionsNode_CollectionCall_RemovesSaveListEntry()
         {
             var client = CreateClient();
@@ -1910,7 +1962,7 @@ namespace NeoCompose.Tests
                         id = "assets-items-value",
                         createdAt = Now,
                         updatedAt = Now,
-                        value = new[] { "asset-item-value" },
+                        value = new[] { "asset-item-value", "asset-item-value-b" },
                     },
                     ["asset-item-value"] = new ObjectAttributeValue
                     {
@@ -1929,6 +1981,24 @@ namespace NeoCompose.Tests
                         createdAt = Now,
                         updatedAt = Now,
                         value = "Compass",
+                    },
+                    ["asset-item-value-b"] = new ObjectAttributeValue
+                    {
+                        id = "asset-item-value-b",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        typeId = "type-item",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Name"] = "asset-item-name-value-b",
+                        },
+                    },
+                    ["asset-item-name-value-b"] = new StringAttributeValue
+                    {
+                        id = "asset-item-name-value-b",
+                        createdAt = Now,
+                        updatedAt = Now,
+                        value = "Parasol",
                     },
                 },
                 types = new Dictionary<string, CustomType>
@@ -2110,6 +2180,29 @@ namespace NeoCompose.Tests
                             BoolTypeInfo(),
                             BoolPointer(true),
                             writability: null)),
+                    ["dialogue-action-lookup-add"] = ActionDialogue(
+                        "dialogue-action-lookup-add",
+                        CollectionAction(
+                            RootKeyPointer("Save", "Inventory"),
+                            new LookupTypeInfo
+                            {
+                                type = AttributeType.Lookup,
+                                required = true,
+                                entryTypeInfo = new CustomTypeInfo
+                                {
+                                    type = AttributeType.Custom,
+                                    required = true,
+                                    typeId = "type-item",
+                                },
+                                collectionAttributeId = "attr-items",
+                                collectionValueId = null,
+                            },
+                            CollectionMutationKind.Add,
+                            new ReferencePointer
+                            {
+                                type = PointerKind.Reference,
+                                valueId = "asset-item-value-b",
+                            })),
                     ["dialogue-action-list-add"] = ActionDialogue(
                         "dialogue-action-list-add",
                         CollectionAction(
