@@ -8,7 +8,7 @@ namespace ProjectSchema;
 [NeoCustomType("4c196697-4e08-4aeb-823f-322b353071ac", ExtraJson = @"{""extendsTypeId"":null,""system"":null}")]
 public sealed class Outpost
 {
-    [NeoObject("d7607422-7e33-402f-9fe6-8e9ac85a7019", DefaultJson = @"null", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
+    [NeoObject("d7607422-7e33-402f-9fe6-8e9ac85a7019", SchemaKeyOrderJson = @"[""FPS"",""Name"",""Frames""]", DefaultJson = @"null", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
     public AnimationInfo? AnimatedImage { get; init; }
 
     [NeoFunction("e549555b-9276-48d8-be33-156972520d31", RetJson = @"{""required"":true,""type"":3}", ArgsJson = @"[{""name"":""text"",""required"":true,""type"":3}]", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
