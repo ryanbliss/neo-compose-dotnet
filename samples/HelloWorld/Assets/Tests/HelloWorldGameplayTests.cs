@@ -188,6 +188,47 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public void EveryIntroDialogue_PlaysEveryFirstPathWithoutActionErrors()
+        {
+            // Field repro harness: walk each outpost's intro start-to-finish,
+            // always choosing the FIRST selectable option, and fail on any
+            // dialogue action error (the class of crash dryrun can't see).
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            var neo = GameplayNeo(gameplay);
+            foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+
+            foreach (var outpost in gameplay.Outposts)
+            {
+                if (!neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue))
+                {
+                    continue;
+                }
+                System.Exception error = null;
+                NeoDialogueTextNode current = null;
+                dialogue.OnError += ex => error = ex;
+                dialogue.OnShow += node => current = node;
+                dialogue.Start();
+                for (var step = 0; step < 60 && error == null; step++)
+                {
+                    if (current == null) break;
+                    var node = current;
+                    current = null;
+                    if (node.Options.Count > 0)
+                    {
+                        var option = node.Options.FirstOrDefault(o => o.Selectable);
+                        if (option == null) break;
+                        option.Select();
+                    }
+                    else
+                    {
+                        node.Next();
+                    }
+                }
+                Assert.IsNull(error, $"{outpost.Name}: {error}");
+            }
+        }
+
+        [Test]
         public void VisitedPlanetsPanelUsesLocalizedPlanetText()
         {
             var gameplay = Spawn(LoadedStore().CreateNew());

@@ -251,6 +251,12 @@ namespace HelloWorld.Assets.Scripts
             dialogueUI.Reset();
         }
 
+        private static Sprite TrySprite(Func<Sprite> resolve)
+        {
+            try { return resolve(); }
+            catch (Exception) { return null; }
+        }
+
         private void OnInventoryChanged() => UpdateUI();
 
         private void OnBitsChanged(int bits) => UpdateUI();
@@ -261,6 +267,8 @@ namespace HelloWorld.Assets.Scripts
                 HelloWorldText,
                 neo.Save.Quest.NextHint,
                 HasItem("Storm Corn") ? neo.Save.Quest.FlareClock : (neo.Save.Quest.FlareClock >= 6 ? 6 : 0),
+                TrySprite(() => neo.Assets.ShipSprite),
+                TrySprite(() => neo.Assets.FlareStaticSprite),
                 CurrentOutpost, Outposts, VisitedPlanets,
                 neo.Save.Bits, neo.Save.Inventory.ToArray(),
                 OnVisitOutpost,

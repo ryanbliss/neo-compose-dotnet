@@ -187,3 +187,61 @@ MonoBehaviour:
     - {fileID: 1844008586, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
     - {fileID: -444460451, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
     audioClip: {fileID: 0}
+  - fileId: 1e4112b5-503c-4cfc-a026-4f5d38e6999c
+    fileName: Flare static.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/1e4112b5-503c-4cfc-a026-4f5d38e6999c-Flare
+      static.png
+    fileUpdatedAt: 1781250463599
+    lastDownloadedAt: 2026-06-12T08:01:50.9355410Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T08:01:50.9355410Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -734371432, guid: cb9664a06c4fb4ad99ade0a569d4e2ae, type: 3}
+    - {fileID: -1431344758, guid: cb9664a06c4fb4ad99ade0a569d4e2ae, type: 3}
+    - {fileID: -1667102889, guid: cb9664a06c4fb4ad99ade0a569d4e2ae, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7
+    fileName: Ship (thruster).png
+    assetPath: Assets/Resources/Neo/Files/Sprites/8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship
+      (thruster).png
+    fileUpdatedAt: 1781250449574
+    lastDownloadedAt: 2026-06-12T08:01:51.2491760Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T08:01:51.2491760Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 240474627, guid: 17c04d235f0f147d69072e9d4f460369, type: 3}
+    - {fileID: -1175913144, guid: 17c04d235f0f147d69072e9d4f460369, type: 3}
+    - {fileID: -1335543646, guid: 17c04d235f0f147d69072e9d4f460369, type: 3}
+    - {fileID: 1599212093, guid: 17c04d235f0f147d69072e9d4f460369, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 02e201f3-f061-4310-bdde-54e2dd905634
+    fileName: Vault plaque.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/02e201f3-f061-4310-bdde-54e2dd905634-Vault
+      plaque.png
+    fileUpdatedAt: 1781250476480
+    lastDownloadedAt: 2026-06-12T08:02:11.0284610Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T08:02:11.0284610Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 630333986, guid: 7cd858dc189c64ef3ae8a25d1c4fc032, type: 3}
+    - {fileID: 257366880, guid: 7cd858dc189c64ef3ae8a25d1c4fc032, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506
+    fileName: First world icon.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First
+      world icon.png
+    fileUpdatedAt: 1781250488562
+    lastDownloadedAt: 2026-06-12T08:02:11.2260030Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T08:02:11.2260030Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 819957846, guid: a8d2914a4e8c8425aaa0b44e6ae31561, type: 3}
+    audioClip: {fileID: 0}

@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "32b108ce48a149b3024bb25c6e787910d07b046ab0f9e1d80717a005e6ced1a3",
-        "codegenContractHash": "075bcc6726126d1fde28f81b2c00291e1ddca4c533ac3c1056f8ed7f4f115e92",
-        "runtimeDataContractHash": "f230446042acf0f7bbc2ff300ff7e07198d7412d17a725ea426f1beb1d71cb8e"
+        "projectDocumentContentHash": "32253768f7b9d5087717761eb1d6f0adf939b181a7660fb02eaec034c0e369d0",
+        "codegenContractHash": "9b584693b261e6eea09ff935d11ad6e9a028f4138b684a26324975b656ad70b8",
+        "runtimeDataContractHash": "c56f9ef530a93481f45f2eaf58c42af153b491f640c7fc19dd29092e482fa254"
     },
     "localization": {
         "schemaVersion": 1,
@@ -537,6 +537,16 @@
             "updatedAt": 1778021393940,
             "valueId": "30cee785-a3ee-4bc4-8e11-50bf0d27af96"
         },
+        "13e587b4-f143-419e-b2f1-a5fb2fef92fd": {
+            "createdAt": 1781251248136,
+            "id": "13e587b4-f143-419e-b2f1-a5fb2fef92fd",
+            "locked": false,
+            "name": "FlareStaticSprite",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 11,
+            "updatedAt": 1781251248136
+        },
         "14d38a73-5732-4348-8fde-e81554a1a497": {
             "createdAt": 1777766965200,
             "extendsAttributeId": null,
@@ -580,6 +590,16 @@
             "type": 2,
             "updatedAt": 1778275186476,
             "valueId": "3c5388f9-7faf-4a70-af10-0ec09384b822"
+        },
+        "20d4dfe4-935c-441d-b2c2-ca8052c5a96e": {
+            "createdAt": 1781251248136,
+            "id": "20d4dfe4-935c-441d-b2c2-ca8052c5a96e",
+            "locked": false,
+            "name": "VaultPlaqueSprite",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 11,
+            "updatedAt": 1781251248136
         },
         "214c9215-b01d-463a-b5fb-cb21e14b1961": {
             "createdAt": 1778021392982,
@@ -2726,6 +2746,16 @@
             "type": 11,
             "updatedAt": 1778730024855
         },
+        "7d53ed57-05e7-47f9-a805-f7917b77dc55": {
+            "createdAt": 1781251248136,
+            "id": "7d53ed57-05e7-47f9-a805-f7917b77dc55",
+            "locked": false,
+            "name": "ShipSprite",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 11,
+            "updatedAt": 1781251248136
+        },
         "82a12a52-95ac-453a-9353-24c11a63c530": {
             "collectionAttributeId": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
             "createdAt": 1778181415652,
@@ -2802,6 +2832,16 @@
             "type": 3,
             "updatedAt": 1779225043431,
             "valueId": "49449402-1124-4f63-a9b3-cdde0ba4641b"
+        },
+        "8d27045c-c3a0-44ae-9095-499e2f9779a7": {
+            "createdAt": 1781251248136,
+            "id": "8d27045c-c3a0-44ae-9095-499e2f9779a7",
+            "locked": false,
+            "name": "FirstWorldIconSprite",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 11,
+            "updatedAt": 1781251248136
         },
         "8da60967-116a-4062-9cfb-e9d6a052914d": {
             "createdAt": 1778922690479,
@@ -4332,12 +4372,16 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
                 "Computed": "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca",
+                "FirstWorldIconSprite": "8d27045c-c3a0-44ae-9095-499e2f9779a7",
+                "FlareStaticSprite": "13e587b4-f143-419e-b2f1-a5fb2fef92fd",
                 "Items": "214df1a1-abca-4141-987b-380a5417c70a",
                 "LookupContainer": "2c57948b-7479-47e0-b97c-242f6d543ae0",
-                "Outposts": "2827aefd-7f57-48ea-994c-c5c39ec659e3"
+                "Outposts": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
+                "ShipSprite": "7d53ed57-05e7-47f9-a805-f7917b77dc55",
+                "VaultPlaqueSprite": "20d4dfe4-935c-441d-b2c2-ca8052c5a96e"
             },
             "system": null,
-            "updatedAt": 1778821990541
+            "updatedAt": 1781251248136
         }
     },
     "values": {
@@ -5004,12 +5048,16 @@
             "id": "393c69b8-ceb2-4405-9a0f-28516913f7b6",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": null,
-            "updatedAt": 1778821990013,
+            "updatedAt": 1781251313195,
             "value": {
                 "Computed": "ee2e703d-a56e-4ccc-850d-abda636d6840",
+                "FirstWorldIconSprite": "3dd4586a-b713-4869-ae03-1e842d189a3c",
+                "FlareStaticSprite": "972072f6-cde5-4c51-a750-abd45e061275",
                 "Items": "1e9b7003-e8e0-4bbd-991b-21e0271b0cec",
                 "LookupContainer": "52e8e972-60f5-44ed-80e6-eb0f5a472ca0",
-                "Outposts": "75c7623a-dcdb-4ca1-b5e5-a809da678766"
+                "Outposts": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
+                "ShipSprite": "4e4c0122-91f2-4441-a1e8-cab6ca74d4ae",
+                "VaultPlaqueSprite": "a5da17df-d8cd-4459-892e-10ab5860b412"
             }
         },
         "3a284dad-7529-448a-8aed-493a5f904fb4": {
@@ -5096,6 +5144,17 @@
             "typeId": null,
             "updatedAt": 1781236750105,
             "value": "b9bad068-5d70-4298-8bd6-f58d99d0e0d2"
+        },
+        "3dd4586a-b713-4869-ae03-1e842d189a3c": {
+            "createdAt": 1781251313195,
+            "id": "3dd4586a-b713-4869-ae03-1e842d189a3c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781251319016,
+            "value": {
+                "fileId": "4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506",
+                "sliceIndex": 0
+            }
         },
         "4080730e-8f0e-423f-a960-fb34a4a2fd55": {
             "createdAt": 1781240858303,
@@ -5233,6 +5292,17 @@
             "value": {
                 "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
                 "sliceIndex": 13
+            }
+        },
+        "4e4c0122-91f2-4441-a1e8-cab6ca74d4ae": {
+            "createdAt": 1781251278129,
+            "id": "4e4c0122-91f2-4441-a1e8-cab6ca74d4ae",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781251283949,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 0
             }
         },
         "4e783b54-c992-40c0-8036-dbaafe6ecb65": {
@@ -5977,6 +6047,17 @@
             "updatedAt": 1781236504253,
             "value": []
         },
+        "972072f6-cde5-4c51-a750-abd45e061275": {
+            "createdAt": 1781251289991,
+            "id": "972072f6-cde5-4c51-a750-abd45e061275",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781251296367,
+            "value": {
+                "fileId": "1e4112b5-503c-4cfc-a026-4f5d38e6999c",
+                "sliceIndex": 0
+            }
+        },
         "97bed353-8d38-407b-9274-861eab97d948": {
             "createdAt": 1778179793735,
             "id": "97bed353-8d38-407b-9274-861eab97d948",
@@ -6150,6 +6231,17 @@
             "value": {
                 "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
                 "sliceIndex": 46
+            }
+        },
+        "a5da17df-d8cd-4459-892e-10ab5860b412": {
+            "createdAt": 1781251302029,
+            "id": "a5da17df-d8cd-4459-892e-10ab5860b412",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781251307558,
+            "value": {
+                "fileId": "02e201f3-f061-4310-bdde-54e2dd905634",
+                "sliceIndex": 0
             }
         },
         "a671320e-e43c-49df-b8eb-6546e83cee29": {
@@ -29389,6 +29481,72 @@
             },
             "updatedAt": 1778705766167
         },
+        "02e201f3-f061-4310-bdde-54e2dd905634": {
+            "audioDurationSeconds": null,
+            "byteLength": 140,
+            "createdAt": 1781248874363,
+            "fileType": "image",
+            "id": "02e201f3-f061-4310-bdde-54e2dd905634",
+            "mimeType": "image/png",
+            "name": "Vault plaque.png",
+            "pendingReplacement": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"269998a17c8467fd2fdd07cb05232f41\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/02e201f3-f061-4310-bdde-54e2dd905634/008730ef-0e51-4a9e-be7c-1c09d342d372-Vault-plaque.png",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": {
+                "overridePaths": [],
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "type": "texture-2d",
+                "values": {}
+            },
+            "updatedAt": 1781250476480
+        },
+        "1e4112b5-503c-4cfc-a026-4f5d38e6999c": {
+            "audioDurationSeconds": null,
+            "byteLength": 204,
+            "createdAt": 1781248860436,
+            "fileType": "image",
+            "id": "1e4112b5-503c-4cfc-a026-4f5d38e6999c",
+            "mimeType": "image/png",
+            "name": "Flare static.png",
+            "pendingReplacement": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"9436f0ce847ded9622635659e3a1b253\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/1e4112b5-503c-4cfc-a026-4f5d38e6999c/bc84d7be-5608-4da5-8212-23eb1729f539-Flare-static.png",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": {
+                "overridePaths": [],
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "type": "texture-2d",
+                "values": {}
+            },
+            "updatedAt": 1781250463599
+        },
+        "4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506": {
+            "audioDurationSeconds": null,
+            "byteLength": 205,
+            "createdAt": 1781248888074,
+            "fileType": "image",
+            "id": "4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506",
+            "mimeType": "image/png",
+            "name": "First world icon.png",
+            "pendingReplacement": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"ed93016a179ecf469fe49b1501cfebaf\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506/cc242fba-fbac-4e78-8c4e-d54213c72a11-First-world-icon.png",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": {
+                "overridePaths": [],
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "type": "texture-2d",
+                "values": {}
+            },
+            "updatedAt": 1781250488562
+        },
         "5cc531eb-25a5-469f-877d-10afb4c5489e": {
             "audioDurationSeconds": null,
             "byteLength": 855,
@@ -29493,6 +29651,28 @@
                 "values": {}
             },
             "updatedAt": 1778706551220
+        },
+        "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7": {
+            "audioDurationSeconds": null,
+            "byteLength": 248,
+            "createdAt": 1781248845279,
+            "fileType": "image",
+            "id": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+            "mimeType": "image/png",
+            "name": "Ship (thruster).png",
+            "pendingReplacement": null,
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"ec751313035d7a709e77532af0c38c54\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7/477c1e2b-3afb-4007-8336-5fce4a1ba67e-Ship-thruster-.png",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": {
+                "overridePaths": [],
+                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "type": "texture-2d",
+                "values": {}
+            },
+            "updatedAt": 1781250449574
         },
         "dea050c2-de92-40f6-a1c0-fe64ab6f6165": {
             "audioDurationSeconds": null,

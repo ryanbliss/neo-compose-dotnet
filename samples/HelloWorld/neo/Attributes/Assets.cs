@@ -11,6 +11,12 @@ public sealed class Assets
     [NeoObject("92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca", DefaultJson = @"{""value"":{}}", ExtraJson = @"{""extendsAttributeId"":null}")]
     public ComputedText Computed { get; init; }
 
+    [NeoSprite("8d27045c-c3a0-44ae-9095-499e2f9779a7")]
+    public NeoSpriteValue FirstWorldIconSprite { get; init; }
+
+    [NeoSprite("13e587b4-f143-419e-b2f1-a5fb2fef92fd")]
+    public NeoSpriteValue FlareStaticSprite { get; init; }
+
     [NeoList("214df1a1-abca-4141-987b-380a5417c70a", EntryChainJson = @"[{""customTypeId"":""60c25a92-cb01-46f7-b5cf-c9d950586116"",""defaultValue"":{""value"":{}},""extendsAttributeId"":null,""id"":""dd6686e3-6435-47a3-b455-4cfbadad14ff"",""locked"":false,""name"":""Item"",""required"":true,""system"":null,""type"":7}]", DefaultJson = @"{""value"":[]}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
     public IReadOnlyList<Item> Items { get; init; }
 
@@ -19,4 +25,10 @@ public sealed class Assets
 
     [NeoList("2827aefd-7f57-48ea-994c-c5c39ec659e3", EntryChainJson = @"[{""customTypeId"":""4c196697-4e08-4aeb-823f-322b353071ac"",""defaultValue"":{""value"":{}},""extendsAttributeId"":null,""id"":""9619809a-f7f0-4605-8f79-d1617b339819"",""locked"":false,""name"":""Outpost"",""required"":true,""system"":null,""type"":7}]", DefaultJson = @"{""value"":[]}", ExtraJson = @"{""columnSettings"":[{""attributeKey"":""Name"",""frozen"":true,""hidden"":false,""width"":158,""wrapContent"":false},{""attributeKey"":""Image"",""frozen"":true,""hidden"":false,""width"":96,""wrapContent"":false},{""attributeKey"":""Planet"",""frozen"":false,""hidden"":false,""width"":115,""wrapContent"":false},{""attributeKey"":""FullDisplayText"",""frozen"":false,""hidden"":false,""width"":223,""wrapContent"":false},{""attributeKey"":""SaveUnsafe"",""frozen"":false,""hidden"":false,""width"":208,""wrapContent"":false},{""attributeKey"":""Save"",""frozen"":false,""hidden"":true,""width"":264,""wrapContent"":false},{""attributeKey"":""DebugLog"",""frozen"":false,""hidden"":true,""width"":null,""wrapContent"":false},{""attributeKey"":""AnimatedImage"",""frozen"":false,""hidden"":false,""width"":298,""wrapContent"":false},{""attributeKey"":""PlayAnimation"",""frozen"":false,""hidden"":true,""width"":null,""wrapContent"":false}],""extendsAttributeId"":null,""system"":null}")]
     public IReadOnlyList<Outpost> Outposts { get; init; }
+
+    [NeoSprite("7d53ed57-05e7-47f9-a805-f7917b77dc55")]
+    public NeoSpriteValue ShipSprite { get; init; }
+
+    [NeoSprite("20d4dfe4-935c-441d-b2c2-ca8052c5a96e")]
+    public NeoSpriteValue VaultPlaqueSprite { get; init; }
 }

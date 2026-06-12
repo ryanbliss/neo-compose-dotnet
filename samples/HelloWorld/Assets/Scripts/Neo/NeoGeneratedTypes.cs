@@ -5552,6 +5552,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public Sprite FirstWorldIconSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("FirstWorldIconSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'FirstWorldIconSprite' has no synchronized asset.");
+            }
+        }
+
+        public Sprite FlareStaticSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("FlareStaticSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'FlareStaticSprite' has no synchronized asset.");
+            }
+        }
+
         public NeoReadOnlyList<ReadOnlyItem> Items
         {
             get
@@ -5576,17 +5594,43 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public Sprite ShipSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("ShipSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'ShipSprite' has no synchronized asset.");
+            }
+        }
+
+        public Sprite VaultPlaqueSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("VaultPlaqueSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'VaultPlaqueSprite' has no synchronized asset.");
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<ReadOnlyComputedText> Computed = new("Computed");
 
+            public static readonly NeoField<Sprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
+
+            public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
+
             public static readonly NeoField<NeoReadOnlyList<ReadOnlyItem>> Items = new("Items");
 
             public static readonly NeoField<ReadOnlyLookupContainer> LookupContainer = new("LookupContainer");
 
             public static readonly NeoField<NeoReadOnlyList<ReadOnlyOutpost>> Outposts = new("Outposts");
+
+            public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
+
+            public static readonly NeoField<Sprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -5594,9 +5638,13 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Computed] = () => null,
+                [Fields.FirstWorldIconSprite] = () => null,
+                [Fields.FlareStaticSprite] = () => null,
                 [Fields.Items] = () => null,
                 [Fields.LookupContainer] = () => null,
                 [Fields.Outposts] = () => null,
+                [Fields.ShipSprite] = () => null,
+                [Fields.VaultPlaqueSprite] = () => null,
             };
         }
 
@@ -5615,9 +5663,13 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Computed] = () => Computed,
+                [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
+                [Fields.FlareStaticSprite] = () => FlareStaticSprite,
                 [Fields.Items] = () => Items,
                 [Fields.LookupContainer] = () => LookupContainer,
                 [Fields.Outposts] = () => Outposts,
+                [Fields.ShipSprite] = () => ShipSprite,
+                [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
             };
         }
 
@@ -5641,12 +5693,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Assets(ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Computed, Items, LookupContainer, Outposts))
+        public Assets(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, ShipSprite, VaultPlaqueSprite, Computed, Items, LookupContainer, Outposts))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -5656,6 +5708,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 value["Computed"] = NeoGeneratedTypesSupport.LookupSelectionId(Computed.valueId);
             }
+            var FirstWorldIconSpriteValueId = Guid.NewGuid().ToString();
+            value["FirstWorldIconSprite"] = FirstWorldIconSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = FirstWorldIconSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, FirstWorldIconSprite),
+            });
+            var FlareStaticSpriteValueId = Guid.NewGuid().ToString();
+            value["FlareStaticSprite"] = FlareStaticSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = FlareStaticSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, FlareStaticSprite),
+            });
             if (Items is not null)
             {
                 var ItemsValueId = Guid.NewGuid().ToString();
@@ -5694,6 +5764,24 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = OutpostsIds.ToArray(),
                 });
             }
+            var ShipSpriteValueId = Guid.NewGuid().ToString();
+            value["ShipSprite"] = ShipSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = ShipSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, ShipSprite),
+            });
+            var VaultPlaqueSpriteValueId = Guid.NewGuid().ToString();
+            value["VaultPlaqueSprite"] = VaultPlaqueSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = VaultPlaqueSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, VaultPlaqueSprite),
+            });
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows);
         }
 
@@ -5718,6 +5806,32 @@ namespace HelloWorld.Assets.Scripts.Neo
             set
             {
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Computed", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        public new Sprite FirstWorldIconSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("FirstWorldIconSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'FirstWorldIconSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FirstWorldIconSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new Sprite FlareStaticSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("FlareStaticSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'FlareStaticSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FlareStaticSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
             }
         }
 
@@ -5749,17 +5863,51 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new Sprite ShipSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("ShipSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'ShipSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "ShipSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new Sprite VaultPlaqueSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("VaultPlaqueSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'VaultPlaqueSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "VaultPlaqueSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
 
             public static readonly NeoField<ComputedText> Computed = new("Computed");
 
+            public static readonly NeoField<Sprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
+
+            public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
+
             public static readonly NeoField<NeoList<Item>> Items = new("Items");
 
             public static readonly NeoField<LookupContainer> LookupContainer = new("LookupContainer");
 
             public static readonly NeoField<NeoList<Outpost>> Outposts = new("Outposts");
+
+            public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
+
+            public static readonly NeoField<Sprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -5767,9 +5915,13 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Computed] = () => null,
+                [Fields.FirstWorldIconSprite] = () => null,
+                [Fields.FlareStaticSprite] = () => null,
                 [Fields.Items] = () => null,
                 [Fields.LookupContainer] = () => null,
                 [Fields.Outposts] = () => null,
+                [Fields.ShipSprite] = () => null,
+                [Fields.VaultPlaqueSprite] = () => null,
             };
         }
 
@@ -5788,9 +5940,13 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Computed] = () => Computed,
+                [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
+                [Fields.FlareStaticSprite] = () => FlareStaticSprite,
                 [Fields.Items] = () => Items,
                 [Fields.LookupContainer] = () => LookupContainer,
                 [Fields.Outposts] = () => Outposts,
+                [Fields.ShipSprite] = () => ShipSprite,
+                [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
             };
         }
 

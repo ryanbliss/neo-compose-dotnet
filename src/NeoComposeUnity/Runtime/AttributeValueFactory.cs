@@ -106,6 +106,19 @@ namespace NeoCompose.Runtime
                 if (payload is float f) return (TExpected)(object)(double?)f;
                 if (payload is double d) return (TExpected)(object)(double?)d;
             }
+            // Evaluated NeoScript values box string arrays (enum selections,
+            // lookup ref lists) as object[]; unbox when every element fits.
+            if (typeof(TExpected) == typeof(string[])
+                && payload is object?[] boxed
+                && System.Array.TrueForAll(boxed, element => element is string))
+            {
+                var strings = new string[boxed.Length];
+                for (var index = 0; index < boxed.Length; index++)
+                {
+                    strings[index] = (string)boxed[index]!;
+                }
+                return (TExpected)(object)strings;
+            }
             throw new System.ArgumentException(
                 $"Cannot set {attribute.GetType().Name} {attribute.id} from " +
                 $"{payload.GetType().Name}; expected {typeof(TExpected).Name}",

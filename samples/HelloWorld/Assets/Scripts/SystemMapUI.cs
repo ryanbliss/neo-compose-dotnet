@@ -19,9 +19,6 @@ namespace HelloWorld.Assets.Scripts
     /// </summary>
     public sealed class SystemMapUI
     {
-        private const string ShipResource = "Neo/Files/Sprites/8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship (thruster)";
-        private const string FlareResource = "Neo/Files/Sprites/1e4112b5-503c-4cfc-a026-4f5d38e6999c-Flare static";
-
         private static readonly string[] SolarOrder =
         {
             "mercury", "venus", "earth", "mars", "jupiter",
@@ -44,11 +41,10 @@ namespace HelloWorld.Assets.Scripts
             background.color = new Color(0.03f, 0.04f, 0.09f, 0.9f);
 
             var shipRect = SampleUI.CreateRect(map, "Ship");
-            shipRect.sizeDelta = new Vector2(72f, 30f);
+            shipRect.sizeDelta = new Vector2(48f, 48f);
             ship = shipRect.gameObject.AddComponent<RawImage>();
-            ship.texture = Resources.Load<Texture2D>(ShipResource);
             ship.raycastTarget = false;
-            ship.enabled = ship.texture != null;
+            ship.enabled = false;
             ship.uvRect = new Rect(0f, 0f, 0.25f, 1f);
 
             var flareRect = SampleUI.CreateRect(map, "FlareStatic");
@@ -57,7 +53,6 @@ namespace HelloWorld.Assets.Scripts
             flareRect.offsetMin = Vector2.zero;
             flareRect.offsetMax = Vector2.zero;
             flareOverlay = flareRect.gameObject.AddComponent<RawImage>();
-            flareOverlay.texture = Resources.Load<Texture2D>(FlareResource);
             flareOverlay.raycastTarget = false;
             flareOverlay.color = new Color(1f, 1f, 1f, 0f);
             flareOverlay.uvRect = new Rect(0f, 0f, 1f / 3f, 1f);
@@ -70,8 +65,21 @@ namespace HelloWorld.Assets.Scripts
             IReadOnlyList<ReadOnlyOutpost> outposts,
             ReadOnlyOutpost currentOutpost,
             int storm,
+            Sprite shipSprite,
+            Sprite flareSprite,
             Action<ReadOnlyOutpost> onVisitOutpost)
         {
+            // Art arrives through the project schema (Assets.ShipSprite /
+            // FlareStaticSprite) — the same pipeline as every planet sprite.
+            if (ship.texture == null && shipSprite != null)
+            {
+                ship.texture = shipSprite.texture;
+                ship.enabled = true;
+            }
+            if (flareOverlay.texture == null && flareSprite != null)
+            {
+                flareOverlay.texture = flareSprite.texture;
+            }
             var positions = LayoutPositions(outposts);
             foreach (var outpost in outposts)
             {
