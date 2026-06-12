@@ -38,8 +38,8 @@ namespace HelloWorld.Assets.Scripts
             string text,
             string questHint,
             int storm,
-            Sprite shipSprite,
-            Sprite flareSprite,
+            ReadOnlyAnimationInfo shipAnimation,
+            ReadOnlyAnimationInfo flareAnimation,
             ReadOnlyOutpost currentOutpost,
             IReadOnlyList<ReadOnlyOutpost> outposts,
             IReadOnlyList<PlanetVisit> visitedPlanets,
@@ -56,7 +56,7 @@ namespace HelloWorld.Assets.Scripts
             title.text = $"{text}\n<size=18><color=#A3B3CC>Currently visiting {currentOutpost.FullDisplayText}</color></size>";
             RebuildVisited(visitedPlanets);
             RebuildInventory(inventory);
-            systemMap.Render(outposts, currentOutpost, storm, shipSprite, flareSprite, onVisitOutpost);
+            systemMap.Render(outposts, currentOutpost, storm, shipAnimation, flareAnimation, onVisitOutpost);
             visitedMeta.text = $"{visitedPlanets.Select(visit => visit.World.optionId).Distinct().Count()} visited";
             bitsText.text = storm <= 0
                 ? $"Bits: {bits}"

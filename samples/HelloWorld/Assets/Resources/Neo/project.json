@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "32253768f7b9d5087717761eb1d6f0adf939b181a7660fb02eaec034c0e369d0",
-        "codegenContractHash": "9b584693b261e6eea09ff935d11ad6e9a028f4138b684a26324975b656ad70b8",
-        "runtimeDataContractHash": "c56f9ef530a93481f45f2eaf58c42af153b491f640c7fc19dd29092e482fa254"
+        "projectDocumentContentHash": "bb806c77ce804249e6b3a3d9920285005675f30ea1804bf03802038bc0630f09",
+        "codegenContractHash": "bfbac459dc09b539c3f6f14ec68040f4a4b8a0e8ed942e8d0b5e0a667e527165",
+        "runtimeDataContractHash": "3b8eec5e0fb60053b10617b634c1f34512dabe88ff481a9c78bdc1e008ce7e04"
     },
     "localization": {
         "schemaVersion": 1,
@@ -51,7 +51,6 @@
             "07eeb774-a43d-4b9e-a89d-ea28957dc977",
             "0b30d294-0a39-49da-a4dc-5d908723ac60",
             "0b38a892-a826-4922-a654-b7f49ff3f2c5",
-            "0bfb8b97-5f60-47dd-bbf9-b864ac0f92d2",
             "0cd35073-b9de-4139-9279-6575c33c8ec0",
             "0d85d4fa-2686-4ba7-9684-e7c120051eb8",
             "11de7bb0-c354-4b7c-be51-0d8d5c268107",
@@ -67,10 +66,13 @@
             "178b7b96-94f2-4624-8669-aeed5c0ed96e",
             "1838cfe3-fde6-4791-b349-945834ec24a2",
             "18e5d40d-148a-400e-983c-7e94f0f2916f",
+            "1919c8c6-a3ba-4970-8756-6a6547d5ca18",
             "19b0df63-d5ab-44f8-93e2-7c6bf40b2a58",
+            "19c53f29-a7da-4d8d-98fe-e001b2361833",
             "19d8603f-3d52-43fc-8da2-a98e38973d35",
             "1a718b4a-81e0-4dd2-8a33-efc109fa14a0",
             "1ad90a45-a7f6-4e11-9524-5f6d05fe5ab6",
+            "1ae8613f-bd20-4a45-8ed7-66885cf7bb8e",
             "1b3856d2-6f8a-4de4-8d11-81b5beb893c8",
             "1b3e3ec5-f8cb-4a83-9e76-c3bd62d2bfff",
             "1be8eaba-ceeb-4f97-98a8-a132659d672d",
@@ -82,7 +84,6 @@
             "251c967a-dff1-4af9-962e-8d22cc40cbad",
             "25477643-a4b9-43f9-8882-88eae25e704d",
             "26a73141-5a25-4e54-9c27-88de7f58d280",
-            "27749ad3-d6c5-4c5b-a183-1ad2affe6aad",
             "27bb4c95-c3fe-49cf-8939-f9278b2024c4",
             "2b21a9ca-94a9-439c-9fbe-808f817038bc",
             "2b9d011b-8ac4-4dc7-933f-03fcffa6c13a",
@@ -104,7 +105,6 @@
             "3c9189a9-054c-4d86-96fc-f7c70d9cf731",
             "3e0fc211-9087-48de-808e-6bb57d6d637a",
             "3e9db654-85bd-4ddf-9ed8-4d21340a32f1",
-            "3ffc0f13-63fa-42f8-88d0-1853e29a47ba",
             "419fae3f-a1b9-405f-be9c-14f860b45abb",
             "42082e58-d8bf-483c-b478-7f860a6bd716",
             "425156b5-5936-466c-b402-089e46ace744",
@@ -112,6 +112,7 @@
             "456100e5-6892-4cff-ba50-ef6053fcf4e0",
             "4564fd6f-2d20-4f0c-8c80-64b169a30b2f",
             "45f04fde-f062-4473-a46b-f3f88be5cca8",
+            "47770060-7e5e-4ba0-a489-6c8ff8137869",
             "477adf05-e7f1-49d5-8457-331cda241d64",
             "48020dd6-3fb9-4b73-98be-fba38e00285b",
             "481549c9-8ffd-42bc-a5e5-744f436f8e1e",
@@ -153,6 +154,7 @@
             "638ab8ab-376b-47f6-8b4d-c792d5190f28",
             "64b26893-3aa9-4afa-88a7-f6d557f3da5d",
             "64f52fe7-69ef-4ce7-9267-69ad62e83344",
+            "65a27870-f024-49fb-bdae-29c5e438f28d",
             "672df3c6-cc22-4c3b-9e40-af81e15c733d",
             "6762181d-7e29-4f98-b4f6-b2c58816a7f5",
             "67f47805-cbdc-42aa-ba85-56dfb984414c",
@@ -163,6 +165,7 @@
             "6e04c814-aad5-4d77-93f5-58b42da4ad57",
             "6f627a6c-cc6f-4a67-8cd6-65d0c765f99b",
             "704963c8-9b05-4f79-ba02-c7ef813f869c",
+            "706e506d-5640-4979-9930-6e8c693b7f8a",
             "73f58157-2510-4984-b5bd-ba6c030edd49",
             "747eadb6-fbe7-4177-a70f-7337bd193aff",
             "7775dcd4-5ac1-4e91-a6fb-1ff784ff9fa3",
@@ -175,6 +178,7 @@
             "7e46cf3b-b4b5-402b-839e-38cfa079ba0d",
             "7ee25df0-9d92-48a4-988e-97e5867a13d9",
             "7f44d3a3-71d2-4bec-9173-9643308da857",
+            "814ace67-42e8-4980-a1f6-3f5d638d405b",
             "823b0113-340e-435a-b4f4-17394551ae4b",
             "8362d096-bae2-474e-aa2b-3e5dda0aef30",
             "83db96dc-3467-43ae-88a3-3ac05fdbe691",
@@ -185,7 +189,6 @@
             "87ab61ba-3922-4434-8dd3-2bf17ac61ba4",
             "87ee9a4e-89bb-4a43-8f90-c43f788cf16e",
             "88320af0-3680-4ba0-b97d-d9fb1dc29362",
-            "8b75dc4a-f72c-4434-a699-d81ccc1e7f25",
             "90811ced-66b6-4f46-bc60-d8f8bec3781a",
             "908d908c-83f9-4b18-a458-21da21e398e8",
             "90bd0085-b307-490d-9294-cf05e96fd30b",
@@ -220,7 +223,6 @@
             "aa7c80fd-960b-454b-bf4c-8175f43ff57a",
             "aa86767e-b0ee-45f6-a3bc-8631087d7208",
             "abc0dcf0-2d53-4f3c-890c-ac77f73c4601",
-            "ac3b4686-3b7c-48cb-91df-937b7240482c",
             "ad5efc6b-232f-403e-8c14-a583eee2ae32",
             "aea0851a-3026-4fc0-87f5-ec4ee9fcde44",
             "aef5b669-4332-46f2-a4ca-d100ed06f4bc",
@@ -273,8 +275,8 @@
             "da13bc64-e7fe-44bf-b6f9-96e9a2405908",
             "dae6ab0c-4b82-4a11-8057-097a193fecea",
             "dbeff7df-5694-41d0-9b3e-3567d3cdf71c",
+            "dc43e8d0-1e16-4f35-a25e-11e16480f862",
             "ddc90820-bee0-4b7e-b23b-c5a3353f34c3",
-            "dea4f9fe-bb88-4da3-8804-071828d1f0be",
             "e00ff8f1-f01b-49b4-ad88-f52415797a91",
             "e026ac3b-44f2-45e9-845b-46129df0c37a",
             "e25b7e76-65e3-4ec0-ab0d-f9c916a665af",
@@ -289,12 +291,14 @@
             "e72dafb2-d0af-43c2-81da-15f5c51f5eeb",
             "e77613ce-16eb-4bc6-af0f-a24de4660f52",
             "e80a715f-7923-4ba2-a791-db7e36e69a91",
+            "e815f6f9-601f-4970-a049-9d1370194cdb",
             "e9145499-1a2d-4b26-b10a-d678c7046d86",
             "ea0c86f1-fda4-4a61-a658-653f83ca903f",
             "ebcfb8a2-b0db-4077-92e9-e84eee38a9f6",
             "ecf76629-c56c-479d-9ac7-675976c0bf93",
             "ed2c10c6-39fc-47ad-8c78-d04ec0ddf4fe",
             "ed595b65-e2ac-4842-9dd5-a7ee9c4f6d5b",
+            "ed60ab1e-06dc-416b-a20c-68b661cd8bcd",
             "ede61345-580d-4c04-a061-3c789175566d",
             "ede9f487-0958-4c01-a58a-54ff88cd679f",
             "ee2f7b0b-786c-41ca-8578-6f348194d52c",
@@ -2733,6 +2737,18 @@
             "updatedAt": 1778182130537,
             "valueId": "88ce44e7-34c5-4dea-a2a2-ed0fd450a934"
         },
+        "7a3f6a94-a649-4b75-8776-eb623f55fe1b": {
+            "createdAt": 1781252823343,
+            "customTypeId": "11177bd5-0678-4bff-86b8-46718ff1827b",
+            "defaultValue": null,
+            "id": "7a3f6a94-a649-4b75-8776-eb623f55fe1b",
+            "locked": false,
+            "name": "ShipAnimation",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": false,
+            "type": 7,
+            "updatedAt": 1781252823343
+        },
         "7ce8a389-265c-4ad4-90f4-42c3e91e7648": {
             "createdAt": 1778661108520,
             "extendsAttributeId": null,
@@ -3574,9 +3590,14 @@
             "name": "AnimatedImage",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
+            "schemaKeyOrder": [
+                "FPS",
+                "Name",
+                "Frames"
+            ],
             "system": null,
             "type": 7,
-            "updatedAt": 1779225145699
+            "updatedAt": 1781251989245
         },
         "dd65f671-aedb-4c17-8849-1a3290b5c4d0": {
             "createdAt": 1778021392285,
@@ -3882,6 +3903,18 @@
             "type": 10,
             "updatedAt": 1778184202018
         },
+        "f6c2157b-c0f2-4d6d-b16c-412675070862": {
+            "createdAt": 1781252823343,
+            "customTypeId": "11177bd5-0678-4bff-86b8-46718ff1827b",
+            "defaultValue": null,
+            "id": "f6c2157b-c0f2-4d6d-b16c-412675070862",
+            "locked": false,
+            "name": "FlareAnimation",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": false,
+            "type": 7,
+            "updatedAt": 1781252823343
+        },
         "f81b06c0-9dde-4674-b419-918f7cf23a4f": {
             "createdAt": 1778021392883,
             "customTypeId": "af5795d0-e019-4776-8b7c-d0206f90d59f",
@@ -4062,8 +4095,13 @@
                 "Frames": "cc7fec3f-593b-4888-bf93-b9bb6bcb5e44",
                 "Name": "8b8ac389-c9a7-4a0c-8335-2352865ee1b4"
             },
+            "schemaKeyOrder": [
+                "FPS",
+                "Frames",
+                "Name"
+            ],
             "system": null,
-            "updatedAt": 1779226040905
+            "updatedAt": 1781251973862
         },
         "2ab1bc07-da0b-47fc-b77b-54cc511575bb": {
             "createdAt": 1777766651579,
@@ -4373,15 +4411,17 @@
             "schema": {
                 "Computed": "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca",
                 "FirstWorldIconSprite": "8d27045c-c3a0-44ae-9095-499e2f9779a7",
+                "FlareAnimation": "f6c2157b-c0f2-4d6d-b16c-412675070862",
                 "FlareStaticSprite": "13e587b4-f143-419e-b2f1-a5fb2fef92fd",
                 "Items": "214df1a1-abca-4141-987b-380a5417c70a",
                 "LookupContainer": "2c57948b-7479-47e0-b97c-242f6d543ae0",
                 "Outposts": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
+                "ShipAnimation": "7a3f6a94-a649-4b75-8776-eb623f55fe1b",
                 "ShipSprite": "7d53ed57-05e7-47f9-a805-f7917b77dc55",
                 "VaultPlaqueSprite": "20d4dfe4-935c-441d-b2c2-ca8052c5a96e"
             },
             "system": null,
-            "updatedAt": 1781251248136
+            "updatedAt": 1781252823343
         }
     },
     "values": {
@@ -4543,6 +4583,14 @@
             "updatedAt": 1778021392484,
             "value": null
         },
+        "0cf08f75-1fba-413f-9747-86f94cec7c36": {
+            "createdAt": 1781252857133,
+            "id": "0cf08f75-1fba-413f-9747-86f94cec7c36",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253191853,
+            "value": "814ace67-42e8-4980-a1f6-3f5d638d405b"
+        },
         "0e0cdfcc-86c6-43a5-bcbd-aa8c325e1a25": {
             "createdAt": 1778178223569,
             "id": "0e0cdfcc-86c6-43a5-bcbd-aa8c325e1a25",
@@ -4699,6 +4747,17 @@
                 "9aa19862-e2df-4423-9fe0-1cfe24255436"
             ]
         },
+        "1be67fe6-6dc0-4094-8e8d-38f2e13665a0": {
+            "createdAt": 1781253271474,
+            "id": "1be67fe6-6dc0-4094-8e8d-38f2e13665a0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253271474,
+            "value": {
+                "fileId": "1e4112b5-503c-4cfc-a026-4f5d38e6999c",
+                "sliceIndex": 2
+            }
+        },
         "1c78411e-4d5d-4f11-8306-420758f89046": {
             "createdAt": 1781236971366,
             "id": "1c78411e-4d5d-4f11-8306-420758f89046",
@@ -4808,6 +4867,17 @@
             "typeId": null,
             "updatedAt": 1781236966700,
             "value": 60
+        },
+        "22553c01-fac5-482f-b6c8-33bbaf6e9a1a": {
+            "createdAt": 1781253264768,
+            "id": "22553c01-fac5-482f-b6c8-33bbaf6e9a1a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253264768,
+            "value": {
+                "fileId": "1e4112b5-503c-4cfc-a026-4f5d38e6999c",
+                "sliceIndex": 1
+            }
         },
         "244a01a9-356b-4685-ab84-266cffeee3f1": {
             "createdAt": 1781236936321,
@@ -4945,6 +5015,18 @@
                 "europa"
             ]
         },
+        "300da66c-1374-41c2-a062-f606bad228e3": {
+            "createdAt": 1781252857133,
+            "id": "300da66c-1374-41c2-a062-f606bad228e3",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781252857133,
+            "value": {
+                "FPS": "759982e2-a7ae-4efe-99ac-2845f085f9c4",
+                "Frames": "e18f1cac-48b1-4e6e-8d1e-bca2e9bcce16",
+                "Name": "0cf08f75-1fba-413f-9747-86f94cec7c36"
+            }
+        },
         "30cee785-a3ee-4bc4-8e11-50bf0d27af96": {
             "createdAt": 1778021393889,
             "id": "30cee785-a3ee-4bc4-8e11-50bf0d27af96",
@@ -5048,14 +5130,16 @@
             "id": "393c69b8-ceb2-4405-9a0f-28516913f7b6",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": null,
-            "updatedAt": 1781251313195,
+            "updatedAt": 1781252914143,
             "value": {
                 "Computed": "ee2e703d-a56e-4ccc-850d-abda636d6840",
                 "FirstWorldIconSprite": "3dd4586a-b713-4869-ae03-1e842d189a3c",
+                "FlareAnimation": "e3da20e0-0907-452f-aafc-f49500e41bf9",
                 "FlareStaticSprite": "972072f6-cde5-4c51-a750-abd45e061275",
                 "Items": "1e9b7003-e8e0-4bbd-991b-21e0271b0cec",
                 "LookupContainer": "52e8e972-60f5-44ed-80e6-eb0f5a472ca0",
                 "Outposts": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
+                "ShipAnimation": "300da66c-1374-41c2-a062-f606bad228e3",
                 "ShipSprite": "4e4c0122-91f2-4441-a1e8-cab6ca74d4ae",
                 "VaultPlaqueSprite": "a5da17df-d8cd-4459-892e-10ab5860b412"
             }
@@ -5356,6 +5440,17 @@
                 "LookupList": "6662335c-148a-4fef-91de-5efa35f4be75"
             }
         },
+        "534c4ccc-9027-4589-99d6-c6bf5498b1ab": {
+            "createdAt": 1781252944401,
+            "id": "534c4ccc-9027-4589-99d6-c6bf5498b1ab",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781252944401,
+            "value": {
+                "fileId": "1e4112b5-503c-4cfc-a026-4f5d38e6999c",
+                "sliceIndex": 0
+            }
+        },
         "5380a52f-4d6e-4d63-b164-fadfef12003f": {
             "createdAt": 1779225922109,
             "id": "5380a52f-4d6e-4d63-b164-fadfef12003f",
@@ -5532,6 +5627,14 @@
                 "Item2": "c2b3ee43-149a-46a4-8433-605b1f1cb896"
             }
         },
+        "6aa7247b-2aad-4470-b1a0-c422dd84dceb": {
+            "createdAt": 1781252914143,
+            "id": "6aa7247b-2aad-4470-b1a0-c422dd84dceb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253244854,
+            "value": "ed60ab1e-06dc-416b-a20c-68b661cd8bcd"
+        },
         "6b935eb9-feb6-465a-afb9-01cf431e06e9": {
             "createdAt": 1779225912647,
             "id": "6b935eb9-feb6-465a-afb9-01cf431e06e9",
@@ -5612,6 +5715,14 @@
             "updatedAt": 1778572897594,
             "value": ""
         },
+        "759982e2-a7ae-4efe-99ac-2845f085f9c4": {
+            "createdAt": 1781252857133,
+            "id": "759982e2-a7ae-4efe-99ac-2845f085f9c4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253178742,
+            "value": 8
+        },
         "75c7623a-dcdb-4ca1-b5e5-a809da678766": {
             "createdAt": 1778178223984,
             "id": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
@@ -5684,6 +5795,17 @@
             "updatedAt": 1778021393393,
             "value": null
         },
+        "78843082-ad3b-4130-acc3-bdb6e543ec02": {
+            "createdAt": 1781252894687,
+            "id": "78843082-ad3b-4130-acc3-bdb6e543ec02",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781252894687,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 1
+            }
+        },
         "79e87314-be65-4a95-b4a6-ee28cffa1347": {
             "createdAt": 1778275239831,
             "id": "79e87314-be65-4a95-b4a6-ee28cffa1347",
@@ -5732,6 +5854,17 @@
             "updatedAt": 1778274806337,
             "value": []
         },
+        "7db78358-cdd8-41c3-80a1-a9a185143454": {
+            "createdAt": 1781253205614,
+            "id": "7db78358-cdd8-41c3-80a1-a9a185143454",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253205614,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 0
+            }
+        },
         "7dfb8c86-0ca0-4535-a493-9aaaca38e73e": {
             "createdAt": 1781240904739,
             "id": "7dfb8c86-0ca0-4535-a493-9aaaca38e73e",
@@ -5762,6 +5895,17 @@
             "typeId": null,
             "updatedAt": 1778698704679,
             "value": 0
+        },
+        "81cae58d-bb95-4aac-a365-7cf73dd0a576": {
+            "createdAt": 1781252907504,
+            "id": "81cae58d-bb95-4aac-a365-7cf73dd0a576",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781252907504,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 3
+            }
         },
         "82254d7a-acc2-40af-9cd2-a2e6f8ac22a3": {
             "createdAt": 1781236882036,
@@ -5826,6 +5970,17 @@
             "updatedAt": 1781240874943,
             "value": false
         },
+        "84399fd4-109c-4c0b-ad74-f2da3568e305": {
+            "createdAt": 1781252900991,
+            "id": "84399fd4-109c-4c0b-ad74-f2da3568e305",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781252900991,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 2
+            }
+        },
         "85c13b6a-1805-4fcb-bc54-6226af2a99ad": {
             "createdAt": 1778178913590,
             "id": "85c13b6a-1805-4fcb-bc54-6226af2a99ad",
@@ -5843,6 +5998,17 @@
             "typeId": null,
             "updatedAt": 1781236913863,
             "value": 140
+        },
+        "87a5a820-e16d-42ba-9b52-717685c0273f": {
+            "createdAt": 1781253257689,
+            "id": "87a5a820-e16d-42ba-9b52-717685c0273f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253257689,
+            "value": {
+                "fileId": "1e4112b5-503c-4cfc-a026-4f5d38e6999c",
+                "sliceIndex": 0
+            }
         },
         "88cacaa9-25d2-4cfd-bd10-55db71139608": {
             "createdAt": 1778817779244,
@@ -5968,6 +6134,17 @@
                 "sliceIndex": 51
             }
         },
+        "8ed60e9c-2b65-4cb5-87d9-047d6d8e2e2e": {
+            "createdAt": 1781253218991,
+            "id": "8ed60e9c-2b65-4cb5-87d9-047d6d8e2e2e",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253218991,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 2
+            }
+        },
         "8ed8c9f9-ea7a-4aa4-9b58-8454cb4db68e": {
             "createdAt": 1777767446693,
             "id": "8ed8c9f9-ea7a-4aa4-9b58-8454cb4db68e",
@@ -6087,6 +6264,17 @@
             "typeId": null,
             "updatedAt": 1781237003090,
             "value": 999
+        },
+        "99acdae1-bc25-40b7-8fdd-833dcd80edc0": {
+            "createdAt": 1781252888121,
+            "id": "99acdae1-bc25-40b7-8fdd-833dcd80edc0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781252888121,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 0
+            }
         },
         "9a576b41-9143-48c4-9d3d-ecca2d2c78e4": {
             "createdAt": 1777767332315,
@@ -6320,6 +6508,14 @@
             "updatedAt": 1777846623942,
             "value": {}
         },
+        "ae02d6ec-8498-4674-959c-796783a2eba4": {
+            "createdAt": 1781252914143,
+            "id": "ae02d6ec-8498-4674-959c-796783a2eba4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253232078,
+            "value": 10
+        },
         "ae076231-7d66-48ce-91a0-af7b96bfcfa6": {
             "createdAt": 1781240869569,
             "id": "ae076231-7d66-48ce-91a0-af7b96bfcfa6",
@@ -6372,6 +6568,17 @@
             "typeId": null,
             "updatedAt": 1778817827223,
             "value": "12190092-3e2f-4c75-bdc7-bd29207bcbfe"
+        },
+        "b69b7976-d4af-4e3d-a4fc-7547f4037080": {
+            "createdAt": 1781253212300,
+            "id": "b69b7976-d4af-4e3d-a4fc-7547f4037080",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253212300,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 1
+            }
         },
         "b7cd0be9-4e74-49e0-ae25-6113c000adc0": {
             "createdAt": 1781240886873,
@@ -6648,6 +6855,17 @@
             "updatedAt": 1777767446526,
             "value": 1777766924
         },
+        "ccd9282f-b6b2-4e47-82eb-6784a4528d41": {
+            "createdAt": 1781253225769,
+            "id": "ccd9282f-b6b2-4e47-82eb-6784a4528d41",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253225769,
+            "value": {
+                "fileId": "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7",
+                "sliceIndex": 3
+            }
+        },
         "cce4a72b-e390-44d9-a95f-9728ac03fe2d": {
             "createdAt": 1781246253886,
             "id": "cce4a72b-e390-44d9-a95f-9728ac03fe2d",
@@ -6678,6 +6896,17 @@
             "typeId": null,
             "updatedAt": 1780971015671,
             "value": 1000
+        },
+        "ce55cc04-d966-41a0-95e9-b30d6c8c3035": {
+            "createdAt": 1781252951023,
+            "id": "ce55cc04-d966-41a0-95e9-b30d6c8c3035",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781252951023,
+            "value": {
+                "fileId": "1e4112b5-503c-4cfc-a026-4f5d38e6999c",
+                "sliceIndex": 1
+            }
         },
         "ce69b994-4559-4d02-8ac1-c568f20b64ca": {
             "createdAt": 1779225793019,
@@ -6909,6 +7138,19 @@
                 "earth"
             ]
         },
+        "e18f1cac-48b1-4e6e-8d1e-bca2e9bcce16": {
+            "createdAt": 1781252857133,
+            "id": "e18f1cac-48b1-4e6e-8d1e-bca2e9bcce16",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253225769,
+            "value": [
+                "7db78358-cdd8-41c3-80a1-a9a185143454",
+                "b69b7976-d4af-4e3d-a4fc-7547f4037080",
+                "8ed60e9c-2b65-4cb5-87d9-047d6d8e2e2e",
+                "ccd9282f-b6b2-4e47-82eb-6784a4528d41"
+            ]
+        },
         "e1a556c2-ff94-40d1-9b58-6504ffcfd754": {
             "createdAt": 1781240898784,
             "id": "e1a556c2-ff94-40d1-9b58-6504ffcfd754",
@@ -6916,6 +7158,18 @@
             "typeId": null,
             "updatedAt": 1781240898784,
             "value": false
+        },
+        "e3da20e0-0907-452f-aafc-f49500e41bf9": {
+            "createdAt": 1781252914143,
+            "id": "e3da20e0-0907-452f-aafc-f49500e41bf9",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781252914143,
+            "value": {
+                "FPS": "ae02d6ec-8498-4674-959c-796783a2eba4",
+                "Frames": "e62902a0-d03f-4ad9-9cb6-43c0bb90d4b9",
+                "Name": "6aa7247b-2aad-4470-b1a0-c422dd84dceb"
+            }
         },
         "e3ef967f-d4f0-4b0e-9d3a-e920fcf6907a": {
             "createdAt": 1781240874943,
@@ -6947,6 +7201,18 @@
             "typeId": null,
             "updatedAt": 1778176777825,
             "value": {}
+        },
+        "e62902a0-d03f-4ad9-9cb6-43c0bb90d4b9": {
+            "createdAt": 1781252914143,
+            "id": "e62902a0-d03f-4ad9-9cb6-43c0bb90d4b9",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1781253271474,
+            "value": [
+                "87a5a820-e16d-42ba-9b52-717685c0273f",
+                "22553c01-fac5-482f-b6c8-33bbaf6e9a1a",
+                "1be67fe6-6dc0-4094-8e8d-38f2e13665a0"
+            ]
         },
         "e6309726-3213-4c8d-9748-734408e2c8ca": {
             "createdAt": 1778178913272,
@@ -16923,358 +17189,6 @@
             "triggerNodeId": "0f8979d3-3778-4e1a-84a8-c25012d9a299",
             "updatedAt": 1781246917841
         },
-        "71eedffc-d3db-4b42-9078-458d24e9d672": {
-            "createdAt": 1781241421530,
-            "description": null,
-            "id": "71eedffc-d3db-4b42-9078-458d24e9d672",
-            "linkedValues": [
-                {
-                    "source": 3,
-                    "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
-                }
-            ],
-            "name": "Capitol OG epilogue",
-            "nodes": {
-                "25d9da5d-0fe6-41bb-8906-78dac415038a": {
-                    "id": "25d9da5d-0fe6-41bb-8906-78dac415038a",
-                    "layout": {
-                        "height": 160,
-                        "isOpen": true,
-                        "width": 320,
-                        "x": 0,
-                        "y": 460
-                    },
-                    "linkedValues": [
-                        {
-                            "source": 1,
-                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
-                        }
-                    ],
-                    "name": "end",
-                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "8b75dc4a-f72c-4434-a699-d81ccc1e7f25",
-                    "type": 1,
-                    "variables": null
-                },
-                "4b250fcf-ce7b-4da5-bb0b-73f57dfa9b53": {
-                    "id": "4b250fcf-ce7b-4da5-bb0b-73f57dfa9b53",
-                    "layout": {
-                        "height": 160,
-                        "isOpen": true,
-                        "width": 320,
-                        "x": 0,
-                        "y": 220
-                    },
-                    "linkedValues": [
-                        {
-                            "source": 1,
-                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
-                        }
-                    ],
-                    "name": "back",
-                    "optionSettings": {
-                        "options": [
-                            {
-                                "id": "c9caf71e-d883-419d-82e3-8f48449a7fec",
-                                "name": "True",
-                                "text": "0bfb8b97-5f60-47dd-bbf9-b864ac0f92d2",
-                                "toNodeId": "d3d9bc95-aade-41d9-93cb-6ee14de549c6",
-                                "variables": null
-                            },
-                            {
-                                "id": "c97a2519-95f3-4a97-82e8-88fc618b3424",
-                                "name": "Quiet",
-                                "text": "ac3b4686-3b7c-48cb-91df-937b7240482c",
-                                "toNodeId": "c4a10b75-597c-447e-945b-4e403d632dd8",
-                                "variables": null
-                            }
-                        ]
-                    },
-                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "27749ad3-d6c5-4c5b-a183-1ad2affe6aad",
-                    "type": 1,
-                    "variables": null
-                },
-                "b780216a-d4c5-40d1-a390-cb3c263b54fb": {
-                    "actions": [
-                        {
-                            "id": "765dc662-be16-4440-9c38-ab07d5b21b4d",
-                            "logic": {
-                                "action": {
-                                    "instructions": [
-                                        {
-                                            "operator": "+=",
-                                            "pointer": {
-                                                "operation": {
-                                                    "arithmetic": {
-                                                        "pointers": [
-                                                            {
-                                                                "keyOf": {
-                                                                    "key": {
-                                                                        "type": "value",
-                                                                        "value": {
-                                                                            "typeInfo": {
-                                                                                "required": true,
-                                                                                "type": 3
-                                                                            },
-                                                                            "value": "Bits"
-                                                                        }
-                                                                    },
-                                                                    "pointer": {
-                                                                        "keyOf": {
-                                                                            "key": {
-                                                                                "type": "value",
-                                                                                "value": {
-                                                                                    "typeInfo": {
-                                                                                        "required": true,
-                                                                                        "type": 3
-                                                                                    },
-                                                                                    "value": "Save"
-                                                                                }
-                                                                            },
-                                                                            "pointer": {
-                                                                                "type": "variable",
-                                                                                "variableId": "__root__"
-                                                                            }
-                                                                        },
-                                                                        "type": "keyOf"
-                                                                    }
-                                                                },
-                                                                "type": "keyOf"
-                                                            },
-                                                            {
-                                                                "type": "value",
-                                                                "value": {
-                                                                    "typeInfo": {
-                                                                        "required": true,
-                                                                        "type": 2
-                                                                    },
-                                                                    "value": 50
-                                                                }
-                                                            }
-                                                        ],
-                                                        "type": "+"
-                                                    },
-                                                    "type": "arithmetic"
-                                                },
-                                                "type": "operation"
-                                            },
-                                            "target": {
-                                                "pointer": {
-                                                    "keyOf": {
-                                                        "key": {
-                                                            "type": "value",
-                                                            "value": {
-                                                                "typeInfo": {
-                                                                    "required": true,
-                                                                    "type": 3
-                                                                },
-                                                                "value": "Bits"
-                                                            }
-                                                        },
-                                                        "pointer": {
-                                                            "keyOf": {
-                                                                "key": {
-                                                                    "type": "value",
-                                                                    "value": {
-                                                                        "typeInfo": {
-                                                                            "required": true,
-                                                                            "type": 3
-                                                                        },
-                                                                        "value": "Save"
-                                                                    }
-                                                                },
-                                                                "pointer": {
-                                                                    "type": "variable",
-                                                                    "variableId": "__root__"
-                                                                }
-                                                            },
-                                                            "type": "keyOf"
-                                                        }
-                                                    },
-                                                    "type": "keyOf"
-                                                },
-                                                "typeInfo": {
-                                                    "required": true,
-                                                    "type": 2
-                                                },
-                                                "writability": "save"
-                                            },
-                                            "type": "assign"
-                                        }
-                                    ],
-                                    "parameters": [
-                                        {
-                                            "id": "__this__",
-                                            "pointer": {
-                                                "type": "value",
-                                                "value": {
-                                                    "typeInfo": {
-                                                        "required": true,
-                                                        "type": 7,
-                                                        "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
-                                                    },
-                                                    "value": null
-                                                }
-                                            },
-                                            "typeInfo": {
-                                                "required": true,
-                                                "type": 7,
-                                                "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
-                                            }
-                                        },
-                                        {
-                                            "id": "__root__",
-                                            "pointer": {
-                                                "type": "value",
-                                                "value": {
-                                                    "typeInfo": {
-                                                        "required": true,
-                                                        "type": 7,
-                                                        "typeId": "__root__"
-                                                    },
-                                                    "value": null
-                                                }
-                                            },
-                                            "typeInfo": {
-                                                "required": true,
-                                                "type": 7,
-                                                "typeId": "__root__"
-                                            }
-                                        },
-                                        {
-                                            "id": "__context__",
-                                            "pointer": {
-                                                "type": "value",
-                                                "value": {
-                                                    "typeInfo": {
-                                                        "required": true,
-                                                        "type": 7,
-                                                        "typeId": "__dialogue_context__"
-                                                    },
-                                                    "value": null
-                                                }
-                                            },
-                                            "typeInfo": {
-                                                "required": true,
-                                                "type": 7,
-                                                "typeId": "__dialogue_context__"
-                                            }
-                                        }
-                                    ],
-                                    "typeInfo": {
-                                        "required": true,
-                                        "type": 0
-                                    }
-                                },
-                                "code": "root.Save.Bits += 50;",
-                                "type": 1
-                            },
-                            "type": 0
-                        }
-                    ],
-                    "id": "b780216a-d4c5-40d1-a390-cb3c263b54fb",
-                    "layout": {
-                        "height": 160,
-                        "isOpen": true,
-                        "width": 320,
-                        "x": 1140,
-                        "y": 220
-                    },
-                    "linkedValues": [
-                        {
-                            "source": 1,
-                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
-                        }
-                    ],
-                    "name": "reward",
-                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "toNodeId": "25d9da5d-0fe6-41bb-8906-78dac415038a",
-                    "type": 2
-                },
-                "c4a10b75-597c-447e-945b-4e403d632dd8": {
-                    "id": "c4a10b75-597c-447e-945b-4e403d632dd8",
-                    "layout": {
-                        "height": 160,
-                        "isOpen": true,
-                        "width": 320,
-                        "x": 760,
-                        "y": 220
-                    },
-                    "linkedValues": [
-                        {
-                            "source": 1,
-                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
-                        }
-                    ],
-                    "name": "quiet",
-                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "dea4f9fe-bb88-4da3-8804-071828d1f0be",
-                    "toNodeId": "b780216a-d4c5-40d1-a390-cb3c263b54fb",
-                    "type": 1,
-                    "variables": null
-                },
-                "d3d9bc95-aade-41d9-93cb-6ee14de549c6": {
-                    "id": "d3d9bc95-aade-41d9-93cb-6ee14de549c6",
-                    "layout": {
-                        "height": 160,
-                        "isOpen": true,
-                        "width": 320,
-                        "x": 380,
-                        "y": 220
-                    },
-                    "linkedValues": [
-                        {
-                            "source": 1,
-                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
-                        }
-                    ],
-                    "name": "rises",
-                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "text": "3ffc0f13-63fa-42f8-88d0-1853e29a47ba",
-                    "toNodeId": "b780216a-d4c5-40d1-a390-cb3c263b54fb",
-                    "type": 1,
-                    "variables": null
-                }
-            },
-            "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "settings": {
-                "defaultSaveOptionChoices": true
-            },
-            "triggerNode": {
-                "conditions": [],
-                "dialogueGroupSettings": {
-                    "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
-                    "lookupValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                    "priority": {
-                        "priorityTypeId": "4a10ea58-0ba6-49a9-b4ad-179980fcb50c",
-                        "relativeOrder": 0
-                    }
-                },
-                "id": "988c9151-4a18-407c-bb8b-5e989cf5ffc8",
-                "layout": {
-                    "height": 160,
-                    "isOpen": true,
-                    "width": 320,
-                    "x": 0,
-                    "y": 0
-                },
-                "linkedValues": [
-                    {
-                        "source": 3,
-                        "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
-                    }
-                ],
-                "name": null,
-                "occurrenceLimitSettings": null,
-                "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
-                "toNodeId": "4b250fcf-ce7b-4da5-bb0b-73f57dfa9b53",
-                "type": 0
-            },
-            "triggerNodeId": "988c9151-4a18-407c-bb8b-5e989cf5ffc8",
-            "updatedAt": 1781243988104
-        },
         "7637b0cc-95c3-4517-93c8-3d39d320369f": {
             "createdAt": 1781237500824,
             "description": "The Red Nova Conspiracy — authored via @neocompose/cli.",
@@ -22612,6 +22526,507 @@
             },
             "triggerNodeId": "3cc8a43f-1701-4988-86e6-199a06111f7d",
             "updatedAt": 1781244037481
+        },
+        "955d7862-dbb4-42ab-9514-b8f281b8c81a": {
+            "createdAt": 1781252529092,
+            "description": null,
+            "id": "955d7862-dbb4-42ab-9514-b8f281b8c81a",
+            "linkedValues": [
+                {
+                    "source": 3,
+                    "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                }
+            ],
+            "name": "Capitol OG epilogue",
+            "nodes": {
+                "395661f4-9ebe-4709-900c-0a2c4a3cda63": {
+                    "id": "395661f4-9ebe-4709-900c-0a2c4a3cda63",
+                    "layout": {
+                        "height": 160,
+                        "isOpen": true,
+                        "width": 320,
+                        "x": 0,
+                        "y": 460
+                    },
+                    "linkedValues": [
+                        {
+                            "source": 1,
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                        }
+                    ],
+                    "name": "end",
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "47770060-7e5e-4ba0-a489-6c8ff8137869",
+                    "type": 1,
+                    "variables": null
+                },
+                "6a251132-2df3-4c68-980e-ce74f7e9605d": {
+                    "actions": [
+                        {
+                            "id": "356bf10f-2709-44c6-b015-b7a58b4e828c",
+                            "logic": {
+                                "action": {
+                                    "instructions": [
+                                        {
+                                            "operator": "+=",
+                                            "pointer": {
+                                                "operation": {
+                                                    "arithmetic": {
+                                                        "pointers": [
+                                                            {
+                                                                "keyOf": {
+                                                                    "key": {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "required": true,
+                                                                                "type": 3
+                                                                            },
+                                                                            "value": "Bits"
+                                                                        }
+                                                                    },
+                                                                    "pointer": {
+                                                                        "keyOf": {
+                                                                            "key": {
+                                                                                "type": "value",
+                                                                                "value": {
+                                                                                    "typeInfo": {
+                                                                                        "required": true,
+                                                                                        "type": 3
+                                                                                    },
+                                                                                    "value": "Save"
+                                                                                }
+                                                                            },
+                                                                            "pointer": {
+                                                                                "type": "variable",
+                                                                                "variableId": "__root__"
+                                                                            }
+                                                                        },
+                                                                        "type": "keyOf"
+                                                                    }
+                                                                },
+                                                                "type": "keyOf"
+                                                            },
+                                                            {
+                                                                "type": "value",
+                                                                "value": {
+                                                                    "typeInfo": {
+                                                                        "required": true,
+                                                                        "type": 2
+                                                                    },
+                                                                    "value": 50
+                                                                }
+                                                            }
+                                                        ],
+                                                        "type": "+"
+                                                    },
+                                                    "type": "arithmetic"
+                                                },
+                                                "type": "operation"
+                                            },
+                                            "target": {
+                                                "pointer": {
+                                                    "keyOf": {
+                                                        "key": {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "required": true,
+                                                                    "type": 3
+                                                                },
+                                                                "value": "Bits"
+                                                            }
+                                                        },
+                                                        "pointer": {
+                                                            "keyOf": {
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "required": true,
+                                                                            "type": 3
+                                                                        },
+                                                                        "value": "Save"
+                                                                    }
+                                                                },
+                                                                "pointer": {
+                                                                    "type": "variable",
+                                                                    "variableId": "__root__"
+                                                                }
+                                                            },
+                                                            "type": "keyOf"
+                                                        }
+                                                    },
+                                                    "type": "keyOf"
+                                                },
+                                                "typeInfo": {
+                                                    "required": true,
+                                                    "type": 2
+                                                },
+                                                "writability": "save"
+                                            },
+                                            "type": "assign"
+                                        }
+                                    ],
+                                    "parameters": [
+                                        {
+                                            "id": "__this__",
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "required": true,
+                                                        "type": 7,
+                                                        "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                                    },
+                                                    "value": null
+                                                }
+                                            },
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 7,
+                                                "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                            }
+                                        },
+                                        {
+                                            "id": "__root__",
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "required": true,
+                                                        "type": 7,
+                                                        "typeId": "__root__"
+                                                    },
+                                                    "value": null
+                                                }
+                                            },
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 7,
+                                                "typeId": "__root__"
+                                            }
+                                        },
+                                        {
+                                            "id": "__context__",
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
+                                                        "required": true,
+                                                        "type": 7,
+                                                        "typeId": "__dialogue_context__"
+                                                    },
+                                                    "value": null
+                                                }
+                                            },
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 7,
+                                                "typeId": "__dialogue_context__"
+                                            }
+                                        }
+                                    ],
+                                    "typeInfo": {
+                                        "required": true,
+                                        "type": 0
+                                    }
+                                },
+                                "code": "root.Save.Bits += 50;",
+                                "type": 1
+                            },
+                            "type": 0
+                        }
+                    ],
+                    "id": "6a251132-2df3-4c68-980e-ce74f7e9605d",
+                    "layout": {
+                        "height": 160,
+                        "isOpen": true,
+                        "width": 320,
+                        "x": 1140,
+                        "y": 220
+                    },
+                    "linkedValues": [
+                        {
+                            "source": 1,
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                        }
+                    ],
+                    "name": "reward",
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "toNodeId": "395661f4-9ebe-4709-900c-0a2c4a3cda63",
+                    "type": 2
+                },
+                "763de46a-1911-483c-84c1-19f55091521d": {
+                    "id": "763de46a-1911-483c-84c1-19f55091521d",
+                    "layout": {
+                        "height": 160,
+                        "isOpen": true,
+                        "width": 320,
+                        "x": 380,
+                        "y": 220
+                    },
+                    "linkedValues": [
+                        {
+                            "source": 1,
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                        }
+                    ],
+                    "name": "rises",
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "dc43e8d0-1e16-4f35-a25e-11e16480f862",
+                    "toNodeId": "6a251132-2df3-4c68-980e-ce74f7e9605d",
+                    "type": 1,
+                    "variables": null
+                },
+                "8495e4d8-8b07-44a7-acbd-ca3615afa737": {
+                    "id": "8495e4d8-8b07-44a7-acbd-ca3615afa737",
+                    "layout": {
+                        "height": 160,
+                        "isOpen": true,
+                        "width": 320,
+                        "x": 760,
+                        "y": 220
+                    },
+                    "linkedValues": [
+                        {
+                            "source": 1,
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                        }
+                    ],
+                    "name": "quiet",
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "1919c8c6-a3ba-4970-8756-6a6547d5ca18",
+                    "toNodeId": "6a251132-2df3-4c68-980e-ce74f7e9605d",
+                    "type": 1,
+                    "variables": null
+                },
+                "afee8b0f-c51f-42c0-8091-1d7286e2f7de": {
+                    "id": "afee8b0f-c51f-42c0-8091-1d7286e2f7de",
+                    "layout": {
+                        "height": 160,
+                        "isOpen": true,
+                        "width": 320,
+                        "x": 0,
+                        "y": 220
+                    },
+                    "linkedValues": [
+                        {
+                            "source": 1,
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                        }
+                    ],
+                    "name": "back",
+                    "optionSettings": {
+                        "options": [
+                            {
+                                "id": "e19859df-e15f-413c-9003-443a00961d8c",
+                                "name": "True",
+                                "text": "1ae8613f-bd20-4a45-8ed7-66885cf7bb8e",
+                                "toNodeId": "763de46a-1911-483c-84c1-19f55091521d",
+                                "variables": null
+                            },
+                            {
+                                "id": "0173a459-2668-4b55-ab73-525751226d38",
+                                "name": "Quiet",
+                                "text": "65a27870-f024-49fb-bdae-29c5e438f28d",
+                                "toNodeId": "8495e4d8-8b07-44a7-acbd-ca3615afa737",
+                                "variables": null
+                            }
+                        ]
+                    },
+                    "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "text": "19c53f29-a7da-4d8d-98fe-e001b2361833",
+                    "type": 1,
+                    "variables": null
+                }
+            },
+            "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "settings": {
+                "defaultSaveOptionChoices": true
+            },
+            "triggerNode": {
+                "conditions": [
+                    {
+                        "code": "return root.Save.Quest.Ending == WorldEnding.secondSun;",
+                        "getter": {
+                            "instructions": [
+                                {
+                                    "pointer": {
+                                        "operation": {
+                                            "expression": {
+                                                "condition": {
+                                                    "operand1": {
+                                                        "keyOf": {
+                                                            "key": {
+                                                                "type": "value",
+                                                                "value": {
+                                                                    "typeInfo": {
+                                                                        "required": true,
+                                                                        "type": 3
+                                                                    },
+                                                                    "value": "Ending"
+                                                                }
+                                                            },
+                                                            "pointer": {
+                                                                "keyOf": {
+                                                                    "key": {
+                                                                        "type": "value",
+                                                                        "value": {
+                                                                            "typeInfo": {
+                                                                                "required": true,
+                                                                                "type": 3
+                                                                            },
+                                                                            "value": "Quest"
+                                                                        }
+                                                                    },
+                                                                    "pointer": {
+                                                                        "keyOf": {
+                                                                            "key": {
+                                                                                "type": "value",
+                                                                                "value": {
+                                                                                    "typeInfo": {
+                                                                                        "required": true,
+                                                                                        "type": 3
+                                                                                    },
+                                                                                    "value": "Save"
+                                                                                }
+                                                                            },
+                                                                            "pointer": {
+                                                                                "type": "variable",
+                                                                                "variableId": "__root__"
+                                                                            }
+                                                                        },
+                                                                        "type": "keyOf"
+                                                                    }
+                                                                },
+                                                                "type": "keyOf"
+                                                            }
+                                                        },
+                                                        "type": "keyOf"
+                                                    },
+                                                    "operand2": {
+                                                        "type": "value",
+                                                        "value": {
+                                                            "typeInfo": {
+                                                                "enumId": "d0b44688-28ab-44ba-b2a1-5cdad0f51e50",
+                                                                "required": true,
+                                                                "type": 8
+                                                            },
+                                                            "value": [
+                                                                "secondSun"
+                                                            ]
+                                                        }
+                                                    },
+                                                    "type": "equalTo"
+                                                },
+                                                "connective": null
+                                            },
+                                            "type": "boolean"
+                                        },
+                                        "type": "operation"
+                                    },
+                                    "type": "return"
+                                }
+                            ],
+                            "parameters": [
+                                {
+                                    "id": "__this__",
+                                    "pointer": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 7,
+                                                "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                            },
+                                            "value": null
+                                        }
+                                    },
+                                    "typeInfo": {
+                                        "required": true,
+                                        "type": 7,
+                                        "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                                    }
+                                },
+                                {
+                                    "id": "__root__",
+                                    "pointer": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 7,
+                                                "typeId": "__root__"
+                                            },
+                                            "value": null
+                                        }
+                                    },
+                                    "typeInfo": {
+                                        "required": true,
+                                        "type": 7,
+                                        "typeId": "__root__"
+                                    }
+                                },
+                                {
+                                    "id": "__context__",
+                                    "pointer": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 7,
+                                                "typeId": "__dialogue_context__"
+                                            },
+                                            "value": null
+                                        }
+                                    },
+                                    "typeInfo": {
+                                        "required": true,
+                                        "type": 7,
+                                        "typeId": "__dialogue_context__"
+                                    }
+                                }
+                            ],
+                            "typeInfo": {
+                                "required": true,
+                                "type": 1
+                            }
+                        },
+                        "type": 1
+                    }
+                ],
+                "dialogueGroupSettings": {
+                    "dialogueGroupId": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+                    "lookupValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                    "priority": {
+                        "priorityTypeId": "4a10ea58-0ba6-49a9-b4ad-179980fcb50c",
+                        "relativeOrder": 0
+                    }
+                },
+                "id": "352d7428-a322-47d9-bcf4-699608e7fd5b",
+                "layout": {
+                    "height": 160,
+                    "isOpen": true,
+                    "width": 320,
+                    "x": 0,
+                    "y": 0
+                },
+                "linkedValues": [
+                    {
+                        "source": 3,
+                        "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                    }
+                ],
+                "name": null,
+                "occurrenceLimitSettings": null,
+                "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+                "toNodeId": "afee8b0f-c51f-42c0-8091-1d7286e2f7de",
+                "type": 0
+            },
+            "triggerNodeId": "352d7428-a322-47d9-bcf4-699608e7fd5b",
+            "updatedAt": 1781252529092
         },
         "95921c6a-8f61-4c48-9e1b-50c05bdef8cf": {
             "createdAt": 1781237639960,
@@ -29496,12 +29911,98 @@
             "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/02e201f3-f061-4310-bdde-54e2dd905634/008730ef-0e51-4a9e-be7c-1c09d342d372-Vault-plaque.png",
             "unityAudioClipSettings": null,
             "unityTextureSettings": {
-                "overridePaths": [],
-                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "alphaCutoffValue": 0.5,
+                "alphaIsTransparency": true,
+                "alphaSource": "input-texture-alpha",
+                "anisoLevel": 1,
+                "borderMipMaps": false,
+                "compressionQuality": 50,
+                "cookieSettings": {
+                    "lightType": "spot"
+                },
+                "crunchedCompression": false,
+                "fadeOutMipMaps": false,
+                "filterMode": "point",
+                "generateMipMaps": false,
+                "ignorePngGamma": false,
+                "maxTextureSize": 2048,
+                "mipMapFadeDistanceEnd": 3,
+                "mipMapFadeDistanceStart": 1,
+                "mipMapFiltering": "box",
+                "mipMapsPreserveCoverage": false,
+                "nonPowerOfTwoScale": "none",
+                "normalMapSettings": {
+                    "bumpiness": 0.25,
+                    "createFromGrayscale": false,
+                    "filtering": "smooth",
+                    "flipGreenChannel": false
+                },
+                "platformSettings": {
+                    "default": {
+                        "compressionQuality": 50,
+                        "crunchedCompression": false,
+                        "format": "automatic",
+                        "maxTextureSize": 2048,
+                        "resizeAlgorithm": "mitchell",
+                        "textureCompression": "none"
+                    },
+                    "standalone": {
+                        "compressionQuality": 50,
+                        "crunchedCompression": false,
+                        "format": "rgba-compressed-dxt5-bc3",
+                        "maxTextureSize": 2048,
+                        "override": false,
+                        "resizeAlgorithm": "mitchell",
+                        "textureCompression": "normal-quality"
+                    },
+                    "web": {
+                        "compressionQuality": 50,
+                        "crunchedCompression": false,
+                        "format": "rgba-compressed-dxt5-bc3",
+                        "maxTextureSize": 2048,
+                        "override": false,
+                        "resizeAlgorithm": "mitchell",
+                        "textureCompression": "normal-quality"
+                    }
+                },
+                "readWriteEnabled": true,
+                "resizeAlgorithm": "mitchell",
+                "sRGBTexture": true,
+                "singleChannelSettings": {
+                    "component": "alpha"
+                },
+                "spriteSettings": {
+                    "extrudeEdges": 1,
+                    "generatePhysicsShape": true,
+                    "meshType": "tight",
+                    "pivot": {
+                        "x": 0.5,
+                        "y": 0.5
+                    },
+                    "pivotAlignment": "center",
+                    "pixelsPerUnit": 16,
+                    "spriteEditor": {
+                        "slices": {}
+                    },
+                    "spriteMode": "single"
+                },
+                "swizzle": {
+                    "a": "alpha",
+                    "b": "blue",
+                    "g": "green",
+                    "r": "red"
+                },
+                "templateId": null,
+                "textureCompression": "none",
+                "textureShape": "2d",
+                "textureType": "sprite",
                 "type": "texture-2d",
-                "values": {}
+                "virtualTextureOnly": false,
+                "wrapMode": "clamp",
+                "wrapModeU": null,
+                "wrapModeV": null
             },
-            "updatedAt": 1781250476480
+            "updatedAt": 1781252783251
         },
         "1e4112b5-503c-4cfc-a026-4f5d38e6999c": {
             "audioDurationSeconds": null,
@@ -29540,12 +30041,98 @@
             "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506/cc242fba-fbac-4e78-8c4e-d54213c72a11-First-world-icon.png",
             "unityAudioClipSettings": null,
             "unityTextureSettings": {
-                "overridePaths": [],
-                "templateId": "66504747-cbd5-4026-9d4c-89a0644f8192",
+                "alphaCutoffValue": 0.5,
+                "alphaIsTransparency": true,
+                "alphaSource": "input-texture-alpha",
+                "anisoLevel": 1,
+                "borderMipMaps": false,
+                "compressionQuality": 50,
+                "cookieSettings": {
+                    "lightType": "spot"
+                },
+                "crunchedCompression": false,
+                "fadeOutMipMaps": false,
+                "filterMode": "point",
+                "generateMipMaps": false,
+                "ignorePngGamma": false,
+                "maxTextureSize": 2048,
+                "mipMapFadeDistanceEnd": 3,
+                "mipMapFadeDistanceStart": 1,
+                "mipMapFiltering": "box",
+                "mipMapsPreserveCoverage": false,
+                "nonPowerOfTwoScale": "none",
+                "normalMapSettings": {
+                    "bumpiness": 0.25,
+                    "createFromGrayscale": false,
+                    "filtering": "smooth",
+                    "flipGreenChannel": false
+                },
+                "platformSettings": {
+                    "default": {
+                        "compressionQuality": 50,
+                        "crunchedCompression": false,
+                        "format": "automatic",
+                        "maxTextureSize": 2048,
+                        "resizeAlgorithm": "mitchell",
+                        "textureCompression": "none"
+                    },
+                    "standalone": {
+                        "compressionQuality": 50,
+                        "crunchedCompression": false,
+                        "format": "rgba-compressed-dxt5-bc3",
+                        "maxTextureSize": 2048,
+                        "override": false,
+                        "resizeAlgorithm": "mitchell",
+                        "textureCompression": "normal-quality"
+                    },
+                    "web": {
+                        "compressionQuality": 50,
+                        "crunchedCompression": false,
+                        "format": "rgba-compressed-dxt5-bc3",
+                        "maxTextureSize": 2048,
+                        "override": false,
+                        "resizeAlgorithm": "mitchell",
+                        "textureCompression": "normal-quality"
+                    }
+                },
+                "readWriteEnabled": true,
+                "resizeAlgorithm": "mitchell",
+                "sRGBTexture": true,
+                "singleChannelSettings": {
+                    "component": "alpha"
+                },
+                "spriteSettings": {
+                    "extrudeEdges": 1,
+                    "generatePhysicsShape": true,
+                    "meshType": "tight",
+                    "pivot": {
+                        "x": 0.5,
+                        "y": 0.5
+                    },
+                    "pivotAlignment": "center",
+                    "pixelsPerUnit": 16,
+                    "spriteEditor": {
+                        "slices": {}
+                    },
+                    "spriteMode": "single"
+                },
+                "swizzle": {
+                    "a": "alpha",
+                    "b": "blue",
+                    "g": "green",
+                    "r": "red"
+                },
+                "templateId": null,
+                "textureCompression": "none",
+                "textureShape": "2d",
+                "textureType": "sprite",
                 "type": "texture-2d",
-                "values": {}
+                "virtualTextureOnly": false,
+                "wrapMode": "clamp",
+                "wrapModeU": null,
+                "wrapModeV": null
             },
-            "updatedAt": 1781250488562
+            "updatedAt": 1781252789252
         },
         "5cc531eb-25a5-469f-877d-10afb4c5489e": {
             "audioDurationSeconds": null,
@@ -30564,31 +31151,6 @@
             "sourceComment": null,
             "updatedAt": 1781246498063
         },
-        "0bfb8b97-5f60-47dd-bbf9-b864ac0f92d2": {
-            "createdAt": 1781241423547,
-            "id": "0bfb8b97-5f60-47dd-bbf9-b864ac0f92d2",
-            "links": [
-                {
-                    "choiceId": "c9caf71e-d883-419d-82e3-8f48449a7fec",
-                    "fieldPath": "optionSettings.options.c9caf71e-d883-419d-82e3-8f48449a7fec.text",
-                    "kind": "dialogue-choice-text",
-                    "nodeId": "4b250fcf-ce7b-4da5-bb0b-73f57dfa9b53",
-                    "recordId": "4b250fcf-ce7b-4da5-bb0b-73f57dfa9b53",
-                    "recordKind": "dialogue-node"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "localization-status-approved",
-                    "updatedAt": 1781241423547,
-                    "value": "It's true. The question is who it rises for."
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1781241423547
-        },
         "0cd35073-b9de-4139-9279-6575c33c8ec0": {
             "createdAt": 1779674427578,
             "id": "0cd35073-b9de-4139-9279-6575c33c8ec0",
@@ -31005,6 +31567,30 @@
             "sourceComment": null,
             "updatedAt": 1781246880150
         },
+        "1919c8c6-a3ba-4970-8756-6a6547d5ca18": {
+            "createdAt": 1781252531188,
+            "id": "1919c8c6-a3ba-4970-8756-6a6547d5ca18",
+            "links": [
+                {
+                    "fieldPath": "text",
+                    "kind": "dialogue-node-text",
+                    "nodeId": "8495e4d8-8b07-44a7-acbd-ca3615afa737",
+                    "recordId": "8495e4d8-8b07-44a7-acbd-ca3615afa737",
+                    "recordKind": "dialogue-node"
+                }
+            ],
+            "localeValues": {
+                "en-US": {
+                    "localeComment": null,
+                    "statusId": "localization-status-approved",
+                    "updatedAt": 1781252531188,
+                    "value": "Ugh, you're as cryptic as a Mercurial now. Fine. First round of bits is on the Capitol anyway — for making it back."
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "sourceComment": null,
+            "updatedAt": 1781252531188
+        },
         "19b0df63-d5ab-44f8-93e2-7c6bf40b2a58": {
             "createdAt": 1781237852578,
             "id": "19b0df63-d5ab-44f8-93e2-7c6bf40b2a58",
@@ -31028,6 +31614,30 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1781237852578
+        },
+        "19c53f29-a7da-4d8d-98fe-e001b2361833": {
+            "createdAt": 1781252531188,
+            "id": "19c53f29-a7da-4d8d-98fe-e001b2361833",
+            "links": [
+                {
+                    "fieldPath": "text",
+                    "kind": "dialogue-node-text",
+                    "nodeId": "afee8b0f-c51f-42c0-8091-1d7286e2f7de",
+                    "recordId": "afee8b0f-c51f-42c0-8091-1d7286e2f7de",
+                    "recordKind": "dialogue-node"
+                }
+            ],
+            "localeValues": {
+                "en-US": {
+                    "localeComment": null,
+                    "statusId": "localization-status-approved",
+                    "updatedAt": 1781252531188,
+                    "value": "You're back! And in one piece! So... is it true what the relays are saying? A SECOND sun?"
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "sourceComment": null,
+            "updatedAt": 1781252531188
         },
         "19d8603f-3d52-43fc-8da2-a98e38973d35": {
             "createdAt": 1781246783624,
@@ -31111,6 +31721,31 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1779749262207
+        },
+        "1ae8613f-bd20-4a45-8ed7-66885cf7bb8e": {
+            "createdAt": 1781252531188,
+            "id": "1ae8613f-bd20-4a45-8ed7-66885cf7bb8e",
+            "links": [
+                {
+                    "choiceId": "e19859df-e15f-413c-9003-443a00961d8c",
+                    "fieldPath": "optionSettings.options.e19859df-e15f-413c-9003-443a00961d8c.text",
+                    "kind": "dialogue-choice-text",
+                    "nodeId": "afee8b0f-c51f-42c0-8091-1d7286e2f7de",
+                    "recordId": "afee8b0f-c51f-42c0-8091-1d7286e2f7de",
+                    "recordKind": "dialogue-node"
+                }
+            ],
+            "localeValues": {
+                "en-US": {
+                    "localeComment": null,
+                    "statusId": "localization-status-approved",
+                    "updatedAt": 1781252531188,
+                    "value": "It's true. The question is who it rises for."
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "sourceComment": null,
+            "updatedAt": 1781252531188
         },
         "1b3856d2-6f8a-4de4-8d11-81b5beb893c8": {
             "createdAt": 1779674427578,
@@ -31413,30 +32048,6 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1779749262207
-        },
-        "27749ad3-d6c5-4c5b-a183-1ad2affe6aad": {
-            "createdAt": 1781241423547,
-            "id": "27749ad3-d6c5-4c5b-a183-1ad2affe6aad",
-            "links": [
-                {
-                    "fieldPath": "text",
-                    "kind": "dialogue-node-text",
-                    "nodeId": "4b250fcf-ce7b-4da5-bb0b-73f57dfa9b53",
-                    "recordId": "4b250fcf-ce7b-4da5-bb0b-73f57dfa9b53",
-                    "recordKind": "dialogue-node"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "localization-status-approved",
-                    "updatedAt": 1781241423547,
-                    "value": "You're back! And in one piece! So... is it true what the relays are saying? A SECOND sun?"
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1781241423547
         },
         "27bb4c95-c3fe-49cf-8939-f9278b2024c4": {
             "createdAt": 1781246844783,
@@ -32013,30 +32624,6 @@
             "sourceComment": null,
             "updatedAt": 1781237697090
         },
-        "3ffc0f13-63fa-42f8-88d0-1853e29a47ba": {
-            "createdAt": 1781241423547,
-            "id": "3ffc0f13-63fa-42f8-88d0-1853e29a47ba",
-            "links": [
-                {
-                    "fieldPath": "text",
-                    "kind": "dialogue-node-text",
-                    "nodeId": "d3d9bc95-aade-41d9-93cb-6ee14de549c6",
-                    "recordId": "d3d9bc95-aade-41d9-93cb-6ee14de549c6",
-                    "recordKind": "dialogue-node"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "localization-status-approved",
-                    "updatedAt": 1781241423547,
-                    "value": "Huh. Two suns. Twice the flares, twice the hats. ...I should start knitting."
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1781241423547
-        },
         "419fae3f-a1b9-405f-be9c-14f860b45abb": {
             "createdAt": 1781246774645,
             "id": "419fae3f-a1b9-405f-be9c-14f860b45abb",
@@ -32212,6 +32799,30 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1781237434498
+        },
+        "47770060-7e5e-4ba0-a489-6c8ff8137869": {
+            "createdAt": 1781252531188,
+            "id": "47770060-7e5e-4ba0-a489-6c8ff8137869",
+            "links": [
+                {
+                    "fieldPath": "text",
+                    "kind": "dialogue-node-text",
+                    "nodeId": "395661f4-9ebe-4709-900c-0a2c4a3cda63",
+                    "recordId": "395661f4-9ebe-4709-900c-0a2c4a3cda63",
+                    "recordKind": "dialogue-node"
+                }
+            ],
+            "localeValues": {
+                "en-US": {
+                    "localeComment": null,
+                    "statusId": "localization-status-approved",
+                    "updatedAt": 1781252531188,
+                    "value": "Welcome home, investigator. Whatever happens next... nice to have someone who's seen the whole sky."
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "sourceComment": null,
+            "updatedAt": 1781252531188
         },
         "477adf05-e7f1-49d5-8457-331cda241d64": {
             "createdAt": 1781237448131,
@@ -33304,6 +33915,31 @@
             "sourceComment": null,
             "updatedAt": 1781237785407
         },
+        "65a27870-f024-49fb-bdae-29c5e438f28d": {
+            "createdAt": 1781252531188,
+            "id": "65a27870-f024-49fb-bdae-29c5e438f28d",
+            "links": [
+                {
+                    "choiceId": "0173a459-2668-4b55-ab73-525751226d38",
+                    "fieldPath": "optionSettings.options.0173a459-2668-4b55-ab73-525751226d38.text",
+                    "kind": "dialogue-choice-text",
+                    "nodeId": "afee8b0f-c51f-42c0-8091-1d7286e2f7de",
+                    "recordId": "afee8b0f-c51f-42c0-8091-1d7286e2f7de",
+                    "recordKind": "dialogue-node"
+                }
+            ],
+            "localeValues": {
+                "en-US": {
+                    "localeComment": null,
+                    "statusId": "localization-status-approved",
+                    "updatedAt": 1781252531188,
+                    "value": "You'll know when the sky tells you."
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "sourceComment": null,
+            "updatedAt": 1781252531188
+        },
         "672df3c6-cc22-4c3b-9e40-af81e15c733d": {
             "createdAt": 1781237868061,
             "id": "672df3c6-cc22-4c3b-9e40-af81e15c733d",
@@ -33551,6 +34187,30 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1781237794901
+        },
+        "706e506d-5640-4979-9930-6e8c693b7f8a": {
+            "createdAt": 1781252869592,
+            "id": "706e506d-5640-4979-9930-6e8c693b7f8a",
+            "links": [
+                {
+                    "fieldPath": "value",
+                    "kind": "attribute-value",
+                    "recordId": "0cf08f75-1fba-413f-9747-86f94cec7c36",
+                    "recordKind": "value",
+                    "valueId": "0cf08f75-1fba-413f-9747-86f94cec7c36"
+                }
+            ],
+            "localeValues": {
+                "en-US": {
+                    "localeComment": null,
+                    "statusId": "localization-status-approved",
+                    "updatedAt": 1781252869592,
+                    "value": "ShipThruster"
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "sourceComment": null,
+            "updatedAt": 1781252869592
         },
         "73f58157-2510-4984-b5bd-ba6c030edd49": {
             "createdAt": 1779674427578,
@@ -33871,6 +34531,30 @@
             "sourceComment": null,
             "updatedAt": 1781236868782
         },
+        "814ace67-42e8-4980-a1f6-3f5d638d405b": {
+            "createdAt": 1781253185301,
+            "id": "814ace67-42e8-4980-a1f6-3f5d638d405b",
+            "links": [
+                {
+                    "fieldPath": "value",
+                    "kind": "attribute-value",
+                    "recordId": "0cf08f75-1fba-413f-9747-86f94cec7c36",
+                    "recordKind": "value",
+                    "valueId": "0cf08f75-1fba-413f-9747-86f94cec7c36"
+                }
+            ],
+            "localeValues": {
+                "en-US": {
+                    "localeComment": null,
+                    "statusId": "localization-status-approved",
+                    "updatedAt": 1781253185301,
+                    "value": "ShipThruster"
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "sourceComment": null,
+            "updatedAt": 1781253185301
+        },
         "823b0113-340e-435a-b4f4-17394551ae4b": {
             "createdAt": 1779674427578,
             "id": "823b0113-340e-435a-b4f4-17394551ae4b",
@@ -34132,30 +34816,6 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1781246870273
-        },
-        "8b75dc4a-f72c-4434-a699-d81ccc1e7f25": {
-            "createdAt": 1781241423547,
-            "id": "8b75dc4a-f72c-4434-a699-d81ccc1e7f25",
-            "links": [
-                {
-                    "fieldPath": "text",
-                    "kind": "dialogue-node-text",
-                    "nodeId": "25d9da5d-0fe6-41bb-8906-78dac415038a",
-                    "recordId": "25d9da5d-0fe6-41bb-8906-78dac415038a",
-                    "recordKind": "dialogue-node"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "localization-status-approved",
-                    "updatedAt": 1781241423547,
-                    "value": "Welcome home, investigator. Whatever happens next... nice to have someone who's seen the whole sky."
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1781241423547
         },
         "90811ced-66b6-4f46-bc60-d8f8bec3781a": {
             "createdAt": 1779674427578,
@@ -35055,31 +35715,6 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1779749262207
-        },
-        "ac3b4686-3b7c-48cb-91df-937b7240482c": {
-            "createdAt": 1781241423547,
-            "id": "ac3b4686-3b7c-48cb-91df-937b7240482c",
-            "links": [
-                {
-                    "choiceId": "c97a2519-95f3-4a97-82e8-88fc618b3424",
-                    "fieldPath": "optionSettings.options.c97a2519-95f3-4a97-82e8-88fc618b3424.text",
-                    "kind": "dialogue-choice-text",
-                    "nodeId": "4b250fcf-ce7b-4da5-bb0b-73f57dfa9b53",
-                    "recordId": "4b250fcf-ce7b-4da5-bb0b-73f57dfa9b53",
-                    "recordKind": "dialogue-node"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "localization-status-approved",
-                    "updatedAt": 1781241423547,
-                    "value": "You'll know when the sky tells you."
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1781241423547
         },
         "ad5efc6b-232f-403e-8c14-a583eee2ae32": {
             "createdAt": 1781246854837,
@@ -36433,6 +37068,30 @@
             "sourceComment": null,
             "updatedAt": 1781237780882
         },
+        "dc43e8d0-1e16-4f35-a25e-11e16480f862": {
+            "createdAt": 1781252531188,
+            "id": "dc43e8d0-1e16-4f35-a25e-11e16480f862",
+            "links": [
+                {
+                    "fieldPath": "text",
+                    "kind": "dialogue-node-text",
+                    "nodeId": "763de46a-1911-483c-84c1-19f55091521d",
+                    "recordId": "763de46a-1911-483c-84c1-19f55091521d",
+                    "recordKind": "dialogue-node"
+                }
+            ],
+            "localeValues": {
+                "en-US": {
+                    "localeComment": null,
+                    "statusId": "localization-status-approved",
+                    "updatedAt": 1781252531188,
+                    "value": "Huh. Two suns. Twice the flares, twice the hats. ...I should start knitting."
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "sourceComment": null,
+            "updatedAt": 1781252531188
+        },
         "ddc90820-bee0-4b7e-b23b-c5a3353f34c3": {
             "createdAt": 1781237617462,
             "id": "ddc90820-bee0-4b7e-b23b-c5a3353f34c3",
@@ -36457,30 +37116,6 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1781237617462
-        },
-        "dea4f9fe-bb88-4da3-8804-071828d1f0be": {
-            "createdAt": 1781241423547,
-            "id": "dea4f9fe-bb88-4da3-8804-071828d1f0be",
-            "links": [
-                {
-                    "fieldPath": "text",
-                    "kind": "dialogue-node-text",
-                    "nodeId": "c4a10b75-597c-447e-945b-4e403d632dd8",
-                    "recordId": "c4a10b75-597c-447e-945b-4e403d632dd8",
-                    "recordKind": "dialogue-node"
-                }
-            ],
-            "localeValues": {
-                "en-US": {
-                    "localeComment": null,
-                    "statusId": "localization-status-approved",
-                    "updatedAt": 1781241423547,
-                    "value": "Ugh, you're as cryptic as a Mercurial now. Fine. First round of bits is on the Capitol anyway — for making it back."
-                }
-            },
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "sourceComment": null,
-            "updatedAt": 1781241423547
         },
         "e00ff8f1-f01b-49b4-ad88-f52415797a91": {
             "createdAt": 1781246826062,
@@ -36842,6 +37477,30 @@
             "sourceComment": null,
             "updatedAt": 1781237857837
         },
+        "e815f6f9-601f-4970-a049-9d1370194cdb": {
+            "createdAt": 1781252926124,
+            "id": "e815f6f9-601f-4970-a049-9d1370194cdb",
+            "links": [
+                {
+                    "fieldPath": "value",
+                    "kind": "attribute-value",
+                    "recordId": "6aa7247b-2aad-4470-b1a0-c422dd84dceb",
+                    "recordKind": "value",
+                    "valueId": "6aa7247b-2aad-4470-b1a0-c422dd84dceb"
+                }
+            ],
+            "localeValues": {
+                "en-US": {
+                    "localeComment": null,
+                    "statusId": "localization-status-approved",
+                    "updatedAt": 1781252926124,
+                    "value": "FlareStatic"
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "sourceComment": null,
+            "updatedAt": 1781252926124
+        },
         "e9145499-1a2d-4b26-b10a-d678c7046d86": {
             "createdAt": 1781237588140,
             "id": "e9145499-1a2d-4b26-b10a-d678c7046d86",
@@ -36998,6 +37657,30 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
             "updatedAt": 1781237486747
+        },
+        "ed60ab1e-06dc-416b-a20c-68b661cd8bcd": {
+            "createdAt": 1781253238347,
+            "id": "ed60ab1e-06dc-416b-a20c-68b661cd8bcd",
+            "links": [
+                {
+                    "fieldPath": "value",
+                    "kind": "attribute-value",
+                    "recordId": "6aa7247b-2aad-4470-b1a0-c422dd84dceb",
+                    "recordKind": "value",
+                    "valueId": "6aa7247b-2aad-4470-b1a0-c422dd84dceb"
+                }
+            ],
+            "localeValues": {
+                "en-US": {
+                    "localeComment": null,
+                    "statusId": "localization-status-approved",
+                    "updatedAt": 1781253238347,
+                    "value": "FlareStatic"
+                }
+            },
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "sourceComment": null,
+            "updatedAt": 1781253238347
         },
         "ede61345-580d-4c04-a061-3c789175566d": {
             "createdAt": 1779674427578,

@@ -5561,6 +5561,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public ReadOnlyAnimationInfo? FlareAnimation
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("FlareAnimation");
+                return child.value is null ? null : ReadOnlyAnimationInfo.Create(client, child);
+            }
+        }
+
         public Sprite FlareStaticSprite
         {
             get
@@ -5594,6 +5603,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public ReadOnlyAnimationInfo? ShipAnimation
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("ShipAnimation");
+                return child.value is null ? null : ReadOnlyAnimationInfo.Create(client, child);
+            }
+        }
+
         public Sprite ShipSprite
         {
             get
@@ -5620,6 +5638,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<Sprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
 
+            public static readonly NeoField<ReadOnlyAnimationInfo?> FlareAnimation = new("FlareAnimation");
+
             public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
 
             public static readonly NeoField<NeoReadOnlyList<ReadOnlyItem>> Items = new("Items");
@@ -5627,6 +5647,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<ReadOnlyLookupContainer> LookupContainer = new("LookupContainer");
 
             public static readonly NeoField<NeoReadOnlyList<ReadOnlyOutpost>> Outposts = new("Outposts");
+
+            public static readonly NeoField<ReadOnlyAnimationInfo?> ShipAnimation = new("ShipAnimation");
 
             public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
 
@@ -5639,10 +5661,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Computed] = () => null,
                 [Fields.FirstWorldIconSprite] = () => null,
+                [Fields.FlareAnimation] = () => null,
                 [Fields.FlareStaticSprite] = () => null,
                 [Fields.Items] = () => null,
                 [Fields.LookupContainer] = () => null,
                 [Fields.Outposts] = () => null,
+                [Fields.ShipAnimation] = () => null,
                 [Fields.ShipSprite] = () => null,
                 [Fields.VaultPlaqueSprite] = () => null,
             };
@@ -5664,10 +5688,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Computed] = () => Computed,
                 [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
+                [Fields.FlareAnimation] = () => FlareAnimation,
                 [Fields.FlareStaticSprite] = () => FlareStaticSprite,
                 [Fields.Items] = () => Items,
                 [Fields.LookupContainer] = () => LookupContainer,
                 [Fields.Outposts] = () => Outposts,
+                [Fields.ShipAnimation] = () => ShipAnimation,
                 [Fields.ShipSprite] = () => ShipSprite,
                 [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
             };
@@ -5693,12 +5719,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Assets(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, ShipSprite, VaultPlaqueSprite, Computed, Items, LookupContainer, Outposts))
+        public Assets(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, ComputedText? Computed = null, AnimationInfo? FlareAnimation = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, AnimationInfo? ShipAnimation = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, ShipSprite, VaultPlaqueSprite, Computed, FlareAnimation, Items, LookupContainer, Outposts, ShipAnimation))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, ComputedText? Computed = null, AnimationInfo? FlareAnimation = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, AnimationInfo? ShipAnimation = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -5717,6 +5743,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 updatedAt = nowIso,
                 value = NeoGeneratedTypesSupport.SpriteValue(client, FirstWorldIconSprite),
             });
+            if (FlareAnimation is not null)
+            {
+                value["FlareAnimation"] = NeoGeneratedTypesSupport.LookupSelectionId(FlareAnimation.valueId);
+            }
             var FlareStaticSpriteValueId = Guid.NewGuid().ToString();
             value["FlareStaticSprite"] = FlareStaticSpriteValueId;
             valueRows.Add(new SpriteAttributeValue
@@ -5763,6 +5793,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     updatedAt = nowIso,
                     value = OutpostsIds.ToArray(),
                 });
+            }
+            if (ShipAnimation is not null)
+            {
+                value["ShipAnimation"] = NeoGeneratedTypesSupport.LookupSelectionId(ShipAnimation.valueId);
             }
             var ShipSpriteValueId = Guid.NewGuid().ToString();
             value["ShipSprite"] = ShipSpriteValueId;
@@ -5822,6 +5856,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new AnimationInfo? FlareAnimation
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustomWritable>("FlareAnimation");
+                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
+            }
+            set
+            {
+                if (value is null)
+                {
+                    writableNode.Unset("FlareAnimation");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FlareAnimation", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
         public new Sprite FlareStaticSprite
         {
             get
@@ -5863,6 +5915,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new AnimationInfo? ShipAnimation
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustomWritable>("ShipAnimation");
+                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
+            }
+            set
+            {
+                if (value is null)
+                {
+                    writableNode.Unset("ShipAnimation");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "ShipAnimation", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
         public new Sprite ShipSprite
         {
             get
@@ -5897,6 +5967,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<Sprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
 
+            public static readonly NeoField<AnimationInfo?> FlareAnimation = new("FlareAnimation");
+
             public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
 
             public static readonly NeoField<NeoList<Item>> Items = new("Items");
@@ -5904,6 +5976,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<LookupContainer> LookupContainer = new("LookupContainer");
 
             public static readonly NeoField<NeoList<Outpost>> Outposts = new("Outposts");
+
+            public static readonly NeoField<AnimationInfo?> ShipAnimation = new("ShipAnimation");
 
             public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
 
@@ -5916,10 +5990,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Computed] = () => null,
                 [Fields.FirstWorldIconSprite] = () => null,
+                [Fields.FlareAnimation] = () => null,
                 [Fields.FlareStaticSprite] = () => null,
                 [Fields.Items] = () => null,
                 [Fields.LookupContainer] = () => null,
                 [Fields.Outposts] = () => null,
+                [Fields.ShipAnimation] = () => null,
                 [Fields.ShipSprite] = () => null,
                 [Fields.VaultPlaqueSprite] = () => null,
             };
@@ -5941,10 +6017,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Computed] = () => Computed,
                 [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
+                [Fields.FlareAnimation] = () => FlareAnimation,
                 [Fields.FlareStaticSprite] = () => FlareStaticSprite,
                 [Fields.Items] = () => Items,
                 [Fields.LookupContainer] = () => LookupContainer,
                 [Fields.Outposts] = () => Outposts,
+                [Fields.ShipAnimation] = () => ShipAnimation,
                 [Fields.ShipSprite] = () => ShipSprite,
                 [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
             };

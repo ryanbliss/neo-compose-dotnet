@@ -222,11 +222,11 @@ MonoBehaviour:
     fileName: Vault plaque.png
     assetPath: Assets/Resources/Neo/Files/Sprites/02e201f3-f061-4310-bdde-54e2dd905634-Vault
       plaque.png
-    fileUpdatedAt: 1781250476480
-    lastDownloadedAt: 2026-06-12T08:02:11.0284610Z
-    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
-    templateUpdatedAt: 1778704802135
-    lastAppliedTemplateEditsAt: 2026-06-12T08:02:11.0284610Z
+    fileUpdatedAt: 1781252783251
+    lastDownloadedAt: 2026-06-12T08:35:09.3599930Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
     importSettingsVersion: 2026-05-13.2
     sprites:
     - {fileID: 630333986, guid: 7cd858dc189c64ef3ae8a25d1c4fc032, type: 3}
@@ -236,11 +236,11 @@ MonoBehaviour:
     fileName: First world icon.png
     assetPath: Assets/Resources/Neo/Files/Sprites/4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First
       world icon.png
-    fileUpdatedAt: 1781250488562
-    lastDownloadedAt: 2026-06-12T08:02:11.2260030Z
-    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
-    templateUpdatedAt: 1778704802135
-    lastAppliedTemplateEditsAt: 2026-06-12T08:02:11.2260030Z
+    fileUpdatedAt: 1781252789252
+    lastDownloadedAt: 2026-06-12T08:35:09.5348250Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
     importSettingsVersion: 2026-05-13.2
     sprites:
     - {fileID: 819957846, guid: a8d2914a4e8c8425aaa0b44e6ae31561, type: 3}

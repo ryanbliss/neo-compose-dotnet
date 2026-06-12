@@ -26,8 +26,8 @@ namespace HelloWorld.Assets.Scripts
         };
 
         private RectTransform map;
-        private RawImage ship;
-        private RawImage flareOverlay;
+        private Image ship;
+        private Image flareOverlay;
         private MapAnimator animator;
         private readonly Dictionary<string, Button> planetButtons = new();
         private readonly Dictionary<string, Image> planetImages = new();
@@ -42,20 +42,20 @@ namespace HelloWorld.Assets.Scripts
 
             var shipRect = SampleUI.CreateRect(map, "Ship");
             shipRect.sizeDelta = new Vector2(48f, 48f);
-            ship = shipRect.gameObject.AddComponent<RawImage>();
+            ship = shipRect.gameObject.AddComponent<Image>();
             ship.raycastTarget = false;
+            ship.preserveAspect = true;
             ship.enabled = false;
-            ship.uvRect = new Rect(0f, 0f, 0.25f, 1f);
 
             var flareRect = SampleUI.CreateRect(map, "FlareStatic");
             flareRect.anchorMin = Vector2.zero;
             flareRect.anchorMax = Vector2.one;
             flareRect.offsetMin = Vector2.zero;
             flareRect.offsetMax = Vector2.zero;
-            flareOverlay = flareRect.gameObject.AddComponent<RawImage>();
+            flareOverlay = flareRect.gameObject.AddComponent<Image>();
             flareOverlay.raycastTarget = false;
             flareOverlay.color = new Color(1f, 1f, 1f, 0f);
-            flareOverlay.uvRect = new Rect(0f, 0f, 1f / 3f, 1f);
+            flareOverlay.type = Image.Type.Tiled;
 
             animator = map.gameObject.AddComponent<MapAnimator>();
             animator.Bind(ship, flareOverlay);
@@ -65,21 +65,14 @@ namespace HelloWorld.Assets.Scripts
             IReadOnlyList<ReadOnlyOutpost> outposts,
             ReadOnlyOutpost currentOutpost,
             int storm,
-            Sprite shipSprite,
-            Sprite flareSprite,
+            ReadOnlyAnimationInfo shipAnimation,
+            ReadOnlyAnimationInfo flareAnimation,
             Action<ReadOnlyOutpost> onVisitOutpost)
         {
-            // Art arrives through the project schema (Assets.ShipSprite /
-            // FlareStaticSprite) — the same pipeline as every planet sprite.
-            if (ship.texture == null && shipSprite != null)
-            {
-                ship.texture = shipSprite.texture;
-                ship.enabled = true;
-            }
-            if (flareOverlay.texture == null && flareSprite != null)
-            {
-                flareOverlay.texture = flareSprite.texture;
-            }
+            // Animations are authored data (AnimationInfo records with frame
+            // sprites + FPS) — exactly the RotateEarth pattern, driven from
+            // the schema rather than hand-rolled UV tricks.
+            animator.SetAnimations(shipAnimation, flareAnimation);
             var positions = LayoutPositions(outposts);
             foreach (var outpost in outposts)
             {
@@ -192,8 +185,10 @@ namespace HelloWorld.Assets.Scripts
         /// </summary>
         private sealed class MapAnimator : MonoBehaviour
         {
-            private RawImage ship;
-            private RawImage flare;
+            private Image ship;
+            private Image flare;
+            private ReadOnlyAnimationInfo shipAnimation;
+            private ReadOnlyAnimationInfo flareAnimation;
             private RectTransform target;
             private Vector2 from;
             private float flight;
@@ -202,13 +197,23 @@ namespace HelloWorld.Assets.Scripts
             private int storm;
             private float frameTimer;
             private int frame;
+            private float flareTimer;
+            private int flareFrame;
 
             public bool Traveling => target != null;
 
-            public void Bind(RawImage shipImage, RawImage flareImage)
+            public void Bind(Image shipImage, Image flareImage)
             {
                 ship = shipImage;
                 flare = flareImage;
+            }
+
+            public void SetAnimations(
+                ReadOnlyAnimationInfo shipInfo,
+                ReadOnlyAnimationInfo flareInfo)
+            {
+                shipAnimation = shipInfo;
+                flareAnimation = flareInfo;
             }
 
             public void SetStorm(int value) => storm = value;
@@ -239,14 +244,23 @@ namespace HelloWorld.Assets.Scripts
             {
                 if (ship == null) return;
 
-                // Thruster frames: quick pulse while flying, lazy idle otherwise.
-                frameTimer += Time.deltaTime;
-                var frameLength = Traveling ? 0.07f : 0.22f;
-                if (frameTimer >= frameLength)
+                // Thruster frames from the authored animation: its FPS at
+                // idle, double-time while flying.
+                if (shipAnimation != null && shipAnimation.Frames.Count > 0)
                 {
-                    frameTimer = 0f;
-                    frame = (frame + 1) % 4;
-                    ship.uvRect = new Rect(frame * 0.25f, 0f, 0.25f, 1f);
+                    frameTimer += Time.deltaTime;
+                    var fps = Mathf.Max(1, shipAnimation.FPS) * (Traveling ? 2f : 1f);
+                    if (frameTimer >= 1f / fps)
+                    {
+                        frameTimer = 0f;
+                        frame = (frame + 1) % shipAnimation.Frames.Count;
+                        var sprite = shipAnimation.Frames[frame];
+                        if (sprite != null)
+                        {
+                            ship.sprite = sprite;
+                            ship.enabled = true;
+                        }
+                    }
                 }
 
                 var rect = (RectTransform)ship.transform;
@@ -274,15 +288,22 @@ namespace HelloWorld.Assets.Scripts
                         44f + Mathf.Sin(Time.time * 1.6f) * 3f);
                 }
 
-                if (flare != null && flare.texture != null)
+                if (flare != null && flareAnimation != null && flareAnimation.Frames.Count > 0)
                 {
-                    // Storm static: frames jitter, alpha scales with the index.
+                    // Storm static: authored frames at authored FPS, alpha
+                    // scaling with the storm index.
                     var alpha = Mathf.Clamp01(storm / 14f) * 0.38f;
                     flare.color = new Color(1f, 1f, 1f, alpha);
-                    if (alpha > 0f && Time.frameCount % 6 == 0)
+                    if (alpha > 0f)
                     {
-                        var slice = UnityEngine.Random.Range(0, 3);
-                        flare.uvRect = new Rect(slice / 3f, 0f, 1f / 3f, 1f);
+                        flareTimer += Time.deltaTime;
+                        if (flareTimer >= 1f / Mathf.Max(1, flareAnimation.FPS))
+                        {
+                            flareTimer = 0f;
+                            flareFrame = (flareFrame + 1) % flareAnimation.Frames.Count;
+                            var sprite = flareAnimation.Frames[flareFrame];
+                            if (sprite != null) flare.sprite = sprite;
+                        }
                     }
                 }
             }
