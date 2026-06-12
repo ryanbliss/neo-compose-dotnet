@@ -26,6 +26,9 @@ public sealed class Save
     [NeoDictionary("f977a94e-aa40-414c-9812-dacdd50110a8", EntryChainJson = @"[{""customTypeId"":""8ccfe860-309f-428b-b74c-76a873bdea8a"",""defaultValue"":{""value"":{}},""extendsAttributeId"":null,""id"":""42d3d49d-3ba8-4672-ad54-53dc109697fc"",""locked"":false,""name"":""OutpostSaveData"",""required"":false,""system"":null,""type"":7}]", DefaultJson = @"{""value"":{}}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
     public IReadOnlyDictionary<string, OutpostSaveData> OutpostSaveMap { get; init; }
 
+    [NeoObject("4868ab84-027a-405d-bfca-d04d4d4917fa", DefaultJson = @"{""value"":{}}")]
+    public QuestState Quest { get; init; }
+
     [NeoList("c151eda4-ecce-4edf-988d-25a97c657146", EntryChainJson = @"[{""customTypeId"":""7755a905-f2a1-4e5d-8b60-78cbdd2b2042"",""defaultValue"":{""value"":{}},""extendsAttributeId"":null,""id"":""659589fe-95b2-472f-a53b-e305db97450f"",""locked"":false,""name"":""visits"",""required"":true,""type"":7}]", DefaultJson = @"{""value"":[]}", ExtraJson = @"{""extendsAttributeId"":null}")]
     public IReadOnlyList<PlanetVisit> Visited { get; init; }
 
