@@ -319,6 +319,31 @@ namespace HelloWorld.Assets.Tests
                 "Mercurial's intro must never regress the stage");
         }
 
+        [Test]
+        public void FlareOverflow_RebootsWorld_KeepsCargo_AndColdBootGreets()
+        {
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            var neo = GameplayNeo(gameplay);
+            foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+
+            // Earn some cargo first (Iowan's intro grants Storm Corn).
+            var iowan = gameplay.Outposts.First(o => o.Name == "Iowan");
+            WalkIntro(neo, iowan);
+            var cargoBeforeCrash = neo.Save.Inventory.Count;
+            Assert.Greater(cargoBeforeCrash, 0, "intro should have granted cargo");
+
+            neo.Save.Quest.FlareClock = HelloWorldGameplay.FlareOverflowThreshold;
+            gameplay.RebootAfterCrash();
+
+            Assert.AreEqual(1, neo.Save.Quest.Reruns, "a crash is a rerun");
+            Assert.AreEqual(0, neo.Save.Quest.FlareClock, "the reboot clears the clock");
+            Assert.AreEqual(Planet.earth, gameplay.World, "reboots wake up at the Capitol");
+            Assert.AreEqual(
+                cargoBeforeCrash,
+                neo.Save.Inventory.Count,
+                "cargo impossibly persists across the reboot — that's the clue");
+        }
+
         private static void WalkIntro(HelloWorldNeo neo, ReadOnlyOutpost outpost)
         {
             Assert.IsTrue(

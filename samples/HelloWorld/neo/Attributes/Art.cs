@@ -23,6 +23,9 @@ public sealed class Art
     [NeoSprite("7d53ed57-05e7-47f9-a805-f7917b77dc55")]
     public NeoSpriteValue ShipSprite { get; init; }
 
+    [NeoSprite("dfa0872f-9f3e-4083-8244-9f6d0fa88f8b")]
+    public NeoSpriteValue SunSprite { get; init; }
+
     [NeoSprite("20d4dfe4-935c-441d-b2c2-ca8052c5a96e")]
     public NeoSpriteValue VaultPlaqueSprite { get; init; }
 }

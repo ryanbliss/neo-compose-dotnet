@@ -5073,6 +5073,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public Sprite SunSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("SunSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'SunSprite' has no synchronized asset.");
+            }
+        }
+
         public Sprite VaultPlaqueSprite
         {
             get
@@ -5096,6 +5105,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
 
+            public static readonly NeoField<Sprite> SunSprite = new("SunSprite");
+
             public static readonly NeoField<Sprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
         }
 
@@ -5108,6 +5119,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.FlareStaticSprite] = () => null,
                 [Fields.ShipAnimation] = () => null,
                 [Fields.ShipSprite] = () => null,
+                [Fields.SunSprite] = () => null,
                 [Fields.VaultPlaqueSprite] = () => null,
             };
         }
@@ -5131,6 +5143,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.FlareStaticSprite] = () => FlareStaticSprite,
                 [Fields.ShipAnimation] = () => ShipAnimation,
                 [Fields.ShipSprite] = () => ShipSprite,
+                [Fields.SunSprite] = () => SunSprite,
                 [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
             };
         }
@@ -5155,12 +5168,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Art(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, ShipSprite, VaultPlaqueSprite, FlareAnimation, ShipAnimation))
+        public Art(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite SunSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, ShipSprite, SunSprite, VaultPlaqueSprite, FlareAnimation, ShipAnimation))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite SunSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -5200,6 +5213,15 @@ namespace HelloWorld.Assets.Scripts.Neo
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = NeoGeneratedTypesSupport.SpriteValue(client, ShipSprite),
+            });
+            var SunSpriteValueId = Guid.NewGuid().ToString();
+            value["SunSprite"] = SunSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = SunSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, SunSprite),
             });
             var VaultPlaqueSpriteValueId = Guid.NewGuid().ToString();
             value["VaultPlaqueSprite"] = VaultPlaqueSpriteValueId;
@@ -5300,6 +5322,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new Sprite SunSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("SunSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'SunSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "SunSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
         public new Sprite VaultPlaqueSprite
         {
             get
@@ -5327,6 +5362,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
 
+            public static readonly NeoField<Sprite> SunSprite = new("SunSprite");
+
             public static readonly NeoField<Sprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
         }
 
@@ -5339,6 +5376,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.FlareStaticSprite] = () => null,
                 [Fields.ShipAnimation] = () => null,
                 [Fields.ShipSprite] = () => null,
+                [Fields.SunSprite] = () => null,
                 [Fields.VaultPlaqueSprite] = () => null,
             };
         }
@@ -5362,6 +5400,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.FlareStaticSprite] = () => FlareStaticSprite,
                 [Fields.ShipAnimation] = () => ShipAnimation,
                 [Fields.ShipSprite] = () => ShipSprite,
+                [Fields.SunSprite] = () => SunSprite,
                 [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
             };
         }
@@ -5998,6 +6037,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public int Reruns
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Reruns")) ?? throw new InvalidOperationException("Required int 'Reruns' has no value.");
+            }
+        }
+
         public QuestStage Stage
         {
             get
@@ -6023,6 +6070,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<string> NextHint = new("NextHint");
 
+            public static readonly NeoField<int> Reruns = new("Reruns");
+
             public static readonly NeoField<QuestStage> Stage = new("Stage");
         }
 
@@ -6036,6 +6085,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.EvidenceLedger] = () => null,
                 [Fields.FlareClock] = () => null,
                 [Fields.NextHint] = () => null,
+                [Fields.Reruns] = () => null,
                 [Fields.Stage] = () => null,
             };
         }
@@ -6060,6 +6110,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.EvidenceLedger] = () => EvidenceLedger,
                 [Fields.FlareClock] = () => FlareClock,
                 [Fields.NextHint] = () => NextHint,
+                [Fields.Reruns] = () => Reruns,
                 [Fields.Stage] = () => Stage,
             };
         }
@@ -6084,12 +6135,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public QuestState(WorldEnding? Ending = null, bool? EvidenceArchive = null, bool? EvidenceFaith = null, bool? EvidenceLedger = null, int? FlareClock = null, QuestStage? Stage = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Ending, EvidenceArchive, EvidenceFaith, EvidenceLedger, FlareClock, Stage))
+        public QuestState(WorldEnding? Ending = null, bool? EvidenceArchive = null, bool? EvidenceFaith = null, bool? EvidenceLedger = null, int? FlareClock = null, int? Reruns = null, QuestStage? Stage = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Ending, EvidenceArchive, EvidenceFaith, EvidenceLedger, FlareClock, Reruns, Stage))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(WorldEnding? Ending = null, bool? EvidenceArchive = null, bool? EvidenceFaith = null, bool? EvidenceLedger = null, int? FlareClock = null, QuestStage? Stage = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(WorldEnding? Ending = null, bool? EvidenceArchive = null, bool? EvidenceFaith = null, bool? EvidenceLedger = null, int? FlareClock = null, int? Reruns = null, QuestStage? Stage = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -6153,6 +6204,18 @@ namespace HelloWorld.Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = FlareClock.HasValue ? FlareClock.Value : (double?)null,
+                });
+            }
+            if (Reruns is not null)
+            {
+                var RerunsValueId = Guid.NewGuid().ToString();
+                value["Reruns"] = RerunsValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = RerunsValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Reruns.HasValue ? Reruns.Value : (double?)null,
                 });
             }
             if (Stage is not null)
@@ -6253,6 +6316,18 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new int Reruns
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Reruns")) ?? throw new InvalidOperationException("Required int 'Reruns' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Reruns", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
         public new QuestStage Stage
         {
             get
@@ -6282,6 +6357,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<string> NextHint = new("NextHint");
 
+            public static readonly NeoField<int> Reruns = new("Reruns");
+
             public static readonly NeoField<QuestStage> Stage = new("Stage");
         }
 
@@ -6295,6 +6372,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.EvidenceLedger] = () => null,
                 [Fields.FlareClock] = () => null,
                 [Fields.NextHint] = () => null,
+                [Fields.Reruns] = () => null,
                 [Fields.Stage] = () => null,
             };
         }
@@ -6319,6 +6397,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.EvidenceLedger] = () => EvidenceLedger,
                 [Fields.FlareClock] = () => FlareClock,
                 [Fields.NextHint] = () => NextHint,
+                [Fields.Reruns] = () => Reruns,
                 [Fields.Stage] = () => Stage,
             };
         }

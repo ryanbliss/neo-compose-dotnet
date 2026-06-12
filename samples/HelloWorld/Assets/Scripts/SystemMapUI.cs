@@ -11,11 +11,11 @@ using UnityEngine.UI;
 namespace HelloWorld.Assets.Scripts
 {
     /// <summary>
-    /// The pixel-art system map: planet sprites laid out in solar order, a
-    /// little ship that flies between them when you travel, and a flare-static
-    /// overlay that thickens with the storm index (hello-world-plot.md §8).
-    /// Replaces the old outpost button grid. All art ships through the project
-    /// schema's Files (synced into Resources/Neo/Files/Sprites).
+    /// The living system map: a pixel sun at the center, planets on slow
+    /// elliptical orbits (angular speed falls off Kepler-style with radius),
+    /// moons circling their planet, the ship riding its current outpost, and
+    /// flare static that thickens as the storm builds. All art ships through
+    /// the project schema's Files (synced into Resources/Neo/Files/Sprites).
     /// </summary>
     public sealed class SystemMapUI
     {
@@ -26,6 +26,8 @@ namespace HelloWorld.Assets.Scripts
         };
 
         private RectTransform map;
+        private Image background;
+        private Image sun;
         private Image ship;
         private Image flareOverlay;
         private MapAnimator animator;
@@ -38,8 +40,16 @@ namespace HelloWorld.Assets.Scripts
         {
             map = SampleUI.CreateRect(parent, "SystemMap");
             map.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
-            var background = map.gameObject.AddComponent<Image>();
-            background.color = new Color(0.03f, 0.04f, 0.09f, 0.9f);
+            background = map.gameObject.AddComponent<Image>();
+            background.color = CalmSpace;
+
+            var sunRect = SampleUI.CreateRect(map, "Sun");
+            sunRect.anchorMin = sunRect.anchorMax = new Vector2(0.5f, 0.5f);
+            sunRect.sizeDelta = new Vector2(96f, 96f);
+            sun = sunRect.gameObject.AddComponent<Image>();
+            sun.raycastTarget = false;
+            sun.preserveAspect = true;
+            sun.enabled = false;
 
             var shipRect = SampleUI.CreateRect(map, "Ship");
             shipRect.sizeDelta = new Vector2(48f, 48f);
@@ -59,8 +69,10 @@ namespace HelloWorld.Assets.Scripts
             flareOverlay.type = Image.Type.Tiled;
 
             animator = map.gameObject.AddComponent<MapAnimator>();
-            animator.Bind(ship, flareOverlay);
+            animator.Bind(ship, sun, flareOverlay, background);
         }
+
+        private static readonly Color CalmSpace = new(0.03f, 0.04f, 0.09f, 0.96f);
 
         public void Render(
             IReadOnlyList<ReadOnlyOutpost> outposts,
@@ -68,16 +80,22 @@ namespace HelloWorld.Assets.Scripts
             int storm,
             ReadOnlyAnimationInfo shipAnimation,
             ReadOnlyAnimationInfo flareAnimation,
+            Sprite sunSprite,
             AudioClip thrustSfx,
+            Func<ReadOnlyOutpost, bool> hasNewContent,
             Action<ReadOnlyOutpost> onVisitOutpost)
         {
-            // Animations are authored data (AnimationInfo records with frame
-            // sprites + FPS) — exactly the RotateEarth pattern, driven from
-            // the schema rather than hand-rolled UV tricks. The thrust loop is
-            // authored audio from the same Assets container.
+            // Animations & art are authored data (AnimationInfo records and
+            // sprite values) — driven from the schema, never hand-rolled.
             animator.SetAnimations(shipAnimation, flareAnimation);
             animator.SetThrustClip(thrustSfx);
-            var positions = LayoutPositions(outposts);
+            if (sunSprite != null)
+            {
+                sun.sprite = sunSprite;
+                sun.enabled = true;
+            }
+
+            var orbits = BuildOrbits(outposts);
             foreach (var outpost in outposts)
             {
                 var captured = outpost;
@@ -86,11 +104,9 @@ namespace HelloWorld.Assets.Scripts
                 var isCurrent = outpost.valueId == currentOutpost.valueId;
                 if (!planetButtons.TryGetValue(key, out var button))
                 {
-                    button = CreatePlanetMarker(outpost, positions[key]);
+                    button = CreatePlanetMarker(outpost);
                     planetButtons[key] = button;
                 }
-                var rect = (RectTransform)button.transform;
-                rect.anchorMin = rect.anchorMax = positions[key];
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() =>
                 {
@@ -106,24 +122,26 @@ namespace HelloWorld.Assets.Scripts
                     ? Color.white
                     : new Color(0.32f, 0.35f, 0.42f, 0.6f);
 
-                // "Somebody new to meet": unlocked but never visited.
+                // "There is something to DO here" — a live dialogue would
+                // trigger right now (intro or a newly opened conversation).
                 planetBadges[key].SetActive(
-                    unlocked && !isCurrent && outpost.Save.VisitCount == 0);
+                    unlocked && !isCurrent && hasNewContent(outpost));
             }
 
             animator.SetStorm(storm);
+            animator.SetOrbits(orbits, planetButtons);
             if (shipAtValueId != currentOutpost.valueId &&
                 planetButtons.TryGetValue(currentOutpost.valueId, out var home))
             {
                 shipAtValueId = currentOutpost.valueId;
-                animator.SnapTo((RectTransform)home.transform);
+                animator.RideWith((RectTransform)home.transform);
             }
         }
 
-        private Button CreatePlanetMarker(ReadOnlyOutpost outpost, Vector2 anchor)
+        private Button CreatePlanetMarker(ReadOnlyOutpost outpost)
         {
             var rect = SampleUI.CreateRect(map, $"Planet {outpost.FullDisplayText}");
-            rect.anchorMin = rect.anchorMax = anchor;
+            rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.sizeDelta = new Vector2(56f, 72f);
             var button = rect.gameObject.AddComponent<Button>();
 
@@ -140,7 +158,7 @@ namespace HelloWorld.Assets.Scripts
             planetImages[outpost.valueId] = icon;
             button.targetGraphic = icon;
 
-            var badgeRect = SampleUI.CreateRect(iconRect, "UnvisitedBadge");
+            var badgeRect = SampleUI.CreateRect(iconRect, "ContentBadge");
             badgeRect.anchorMin = badgeRect.anchorMax = new Vector2(1f, 1f);
             badgeRect.pivot = new Vector2(0.7f, 0.5f);
             badgeRect.sizeDelta = new Vector2(20f, 20f);
@@ -170,34 +188,42 @@ namespace HelloWorld.Assets.Scripts
             return button;
         }
 
-        /// <summary>Solar order left-to-right; moon outposts fan out vertically.</summary>
-        private static Dictionary<string, Vector2> LayoutPositions(
+        /// <summary>
+        /// One orbit per outpost: planets ride ellipses around the sun with
+        /// Kepler-ish periods (outer = slower); co-orbiting outposts (moons of
+        /// the same world) circle their shared planet point.
+        /// </summary>
+        private static Dictionary<string, OrbitSpec> BuildOrbits(
             IReadOnlyList<ReadOnlyOutpost> outposts)
         {
-            var positions = new Dictionary<string, Vector2>();
+            var orbits = new Dictionary<string, OrbitSpec>();
             var byPlanet = outposts
                 .GroupBy(outpost => outpost.Planet.optionId)
                 .ToDictionary(group => group.Key, group => group.ToList());
-            var planetCount = SolarOrder.Count(planet => byPlanet.ContainsKey(planet));
-            var column = 0;
-            foreach (var planet in SolarOrder)
+            var present = SolarOrder.Where(byPlanet.ContainsKey).ToArray();
+            for (var ring = 0; ring < present.Length; ring++)
             {
-                if (!byPlanet.TryGetValue(planet, out var locals)) continue;
-                var x = planetCount <= 1
-                    ? 0.5f
-                    : 0.06f + 0.88f * (column / (float)(planetCount - 1));
-                // Gentle orbital wave so it reads as a system, not a chart.
-                var baseY = 0.58f + 0.16f * Mathf.Sin(column * 1.05f);
+                var locals = byPlanet[present[ring]];
+                float t = present.Length <= 1 ? 0f : ring / (float)(present.Length - 1);
+                float rx = Mathf.Lerp(0.085f, 0.47f, t);
+                float ry = rx * 0.62f;
+                // Kepler-flavored: T ~ r^1.5; innermost ring ~70s per lap.
+                float period = 70f * Mathf.Pow((ring + 1f), 1.5f) / 1f;
+                float phase = ring * 2.39996f; // golden-angle spread
                 for (var i = 0; i < locals.Count; i++)
                 {
-                    var y = locals.Count == 1
-                        ? baseY
-                        : baseY + (i - (locals.Count - 1) / 2f) * 0.24f;
-                    positions[locals[i].valueId] = new Vector2(x, Mathf.Clamp(y, 0.14f, 0.9f));
+                    orbits[locals[i].valueId] = new OrbitSpec
+                    {
+                        rx = rx,
+                        ry = ry,
+                        angularSpeed = 2f * Mathf.PI / period,
+                        phase = phase,
+                        moonIndex = locals.Count == 1 ? -1 : i,
+                        moonCount = locals.Count,
+                    };
                 }
-                column++;
             }
-            return positions;
+            return orbits;
         }
 
         private static Sprite TryImage(ReadOnlyOutpost outpost)
@@ -206,16 +232,32 @@ namespace HelloWorld.Assets.Scripts
             catch (Exception) { return null; }
         }
 
+        internal struct OrbitSpec
+        {
+            public float rx;
+            public float ry;
+            public float angularSpeed;
+            public float phase;
+            public int moonIndex;
+            public int moonCount;
+        }
+
         /// <summary>
-        /// Drives the ship's thruster frames, idle bob, travel flights, and the
-        /// flare static. A MonoBehaviour so the map needs no external runner.
+        /// Drives orbital motion, the sun's breathing glow, the ship's
+        /// thruster frames + flights, and the storm static/tint. A
+        /// MonoBehaviour so the map needs no external runner.
         /// </summary>
         private sealed class MapAnimator : MonoBehaviour
         {
             private Image ship;
+            private Image sun;
             private Image flare;
+            private Image background;
             private ReadOnlyAnimationInfo shipAnimation;
             private ReadOnlyAnimationInfo flareAnimation;
+            private Dictionary<string, OrbitSpec> orbits;
+            private Dictionary<string, Button> markers;
+            private RectTransform ride;
             private RectTransform target;
             private Vector2 from;
             private float flight;
@@ -231,10 +273,12 @@ namespace HelloWorld.Assets.Scripts
 
             public bool Traveling => target != null;
 
-            public void Bind(Image shipImage, Image flareImage)
+            public void Bind(Image shipImage, Image sunImage, Image flareImage, Image backgroundImage)
             {
                 ship = shipImage;
+                sun = sunImage;
                 flare = flareImage;
+                background = backgroundImage;
             }
 
             public void SetAnimations(
@@ -245,15 +289,27 @@ namespace HelloWorld.Assets.Scripts
                 flareAnimation = flareInfo;
             }
 
+            public void SetOrbits(
+                Dictionary<string, OrbitSpec> orbitSpecs,
+                Dictionary<string, Button> planetMarkers)
+            {
+                orbits = orbitSpecs;
+                markers = planetMarkers;
+            }
+
             public void SetStorm(int value) => storm = value;
 
             public void SetThrustClip(AudioClip clip) => thrustClip = clip;
 
-            public void SnapTo(RectTransform planet)
+            /// <summary>The ship follows this marker as it orbits.</summary>
+            public void RideWith(RectTransform planet)
             {
-                var rect = (RectTransform)ship.transform;
-                rect.anchorMin = rect.anchorMax = planet.anchorMin;
-                rect.anchoredPosition = new Vector2(0f, 44f);
+                ride = planet;
+                if (!Traveling)
+                {
+                    var rect = (RectTransform)ship.transform;
+                    rect.anchorMin = rect.anchorMax = planet.anchorMin;
+                }
             }
 
             public void FlyTo(RectTransform planet, Action arrived)
@@ -266,9 +322,6 @@ namespace HelloWorld.Assets.Scripts
                     0.55f,
                     Vector2.Distance(from, planet.anchorMin) * 3.2f);
                 onArrive = arrived;
-                // Face the direction of travel (sheet faces right).
-                ship.transform.localScale = new Vector3(
-                    planet.anchorMin.x >= from.x ? 1f : -1f, 1f, 1f);
                 StartThrust();
             }
 
@@ -290,31 +343,75 @@ namespace HelloWorld.Assets.Scripts
             {
                 if (ship == null) return;
 
-                // Thruster frames from the authored animation: its FPS at
-                // idle, double-time while flying.
-                if (shipAnimation != null && shipAnimation.Frames.Count > 0)
+                AdvanceOrbits();
+                PulseSun();
+                AnimateShipFrames();
+                MoveShip();
+                AnimateStorm();
+            }
+
+            private void AdvanceOrbits()
+            {
+                if (orbits == null || markers == null) return;
+                float now = Time.time;
+                foreach (var pair in orbits)
                 {
-                    frameTimer += Time.deltaTime;
-                    var fps = Mathf.Max(1, shipAnimation.FPS) * (Traveling ? 2f : 1f);
-                    if (frameTimer >= 1f / fps)
+                    if (!markers.TryGetValue(pair.Key, out var button)) continue;
+                    var spec = pair.Value;
+                    float angle = spec.phase + now * spec.angularSpeed;
+                    var center = new Vector2(
+                        0.5f + spec.rx * Mathf.Cos(angle),
+                        0.5f + spec.ry * Mathf.Sin(angle));
+                    if (spec.moonIndex >= 0)
                     {
-                        frameTimer = 0f;
-                        frame = (frame + 1) % shipAnimation.Frames.Count;
-                        var sprite = shipAnimation.Frames[frame];
-                        if (sprite != null)
-                        {
-                            ship.sprite = sprite;
-                            ship.enabled = true;
-                        }
+                        // Moons share the planet point and circle it briskly.
+                        float moonAngle = now * spec.angularSpeed * 7f
+                            + spec.moonIndex * (2f * Mathf.PI / spec.moonCount);
+                        center += new Vector2(
+                            0.05f * Mathf.Cos(moonAngle),
+                            0.038f * Mathf.Sin(moonAngle));
+                    }
+                    var rect = (RectTransform)button.transform;
+                    rect.anchorMin = rect.anchorMax = center;
+                }
+            }
+
+            private void PulseSun()
+            {
+                if (sun == null || !sun.enabled) return;
+                float pulse = 1f + 0.05f * Mathf.Sin(Time.time * 1.1f);
+                sun.transform.localScale = new Vector3(pulse, pulse, 1f);
+            }
+
+            private void AnimateShipFrames()
+            {
+                if (shipAnimation == null || shipAnimation.Frames.Count == 0) return;
+                frameTimer += Time.deltaTime;
+                var fps = Mathf.Max(1, shipAnimation.FPS) * (Traveling ? 2f : 1f);
+                if (frameTimer >= 1f / fps)
+                {
+                    frameTimer = 0f;
+                    frame = (frame + 1) % shipAnimation.Frames.Count;
+                    var sprite = shipAnimation.Frames[frame];
+                    if (sprite != null)
+                    {
+                        ship.sprite = sprite;
+                        ship.enabled = true;
                     }
                 }
+            }
 
+            private void MoveShip()
+            {
                 var rect = (RectTransform)ship.transform;
                 if (Traveling)
                 {
                     flight += Time.deltaTime / flightDuration;
                     var eased = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(flight));
+                    // The destination keeps orbiting mid-flight; chase it.
                     var anchor = Vector2.Lerp(from, target.anchorMin, eased);
+                    ship.transform.localScale = new Vector3(
+                        target.anchorMin.x >= from.x ? 1f : -1f, 1f, 1f);
                     rect.anchorMin = rect.anchorMax = anchor;
                     rect.anchoredPosition = new Vector2(
                         0f,
@@ -322,36 +419,52 @@ namespace HelloWorld.Assets.Scripts
                     if (flight >= 1f)
                     {
                         var arrived = onArrive;
+                        ride = target;
                         target = null;
                         onArrive = null;
                         if (thrust != null) thrust.Stop();
                         arrived?.Invoke();
                     }
-                }
-                else
-                {
-                    rect.anchoredPosition = new Vector2(
-                        0f,
-                        44f + Mathf.Sin(Time.time * 1.6f) * 3f);
+                    return;
                 }
 
-                if (flare != null && flareAnimation != null && flareAnimation.Frames.Count > 0)
+                if (ride != null)
                 {
-                    // Storm static: authored frames at authored FPS, alpha
-                    // scaling with the storm index.
-                    var alpha = Mathf.Clamp01(storm / 14f) * 0.38f;
-                    flare.color = new Color(1f, 1f, 1f, alpha);
-                    if (alpha > 0f)
-                    {
-                        flareTimer += Time.deltaTime;
-                        if (flareTimer >= 1f / Mathf.Max(1, flareAnimation.FPS))
-                        {
-                            flareTimer = 0f;
-                            flareFrame = (flareFrame + 1) % flareAnimation.Frames.Count;
-                            var sprite = flareAnimation.Frames[flareFrame];
-                            if (sprite != null) flare.sprite = sprite;
-                        }
-                    }
+                    rect.anchorMin = rect.anchorMax = ride.anchorMin;
+                }
+                rect.anchoredPosition = new Vector2(
+                    0f,
+                    44f + Mathf.Sin(Time.time * 1.6f) * 3f);
+            }
+
+            private void AnimateStorm()
+            {
+                // The dread ramps: static density eases in quadratically and
+                // space itself reddens as the clock climbs toward overflow.
+                float intensity = Mathf.Clamp01(storm / 12f);
+                if (background != null)
+                {
+                    background.color = Color.Lerp(
+                        CalmSpace,
+                        new Color(0.16f, 0.04f, 0.06f, 0.97f),
+                        intensity * intensity);
+                }
+                if (flare == null || flareAnimation == null || flareAnimation.Frames.Count == 0)
+                {
+                    return;
+                }
+                float alpha = intensity * intensity * 0.5f;
+                flare.color = new Color(1f, 1f, 1f, alpha);
+                if (alpha <= 0f) return;
+                flareTimer += Time.deltaTime;
+                // Static flickers faster as the storm worsens.
+                float fps = Mathf.Max(1, flareAnimation.FPS) * (1f + intensity * 2f);
+                if (flareTimer >= 1f / fps)
+                {
+                    flareTimer = 0f;
+                    flareFrame = (flareFrame + 1) % flareAnimation.Frames.Count;
+                    var sprite = flareAnimation.Frames[flareFrame];
+                    if (sprite != null) flare.sprite = sprite;
                 }
             }
         }

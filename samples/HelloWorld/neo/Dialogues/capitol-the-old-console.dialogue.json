@@ -33,13 +33,17 @@
    ]
   },
   "o5": {
-   "say": "The terminal blinks, patient as scripture: AWAITING FINAL OUTPUT_"
+   "say": "The terminal blinks, patient as scripture: AWAITING FINAL OUTPUT_ Behind you the Cave Lantern gutters out, its oil spent. Its work is done."
   },
   "o4": {
    "do": [
     {
      "code": "root.Save.Quest.Stage = QuestStage.endgame;",
      "bind": "913fd757-d6ee-488e-866f-c7af41aa544b"
+    },
+    {
+     "code": "root.Save.Inventory.Remove(this);",
+     "bind": "fec825b2-2449-4ae2-a4bd-b29f8cf73e3c"
     }
    ],
    "to": "o5"

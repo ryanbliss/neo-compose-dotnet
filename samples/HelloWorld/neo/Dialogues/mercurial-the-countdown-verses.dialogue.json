@@ -45,13 +45,9 @@
     {
      "code": "root.Save.Quest.EvidenceFaith = true;",
      "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
-    },
-    {
-     "code": "if (root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"a840747f-9d6b-4d71-af3a-16b294ec436d\"; }))) { this.Save.Reputation += 1; }",
-     "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
     }
    ],
-   "to": "m5"
+   "to": "m4ask"
   },
   "m3c": {
    "do": [
@@ -63,7 +59,7 @@
    "to": "m4"
   },
   "m5": {
-   "say": "The Light does not mind being understood, seeker. Take the verses. When the counting ends, remember: even endings were written by someone who hoped to handle them gracefully. ...Thou hast geyser-salve from the singing moon? Anoint the Patriarch's burns, seeker. The Light remembers gentle hands."
+   "say": "The Light does not mind being understood, seeker. When the counting ends, remember: the verses were never a prophecy. They were a shutdown sequence."
   },
   "m1": {
    "say": "Seeker. The Patriarch will read thee the Red Nova verses in canonical order. Few outsiders hear them ordered. Sit in the Light.",
@@ -74,6 +70,35 @@
      "to": "m2"
     }
    ]
+  },
+  "m4ask": {
+   "say": "The Patriarch folds the verses into your hands. Up close, his sun-burns glisten — decades of staring into the Light.",
+   "options": [
+    {
+     "label": "Anoint",
+     "text": "Anoint his burns with the Geyser Salve",
+     "to": "give salve",
+     "if": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"a840747f-9d6b-4d71-af3a-16b294ec436d\"; }));"
+    },
+    {
+     "label": "Leave",
+     "text": "Take the verses and go",
+     "to": "m5"
+    }
+   ]
+  },
+  "give salve": {
+   "do": [
+    {
+     "code": "root.Save.Inventory.Remove(this);",
+     "bind": "a840747f-9d6b-4d71-af3a-16b294ec436d"
+    },
+    {
+     "code": "this.Save.Reputation += 1;",
+     "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
+    }
+   ],
+   "to": "m5"
   }
  }
 }

@@ -54,11 +54,15 @@ namespace HelloWorld.Assets.Scripts
         }
 
         /// <summary>
-        /// Set by the ShowRelic dialogue function: the NEXT text node presents
-        /// this sprite instead of the speaker's portrait (the relic reveal —
-        /// e.g. the vault plaque under the Capitol), then reverts.
+        /// Set by the ShowRelic dialogue function: the NEXT text node stages
+        /// this sprite LARGE in the center of the screen (the vault plaque is
+        /// this game's cake — it earns the spotlight), then it stays up until
+        /// the dialogue moves on.
         /// </summary>
         private Sprite pendingRelic;
+        private GameObject relicStage;
+        private Image relicImage;
+        private Image dimmer;
 
         public void Show(
             string name,
@@ -68,9 +72,17 @@ namespace HelloWorld.Assets.Scripts
         {
             EnsureBuilt();
             SpeakerName = name;
-            SpeakerImage = pendingRelic != null ? pendingRelic : image;
-            pendingRelic = null;
+            SpeakerImage = image;
             Text = text;
+            bool revealing = pendingRelic != null;
+            relicStage.SetActive(revealing);
+            if (revealing)
+            {
+                relicImage.sprite = pendingRelic;
+                pendingRelic = null;
+            }
+            // Darken the world harder while a relic holds the stage.
+            dimmer.color = new Color(0f, 0f, 0f, revealing ? 0.78f : 0.42f);
             ClearOptionButtons();
             root.SetActive(true);
         }
@@ -108,6 +120,11 @@ namespace HelloWorld.Assets.Scripts
         public void Reset()
         {
             speakerAnimator?.CancelActive();
+            pendingRelic = null;
+            if (relicStage != null)
+            {
+                relicStage.SetActive(false);
+            }
             if (root != null)
             {
                 root.SetActive(false);
@@ -170,6 +187,21 @@ namespace HelloWorld.Assets.Scripts
             overlay.offsetMax = Vector2.zero;
             var overlayImage = overlay.gameObject.AddComponent<Image>();
             overlayImage.color = new Color(0f, 0f, 0f, 0.42f);
+            dimmer = overlayImage;
+
+            // The relic stage: a large centered presentation above the text
+            // panel for ShowRelic reveals (the plaque deserves cake treatment).
+            var relicRect = SampleUI.CreateRect(overlay, "RelicStage");
+            relicRect.anchorMin = new Vector2(0.5f, 0.5f);
+            relicRect.anchorMax = new Vector2(0.5f, 0.5f);
+            relicRect.pivot = new Vector2(0.5f, 0.32f);
+            relicRect.anchoredPosition = new Vector2(0f, 60f);
+            relicRect.sizeDelta = new Vector2(560f, 560f);
+            relicImage = relicRect.gameObject.AddComponent<Image>();
+            relicImage.preserveAspect = true;
+            relicImage.raycastTarget = false;
+            relicRect.gameObject.SetActive(false);
+            relicStage = relicRect.gameObject;
 
             var panel = CreatePanel(overlay);
             BuildPanelContent(panel);

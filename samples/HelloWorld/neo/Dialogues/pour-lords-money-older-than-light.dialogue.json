@@ -45,16 +45,41 @@
     {
      "code": "root.Save.Quest.EvidenceLedger = true;",
      "bind": "1c9e473a-3616-4c1c-82f7-461e080c9785"
+    }
+   ],
+   "to": "p4ask"
+  },
+  "p5": {
+   "say": "Take the page. The Lords always pay debts to people who might end the world — it's just good bookkeeping."
+  },
+  "p4ask": {
+   "say": "The Margrave's decanter stands empty beside the impossible ledger. Tradition says a deal this old closes with a drink.",
+   "options": [
+    {
+     "label": "Pour",
+     "text": "Pour from your Helium-3 Flask",
+     "to": "give flask",
+     "if": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"18b9a621-ea41-4ac7-8a46-9cc443f2b480\"; }));"
     },
     {
-     "code": "if (root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"18b9a621-ea41-4ac7-8a46-9cc443f2b480\"; }))) { this.Save.Reputation += 1; }",
+     "label": "Decline",
+     "text": "Keep the flask sealed",
+     "to": "p5"
+    }
+   ]
+  },
+  "give flask": {
+   "do": [
+    {
+     "code": "root.Save.Inventory.Remove(this);",
+     "bind": "18b9a621-ea41-4ac7-8a46-9cc443f2b480"
+    },
+    {
+     "code": "this.Save.Reputation += 1;",
      "bind": "1c9e473a-3616-4c1c-82f7-461e080c9785"
     }
    ],
    "to": "p5"
-  },
-  "p5": {
-   "say": "Take the page. The Lords always pay debts to people who might end the world — it's just good accounting. ...You still carry our Helium-3 Flask. A client who keeps the vessel keeps the relationship — drinks are on the house."
   }
  }
 }

@@ -97,7 +97,31 @@ namespace HelloWorld.Assets.Scripts
             neo.Save.Location = outpost;
             neo.Save.World = outpost.Planet;
             neo.Save.Visited.Add(new PlanetVisit(outpost.Planet, CurrentUnixTime));
+            if (neo.Save.Quest.FlareClock >= FlareOverflowThreshold
+                && neo.Save.Quest.Stage != QuestStage.ended)
+            {
+                // Too slow: the world overflows and reboots. The save keeps
+                // the player's cargo — the eeriest clue there is.
+                UpdateUI();
+                coreUI.ShowCrash(RebootAfterCrash);
+                return;
+            }
             TriggerDialogue(outpost);
+        }
+
+        internal const int FlareOverflowThreshold = 12;
+
+        internal void RebootAfterCrash()
+        {
+            neo.Save.Quest.Reruns += 1;
+            neo.Save.Quest.FlareClock = 0;
+            var capitol = Outposts.First(o => o.Planet == Planet.earth);
+            neo.Save.Location = capitol;
+            neo.Save.World = Planet.earth;
+            Run(SaveWithIndicatorAsync());
+            // The greeter meets you for the "first" time — and recognizes
+            // your cargo ("Capitol: cold boot", gated on Quest.Reruns).
+            TriggerDialogue(capitol);
         }
 
         /// <summary>
@@ -296,17 +320,41 @@ namespace HelloWorld.Assets.Scripts
             coreUI.Render(
                 HelloWorldText,
                 neo.Save.Quest.NextHint,
-                HasItem("Storm Corn") ? neo.Save.Quest.FlareClock : (neo.Save.Quest.FlareClock >= 6 ? 6 : 0),
+                neo.Save.Quest.FlareClock,
+                knowsStormExact: HasItem("Storm Corn"),
                 neo.Assets.Art.ShipAnimation,
                 neo.Assets.Art.FlareAnimation,
+                neo.Assets.Art.SunSprite,
                 neo.Assets.Audio.RocketThrustSfx,
                 CurrentOutpost, Outposts,
                 neo.Save.Bits, neo.Save.Inventory.ToArray(),
+                HasDialogueAvailable,
                 OnVisitOutpost,
                 onSave: OnSaveClicked,
                 onReset: () => Run(ResetAsync()),
                 onMenu: () => OnExitToMenu?.Invoke()
             );
+        }
+
+        /// <summary>
+        /// Would visiting this outpost start a conversation right now? Trigger
+        /// evaluation is pure until <c>Start()</c>, so peeking is free — this
+        /// is what feeds the map's "something to do here" badges.
+        /// </summary>
+        private bool HasDialogueAvailable(ReadOnlyOutpost outpost)
+        {
+            if (neo == null) return false;
+            if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue intro))
+            {
+                intro.Dispose();
+                return true;
+            }
+            if (neo.Dialogues.Outposts.Visits.TryTrigger(outpost, out NeoDialogue visit))
+            {
+                visit.Dispose();
+                return true;
+            }
+            return false;
         }
 
         private void OnSaveClicked() => Run(SaveWithIndicatorAsync());

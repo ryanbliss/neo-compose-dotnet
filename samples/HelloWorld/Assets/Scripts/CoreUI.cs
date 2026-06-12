@@ -33,18 +33,24 @@ namespace HelloWorld.Assets.Scripts
         private IReadOnlyList<ReadOnlyItem> lastInventory = Array.Empty<ReadOnlyItem>();
         private int seenItemCount;
         private bool inventoryOpen;
+        private readonly List<Image> stormSegments = new();
+        private Text stormLabel;
+        private GameObject crashOverlay;
 
         public void Render(
             string text,
             string questHint,
             int storm,
+            bool knowsStormExact,
             ReadOnlyAnimationInfo shipAnimation,
             ReadOnlyAnimationInfo flareAnimation,
+            Sprite sunSprite,
             AudioClip thrustSfx,
             ReadOnlyOutpost currentOutpost,
             IReadOnlyList<ReadOnlyOutpost> outposts,
             int bits,
             IReadOnlyList<ReadOnlyItem> inventory,
+            Func<ReadOnlyOutpost, bool> hasNewContent,
             Action<ReadOnlyOutpost> onVisitOutpost,
             Action onSave,
             Action onReset,
@@ -61,10 +67,9 @@ namespace HelloWorld.Assets.Scripts
                 RebuildInventory(inventory);
             }
             UpdateInventoryChrome();
-            systemMap.Render(outposts, currentOutpost, storm, shipAnimation, flareAnimation, thrustSfx, onVisitOutpost);
-            bitsText.text = storm <= 0
-                ? $"Bits: {bits}"
-                : $"Bits: {bits}   <color=#FFAA66>Storms: {new string('▲', Math.Min(storm, 14))}</color>";
+            systemMap.Render(outposts, currentOutpost, storm, shipAnimation, flareAnimation, sunSprite, thrustSfx, hasNewContent, onVisitOutpost);
+            bitsText.text = $"Bits: {bits}";
+            UpdateStormGauge(storm, knowsStormExact);
             questText.text = string.IsNullOrEmpty(questHint)
                 ? ""
                 : $"<color=#9FD0FF>{questHint}</color>";
@@ -81,6 +86,135 @@ namespace HelloWorld.Assets.Scripts
                 RebuildInventory(lastInventory);
             }
             UpdateInventoryChrome();
+        }
+
+        /// <summary>
+        /// The flare gauge: 12 segments toward overflow. With Storm Corn the
+        /// reading is exact; without it the gauge only resolves coarse bands —
+        /// the corn's hum is the precision instrument.
+        /// </summary>
+        private void BuildStormGauge(Transform parent)
+        {
+            var gauge = SampleUI.CreateRect(parent, "StormGauge");
+            var gaugeLayout = gauge.gameObject.AddComponent<LayoutElement>();
+            gaugeLayout.preferredWidth = 330f;
+            gaugeLayout.preferredHeight = 28f;
+            var rowLayout = gauge.gameObject.AddComponent<HorizontalLayoutGroup>();
+            rowLayout.spacing = 3f;
+            rowLayout.childAlignment = TextAnchor.MiddleLeft;
+            rowLayout.childControlHeight = true;
+            rowLayout.childControlWidth = true;
+            rowLayout.childForceExpandHeight = false;
+            rowLayout.childForceExpandWidth = false;
+
+            var caption = SampleUI.CreateText(gauge, "Flare", 15, new Color(0.92f, 0.74f, 0.52f), FontStyle.Bold);
+            caption.gameObject.GetComponent<LayoutElement>().preferredWidth = 46f;
+            for (var i = 0; i < 12; i++)
+            {
+                var segment = SampleUI.CreateRect(gauge, $"Segment {i}");
+                var segmentLayout = segment.gameObject.AddComponent<LayoutElement>();
+                segmentLayout.preferredWidth = 11f;
+                segmentLayout.preferredHeight = 16f;
+                var image = segment.gameObject.AddComponent<Image>();
+                image.color = SegmentOff;
+                stormSegments.Add(image);
+            }
+            stormLabel = SampleUI.CreateText(gauge, "", 14, new Color(0.92f, 0.74f, 0.52f), FontStyle.Bold);
+            stormLabel.gameObject.GetComponent<LayoutElement>().preferredWidth = 110f;
+            stormLabel.alignment = TextAnchor.MiddleLeft;
+        }
+
+        private static readonly Color SegmentOff = new(0.16f, 0.19f, 0.26f, 0.9f);
+
+        private void UpdateStormGauge(int storm, bool knowsExact)
+        {
+            int clamped = Mathf.Clamp(storm, 0, 12);
+            // Without the corn the gauge snaps to coarse bands; the player
+            // knows the weather, not the countdown.
+            int band = storm <= 0 ? 0 : storm < 3 ? 1 : storm < 6 ? 2 : storm < 9 ? 3 : 4;
+            int lit = knowsExact ? clamped : band * 3;
+            for (var i = 0; i < stormSegments.Count; i++)
+            {
+                stormSegments[i].color = i >= lit
+                    ? SegmentOff
+                    : Color.Lerp(
+                        new Color(0.95f, 0.72f, 0.30f),
+                        new Color(0.95f, 0.25f, 0.18f),
+                        i / 11f);
+            }
+            if (knowsExact)
+            {
+                stormLabel.text = $"{clamped}/12";
+                return;
+            }
+            if (band == 0) stormLabel.text = "Calm";
+            else if (band == 1) stormLabel.text = "Restless";
+            else if (band == 2) stormLabel.text = "Surging";
+            else if (band == 3) stormLabel.text = "Tearing";
+            else stormLabel.text = "CRITICAL";
+        }
+
+        /// <summary>
+        /// The flare-overflow death screen. The world crashed; the player's
+        /// cargo — impossibly — did not.
+        /// </summary>
+        public void ShowCrash(Action onReboot)
+        {
+            if (crashOverlay != null)
+            {
+                crashOverlay.SetActive(true);
+                return;
+            }
+            var rect = SampleUI.CreateRect(root.transform, "CrashOverlay");
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            var background = rect.gameObject.AddComponent<Image>();
+            background.color = new Color(0.02f, 0.01f, 0.02f, 0.985f);
+
+            var layout = rect.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(160, 160, 140, 140);
+            layout.spacing = 18f;
+            layout.childAlignment = TextAnchor.MiddleCenter;
+            layout.childControlHeight = true;
+            layout.childControlWidth = true;
+            layout.childForceExpandHeight = false;
+            layout.childForceExpandWidth = true;
+
+            var heading = SampleUI.CreateText(rect, "FATAL: FLARE OVERFLOW", 44, new Color(0.95f, 0.30f, 0.22f), FontStyle.Bold);
+            heading.alignment = TextAnchor.MiddleCenter;
+            heading.gameObject.GetComponent<LayoutElement>().preferredHeight = 64f;
+
+            var body = SampleUI.CreateText(
+                rect,
+                "world 'HelloWorld' terminated unexpectedly (signal: SOLAR)\n" +
+                "run #2,147,483,648 — integer overflow in epoch counter\n\n" +
+                "...rebooting from factory image\n" +
+                "...restoring planets: OK\n" +
+                "...restoring people: OK\n" +
+                "...restoring you: <color=#FFAA66>WARNING — cargo checksum persisted across reboot</color>",
+                20,
+                new Color(0.80f, 0.84f, 0.90f),
+                FontStyle.Normal);
+            body.alignment = TextAnchor.MiddleCenter;
+            body.gameObject.GetComponent<LayoutElement>().preferredHeight = 220f;
+
+            var buttonRow = SampleUI.CreateRect(rect, "RebootRow");
+            buttonRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 52f;
+            var buttonLayout = buttonRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            buttonLayout.childAlignment = TextAnchor.MiddleCenter;
+            buttonLayout.childControlHeight = true;
+            buttonLayout.childControlWidth = true;
+            buttonLayout.childForceExpandHeight = false;
+            buttonLayout.childForceExpandWidth = false;
+            SampleUI.CreateButton(buttonRow, "REBOOT", 220f, 48f, true, () =>
+            {
+                crashOverlay.SetActive(false);
+                onReboot();
+            });
+
+            crashOverlay = rect.gameObject;
         }
 
         private void UpdateInventoryChrome()
@@ -134,15 +268,13 @@ namespace HelloWorld.Assets.Scripts
             var panel = SampleUI.CreateRect(parent, "Panel");
             panel.anchorMin = Vector2.zero;
             panel.anchorMax = Vector2.one;
-            panel.offsetMin = new Vector2(30f, 30f);
-            panel.offsetMax = new Vector2(-30f, -30f);
+            panel.offsetMin = Vector2.zero;
+            panel.offsetMax = Vector2.zero;
 
-            var image = panel.gameObject.AddComponent<Image>();
-            image.color = new Color(0.06f, 0.08f, 0.11f, 0.96f);
-
+            // The map IS the screen; chrome rides on translucent strips.
             var layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset(28, 28, 26, 28);
-            layout.spacing = 18f;
+            layout.padding = new RectOffset(0, 0, 0, 0);
+            layout.spacing = 0f;
             layout.childAlignment = TextAnchor.UpperLeft;
             layout.childControlHeight = true;
             layout.childControlWidth = true;
@@ -155,8 +287,11 @@ namespace HelloWorld.Assets.Scripts
         private void BuildHeader(Transform parent, Action onSave, Action onReset, Action onMenu)
         {
             var row = SampleUI.CreateRect(parent, "Header");
-            row.gameObject.AddComponent<LayoutElement>().preferredHeight = 74f;
+            row.gameObject.AddComponent<LayoutElement>().preferredHeight = 86f;
+            var headerBackground = row.gameObject.AddComponent<Image>();
+            headerBackground.color = new Color(0.04f, 0.06f, 0.10f, 0.82f);
             var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
+            layout.padding = new RectOffset(28, 28, 12, 12);
             layout.spacing = 18f;
             layout.childAlignment = TextAnchor.MiddleLeft;
             layout.childControlHeight = true;
@@ -180,7 +315,7 @@ namespace HelloWorld.Assets.Scripts
             actionLayout.childForceExpandHeight = false;
             actionLayout.childForceExpandWidth = false;
             var actionLayoutElement = actions.gameObject.AddComponent<LayoutElement>();
-            actionLayoutElement.preferredWidth = 302f;
+            actionLayoutElement.preferredWidth = 470f;
             actionLayoutElement.preferredHeight = 34f;
 
             var inventoryButton = SampleUI.CreateButton(actions, "Cargo", 130f, 34f, false, ToggleInventory);
@@ -237,11 +372,13 @@ namespace HelloWorld.Assets.Scripts
             // The map IS the game now — one full-width card; status lines ride
             // above it and the cargo list floats over it as an overlay.
             var card = CreateCard(parent, "TravelCard", 1f);
-            CreateSectionHeader(card, "Hello System", out travelMeta);
 
             var statusRow = SampleUI.CreateRect(card, "StatusRow");
-            statusRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 30f;
+            statusRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 44f;
+            var statusBackground = statusRow.gameObject.AddComponent<Image>();
+            statusBackground.color = new Color(0.04f, 0.06f, 0.10f, 0.72f);
             var statusLayout = statusRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            statusLayout.padding = new RectOffset(28, 28, 8, 8);
             statusLayout.spacing = 24f;
             statusLayout.childAlignment = TextAnchor.MiddleLeft;
             statusLayout.childControlHeight = true;
@@ -249,9 +386,13 @@ namespace HelloWorld.Assets.Scripts
             statusLayout.childForceExpandHeight = false;
             statusLayout.childForceExpandWidth = false;
             bitsText = SampleUI.CreateText(statusRow, "Bits: 0", 20, new Color(0.92f, 0.96f, 1f), FontStyle.Bold);
-            bitsText.gameObject.GetComponent<LayoutElement>().preferredWidth = 420f;
+            bitsText.gameObject.GetComponent<LayoutElement>().preferredWidth = 180f;
+            BuildStormGauge(statusRow);
             questText = SampleUI.CreateText(statusRow, "", 16, new Color(0.62f, 0.81f, 1f), FontStyle.Italic);
             questText.gameObject.GetComponent<LayoutElement>().flexibleWidth = 1f;
+            travelMeta = SampleUI.CreateText(statusRow, "", 14, new Color(0.64f, 0.70f, 0.80f), FontStyle.Normal);
+            travelMeta.alignment = TextAnchor.MiddleRight;
+            travelMeta.gameObject.GetComponent<LayoutElement>().preferredWidth = 110f;
 
             systemMap = new SystemMapUI();
             systemMap.Build(card);
@@ -310,37 +451,15 @@ namespace HelloWorld.Assets.Scripts
             var layoutElement = card.gameObject.AddComponent<LayoutElement>();
             layoutElement.flexibleWidth = widthRatio;
             layoutElement.flexibleHeight = 1f;
-            var image = card.gameObject.AddComponent<Image>();
-            image.color = new Color(0.10f, 0.13f, 0.18f, 1f);
-
             var layout = card.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset(20, 20, 18, 20);
-            layout.spacing = 8f;
+            layout.padding = new RectOffset(0, 0, 0, 0);
+            layout.spacing = 0f;
             layout.childAlignment = TextAnchor.UpperLeft;
             layout.childControlHeight = true;
             layout.childControlWidth = true;
             layout.childForceExpandHeight = false;
             layout.childForceExpandWidth = true;
             return card;
-        }
-
-        private static void CreateSectionHeader(Transform parent, string label, out Text meta)
-        {
-            var row = SampleUI.CreateRect(parent, $"{label} Header");
-            row.gameObject.AddComponent<LayoutElement>().preferredHeight = 30f;
-            var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 12f;
-            layout.childAlignment = TextAnchor.MiddleLeft;
-            layout.childControlHeight = true;
-            layout.childControlWidth = true;
-            layout.childForceExpandHeight = false;
-            layout.childForceExpandWidth = false;
-
-            var titleText = SampleUI.CreateText(row, label, 22, new Color(0.88f, 0.91f, 0.96f), FontStyle.Bold);
-            titleText.gameObject.GetComponent<LayoutElement>().flexibleWidth = 1f;
-            meta = SampleUI.CreateText(row, "", 14, new Color(0.64f, 0.70f, 0.80f), FontStyle.Normal);
-            meta.alignment = TextAnchor.MiddleRight;
-            meta.gameObject.GetComponent<LayoutElement>().preferredWidth = 120f;
         }
 
         private void RebuildInventory(IReadOnlyList<ReadOnlyItem> inventory)

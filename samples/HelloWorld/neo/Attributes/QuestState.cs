@@ -27,32 +27,38 @@ public sealed class QuestState
 	if (this.EvidenceArchive) { found = found + 1; }
 	if (this.EvidenceLedger) { found = found + 1; }
 	if (this.EvidenceFaith) { found = found + 1; }
+	string urgency = """";
+	if (this.FlareClock >= 6) { urgency = ""The storms are stacking — hurry. ""; }
+	if (this.FlareClock >= 9) { urgency = ""THE SKY IS TEARING. Finish it. ""; }
 	if (this.Stage == QuestStage.arrival) {
-		return ""Rumors ride the flare-wakes. Start with the greeter at Capitol OG."";
+		return $""{urgency}Rumors ride the flare-wakes. Start with the greeter at Capitol OG."";
 	}
 	if (this.Stage == QuestStage.followTheWakes) {
-		return ""Hear the prophecy at Mercurial, and ask the corn farmer on Iowan what the freighters saw."";
+		return $""{urgency}Hear the prophecy at Mercurial, and ask the corn farmer on Iowan what the freighters saw."";
 	}
 	if (this.Stage == QuestStage.threePaths) {
 		if (found >= 2) {
-			return ""Return to Capitol OG — the greeter's script is fraying."";
+			return $""{urgency}Go BACK to Capitol OG — the greeter's script is fraying. Two proofs are enough."";
 		}
 		if (!this.EvidenceArchive) {
-			return ""The stars refuse to move — ask Ursa Major, then carry Storm Corn to Etna Diadem."";
+			return $""{urgency}Proof of the frozen sky: revisit Ursa Major's observatory, then offer Storm Corn at Etna Diadem. Outposts you've met have new things to say."";
 		}
 		if (!this.EvidenceLedger) {
-			return ""Money older than light: press the Pour Lords, then carry their manifest to Caelus."";
+			return $""{urgency}Proof in old money: go back to the Pour Lords, then feed their manifest to the relay at Caelus."";
 		}
-		return ""Hear the Countdown Verses at Mercurial, then buy the Oldest Pattern from the Venusians."";
+		return $""{urgency}Proof from the verses: sit with the Patriarch at Mercurial again, then buy the Oldest Pattern from the Venusians."";
 	}
 	if (this.Stage == QuestStage.vaultOpen) {
-		return ""Descend beneath Capitol OG. Bring the Cave Lantern."";
+		return $""{urgency}Descend beneath Capitol OG. Bring the Cave Lantern from Europapas."";
 	}
 	if (this.Stage == QuestStage.endgame) {
-		return ""The Old Console at Capitol OG awaits your final output. The Regent's Signet may open one more door."";
+		return $""{urgency}The Old Console at Capitol OG awaits your final output. The Regent's Signet may open one more door."";
 	}
-	return ""The run has ended."";", RetJson = @"{""required"":true,""type"":3}")]
+	return ""The run has ended. Thank you for playing."";", RetJson = @"{""required"":true,""type"":3}")]
     public object? NextHint { get; init; }
+
+    [NeoInt("cb9bb845-466c-46ac-aee0-345163dcfbf3", Min = 0, DefaultJson = @"{""value"":0}")]
+    public int Reruns { get; init; }
 
     [NeoEnum("3ed7f33a-67fe-4671-8af9-c8339751894b", DefaultJson = @"{""value"":[""arrival""]}")]
     public QuestStage Stage { get; init; }

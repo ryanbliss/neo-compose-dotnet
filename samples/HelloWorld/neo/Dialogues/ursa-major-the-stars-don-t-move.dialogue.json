@@ -21,7 +21,7 @@
    "to": "u2"
   },
   "u6": {
-   "say": "Whatever they sing back to you — that's the half of the proof we couldn't read. Go. And traveler... don't look up on the way out. It's not the same sky once you know. ...And those Low-G Pitons on your belt? A climber's kit buys trust in an observatory. Consider it bought."
+   "say": "Whatever they sing back to you — that's the half of the proof we couldn't read. Go. And traveler... thank you for looking up with us."
   },
   "u2": {
    "say": "Nothing moved. Not one star. Not by a hair. We crossed half the system and the sky did not notice. The stars are not far away, traveler — they are PAINTED. A... a backdrop. A skybox.",
@@ -75,9 +75,34 @@
     {
      "code": "root.Save.Quest.EvidenceArchive = true;",
      "bind": "b81df7d3-be41-4685-9111-3cdc1821e693"
+    }
+   ],
+   "to": "u5ask"
+  },
+  "u5ask": {
+   "say": "The Curator eyes the rigging bag on your shoulder. 'The high scope hasn't been climbed since the sky froze. Old knees,' he admits.",
+   "options": [
+    {
+     "label": "Rig",
+     "text": "Leave your Low-G Pitons rigged on the high scope",
+     "to": "give pitons",
+     "if": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"c8eb381b-9c3f-4120-b8c3-3872cdde5148\"; }));"
     },
     {
-     "code": "if (root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"c8eb381b-9c3f-4120-b8c3-3872cdde5148\"; }))) { this.Save.Reputation += 1; }",
+     "label": "Keep",
+     "text": "You'll be needing them yourself",
+     "to": "u6"
+    }
+   ]
+  },
+  "give pitons": {
+   "do": [
+    {
+     "code": "root.Save.Inventory.Remove(this);",
+     "bind": "c8eb381b-9c3f-4120-b8c3-3872cdde5148"
+    },
+    {
+     "code": "this.Save.Reputation += 1;",
      "bind": "b81df7d3-be41-4685-9111-3cdc1821e693"
     }
    ],
