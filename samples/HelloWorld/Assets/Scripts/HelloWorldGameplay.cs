@@ -217,7 +217,32 @@ namespace HelloWorld.Assets.Scripts
         {
             CurrentOutpost.Save.VisitCount += 1;
             ClearDialogue();
+            if (neo.Save.Quest.Ending == WorldEnding.helloWorld)
+            {
+                // The Loop ending: the player erases the only persistent thing —
+                // themselves. The save never commits; the world goes back to
+                // factory innocence and the menu greets a brand-new run.
+                LoopEnding();
+                return;
+            }
+            if (neo.Save.Quest.Stage == QuestStage.ended)
+            {
+                // Every other ending preserves the run's final state.
+                Run(SaveWithIndicatorAsync());
+            }
             UpdateUI();
+        }
+
+        /// <summary>
+        /// Raised by the Loop ending: the menu (which owns the save store)
+        /// archives this save so the next boot starts from factory innocence.
+        /// </summary>
+        public event Action<string> OnEraseSave;
+
+        private void LoopEnding()
+        {
+            OnEraseSave?.Invoke(synchronizer.CustomId);
+            OnExitToMenu?.Invoke();
         }
 
         public void OnDialogueError(Exception exception)

@@ -89,6 +89,105 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public void FlareClock_TicksPerHop_WithOuterSystemSurcharge()
+        {
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+            var inner = gameplay.Outposts.First(o => o.Planet == Planet.mars);
+            var outer = gameplay.Outposts.First(o => o.Planet == Planet.neptune);
+
+            gameplay.OnVisitOutpost(inner);
+            Assert.AreEqual(1, QuestClock(gameplay), "inner hop costs 1");
+
+            gameplay.OnVisitOutpost(outer);
+            Assert.AreEqual(3, QuestClock(gameplay), "outer hop costs 2 without the Gyro Stabilizer");
+        }
+
+        [Test]
+        public void FlareClock_GyroWaivesOuterSurcharge_ParasolShieldsFirstHops()
+        {
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+            var outer = gameplay.Outposts.First(o => o.Planet == Planet.neptune);
+            var inner = gameplay.Outposts.First(o => o.Planet == Planet.mars);
+
+            GiveItem(gameplay, "Cloudsilk Parasol");
+            gameplay.OnVisitOutpost(inner);
+            Assert.AreEqual(0, QuestClock(gameplay), "the parasol shields the first hops entirely");
+            gameplay.OnVisitOutpost(inner);
+            Assert.AreEqual(0, QuestClock(gameplay));
+
+            GiveItem(gameplay, "Gyro Stabilizer");
+            ForceClock(gameplay, 5);
+            gameplay.OnVisitOutpost(outer);
+            Assert.AreEqual(6, QuestClock(gameplay), "the gyro waives the outer-system surcharge");
+        }
+
+        [Test]
+        public void LoopEnding_ErasesTheSaveAndExitsToMenu()
+        {
+            var store = LoadedStore();
+            var synchronizer = store.CreateNew();
+            var customId = synchronizer.CustomId;
+            var gameplay = Spawn(synchronizer);
+            string erased = null;
+            var exited = false;
+            gameplay.OnEraseSave += id => erased = id;
+            gameplay.OnExitToMenu += () => exited = true;
+
+            SetQuest(gameplay, QuestStage.ended, WorldEnding.helloWorld);
+            gameplay.OnDialogueFinish();
+
+            Assert.AreEqual(customId, erased, "the Loop ending erases this save");
+            Assert.IsTrue(exited);
+        }
+
+        [Test]
+        public void OtherEndings_KeepTheSave()
+        {
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            string erased = null;
+            gameplay.OnEraseSave += id => erased = id;
+
+            SetQuest(gameplay, QuestStage.ended, WorldEnding.goodbyeWorld);
+            gameplay.OnDialogueFinish();
+
+            Assert.IsNull(erased, "only the Loop ending wipes the save");
+        }
+
+        private static int QuestClock(HelloWorldGameplay gameplay)
+        {
+            return GameplayNeo(gameplay).Save.Quest.FlareClock;
+        }
+
+        private static void ForceClock(HelloWorldGameplay gameplay, int value)
+        {
+            GameplayNeo(gameplay).Save.Quest.FlareClock = value;
+        }
+
+        private static void SetQuest(HelloWorldGameplay gameplay, QuestStage stage, WorldEnding ending)
+        {
+            var neo = GameplayNeo(gameplay);
+            neo.Save.Quest.Stage = stage;
+            neo.Save.Quest.Ending = ending;
+        }
+
+        private static void GiveItem(HelloWorldGameplay gameplay, string itemName)
+        {
+            var neo = GameplayNeo(gameplay);
+            var item = neo.Assets.Items.First(candidate => candidate.Name == itemName);
+            neo.Save.Inventory.Add(item);
+        }
+
+        private static HelloWorldNeo GameplayNeo(HelloWorldGameplay gameplay)
+        {
+            var field = typeof(HelloWorldGameplay).GetField(
+                "neo",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            return (HelloWorldNeo)field.GetValue(gameplay);
+        }
+
+        [Test]
         public void VisitedPlanetsPanelUsesLocalizedPlanetText()
         {
             var gameplay = Spawn(LoadedStore().CreateNew());

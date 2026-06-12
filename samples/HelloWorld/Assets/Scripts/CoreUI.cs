@@ -29,6 +29,7 @@ namespace HelloWorld.Assets.Scripts
         private RectTransform visitedGrid;
         private RectTransform inventoryList;
         private RectTransform outpostGrid;
+        private SystemMapUI systemMap;
         private readonly Dictionary<string, Button> outpostButtons = new();
         private readonly Dictionary<string, Image> outpostButtonImages = new();
         private readonly Dictionary<string, Text> outpostButtonLabels = new();
@@ -53,7 +54,7 @@ namespace HelloWorld.Assets.Scripts
             title.text = $"{text}\n<size=18><color=#A3B3CC>Currently visiting {currentOutpost.FullDisplayText}</color></size>";
             RebuildVisited(visitedPlanets);
             RebuildInventory(inventory);
-            RebuildOutposts(outposts, currentOutpost, onVisitOutpost);
+            systemMap.Render(outposts, currentOutpost, storm, onVisitOutpost);
             visitedMeta.text = $"{visitedPlanets.Select(visit => visit.World.optionId).Distinct().Count()} visited";
             bitsText.text = storm <= 0
                 ? $"Bits: {bits}"
@@ -230,7 +231,11 @@ namespace HelloWorld.Assets.Scripts
             var card = CreateCard(parent, "TravelCard", 0.58f);
             CreateSectionHeader(card, "Outposts", out travelMeta);
 
+            systemMap = new SystemMapUI();
+            systemMap.Build(card);
+
             outpostGrid = SampleUI.CreateRect(card, "OutpostButtons");
+            outpostGrid.gameObject.SetActive(false);
             outpostGrid.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
             var grid = outpostGrid.gameObject.AddComponent<GridLayoutGroup>();
             grid.cellSize = new Vector2(260f, 46f);
