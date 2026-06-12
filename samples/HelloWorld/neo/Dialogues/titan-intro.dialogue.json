@@ -1,0 +1,335 @@
+{
+  "id": "95921c6a-8f61-4c48-9e1b-50c05bdef8cf",
+  "name": "Titan intro",
+  "description": "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  "linkedValueId": "c9cbef1c-4660-432c-83e1-0e9c10c897e0",
+  "group": {
+    "id": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+    "priority": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
+    "relativeOrder": 0,
+    "occurrenceLimit": 1
+  },
+  "start": "t1",
+  "nodes": {
+    "t3": {
+      "say": "The manifests route through a shell company on Triton — 'Gyre Collective Logistics.' Neptune crowd. Cold people, colder money. Plutonian money, mark me.",
+      "to": "t4"
+    },
+    "t2": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "operator": "-=",
+                "pointer": {
+                  "operation": {
+                    "arithmetic": {
+                      "pointers": [
+                        {
+                          "keyOf": {
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "required": true,
+                                  "type": 3
+                                },
+                                "value": "Bits"
+                              }
+                            },
+                            "pointer": {
+                              "keyOf": {
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "required": true,
+                                      "type": 3
+                                    },
+                                    "value": "Save"
+                                  }
+                                },
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__root__"
+                                }
+                              },
+                              "type": "keyOf"
+                            }
+                          },
+                          "type": "keyOf"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "required": true,
+                              "type": 2
+                            },
+                            "value": 200
+                          }
+                        }
+                      ],
+                      "type": "-"
+                    },
+                    "type": "arithmetic"
+                  },
+                  "type": "operation"
+                },
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Bits"
+                        }
+                      },
+                      "pointer": {
+                        "keyOf": {
+                          "key": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "required": true,
+                                "type": 3
+                              },
+                              "value": "Save"
+                            }
+                          },
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "__root__"
+                          }
+                        },
+                        "type": "keyOf"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "required": true,
+                    "type": 2
+                  },
+                  "writability": "save"
+                },
+                "type": "assign"
+              }
+            ],
+            "parameters": [
+              {
+                "id": "__this__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "96818dab-90e5-4ab9-8f69-cce66e39e370"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "96818dab-90e5-4ab9-8f69-cce66e39e370"
+                }
+              },
+              {
+                "id": "__root__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__root__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__root__"
+                }
+              },
+              {
+                "id": "__context__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__dialogue_context__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__dialogue_context__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "c9cbef1c-4660-432c-83e1-0e9c10c897e0"
+        }
+      ],
+      "to": "t3"
+    },
+    "t1": {
+      "say": "No names on Titan. You buying, selling, or asking? Fair warning: asking costs the most.",
+      "options": [
+        {
+          "label": "Pay",
+          "text": "Here's 200 bits. The solar condensate manifests — who signs them?",
+          "to": "t2"
+        },
+        {
+          "label": "Lean",
+          "text": "The Pour Lords sent me. They're unhappy with the rate.",
+          "to": "t2l"
+        }
+      ]
+    },
+    "t2l": {
+      "say": "The Lords? UNHAPPY? ...Fine. No charge. But you didn't hear this from me:",
+      "to": "t3"
+    },
+    "t4": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "operator": "=",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 1
+                    },
+                    "value": true
+                  }
+                },
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Unlocked"
+                        }
+                      },
+                      "pointer": {
+                        "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                        "thisPointer": {
+                          "type": "variable",
+                          "variableId": "__this__"
+                        },
+                        "type": "callGetter"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "required": true,
+                    "type": 1
+                  },
+                  "writability": "save"
+                },
+                "type": "assign"
+              }
+            ],
+            "parameters": [
+              {
+                "id": "__this__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                }
+              },
+              {
+                "id": "__root__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__root__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__root__"
+                }
+              },
+              {
+                "id": "__context__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__dialogue_context__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__dialogue_context__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "0bfa8e27-27e0-41b2-b90b-6d3c9442905a"
+        }
+      ],
+      "to": "t5"
+    },
+    "t5": {
+      "say": "A copy of the manifest, since you've been civil. Route through the Caelus Anchorpoint at Uranus — their relays log every command burst headed to Neptune."
+    }
+  }
+}

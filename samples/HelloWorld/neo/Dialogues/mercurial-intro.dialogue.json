@@ -1,0 +1,469 @@
+{
+  "id": "71478d85-4586-4ca8-8b95-226a391a9a5f",
+  "name": "Mercurial intro",
+  "description": null,
+  "linkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+  "group": {
+    "id": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+    "priority": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
+    "relativeOrder": 0,
+    "occurrenceLimit": 1
+  },
+  "start": "Hello",
+  "nodes": {
+    "mx1": {
+      "say": "A Hand not of Light draweth from the corona. It rideth the flare-wakes outward, past the Wanderers, into the Deep Current. Follow the wakes, seeker, and thou shalt find the Spender.",
+      "to": "mx3a"
+    },
+    "Increase rep": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "operator": "++",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 2
+                    },
+                    "value": 1
+                  }
+                },
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Reputation"
+                        }
+                      },
+                      "pointer": {
+                        "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                        "thisPointer": {
+                          "type": "variable",
+                          "variableId": "__this__"
+                        },
+                        "type": "callGetter"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "required": true,
+                    "type": 2
+                  }
+                },
+                "type": "assign"
+              }
+            ],
+            "parameters": [],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
+        }
+      ],
+      "to": "Asketh"
+    },
+    "Hello": {
+      "say": "Light graces you, brave traveler. We've been expecting you.",
+      "options": [
+        {
+          "label": "Surprise",
+          "text": "You've been <i>expecting </i>me?",
+          "to": "Sun shineth"
+        },
+        {
+          "label": "Doubt",
+          "text": "I bet you say that to everyone",
+          "to": "Sun offers light"
+        }
+      ]
+    },
+    "Asketh": {
+      "say": "Light Shines its abundance on {{neo-var:3d9bdd31-0547-4497-9386-8948d560d35f}}. Ask that which hath evadeth you in Darker realms.",
+      "options": [
+        {
+          "label": "Cosmic",
+          "text": "There are reports of cosmic disturbances",
+          "to": "Cosmos crieth"
+        },
+        {
+          "label": "Accuse",
+          "text": "I know you have been causing the solar flares <i>(Lie)</i>",
+          "to": "Light to dark"
+        }
+      ]
+    },
+    "mx4": {
+      "say": "Begin where vanity shineth — Venus. And where stone remembereth — Mars. The Light goeth with thee, seeker. Spend it well."
+    },
+    "mx2": {
+      "say": "When Sun hath given all it may, it giveth all at once. Red Nova is the last gift, the bright goodbye. It was not yet Time — unless the Spender maketh it so.",
+      "to": "mx1"
+    },
+    "Cosmos crieth": {
+      "say": "Aye, Cosmos crieth out through the Light. It was not Time for Red Nova, yet Time disturbeth all until Nova come.",
+      "options": [
+        {
+          "label": "Who",
+          "text": "Who spendeth the Sun before its Time?",
+          "to": "mx1"
+        },
+        {
+          "label": "Prophecy",
+          "text": "What is the Red Nova?",
+          "to": "mx2"
+        }
+      ]
+    },
+    "Sun offers light": {
+      "say": "The Sun offereth its Light freely, but it cannot reach those inclined to Darkness.",
+      "options": [
+        {
+          "label": "Fair",
+          "text": "Fair enough. Well, I am looking for some information.",
+          "to": "Asketh"
+        },
+        {
+          "label": "Rude",
+          "text": "Aren't you blind? Sounds pretty dark to me...",
+          "to": "Decrease rep"
+        }
+      ]
+    },
+    "Sun shineth": {
+      "say": "Sun shineth for those that seeketh.",
+      "options": [
+        {
+          "label": "Seeketh",
+          "text": "Well, I indeed was sent here to seeketh knowledge.",
+          "to": "Increase rep"
+        },
+        {
+          "label": "Mock",
+          "text": "Does the sun shineth for those that seeketh to be blind?",
+          "to": "Decrease rep"
+        }
+      ]
+    },
+    "Decrease rep": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "operator": "--",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 2
+                    },
+                    "value": 1
+                  }
+                },
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Reputation"
+                        }
+                      },
+                      "pointer": {
+                        "attributeId": "f66fba24-44d4-467c-98ac-4db1539910df",
+                        "thisPointer": {
+                          "type": "variable",
+                          "variableId": "__this__"
+                        },
+                        "type": "callGetter"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "required": true,
+                    "type": 2
+                  }
+                },
+                "type": "assign"
+              }
+            ],
+            "parameters": [],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
+        }
+      ],
+      "to": "Light to dark"
+    },
+    "Light to dark": {
+      "say": "Ah, so the Light has chosen Darkness as its vessel. Alas, all Light goes Dark in time. ",
+      "options": [
+        {
+          "label": "Okay",
+          "text": "Uh, okay...",
+          "to": "Asketh"
+        }
+      ]
+    },
+    "mx3b": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "operator": "=",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 1
+                    },
+                    "value": true
+                  }
+                },
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Unlocked"
+                        }
+                      },
+                      "pointer": {
+                        "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                        "thisPointer": {
+                          "type": "variable",
+                          "variableId": "__this__"
+                        },
+                        "type": "callGetter"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "required": true,
+                    "type": 1
+                  },
+                  "writability": "save"
+                },
+                "type": "assign"
+              }
+            ],
+            "parameters": [
+              {
+                "id": "__this__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                }
+              },
+              {
+                "id": "__root__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__root__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__root__"
+                }
+              },
+              {
+                "id": "__context__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__dialogue_context__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__dialogue_context__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "424019cd-8b46-4dd9-9aac-3721331179bb"
+        }
+      ],
+      "to": "mx4"
+    },
+    "mx3a": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "operator": "=",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 1
+                    },
+                    "value": true
+                  }
+                },
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Unlocked"
+                        }
+                      },
+                      "pointer": {
+                        "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                        "thisPointer": {
+                          "type": "variable",
+                          "variableId": "__this__"
+                        },
+                        "type": "callGetter"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "required": true,
+                    "type": 1
+                  },
+                  "writability": "save"
+                },
+                "type": "assign"
+              }
+            ],
+            "parameters": [
+              {
+                "id": "__this__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                }
+              },
+              {
+                "id": "__root__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__root__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__root__"
+                }
+              },
+              {
+                "id": "__context__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__dialogue_context__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__dialogue_context__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "ed141cc4-304c-40cd-8229-105f1ee9b99c"
+        }
+      ],
+      "to": "mx3b"
+    }
+  }
+}

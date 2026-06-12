@@ -1,0 +1,381 @@
+{
+  "id": "4aba3b7a-d052-4499-8e2f-696183816cc4",
+  "name": "Plutocracy intro",
+  "description": "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  "linkedValueId": "18154c7e-8f9a-4767-b44c-a25b0e1ca234",
+  "group": {
+    "id": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+    "priority": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
+    "relativeOrder": 0,
+    "occurrenceLimit": 1
+  },
+  "start": "pl1",
+  "nodes": {
+    "pl2": {
+      "say": "The Gyre builds it, yes — but it will orbit US. A sun of Pluto's own. And when it lights, no astronomer alive will dare write 'dwarf' next to our name again.",
+      "to": "pl3"
+    },
+    "ple2": {
+      "say": "Then run fast, little herald. Light takes five hours to reach Earth from here — your warning will be racing it the whole way.",
+      "to": "pla2"
+    },
+    "pl1": {
+      "say": "Ah. The famous investigator, here at the edge of everything. Do you know what they took from us, before you were even born? A WORD. 'Planet.' One word, and the whole system stopped writing.",
+      "options": [
+        {
+          "label": "Listen",
+          "text": "Go on.",
+          "to": "pl2"
+        },
+        {
+          "label": "Cut",
+          "text": "The Second Sun. It's yours, isn't it?",
+          "to": "pl2"
+        }
+      ]
+    },
+    "pe2": {
+      "say": "Behind you, the Plutocracy begins erasing its ledgers. The race to sunrise has started."
+    },
+    "pe1": {
+      "say": "The sun sets on Earth. Somewhere past Neptune, a second dawn is loading."
+    },
+    "pla1": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "operator": "+=",
+                "pointer": {
+                  "operation": {
+                    "arithmetic": {
+                      "pointers": [
+                        {
+                          "keyOf": {
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "required": true,
+                                  "type": 3
+                                },
+                                "value": "Reputation"
+                              }
+                            },
+                            "pointer": {
+                              "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                              "thisPointer": {
+                                "type": "variable",
+                                "variableId": "__this__"
+                              },
+                              "type": "callGetter"
+                            }
+                          },
+                          "type": "keyOf"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "required": true,
+                              "type": 2
+                            },
+                            "value": 1
+                          }
+                        }
+                      ],
+                      "type": "+"
+                    },
+                    "type": "arithmetic"
+                  },
+                  "type": "operation"
+                },
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Reputation"
+                        }
+                      },
+                      "pointer": {
+                        "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                        "thisPointer": {
+                          "type": "variable",
+                          "variableId": "__this__"
+                        },
+                        "type": "callGetter"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "required": true,
+                    "type": 2
+                  },
+                  "writability": "save"
+                },
+                "type": "assign"
+              }
+            ],
+            "parameters": [
+              {
+                "id": "__this__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                }
+              },
+              {
+                "id": "__root__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__root__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__root__"
+                }
+              },
+              {
+                "id": "__context__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__dialogue_context__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__dialogue_context__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "18154c7e-8f9a-4767-b44c-a25b0e1ca234"
+        }
+      ],
+      "to": "pe1"
+    },
+    "pla2": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "operator": "-=",
+                "pointer": {
+                  "operation": {
+                    "arithmetic": {
+                      "pointers": [
+                        {
+                          "keyOf": {
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "required": true,
+                                  "type": 3
+                                },
+                                "value": "Reputation"
+                              }
+                            },
+                            "pointer": {
+                              "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                              "thisPointer": {
+                                "type": "variable",
+                                "variableId": "__this__"
+                              },
+                              "type": "callGetter"
+                            }
+                          },
+                          "type": "keyOf"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "required": true,
+                              "type": 2
+                            },
+                            "value": 1
+                          }
+                        }
+                      ],
+                      "type": "-"
+                    },
+                    "type": "arithmetic"
+                  },
+                  "type": "operation"
+                },
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Reputation"
+                        }
+                      },
+                      "pointer": {
+                        "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                        "thisPointer": {
+                          "type": "variable",
+                          "variableId": "__this__"
+                        },
+                        "type": "callGetter"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "required": true,
+                    "type": 2
+                  },
+                  "writability": "save"
+                },
+                "type": "assign"
+              }
+            ],
+            "parameters": [
+              {
+                "id": "__this__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                }
+              },
+              {
+                "id": "__root__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__root__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__root__"
+                }
+              },
+              {
+                "id": "__context__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__dialogue_context__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__dialogue_context__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "18154c7e-8f9a-4767-b44c-a25b0e1ca234"
+        }
+      ],
+      "to": "pe2"
+    },
+    "pl3": {
+      "say": "So. The ledgers are open, the manifest is in your coat, and the question, investigator, is what you do with your evening.",
+      "options": [
+        {
+          "label": "Side",
+          "text": "A sun for Pluto. Honestly? Earned.",
+          "to": "ple1"
+        },
+        {
+          "label": "Expose",
+          "text": "The whole system will know by morning. All of it.",
+          "to": "ple2"
+        },
+        {
+          "label": "Broker",
+          "text": "There's a third way: share the Second Sun. Every outpost, one sky.",
+          "to": "ple3"
+        }
+      ]
+    },
+    "ple3": {
+      "say": "...A shared dawn. The Mercurials prophesied a Red Nova; perhaps prophecy is only a plan that no one has priced yet. Bring us the system's signatures, investigator. Pluto will sign last — but Pluto will sign.",
+      "to": "pe3"
+    },
+    "ple1": {
+      "say": "We knew you were reasonable. Wear this signet — when the new dawn comes, it will mark you a Friend of Pluto.",
+      "to": "pla1"
+    },
+    "pe3": {
+      "say": "One sky. Thirteen outposts. A sun that belongs to everyone. The Accord begins with you."
+    }
+  }
+}

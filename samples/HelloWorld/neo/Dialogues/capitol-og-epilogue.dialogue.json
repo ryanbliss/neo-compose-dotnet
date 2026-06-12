@@ -1,0 +1,216 @@
+{
+  "id": "71eedffc-d3db-4b42-9078-458d24e9d672",
+  "name": "Capitol OG epilogue",
+  "description": null,
+  "linkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+  "group": {
+    "id": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+    "priority": "4a10ea58-0ba6-49a9-b4ad-179980fcb50c",
+    "relativeOrder": 0,
+    "occurrenceLimit": null
+  },
+  "start": "back",
+  "nodes": {
+    "end": {
+      "say": "Welcome home, investigator. Whatever happens next... nice to have someone who's seen the whole sky."
+    },
+    "back": {
+      "say": "You're back! And in one piece! So... is it true what the relays are saying? A SECOND sun?",
+      "options": [
+        {
+          "label": "True",
+          "text": "It's true. The question is who it rises for.",
+          "to": "rises"
+        },
+        {
+          "label": "Quiet",
+          "text": "You'll know when the sky tells you.",
+          "to": "quiet"
+        }
+      ]
+    },
+    "reward": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "operator": "+=",
+                "pointer": {
+                  "operation": {
+                    "arithmetic": {
+                      "pointers": [
+                        {
+                          "keyOf": {
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "required": true,
+                                  "type": 3
+                                },
+                                "value": "Bits"
+                              }
+                            },
+                            "pointer": {
+                              "keyOf": {
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "required": true,
+                                      "type": 3
+                                    },
+                                    "value": "Save"
+                                  }
+                                },
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__root__"
+                                }
+                              },
+                              "type": "keyOf"
+                            }
+                          },
+                          "type": "keyOf"
+                        },
+                        {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "required": true,
+                              "type": 2
+                            },
+                            "value": 50
+                          }
+                        }
+                      ],
+                      "type": "+"
+                    },
+                    "type": "arithmetic"
+                  },
+                  "type": "operation"
+                },
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Bits"
+                        }
+                      },
+                      "pointer": {
+                        "keyOf": {
+                          "key": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "required": true,
+                                "type": 3
+                              },
+                              "value": "Save"
+                            }
+                          },
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "__root__"
+                          }
+                        },
+                        "type": "keyOf"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "required": true,
+                    "type": 2
+                  },
+                  "writability": "save"
+                },
+                "type": "assign"
+              }
+            ],
+            "parameters": [
+              {
+                "id": "__this__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "4c196697-4e08-4aeb-823f-322b353071ac"
+                }
+              },
+              {
+                "id": "__root__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__root__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__root__"
+                }
+              },
+              {
+                "id": "__context__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__dialogue_context__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__dialogue_context__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "913fd757-d6ee-488e-866f-c7af41aa544b"
+        }
+      ],
+      "to": "end"
+    },
+    "quiet": {
+      "say": "Ugh, you're as cryptic as a Mercurial now. Fine. First round of bits is on the Capitol anyway — for making it back.",
+      "to": "reward"
+    },
+    "rises": {
+      "say": "Huh. Two suns. Twice the flares, twice the hats. ...I should start knitting.",
+      "to": "reward"
+    }
+  }
+}

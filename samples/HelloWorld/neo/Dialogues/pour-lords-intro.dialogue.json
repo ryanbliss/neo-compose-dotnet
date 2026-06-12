@@ -1,0 +1,160 @@
+{
+  "id": "c5efb7ea-bd7d-4640-876f-21df7047e01e",
+  "name": "Pour Lords intro",
+  "description": "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  "linkedValueId": "1c9e473a-3616-4c1c-82f7-461e080c9785",
+  "group": {
+    "id": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+    "priority": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
+    "relativeOrder": 0,
+    "occurrenceLimit": 1
+  },
+  "start": "p1",
+  "nodes": {
+    "p4": {
+      "say": "Helium-3, on the house. Ask the smugglers on Titan who signs the condensate manifests. And tell them the Lords want a better rate."
+    },
+    "p2": {
+      "say": "We don't drain the sun — we WISH we could, the margins would be obscene. But someone's been underselling us solar condensate at half rate. Brokered through Titan. Always anonymous. It's embarrassing, frankly.",
+      "to": "p3"
+    },
+    "p1": {
+      "say": "WELL, WELL. A dirtsider at the Pour Lords' table. We sell fuel, friend. Power, by the liter. What's your poison?",
+      "options": [
+        {
+          "label": "Direct",
+          "text": "Who's buying enough fuel to drain a star?",
+          "to": "p2"
+        },
+        {
+          "label": "Flatter",
+          "text": "Impressive operation. The whole system runs on you.",
+          "to": "p2f"
+        }
+      ]
+    },
+    "p2f": {
+      "say": "FINALLY, someone with taste. For that, you get a straight answer — a rare vintage around here:",
+      "to": "p2"
+    },
+    "p3": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "operator": "=",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 1
+                    },
+                    "value": true
+                  }
+                },
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Unlocked"
+                        }
+                      },
+                      "pointer": {
+                        "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                        "thisPointer": {
+                          "type": "variable",
+                          "variableId": "__this__"
+                        },
+                        "type": "callGetter"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "required": true,
+                    "type": 1
+                  },
+                  "writability": "save"
+                },
+                "type": "assign"
+              }
+            ],
+            "parameters": [
+              {
+                "id": "__this__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "96818dab-90e5-4ab9-8f69-cce66e39e370"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "96818dab-90e5-4ab9-8f69-cce66e39e370"
+                }
+              },
+              {
+                "id": "__root__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__root__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__root__"
+                }
+              },
+              {
+                "id": "__context__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__dialogue_context__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__dialogue_context__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "c9cbef1c-4660-432c-83e1-0e9c10c897e0"
+        }
+      ],
+      "to": "p4"
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "id": "4d20ac4c-4d3c-4458-ab82-9aefd0b6ffe5",
+  "name": "Europapas intro",
+  "description": "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  "linkedValueId": "83cc2935-5a85-4d71-9e50-4e4496f00631",
+  "group": {
+    "id": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+    "priority": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
+    "relativeOrder": 0,
+    "occurrenceLimit": 1
+  },
+  "start": "e1",
+  "nodes": {
+    "e4": {
+      "say": "Take this abyssal lantern. Light that works under ice works in any shadow — and you're headed where the sun itself is being stolen from."
+    },
+    "e2": {
+      "say": "Strange? Tankers sinking heat-exchangers straight through our crust. Dumping waste heat from something HUGE they're running out by Saturn. Our ocean's a degree warmer. A DEGREE.",
+      "to": "e3"
+    },
+    "e3": {
+      "do": [],
+      "to": "e4"
+    },
+    "e1": {
+      "say": "Shhh. You'll scare the deepfish. ...Topside business, is it?",
+      "options": [
+        {
+          "label": "Ask",
+          "text": "Have you seen anything strange under the ice?",
+          "to": "e2"
+        },
+        {
+          "label": "Wait",
+          "text": "...(wait silently with the fishers)",
+          "to": "e2b"
+        }
+      ]
+    },
+    "e2b": {
+      "say": "Patient one, eh? The deepfish like you. So do I. Listen close, then:",
+      "to": "e2"
+    }
+  }
+}
