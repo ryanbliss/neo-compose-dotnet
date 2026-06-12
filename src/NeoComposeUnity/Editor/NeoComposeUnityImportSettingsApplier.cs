@@ -46,6 +46,26 @@ namespace NeoCompose.Unity.Editor
         {
             if (file.unityTextureSettings == null) return null;
 
+            // Custom (one-off) settings: the full object rides inline with a
+            // null templateId. Everything beyond the override-shape fields
+            // lands in customFields — rebuild and use it directly.
+            var custom = file.unityTextureSettings.customFields;
+            if (string.IsNullOrEmpty(file.unityTextureSettings.templateId)
+                && custom != null
+                && custom.Count > 0)
+            {
+                var inline = new JObject();
+                if (file.unityTextureSettings.type != null)
+                {
+                    inline["type"] = file.unityTextureSettings.type;
+                }
+                foreach (var pair in custom)
+                {
+                    inline[pair.Key] = pair.Value;
+                }
+                return inline.ToObject<UnityTexture2DImportSettingsTemplate>();
+            }
+
             var resolved = ResolveSettingsObject(
                 file.unityTextureSettings.templateId,
                 file.unityTextureSettings.overridePaths,

@@ -223,25 +223,24 @@ MonoBehaviour:
     assetPath: Assets/Resources/Neo/Files/Sprites/02e201f3-f061-4310-bdde-54e2dd905634-Vault
       plaque.png
     fileUpdatedAt: 1781252783251
-    lastDownloadedAt: 2026-06-12T08:35:09.3599930Z
+    lastDownloadedAt: 2026-06-12T08:46:13.4905850Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
     importSettingsVersion: 2026-05-13.2
     sprites:
-    - {fileID: 630333986, guid: 7cd858dc189c64ef3ae8a25d1c4fc032, type: 3}
-    - {fileID: 257366880, guid: 7cd858dc189c64ef3ae8a25d1c4fc032, type: 3}
+    - {fileID: 21300000, guid: 7cd858dc189c64ef3ae8a25d1c4fc032, type: 3}
     audioClip: {fileID: 0}
   - fileId: 4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506
     fileName: First world icon.png
     assetPath: Assets/Resources/Neo/Files/Sprites/4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First
       world icon.png
     fileUpdatedAt: 1781252789252
-    lastDownloadedAt: 2026-06-12T08:35:09.5348250Z
+    lastDownloadedAt: 2026-06-12T08:46:13.8291130Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
     importSettingsVersion: 2026-05-13.2
     sprites:
-    - {fileID: 819957846, guid: a8d2914a4e8c8425aaa0b44e6ae31561, type: 3}
+    - {fileID: 21300000, guid: a8d2914a4e8c8425aaa0b44e6ae31561, type: 3}
     audioClip: {fileID: 0}
