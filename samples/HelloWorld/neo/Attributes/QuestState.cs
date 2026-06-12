@@ -49,7 +49,7 @@ public sealed class QuestState
 		return $""{urgency}Proof from the verses: sit with the Patriarch at Mercurial again, then buy the Oldest Pattern from the Venusians."";
 	}
 	if (this.Stage == QuestStage.vaultOpen) {
-		return $""{urgency}Descend beneath Capitol OG. Bring the Cave Lantern from Europapas."";
+		return $""{urgency}Descend beneath Capitol OG. Bring the Abyssal Lantern from Europapas."";
 	}
 	if (this.Stage == QuestStage.endgame) {
 		return $""{urgency}The Old Console at Capitol OG awaits your final output. The Regent's Signet may open one more door."";

@@ -46,6 +46,7 @@ namespace HelloWorld.Assets.Scripts
             ReadOnlyAnimationInfo flareAnimation,
             Sprite sunSprite,
             AudioClip thrustSfx,
+            Func<string, Sprite> parentPlanetSprite,
             ReadOnlyOutpost currentOutpost,
             IReadOnlyList<ReadOnlyOutpost> outposts,
             int bits,
@@ -67,7 +68,7 @@ namespace HelloWorld.Assets.Scripts
                 RebuildInventory(inventory);
             }
             UpdateInventoryChrome();
-            systemMap.Render(outposts, currentOutpost, storm, shipAnimation, flareAnimation, sunSprite, thrustSfx, hasNewContent, onVisitOutpost);
+            systemMap.Render(outposts, currentOutpost, storm, shipAnimation, flareAnimation, sunSprite, thrustSfx, parentPlanetSprite, hasNewContent, onVisitOutpost);
             bitsText.text = $"Bits: {bits}";
             UpdateStormGauge(storm, knowsStormExact);
             questText.text = string.IsNullOrEmpty(questHint)

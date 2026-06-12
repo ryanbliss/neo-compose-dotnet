@@ -326,6 +326,7 @@ namespace HelloWorld.Assets.Scripts
                 neo.Assets.Art.FlareAnimation,
                 neo.Assets.Art.SunSprite,
                 neo.Assets.Audio.RocketThrustSfx,
+                ParentPlanetSprite,
                 CurrentOutpost, Outposts,
                 neo.Save.Bits, neo.Save.Inventory.ToArray(),
                 HasDialogueAvailable,
@@ -334,6 +335,17 @@ namespace HelloWorld.Assets.Scripts
                 onReset: () => Run(ResetAsync()),
                 onMenu: () => OnExitToMenu?.Invoke()
             );
+        }
+
+        /// <summary>
+        /// Map art for worlds whose outposts are moons. Authored sprites from
+        /// the schema (Assets.Art) — null for worlds that ARE the outpost.
+        /// </summary>
+        private Sprite ParentPlanetSprite(string planetOptionId)
+        {
+            if (planetOptionId == Planet.jupiter.optionId) return neo.Assets.Art.JupiterSprite;
+            if (planetOptionId == Planet.saturn.optionId) return neo.Assets.Art.SaturnSprite;
+            return null;
         }
 
         /// <summary>

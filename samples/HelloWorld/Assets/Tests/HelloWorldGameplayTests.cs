@@ -287,7 +287,7 @@ namespace HelloWorld.Assets.Tests
             StringAssert.Contains("Capitol OG", quest.NextHint);
 
             quest.Stage = QuestStage.vaultOpen;
-            StringAssert.Contains("Cave Lantern", quest.NextHint);
+            StringAssert.Contains("Abyssal Lantern", quest.NextHint);
 
             quest.Stage = QuestStage.endgame;
             StringAssert.Contains("final output", quest.NextHint);
@@ -342,6 +342,148 @@ namespace HelloWorld.Assets.Tests
                 cargoBeforeCrash,
                 neo.Save.Inventory.Count,
                 "cargo impossibly persists across the reboot — that's the clue");
+        }
+
+        [Test]
+        public void EveryQuestDialogue_PlaysEveryPathWithoutActionErrors()
+        {
+            // The act-2/3 dialogues only fire with the right stage, items,
+            // reputation, and bits — dryrun can't reach them from a fresh
+            // save, so this is where their actions (stage self-heals, item
+            // gives, evidence writes) get exercised for real. Each entry is
+            // walked twice: preferring the FIRST selectable option (the
+            // "give" path) and the LAST (the "decline" path).
+            // Quest dialogues are once-per-save (occurrenceLimit 1), so each
+            // preference pass plays on a FRESH save.
+            foreach (var preferFirst in new[] { true, false })
+            {
+                var gameplay = Spawn(LoadedStore().CreateNew());
+                var neo = GameplayNeo(gameplay);
+                foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+                neo.Save.Bits = 900;
+
+                var scenarios = new (string outpost, string expectFlag, System.Action setup)[]
+                {
+                    ("Ursa Major", "archive", () => { }),
+                    ("Etna Diadem", "archive", () => GrantItem(neo, "Storm Corn")),
+                    ("Pour Lords", "ledger", () =>
+                    {
+                        GrantItem(neo, "Helium-3 Flask");
+                        OutpostByName(gameplay, "Pour Lords").Save.Reputation = 2;
+                    }),
+                    ("Caelus Anchorpoint", "ledger", () => GrantItem(neo, "Smuggler's Manifest")),
+                    ("Mercurial", "faith", () => GrantItem(neo, "Cryo Salve")),
+                    ("Venusian", "faith", () => { }),
+                };
+                foreach (var (outpostName, flag, setup) in scenarios)
+                {
+                    neo.Save.Quest.Stage = QuestStage.threePaths;
+                    neo.Save.Quest.EvidenceArchive = flag != "archive";
+                    neo.Save.Quest.EvidenceLedger = flag != "ledger";
+                    neo.Save.Quest.EvidenceFaith = flag != "faith";
+                    setup();
+                    WalkVisit(neo, OutpostByName(gameplay, outpostName), preferFirst);
+                    bool flagSet = flag == "archive"
+                        ? neo.Save.Quest.EvidenceArchive
+                        : flag == "ledger" ? neo.Save.Quest.EvidenceLedger : neo.Save.Quest.EvidenceFaith;
+                    Assert.IsTrue(flagSet, $"{outpostName} should set its evidence flag (preferFirst={preferFirst})");
+                }
+
+                // Act 3 at the Capitol: greeter -> vault (lantern) -> finale.
+                var capitol = OutpostByName(gameplay, "Capitol OG");
+                neo.Save.Quest.Stage = QuestStage.threePaths;
+                WalkVisit(neo, capitol, preferFirstOption: true);
+                Assert.AreEqual(QuestStage.vaultOpen, neo.Save.Quest.Stage, "the greeter opens the vault");
+
+                GrantItem(neo, "Abyssal Lantern");
+                WalkVisit(neo, capitol, preferFirstOption: true);
+                Assert.AreEqual(QuestStage.endgame, neo.Save.Quest.Stage, "the console reaches the endgame");
+                Assert.IsFalse(HasItemNamed(neo, "Abyssal Lantern"), "the lantern burns out below");
+
+                WalkVisit(neo, capitol, preferFirstOption: true);
+                Assert.AreEqual(QuestStage.ended, neo.Save.Quest.Stage, "the finale ends the run");
+            }
+
+            // Self-heal: chain starts must pull a followTheWakes save forward.
+            var healGameplay = Spawn(LoadedStore().CreateNew());
+            var healNeo = GameplayNeo(healGameplay);
+            foreach (var outpost in healGameplay.Outposts) outpost.Save.Unlocked = true;
+            healNeo.Save.Quest.Stage = QuestStage.followTheWakes;
+            healNeo.Save.Quest.EvidenceLedger = true;
+            healNeo.Save.Quest.EvidenceFaith = true;
+            WalkVisit(healNeo, OutpostByName(healGameplay, "Ursa Major"), preferFirstOption: true);
+            Assert.AreEqual(QuestStage.threePaths, healNeo.Save.Quest.Stage, "evidence scenes self-heal the stage");
+        }
+
+        private static void GrantItem(HelloWorldNeo neo, string itemName)
+        {
+            if (HasItemNamed(neo, itemName)) return;
+            neo.Save.Inventory.Add(neo.Assets.Items.First(item => item.Name == itemName));
+        }
+
+        private static bool HasItemNamed(HelloWorldNeo neo, string itemName)
+        {
+            return neo.Save.Inventory.Any(item => item.Name == itemName);
+        }
+
+        private static ReadOnlyOutpost OutpostByName(HelloWorldGameplay gameplay, string name)
+        {
+            return gameplay.Outposts.First(o => o.Name == name);
+        }
+
+        /// <summary>Walks a Visits-group dialogue start to finish, failing on any action error.</summary>
+        private static void WalkVisit(HelloWorldNeo neo, ReadOnlyOutpost outpost, bool preferFirstOption)
+        {
+            // The real flow: intros run on the first landing; visit dialogues
+            // unlock on RETURN trips.
+            if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue intro))
+            {
+                WalkDialogue(intro, outpost.Name, preferFirstOption: true);
+                outpost.Save.VisitCount += 1;
+            }
+            else if (outpost.Save.VisitCount == 0)
+            {
+                // The gameplay screen auto-starts the landing outpost's intro
+                // on spawn, consuming its occurrence without a finish — count
+                // the landing so the Visits group opens like in real play.
+                outpost.Save.VisitCount = 1;
+            }
+            bool triggered = neo.Dialogues.Outposts.Visits.TryTrigger(
+                outpost, out NeoDialogueTriggerResult result);
+            if (!triggered)
+            {
+                var detail = result.Error?.ToString() ?? "(no error)";
+                foreach (var warning in result.Warnings) detail += $" | {warning.Message}";
+                Assert.Fail($"{outpost.Name}: a visit dialogue should trigger (preferFirst={preferFirstOption}) — {detail}");
+            }
+            WalkDialogue(result.Dialogue, outpost.Name, preferFirstOption);
+        }
+
+        private static void WalkDialogue(NeoDialogue dialogue, string label, bool preferFirstOption)
+        {
+            System.Exception error = null;
+            NeoDialogueTextNode current = null;
+            dialogue.OnError += ex => error = ex;
+            dialogue.OnShow += node => current = node;
+            dialogue.Start();
+            for (var step = 0; step < 80 && error == null; step++)
+            {
+                if (current == null) break;
+                var node = current;
+                current = null;
+                if (node.Options.Count > 0)
+                {
+                    var selectable = node.Options.Where(o => o.Selectable).ToArray();
+                    Assert.IsNotEmpty(selectable, $"{label}: node has no selectable option");
+                    (preferFirstOption ? selectable.First() : selectable.Last()).Select();
+                }
+                else
+                {
+                    node.Next();
+                }
+            }
+            Assert.IsNull(error, $"{label}: {error}");
+            dialogue.Dispose();
         }
 
         private static void WalkIntro(HelloWorldNeo neo, ReadOnlyOutpost outpost)

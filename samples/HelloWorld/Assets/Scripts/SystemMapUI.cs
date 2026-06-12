@@ -34,6 +34,7 @@ namespace HelloWorld.Assets.Scripts
         private readonly Dictionary<string, Button> planetButtons = new();
         private readonly Dictionary<string, Image> planetImages = new();
         private readonly Dictionary<string, GameObject> planetBadges = new();
+        private readonly Dictionary<string, RectTransform> parentMarkers = new();
         private string shipAtValueId;
 
         public void Build(Transform parent)
@@ -82,6 +83,7 @@ namespace HelloWorld.Assets.Scripts
             ReadOnlyAnimationInfo flareAnimation,
             Sprite sunSprite,
             AudioClip thrustSfx,
+            Func<string, Sprite> parentPlanetSprite,
             Func<ReadOnlyOutpost, bool> hasNewContent,
             Action<ReadOnlyOutpost> onVisitOutpost)
         {
@@ -95,7 +97,8 @@ namespace HelloWorld.Assets.Scripts
                 sun.enabled = true;
             }
 
-            var orbits = BuildOrbits(outposts);
+            var orbits = BuildOrbits(outposts, out var parentOrbits);
+            SyncParentMarkers(outposts, parentOrbits, parentPlanetSprite);
             foreach (var outpost in outposts)
             {
                 var captured = outpost;
@@ -129,7 +132,7 @@ namespace HelloWorld.Assets.Scripts
             }
 
             animator.SetStorm(storm);
-            animator.SetOrbits(orbits, planetButtons);
+            animator.SetOrbits(orbits, planetButtons, parentOrbits, parentMarkers);
             if (shipAtValueId != currentOutpost.valueId &&
                 planetButtons.TryGetValue(currentOutpost.valueId, out var home))
             {
@@ -194,9 +197,11 @@ namespace HelloWorld.Assets.Scripts
         /// the same world) circle their shared planet point.
         /// </summary>
         private static Dictionary<string, OrbitSpec> BuildOrbits(
-            IReadOnlyList<ReadOnlyOutpost> outposts)
+            IReadOnlyList<ReadOnlyOutpost> outposts,
+            out Dictionary<string, OrbitSpec> parentOrbits)
         {
             var orbits = new Dictionary<string, OrbitSpec>();
+            parentOrbits = new Dictionary<string, OrbitSpec>();
             var byPlanet = outposts
                 .GroupBy(outpost => outpost.Planet.optionId)
                 .ToDictionary(group => group.Key, group => group.ToList());
@@ -210,20 +215,64 @@ namespace HelloWorld.Assets.Scripts
                 // Kepler-flavored: T ~ r^1.5; innermost ring ~70s per lap.
                 float period = 70f * Mathf.Pow((ring + 1f), 1.5f) / 1f;
                 float phase = ring * 2.39996f; // golden-angle spread
+                var spec = new OrbitSpec
+                {
+                    rx = rx,
+                    ry = ry,
+                    angularSpeed = 2f * Mathf.PI / period,
+                    phase = phase,
+                    moonIndex = -1,
+                    moonCount = locals.Count,
+                };
+                if (locals.Count > 1)
+                {
+                    // The world itself rides the ring; its outposts are moons.
+                    parentOrbits[present[ring]] = spec;
+                }
                 for (var i = 0; i < locals.Count; i++)
                 {
-                    orbits[locals[i].valueId] = new OrbitSpec
-                    {
-                        rx = rx,
-                        ry = ry,
-                        angularSpeed = 2f * Mathf.PI / period,
-                        phase = phase,
-                        moonIndex = locals.Count == 1 ? -1 : i,
-                        moonCount = locals.Count,
-                    };
+                    spec.moonIndex = locals.Count == 1 ? -1 : i;
+                    orbits[locals[i].valueId] = spec;
                 }
             }
             return orbits;
+        }
+
+        /// <summary>
+        /// Non-interactive markers for worlds whose outposts are moons (the
+        /// gas giants). Their art comes from the schema like everything else
+        /// (Assets.Art.JupiterSprite / SaturnSprite).
+        /// </summary>
+        private void SyncParentMarkers(
+            IReadOnlyList<ReadOnlyOutpost> outposts,
+            Dictionary<string, OrbitSpec> parentOrbits,
+            Func<string, Sprite> parentPlanetSprite)
+        {
+            foreach (var planetId in parentOrbits.Keys)
+            {
+                if (parentMarkers.ContainsKey(planetId)) continue;
+                var sample = outposts.First(o => o.Planet.optionId == planetId);
+                var rect = SampleUI.CreateRect(map, $"World {planetId}");
+                rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
+                rect.sizeDelta = new Vector2(56f, 56f);
+                var icon = rect.gameObject.AddComponent<Image>();
+                icon.sprite = parentPlanetSprite(planetId);
+                icon.preserveAspect = true;
+                icon.raycastTarget = false;
+                icon.enabled = icon.sprite != null;
+                var label = SampleUI.CreateText(rect, sample.Planet.Text, 11, new Color(0.55f, 0.62f, 0.74f), FontStyle.Italic);
+                label.raycastTarget = false;
+                var labelRect = (RectTransform)label.transform;
+                labelRect.anchorMin = new Vector2(0.5f, 0f);
+                labelRect.anchorMax = new Vector2(0.5f, 0f);
+                labelRect.pivot = new Vector2(0.5f, 1f);
+                labelRect.anchoredPosition = new Vector2(0f, 2f);
+                labelRect.sizeDelta = new Vector2(80f, 16f);
+                label.alignment = TextAnchor.UpperCenter;
+                // Behind the outpost buttons so moons stay clickable.
+                rect.SetAsFirstSibling();
+                parentMarkers[planetId] = rect;
+            }
         }
 
         private static Sprite TryImage(ReadOnlyOutpost outpost)
@@ -257,6 +306,8 @@ namespace HelloWorld.Assets.Scripts
             private ReadOnlyAnimationInfo flareAnimation;
             private Dictionary<string, OrbitSpec> orbits;
             private Dictionary<string, Button> markers;
+            private Dictionary<string, OrbitSpec> parentOrbits;
+            private Dictionary<string, RectTransform> parentRects;
             private RectTransform ride;
             private RectTransform target;
             private Vector2 from;
@@ -291,10 +342,14 @@ namespace HelloWorld.Assets.Scripts
 
             public void SetOrbits(
                 Dictionary<string, OrbitSpec> orbitSpecs,
-                Dictionary<string, Button> planetMarkers)
+                Dictionary<string, Button> planetMarkers,
+                Dictionary<string, OrbitSpec> parentOrbitSpecs,
+                Dictionary<string, RectTransform> parentMarkerRects)
             {
                 orbits = orbitSpecs;
                 markers = planetMarkers;
+                parentOrbits = parentOrbitSpecs;
+                parentRects = parentMarkerRects;
             }
 
             public void SetStorm(int value) => storm = value;
@@ -354,6 +409,17 @@ namespace HelloWorld.Assets.Scripts
             {
                 if (orbits == null || markers == null) return;
                 float now = Time.time;
+                if (parentOrbits != null && parentRects != null)
+                {
+                    foreach (var pair in parentOrbits)
+                    {
+                        if (!parentRects.TryGetValue(pair.Key, out var parentRect)) continue;
+                        float parentAngle = pair.Value.phase + now * pair.Value.angularSpeed;
+                        parentRect.anchorMin = parentRect.anchorMax = new Vector2(
+                            0.5f + pair.Value.rx * Mathf.Cos(parentAngle),
+                            0.5f + pair.Value.ry * Mathf.Sin(parentAngle));
+                    }
+                }
                 foreach (var pair in orbits)
                 {
                     if (!markers.TryGetValue(pair.Key, out var button)) continue;
@@ -368,8 +434,8 @@ namespace HelloWorld.Assets.Scripts
                         float moonAngle = now * spec.angularSpeed * 7f
                             + spec.moonIndex * (2f * Mathf.PI / spec.moonCount);
                         center += new Vector2(
-                            0.05f * Mathf.Cos(moonAngle),
-                            0.038f * Mathf.Sin(moonAngle));
+                            0.062f * Mathf.Cos(moonAngle),
+                            0.048f * Mathf.Sin(moonAngle));
                     }
                     var rect = (RectTransform)button.transform;
                     rect.anchorMin = rect.anchorMax = center;

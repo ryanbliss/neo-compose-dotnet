@@ -40,7 +40,7 @@
    "do": [
     {
      "code": "if (root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }",
-     "bind": "913fd757-d6ee-488e-866f-c7af41aa544b"
+     "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
     },
     {
      "code": "root.Save.Quest.EvidenceFaith = true;",
@@ -76,7 +76,7 @@
    "options": [
     {
      "label": "Anoint",
-     "text": "Anoint his burns with the Geyser Salve",
+     "text": "Anoint his burns with the Cryo Salve",
      "to": "give salve",
      "if": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"a840747f-9d6b-4d71-af3a-16b294ec436d\"; }));"
     },

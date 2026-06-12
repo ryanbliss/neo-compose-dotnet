@@ -5055,6 +5055,24 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public Sprite JupiterSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("JupiterSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'JupiterSprite' has no synchronized asset.");
+            }
+        }
+
+        public Sprite SaturnSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("SaturnSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'SaturnSprite' has no synchronized asset.");
+            }
+        }
+
         public ReadOnlyAnimationInfo? ShipAnimation
         {
             get
@@ -5101,6 +5119,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
 
+            public static readonly NeoField<Sprite> JupiterSprite = new("JupiterSprite");
+
+            public static readonly NeoField<Sprite> SaturnSprite = new("SaturnSprite");
+
             public static readonly NeoField<ReadOnlyAnimationInfo?> ShipAnimation = new("ShipAnimation");
 
             public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
@@ -5117,6 +5139,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.FirstWorldIconSprite] = () => null,
                 [Fields.FlareAnimation] = () => null,
                 [Fields.FlareStaticSprite] = () => null,
+                [Fields.JupiterSprite] = () => null,
+                [Fields.SaturnSprite] = () => null,
                 [Fields.ShipAnimation] = () => null,
                 [Fields.ShipSprite] = () => null,
                 [Fields.SunSprite] = () => null,
@@ -5141,6 +5165,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
                 [Fields.FlareAnimation] = () => FlareAnimation,
                 [Fields.FlareStaticSprite] = () => FlareStaticSprite,
+                [Fields.JupiterSprite] = () => JupiterSprite,
+                [Fields.SaturnSprite] = () => SaturnSprite,
                 [Fields.ShipAnimation] = () => ShipAnimation,
                 [Fields.ShipSprite] = () => ShipSprite,
                 [Fields.SunSprite] = () => SunSprite,
@@ -5168,12 +5194,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Art(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite SunSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, ShipSprite, SunSprite, VaultPlaqueSprite, FlareAnimation, ShipAnimation))
+        public Art(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite JupiterSprite, Sprite SaturnSprite, Sprite ShipSprite, Sprite SunSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, JupiterSprite, SaturnSprite, ShipSprite, SunSprite, VaultPlaqueSprite, FlareAnimation, ShipAnimation))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite SunSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite JupiterSprite, Sprite SaturnSprite, Sprite ShipSprite, Sprite SunSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -5200,6 +5226,24 @@ namespace HelloWorld.Assets.Scripts.Neo
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = NeoGeneratedTypesSupport.SpriteValue(client, FlareStaticSprite),
+            });
+            var JupiterSpriteValueId = Guid.NewGuid().ToString();
+            value["JupiterSprite"] = JupiterSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = JupiterSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, JupiterSprite),
+            });
+            var SaturnSpriteValueId = Guid.NewGuid().ToString();
+            value["SaturnSprite"] = SaturnSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = SaturnSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, SaturnSprite),
             });
             if (ShipAnimation is not null)
             {
@@ -5291,6 +5335,32 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new Sprite JupiterSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("JupiterSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'JupiterSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "JupiterSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new Sprite SaturnSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("SaturnSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'SaturnSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "SaturnSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
         public new AnimationInfo? ShipAnimation
         {
             get
@@ -5358,6 +5428,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
 
+            public static readonly NeoField<Sprite> JupiterSprite = new("JupiterSprite");
+
+            public static readonly NeoField<Sprite> SaturnSprite = new("SaturnSprite");
+
             public static readonly NeoField<AnimationInfo?> ShipAnimation = new("ShipAnimation");
 
             public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
@@ -5374,6 +5448,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.FirstWorldIconSprite] = () => null,
                 [Fields.FlareAnimation] = () => null,
                 [Fields.FlareStaticSprite] = () => null,
+                [Fields.JupiterSprite] = () => null,
+                [Fields.SaturnSprite] = () => null,
                 [Fields.ShipAnimation] = () => null,
                 [Fields.ShipSprite] = () => null,
                 [Fields.SunSprite] = () => null,
@@ -5398,6 +5474,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
                 [Fields.FlareAnimation] = () => FlareAnimation,
                 [Fields.FlareStaticSprite] = () => FlareStaticSprite,
+                [Fields.JupiterSprite] = () => JupiterSprite,
+                [Fields.SaturnSprite] = () => SaturnSprite,
                 [Fields.ShipAnimation] = () => ShipAnimation,
                 [Fields.ShipSprite] = () => ShipSprite,
                 [Fields.SunSprite] = () => SunSprite,

@@ -70,7 +70,7 @@
    "do": [
     {
      "code": "if (root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }",
-     "bind": "913fd757-d6ee-488e-866f-c7af41aa544b"
+     "bind": "b81df7d3-be41-4685-9111-3cdc1821e693"
     },
     {
      "code": "root.Save.Quest.EvidenceArchive = true;",

@@ -447,7 +447,7 @@ namespace NeoCompose.Runtime.NeoScript
                     if (v is null)
                     {
                         throw new NSGetterRuntimeError(
-                            "Unexpectedly found null while force-unwrapping a value");
+                            $"Unexpectedly found null while force-unwrapping a value (unwrapped pointer kind: {DescribePointer(fup.pointer)})");
                     }
                     return v;
                 }
@@ -497,6 +497,40 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NSGetterRuntimeError(
                         $"Unknown pointer kind {pointer.GetType().Name}");
             }
+        }
+
+        /// <summary>
+        /// Compact description of a pointer for error messages: enough to
+        /// locate the failing expression (getter/member ids) from a log line
+        /// without re-running the script.
+        /// </summary>
+        private static string DescribePointer(Pointer pointer)
+        {
+            switch (pointer)
+            {
+                case CallGetterPointer cgp:
+                    return $"callGetter {cgp.attributeId}";
+                case KeyOfPointer kop:
+                    return $"keyOf {EvalPointerKeyLabel(kop)}";
+                case VariablePointer vp:
+                    return $"variable {vp.variableId}";
+                case ReferencePointer rp:
+                    return $"reference {rp.valueId}";
+                case CallNativeFunctionPointer cnfp:
+                    return $"nativeCall {cnfp.attributeId}";
+                default:
+                    return pointer.GetType().Name;
+            }
+        }
+
+        private static string EvalPointerKeyLabel(KeyOfPointer pointer)
+        {
+            if (pointer.keyOf.key is ValuePointer valueKey
+                && valueKey.value?.value?.Type == Newtonsoft.Json.Linq.JTokenType.String)
+            {
+                return valueKey.value.value.ToString();
+            }
+            return "<dynamic>";
         }
 
         private static object? EvalNativeFunctionCall(

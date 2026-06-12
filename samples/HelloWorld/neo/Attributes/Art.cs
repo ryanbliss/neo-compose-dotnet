@@ -17,6 +17,12 @@ public sealed class Art
     [NeoSprite("13e587b4-f143-419e-b2f1-a5fb2fef92fd")]
     public NeoSpriteValue FlareStaticSprite { get; init; }
 
+    [NeoSprite("dca14d32-7e42-4db4-8174-de9f3798a5be")]
+    public NeoSpriteValue JupiterSprite { get; init; }
+
+    [NeoSprite("8042556b-586e-4f79-b358-80924968a7b8")]
+    public NeoSpriteValue SaturnSprite { get; init; }
+
     [NeoObject("7a3f6a94-a649-4b75-8776-eb623f55fe1b", DefaultJson = @"null")]
     public AnimationInfo? ShipAnimation { get; init; }
 
