@@ -9,6 +9,7 @@
     "relativeOrder": 0,
     "occurrenceLimit": 1
   },
+  "when": null,
   "start": "v1",
   "nodes": {
     "v2": {

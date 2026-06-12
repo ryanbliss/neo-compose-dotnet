@@ -1,0 +1,79 @@
+{
+  "id": "ac84d92f-7d6a-42cb-ab60-cf3934c4a665",
+  "name": "Ursa Major: the stars don't move",
+  "description": null,
+  "linkedValueId": "b81df7d3-be41-4685-9111-3cdc1821e693",
+  "group": {
+    "id": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+    "priority": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
+    "relativeOrder": 0,
+    "occurrenceLimit": 1
+  },
+  "when": "return root.Save.Quest.Stage == QuestStage.threePaths && !root.Save.Quest.EvidenceArchive;",
+  "start": "u1",
+  "nodes": {
+    "u4": {
+      "say": "The monks on Enceladus — their geyser hymns. I always took them for noise, but the cadence... it's structured. Line lengths, repeated headers. Take the survey data to them. Tell them the sky held still.",
+      "to": "u5"
+    },
+    "u1b": {
+      "say": "Right. Right. Parallax: when you move, near stars should shift against far ones. It is geometry. It is the LAW.",
+      "to": "u2"
+    },
+    "u6": {
+      "say": "Whatever they sing back to you — that's the half of the proof we couldn't read. Go. And traveler... don't look up on the way out. It's not the same sky once you know."
+    },
+    "u2": {
+      "say": "Nothing moved. Not one star. Not by a hair. We crossed half the system and the sky did not notice. The stars are not far away, traveler — they are PAINTED. A... a backdrop. A skybox.",
+      "options": [
+        {
+          "label": "Calm",
+          "text": "Then we're the first people to ever really look. That's not nothing.",
+          "to": "u3warm"
+        },
+        {
+          "label": "Blunt",
+          "text": "So the sky is fake. What's behind it?",
+          "to": "u3cold"
+        }
+      ]
+    },
+    "u1": {
+      "say": "You came back. Good. Close the door. ...We finished the parallax survey last night. Twelve years of baselines, every outpost, both solstices.",
+      "options": [
+        {
+          "label": "And?",
+          "text": "And? What did you find?",
+          "to": "u2"
+        },
+        {
+          "label": "Steady",
+          "text": "Breathe. Start from the beginning.",
+          "to": "u1b"
+        }
+      ]
+    },
+    "u3cold": {
+      "say": "Behind it? BEHIND it? Forty years staring up and you ask what's behind the— ...I don't know. Nobody knows. That's the worst part.",
+      "to": "u4"
+    },
+    "u3warm": {
+      "do": [
+        {
+          "code": "this.Save.Reputation += 1;",
+          "bind": "b81df7d3-be41-4685-9111-3cdc1821e693"
+        }
+      ],
+      "to": "u4"
+    },
+    "u5": {
+      "do": [
+        {
+          "code": "root.Save.Quest.EvidenceArchive = true;",
+          "bind": "b81df7d3-be41-4685-9111-3cdc1821e693"
+        }
+      ],
+      "to": "u6"
+    }
+  }
+}

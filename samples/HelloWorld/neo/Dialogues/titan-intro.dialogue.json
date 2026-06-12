@@ -9,6 +9,7 @@
     "relativeOrder": 0,
     "occurrenceLimit": 1
   },
+  "when": null,
   "start": "t1",
   "nodes": {
     "t3": {

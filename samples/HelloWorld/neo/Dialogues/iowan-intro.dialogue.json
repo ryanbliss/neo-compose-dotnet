@@ -9,6 +9,7 @@
     "relativeOrder": 0,
     "occurrenceLimit": 1
   },
+  "when": null,
   "start": "i1",
   "nodes": {
     "grant Storm Corn": {
@@ -52,6 +53,10 @@
       "do": [
         {
           "code": "this.Save.Unlocked = true;",
+          "bind": "b81df7d3-be41-4685-9111-3cdc1821e693"
+        },
+        {
+          "code": "root.Save.Quest.Stage = QuestStage.threePaths;",
           "bind": "b81df7d3-be41-4685-9111-3cdc1821e693"
         }
       ],

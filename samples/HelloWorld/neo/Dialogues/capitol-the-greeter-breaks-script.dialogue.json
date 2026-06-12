@@ -1,0 +1,62 @@
+{
+  "id": "9aa5899e-e0ed-4b94-8994-8fcc92b421e0",
+  "name": "Capitol: the greeter breaks script",
+  "description": null,
+  "linkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
+  "group": {
+    "id": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+    "priority": "90a9ef4a-7555-46db-b639-f3876eb4d3e2",
+    "relativeOrder": 2,
+    "occurrenceLimit": 1
+  },
+  "when": "return root.Save.Quest.Stage == QuestStage.threePaths && ((root.Save.Quest.EvidenceArchive && root.Save.Quest.EvidenceLedger) || (root.Save.Quest.EvidenceArchive && root.Save.Quest.EvidenceFaith) || (root.Save.Quest.EvidenceLedger && root.Save.Quest.EvidenceFaith));",
+  "start": "g1",
+  "nodes": {
+    "g1": {
+      "say": "Hello, traveler! Welcome to the best planet of the— ...no. No, you've heard that line. You've heard it EVERY time, haven't you. And you keep coming back with truths in your pockets.",
+      "options": [
+        {
+          "label": "Show",
+          "text": "I know what this world is. I have proof.",
+          "to": "g2"
+        },
+        {
+          "label": "Kind",
+          "text": "Take your time. Say it however you need to.",
+          "to": "g1b"
+        }
+      ]
+    },
+    "g3": {
+      "do": [
+        {
+          "code": "root.Save.Quest.Stage = QuestStage.vaultOpen;",
+          "bind": "913fd757-d6ee-488e-866f-c7af41aa544b"
+        }
+      ],
+      "to": "g4"
+    },
+    "g1b": {
+      "do": [
+        {
+          "code": "this.Save.Reputation += 1;",
+          "bind": "913fd757-d6ee-488e-866f-c7af41aa544b"
+        }
+      ],
+      "to": "g2"
+    },
+    "g2": {
+      "say": "Under the Capitol there's a door I'm not supposed to remember between... between VISITS. The Old Console. Where the world said its first words. Your proof is the key — I can feel the door listening to it.",
+      "options": [
+        {
+          "label": "Open",
+          "text": "Open it.",
+          "to": "g3"
+        }
+      ]
+    },
+    "g4": {
+      "say": "The shaft is dark, traveler. DARK dark. Old-world dark. Bring a light that works where light was never installed... the ice-fishers of Europa carry such things. And traveler — thank you for not finishing my line for me."
+    }
+  }
+}

@@ -9,6 +9,7 @@
     "relativeOrder": 0,
     "occurrenceLimit": 1
   },
+  "when": null,
   "start": "Hello",
   "nodes": {
     "mx1": {
@@ -231,6 +232,10 @@
       "do": [
         {
           "code": "this.Save.Unlocked = true;",
+          "bind": "424019cd-8b46-4dd9-9aac-3721331179bb"
+        },
+        {
+          "code": "root.Save.Quest.Stage = QuestStage.followTheWakes;",
           "bind": "424019cd-8b46-4dd9-9aac-3721331179bb"
         }
       ],
