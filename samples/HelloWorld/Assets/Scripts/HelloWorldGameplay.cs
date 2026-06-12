@@ -78,11 +78,6 @@ namespace HelloWorld.Assets.Scripts
             TriggerDialogue();
         }
 
-        private void OnSaveChanged(NeoChangedArgs<Save.Fields> args)
-        {
-            if (args.Source == NeoChangeSource.External) UpdateUI();
-        }
-
         public string HelloWorldText => neo.Assets.Computed.fullText;
         public Planet World => neo.Save.World;
         public ReadOnlyOutpost CurrentOutpost => neo.Save.Location;
@@ -303,6 +298,7 @@ namespace HelloWorld.Assets.Scripts
             UpdateUI();
         }
 
+
         private void OnBitsChanged(int bits, NeoChangeSource source)
         {
             if (bits > lastBits)
@@ -315,6 +311,11 @@ namespace HelloWorld.Assets.Scripts
             }
             lastBits = bits;
             UpdateUI();
+        }
+
+        private void OnSaveChanged(NeoChangedArgs<Save.Fields> args)
+        {
+            if (args.Source == NeoChangeSource.External) UpdateUI();
         }
 
         private void UpdateUI()
