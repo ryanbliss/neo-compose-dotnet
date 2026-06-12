@@ -1,0 +1,82 @@
+{
+ "id": "7637b0cc-95c3-4517-93c8-3d39d320369f",
+ "name": "Iowan intro",
+ "description": "The Red Nova Conspiracy — authored via @neocompose/cli.",
+ "linkedValueId": "7a91f55f-a90e-4a80-80f4-43ad6386891a",
+ "group": {
+  "id": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+  "priority": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
+  "relativeOrder": 0,
+  "occurrenceLimit": 1
+ },
+ "when": null,
+ "start": "i1",
+ "nodes": {
+  "grant Storm Corn": {
+   "do": [
+    {
+     "code": "root.Save.Inventory.Add(this);",
+     "bind": "0e9655ec-dc98-477c-b0ff-90d8f203040a"
+    }
+   ],
+   "to": "i5"
+  },
+  "i4a": {
+   "do": [
+    {
+     "code": "this.Save.Unlocked = true;",
+     "bind": "83cc2935-5a85-4d71-9e50-4e4496f00631"
+    }
+   ],
+   "to": "i4b"
+  },
+  "i1": {
+   "say": "Howdy, stranger! Welcome to Iowan — best storm corn in four hundred moons, and don't let Venus tell you otherwise.",
+   "options": [
+    {
+     "label": "Corn?",
+     "text": "You grow corn... on Jupiter?",
+     "to": "i2"
+    },
+    {
+     "label": "Business",
+     "text": "I'm tracking the freighters that ride the flare wakes.",
+     "to": "i3"
+    }
+   ]
+  },
+  "i3": {
+   "say": "Freighters, eh? Pour Lords on Ganymede run all the fuel out here — start with their ledgers. The Europapas folk have seen things under the ice, too. And the eggheads up Ursa Major chart every wake in the sky. Pick your moon, stranger.",
+   "to": "i4a"
+  },
+  "i4c": {
+   "do": [
+    {
+     "code": "this.Save.Unlocked = true;",
+     "bind": "b81df7d3-be41-4685-9111-3cdc1821e693"
+    },
+    {
+     "code": "if (root.Save.Quest.Stage == QuestStage.arrival || root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }",
+     "bind": "b81df7d3-be41-4685-9111-3cdc1821e693"
+    }
+   ],
+   "to": "grant Storm Corn"
+  },
+  "i4b": {
+   "do": [
+    {
+     "code": "this.Save.Unlocked = true;",
+     "bind": "1c9e473a-3616-4c1c-82f7-461e080c9785"
+    }
+   ],
+   "to": "i4c"
+  },
+  "i5": {
+   "say": "Take an ear of storm corn for the road. It hums when a flare's coming. Don't ask us why — we just farm here."
+  },
+  "i2": {
+   "say": "Cloud-vat corn, sweetened by lightning! Was, anyway. The flare radiation's been cooking the crop bone-white. First season we've ever lost.",
+   "to": "i3"
+  }
+ }
+}

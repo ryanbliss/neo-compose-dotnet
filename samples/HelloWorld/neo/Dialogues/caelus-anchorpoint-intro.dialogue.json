@@ -1,0 +1,60 @@
+{
+  "id": "ac09da54-857f-4981-8ccf-942e5cfa8d85",
+  "name": "Caelus Anchorpoint intro",
+  "description": "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  "linkedValueId": "0bfa8e27-27e0-41b2-b90b-6d3c9442905a",
+  "group": {
+    "id": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+    "priority": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
+    "relativeOrder": 0,
+    "occurrenceLimit": 1
+  },
+  "when": null,
+  "start": "c1",
+  "nodes": {
+    "c4": {
+      "say": "Take a gyro stabilizer — Neptune's storms chew up dirtsider ships for breakfast. And traveler? Whatever the Gyre is building out there, the invoices say it's nearly finished."
+    },
+    "c2j": {
+      "say": "Carefully. ...You want the relay logs. They all do, eventually. You'd think we were the only honest router in the outer system. We are.",
+      "to": "c2"
+    },
+    "c1": {
+      "say": "Welcome to Caelus Anchorpoint. Yes, the station is sideways. No, we will not fix it. How can we help?",
+      "options": [
+        {
+          "label": "Logs",
+          "text": "I need your relay logs — command bursts headed to Neptune.",
+          "to": "c2"
+        },
+        {
+          "label": "Joke",
+          "text": "How do you even pour coffee sideways?",
+          "to": "c2j"
+        }
+      ]
+    },
+    "grant Gyro Stabilizer": {
+      "do": [
+        {
+          "code": "root.Save.Inventory.Add(this);",
+          "bind": "73a11098-70fa-4608-bfb6-0ab25571e576"
+        }
+      ],
+      "to": "c4"
+    },
+    "c3": {
+      "do": [
+        {
+          "code": "this.Save.Unlocked = true;",
+          "bind": "763b50d2-c0b2-4346-b8fb-a092e7337af3"
+        }
+      ],
+      "to": "grant Gyro Stabilizer"
+    },
+    "c2": {
+      "say": "Command bursts to the Gyre Collective every six hours, origin masked. But the BILLING ledger isn't masked, and every account roots back to one rock: Pluto.",
+      "to": "c3"
+    }
+  }
+}

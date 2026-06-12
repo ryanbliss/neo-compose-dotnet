@@ -228,6 +228,106 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ResolveTextureSettings_InlineCustomSettings_HonorsSingleSpriteMode()
+        {
+            // One-off (custom) settings arrive inline with templateId null —
+            // the field repro: the web stored single-sprite settings but the
+            // applier dropped them and kept slicing with the default template.
+            var json = @"{
+                ""id"": ""file-1"", ""name"": ""Vault plaque.png"",
+                ""unityTextureSettings"": {
+                    ""templateId"": null,
+                    ""type"": ""texture-2d"",
+                    ""textureType"": ""sprite"", ""textureShape"": ""2d"",
+                    ""sRGBTexture"": true, ""alphaSource"": ""input-texture-alpha"",
+                    ""alphaIsTransparency"": true, ""nonPowerOfTwoScale"": ""none"",
+                    ""ignorePngGamma"": false, ""readWriteEnabled"": true,
+                    ""virtualTextureOnly"": false, ""generateMipMaps"": false,
+                    ""borderMipMaps"": false, ""mipMapFiltering"": ""box"",
+                    ""mipMapsPreserveCoverage"": false, ""alphaCutoffValue"": 0.5,
+                    ""fadeOutMipMaps"": false, ""mipMapFadeDistanceStart"": 1,
+                    ""mipMapFadeDistanceEnd"": 3, ""anisoLevel"": 1,
+                    ""wrapMode"": ""clamp"", ""filterMode"": ""point"",
+                    ""maxTextureSize"": 2048, ""resizeAlgorithm"": ""mitchell"",
+                    ""textureCompression"": ""none"", ""compressionQuality"": 50,
+                    ""crunchedCompression"": false,
+                    ""platformSettings"": { ""default"": {
+                        ""compressionQuality"": 50, ""crunchedCompression"": false,
+                        ""format"": ""automatic"", ""maxTextureSize"": 2048,
+                        ""resizeAlgorithm"": ""mitchell"", ""textureCompression"": ""none"" } },
+                    ""spriteSettings"": {
+                        ""spriteMode"": ""single"", ""pixelsPerUnit"": 16,
+                        ""meshType"": ""tight"", ""extrudeEdges"": 1,
+                        ""pivotAlignment"": ""center"", ""pivot"": { ""x"": 0.5, ""y"": 0.5 },
+                        ""generatePhysicsShape"": true,
+                        ""spriteEditor"": { ""slices"": {} } }
+                }
+            }";
+            var file = Newtonsoft.Json.JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.ProjectFile>(json);
+            var resolved = NeoComposeUnityImportSettingsApplier.ResolveTextureSettings(
+                file!, new NeoCompose.Runtime.Json.ProjectData());
+
+            Assert.IsNotNull(resolved, "inline custom settings must resolve");
+            Assert.AreEqual("single", resolved!.spriteSettings!.spriteMode);
+            Assert.AreEqual("point", resolved.filterMode);
+        }
+
+        [Test]
+        public void ResolveAudioSettings_InlineCustomSettings_HonorsCustomFields()
+        {
+            // Same silent-drop bug as textures: one-off audio settings ride
+            // inline with templateId null and must survive deserialization.
+            var json = @"{
+                ""id"": ""file-2"", ""name"": ""Rocket thrust.wav"",
+                ""unityAudioClipSettings"": {
+                    ""templateId"": null,
+                    ""forceToMono"": true, ""normalize"": true,
+                    ""loadInBackground"": false, ""ambisonic"": false,
+                    ""loadType"": ""decompress-on-load"",
+                    ""compressionFormat"": ""adpcm"",
+                    ""quality"": 0.7,
+                    ""sampleRateSetting"": ""preserve"",
+                    ""preloadAudioData"": true
+                }
+            }";
+            var file = Newtonsoft.Json.JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.ProjectFile>(json);
+            var resolved = NeoComposeUnityImportSettingsApplier.ResolveAudioSettings(
+                file!, new NeoCompose.Runtime.Json.ProjectData());
+
+            Assert.IsNotNull(resolved, "inline custom audio settings must resolve");
+            Assert.AreEqual("adpcm", resolved!.compressionFormat);
+            Assert.AreEqual("decompress-on-load", resolved.loadType);
+            Assert.IsTrue(resolved.forceToMono);
+            Assert.IsTrue(resolved.preloadAudioData);
+        }
+
+        [Test]
+        public void VersionSelection_DisplayLabel_BranchesShowNameNotPlaceholderSemver()
+        {
+            var release = Version("v-1-0-0", "draft", 1, 0, 0);
+            release.kind = "release";
+            var branch = Version("v-branch", "draft", 1, 0, 0);
+            branch.kind = "branch";
+            branch.name = "cli-proof";
+            var legacy = Version("v-0-1-1", "draft", 0, 1, 1);
+
+            Assert.AreEqual("1.0.0", NeoComposeVersionSelectionUtility.DisplayLabel(release));
+            Assert.AreEqual("cli-proof", NeoComposeVersionSelectionUtility.DisplayLabel(branch));
+            Assert.AreEqual("0.1.1", NeoComposeVersionSelectionUtility.DisplayLabel(legacy));
+        }
+
+        [Test]
+        public void VersionSelection_DisplayLabel_EscapesSlashesSoUnityPopupsDoNotNest()
+        {
+            var branch = Version("v-branch", "draft", 0, 1, 1);
+            branch.kind = "branch";
+            branch.name = "feature/solar-flares";
+
+            StringAssert.DoesNotContain("/", NeoComposeVersionSelectionUtility.DisplayLabel(branch));
+            StringAssert.Contains("solar-flares", NeoComposeVersionSelectionUtility.DisplayLabel(branch));
+        }
+
+        [Test]
         public void VersionSelection_KeepsPinnedArchivedVersionInDropdown()
         {
             var statuses = new[]

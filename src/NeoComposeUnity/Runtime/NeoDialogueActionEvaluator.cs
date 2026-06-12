@@ -345,8 +345,33 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx)
         {
             NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
-            object? value = Eval(target.pointer, scope, ctx);
-            string? rowId = FindValueId(value, ctx);
+            string? rowId;
+            if (target.typeInfo is LookupTypeInfo && target.pointer is KeyOfPointer lookupKeyOf)
+            {
+                // A lookup READ resolves to the looked-up entries, so the
+                // evaluated value reverse-maps to an ASSET row (the first
+                // entry) — mutating that throws "not save-owned" even though
+                // the author wrote a perfectly legal save mutation. Lookup
+                // mutations target the save-side ref list: read the
+                // receiver's raw member id instead of evaluating the lookup.
+                object? receiver = Eval(lookupKeyOf.keyOf.pointer, scope, ctx);
+                string? receiverRowId = FindValueId(receiver, ctx);
+                object? key = Eval(lookupKeyOf.keyOf.key, scope, ctx);
+                rowId = null;
+                if (receiverRowId is not null
+                    && client.TryGetValue(receiverRowId, out ObjectAttributeValue? receiverRow)
+                    && receiverRow!.value is not null
+                    && receiverRow.value.TryGetValue(
+                        ToStringKey(key, "Lookup member key"), out string? memberRowId))
+                {
+                    rowId = memberRowId;
+                }
+            }
+            else
+            {
+                object? value = Eval(target.pointer, scope, ctx);
+                rowId = FindValueId(value, ctx);
+            }
             if (rowId == null)
             {
                 throw new NSGetterRuntimeError("Collection mutation target is not backed by a Neo value row.");

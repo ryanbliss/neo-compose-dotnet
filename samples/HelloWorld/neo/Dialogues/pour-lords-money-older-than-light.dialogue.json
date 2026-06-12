@@ -1,0 +1,85 @@
+{
+ "id": "cf369b57-9332-4d40-8ff7-17bd86d93b3f",
+ "name": "Pour Lords: money older than light",
+ "description": null,
+ "linkedValueId": "1c9e473a-3616-4c1c-82f7-461e080c9785",
+ "group": {
+  "id": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+  "priority": "90a9ef4a-7555-46db-b639-f3876eb4d3e2",
+  "relativeOrder": 0,
+  "occurrenceLimit": 1
+ },
+ "when": "return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceLedger && this.Save.Reputation >= 1;",
+ "start": "p1",
+ "nodes": {
+  "p3": {
+   "say": "No signature. Just a header, same on every ancient page: 'SAMPLE LEDGER — DO NOT SHIP.' We built an empire on a placeholder, and I find that absolutely hilarious and you should too.",
+   "to": "p4"
+  },
+  "p2": {
+   "say": "First entry: fuel futures, sold and settled... dated before the world's first sunrise. Money older than light, friend. The books don't start at the beginning — they start BEFORE it. Someone funded this world like a venture.",
+   "options": [
+    {
+     "label": "Who",
+     "text": "Who signs the first page?",
+     "to": "p3"
+    }
+   ]
+  },
+  "p1": {
+   "say": "The investigator returns! You've been good for business and better for gossip, so here's the house secret, on the house. Our oldest account books.",
+   "options": [
+    {
+     "label": "Open",
+     "text": "Show me.",
+     "to": "p2"
+    }
+   ]
+  },
+  "p4": {
+   "do": [
+    {
+     "code": "if (root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }",
+     "bind": "1c9e473a-3616-4c1c-82f7-461e080c9785"
+    },
+    {
+     "code": "root.Save.Quest.EvidenceLedger = true;",
+     "bind": "1c9e473a-3616-4c1c-82f7-461e080c9785"
+    }
+   ],
+   "to": "p4ask"
+  },
+  "p5": {
+   "say": "Take the page. The Lords always pay debts to people who might end the world — it's just good bookkeeping."
+  },
+  "p4ask": {
+   "say": "The Margrave's decanter stands empty beside the impossible ledger. Tradition says a deal this old closes with a drink.",
+   "options": [
+    {
+     "label": "Pour",
+     "text": "Pour from your Helium-3 Flask",
+     "to": "give flask",
+     "if": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"18b9a621-ea41-4ac7-8a46-9cc443f2b480\"; }));"
+    },
+    {
+     "label": "Decline",
+     "text": "Keep the flask sealed",
+     "to": "p5"
+    }
+   ]
+  },
+  "give flask": {
+   "do": [
+    {
+     "code": "root.Save.Inventory.Remove(this);",
+     "bind": "18b9a621-ea41-4ac7-8a46-9cc443f2b480"
+    },
+    {
+     "code": "this.Save.Reputation += 1;",
+     "bind": "1c9e473a-3616-4c1c-82f7-461e080c9785"
+    }
+   ],
+   "to": "p5"
+  }
+ }
+}

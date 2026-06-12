@@ -11,6 +11,20 @@ namespace NeoCompose.Unity.Editor
 {
     public static class NeoComposeVersionSelectionUtility
     {
+        /// <summary>
+        /// Branches display by name (their semver is a fork-time placeholder
+        /// that collides with real releases — Unity popups merge duplicate
+        /// labels). '/' would nest a submenu, so it is swapped for '∕'.
+        /// </summary>
+        public static string DisplayLabel(NeoComposeProjectVersion version)
+        {
+            var label = version.kind == "branch" && !string.IsNullOrWhiteSpace(version.name)
+                ? version.name!
+                : version.semver.label;
+            if (string.IsNullOrWhiteSpace(label)) label = version.id;
+            return label.Replace('/', '∕');
+        }
+
         public static string SelectDefaultReleaseChannelId(
             IEnumerable<NeoComposeProjectReleaseChannel> channels)
         {

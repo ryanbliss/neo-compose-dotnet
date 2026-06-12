@@ -31,7 +31,7 @@ namespace NeoCompose.Runtime
     /// cloud commit is required vs. best-effort per
     /// <see cref="InternalProjectStore.RequireCloudCommit"/> (default best-effort).
     /// </remarks>
-    public sealed class NeoSaveSynchronizer : INeoSaveLoader, IDisposable
+    public sealed class NeoSaveSynchronizer : INeoSaveLoader, INeoLiveContentSource, IDisposable
     {
         private readonly InternalProjectStore core;
         private readonly bool isNewDraft;
@@ -143,9 +143,12 @@ namespace NeoCompose.Runtime
         /// Raised while a live session is active and a co-editor (e.g. the web
         /// tool) patched this session's live snapshot: the remote values were
         /// merged into the active save — locally dirty keys win until they
-        /// flush — and the merged, serialized content is delivered for the
-        /// game to re-apply. This session's own flushes echoing back never
-        /// raise it.
+        /// flush — and the merged, serialized content is delivered. The
+        /// running <see cref="NeoClient"/> subscribes to this itself (via
+        /// <see cref="INeoLiveContentSource"/>) and re-applies the content,
+        /// raising typed change events with
+        /// <see cref="NeoChangeSource.External"/> — games don't wire it up.
+        /// This session's own flushes echoing back never raise it.
         /// </summary>
         public event Action<string>? OnLiveContentChanged;
 

@@ -53,6 +53,17 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
+        /// <summary>
+        /// Set by the ShowRelic dialogue function: the NEXT text node stages
+        /// this sprite LARGE in the center of the screen (the vault plaque is
+        /// this game's cake — it earns the spotlight), then it stays up until
+        /// the dialogue moves on.
+        /// </summary>
+        private Sprite pendingRelic;
+        private GameObject relicStage;
+        private Image relicImage;
+        private Image dimmer;
+
         public void Show(
             string name,
             Sprite image,
@@ -63,8 +74,22 @@ namespace HelloWorld.Assets.Scripts
             SpeakerName = name;
             SpeakerImage = image;
             Text = text;
+            bool revealing = pendingRelic != null;
+            relicStage.SetActive(revealing);
+            if (revealing)
+            {
+                relicImage.sprite = pendingRelic;
+                pendingRelic = null;
+            }
+            // Darken the world harder while a relic holds the stage.
+            dimmer.color = new Color(0f, 0f, 0f, revealing ? 0.78f : 0.42f);
             ClearOptionButtons();
             root.SetActive(true);
+        }
+
+        public void ShowRelicSprite(Sprite relic)
+        {
+            pendingRelic = relic;
         }
 
         public void ClearOptionButtons()
@@ -95,6 +120,11 @@ namespace HelloWorld.Assets.Scripts
         public void Reset()
         {
             speakerAnimator?.CancelActive();
+            pendingRelic = null;
+            if (relicStage != null)
+            {
+                relicStage.SetActive(false);
+            }
             if (root != null)
             {
                 root.SetActive(false);
@@ -157,6 +187,21 @@ namespace HelloWorld.Assets.Scripts
             overlay.offsetMax = Vector2.zero;
             var overlayImage = overlay.gameObject.AddComponent<Image>();
             overlayImage.color = new Color(0f, 0f, 0f, 0.42f);
+            dimmer = overlayImage;
+
+            // The relic stage: a large centered presentation above the text
+            // panel for ShowRelic reveals (the plaque deserves cake treatment).
+            var relicRect = SampleUI.CreateRect(overlay, "RelicStage");
+            relicRect.anchorMin = new Vector2(0.5f, 0.5f);
+            relicRect.anchorMax = new Vector2(0.5f, 0.5f);
+            relicRect.pivot = new Vector2(0.5f, 0.32f);
+            relicRect.anchoredPosition = new Vector2(0f, 60f);
+            relicRect.sizeDelta = new Vector2(560f, 560f);
+            relicImage = relicRect.gameObject.AddComponent<Image>();
+            relicImage.preserveAspect = true;
+            relicImage.raycastTarget = false;
+            relicRect.gameObject.SetActive(false);
+            relicStage = relicRect.gameObject;
 
             var panel = CreatePanel(overlay);
             BuildPanelContent(panel);
@@ -167,30 +212,48 @@ namespace HelloWorld.Assets.Scripts
         private static RectTransform CreatePanel(Transform parent)
         {
             var panel = SampleUI.CreateRect(parent, "Dialogue Panel");
-            panel.anchorMin = new Vector2(0.12f, 0f);
-            panel.anchorMax = new Vector2(0.88f, 0f);
+            // Centered column with a comfortable max width; height hugs the
+            // content (no reserved dead space, no overflow at 3+ lines).
+            panel.anchorMin = new Vector2(0.5f, 0f);
+            panel.anchorMax = new Vector2(0.5f, 0f);
             panel.pivot = new Vector2(0.5f, 0f);
-            panel.anchoredPosition = new Vector2(0f, 34f);
-            panel.sizeDelta = new Vector2(0f, 330f);
+            panel.anchoredPosition = new Vector2(0f, 44f);
+            panel.sizeDelta = new Vector2(1180f, 0f);
 
             var image = panel.gameObject.AddComponent<Image>();
-            image.color = new Color(0.08f, 0.10f, 0.14f, 0.98f);
+            image.color = new Color(0.07f, 0.09f, 0.13f, 0.985f);
 
             var layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
-            layout.padding = new RectOffset(28, 28, 24, 26);
-            layout.spacing = 12f;
+            layout.padding = new RectOffset(32, 32, 22, 26);
+            layout.spacing = 14f;
             layout.childAlignment = TextAnchor.UpperLeft;
             layout.childControlHeight = true;
             layout.childControlWidth = true;
             layout.childForceExpandHeight = false;
             layout.childForceExpandWidth = true;
+
+            var fitter = panel.gameObject.AddComponent<ContentSizeFitter>();
+            fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+            // A thin accent line along the top edge gives the panel a frame
+            // without a heavy border.
+            var accent = SampleUI.CreateRect(panel, "Accent");
+            accent.anchorMin = new Vector2(0f, 1f);
+            accent.anchorMax = new Vector2(1f, 1f);
+            accent.pivot = new Vector2(0.5f, 1f);
+            accent.offsetMin = new Vector2(0f, -3f);
+            accent.offsetMax = new Vector2(0f, 0f);
+            var accentImage = accent.gameObject.AddComponent<Image>();
+            accentImage.color = new Color(0.33f, 0.52f, 0.86f, 0.9f);
+            accentImage.raycastTarget = false;
+            accent.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
             return panel;
         }
 
         private void BuildPanelContent(Transform parent)
         {
             var speakerRow = SampleUI.CreateRect(parent, "Speaker");
-            speakerRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 32f;
+            speakerRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 40f;
             var speakerLayout = speakerRow.gameObject.AddComponent<HorizontalLayoutGroup>();
             speakerLayout.spacing = 10f;
             speakerLayout.childAlignment = TextAnchor.MiddleLeft;
@@ -201,10 +264,10 @@ namespace HelloWorld.Assets.Scripts
 
             var imageRect = SampleUI.CreateRect(speakerRow, "Image");
             var imageLayout = imageRect.gameObject.AddComponent<LayoutElement>();
-            imageLayout.preferredWidth = 30f;
-            imageLayout.preferredHeight = 30f;
-            imageLayout.minWidth = 30f;
-            imageLayout.minHeight = 30f;
+            imageLayout.preferredWidth = 38f;
+            imageLayout.preferredHeight = 38f;
+            imageLayout.minWidth = 38f;
+            imageLayout.minHeight = 38f;
             speakerImage = imageRect.gameObject.AddComponent<Image>();
             speakerImage.preserveAspect = true;
             speakerImage.raycastTarget = false;
@@ -214,16 +277,19 @@ namespace HelloWorld.Assets.Scripts
             speakerText.gameObject.GetComponent<LayoutElement>().flexibleWidth = 1f;
             speakerText.verticalOverflow = VerticalWrapMode.Overflow;
 
-            bodyText = SampleUI.CreateText(parent, "", 28, new Color(0.96f, 0.98f, 1f), FontStyle.Normal);
+            // The body sizes itself: Text's own preferred height drives the
+            // layout, so one line and five lines both look intentional.
+            bodyText = SampleUI.CreateText(parent, "", 25, new Color(0.96f, 0.98f, 1f), FontStyle.Normal);
             bodyText.alignment = TextAnchor.UpperLeft;
+            bodyText.lineSpacing = 1.15f;
             bodyText.horizontalOverflow = HorizontalWrapMode.Wrap;
             bodyText.verticalOverflow = VerticalWrapMode.Overflow;
             var bodyLayout = bodyText.gameObject.GetComponent<LayoutElement>();
-            bodyLayout.preferredHeight = 92f;
-            bodyLayout.flexibleHeight = 1f;
+            bodyLayout.preferredHeight = -1f;
+            bodyLayout.flexibleHeight = 0f;
+            bodyLayout.minHeight = 36f;
 
             optionStack = SampleUI.CreateRect(parent, "Options");
-            optionStack.gameObject.AddComponent<LayoutElement>().preferredHeight = 150f;
             var layout = optionStack.gameObject.AddComponent<VerticalLayoutGroup>();
             layout.spacing = 8f;
             layout.childAlignment = TextAnchor.UpperLeft;
@@ -235,16 +301,14 @@ namespace HelloWorld.Assets.Scripts
 
         private void CreateOptionButton(string label, bool selectable, Action action, bool alreadyChosen)
         {
+            // Quiet rows with a blue accent bar instead of solid full-width
+            // slabs: the prose stays the loudest thing on the panel.
             var rect = SampleUI.CreateRect(optionStack, label);
             var layout = rect.gameObject.AddComponent<LayoutElement>();
-            layout.preferredHeight = 44f;
-            layout.minHeight = 44f;
+            layout.preferredHeight = 46f;
+            layout.minHeight = 46f;
 
             var image = rect.gameObject.AddComponent<Image>();
-            image.color = alreadyChosen
-                ? new Color(0.12f, 0.15f, 0.22f, 1f)
-                : new Color(0.20f, 0.38f, 0.66f, 1f);
-
             var button = rect.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
             button.colors = ButtonColors(alreadyChosen);
@@ -255,16 +319,33 @@ namespace HelloWorld.Assets.Scripts
                 action();
             });
 
+            var bar = SampleUI.CreateRect(rect, "AccentBar");
+            bar.anchorMin = new Vector2(0f, 0f);
+            bar.anchorMax = new Vector2(0f, 1f);
+            bar.pivot = new Vector2(0f, 0.5f);
+            bar.offsetMin = Vector2.zero;
+            bar.offsetMax = new Vector2(4f, 0f);
+            var barImage = bar.gameObject.AddComponent<Image>();
+            barImage.raycastTarget = false;
+            barImage.color = alreadyChosen
+                ? new Color(0.30f, 0.34f, 0.42f, 1f)
+                : selectable
+                    ? new Color(0.40f, 0.62f, 0.98f, 1f)
+                    : new Color(0.30f, 0.34f, 0.42f, 0.6f);
+
             var text = SampleUI.CreateText(
                 rect,
-                label,
-                17,
-                alreadyChosen ? new Color(0.62f, 0.68f, 0.78f, 1f) : Color.white,
+                alreadyChosen ? $"{label}  <size=13>(chosen)</size>" : label,
+                18,
+                alreadyChosen
+                    ? new Color(0.58f, 0.64f, 0.74f, 1f)
+                    : selectable ? Color.white : new Color(0.55f, 0.60f, 0.68f, 1f),
                 alreadyChosen ? FontStyle.Normal : FontStyle.Bold);
+            text.supportRichText = true;
             text.alignment = TextAnchor.MiddleLeft;
             text.rectTransform.anchorMin = Vector2.zero;
             text.rectTransform.anchorMax = Vector2.one;
-            text.rectTransform.offsetMin = new Vector2(18f, 0f);
+            text.rectTransform.offsetMin = new Vector2(20f, 0f);
             text.rectTransform.offsetMax = new Vector2(-18f, 0f);
         }
         private static ColorBlock ButtonColors(bool alreadyChosen = false)
@@ -273,11 +354,11 @@ namespace HelloWorld.Assets.Scripts
             {
                 return new ColorBlock
                 {
-                    normalColor = new Color(0.12f, 0.15f, 0.22f, 1f),
-                    highlightedColor = new Color(0.17f, 0.22f, 0.32f, 1f),
-                    pressedColor = new Color(0.10f, 0.12f, 0.18f, 1f),
-                    selectedColor = new Color(0.12f, 0.15f, 0.22f, 1f),
-                    disabledColor = new Color(0.10f, 0.11f, 0.15f, 1f),
+                    normalColor = new Color(0.10f, 0.12f, 0.17f, 1f),
+                    highlightedColor = new Color(0.13f, 0.16f, 0.23f, 1f),
+                    pressedColor = new Color(0.09f, 0.11f, 0.15f, 1f),
+                    selectedColor = new Color(0.10f, 0.12f, 0.17f, 1f),
+                    disabledColor = new Color(0.09f, 0.10f, 0.14f, 1f),
                     colorMultiplier = 1f,
                     fadeDuration = 0.08f,
                 };
@@ -285,11 +366,11 @@ namespace HelloWorld.Assets.Scripts
 
             return new ColorBlock
             {
-                normalColor = new Color(0.20f, 0.38f, 0.66f, 1f),
-                highlightedColor = new Color(0.25f, 0.47f, 0.78f, 1f),
-                pressedColor = new Color(0.15f, 0.29f, 0.50f, 1f),
-                selectedColor = new Color(0.20f, 0.38f, 0.66f, 1f),
-                disabledColor = new Color(0.15f, 0.18f, 0.24f, 1f),
+                normalColor = new Color(0.12f, 0.16f, 0.24f, 1f),
+                highlightedColor = new Color(0.19f, 0.28f, 0.44f, 1f),
+                pressedColor = new Color(0.10f, 0.13f, 0.20f, 1f),
+                selectedColor = new Color(0.12f, 0.16f, 0.24f, 1f),
+                disabledColor = new Color(0.09f, 0.11f, 0.15f, 1f),
                 colorMultiplier = 1f,
                 fadeDuration = 0.08f,
             };

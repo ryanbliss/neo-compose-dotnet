@@ -8,6 +8,18 @@ using System.Collections.Generic;
 
 namespace NeoCompose.Runtime
 {
+    /// <summary>
+    /// Where a change originated: <see cref="Local"/> for writes made by this
+    /// process (gameplay code, dialogue actions), <see cref="External"/> for
+    /// content applied from outside the process (e.g. a live save session
+    /// co-editor patching the running save).
+    /// </summary>
+    public enum NeoChangeSource
+    {
+        Local,
+        External,
+    }
+
     public interface INeoField
     {
         string Key { get; }
@@ -28,10 +40,14 @@ namespace NeoCompose.Runtime
     public sealed class NeoChangedArgs<TFields>
     {
         public IReadOnlyDictionary<INeoField, object?> Changes { get; }
+        public NeoChangeSource Source { get; }
 
-        public NeoChangedArgs(IReadOnlyDictionary<INeoField, object?> changes)
+        public NeoChangedArgs(
+            IReadOnlyDictionary<INeoField, object?> changes,
+            NeoChangeSource source)
         {
             Changes = changes;
+            Source = source;
         }
 
         public bool Has<T>(NeoField<T> field)

@@ -62,30 +62,6 @@ MonoBehaviour:
     sprites:
     - {fileID: 829520469, guid: 50065f420b67342e4b3f69ef16a7b63e, type: 3}
     audioClip: {fileID: 0}
-  - fileId: 027cc2b7-71d3-451d-a9db-fae0e6cbbfc4
-    fileName: Saturn.png
-    assetPath: Assets/Resources/Neo/Files/Sprites/027cc2b7-71d3-451d-a9db-fae0e6cbbfc4-Saturn.png
-    fileUpdatedAt: 2026-05-13T20:56:06.167Z
-    lastDownloadedAt: 2026-05-14T04:34:25.5112980Z
-    templateId: c4010e22-e5d5-4ced-9c60-c650017cebaa
-    templateUpdatedAt: 2026-05-13T21:06:46.557Z
-    lastAppliedTemplateEditsAt: 2026-05-14T04:34:25.5112980Z
-    importSettingsVersion: 2026-05-13.2
-    sprites:
-    - {fileID: -1965635583, guid: 5c919faec07094aa1960ec13300cac3f, type: 3}
-    audioClip: {fileID: 0}
-  - fileId: 6e1643e2-5b91-45a6-a4b1-435f36c1a0f9
-    fileName: Jupiter.png
-    assetPath: Assets/Resources/Neo/Files/Sprites/6e1643e2-5b91-45a6-a4b1-435f36c1a0f9-Jupiter.png
-    fileUpdatedAt: 2026-05-13T21:01:32.460Z
-    lastDownloadedAt: 2026-05-14T04:34:25.6626610Z
-    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
-    templateUpdatedAt: 2026-05-13T20:40:02.135Z
-    lastAppliedTemplateEditsAt: 2026-05-14T04:34:25.6626610Z
-    importSettingsVersion: 2026-05-13.2
-    sprites:
-    - {fileID: 2015550075, guid: 7fa31d24042544a6b9903bd06489c318, type: 3}
-    audioClip: {fileID: 0}
   - fileId: f35d7f06-1670-4d53-9468-82266fe8c41e
     fileName: Mars.png
     assetPath: Assets/Resources/Neo/Files/Sprites/f35d7f06-1670-4d53-9468-82266fe8c41e-Mars.png
@@ -186,4 +162,246 @@ MonoBehaviour:
     - {fileID: -888213619, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
     - {fileID: 1844008586, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
     - {fileID: -444460451, guid: dd8fbe9577ebe4092b3382382952d26c, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 02e201f3-f061-4310-bdde-54e2dd905634
+    fileName: Vault plaque.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/02e201f3-f061-4310-bdde-54e2dd905634-Vault
+      plaque.png
+    fileUpdatedAt: 1781252783251
+    lastDownloadedAt: 2026-06-12T20:16:14.6123240Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 21300000, guid: 7cd858dc189c64ef3ae8a25d1c4fc032, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 13ba540a-49c0-4928-b6ee-f3eed339c050
+    fileName: dialog-next.wav
+    assetPath: Assets/Resources/Neo/Files/Audio/13ba540a-49c0-4928-b6ee-f3eed339c050-dialog-next.wav
+    fileUpdatedAt: 1781255443021
+    lastDownloadedAt: 2026-06-12T20:16:14.7519020Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites: []
+    audioClip: {fileID: 8300000, guid: 8c88c89c12d894380bf8280113867532, type: 3}
+  - fileId: 1d017b1d-2a6d-4819-a6f7-3b228cc7a04e
+    fileName: dialog-open.wav
+    assetPath: Assets/Resources/Neo/Files/Audio/1d017b1d-2a6d-4819-a6f7-3b228cc7a04e-dialog-open.wav
+    fileUpdatedAt: 1781255427477
+    lastDownloadedAt: 2026-06-12T20:16:14.9926000Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites: []
+    audioClip: {fileID: 8300000, guid: d07e16a0b697d461eb3aa36fca6edec6, type: 3}
+  - fileId: 1e4112b5-503c-4cfc-a026-4f5d38e6999c
+    fileName: Flare static.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/1e4112b5-503c-4cfc-a026-4f5d38e6999c-Flare
+      static.png
+    fileUpdatedAt: 1781250463599
+    lastDownloadedAt: 2026-06-12T10:09:28.5856570Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T10:09:28.5856570Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 1062077042, guid: cb9664a06c4fb4ad99ade0a569d4e2ae, type: 3}
+    - {fileID: -1669879228, guid: cb9664a06c4fb4ad99ade0a569d4e2ae, type: 3}
+    - {fileID: -195877753, guid: cb9664a06c4fb4ad99ade0a569d4e2ae, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506
+    fileName: First world icon.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First
+      world icon.png
+    fileUpdatedAt: 1781252789252
+    lastDownloadedAt: 2026-06-12T20:16:15.2278060Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 21300000, guid: a8d2914a4e8c8425aaa0b44e6ae31561, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 581af432-06f7-4b80-b673-fcc387039159
+    fileName: rocket-thrust.wav
+    assetPath: Assets/Resources/Neo/Files/Audio/581af432-06f7-4b80-b673-fcc387039159-rocket-thrust.wav
+    fileUpdatedAt: 1781255516953
+    lastDownloadedAt: 2026-06-12T20:16:15.3339000Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites: []
+    audioClip: {fileID: 8300000, guid: ac382cb1c80ca4d508656f4e58df9585, type: 3}
+  - fileId: 8421abd8-bbce-40eb-bb5c-9a62bd733256
+    fileName: bits-spend.wav
+    assetPath: Assets/Resources/Neo/Files/Audio/8421abd8-bbce-40eb-bb5c-9a62bd733256-bits-spend.wav
+    fileUpdatedAt: 1781255485448
+    lastDownloadedAt: 2026-06-12T20:16:15.4630060Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites: []
+    audioClip: {fileID: 8300000, guid: 3538f7a99e67b41b9b4db271349f2499, type: 3}
+  - fileId: 8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7
+    fileName: Ship (thruster).png
+    assetPath: Assets/Resources/Neo/Files/Sprites/8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship
+      (thruster).png
+    fileUpdatedAt: 1781250449574
+    lastDownloadedAt: 2026-06-12T10:09:29.0481510Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T10:09:29.0481510Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -1231395822, guid: 17c04d235f0f147d69072e9d4f460369, type: 3}
+    - {fileID: -1443680278, guid: 17c04d235f0f147d69072e9d4f460369, type: 3}
+    - {fileID: 481353600, guid: 17c04d235f0f147d69072e9d4f460369, type: 3}
+    - {fileID: -1421620979, guid: 17c04d235f0f147d69072e9d4f460369, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 8fd1307e-600d-4da4-a346-be2a971032ad
+    fileName: dialog-close.wav
+    assetPath: Assets/Resources/Neo/Files/Audio/8fd1307e-600d-4da4-a346-be2a971032ad-dialog-close.wav
+    fileUpdatedAt: 1781255457878
+    lastDownloadedAt: 2026-06-12T20:16:15.5902990Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites: []
+    audioClip: {fileID: 8300000, guid: fafb50d9c7f1b498898bbe3bc9f6d1fe, type: 3}
+  - fileId: bdfb6dee-83d1-4c24-b9f3-9e539ab66603
+    fileName: bits-gain.wav
+    assetPath: Assets/Resources/Neo/Files/Audio/bdfb6dee-83d1-4c24-b9f3-9e539ab66603-bits-gain.wav
+    fileUpdatedAt: 1781255472144
+    lastDownloadedAt: 2026-06-12T20:16:15.7180100Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites: []
+    audioClip: {fileID: 8300000, guid: 6a5f20fdf629e49b4a812f710cb75528, type: 3}
+  - fileId: c1a2fa28-c886-48c0-8d06-1bcc195a5f80
+    fileName: item-get.wav
+    assetPath: Assets/Resources/Neo/Files/Audio/c1a2fa28-c886-48c0-8d06-1bcc195a5f80-item-get.wav
+    fileUpdatedAt: 1781255501337
+    lastDownloadedAt: 2026-06-12T20:16:15.8980780Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites: []
+    audioClip: {fileID: 8300000, guid: b1011e587210c4053b053877ccebbb41, type: 3}
+  - fileId: 301f56dd-27b3-46f4-8b86-6492ef7b7910
+    fileName: Sun.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/301f56dd-27b3-46f4-8b86-6492ef7b7910-Sun.png
+    fileUpdatedAt: 1781263290315
+    lastDownloadedAt: 2026-06-12T20:16:15.1158690Z
+    templateId: 
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 21300000, guid: 46ea0f283f21b46cbae4455e8fe88185, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 1d2aae1d-6912-454b-833a-48f355959526
+    fileName: Callisto.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/1d2aae1d-6912-454b-833a-48f355959526-Callisto.png
+    fileUpdatedAt: 1781270767184
+    lastDownloadedAt: 2026-06-12T13:53:29.5340210Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T13:53:29.5340210Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 1323343193, guid: c6e84fe67545f4287bb49275e5bdb995, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 478dec23-1b25-4642-8012-7083dee04cb7
+    fileName: Titan.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/478dec23-1b25-4642-8012-7083dee04cb7-Titan.png
+    fileUpdatedAt: 1781270783260
+    lastDownloadedAt: 2026-06-12T13:53:30.1534560Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T13:53:30.1534560Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 2062154501, guid: 8bda7b961c79743d791d61b9a326e830, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 4c0979c9-a84b-4679-93d8-601be3eba540
+    fileName: Ganymede.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/4c0979c9-a84b-4679-93d8-601be3eba540-Ganymede.png
+    fileUpdatedAt: 1781270752601
+    lastDownloadedAt: 2026-06-12T13:53:31.2869680Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T13:53:31.2869680Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -513042762, guid: d9d0194690dc940909640bff11fb2802, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 501220c3-2e57-42d2-9e9e-02402cf89938
+    fileName: Europa.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/501220c3-2e57-42d2-9e9e-02402cf89938-Europa.png
+    fileUpdatedAt: 1781270737165
+    lastDownloadedAt: 2026-06-12T13:53:33.7222470Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T13:53:33.7222470Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 1470105231, guid: d5cb46fd4803a416084a25419143a475, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 554cfefd-6410-4930-913d-879409ec9db2
+    fileName: Io.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/554cfefd-6410-4930-913d-879409ec9db2-Io.png
+    fileUpdatedAt: 1781270722430
+    lastDownloadedAt: 2026-06-12T13:53:34.0593870Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T13:53:34.0593870Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 200864322, guid: 07287a84e85f04583ba7719558976875, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 027cc2b7-71d3-451d-a9db-fae0e6cbbfc4
+    fileName: Saturn.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/027cc2b7-71d3-451d-a9db-fae0e6cbbfc4-Saturn.png
+    fileUpdatedAt: 1778705766167
+    lastDownloadedAt: 2026-06-12T13:53:30.2048500Z
+    templateId: c4010e22-e5d5-4ced-9c60-c650017cebaa
+    templateUpdatedAt: 1778706406557
+    lastAppliedTemplateEditsAt: 2026-06-12T13:53:30.2048500Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 1012666599, guid: 5c919faec07094aa1960ec13300cac3f, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 58adbc26-d0af-46e5-8a67-80b1f2ed907c
+    fileName: Enceladus.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/58adbc26-d0af-46e5-8a67-80b1f2ed907c-Enceladus.png
+    fileUpdatedAt: 1781270798840
+    lastDownloadedAt: 2026-06-12T13:53:36.1295890Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T13:53:36.1295890Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -570221919, guid: 3c552b12489e442db835a62fe9e97f5c, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 6e1643e2-5b91-45a6-a4b1-435f36c1a0f9
+    fileName: Jupiter.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/6e1643e2-5b91-45a6-a4b1-435f36c1a0f9-Jupiter.png
+    fileUpdatedAt: 1778706092460
+    lastDownloadedAt: 2026-06-12T13:53:36.4788540Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 1778704802135
+    lastAppliedTemplateEditsAt: 2026-06-12T13:53:36.4788540Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 1077323220, guid: 7fa31d24042544a6b9903bd06489c318, type: 3}
     audioClip: {fileID: 0}

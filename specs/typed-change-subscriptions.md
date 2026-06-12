@@ -44,22 +44,34 @@ public sealed class Fields
 Each generated custom type exposes exact-field subscriptions:
 
 ```csharp
-public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler);
+public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler);
 ```
 
-Writable generated custom types also expose a batch subscription:
+Writable generated custom types also expose a batch subscription
+(`NeoChangedArgs` carries the same `Source`):
 
 ```csharp
 public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler);
 ```
 
+`NeoChangeSource` tells subscribers where the change came from:
+
+```csharp
+public enum NeoChangeSource
+{
+    Local,    // a write made by this process
+    External, // content applied from outside (e.g. a live save session co-editor)
+}
+```
+
 Usage:
 
 ```csharp
-neo.Save.OnChanged(Save.Fields.Bits, bits => Debug.Log(bits));
+neo.Save.OnChanged(Save.Fields.Bits, (bits, source) => Debug.Log($"{bits} ({source})"));
 
 neo.Save.OnChanged(args =>
 {
+    if (args.Source == NeoChangeSource.External) RefreshHud();
     if (args.TryGet(Save.Fields.Inventory, out var inventory))
     {
         Debug.Log(inventory.Count);
@@ -75,7 +87,7 @@ neo.Save.OnChanged(args =>
 - Writable generated types expose object subscriptions that receive a `NeoChangedArgs<TFields>` containing the changed field when the runtime can identify it.
 - If a custom object changes in a way that cannot be mapped to one child field, the object subscription receives a snapshot of all known generated fields.
 - `IDisposable` returned from subscription removes the handler.
-- The old generated-custom `event Action? OnChanged` is replaced by these methods. Collection helpers such as `NeoList<T>.OnChanged` and `NeoLookupSet<T>.OnChanged` remain unchanged.
+- The old generated-custom `event Action? OnChanged` is replaced by these methods. Collection types (`NeoReadOnlyList<T>`, `NeoReadOnlyDictionary<T>`, `NeoReadOnlyLookupSet<T>` and their writable subclasses) align to the same shape: `IDisposable OnChanged(Action<TCollection, NeoChangeSource> handler)` — no `event` form.
 
 ## Implementation Notes
 

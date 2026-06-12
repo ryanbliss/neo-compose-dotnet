@@ -7,4 +7,5 @@
   <Project Path="Tests.csproj" />
   <Project Path="NeoCompose.Unity.Convex.csproj" />
   <Project Path="NeoCompose.Unity.Convex.Editor.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>

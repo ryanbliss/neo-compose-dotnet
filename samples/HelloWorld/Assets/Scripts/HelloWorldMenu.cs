@@ -217,6 +217,12 @@ namespace HelloWorld.Assets.Scripts
                 });
         }
 
+        /// <summary>The Loop ending: archive the save the player just erased in-fiction.</summary>
+        private async Awaitable EraseSaveAsync(string customId)
+        {
+            await store.ArchiveAsync(customId);
+        }
+
         private async Awaitable DeleteAsync(string customId)
         {
             // ArchiveAsync deletes the local file and (when signed in) archives the
@@ -298,6 +304,7 @@ namespace HelloWorld.Assets.Scripts
             go.transform.SetParent(transform, worldPositionStays: false);
             gameplay = go.AddComponent<HelloWorldGameplay>();
             gameplay.OnExitToMenu += ReturnToMenu;
+            gameplay.OnEraseSave += customId => Run(EraseSaveAsync(customId));
             try
             {
                 await gameplay.EnterAsync(synchronizer);

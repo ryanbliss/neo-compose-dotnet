@@ -1,0 +1,60 @@
+{
+  "id": "24b1d5ba-a08b-4935-b535-b053ac79ca40",
+  "name": "Olympic Mons intro",
+  "description": "The Red Nova Conspiracy — authored via @neocompose/cli.",
+  "linkedValueId": "424019cd-8b46-4dd9-9aac-3721331179bb",
+  "group": {
+    "id": "9b1c8f42-18fc-4e34-9b46-3e1c138874bc",
+    "priority": "dea5cd10-d2dd-4681-a372-c66a1ca60f43",
+    "relativeOrder": 0,
+    "occurrenceLimit": 1
+  },
+  "when": null,
+  "start": "m1",
+  "nodes": {
+    "m2": {
+      "say": "Every flare wake bends the same direction — out past the belt. Heavy freighter convoys running dark, all vectored at Jupiter. Somebody out there is drinking sunlight by the tanker-load.",
+      "to": "m4"
+    },
+    "m3": {
+      "say": "PASSING THROUGH? This is the tallest peak humans have ever stood on. Show some respect. ...Though between us, it's the sky that worries me now, not the summit.",
+      "to": "m2"
+    },
+    "m1": {
+      "say": "Halt! State your business at Olympic Mons Garrison. ...Oh. You're the flare investigator the Capitol wired about. At ease, everyone.",
+      "options": [
+        {
+          "label": "Scopes",
+          "text": "What do your watchtowers show?",
+          "to": "m2"
+        },
+        {
+          "label": "Casual",
+          "text": "Just passing through. Big mountain you've got.",
+          "to": "m3"
+        }
+      ]
+    },
+    "m4": {
+      "do": [
+        {
+          "code": "this.Save.Unlocked = true;",
+          "bind": "7a91f55f-a90e-4a80-80f4-43ad6386891a"
+        }
+      ],
+      "to": "grant Low-G Pitons"
+    },
+    "grant Low-G Pitons": {
+      "do": [
+        {
+          "code": "root.Save.Inventory.Add(this);",
+          "bind": "c8eb381b-9c3f-4120-b8c3-3872cdde5148"
+        }
+      ],
+      "to": "m5"
+    },
+    "m5": {
+      "say": "Take these pitons, Low-G rated. If you're climbing into Jupiter's mess, you'll want grip. Garrison's honor: come back with answers."
+    }
+  }
+}

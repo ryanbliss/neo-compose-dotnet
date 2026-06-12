@@ -52,7 +52,7 @@ namespace NeoCompose.Tests
                 NeoGeneratedTypesSupport.Value);
 
             int changed = 0;
-            tags.OnChanged += () => changed++;
+            using var tagsSubscription = tags.OnChanged((_, _) => changed++);
 
             tags.Add("first");
             tags.Add("second");
@@ -85,7 +85,7 @@ namespace NeoCompose.Tests
                 NeoGeneratedTypesSupport.Value);
 
             int changed = 0;
-            inventory.OnChanged += () => changed++;
+            using var inventorySubscription = inventory.OnChanged((_, _) => changed++);
 
             inventory["sword"] = "Excalibur";
             inventory.Add("shield", "Aegis");
@@ -130,7 +130,7 @@ namespace NeoCompose.Tests
                 child => new NeoLookupSelection(child.value?.id ?? ""));
 
             int changed = 0;
-            choices.OnChanged += () => changed++;
+            using var choicesSubscription = choices.OnChanged((_, _) => changed++);
 
             Assert.IsTrue(choices.Add("v-a"));
             Assert.IsFalse(choices.Add("v-a"));

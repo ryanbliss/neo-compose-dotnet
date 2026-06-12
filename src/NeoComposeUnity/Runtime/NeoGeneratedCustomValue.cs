@@ -82,7 +82,7 @@ namespace NeoCompose.Runtime
 
         protected IDisposable WatchField<T>(
             NeoField<T> field,
-            Action<T> handler,
+            Action<T, NeoChangeSource> handler,
             Func<object?> readValue)
         {
             if (handler is null) throw new ArgumentNullException(nameof(handler));
@@ -90,7 +90,7 @@ namespace NeoCompose.Runtime
             {
                 if (node.TryGetSchemaKeyForChild(changed, out string? key) && key == field.Key)
                 {
-                    handler((T)readValue()!);
+                    handler((T)readValue()!, client.CurrentChangeSource);
                 }
             }
             node.OnChanged += Handle;
@@ -124,7 +124,7 @@ namespace NeoCompose.Runtime
                         changes[pair.Key] = pair.Value();
                     }
                 }
-                handler(new NeoChangedArgs<TFields>(changes));
+                handler(new NeoChangedArgs<TFields>(changes, client.CurrentChangeSource));
             }
             node.OnChanged += Handle;
             return TrackSubscription(new NeoDisposableSubscription(

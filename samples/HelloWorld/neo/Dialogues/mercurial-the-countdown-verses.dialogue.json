@@ -1,0 +1,104 @@
+{
+ "id": "c703d829-2c8b-4eb7-b041-a7896592474a",
+ "name": "Mercurial: the countdown verses",
+ "description": null,
+ "linkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
+ "group": {
+  "id": "c89bb6c6-e80f-4dbe-9d25-50b6b87a0f43",
+  "priority": "90a9ef4a-7555-46db-b639-f3876eb4d3e2",
+  "relativeOrder": 0,
+  "occurrenceLimit": 1
+ },
+ "when": "return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceFaith && this.Save.Reputation >= 0;",
+ "start": "m1",
+ "nodes": {
+  "m3w": {
+   "do": [
+    {
+     "code": "this.Save.Reputation += 1;",
+     "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
+    }
+   ],
+   "to": "m4"
+  },
+  "m2": {
+   "say": "'Ten the gates of warmth. Nine the wells sealed. Eight the breath withdrawn...' Thou hearest it too. The holy verses COUNT, seeker. Downward. And between the seventh and sixth verse, words our tongues were never shaped for: 'TODO — handle exit gracefully.'",
+   "options": [
+    {
+     "label": "Truth",
+     "text": "Your scripture is the world's README. You've guarded the truth all along.",
+     "to": "m3w"
+    },
+    {
+     "label": "Pity",
+     "text": "You worshipped an instruction manual.",
+     "to": "m3c"
+    }
+   ]
+  },
+  "m4": {
+   "do": [
+    {
+     "code": "if (root.Save.Quest.Stage == QuestStage.followTheWakes) { root.Save.Quest.Stage = QuestStage.threePaths; }",
+     "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
+    },
+    {
+     "code": "root.Save.Quest.EvidenceFaith = true;",
+     "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
+    }
+   ],
+   "to": "m4ask"
+  },
+  "m3c": {
+   "do": [
+    {
+     "code": "this.Save.Reputation -= 1;",
+     "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
+    }
+   ],
+   "to": "m4"
+  },
+  "m5": {
+   "say": "The Light does not mind being understood, seeker. When the counting ends, remember: the verses were never a prophecy. They were a shutdown sequence."
+  },
+  "m1": {
+   "say": "Seeker. The Patriarch will read thee the Red Nova verses in canonical order. Few outsiders hear them ordered. Sit in the Light.",
+   "options": [
+    {
+     "label": "Sit",
+     "text": "I'm listening.",
+     "to": "m2"
+    }
+   ]
+  },
+  "m4ask": {
+   "say": "The Patriarch folds the verses into your hands. Up close, his sun-burns glisten — decades of staring into the Light.",
+   "options": [
+    {
+     "label": "Anoint",
+     "text": "Anoint his burns with the Cryo Salve",
+     "to": "give salve",
+     "if": "return root.Save.Inventory.Contains(root.Assets.Items.First((i) => { return i.Id == \"a840747f-9d6b-4d71-af3a-16b294ec436d\"; }));"
+    },
+    {
+     "label": "Leave",
+     "text": "Take the verses and go",
+     "to": "m5"
+    }
+   ]
+  },
+  "give salve": {
+   "do": [
+    {
+     "code": "root.Save.Inventory.Remove(this);",
+     "bind": "a840747f-9d6b-4d71-af3a-16b294ec436d"
+    },
+    {
+     "code": "this.Save.Reputation += 1;",
+     "bind": "88cacaa9-25d2-4cfd-bd10-55db71139608"
+    }
+   ],
+   "to": "m5"
+  }
+ }
+}
