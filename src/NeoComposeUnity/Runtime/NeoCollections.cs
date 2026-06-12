@@ -9,13 +9,32 @@ using System.Collections.Generic;
 
 namespace NeoCompose.Runtime
 {
+    internal static class NeoCollectionSubscription
+    {
+        /// <summary>
+        /// Shared wiring for collection change subscriptions: relays the
+        /// wrapper node's change event to the handler with the collection and
+        /// the client's current change source, until the returned
+        /// subscription is disposed.
+        /// </summary>
+        public static IDisposable Watch<TCollection>(
+            NeoAttribute node,
+            NeoClient client,
+            TCollection collection,
+            Action<TCollection, NeoChangeSource> handler)
+        {
+            if (handler is null) throw new ArgumentNullException(nameof(handler));
+            void Handle(NeoAttribute changed) => handler(collection, client.CurrentChangeSource);
+            node.OnChanged += Handle;
+            return new NeoDisposableSubscription(() => node.OnChanged -= Handle);
+        }
+    }
+
     public class NeoReadOnlyList<T> : IReadOnlyList<T>
     {
         protected readonly NeoClient client;
         protected readonly NeoAttributeList node;
         protected readonly Func<NeoClient, NeoAttribute, T> createItem;
-
-        public event Action? OnChanged;
 
         public NeoReadOnlyList(
             NeoClient client,
@@ -25,7 +44,17 @@ namespace NeoCompose.Runtime
             this.client = client;
             this.node = node;
             this.createItem = createItem;
-            this.node.OnChanged += HandleNodeChanged;
+        }
+
+        /// <summary>
+        /// Subscribes to any change inside this list (adds, removes, item
+        /// edits). Mirrors the generated field subscription shape: the handler
+        /// receives the current value (this list) and the change source.
+        /// Dispose the returned subscription to stop listening.
+        /// </summary>
+        public IDisposable OnChanged(Action<NeoReadOnlyList<T>, NeoChangeSource> handler)
+        {
+            return NeoCollectionSubscription.Watch(node, client, this, handler);
         }
 
         public T this[int index] => createItem(client, node[index]);
@@ -41,11 +70,6 @@ namespace NeoCompose.Runtime
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        protected void HandleNodeChanged(NeoAttribute changed)
-        {
-            OnChanged?.Invoke();
-        }
     }
 
     public class NeoList<T> : NeoReadOnlyList<T>, IList<T>
@@ -126,8 +150,6 @@ namespace NeoCompose.Runtime
         protected readonly NeoAttributeDictionary node;
         protected readonly Func<NeoClient, NeoAttribute, T> createItem;
 
-        public event Action? OnChanged;
-
         public NeoReadOnlyDictionary(
             NeoClient client,
             NeoAttributeDictionary node,
@@ -136,7 +158,17 @@ namespace NeoCompose.Runtime
             this.client = client;
             this.node = node;
             this.createItem = createItem;
-            this.node.OnChanged += HandleNodeChanged;
+        }
+
+        /// <summary>
+        /// Subscribes to any change inside this dictionary. Mirrors the
+        /// generated field subscription shape: the handler receives the
+        /// current value (this dictionary) and the change source. Dispose the
+        /// returned subscription to stop listening.
+        /// </summary>
+        public IDisposable OnChanged(Action<NeoReadOnlyDictionary<T>, NeoChangeSource> handler)
+        {
+            return NeoCollectionSubscription.Watch(node, client, this, handler);
         }
 
         public T this[string key] => createItem(client, node[key]);
@@ -189,11 +221,6 @@ namespace NeoCompose.Runtime
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        protected void HandleNodeChanged(NeoAttribute changed)
-        {
-            OnChanged?.Invoke();
-        }
     }
 
     public class NeoDictionary<T> : NeoReadOnlyDictionary<T>, IDictionary<string, T>
@@ -289,8 +316,6 @@ namespace NeoCompose.Runtime
         protected readonly NeoAttributeLookup node;
         private readonly Func<NeoAttribute, T> createItem;
 
-        public event Action? OnChanged;
-
         public NeoReadOnlyLookupSet(
             NeoClient client,
             NeoAttributeLookup node,
@@ -299,7 +324,17 @@ namespace NeoCompose.Runtime
             this.client = client;
             this.node = node;
             this.createItem = createItem;
-            this.node.OnChanged += HandleNodeChanged;
+        }
+
+        /// <summary>
+        /// Subscribes to any change to this lookup set's selection. Mirrors
+        /// the generated field subscription shape: the handler receives the
+        /// current value (this set) and the change source. Dispose the
+        /// returned subscription to stop listening.
+        /// </summary>
+        public IDisposable OnChanged(Action<NeoReadOnlyLookupSet<T>, NeoChangeSource> handler)
+        {
+            return NeoCollectionSubscription.Watch(node, client, this, handler);
         }
 
         public int Count => node.Selected().Length;
@@ -330,11 +365,6 @@ namespace NeoCompose.Runtime
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
-
-        protected void HandleNodeChanged(NeoAttribute changed)
-        {
-            OnChanged?.Invoke();
-        }
     }
 
     public class NeoLookupSet<T> : NeoReadOnlyLookupSet<T>, ICollection<T>

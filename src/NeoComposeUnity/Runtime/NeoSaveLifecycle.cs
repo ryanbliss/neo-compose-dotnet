@@ -208,4 +208,20 @@ namespace NeoCompose.Runtime
         /// </summary>
         Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot);
     }
+
+    /// <summary>
+    /// Optional capability of an <see cref="INeoSaveLoader"/>: it can deliver
+    /// externally-merged save content while a session runs (live save
+    /// sessions). The client subscribes on construction and applies inbound
+    /// content itself, raising typed change events with
+    /// <see cref="NeoChangeSource.External"/> — games never wire this up.
+    /// </summary>
+    public interface INeoLiveContentSource
+    {
+        /// <summary>
+        /// Raised with the merged, serialized save content whenever an
+        /// external co-editor patched the active save.
+        /// </summary>
+        event Action<string>? OnLiveContentChanged;
+    }
 }

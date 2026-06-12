@@ -1177,7 +1177,7 @@ namespace NeoCompose.Tests
                 inventoryNode,
                 child => new TestLookupValue(child.value?.id));
             int changed = 0;
-            inventory.OnChanged += () => changed++;
+            using var inventorySubscription = inventory.OnChanged((_, _) => changed++);
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
@@ -1215,7 +1215,7 @@ namespace NeoCompose.Tests
                 client.save.GetOrCreateLookup("Inventory"),
                 child => new TestLookupValue(child.value?.id));
             int changed = 0;
-            inventory.OnChanged += () => changed++;
+            using var inventorySubscription = inventory.OnChanged((_, _) => changed++);
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));
@@ -1235,7 +1235,7 @@ namespace NeoCompose.Tests
                 client.save.GetOrCreateLookup("Inventory"),
                 child => new TestLookupValue(child.value?.id));
             int changed = 0;
-            inventory.OnChanged += () => changed++;
+            using var inventorySubscription = inventory.OnChanged((_, _) => changed++);
             var root = new TestDialogues(
                 client,
                 valueResolver: valueId => new TestLookupValue(valueId));

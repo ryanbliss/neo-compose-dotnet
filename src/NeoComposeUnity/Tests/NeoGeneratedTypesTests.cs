@@ -66,17 +66,30 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, app.Save.Score);
 
             var changed = new System.Collections.Generic.List<int>();
+            var sources = new System.Collections.Generic.List<NeoChangeSource>();
             using var subscription = app.Save.OnChanged(
-                Root.Fields.Score, (score) => changed.Add(score));
+                Root.Fields.Score, (score, source) =>
+                {
+                    changed.Add(score);
+                    sources.Add(source);
+                });
 
             app.Client.ApplyExternalSaveContent(inbound);
 
             Assert.AreEqual(2, app.Save.Score, "the inbound row re-shadowed the value");
             Assert.That(changed, Has.Count.EqualTo(1), "typed subscription fired once");
+            Assert.AreEqual(
+                NeoChangeSource.External,
+                sources[0],
+                "the inbound apply reports an external change source");
 
             // Re-applying identical content disturbs nothing.
             app.Client.ApplyExternalSaveContent(inbound);
             Assert.That(changed, Has.Count.EqualTo(1));
+
+            // A plain local write reports Local.
+            app.Save.Score = 3;
+            Assert.AreEqual(NeoChangeSource.Local, sources[^1]);
         }
 
         /// <summary>
@@ -99,6 +112,68 @@ namespace NeoCompose.Tests
                 authoredScore,
                 app.Save.Score,
                 "the dropped shadow falls back to the authored default");
+        }
+
+        /// <summary>
+        /// The client subscribes to <see cref="INeoLiveContentSource"/> on
+        /// construction and applies inbound live content itself — games never
+        /// wire the synchronizer to the client by hand. Disposal detaches it.
+        /// </summary>
+        [Test]
+        public void LiveContentSource_AppliesInboundContentWithoutManualWiring()
+        {
+            var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
+            var loader = new LiveContentLoader(stack.Synchronizer);
+            var app = TestProjectNeo.Load(loader).GetAwaiter().GetResult();
+
+            app.Save.Score = 7;
+            var inbound = app.SerializeSaveData();
+            app.Save.Score = 1;
+
+            var sources = new List<NeoChangeSource>();
+            using var subscription = app.Save.OnChanged(
+                Root.Fields.Score, (_, source) => sources.Add(source));
+
+            loader.RaiseLiveContent(inbound);
+
+            Assert.AreEqual(7, app.Save.Score, "the client applied the inbound content itself");
+            Assert.AreEqual(NeoChangeSource.External, sources[0]);
+
+            app.Dispose();
+            loader.RaiseLiveContent(inbound);
+            Assert.That(
+                sources,
+                Has.Count.EqualTo(1),
+                "a disposed client detaches from the live content source");
+        }
+
+        /// <summary>
+        /// Wraps the test stack's synchronizer so the test controls when live
+        /// content arrives (the real synchronizer only raises it from a live
+        /// session's websocket push).
+        /// </summary>
+        private sealed class LiveContentLoader : INeoSaveLoader, INeoLiveContentSource
+        {
+            private readonly INeoSaveLoader inner;
+
+            public LiveContentLoader(INeoSaveLoader inner)
+            {
+                this.inner = inner;
+            }
+
+            public ProjectData Schema => inner.Schema;
+            public string CustomId => inner.CustomId;
+
+            public UnityEngine.Awaitable<string?> LoadSaveContentAsync() =>
+                inner.LoadSaveContentAsync();
+
+            public UnityEngine.Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot) =>
+                inner.CommitSaveContentAsync(content, replaceSnapshot);
+
+            public event System.Action<string>? OnLiveContentChanged;
+
+            public void RaiseLiveContent(string content) =>
+                OnLiveContentChanged?.Invoke(content);
         }
 
         [Test]
@@ -227,7 +302,7 @@ namespace NeoCompose.Tests
                 null);
             var generated = new Derived(app.Client, derivedNode);
             int changes = 0;
-            generated.OnChanged(Derived.Fields.Name, _ => changes++);
+            generated.OnChanged(Derived.Fields.Name, (_, _) => changes++);
 
             generated.Name = "Before Dispose";
             Assert.Greater(changes, 0);
@@ -251,7 +326,7 @@ namespace NeoCompose.Tests
             var generated = new Derived(app.Client, derivedNode);
             string? observed = null;
             int changes = 0;
-            using var subscription = generated.OnChanged(Derived.Fields.Name, value =>
+            using var subscription = generated.OnChanged(Derived.Fields.Name, (value, _) =>
             {
                 observed = value;
                 changes++;

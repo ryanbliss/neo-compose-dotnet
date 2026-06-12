@@ -15,8 +15,10 @@ namespace NeoCompose.Runtime
         /// realtime provider is registered, each play session forks the save's
         /// head into one live snapshot and streams throttled per-key patches
         /// into it, instead of appending a snapshot per save. Inbound live
-        /// edits (e.g. from the web tool) auto-apply through
-        /// <see cref="NeoSaveSynchronizer.OnLiveContentChanged"/>. Set false to
+        /// edits (e.g. from the web tool) auto-apply inside the client (it
+        /// subscribes to <see cref="INeoLiveContentSource"/> itself), raising
+        /// typed change events with
+        /// <see cref="NeoChangeSource.External"/>. Set false to
         /// keep classic snapshot-per-commit behavior even while realtime is
         /// connected. Without a realtime provider this flag has no effect.
         /// </summary>

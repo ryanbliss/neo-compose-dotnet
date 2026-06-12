@@ -29,7 +29,9 @@ namespace HelloWorld.Assets.Scripts
         private DialogueUI dialogueUI;
         private NeoDialogue activeDialogue;
         private IDisposable bitsSubscription;
-        private readonly GameAudio audio = new GameAudio();
+        private IDisposable inventorySubscription;
+        private IDisposable saveSubscription;
+        private readonly GameAudio gameAudio = new();
         private int lastBits;
         private int lastInventoryCount;
         private bool dialogueOpenSoundPlayed;
@@ -65,22 +67,20 @@ namespace HelloWorld.Assets.Scripts
             neo = loaded;
             lastBits = neo.Save.Bits;
             lastInventoryCount = neo.Save.Inventory.Count;
-            neo.Save.Inventory.OnChanged += OnInventoryChanged;
+            inventorySubscription = neo.Save.Inventory.OnChanged(OnInventoryChanged);
             bitsSubscription = neo.Save.OnChanged(Save.Fields.Bits, OnBitsChanged);
-            // Live save sessions: a co-editor (the web tool) patching this play
-            // session's live snapshot lands here as merged content; applying it
-            // in place raises the same typed change events as local writes (the
-            // Bits / Inventory subscriptions above), then the HUD re-renders.
-            synchronizer.OnLiveContentChanged -= OnLiveContentChanged;
-            synchronizer.OnLiveContentChanged += OnLiveContentChanged;
+            // Live save sessions are wired inside the client: a co-editor (the
+            // web tool) patching this play session's save raises the same typed
+            // change events as local writes, with NeoChangeSource.External. The
+            // catch-all below re-renders the HUD for external edits to fields
+            // we don't subscribe to individually (location, quest, etc.).
+            saveSubscription = neo.Save.OnChanged(OnSaveChanged);
             TriggerDialogue();
         }
 
-        private void OnLiveContentChanged(string content)
+        private void OnSaveChanged(NeoChangedArgs<Save.Fields> args)
         {
-            if (neo == null) return;
-            neo.Client.ApplyExternalSaveContent(content);
-            UpdateUI();
+            if (args.Source == NeoChangeSource.External) UpdateUI();
         }
 
         public string HelloWorldText => neo.Assets.Computed.fullText;
@@ -209,7 +209,7 @@ namespace HelloWorld.Assets.Scripts
 
             // First node of a dialogue gets the "open" chirp; later nodes the
             // softer "next" tick.
-            audio.Play(dialogueOpenSoundPlayed
+            gameAudio.Play(dialogueOpenSoundPlayed
                 ? neo.Assets.Audio.DialogNextSfx
                 : neo.Assets.Audio.DialogOpenSfx);
             dialogueOpenSoundPlayed = true;
@@ -253,7 +253,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void OnDialogueFinish()
         {
-            audio.Play(neo.Assets.Audio.DialogCloseSfx);
+            gameAudio.Play(neo.Assets.Audio.DialogCloseSfx);
             CurrentOutpost.Save.VisitCount += 1;
             ClearDialogue();
             if (neo.Save.Quest.Ending == WorldEnding.helloWorld)
@@ -290,26 +290,28 @@ namespace HelloWorld.Assets.Scripts
             dialogueUI.Reset();
         }
 
-        private void OnInventoryChanged()
+        private void OnInventoryChanged(
+            NeoReadOnlyLookupSet<ReadOnlyItem> items,
+            NeoChangeSource source)
         {
-            int count = neo.Save.Inventory.Count;
+            int count = items.Count;
             if (count > lastInventoryCount)
             {
-                audio.Play(neo.Assets.Audio.ItemGetSfx);
+                gameAudio.Play(neo.Assets.Audio.ItemGetSfx);
             }
             lastInventoryCount = count;
             UpdateUI();
         }
 
-        private void OnBitsChanged(int bits)
+        private void OnBitsChanged(int bits, NeoChangeSource source)
         {
             if (bits > lastBits)
             {
-                audio.Play(neo.Assets.Audio.BitsGainSfx);
+                gameAudio.Play(neo.Assets.Audio.BitsGainSfx);
             }
             else if (bits < lastBits)
             {
-                audio.Play(neo.Assets.Audio.BitsSpendSfx);
+                gameAudio.Play(neo.Assets.Audio.BitsSpendSfx);
             }
             lastBits = bits;
             UpdateUI();
@@ -391,9 +393,12 @@ namespace HelloWorld.Assets.Scripts
             // torn down mid-load — guard rather than assume.
             if (neo == null) return;
             ClearDialogue();
-            synchronizer.OnLiveContentChanged -= OnLiveContentChanged;
             bitsSubscription?.Dispose();
             bitsSubscription = null;
+            inventorySubscription?.Dispose();
+            inventorySubscription = null;
+            saveSubscription?.Dispose();
+            saveSubscription = null;
             neo.Dispose();
             neo = null;
         }
@@ -429,7 +434,7 @@ namespace HelloWorld.Assets.Scripts
         {
             DisposeClient();
             OutpostFunctionHandler.AnimationPlayer = null;
-            audio.Dispose();
+            gameAudio.Dispose();
             dialogueUI.Dispose();
             coreUI.Dispose();
         }

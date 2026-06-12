@@ -301,9 +301,12 @@ explicit opt-out):
   Otherwise apply per-key into the active save's content, **skipping keys
   currently dirty-pending-flush** (local wins until flushed), update the
   local store, and raise a new `OnLiveContentChanged(string content)` event.
-  The generated save layer consumes it through the typed-change-subscription
-  surface (see [typed-change-subscriptions.md](./typed-change-subscriptions.md))
-  so games observe individual value changes, not a whole-save reload.
+  The client subscribes to that event itself (`INeoLiveContentSource`) and
+  applies the content internally — games never wire it up — surfacing the
+  changes through the typed-change-subscription surface (see
+  [typed-change-subscriptions.md](./typed-change-subscriptions.md)) with
+  `NeoChangeSource.External`, so games observe individual value changes,
+  not a whole-save reload.
 - A per-key dirty-tracking seam in the generated save layer (avoiding the
   flush-time diff) is a noted future optimization, not v1.
 
@@ -361,8 +364,8 @@ suite (SDK) green before moving on.
 - [x] **Phase 4 — Web viewer**: live detection, write-through debounce,
       draft-mode bypass, LIVE badge + i18n, echo/focus protection; VM tests.
 - [x] **Phase 5 — Sample + E2E**: HelloWorld applies inbound live edits in
-      place (`NeoClient.ApplyExternalSaveContent` ←
-      `OnLiveContentChanged`); live fork → in-place patch verified
+      place (the client auto-subscribes via `INeoLiveContentSource`;
+      `ApplyExternalSaveContent` is internal); live fork → in-place patch verified
       end-to-end against the dev deployment from the Unity editor (snapshot
       stamped with `liveSessionId`, merged `valuesJson`, head moved); the
       package README notes the behavior change when realtime is registered.

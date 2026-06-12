@@ -180,6 +180,14 @@ namespace NeoCompose.Runtime
         protected ProjectSaveData saveData;
         protected ProjectSaveData sessionData;
         private readonly INeoSaveLoader loader;
+        private INeoLiveContentSource? liveContentSource;
+
+        /// <summary>
+        /// The origin of the change currently being applied; change handlers
+        /// read this when dispatching so subscribers can tell local writes
+        /// apart from externally-applied content.
+        /// </summary>
+        internal NeoChangeSource CurrentChangeSource { get; private set; } = NeoChangeSource.Local;
         public NeoSaveOptions SaveOptions { get; }
         internal NeoAssetDatabase? assetDatabase;
         private IReadOnlyDictionary<string, NeoNativeFunctionInvoker>? nativeFunctionInvokers;
@@ -251,12 +259,22 @@ namespace NeoCompose.Runtime
             assets = new(this, data.project.rootAssetsAttributeId, null);
             save = new(this, data.project.rootSaveFileAttributeId, null, NeoValueOwnership.Save);
             session = new(this, data.project.rootSessionAttributeId, null, NeoValueOwnership.Session);
+            if (loader is INeoLiveContentSource liveSource)
+            {
+                liveContentSource = liveSource;
+                liveSource.OnLiveContentChanged += HandleLiveContentChanged;
+            }
         }
 
         public void Dispose()
         {
             if (isDisposed) return;
             isDisposed = true;
+            if (liveContentSource != null)
+            {
+                liveContentSource.OnLiveContentChanged -= HandleLiveContentChanged;
+                liveContentSource = null;
+            }
             foreach (var dialogue in new List<NeoDialogue>(activeDialogues))
             {
                 dialogue.DisposeFromClient();
@@ -1667,13 +1685,15 @@ namespace NeoCompose.Runtime
         /// (<c>specs/live-save-sessions.md</c>): a co-editor (e.g. the web
         /// tool) patched the session's live snapshot and the synchronizer
         /// delivered the merged content via
-        /// <see cref="NeoSaveSynchronizer.OnLiveContentChanged"/>. Each changed
-        /// overlay row is re-shadowed at its stable id, raising the same typed
-        /// change events a local write raises (so generated subscriptions like
-        /// <c>Save.OnChanged(...)</c> fire), and rows the incoming content no
-        /// longer carries fall back to the authored defaults.
+        /// <see cref="INeoLiveContentSource.OnLiveContentChanged"/> (the client
+        /// subscribes itself on construction). Each changed overlay row is
+        /// re-shadowed at its stable id, raising the same typed change events
+        /// a local write raises (so generated subscriptions like
+        /// <c>Save.OnChanged(...)</c> fire, with
+        /// <see cref="NeoChangeSource.External"/>), and rows the incoming
+        /// content no longer carries fall back to the authored defaults.
         /// </summary>
-        public void ApplyExternalSaveContent(string content)
+        internal void ApplyExternalSaveContent(string content)
         {
             if (string.IsNullOrWhiteSpace(content))
             {
@@ -1699,6 +1719,7 @@ namespace NeoCompose.Runtime
             // raise the typed change events but never loop back into the live
             // auto-commit (the synchronizer's baseline already covers it).
             suppressLiveAutoCommit = true;
+            CurrentChangeSource = NeoChangeSource.External;
             try
             {
                 // Shadows the incoming content no longer carries fall back to the
@@ -1728,7 +1749,14 @@ namespace NeoCompose.Runtime
             finally
             {
                 suppressLiveAutoCommit = false;
+                CurrentChangeSource = NeoChangeSource.Local;
             }
+        }
+
+        private void HandleLiveContentChanged(string content)
+        {
+            if (isDisposed) return;
+            ApplyExternalSaveContent(content);
         }
 
         public Awaitable CommitAsync(bool replaceSnapshot = false) =>

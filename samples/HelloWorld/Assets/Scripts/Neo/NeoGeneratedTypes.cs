@@ -749,7 +749,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -915,7 +915,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1016,7 +1016,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1163,7 +1163,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1317,7 +1317,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1574,7 +1574,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1687,7 +1687,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1862,7 +1862,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2060,7 +2060,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2286,7 +2286,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2411,7 +2411,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2615,7 +2615,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2714,7 +2714,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2874,7 +2874,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2949,7 +2949,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3052,7 +3052,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3127,7 +3127,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3231,7 +3231,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3319,7 +3319,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3452,7 +3452,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3540,7 +3540,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3666,7 +3666,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3779,7 +3779,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3952,7 +3952,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -4027,7 +4027,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -4131,7 +4131,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -4234,7 +4234,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -4485,7 +4485,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -4658,7 +4658,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -4994,7 +4994,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5174,7 +5174,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5483,7 +5483,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5598,7 +5598,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5851,7 +5851,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5926,7 +5926,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -6030,7 +6030,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -6193,7 +6193,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -6480,7 +6480,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -6615,7 +6615,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -6828,7 +6828,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))

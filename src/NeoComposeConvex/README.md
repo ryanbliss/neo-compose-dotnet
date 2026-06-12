@@ -83,11 +83,12 @@ written).
 
 - The web tool sees the running game's edits in real time on the live
   snapshot (and shows a LIVE badge while writes are recent).
-- Web-side edits to the live snapshot auto-apply into the running game:
-  `NeoSaveSynchronizer.OnLiveContentChanged` delivers the merged content, and
-  `NeoClient.ApplyExternalSaveContent` re-shadows changed rows in place,
-  raising the same typed change events local writes raise. Locally dirty
-  (unflushed) keys always win until they flush.
+- Web-side edits to the live snapshot auto-apply into the running game with
+  no wiring: the client subscribes to the synchronizer's live content itself
+  and re-shadows changed rows in place, raising the same typed change events
+  local writes raise — with `NeoChangeSource.External` so subscribers can
+  tell them apart. Locally dirty (unflushed) keys always win until they
+  flush.
 - Offline saves stage locally and compose into one patch on reconnect; the
   head moving under a session resolves through the existing `OnConflict`
   contract. Local durability is unchanged — the local store is still written
