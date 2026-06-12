@@ -273,6 +273,35 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ResolveAudioSettings_InlineCustomSettings_HonorsCustomFields()
+        {
+            // Same silent-drop bug as textures: one-off audio settings ride
+            // inline with templateId null and must survive deserialization.
+            var json = @"{
+                ""id"": ""file-2"", ""name"": ""Rocket thrust.wav"",
+                ""unityAudioClipSettings"": {
+                    ""templateId"": null,
+                    ""forceToMono"": true, ""normalize"": true,
+                    ""loadInBackground"": false, ""ambisonic"": false,
+                    ""loadType"": ""decompress-on-load"",
+                    ""compressionFormat"": ""adpcm"",
+                    ""quality"": 0.7,
+                    ""sampleRateSetting"": ""preserve"",
+                    ""preloadAudioData"": true
+                }
+            }";
+            var file = Newtonsoft.Json.JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.ProjectFile>(json);
+            var resolved = NeoComposeUnityImportSettingsApplier.ResolveAudioSettings(
+                file!, new NeoCompose.Runtime.Json.ProjectData());
+
+            Assert.IsNotNull(resolved, "inline custom audio settings must resolve");
+            Assert.AreEqual("adpcm", resolved!.compressionFormat);
+            Assert.AreEqual("decompress-on-load", resolved.loadType);
+            Assert.IsTrue(resolved.forceToMono);
+            Assert.IsTrue(resolved.preloadAudioData);
+        }
+
+        [Test]
         public void VersionSelection_DisplayLabel_BranchesShowNameNotPlaceholderSemver()
         {
             var release = Version("v-1-0-0", "draft", 1, 0, 0);

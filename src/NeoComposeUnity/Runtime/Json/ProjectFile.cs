@@ -58,5 +58,13 @@ namespace NeoCompose.Runtime.Json
         public string? templateId;
         public string[]? overridePaths;
         public JObject? values;
+
+        /// <summary>
+        /// Custom (one-off) settings arrive INLINE — the full import-settings
+        /// object with templateId null — rather than as template overrides.
+        /// Extension data captures those fields so the applier can use them.
+        /// </summary>
+        [Newtonsoft.Json.JsonExtensionData]
+        public IDictionary<string, JToken>? customFields;
     }
 }

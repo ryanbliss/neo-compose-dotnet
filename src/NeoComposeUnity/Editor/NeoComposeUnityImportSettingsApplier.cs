@@ -80,6 +80,21 @@ namespace NeoCompose.Unity.Editor
         {
             if (file.unityAudioClipSettings == null) return null;
 
+            // Custom (one-off) settings ride inline with a null templateId,
+            // mirroring the texture path above.
+            var custom = file.unityAudioClipSettings.customFields;
+            if (string.IsNullOrEmpty(file.unityAudioClipSettings.templateId)
+                && custom != null
+                && custom.Count > 0)
+            {
+                var inline = new JObject();
+                foreach (var pair in custom)
+                {
+                    inline[pair.Key] = pair.Value;
+                }
+                return inline.ToObject<UnityAudioClipImportSettingsTemplate>();
+            }
+
             var resolved = ResolveSettingsObject(
                 file.unityAudioClipSettings.templateId,
                 file.unityAudioClipSettings.overridePaths,
