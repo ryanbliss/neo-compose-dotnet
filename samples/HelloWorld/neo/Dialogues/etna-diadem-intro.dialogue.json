@@ -12,7 +12,136 @@
   "start": "d1",
   "nodes": {
     "d3": {
-      "do": [],
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "args": [
+                  {
+                    "type": "variable",
+                    "variableId": "__this__"
+                  }
+                ],
+                "mutation": "Add",
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Inventory"
+                        }
+                      },
+                      "pointer": {
+                        "keyOf": {
+                          "key": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "required": true,
+                                "type": 3
+                              },
+                              "value": "Save"
+                            }
+                          },
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "__root__"
+                          }
+                        },
+                        "type": "keyOf"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "collectionAttributeId": "214df1a1-abca-4141-987b-380a5417c70a",
+                    "collectionValueId": null,
+                    "entryTypeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
+                    },
+                    "required": true,
+                    "type": 9
+                  },
+                  "writability": "save"
+                },
+                "type": "collectionCall"
+              }
+            ],
+            "parameters": [
+              {
+                "id": "__this__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
+                }
+              },
+              {
+                "id": "__root__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__root__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__root__"
+                }
+              },
+              {
+                "id": "__context__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__dialogue_context__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__dialogue_context__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "a840747f-9d6b-4d71-af3a-16b294ec436d"
+        }
+      ],
       "to": "d4"
     },
     "d4": {

@@ -33,6 +33,139 @@
         }
       ]
     },
+    "grant Helium-3 Flask": {
+      "do": [
+        {
+          "ir": {
+            "instructions": [
+              {
+                "args": [
+                  {
+                    "type": "variable",
+                    "variableId": "__this__"
+                  }
+                ],
+                "mutation": "Add",
+                "target": {
+                  "pointer": {
+                    "keyOf": {
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "required": true,
+                            "type": 3
+                          },
+                          "value": "Inventory"
+                        }
+                      },
+                      "pointer": {
+                        "keyOf": {
+                          "key": {
+                            "type": "value",
+                            "value": {
+                              "typeInfo": {
+                                "required": true,
+                                "type": 3
+                              },
+                              "value": "Save"
+                            }
+                          },
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "__root__"
+                          }
+                        },
+                        "type": "keyOf"
+                      }
+                    },
+                    "type": "keyOf"
+                  },
+                  "typeInfo": {
+                    "collectionAttributeId": "214df1a1-abca-4141-987b-380a5417c70a",
+                    "collectionValueId": null,
+                    "entryTypeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
+                    },
+                    "required": true,
+                    "type": 9
+                  },
+                  "writability": "save"
+                },
+                "type": "collectionCall"
+              }
+            ],
+            "parameters": [
+              {
+                "id": "__this__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
+                }
+              },
+              {
+                "id": "__root__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__root__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__root__"
+                }
+              },
+              {
+                "id": "__context__",
+                "pointer": {
+                  "type": "value",
+                  "value": {
+                    "typeInfo": {
+                      "required": true,
+                      "type": 7,
+                      "typeId": "__dialogue_context__"
+                    },
+                    "value": null
+                  }
+                },
+                "typeInfo": {
+                  "required": true,
+                  "type": 7,
+                  "typeId": "__dialogue_context__"
+                }
+              }
+            ],
+            "typeInfo": {
+              "required": true,
+              "type": 0
+            }
+          },
+          "bind": "18b9a621-ea41-4ac7-8a46-9cc443f2b480"
+        }
+      ],
+      "to": "p4"
+    },
     "p2f": {
       "say": "FINALLY, someone with taste. For that, you get a straight answer — a rare vintage around here:",
       "to": "p2"
@@ -154,7 +287,7 @@
           "bind": "c9cbef1c-4660-432c-83e1-0e9c10c897e0"
         }
       ],
-      "to": "p4"
+      "to": "grant Helium-3 Flask"
     }
   }
 }
