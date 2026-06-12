@@ -2073,6 +2073,14 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public double? Weight
+        {
+            get
+            {
+                return node.Get<NeoAttributeFloat>("Weight").value?.value;
+            }
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -2080,6 +2088,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<int> Value = new("Value");
+
+            public static readonly NeoField<double?> Weight = new("Weight");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -2088,6 +2098,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
                 [Fields.Value] = () => null,
+                [Fields.Weight] = () => null,
             };
         }
 
@@ -2107,6 +2118,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Name] = () => Name,
                 [Fields.Value] = () => Value,
+                [Fields.Weight] = () => Weight,
             };
         }
 
@@ -2130,12 +2142,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Item(string? Name = null, int? Value = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Value))
+        public Item(string? Name = null, int? Value = null, double? Weight = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Value, Weight))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Value = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Value = null, double? Weight = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -2164,6 +2176,18 @@ namespace HelloWorld.Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = Value.HasValue ? Value.Value : (double?)null,
+                });
+            }
+            if (Weight is not null)
+            {
+                var WeightValueId = Guid.NewGuid().ToString();
+                value["Weight"] = WeightValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = WeightValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Weight,
                 });
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "60c25a92-cb01-46f7-b5cf-c9d950586116", value, valueRows);
@@ -2205,6 +2229,18 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new double? Weight
+        {
+            get
+            {
+                return node.Get<NeoAttributeFloat>("Weight").value?.value;
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Weight", NeoGeneratedTypesSupport.Value(value.HasValue ? (float?)((float)value.Value) : null));
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -2212,6 +2248,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<int> Value = new("Value");
+
+            public static readonly NeoField<double?> Weight = new("Weight");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -2220,6 +2258,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
                 [Fields.Value] = () => null,
+                [Fields.Weight] = () => null,
             };
         }
 
@@ -2239,6 +2278,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.Name] = () => Name,
                 [Fields.Value] = () => Value,
+                [Fields.Weight] = () => Weight,
             };
         }
 
