@@ -87,10 +87,42 @@ namespace HelloWorld.Assets.Scripts
         {
             if (!outpost.Save.Unlocked) return;
 
+            AdvanceFlareClock(outpost);
             neo.Save.Location = outpost;
             neo.Save.World = outpost.Planet;
             neo.Save.Visited.Add(new PlanetVisit(outpost.Planet, CurrentUnixTime));
             TriggerDialogue(outpost);
+        }
+
+        /// <summary>
+        /// Urgency: every hop heats the dying runtime (hello-world-plot.md §4).
+        /// Items earn their keep here — the Cloudsilk Parasol shields the first
+        /// hops entirely, the Gyro Stabilizer waives the outer-system surcharge.
+        /// </summary>
+        internal void AdvanceFlareClock(ReadOnlyOutpost destination)
+        {
+            if (neo.Save.Quest.Stage == QuestStage.ended) return;
+            bool hasParasol = HasItem("Cloudsilk Parasol");
+            bool hasGyro = HasItem("Gyro Stabilizer");
+            int clock = neo.Save.Quest.FlareClock;
+            if (hasParasol && clock < 2) return;
+
+            int cost = 1;
+            if (IsOuterSystem(destination.Planet) && !hasGyro) cost += 1;
+            neo.Save.Quest.FlareClock = clock + cost;
+        }
+
+        internal bool HasItem(string itemName)
+        {
+            return neo.Save.Inventory.Any(item => item.Name == itemName);
+        }
+
+        private static bool IsOuterSystem(Planet planet)
+        {
+            return planet == Planet.saturn
+                || planet == Planet.uranus
+                || planet == Planet.neptune
+                || planet == Planet.pluto;
         }
 
         /// <summary>Commits the current save through the synchronizer (local + cloud when signed in).</summary>
@@ -201,7 +233,10 @@ namespace HelloWorld.Assets.Scripts
         private void UpdateUI()
         {
             coreUI.Render(
-                HelloWorldText, CurrentOutpost, Outposts, VisitedPlanets,
+                HelloWorldText,
+                neo.Save.Quest.NextHint,
+                HasItem("Storm Corn") ? neo.Save.Quest.FlareClock : (neo.Save.Quest.FlareClock >= 6 ? 6 : 0),
+                CurrentOutpost, Outposts, VisitedPlanets,
                 neo.Save.Bits, neo.Save.Inventory.ToArray(),
                 OnVisitOutpost,
                 onSave: OnSaveClicked,

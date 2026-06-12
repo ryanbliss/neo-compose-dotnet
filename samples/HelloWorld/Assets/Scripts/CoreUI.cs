@@ -20,6 +20,7 @@ namespace HelloWorld.Assets.Scripts
         private GameObject root;
         private Button saveButton;
         private Text saveLabel;
+        private Text questText;
         private Text title;
         private Text visitedMeta;
         private Text bitsText;
@@ -34,6 +35,8 @@ namespace HelloWorld.Assets.Scripts
 
         public void Render(
             string text,
+            string questHint,
+            int storm,
             ReadOnlyOutpost currentOutpost,
             IReadOnlyList<ReadOnlyOutpost> outposts,
             IReadOnlyList<PlanetVisit> visitedPlanets,
@@ -52,7 +55,12 @@ namespace HelloWorld.Assets.Scripts
             RebuildInventory(inventory);
             RebuildOutposts(outposts, currentOutpost, onVisitOutpost);
             visitedMeta.text = $"{visitedPlanets.Select(visit => visit.World.optionId).Distinct().Count()} visited";
-            bitsText.text = $"Bits: {bits}";
+            bitsText.text = storm <= 0
+                ? $"Bits: {bits}"
+                : $"Bits: {bits}   <color=#FFAA66>Storms: {new string('▲', Math.Min(storm, 14))}</color>";
+            questText.text = string.IsNullOrEmpty(questHint)
+                ? ""
+                : $"<color=#9FD0FF>{questHint}</color>";
             inventoryMeta.text = $"{inventory.Count} item{(inventory.Count == 1 ? "" : "s")}";
             travelMeta.text = $"{outposts.Count(outpost => outpost.Save.Unlocked)} unlocked";
         }
@@ -201,6 +209,7 @@ namespace HelloWorld.Assets.Scripts
             grid.constraintCount = 3;
 
             bitsText = SampleUI.CreateText(card, "Bits: 0", 20, new Color(0.92f, 0.96f, 1f), FontStyle.Bold);
+            questText = SampleUI.CreateText(card, "", 16, new Color(0.62f, 0.81f, 1f), FontStyle.Italic);
             bitsText.gameObject.GetComponent<LayoutElement>().preferredHeight = 34f;
 
             CreateSectionHeader(card, "Inventory", out inventoryMeta);
