@@ -67,12 +67,15 @@ namespace HelloWorld.Assets.Scripts
             int storm,
             ReadOnlyAnimationInfo shipAnimation,
             ReadOnlyAnimationInfo flareAnimation,
+            AudioClip thrustSfx,
             Action<ReadOnlyOutpost> onVisitOutpost)
         {
             // Animations are authored data (AnimationInfo records with frame
             // sprites + FPS) — exactly the RotateEarth pattern, driven from
-            // the schema rather than hand-rolled UV tricks.
+            // the schema rather than hand-rolled UV tricks. The thrust loop is
+            // authored audio from the same Assets container.
             animator.SetAnimations(shipAnimation, flareAnimation);
+            animator.SetThrustClip(thrustSfx);
             var positions = LayoutPositions(outposts);
             foreach (var outpost in outposts)
             {
@@ -195,6 +198,8 @@ namespace HelloWorld.Assets.Scripts
             private float flightDuration;
             private Action onArrive;
             private int storm;
+            private AudioSource thrust;
+            private AudioClip thrustClip;
             private float frameTimer;
             private int frame;
             private float flareTimer;
@@ -218,6 +223,8 @@ namespace HelloWorld.Assets.Scripts
 
             public void SetStorm(int value) => storm = value;
 
+            public void SetThrustClip(AudioClip clip) => thrustClip = clip;
+
             public void SnapTo(RectTransform planet)
             {
                 var rect = (RectTransform)ship.transform;
@@ -238,6 +245,21 @@ namespace HelloWorld.Assets.Scripts
                 // Face the direction of travel (sheet faces right).
                 ship.transform.localScale = new Vector3(
                     planet.anchorMin.x >= from.x ? 1f : -1f, 1f, 1f);
+                StartThrust();
+            }
+
+            private void StartThrust()
+            {
+                if (thrustClip == null) return;
+                if (thrust == null)
+                {
+                    thrust = gameObject.AddComponent<AudioSource>();
+                    thrust.playOnAwake = false;
+                    thrust.loop = true;
+                    thrust.volume = 0.55f;
+                }
+                thrust.clip = thrustClip;
+                thrust.Play();
             }
 
             private void Update()
@@ -278,6 +300,7 @@ namespace HelloWorld.Assets.Scripts
                         var arrived = onArrive;
                         target = null;
                         onArrive = null;
+                        if (thrust != null) thrust.Stop();
                         arrived?.Invoke();
                     }
                 }

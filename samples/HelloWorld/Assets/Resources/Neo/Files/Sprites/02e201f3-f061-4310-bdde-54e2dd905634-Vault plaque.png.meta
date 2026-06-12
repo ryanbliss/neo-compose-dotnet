@@ -113,45 +113,23 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: 02e201f3-f061-4310-bdde-54e2dd905634-Vault plaque_0_0
+      name: 02e201f3-f061-4310-bdde-54e2dd905634-Vault plaque_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 16
+        width: 32
         height: 16
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: 64fa0e1a06a2d423fa66f0177c0aa4a2
-      internalID: 630333986
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: 02e201f3-f061-4310-bdde-54e2dd905634-Vault plaque_0_1
-      rect:
-        serializedVersion: 2
-        x: 16
-        y: 0
-        width: 16
-        height: 16
-      alignment: 0
-      pivot: {x: 0.5, y: 0.5}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: ea8eca8b93e404dbf942cd8ec6556580
-      internalID: 257366880
+      spriteID: fcae2f7b508acd630800000000000000
+      internalID: 3953219315438906063
       vertices: []
       indices: 
       edges: []
@@ -160,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 1945639fcb7894119b528d07acce37f1
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -170,8 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      02e201f3-f061-4310-bdde-54e2dd905634-Vault plaque_0_0: 630333986
-      02e201f3-f061-4310-bdde-54e2dd905634-Vault plaque_0_1: 257366880
+      02e201f3-f061-4310-bdde-54e2dd905634-Vault plaque_0: 3953219315438906063
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

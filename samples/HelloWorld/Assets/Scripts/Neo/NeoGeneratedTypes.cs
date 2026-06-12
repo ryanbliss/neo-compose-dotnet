@@ -31,6 +31,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 ["11177bd5-0678-4bff-86b8-46718ff1827b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAnimationInfo.Create(client, node),
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyComputedText.Create(client, node),
+                ["44d6324f-6507-4420-a919-3496681c3b21"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAudio.Create(client, node),
                 ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoDialogueMemory.Create(client, node),
                 ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyOutpost.Create(client, node),
                 ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoTextNodeMemory.Create(client, node),
@@ -43,6 +44,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyLookupEntry.Create(client, node),
                 ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlySaturnOutpost.Create(client, node),
                 ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlySave.Create(client, node),
+                ["9a6019b6-680f-4300-8cea-bde6fce47fc1"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyArt.Create(client, node),
                 ["a50efb7e-58f6-4342-906e-0b01f98b15af"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyJupiterOutpost.Create(client, node),
                 ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoChoiceLog.Create(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyQuestState.Create(client, node),
@@ -54,6 +56,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 ["11177bd5-0678-4bff-86b8-46718ff1827b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable(client, node),
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateWritable(client, node),
+                ["44d6324f-6507-4420-a919-3496681c3b21"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Audio.CreateWritable(client, node),
                 ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, node),
                 ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateWritable(client, node),
                 ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, node),
@@ -66,6 +69,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.CreateWritable(client, node),
                 ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SaturnOutpost.CreateWritable(client, node),
                 ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Save.CreateWritable(client, node),
+                ["9a6019b6-680f-4300-8cea-bde6fce47fc1"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Art.CreateWritable(client, node),
                 ["a50efb7e-58f6-4342-906e-0b01f98b15af"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.JupiterOutpost.CreateWritable(client, node),
                 ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(client, node),
@@ -1145,6 +1149,417 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.baseText] = () => baseText,
                 [Fields.fullText] = () => fullText,
                 [Fields.optionalSuffix] = () => optionalSuffix,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public partial class ReadOnlyAudio : NeoGeneratedCustomValue
+    {
+        internal ReadOnlyAudio(NeoClient client, NeoAttributeCustom node)
+            : base(client, node, "44d6324f-6507-4420-a919-3496681c3b21")
+        {
+        }
+
+        internal static ReadOnlyAudio Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyAudio(client, node),
+                };
+            });
+        }
+
+        public AudioClip BitsGainSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("BitsGainSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'BitsGainSfx' has no synchronized asset.");
+            }
+        }
+
+        public AudioClip BitsSpendSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("BitsSpendSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'BitsSpendSfx' has no synchronized asset.");
+            }
+        }
+
+        public AudioClip DialogCloseSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("DialogCloseSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'DialogCloseSfx' has no synchronized asset.");
+            }
+        }
+
+        public AudioClip DialogNextSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("DialogNextSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'DialogNextSfx' has no synchronized asset.");
+            }
+        }
+
+        public AudioClip DialogOpenSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("DialogOpenSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'DialogOpenSfx' has no synchronized asset.");
+            }
+        }
+
+        public AudioClip ItemGetSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("ItemGetSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'ItemGetSfx' has no synchronized asset.");
+            }
+        }
+
+        public AudioClip RocketThrustSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("RocketThrustSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'RocketThrustSfx' has no synchronized asset.");
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<AudioClip> BitsGainSfx = new("BitsGainSfx");
+
+            public static readonly NeoField<AudioClip> BitsSpendSfx = new("BitsSpendSfx");
+
+            public static readonly NeoField<AudioClip> DialogCloseSfx = new("DialogCloseSfx");
+
+            public static readonly NeoField<AudioClip> DialogNextSfx = new("DialogNextSfx");
+
+            public static readonly NeoField<AudioClip> DialogOpenSfx = new("DialogOpenSfx");
+
+            public static readonly NeoField<AudioClip> ItemGetSfx = new("ItemGetSfx");
+
+            public static readonly NeoField<AudioClip> RocketThrustSfx = new("RocketThrustSfx");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.BitsGainSfx] = () => null,
+                [Fields.BitsSpendSfx] = () => null,
+                [Fields.DialogCloseSfx] = () => null,
+                [Fields.DialogNextSfx] = () => null,
+                [Fields.DialogOpenSfx] = () => null,
+                [Fields.ItemGetSfx] = () => null,
+                [Fields.RocketThrustSfx] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.BitsGainSfx] = () => BitsGainSfx,
+                [Fields.BitsSpendSfx] = () => BitsSpendSfx,
+                [Fields.DialogCloseSfx] = () => DialogCloseSfx,
+                [Fields.DialogNextSfx] = () => DialogNextSfx,
+                [Fields.DialogOpenSfx] = () => DialogOpenSfx,
+                [Fields.ItemGetSfx] = () => ItemGetSfx,
+                [Fields.RocketThrustSfx] = () => RocketThrustSfx,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+    }
+
+    public partial class Audio : ReadOnlyAudio
+    {
+        internal Audio(NeoClient client, NeoAttributeCustomWritable node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
+
+        public Audio(AudioClip BitsGainSfx, AudioClip BitsSpendSfx, AudioClip DialogCloseSfx, AudioClip DialogNextSfx, AudioClip DialogOpenSfx, AudioClip ItemGetSfx, AudioClip RocketThrustSfx)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(BitsGainSfx, BitsSpendSfx, DialogCloseSfx, DialogNextSfx, DialogOpenSfx, ItemGetSfx, RocketThrustSfx))
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(AudioClip BitsGainSfx, AudioClip BitsSpendSfx, AudioClip DialogCloseSfx, AudioClip DialogNextSfx, AudioClip DialogOpenSfx, AudioClip ItemGetSfx, AudioClip RocketThrustSfx)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var BitsGainSfxValueId = Guid.NewGuid().ToString();
+            value["BitsGainSfx"] = BitsGainSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = BitsGainSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, BitsGainSfx),
+            });
+            var BitsSpendSfxValueId = Guid.NewGuid().ToString();
+            value["BitsSpendSfx"] = BitsSpendSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = BitsSpendSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, BitsSpendSfx),
+            });
+            var DialogCloseSfxValueId = Guid.NewGuid().ToString();
+            value["DialogCloseSfx"] = DialogCloseSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = DialogCloseSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, DialogCloseSfx),
+            });
+            var DialogNextSfxValueId = Guid.NewGuid().ToString();
+            value["DialogNextSfx"] = DialogNextSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = DialogNextSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, DialogNextSfx),
+            });
+            var DialogOpenSfxValueId = Guid.NewGuid().ToString();
+            value["DialogOpenSfx"] = DialogOpenSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = DialogOpenSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, DialogOpenSfx),
+            });
+            var ItemGetSfxValueId = Guid.NewGuid().ToString();
+            value["ItemGetSfx"] = ItemGetSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = ItemGetSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, ItemGetSfx),
+            });
+            var RocketThrustSfxValueId = Guid.NewGuid().ToString();
+            value["RocketThrustSfx"] = RocketThrustSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = RocketThrustSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, RocketThrustSfx),
+            });
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "44d6324f-6507-4420-a919-3496681c3b21", value, valueRows);
+        }
+
+        internal static Audio CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Audio(client, node),
+                };
+            });
+        }
+
+        public new AudioClip BitsGainSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("BitsGainSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'BitsGainSfx' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "BitsGainSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
+            }
+        }
+
+        public new AudioClip BitsSpendSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("BitsSpendSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'BitsSpendSfx' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "BitsSpendSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
+            }
+        }
+
+        public new AudioClip DialogCloseSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("DialogCloseSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'DialogCloseSfx' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DialogCloseSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
+            }
+        }
+
+        public new AudioClip DialogNextSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("DialogNextSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'DialogNextSfx' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DialogNextSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
+            }
+        }
+
+        public new AudioClip DialogOpenSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("DialogOpenSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'DialogOpenSfx' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DialogOpenSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
+            }
+        }
+
+        public new AudioClip ItemGetSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("ItemGetSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'ItemGetSfx' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "ItemGetSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
+            }
+        }
+
+        public new AudioClip RocketThrustSfx
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeAudio>("RocketThrustSfx").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required AudioClip 'RocketThrustSfx' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "RocketThrustSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<AudioClip> BitsGainSfx = new("BitsGainSfx");
+
+            public static readonly NeoField<AudioClip> BitsSpendSfx = new("BitsSpendSfx");
+
+            public static readonly NeoField<AudioClip> DialogCloseSfx = new("DialogCloseSfx");
+
+            public static readonly NeoField<AudioClip> DialogNextSfx = new("DialogNextSfx");
+
+            public static readonly NeoField<AudioClip> DialogOpenSfx = new("DialogOpenSfx");
+
+            public static readonly NeoField<AudioClip> ItemGetSfx = new("ItemGetSfx");
+
+            public static readonly NeoField<AudioClip> RocketThrustSfx = new("RocketThrustSfx");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.BitsGainSfx] = () => null,
+                [Fields.BitsSpendSfx] = () => null,
+                [Fields.DialogCloseSfx] = () => null,
+                [Fields.DialogNextSfx] = () => null,
+                [Fields.DialogOpenSfx] = () => null,
+                [Fields.ItemGetSfx] = () => null,
+                [Fields.RocketThrustSfx] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.BitsGainSfx] = () => BitsGainSfx,
+                [Fields.BitsSpendSfx] = () => BitsSpendSfx,
+                [Fields.DialogCloseSfx] = () => DialogCloseSfx,
+                [Fields.DialogNextSfx] = () => DialogNextSfx,
+                [Fields.DialogOpenSfx] = () => DialogOpenSfx,
+                [Fields.ItemGetSfx] = () => ItemGetSfx,
+                [Fields.RocketThrustSfx] = () => RocketThrustSfx,
             };
         }
 
@@ -4569,6 +4984,378 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
+    public partial class ReadOnlyArt : NeoGeneratedCustomValue
+    {
+        internal ReadOnlyArt(NeoClient client, NeoAttributeCustom node)
+            : base(client, node, "9a6019b6-680f-4300-8cea-bde6fce47fc1")
+        {
+        }
+
+        internal static ReadOnlyArt Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ReadOnlyArt(client, node),
+                };
+            });
+        }
+
+        public Sprite FirstWorldIconSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("FirstWorldIconSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'FirstWorldIconSprite' has no synchronized asset.");
+            }
+        }
+
+        public ReadOnlyAnimationInfo? FlareAnimation
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("FlareAnimation");
+                return child.value is null ? null : ReadOnlyAnimationInfo.Create(client, child);
+            }
+        }
+
+        public Sprite FlareStaticSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("FlareStaticSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'FlareStaticSprite' has no synchronized asset.");
+            }
+        }
+
+        public ReadOnlyAnimationInfo? ShipAnimation
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("ShipAnimation");
+                return child.value is null ? null : ReadOnlyAnimationInfo.Create(client, child);
+            }
+        }
+
+        public Sprite ShipSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("ShipSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'ShipSprite' has no synchronized asset.");
+            }
+        }
+
+        public Sprite VaultPlaqueSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("VaultPlaqueSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'VaultPlaqueSprite' has no synchronized asset.");
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<Sprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
+
+            public static readonly NeoField<ReadOnlyAnimationInfo?> FlareAnimation = new("FlareAnimation");
+
+            public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
+
+            public static readonly NeoField<ReadOnlyAnimationInfo?> ShipAnimation = new("ShipAnimation");
+
+            public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
+
+            public static readonly NeoField<Sprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.FirstWorldIconSprite] = () => null,
+                [Fields.FlareAnimation] = () => null,
+                [Fields.FlareStaticSprite] = () => null,
+                [Fields.ShipAnimation] = () => null,
+                [Fields.ShipSprite] = () => null,
+                [Fields.VaultPlaqueSprite] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
+                [Fields.FlareAnimation] = () => FlareAnimation,
+                [Fields.FlareStaticSprite] = () => FlareStaticSprite,
+                [Fields.ShipAnimation] = () => ShipAnimation,
+                [Fields.ShipSprite] = () => ShipSprite,
+                [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+    }
+
+    public partial class Art : ReadOnlyArt
+    {
+        internal Art(NeoClient client, NeoAttributeCustomWritable node)
+            : base(client, node)
+        {
+        }
+
+        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
+
+        public Art(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, ShipSprite, VaultPlaqueSprite, FlareAnimation, ShipAnimation))
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var FirstWorldIconSpriteValueId = Guid.NewGuid().ToString();
+            value["FirstWorldIconSprite"] = FirstWorldIconSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = FirstWorldIconSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, FirstWorldIconSprite),
+            });
+            if (FlareAnimation is not null)
+            {
+                value["FlareAnimation"] = NeoGeneratedTypesSupport.LookupSelectionId(FlareAnimation.valueId);
+            }
+            var FlareStaticSpriteValueId = Guid.NewGuid().ToString();
+            value["FlareStaticSprite"] = FlareStaticSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = FlareStaticSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, FlareStaticSprite),
+            });
+            if (ShipAnimation is not null)
+            {
+                value["ShipAnimation"] = NeoGeneratedTypesSupport.LookupSelectionId(ShipAnimation.valueId);
+            }
+            var ShipSpriteValueId = Guid.NewGuid().ToString();
+            value["ShipSprite"] = ShipSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = ShipSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, ShipSprite),
+            });
+            var VaultPlaqueSpriteValueId = Guid.NewGuid().ToString();
+            value["VaultPlaqueSprite"] = VaultPlaqueSpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = VaultPlaqueSpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, VaultPlaqueSprite),
+            });
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "9a6019b6-680f-4300-8cea-bde6fce47fc1", value, valueRows);
+        }
+
+        internal static Art CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Art(client, node),
+                };
+            });
+        }
+
+        public new Sprite FirstWorldIconSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("FirstWorldIconSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'FirstWorldIconSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FirstWorldIconSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new AnimationInfo? FlareAnimation
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustomWritable>("FlareAnimation");
+                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
+            }
+            set
+            {
+                if (value is null)
+                {
+                    writableNode.Unset("FlareAnimation");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FlareAnimation", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        public new Sprite FlareStaticSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("FlareStaticSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'FlareStaticSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "FlareStaticSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new AnimationInfo? ShipAnimation
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustomWritable>("ShipAnimation");
+                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
+            }
+            set
+            {
+                if (value is null)
+                {
+                    writableNode.Unset("ShipAnimation");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "ShipAnimation", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        public new Sprite ShipSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("ShipSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'ShipSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "ShipSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new Sprite VaultPlaqueSprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("VaultPlaqueSprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'VaultPlaqueSprite' has no synchronized asset.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "VaultPlaqueSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<Sprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
+
+            public static readonly NeoField<AnimationInfo?> FlareAnimation = new("FlareAnimation");
+
+            public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
+
+            public static readonly NeoField<AnimationInfo?> ShipAnimation = new("ShipAnimation");
+
+            public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
+
+            public static readonly NeoField<Sprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.FirstWorldIconSprite] = () => null,
+                [Fields.FlareAnimation] = () => null,
+                [Fields.FlareStaticSprite] = () => null,
+                [Fields.ShipAnimation] = () => null,
+                [Fields.ShipSprite] = () => null,
+                [Fields.VaultPlaqueSprite] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
+                [Fields.FlareAnimation] = () => FlareAnimation,
+                [Fields.FlareStaticSprite] = () => FlareStaticSprite,
+                [Fields.ShipAnimation] = () => ShipAnimation,
+                [Fields.ShipSprite] = () => ShipSprite,
+                [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
     public partial class ReadOnlyJupiterOutpost : ReadOnlyOutpost
     {
         internal ReadOnlyJupiterOutpost(NeoClient client, NeoAttributeCustom node)
@@ -5544,38 +6331,27 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        public ReadOnlyArt Art
+        {
+            get
+            {
+                return ReadOnlyArt.Create(client, node.Get<NeoAttributeCustom>("Art"));
+            }
+        }
+
+        public ReadOnlyAudio Audio
+        {
+            get
+            {
+                return ReadOnlyAudio.Create(client, node.Get<NeoAttributeCustom>("Audio"));
+            }
+        }
+
         public ReadOnlyComputedText Computed
         {
             get
             {
                 return ReadOnlyComputedText.Create(client, node.Get<NeoAttributeCustom>("Computed"));
-            }
-        }
-
-        public Sprite FirstWorldIconSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("FirstWorldIconSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'FirstWorldIconSprite' has no synchronized asset.");
-            }
-        }
-
-        public ReadOnlyAnimationInfo? FlareAnimation
-        {
-            get
-            {
-                var child = node.Get<NeoAttributeCustom>("FlareAnimation");
-                return child.value is null ? null : ReadOnlyAnimationInfo.Create(client, child);
-            }
-        }
-
-        public Sprite FlareStaticSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("FlareStaticSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'FlareStaticSprite' has no synchronized asset.");
             }
         }
 
@@ -5603,72 +6379,33 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public ReadOnlyAnimationInfo? ShipAnimation
-        {
-            get
-            {
-                var child = node.Get<NeoAttributeCustom>("ShipAnimation");
-                return child.value is null ? null : ReadOnlyAnimationInfo.Create(client, child);
-            }
-        }
-
-        public Sprite ShipSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("ShipSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'ShipSprite' has no synchronized asset.");
-            }
-        }
-
-        public Sprite VaultPlaqueSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("VaultPlaqueSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'VaultPlaqueSprite' has no synchronized asset.");
-            }
-        }
-
         public sealed class Fields
         {
             private Fields() {}
 
+            public static readonly NeoField<ReadOnlyArt> Art = new("Art");
+
+            public static readonly NeoField<ReadOnlyAudio> Audio = new("Audio");
+
             public static readonly NeoField<ReadOnlyComputedText> Computed = new("Computed");
-
-            public static readonly NeoField<Sprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
-
-            public static readonly NeoField<ReadOnlyAnimationInfo?> FlareAnimation = new("FlareAnimation");
-
-            public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
 
             public static readonly NeoField<NeoReadOnlyList<ReadOnlyItem>> Items = new("Items");
 
             public static readonly NeoField<ReadOnlyLookupContainer> LookupContainer = new("LookupContainer");
 
             public static readonly NeoField<NeoReadOnlyList<ReadOnlyOutpost>> Outposts = new("Outposts");
-
-            public static readonly NeoField<ReadOnlyAnimationInfo?> ShipAnimation = new("ShipAnimation");
-
-            public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
-
-            public static readonly NeoField<Sprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Art] = () => null,
+                [Fields.Audio] = () => null,
                 [Fields.Computed] = () => null,
-                [Fields.FirstWorldIconSprite] = () => null,
-                [Fields.FlareAnimation] = () => null,
-                [Fields.FlareStaticSprite] = () => null,
                 [Fields.Items] = () => null,
                 [Fields.LookupContainer] = () => null,
                 [Fields.Outposts] = () => null,
-                [Fields.ShipAnimation] = () => null,
-                [Fields.ShipSprite] = () => null,
-                [Fields.VaultPlaqueSprite] = () => null,
             };
         }
 
@@ -5686,16 +6423,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Art] = () => Art,
+                [Fields.Audio] = () => Audio,
                 [Fields.Computed] = () => Computed,
-                [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
-                [Fields.FlareAnimation] = () => FlareAnimation,
-                [Fields.FlareStaticSprite] = () => FlareStaticSprite,
                 [Fields.Items] = () => Items,
                 [Fields.LookupContainer] = () => LookupContainer,
                 [Fields.Outposts] = () => Outposts,
-                [Fields.ShipAnimation] = () => ShipAnimation,
-                [Fields.ShipSprite] = () => ShipSprite,
-                [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
             };
         }
 
@@ -5719,43 +6452,29 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Assets(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, ComputedText? Computed = null, AnimationInfo? FlareAnimation = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, AnimationInfo? ShipAnimation = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, ShipSprite, VaultPlaqueSprite, Computed, FlareAnimation, Items, LookupContainer, Outposts, ShipAnimation))
+        public Assets(Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Art, Audio, Computed, Items, LookupContainer, Outposts))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite ShipSprite, Sprite VaultPlaqueSprite, ComputedText? Computed = null, AnimationInfo? FlareAnimation = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, AnimationInfo? ShipAnimation = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
+            if (Art is not null)
+            {
+                value["Art"] = NeoGeneratedTypesSupport.LookupSelectionId(Art.valueId);
+            }
+            if (Audio is not null)
+            {
+                value["Audio"] = NeoGeneratedTypesSupport.LookupSelectionId(Audio.valueId);
+            }
             if (Computed is not null)
             {
                 value["Computed"] = NeoGeneratedTypesSupport.LookupSelectionId(Computed.valueId);
             }
-            var FirstWorldIconSpriteValueId = Guid.NewGuid().ToString();
-            value["FirstWorldIconSprite"] = FirstWorldIconSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = FirstWorldIconSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, FirstWorldIconSprite),
-            });
-            if (FlareAnimation is not null)
-            {
-                value["FlareAnimation"] = NeoGeneratedTypesSupport.LookupSelectionId(FlareAnimation.valueId);
-            }
-            var FlareStaticSpriteValueId = Guid.NewGuid().ToString();
-            value["FlareStaticSprite"] = FlareStaticSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = FlareStaticSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, FlareStaticSprite),
-            });
             if (Items is not null)
             {
                 var ItemsValueId = Guid.NewGuid().ToString();
@@ -5794,28 +6513,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = OutpostsIds.ToArray(),
                 });
             }
-            if (ShipAnimation is not null)
-            {
-                value["ShipAnimation"] = NeoGeneratedTypesSupport.LookupSelectionId(ShipAnimation.valueId);
-            }
-            var ShipSpriteValueId = Guid.NewGuid().ToString();
-            value["ShipSprite"] = ShipSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = ShipSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, ShipSprite),
-            });
-            var VaultPlaqueSpriteValueId = Guid.NewGuid().ToString();
-            value["VaultPlaqueSprite"] = VaultPlaqueSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = VaultPlaqueSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, VaultPlaqueSprite),
-            });
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows);
         }
 
@@ -5831,6 +6528,30 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        public new Art Art
+        {
+            get
+            {
+                return Art.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("Art"));
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Art", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        public new Audio Audio
+        {
+            get
+            {
+                return Audio.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("Audio"));
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Audio", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
         public new ComputedText Computed
         {
             get
@@ -5840,50 +6561,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             set
             {
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Computed", NeoGeneratedTypesSupport.ValueReference(value));
-            }
-        }
-
-        public new Sprite FirstWorldIconSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("FirstWorldIconSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'FirstWorldIconSprite' has no synchronized asset.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "FirstWorldIconSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
-        }
-
-        public new AnimationInfo? FlareAnimation
-        {
-            get
-            {
-                var child = node.Get<NeoAttributeCustomWritable>("FlareAnimation");
-                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
-            }
-            set
-            {
-                if (value is null)
-                {
-                    writableNode.Unset("FlareAnimation");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "FlareAnimation", NeoGeneratedTypesSupport.ValueReference(value));
-            }
-        }
-
-        public new Sprite FlareStaticSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("FlareStaticSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'FlareStaticSprite' has no synchronized asset.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "FlareStaticSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
             }
         }
 
@@ -5915,89 +6592,33 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new AnimationInfo? ShipAnimation
-        {
-            get
-            {
-                var child = node.Get<NeoAttributeCustomWritable>("ShipAnimation");
-                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
-            }
-            set
-            {
-                if (value is null)
-                {
-                    writableNode.Unset("ShipAnimation");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "ShipAnimation", NeoGeneratedTypesSupport.ValueReference(value));
-            }
-        }
-
-        public new Sprite ShipSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("ShipSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'ShipSprite' has no synchronized asset.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "ShipSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
-        }
-
-        public new Sprite VaultPlaqueSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("VaultPlaqueSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'VaultPlaqueSprite' has no synchronized asset.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "VaultPlaqueSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
-        }
-
         public new sealed class Fields
         {
             private Fields() {}
 
+            public static readonly NeoField<Art> Art = new("Art");
+
+            public static readonly NeoField<Audio> Audio = new("Audio");
+
             public static readonly NeoField<ComputedText> Computed = new("Computed");
-
-            public static readonly NeoField<Sprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
-
-            public static readonly NeoField<AnimationInfo?> FlareAnimation = new("FlareAnimation");
-
-            public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
 
             public static readonly NeoField<NeoList<Item>> Items = new("Items");
 
             public static readonly NeoField<LookupContainer> LookupContainer = new("LookupContainer");
 
             public static readonly NeoField<NeoList<Outpost>> Outposts = new("Outposts");
-
-            public static readonly NeoField<AnimationInfo?> ShipAnimation = new("ShipAnimation");
-
-            public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
-
-            public static readonly NeoField<Sprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
+                [Fields.Art] = () => null,
+                [Fields.Audio] = () => null,
                 [Fields.Computed] = () => null,
-                [Fields.FirstWorldIconSprite] = () => null,
-                [Fields.FlareAnimation] = () => null,
-                [Fields.FlareStaticSprite] = () => null,
                 [Fields.Items] = () => null,
                 [Fields.LookupContainer] = () => null,
                 [Fields.Outposts] = () => null,
-                [Fields.ShipAnimation] = () => null,
-                [Fields.ShipSprite] = () => null,
-                [Fields.VaultPlaqueSprite] = () => null,
             };
         }
 
@@ -6015,16 +6636,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
+                [Fields.Art] = () => Art,
+                [Fields.Audio] = () => Audio,
                 [Fields.Computed] = () => Computed,
-                [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
-                [Fields.FlareAnimation] = () => FlareAnimation,
-                [Fields.FlareStaticSprite] = () => FlareStaticSprite,
                 [Fields.Items] = () => Items,
                 [Fields.LookupContainer] = () => LookupContainer,
                 [Fields.Outposts] = () => Outposts,
-                [Fields.ShipAnimation] = () => ShipAnimation,
-                [Fields.ShipSprite] = () => ShipSprite,
-                [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
             };
         }
 

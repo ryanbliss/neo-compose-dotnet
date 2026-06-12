@@ -179,6 +179,41 @@ namespace HelloWorld.Assets.Tests
             neo.Save.Inventory.Add(item);
         }
 
+        [Test]
+        public void AudioAssets_GroupedUnderAssetsAudio_ResolveSynchronizedClips()
+        {
+            // The whole audio pipeline in one assertion set: authored project
+            // files -> Assets.Audio schema references -> synced Resources ->
+            // generated AudioClip properties. A missing/unsynced clip throws.
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            var audio = GameplayNeo(gameplay).Assets.Audio;
+
+            Assert.IsNotNull(audio.DialogOpenSfx);
+            Assert.IsNotNull(audio.DialogNextSfx);
+            Assert.IsNotNull(audio.DialogCloseSfx);
+            Assert.IsNotNull(audio.BitsGainSfx);
+            Assert.IsNotNull(audio.BitsSpendSfx);
+            Assert.IsNotNull(audio.ItemGetSfx);
+            Assert.IsNotNull(audio.RocketThrustSfx);
+            Assert.Greater(audio.RocketThrustSfx.length, 1f, "thrust loop should be the long clip");
+        }
+
+        [Test]
+        public void ArtAssets_GroupedUnderAssetsArt_KeepAnimationsAndSprites()
+        {
+            // Regression for the Assets root cleanup: the sprites/animations
+            // moved under Assets.Art and must still resolve their synced data.
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            var art = GameplayNeo(gameplay).Assets.Art;
+
+            Assert.IsNotNull(art.ShipAnimation);
+            Assert.Greater(art.ShipAnimation.Frames.Count, 0);
+            Assert.IsNotNull(art.FlareAnimation);
+            Assert.Greater(art.FlareAnimation.Frames.Count, 0);
+            Assert.IsNotNull(art.ShipSprite);
+            Assert.IsNotNull(art.VaultPlaqueSprite);
+        }
+
         private static HelloWorldNeo GameplayNeo(HelloWorldGameplay gameplay)
         {
             var field = typeof(HelloWorldGameplay).GetField(

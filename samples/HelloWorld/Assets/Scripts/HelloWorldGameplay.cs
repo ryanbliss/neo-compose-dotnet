@@ -29,6 +29,10 @@ namespace HelloWorld.Assets.Scripts
         private DialogueUI dialogueUI;
         private NeoDialogue activeDialogue;
         private IDisposable bitsSubscription;
+        private readonly GameAudio audio = new GameAudio();
+        private int lastBits;
+        private int lastInventoryCount;
+        private bool dialogueOpenSoundPlayed;
 
         /// <summary>Raised when the player chooses to return to the save-file menu.</summary>
         public event Action OnExitToMenu;
@@ -59,6 +63,8 @@ namespace HelloWorld.Assets.Scripts
             }
 
             neo = loaded;
+            lastBits = neo.Save.Bits;
+            lastInventoryCount = neo.Save.Inventory.Count;
             neo.Save.Inventory.OnChanged += OnInventoryChanged;
             bitsSubscription = neo.Save.OnChanged(Save.Fields.Bits, OnBitsChanged);
             // Live save sessions: a co-editor (the web tool) patching this play
@@ -167,6 +173,7 @@ namespace HelloWorld.Assets.Scripts
             dialogue.OnPause += OnDialoguePause;
             dialogue.OnFinish += OnDialogueFinish;
             dialogue.OnError += OnDialogueError;
+            dialogueOpenSoundPlayed = false;
             dialogue.Start();
             activeDialogue = dialogue;
         }
@@ -175,6 +182,13 @@ namespace HelloWorld.Assets.Scripts
         {
             if (node.Primary is not ReadOnlyOutpost outpost)
                 throw new Exception($"Expected linked type of {typeof(ReadOnlyOutpost)}");
+
+            // First node of a dialogue gets the "open" chirp; later nodes the
+            // softer "next" tick.
+            audio.Play(dialogueOpenSoundPlayed
+                ? neo.Assets.Audio.DialogNextSfx
+                : neo.Assets.Audio.DialogOpenSfx);
+            dialogueOpenSoundPlayed = true;
 
             dialogueUI.Show(outpost.FullDisplayText, outpost.Image, node.Text);
 
@@ -215,6 +229,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void OnDialogueFinish()
         {
+            audio.Play(neo.Assets.Audio.DialogCloseSfx);
             CurrentOutpost.Save.VisitCount += 1;
             ClearDialogue();
             if (neo.Save.Quest.Ending == WorldEnding.helloWorld)
@@ -251,9 +266,30 @@ namespace HelloWorld.Assets.Scripts
             dialogueUI.Reset();
         }
 
-        private void OnInventoryChanged() => UpdateUI();
+        private void OnInventoryChanged()
+        {
+            int count = neo.Save.Inventory.Count;
+            if (count > lastInventoryCount)
+            {
+                audio.Play(neo.Assets.Audio.ItemGetSfx);
+            }
+            lastInventoryCount = count;
+            UpdateUI();
+        }
 
-        private void OnBitsChanged(int bits) => UpdateUI();
+        private void OnBitsChanged(int bits)
+        {
+            if (bits > lastBits)
+            {
+                audio.Play(neo.Assets.Audio.BitsGainSfx);
+            }
+            else if (bits < lastBits)
+            {
+                audio.Play(neo.Assets.Audio.BitsSpendSfx);
+            }
+            lastBits = bits;
+            UpdateUI();
+        }
 
         private void UpdateUI()
         {
@@ -261,8 +297,9 @@ namespace HelloWorld.Assets.Scripts
                 HelloWorldText,
                 neo.Save.Quest.NextHint,
                 HasItem("Storm Corn") ? neo.Save.Quest.FlareClock : (neo.Save.Quest.FlareClock >= 6 ? 6 : 0),
-                neo.Assets.ShipAnimation,
-                neo.Assets.FlareAnimation,
+                neo.Assets.Art.ShipAnimation,
+                neo.Assets.Art.FlareAnimation,
+                neo.Assets.Audio.RocketThrustSfx,
                 CurrentOutpost, Outposts, VisitedPlanets,
                 neo.Save.Bits, neo.Save.Inventory.ToArray(),
                 OnVisitOutpost,
@@ -332,6 +369,7 @@ namespace HelloWorld.Assets.Scripts
         {
             DisposeClient();
             OutpostFunctionHandler.AnimationPlayer = null;
+            audio.Dispose();
             dialogueUI.Dispose();
             coreUI.Dispose();
         }

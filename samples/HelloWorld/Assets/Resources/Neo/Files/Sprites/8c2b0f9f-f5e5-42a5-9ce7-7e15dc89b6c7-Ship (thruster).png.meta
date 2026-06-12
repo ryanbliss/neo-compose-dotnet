@@ -137,8 +137,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 00d26a12acc3f4f3f89ac372aee386e9
-      internalID: 240474627
+      spriteID: 64384288caccd46d6ace0b62e7e75d3e
+      internalID: -1231395822
       vertices: []
       indices: 
       edges: []
@@ -159,8 +159,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 272c201a31f444337bdef2602c4a33b7
-      internalID: -1175913144
+      spriteID: 96851653b98f746e091965534ca00b5e
+      internalID: -1443680278
       vertices: []
       indices: 
       edges: []
@@ -181,8 +181,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: d8c77a85a82d548c792a39512322195e
-      internalID: -1335543646
+      spriteID: 92d0da3bc490141919d8816048059960
+      internalID: 481353600
       vertices: []
       indices: 
       edges: []
@@ -203,8 +203,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: adbc284c216b545cb93241182625caa6
-      internalID: 1599212093
+      spriteID: f313be13b7d11423184a78d081228426
+      internalID: -1421620979
       vertices: []
       indices: 
       edges: []
@@ -213,7 +213,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: fa2b2149cbc8e4a478f5ab97cf3debb4
+    spriteID: 82b3d43b816e14d91935b9d25c823c79
     internalID: 0
     vertices: []
     indices: 
@@ -223,10 +223,10 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship (thruster)_0_0: 240474627
-      8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship (thruster)_0_1: -1175913144
-      8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship (thruster)_0_2: -1335543646
-      8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship (thruster)_0_3: 1599212093
+      8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship (thruster)_0_0: -1231395822
+      8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship (thruster)_0_1: -1443680278
+      8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship (thruster)_0_2: 481353600
+      8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7-Ship (thruster)_0_3: -1421620979
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

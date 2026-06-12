@@ -113,7 +113,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: 4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First world icon_0_0
+      name: 4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First world icon_0
       rect:
         serializedVersion: 2
         x: 0
@@ -121,15 +121,15 @@ TextureImporter:
         width: 16
         height: 16
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
-      tessellationDetail: 0
+      tessellationDetail: -1
       bones: []
-      spriteID: bd31a8b3012984fd3b77d21b6e7fed14
-      internalID: 819957846
+      spriteID: 7ca99a3a08ae29ea0800000000000000
+      internalID: -5867369526287820089
       vertices: []
       indices: 
       edges: []
@@ -138,7 +138,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: cd1503b3729ea44b7b8272ab13e7afd7
+    spriteID: 5e97eb03825dee720800000000000000
     internalID: 0
     vertices: []
     indices: 
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First world icon_0_0: 819957846
+      4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First world icon_0: -5867369526287820089
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

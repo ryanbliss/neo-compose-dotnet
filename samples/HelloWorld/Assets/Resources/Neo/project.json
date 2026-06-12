@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "bb806c77ce804249e6b3a3d9920285005675f30ea1804bf03802038bc0630f09",
-        "codegenContractHash": "bfbac459dc09b539c3f6f14ec68040f4a4b8a0e8ed942e8d0b5e0a667e527165",
-        "runtimeDataContractHash": "3b8eec5e0fb60053b10617b634c1f34512dabe88ff481a9c78bdc1e008ce7e04"
+        "projectDocumentContentHash": "d89083fdd3238aad3899bc26c04680a56a0b2a8f705cf0e404909b942300c1cf",
+        "codegenContractHash": "7e404efabf78da92ee6169e7ecf873e39c2fa72d317503ca4abf0808c919ea0c",
+        "runtimeDataContractHash": "06992e529987576aad9275da2fbb038ce77a37d72f1b1c6dda125eafe0a64206"
     },
     "localization": {
         "schemaVersion": 1,
@@ -1054,6 +1054,20 @@
             "type": 7,
             "updatedAt": 1778021394752,
             "valueId": "583ff4fa-2d0f-451e-8e37-fb47eee09a85"
+        },
+        "3b73b328-9a9d-4ee3-955c-9cc573170346": {
+            "createdAt": 1781255794887,
+            "customTypeId": "9a6019b6-680f-4300-8cea-bde6fce47fc1",
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "3b73b328-9a9d-4ee3-955c-9cc573170346",
+            "locked": false,
+            "name": "Art",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 7,
+            "updatedAt": 1781255794887
         },
         "3c947ad4-3033-4121-b3b0-3b5177ab30b7": {
             "code": "\tint found = 0;\n\tif (this.EvidenceArchive) { found = found + 1; }\n\tif (this.EvidenceLedger) { found = found + 1; }\n\tif (this.EvidenceFaith) { found = found + 1; }\n\tif (this.Stage == QuestStage.arrival) {\n\t\treturn \"Rumors ride the flare-wakes. The Capitol greeter knows more than his script. (Earth)\";\n\t}\n\tif (this.Stage == QuestStage.followTheWakes) {\n\t\treturn \"Follow the wakes sunward-out: vanity shines on Venus; stone remembers on Mars.\";\n\t}\n\tif (this.Stage == QuestStage.threePaths) {\n\t\tif (found >= 2) {\n\t\t\treturn \"The Old Console waits beneath the Capitol. Bring light. (Earth)\";\n\t\t}\n\t\tif (!this.EvidenceArchive) {\n\t\t\treturn \"The stars refuse to move — ask Ursa Major (Callisto), then the singing geysers (Enceladus).\";\n\t\t}\n\t\tif (!this.EvidenceLedger) {\n\t\t\treturn \"Money older than light: Pour Lords (Ganymede), Titan, then the sideways relay (Uranus).\";\n\t\t}\n\t\treturn \"Read the Red Nova verses in order — Mercury first, then the cloud courts of Venus.\";\n\t}\n\tif (this.Stage == QuestStage.vaultOpen) {\n\t\treturn \"Descend. The first words are still down there. (Earth)\";\n\t}\n\tif (this.Stage == QuestStage.endgame) {\n\t\treturn \"The terminal waits for the world's last output.\";\n\t}\n\treturn \"The run has ended.\";",
@@ -2177,6 +2191,16 @@
             "type": 10,
             "updatedAt": 1778021393139
         },
+        "421de440-ad72-4f9f-aef0-e3def8cd0582": {
+            "createdAt": 1781255546299,
+            "id": "421de440-ad72-4f9f-aef0-e3def8cd0582",
+            "locked": false,
+            "name": "BitsGainSfx",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 12,
+            "updatedAt": 1781255546299
+        },
         "42487172-af8c-49ff-b88a-2397894542fe": {
             "createdAt": 1781246186689,
             "defaultValue": {
@@ -2206,6 +2230,16 @@
             "type": 7,
             "updatedAt": 1778176777884,
             "valueId": "e621365a-edd1-43a7-b36a-18c35b515057"
+        },
+        "46284af1-9326-40f3-94c5-491484099f70": {
+            "createdAt": 1781255546299,
+            "id": "46284af1-9326-40f3-94c5-491484099f70",
+            "locked": false,
+            "name": "RocketThrustSfx",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 12,
+            "updatedAt": 1781255546299
         },
         "4868ab84-027a-405d-bfca-d04d4d4917fa": {
             "createdAt": 1781246186689,
@@ -2737,6 +2771,20 @@
             "updatedAt": 1778182130537,
             "valueId": "88ce44e7-34c5-4dea-a2a2-ed0fd450a934"
         },
+        "6cc17e87-3907-4f96-84a2-b0b5a32bac25": {
+            "createdAt": 1781255794887,
+            "customTypeId": "44d6324f-6507-4420-a919-3496681c3b21",
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "6cc17e87-3907-4f96-84a2-b0b5a32bac25",
+            "locked": false,
+            "name": "Audio",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 7,
+            "updatedAt": 1781255794887
+        },
         "7a3f6a94-a649-4b75-8776-eb623f55fe1b": {
             "createdAt": 1781252823343,
             "customTypeId": "11177bd5-0678-4bff-86b8-46718ff1827b",
@@ -2952,6 +3000,16 @@
             "updatedAt": 1778178223515,
             "valueId": "0a5924c6-5603-49d5-9c2d-a83cdb68b790"
         },
+        "9862c2d2-92ad-48d6-8ed3-a1e4e3e8c35e": {
+            "createdAt": 1781255546299,
+            "id": "9862c2d2-92ad-48d6-8ed3-a1e4e3e8c35e",
+            "locked": false,
+            "name": "DialogNextSfx",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 12,
+            "updatedAt": 1781255546299
+        },
         "99b07db1-f732-437e-a903-98183edca96b": {
             "createdAt": 1778021395169,
             "customTypeId": "6c6f3bb8-30a0-4132-b0d4-cce75943aedd",
@@ -2975,6 +3033,16 @@
             "type": 7,
             "updatedAt": 1778021395169,
             "valueId": "214298ea-871a-4597-87c6-6cae03eab504"
+        },
+        "a44ed1c2-3296-40e1-b9ef-7924ec97cb21": {
+            "createdAt": 1781255546299,
+            "id": "a44ed1c2-3296-40e1-b9ef-7924ec97cb21",
+            "locked": false,
+            "name": "ItemGetSfx",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 12,
+            "updatedAt": 1781255546299
         },
         "a65d4782-28cb-401f-8577-128dccca3d46": {
             "createdAt": 1777846624003,
@@ -3569,6 +3637,16 @@
             "updatedAt": 1779225261317,
             "valueId": "3d7dd2b8-d157-4ebd-832c-334806cd6b1c"
         },
+        "d30300c6-4fca-4fa4-be07-65ccc5ebc427": {
+            "createdAt": 1781255546299,
+            "id": "d30300c6-4fca-4fa4-be07-65ccc5ebc427",
+            "locked": false,
+            "name": "BitsSpendSfx",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 12,
+            "updatedAt": 1781255546299
+        },
         "d56d641e-4f15-4da6-8c1f-114016c9166d": {
             "createdAt": 1777767008066,
             "extendsAttributeId": null,
@@ -3660,6 +3738,16 @@
             "updatedAt": 1778021393443,
             "valueId": "77d598df-148c-437e-bbb8-4a88ea916278"
         },
+        "e1f13e5c-3d16-476e-9fa4-c120959a4d32": {
+            "createdAt": 1781255546299,
+            "id": "e1f13e5c-3d16-476e-9fa4-c120959a4d32",
+            "locked": false,
+            "name": "DialogOpenSfx",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 12,
+            "updatedAt": 1781255546299
+        },
         "e549555b-9276-48d8-be33-156972520d31": {
             "argumentTypes": [
                 {
@@ -3683,6 +3771,16 @@
             "system": null,
             "type": 13,
             "updatedAt": 1779220551113
+        },
+        "e6bdf8bd-bb3c-4827-b14c-24173d6b75d1": {
+            "createdAt": 1781255546299,
+            "id": "e6bdf8bd-bb3c-4827-b14c-24173d6b75d1",
+            "locked": false,
+            "name": "DialogCloseSfx",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 12,
+            "updatedAt": 1781255546299
         },
         "ebab06a2-98e9-4a30-bb13-cfea8f910462": {
             "createdAt": 1777767225733,
@@ -4118,6 +4216,24 @@
             },
             "updatedAt": 1777767024581
         },
+        "44d6324f-6507-4420-a919-3496681c3b21": {
+            "createdAt": 1781255794887,
+            "hiddenInAttributeSelector": true,
+            "id": "44d6324f-6507-4420-a919-3496681c3b21",
+            "isAbstract": false,
+            "name": "Audio",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "schema": {
+                "BitsGainSfx": "421de440-ad72-4f9f-aef0-e3def8cd0582",
+                "BitsSpendSfx": "d30300c6-4fca-4fa4-be07-65ccc5ebc427",
+                "DialogCloseSfx": "e6bdf8bd-bb3c-4827-b14c-24173d6b75d1",
+                "DialogNextSfx": "9862c2d2-92ad-48d6-8ed3-a1e4e3e8c35e",
+                "DialogOpenSfx": "e1f13e5c-3d16-476e-9fa4-c120959a4d32",
+                "ItemGetSfx": "a44ed1c2-3296-40e1-b9ef-7924ec97cb21",
+                "RocketThrustSfx": "46284af1-9326-40f3-94c5-491484099f70"
+            },
+            "updatedAt": 1781255794887
+        },
         "48f37cd8-69d2-4cd3-ae44-7cfed7912415": {
             "createdAt": 1778021394091,
             "extendsTypeId": null,
@@ -4345,6 +4461,23 @@
             "system": null,
             "updatedAt": 1781246186689
         },
+        "9a6019b6-680f-4300-8cea-bde6fce47fc1": {
+            "createdAt": 1781255794887,
+            "hiddenInAttributeSelector": true,
+            "id": "9a6019b6-680f-4300-8cea-bde6fce47fc1",
+            "isAbstract": false,
+            "name": "Art",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "schema": {
+                "FirstWorldIconSprite": "8d27045c-c3a0-44ae-9095-499e2f9779a7",
+                "FlareAnimation": "f6c2157b-c0f2-4d6d-b16c-412675070862",
+                "FlareStaticSprite": "13e587b4-f143-419e-b2f1-a5fb2fef92fd",
+                "ShipAnimation": "7a3f6a94-a649-4b75-8776-eb623f55fe1b",
+                "ShipSprite": "7d53ed57-05e7-47f9-a805-f7917b77dc55",
+                "VaultPlaqueSprite": "20d4dfe4-935c-441d-b2c2-ca8052c5a96e"
+            },
+            "updatedAt": 1781255794887
+        },
         "a50efb7e-58f6-4342-906e-0b01f98b15af": {
             "createdAt": 1778178866484,
             "extendsTypeId": "4c196697-4e08-4aeb-823f-322b353071ac",
@@ -4409,19 +4542,15 @@
             "name": "Assets",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
+                "Art": "3b73b328-9a9d-4ee3-955c-9cc573170346",
+                "Audio": "6cc17e87-3907-4f96-84a2-b0b5a32bac25",
                 "Computed": "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca",
-                "FirstWorldIconSprite": "8d27045c-c3a0-44ae-9095-499e2f9779a7",
-                "FlareAnimation": "f6c2157b-c0f2-4d6d-b16c-412675070862",
-                "FlareStaticSprite": "13e587b4-f143-419e-b2f1-a5fb2fef92fd",
                 "Items": "214df1a1-abca-4141-987b-380a5417c70a",
                 "LookupContainer": "2c57948b-7479-47e0-b97c-242f6d543ae0",
-                "Outposts": "2827aefd-7f57-48ea-994c-c5c39ec659e3",
-                "ShipAnimation": "7a3f6a94-a649-4b75-8776-eb623f55fe1b",
-                "ShipSprite": "7d53ed57-05e7-47f9-a805-f7917b77dc55",
-                "VaultPlaqueSprite": "20d4dfe4-935c-441d-b2c2-ca8052c5a96e"
+                "Outposts": "2827aefd-7f57-48ea-994c-c5c39ec659e3"
             },
             "system": null,
-            "updatedAt": 1781252823343
+            "updatedAt": 1781255794887
         }
     },
     "values": {
@@ -4450,6 +4579,20 @@
             "typeId": null,
             "updatedAt": 1778179337286,
             "value": "2d50d81c-4e97-4799-9c16-448c25a750a5"
+        },
+        "069cdab9-581a-4d6a-9f21-9becf687452c": {
+            "createdAt": 1781258896034,
+            "id": "069cdab9-581a-4d6a-9f21-9becf687452c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1781258896034,
+            "value": {
+                "FirstWorldIconSprite": "3dd4586a-b713-4869-ae03-1e842d189a3c",
+                "FlareAnimation": "e3da20e0-0907-452f-aafc-f49500e41bf9",
+                "FlareStaticSprite": "972072f6-cde5-4c51-a750-abd45e061275",
+                "ShipAnimation": "300da66c-1374-41c2-a062-f606bad228e3",
+                "ShipSprite": "4e4c0122-91f2-4441-a1e8-cab6ca74d4ae",
+                "VaultPlaqueSprite": "a5da17df-d8cd-4459-892e-10ab5860b412"
+            }
         },
         "06eea766-0e13-4bdf-ac92-2cc64e124bf4": {
             "createdAt": 1778274689692,
@@ -5130,18 +5273,14 @@
             "id": "393c69b8-ceb2-4405-9a0f-28516913f7b6",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": null,
-            "updatedAt": 1781252914143,
+            "updatedAt": 1781255918786,
             "value": {
+                "Art": "069cdab9-581a-4d6a-9f21-9becf687452c",
+                "Audio": "dc160391-39d0-4bba-951d-62fcf6ab9c62",
                 "Computed": "ee2e703d-a56e-4ccc-850d-abda636d6840",
-                "FirstWorldIconSprite": "3dd4586a-b713-4869-ae03-1e842d189a3c",
-                "FlareAnimation": "e3da20e0-0907-452f-aafc-f49500e41bf9",
-                "FlareStaticSprite": "972072f6-cde5-4c51-a750-abd45e061275",
                 "Items": "1e9b7003-e8e0-4bbd-991b-21e0271b0cec",
                 "LookupContainer": "52e8e972-60f5-44ed-80e6-eb0f5a472ca0",
-                "Outposts": "75c7623a-dcdb-4ca1-b5e5-a809da678766",
-                "ShipAnimation": "300da66c-1374-41c2-a062-f606bad228e3",
-                "ShipSprite": "4e4c0122-91f2-4441-a1e8-cab6ca74d4ae",
-                "VaultPlaqueSprite": "a5da17df-d8cd-4459-892e-10ab5860b412"
+                "Outposts": "75c7623a-dcdb-4ca1-b5e5-a809da678766"
             }
         },
         "3a284dad-7529-448a-8aed-493a5f904fb4": {
@@ -5518,6 +5657,15 @@
                 "venus"
             ]
         },
+        "59edb3bb-8175-4313-8e59-8422fe623ff4": {
+            "createdAt": 1781258896034,
+            "id": "59edb3bb-8175-4313-8e59-8422fe623ff4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1781258896034,
+            "value": {
+                "fileId": "8421abd8-bbce-40eb-bb5c-9a62bd733256"
+            }
+        },
         "5b12469c-9a44-4bf2-a8f1-64f6391a652d": {
             "createdAt": 1779225703475,
             "id": "5b12469c-9a44-4bf2-a8f1-64f6391a652d",
@@ -5634,6 +5782,15 @@
             "typeId": null,
             "updatedAt": 1781253244854,
             "value": "ed60ab1e-06dc-416b-a20c-68b661cd8bcd"
+        },
+        "6b924522-86db-49d5-9d97-f85441c04df2": {
+            "createdAt": 1781258896034,
+            "id": "6b924522-86db-49d5-9d97-f85441c04df2",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1781258896034,
+            "value": {
+                "fileId": "1d017b1d-2a6d-4819-a6f7-3b228cc7a04e"
+            }
         },
         "6b935eb9-feb6-465a-afb9-01cf431e06e9": {
             "createdAt": 1779225912647,
@@ -5836,6 +5993,15 @@
             "value": {
                 "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
                 "sliceIndex": 1
+            }
+        },
+        "7ada695b-d569-445a-9353-d036c4e97a20": {
+            "createdAt": 1781258896034,
+            "id": "7ada695b-d569-445a-9353-d036c4e97a20",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1781258896034,
+            "value": {
+                "fileId": "13ba540a-49c0-4928-b6ee-f3eed339c050"
             }
         },
         "7b649282-ff1d-419d-9876-00ec8e31afdd": {
@@ -6206,6 +6372,15 @@
             "updatedAt": 1777867960431,
             "value": "c972a88a-97f0-4ca1-a9c0-c17aa091b840"
         },
+        "9667284e-7492-4e81-886d-05db09454555": {
+            "createdAt": 1781258896034,
+            "id": "9667284e-7492-4e81-886d-05db09454555",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1781258896034,
+            "value": {
+                "fileId": "581af432-06f7-4b80-b673-fcc387039159"
+            }
+        },
         "96a5f27d-ca5c-44bf-8d53-67e2d5c48144": {
             "createdAt": 1778178938052,
             "id": "96a5f27d-ca5c-44bf-8d53-67e2d5c48144",
@@ -6492,6 +6667,15 @@
                 "VisitCount": "3a4ded03-37b4-4968-b596-1c535efaf117"
             }
         },
+        "ab5eb09b-46ca-459d-bf72-27b0ef969698": {
+            "createdAt": 1781258896034,
+            "id": "ab5eb09b-46ca-459d-bf72-27b0ef969698",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1781258896034,
+            "value": {
+                "fileId": "8fd1307e-600d-4da4-a346-be2a971032ad"
+            }
+        },
         "ac23da44-0f11-4355-a3a2-33194b0eca8f": {
             "createdAt": 1777767391947,
             "id": "ac23da44-0f11-4355-a3a2-33194b0eca8f",
@@ -6599,6 +6783,15 @@
                 "Moon": "eeb149d0-682f-4471-af7a-172779f9fbf4",
                 "Name": "0580c103-0694-4d6b-b60b-c13ab3e0badc",
                 "Planet": "2cb35794-38ee-4e11-9f5d-5a7a67e8986c"
+            }
+        },
+        "b897d318-968b-45de-97ab-3124fb5488cf": {
+            "createdAt": 1781258896034,
+            "id": "b897d318-968b-45de-97ab-3124fb5488cf",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1781258896034,
+            "value": {
+                "fileId": "c1a2fa28-c886-48c0-8d06-1bcc195a5f80"
             }
         },
         "b9a977bf-e46d-4763-9436-aaa5121585e3": {
@@ -6998,6 +7191,15 @@
                 "sliceIndex": 41
             }
         },
+        "d8c15eee-0bd7-4c97-9766-5ee20c347f48": {
+            "createdAt": 1781258896034,
+            "id": "d8c15eee-0bd7-4c97-9766-5ee20c347f48",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1781258896034,
+            "value": {
+                "fileId": "bdfb6dee-83d1-4c24-b9f3-9e539ab66603"
+            }
+        },
         "d9f6ecf8-d481-41d0-8ea1-d4aefb601e9f": {
             "createdAt": 1779225952451,
             "id": "d9f6ecf8-d481-41d0-8ea1-d4aefb601e9f",
@@ -7068,6 +7270,21 @@
                 "8e91ce68-260c-4d32-a1a7-d9d5a9d62c3c",
                 "d9f6ecf8-d481-41d0-8ea1-d4aefb601e9f"
             ]
+        },
+        "dc160391-39d0-4bba-951d-62fcf6ab9c62": {
+            "createdAt": 1781258896034,
+            "id": "dc160391-39d0-4bba-951d-62fcf6ab9c62",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1781258896034,
+            "value": {
+                "BitsGainSfx": "d8c15eee-0bd7-4c97-9766-5ee20c347f48",
+                "BitsSpendSfx": "59edb3bb-8175-4313-8e59-8422fe623ff4",
+                "DialogCloseSfx": "ab5eb09b-46ca-459d-bf72-27b0ef969698",
+                "DialogNextSfx": "7ada695b-d569-445a-9353-d036c4e97a20",
+                "DialogOpenSfx": "6b924522-86db-49d5-9d97-f85441c04df2",
+                "ItemGetSfx": "b897d318-968b-45de-97ab-3124fb5488cf",
+                "RocketThrustSfx": "9667284e-7492-4e81-886d-05db09454555"
+            }
         },
         "dc23b0f6-9334-416a-9fa7-a3d5bb38a12c": {
             "createdAt": 1779225763406,
@@ -30004,6 +30221,38 @@
             },
             "updatedAt": 1781252783251
         },
+        "13ba540a-49c0-4928-b6ee-f3eed339c050": {
+            "audioDurationSeconds": null,
+            "byteLength": 2248,
+            "createdAt": 1781255434240,
+            "fileType": "audio",
+            "id": "13ba540a-49c0-4928-b6ee-f3eed339c050",
+            "mimeType": "audio/wav",
+            "name": "dialog-next.wav",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"49cd5a0dda72a11e12b9c15f4ec808b1\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/13ba540a-49c0-4928-b6ee-f3eed339c050/5cad788c-98e8-46d8-84ad-320a021faf1d-dialog-next.wav",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": null,
+            "updatedAt": 1781255443021
+        },
+        "1d017b1d-2a6d-4819-a6f7-3b228cc7a04e": {
+            "audioDurationSeconds": null,
+            "byteLength": 6216,
+            "createdAt": 1781255419473,
+            "fileType": "audio",
+            "id": "1d017b1d-2a6d-4819-a6f7-3b228cc7a04e",
+            "mimeType": "audio/wav",
+            "name": "dialog-open.wav",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"2a8cad90266ec61646919aae77e8f1e0\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/1d017b1d-2a6d-4819-a6f7-3b228cc7a04e/884ff517-5d85-43d4-9582-e833d80d9b67-dialog-open.wav",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": null,
+            "updatedAt": 1781255427477
+        },
         "1e4112b5-503c-4cfc-a026-4f5d38e6999c": {
             "audioDurationSeconds": null,
             "byteLength": 204,
@@ -30134,6 +30383,22 @@
             },
             "updatedAt": 1781252789252
         },
+        "581af432-06f7-4b80-b673-fcc387039159": {
+            "audioDurationSeconds": null,
+            "byteLength": 59578,
+            "createdAt": 1781255508445,
+            "fileType": "audio",
+            "id": "581af432-06f7-4b80-b673-fcc387039159",
+            "mimeType": "audio/wav",
+            "name": "rocket-thrust.wav",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"4bd59b42248b3c11d8876f00216575a6\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/581af432-06f7-4b80-b673-fcc387039159/ee73bd0b-2dd7-4e9c-9af2-42b340aedcf8-rocket-thrust.wav",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": null,
+            "updatedAt": 1781255516953
+        },
         "5cc531eb-25a5-469f-877d-10afb4c5489e": {
             "audioDurationSeconds": null,
             "byteLength": 855,
@@ -30239,6 +30504,22 @@
             },
             "updatedAt": 1778706551220
         },
+        "8421abd8-bbce-40eb-bb5c-9a62bd733256": {
+            "audioDurationSeconds": null,
+            "byteLength": 7316,
+            "createdAt": 1781255477828,
+            "fileType": "audio",
+            "id": "8421abd8-bbce-40eb-bb5c-9a62bd733256",
+            "mimeType": "audio/wav",
+            "name": "bits-spend.wav",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"00d18c38501605267a6fccb550a0a269\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/8421abd8-bbce-40eb-bb5c-9a62bd733256/d7cf4147-578c-4930-9a46-a55e6ac3a03f-bits-spend.wav",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": null,
+            "updatedAt": 1781255485448
+        },
         "8c2b0f9f-f5e5-42a5-9ce7-7e15dc89b6c7": {
             "audioDurationSeconds": null,
             "byteLength": 248,
@@ -30260,6 +30541,54 @@
                 "values": {}
             },
             "updatedAt": 1781250449574
+        },
+        "8fd1307e-600d-4da4-a346-be2a971032ad": {
+            "audioDurationSeconds": null,
+            "byteLength": 6216,
+            "createdAt": 1781255449861,
+            "fileType": "audio",
+            "id": "8fd1307e-600d-4da4-a346-be2a971032ad",
+            "mimeType": "audio/wav",
+            "name": "dialog-close.wav",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"3d24c10d52c7f234f0e4b32383738c8c\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/8fd1307e-600d-4da4-a346-be2a971032ad/6778e0cc-0dee-4b88-b07c-611956acd4d8-dialog-close.wav",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": null,
+            "updatedAt": 1781255457878
+        },
+        "bdfb6dee-83d1-4c24-b9f3-9e539ab66603": {
+            "audioDurationSeconds": null,
+            "byteLength": 9746,
+            "createdAt": 1781255465362,
+            "fileType": "audio",
+            "id": "bdfb6dee-83d1-4c24-b9f3-9e539ab66603",
+            "mimeType": "audio/wav",
+            "name": "bits-gain.wav",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"759bf3a81e04ec27788ff8a8daadcaba\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/bdfb6dee-83d1-4c24-b9f3-9e539ab66603/5d4e0c0c-d747-4598-a30f-62024d444b5b-bits-gain.wav",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": null,
+            "updatedAt": 1781255472144
+        },
+        "c1a2fa28-c886-48c0-8d06-1bcc195a5f80": {
+            "audioDurationSeconds": null,
+            "byteLength": 13268,
+            "createdAt": 1781255492788,
+            "fileType": "audio",
+            "id": "c1a2fa28-c886-48c0-8d06-1bcc195a5f80",
+            "mimeType": "audio/wav",
+            "name": "item-get.wav",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "status": "uploaded",
+            "storageETag": "\"c0cff601270932d6bdbcaaf78978bf1e\"",
+            "storageKey": "projects/7cd65ee0-a3be-4162-b617-cba3ada4f8e8/files/c1a2fa28-c886-48c0-8d06-1bcc195a5f80/7c88e5e2-1b06-4f03-bab8-ea8d181ac277-item-get.wav",
+            "unityAudioClipSettings": null,
+            "unityTextureSettings": null,
+            "updatedAt": 1781255501337
         },
         "dea050c2-de92-40f6-a1c0-fe64ab6f6165": {
             "audioDurationSeconds": null,
@@ -30991,8 +31320,8 @@
                 "en-US": {
                     "localeComment": null,
                     "statusId": "localization-status-approved",
-                    "updatedAt": 1781220753380,
-                    "value": ""
+                    "updatedAt": 1781255115324,
+                    "value": null
                 },
                 "es-ES": {
                     "localeComment": null,
@@ -31003,7 +31332,7 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
-            "updatedAt": 1781220753380
+            "updatedAt": 1781255115324
         },
         "053e67c7-24cc-45b4-904f-dee65fa797b4": {
             "createdAt": 1781236886607,
