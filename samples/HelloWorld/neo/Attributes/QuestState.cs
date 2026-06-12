@@ -28,28 +28,28 @@ public sealed class QuestState
 	if (this.EvidenceLedger) { found = found + 1; }
 	if (this.EvidenceFaith) { found = found + 1; }
 	if (this.Stage == QuestStage.arrival) {
-		return ""Rumors ride the flare-wakes. The Capitol greeter knows more than his script. (Earth)"";
+		return ""Rumors ride the flare-wakes. Start with the greeter at Capitol OG."";
 	}
 	if (this.Stage == QuestStage.followTheWakes) {
-		return ""Follow the wakes sunward-out: vanity shines on Venus; stone remembers on Mars."";
+		return ""Hear the prophecy at Mercurial, and ask the corn farmer on Iowan what the freighters saw."";
 	}
 	if (this.Stage == QuestStage.threePaths) {
 		if (found >= 2) {
-			return ""The Old Console waits beneath the Capitol. Bring light. (Earth)"";
+			return ""Return to Capitol OG — the greeter's script is fraying."";
 		}
 		if (!this.EvidenceArchive) {
-			return ""The stars refuse to move — ask Ursa Major (Callisto), then the singing geysers (Enceladus)."";
+			return ""The stars refuse to move — ask Ursa Major, then carry Storm Corn to Etna Diadem."";
 		}
 		if (!this.EvidenceLedger) {
-			return ""Money older than light: Pour Lords (Ganymede), Titan, then the sideways relay (Uranus)."";
+			return ""Money older than light: press the Pour Lords, then carry their manifest to Caelus."";
 		}
-		return ""Read the Red Nova verses in order — Mercury first, then the cloud courts of Venus."";
+		return ""Hear the Countdown Verses at Mercurial, then buy the Oldest Pattern from the Venusians."";
 	}
 	if (this.Stage == QuestStage.vaultOpen) {
-		return ""Descend. The first words are still down there. (Earth)"";
+		return ""Descend beneath Capitol OG. Bring the Cave Lantern."";
 	}
 	if (this.Stage == QuestStage.endgame) {
-		return ""The terminal waits for the world's last output."";
+		return ""The Old Console at Capitol OG awaits your final output. The Regent's Signet may open one more door."";
 	}
 	return ""The run has ended."";", RetJson = @"{""required"":true,""type"":3}")]
     public object? NextHint { get; init; }

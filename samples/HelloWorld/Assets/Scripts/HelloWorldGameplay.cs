@@ -300,7 +300,7 @@ namespace HelloWorld.Assets.Scripts
                 neo.Assets.Art.ShipAnimation,
                 neo.Assets.Art.FlareAnimation,
                 neo.Assets.Audio.RocketThrustSfx,
-                CurrentOutpost, Outposts, VisitedPlanets,
+                CurrentOutpost, Outposts,
                 neo.Save.Bits, neo.Save.Inventory.ToArray(),
                 OnVisitOutpost,
                 onSave: OnSaveClicked,

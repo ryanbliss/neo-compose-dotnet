@@ -31,6 +31,7 @@ namespace HelloWorld.Assets.Scripts
         private MapAnimator animator;
         private readonly Dictionary<string, Button> planetButtons = new();
         private readonly Dictionary<string, Image> planetImages = new();
+        private readonly Dictionary<string, GameObject> planetBadges = new();
         private string shipAtValueId;
 
         public void Build(Transform parent)
@@ -104,6 +105,10 @@ namespace HelloWorld.Assets.Scripts
                 image.color = unlocked
                     ? Color.white
                     : new Color(0.32f, 0.35f, 0.42f, 0.6f);
+
+                // "Somebody new to meet": unlocked but never visited.
+                planetBadges[key].SetActive(
+                    unlocked && !isCurrent && outpost.Save.VisitCount == 0);
             }
 
             animator.SetStorm(storm);
@@ -134,6 +139,25 @@ namespace HelloWorld.Assets.Scripts
             icon.enabled = icon.sprite != null;
             planetImages[outpost.valueId] = icon;
             button.targetGraphic = icon;
+
+            var badgeRect = SampleUI.CreateRect(iconRect, "UnvisitedBadge");
+            badgeRect.anchorMin = badgeRect.anchorMax = new Vector2(1f, 1f);
+            badgeRect.pivot = new Vector2(0.7f, 0.5f);
+            badgeRect.sizeDelta = new Vector2(20f, 20f);
+            badgeRect.anchoredPosition = Vector2.zero;
+            var badgeImage = badgeRect.gameObject.AddComponent<Image>();
+            badgeImage.color = new Color(0.55f, 0.85f, 1f, 1f);
+            badgeImage.raycastTarget = false;
+            var badgeText = SampleUI.CreateText(badgeRect, "!", 14, new Color(0.05f, 0.10f, 0.18f), FontStyle.Bold);
+            badgeText.alignment = TextAnchor.MiddleCenter;
+            badgeText.raycastTarget = false;
+            var badgeTextRect = badgeText.rectTransform;
+            badgeTextRect.anchorMin = Vector2.zero;
+            badgeTextRect.anchorMax = Vector2.one;
+            badgeTextRect.offsetMin = Vector2.zero;
+            badgeTextRect.offsetMax = Vector2.zero;
+            planetBadges[outpost.valueId] = badgeRect.gameObject;
+            badgeRect.gameObject.SetActive(false);
 
             var label = SampleUI.CreateText(rect, outpost.Name, 12, new Color(0.78f, 0.85f, 0.95f), FontStyle.Normal);
             var labelRect = (RectTransform)label.transform;

@@ -34,4 +34,7 @@ public sealed class Outpost
 
     [NeoGetter("f66fba24-44d4-467c-98ac-4db1539910df", Code = @"	return root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });", RetJson = @"{""required"":false,""type"":7,""typeId"":""8ccfe860-309f-428b-b74c-76a873bdea8a""}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
     public object? SaveUnsafe { get; init; }
+
+    [NeoFunction("736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1", RetJson = @"{""required"":true,""type"":1}", ArgsJson = @"[]")]
+    public NeoFunctionValue? ShowRelic { get; init; }
 }

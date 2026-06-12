@@ -362,6 +362,20 @@ namespace NeoCompose.Runtime.NeoScript
                         EvalNativeFunctionCall(nativeCall.call, scope, ctx);
                         break;
                     }
+                    case AssignInstruction assign:
+                    {
+                        // Getters are pure: only LOCAL variable reassignment
+                        // (`found = found + 1`) is legal here. Attribute writes
+                        // belong to dialogue actions (NeoDialogueActionEvaluator).
+                        if (assign.target.pointer is not VariablePointer variablePointer)
+                        {
+                            throw new NSGetterRuntimeError(
+                                "Getters cannot assign to attributes; assignment targets must be local variables.");
+                        }
+                        scope[variablePointer.variableId] =
+                            EvalPointer(assign.pointer, scope, ctx);
+                        break;
+                    }
                     default:
                         throw new NSGetterRuntimeError(
                             $"Unknown instruction kind {ins.GetType().Name}");

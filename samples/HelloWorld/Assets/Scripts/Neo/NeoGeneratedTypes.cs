@@ -98,6 +98,17 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var text = (string)args[0]!;
                 return target.DebugLog(text);
                 },
+                ["736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1"] = (client, receiver, args) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ReadOnlyOutpost>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "ShowRelic",
+                    "736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1");
+                return target.ShowRelic();
+                },
             };
 
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
@@ -1870,6 +1881,7 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         string DebugLog(string text);
         void PlayAnimation(NeoDeferredFunction<bool> deferred);
+        bool ShowRelic();
     }
 
     public partial class ReadOnlyOutpost : NeoGeneratedCustomValue
@@ -1978,6 +1990,17 @@ namespace HelloWorld.Assets.Scripts.Neo
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
             }
+        }
+
+        public bool ShowRelic()
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'ShowRelic' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.ShowRelic();
         }
 
         public sealed class Fields
@@ -2204,6 +2227,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
             }
         }
+
 
         public new sealed class Fields
         {
@@ -4386,6 +4410,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+
         public SaturnMoon Moon
         {
             get
@@ -5633,6 +5658,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
             }
         }
+
 
         public JupiterMoon Moon
         {

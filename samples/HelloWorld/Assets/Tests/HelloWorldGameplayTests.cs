@@ -264,16 +264,88 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void VisitedPlanetsPanelUsesLocalizedPlanetText()
+        public void QuestHint_EvaluatesAtEveryStage_AndNamesOutposts()
         {
+            // Regression for the AssignInstruction crash: NextHint is a
+            // push-compiled getter with local-variable reassignment, so it
+            // must EVALUATE live at every stage — and per playtest feedback
+            // it must name outposts, not unlabeled planets/moons.
             var gameplay = Spawn(LoadedStore().CreateNew());
+            var quest = GameplayNeo(gameplay).Save.Quest;
 
-            var texts = Object.FindObjectsByType<UnityEngine.UI.Text>(FindObjectsSortMode.None)
-                .Select(text => text.text)
-                .ToArray();
+            StringAssert.Contains("Capitol OG", quest.NextHint);
 
-            Assert.Contains(Planet.earth.Text, texts);
-            Assert.IsNotNull(gameplay);
+            quest.Stage = QuestStage.followTheWakes;
+            StringAssert.Contains("Mercurial", quest.NextHint);
+            StringAssert.Contains("Iowan", quest.NextHint);
+
+            quest.Stage = QuestStage.threePaths;
+            StringAssert.Contains("Ursa Major", quest.NextHint);
+            quest.EvidenceArchive = true;
+            StringAssert.Contains("Pour Lords", quest.NextHint);
+            quest.EvidenceLedger = true;
+            StringAssert.Contains("Capitol OG", quest.NextHint);
+
+            quest.Stage = QuestStage.vaultOpen;
+            StringAssert.Contains("Cave Lantern", quest.NextHint);
+
+            quest.Stage = QuestStage.endgame;
+            StringAssert.Contains("final output", quest.NextHint);
+
+            quest.Stage = QuestStage.ended;
+            StringAssert.Contains("ended", quest.NextHint);
+        }
+
+        [Test]
+        public void StageTransitions_AreMonotonic_RegardlessOfVisitOrder()
+        {
+            // The stuck-save bug: Iowan's intro advances to threePaths, but
+            // Mercurial's intro used to unconditionally reset the stage to
+            // followTheWakes when visited afterwards. The guards must keep
+            // progression forward-only in ANY visit order.
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            var neo = GameplayNeo(gameplay);
+            foreach (var outpost in gameplay.Outposts) outpost.Save.Unlocked = true;
+
+            var iowan = gameplay.Outposts.First(o => o.Name == "Iowan");
+            var mercurial = gameplay.Outposts.First(o => o.Name == "Mercurial");
+
+            WalkIntro(neo, iowan);
+            Assert.AreEqual(QuestStage.threePaths, neo.Save.Quest.Stage,
+                "Iowan's intro advances arrival -> threePaths");
+
+            WalkIntro(neo, mercurial);
+            Assert.AreEqual(QuestStage.threePaths, neo.Save.Quest.Stage,
+                "Mercurial's intro must never regress the stage");
+        }
+
+        private static void WalkIntro(HelloWorldNeo neo, ReadOnlyOutpost outpost)
+        {
+            Assert.IsTrue(
+                neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue),
+                $"{outpost.Name}: intro should trigger");
+            System.Exception error = null;
+            NeoDialogueTextNode current = null;
+            dialogue.OnError += ex => error = ex;
+            dialogue.OnShow += node => current = node;
+            dialogue.Start();
+            for (var step = 0; step < 60 && error == null; step++)
+            {
+                if (current == null) break;
+                var node = current;
+                current = null;
+                if (node.Options.Count > 0)
+                {
+                    var option = node.Options.FirstOrDefault(o => o.Selectable);
+                    if (option == null) break;
+                    option.Select();
+                }
+                else
+                {
+                    node.Next();
+                }
+            }
+            Assert.IsNull(error, $"{outpost.Name}: {error}");
         }
 
         [Test]

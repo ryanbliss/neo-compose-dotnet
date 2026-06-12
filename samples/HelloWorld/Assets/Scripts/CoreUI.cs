@@ -22,17 +22,17 @@ namespace HelloWorld.Assets.Scripts
         private Text saveLabel;
         private Text questText;
         private Text title;
-        private Text visitedMeta;
         private Text bitsText;
-        private Text inventoryMeta;
         private Text travelMeta;
-        private RectTransform visitedGrid;
+        private Text inventoryButtonLabel;
+        private GameObject inventoryBadge;
+        private Text inventoryBadgeLabel;
+        private RectTransform inventoryOverlay;
         private RectTransform inventoryList;
-        private RectTransform outpostGrid;
         private SystemMapUI systemMap;
-        private readonly Dictionary<string, Button> outpostButtons = new();
-        private readonly Dictionary<string, Image> outpostButtonImages = new();
-        private readonly Dictionary<string, Text> outpostButtonLabels = new();
+        private IReadOnlyList<ReadOnlyItem> lastInventory = Array.Empty<ReadOnlyItem>();
+        private int seenItemCount;
+        private bool inventoryOpen;
 
         public void Render(
             string text,
@@ -43,7 +43,6 @@ namespace HelloWorld.Assets.Scripts
             AudioClip thrustSfx,
             ReadOnlyOutpost currentOutpost,
             IReadOnlyList<ReadOnlyOutpost> outposts,
-            IReadOnlyList<PlanetVisit> visitedPlanets,
             int bits,
             IReadOnlyList<ReadOnlyItem> inventory,
             Action<ReadOnlyOutpost> onVisitOutpost,
@@ -55,18 +54,45 @@ namespace HelloWorld.Assets.Scripts
             EnsureBuilt(onSave, onReset, onMenu);
 
             title.text = $"{text}\n<size=18><color=#A3B3CC>Currently visiting {currentOutpost.FullDisplayText}</color></size>";
-            RebuildVisited(visitedPlanets);
-            RebuildInventory(inventory);
+            lastInventory = inventory;
+            if (inventoryOpen)
+            {
+                seenItemCount = inventory.Count;
+                RebuildInventory(inventory);
+            }
+            UpdateInventoryChrome();
             systemMap.Render(outposts, currentOutpost, storm, shipAnimation, flareAnimation, thrustSfx, onVisitOutpost);
-            visitedMeta.text = $"{visitedPlanets.Select(visit => visit.World.optionId).Distinct().Count()} visited";
             bitsText.text = storm <= 0
                 ? $"Bits: {bits}"
                 : $"Bits: {bits}   <color=#FFAA66>Storms: {new string('▲', Math.Min(storm, 14))}</color>";
             questText.text = string.IsNullOrEmpty(questHint)
                 ? ""
                 : $"<color=#9FD0FF>{questHint}</color>";
-            inventoryMeta.text = $"{inventory.Count} item{(inventory.Count == 1 ? "" : "s")}";
             travelMeta.text = $"{outposts.Count(outpost => outpost.Save.Unlocked)} unlocked";
+        }
+
+        private void ToggleInventory()
+        {
+            inventoryOpen = !inventoryOpen;
+            inventoryOverlay.gameObject.SetActive(inventoryOpen);
+            if (inventoryOpen)
+            {
+                seenItemCount = lastInventory.Count;
+                RebuildInventory(lastInventory);
+            }
+            UpdateInventoryChrome();
+        }
+
+        private void UpdateInventoryChrome()
+        {
+            inventoryButtonLabel.text = $"Cargo ({lastInventory.Count})";
+            int unseen = lastInventory.Count - seenItemCount;
+            bool showBadge = unseen > 0 && !inventoryOpen;
+            inventoryBadge.SetActive(showBadge);
+            if (showBadge)
+            {
+                inventoryBadgeLabel.text = unseen.ToString();
+            }
         }
 
         public void Dispose()
@@ -157,10 +183,36 @@ namespace HelloWorld.Assets.Scripts
             actionLayoutElement.preferredWidth = 302f;
             actionLayoutElement.preferredHeight = 34f;
 
+            var inventoryButton = SampleUI.CreateButton(actions, "Cargo", 130f, 34f, false, ToggleInventory);
+            inventoryButtonLabel = inventoryButton.GetComponentInChildren<Text>();
+            BuildInventoryBadge(inventoryButton.transform);
             SampleUI.CreateButton(actions, "Menu", 96f, 34f, false, onMenu);
             saveButton = SampleUI.CreateButton(actions, "Save", 96f, 34f, false, onSave);
             saveLabel = saveButton.GetComponentInChildren<Text>();
             SampleUI.CreateButton(actions, "Reset", 96f, 34f, false, onReset);
+        }
+
+        /// <summary>Small "unseen items" counter pinned to the Cargo button.</summary>
+        private void BuildInventoryBadge(Transform parent)
+        {
+            var badge = SampleUI.CreateRect(parent, "Badge");
+            badge.anchorMin = badge.anchorMax = new Vector2(1f, 1f);
+            badge.pivot = new Vector2(0.6f, 0.4f);
+            badge.sizeDelta = new Vector2(24f, 24f);
+            badge.anchoredPosition = Vector2.zero;
+            var image = badge.gameObject.AddComponent<Image>();
+            image.color = new Color(0.95f, 0.45f, 0.25f, 1f);
+            image.raycastTarget = false;
+            inventoryBadgeLabel = SampleUI.CreateText(badge, "", 14, Color.white, FontStyle.Bold);
+            inventoryBadgeLabel.alignment = TextAnchor.MiddleCenter;
+            inventoryBadgeLabel.raycastTarget = false;
+            var labelRect = inventoryBadgeLabel.rectTransform;
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = Vector2.zero;
+            labelRect.offsetMax = Vector2.zero;
+            inventoryBadge = badge.gameObject;
+            inventoryBadge.SetActive(false);
         }
 
         /// <summary>
@@ -182,43 +234,64 @@ namespace HelloWorld.Assets.Scripts
 
         private void BuildContent(Transform parent)
         {
-            var row = SampleUI.CreateRect(parent, "Content");
-            row.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
-            var layout = row.gameObject.AddComponent<HorizontalLayoutGroup>();
-            layout.spacing = 18f;
+            // The map IS the game now — one full-width card; status lines ride
+            // above it and the cargo list floats over it as an overlay.
+            var card = CreateCard(parent, "TravelCard", 1f);
+            CreateSectionHeader(card, "Hello System", out travelMeta);
+
+            var statusRow = SampleUI.CreateRect(card, "StatusRow");
+            statusRow.gameObject.AddComponent<LayoutElement>().preferredHeight = 30f;
+            var statusLayout = statusRow.gameObject.AddComponent<HorizontalLayoutGroup>();
+            statusLayout.spacing = 24f;
+            statusLayout.childAlignment = TextAnchor.MiddleLeft;
+            statusLayout.childControlHeight = true;
+            statusLayout.childControlWidth = true;
+            statusLayout.childForceExpandHeight = false;
+            statusLayout.childForceExpandWidth = false;
+            bitsText = SampleUI.CreateText(statusRow, "Bits: 0", 20, new Color(0.92f, 0.96f, 1f), FontStyle.Bold);
+            bitsText.gameObject.GetComponent<LayoutElement>().preferredWidth = 420f;
+            questText = SampleUI.CreateText(statusRow, "", 16, new Color(0.62f, 0.81f, 1f), FontStyle.Italic);
+            questText.gameObject.GetComponent<LayoutElement>().flexibleWidth = 1f;
+
+            systemMap = new SystemMapUI();
+            systemMap.Build(card);
+
+            BuildInventoryOverlay(card);
+        }
+
+        /// <summary>
+        /// The cargo manifest: a panel floating over the map's top-right,
+        /// toggled from the header. Closed by default so the system stays
+        /// the centerpiece.
+        /// </summary>
+        private void BuildInventoryOverlay(Transform card)
+        {
+            inventoryOverlay = SampleUI.CreateRect(card, "InventoryOverlay");
+            // Ignore the card's vertical layout: float over the map.
+            var overlayLayout = inventoryOverlay.gameObject.AddComponent<LayoutElement>();
+            overlayLayout.ignoreLayout = true;
+            inventoryOverlay.anchorMin = new Vector2(1f, 1f);
+            inventoryOverlay.anchorMax = new Vector2(1f, 1f);
+            inventoryOverlay.pivot = new Vector2(1f, 1f);
+            inventoryOverlay.anchoredPosition = new Vector2(-24f, -96f);
+            inventoryOverlay.sizeDelta = new Vector2(380f, 520f);
+
+            var image = inventoryOverlay.gameObject.AddComponent<Image>();
+            image.color = new Color(0.07f, 0.10f, 0.15f, 0.97f);
+
+            var layout = inventoryOverlay.gameObject.AddComponent<VerticalLayoutGroup>();
+            layout.padding = new RectOffset(16, 16, 14, 16);
+            layout.spacing = 8f;
             layout.childAlignment = TextAnchor.UpperLeft;
             layout.childControlHeight = true;
             layout.childControlWidth = true;
-            layout.childForceExpandHeight = true;
-            layout.childForceExpandWidth = false;
+            layout.childForceExpandHeight = false;
+            layout.childForceExpandWidth = true;
 
-            BuildVisitedCard(row);
-            BuildTravelCard(row);
-        }
+            var header = SampleUI.CreateText(inventoryOverlay, "Cargo manifest", 20, new Color(0.88f, 0.91f, 0.96f), FontStyle.Bold);
+            header.gameObject.GetComponent<LayoutElement>().preferredHeight = 28f;
 
-        private void BuildVisitedCard(Transform parent)
-        {
-            var card = CreateCard(parent, "VisitedCard", 0.42f);
-            CreateSectionHeader(card, "Visited planets", out visitedMeta);
-
-            visitedGrid = SampleUI.CreateRect(card, "VisitedPlanets");
-            var visitedLayout = visitedGrid.gameObject.AddComponent<LayoutElement>();
-            visitedLayout.preferredHeight = 132f;
-            visitedLayout.flexibleHeight = 0f;
-            var grid = visitedGrid.gameObject.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(132f, 34f);
-            grid.spacing = new Vector2(8f, 8f);
-            grid.childAlignment = TextAnchor.UpperLeft;
-            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = 3;
-
-            bitsText = SampleUI.CreateText(card, "Bits: 0", 20, new Color(0.92f, 0.96f, 1f), FontStyle.Bold);
-            questText = SampleUI.CreateText(card, "", 16, new Color(0.62f, 0.81f, 1f), FontStyle.Italic);
-            bitsText.gameObject.GetComponent<LayoutElement>().preferredHeight = 34f;
-
-            CreateSectionHeader(card, "Inventory", out inventoryMeta);
-
-            inventoryList = SampleUI.CreateRect(card, "InventoryItems");
+            inventoryList = SampleUI.CreateRect(inventoryOverlay, "InventoryItems");
             inventoryList.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
             var listLayout = inventoryList.gameObject.AddComponent<VerticalLayoutGroup>();
             listLayout.spacing = 8f;
@@ -227,25 +300,8 @@ namespace HelloWorld.Assets.Scripts
             listLayout.childControlWidth = true;
             listLayout.childForceExpandHeight = false;
             listLayout.childForceExpandWidth = true;
-        }
 
-        private void BuildTravelCard(Transform parent)
-        {
-            var card = CreateCard(parent, "TravelCard", 0.58f);
-            CreateSectionHeader(card, "Outposts", out travelMeta);
-
-            systemMap = new SystemMapUI();
-            systemMap.Build(card);
-
-            outpostGrid = SampleUI.CreateRect(card, "OutpostButtons");
-            outpostGrid.gameObject.SetActive(false);
-            outpostGrid.gameObject.AddComponent<LayoutElement>().flexibleHeight = 1f;
-            var grid = outpostGrid.gameObject.AddComponent<GridLayoutGroup>();
-            grid.cellSize = new Vector2(260f, 46f);
-            grid.spacing = new Vector2(10f, 10f);
-            grid.childAlignment = TextAnchor.UpperLeft;
-            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
-            grid.constraintCount = 2;
+            inventoryOverlay.gameObject.SetActive(false);
         }
 
         private static RectTransform CreateCard(Transform parent, string name, float widthRatio)
@@ -287,29 +343,6 @@ namespace HelloWorld.Assets.Scripts
             meta.gameObject.GetComponent<LayoutElement>().preferredWidth = 120f;
         }
 
-        private void RebuildVisited(IReadOnlyList<PlanetVisit> visitedPlanets)
-        {
-            for (var i = visitedGrid.childCount - 1; i >= 0; i--)
-            {
-                SampleUI.DestroyObject(visitedGrid.GetChild(i).gameObject);
-            }
-
-            var visitedNames = visitedPlanets
-                .Select(visit => DisplayName(visit.World))
-                .Distinct()
-                .ToArray();
-            if (visitedNames.Length == 0)
-            {
-                var empty = SampleUI.CreateText(visitedGrid, "No planets visited yet.", 16, new Color(0.64f, 0.70f, 0.80f), FontStyle.Normal);
-                return;
-            }
-
-            foreach (var visitedName in visitedNames)
-            {
-                CreateChip(visitedGrid, visitedName);
-            }
-        }
-
         private void RebuildInventory(IReadOnlyList<ReadOnlyItem> inventory)
         {
             for (var i = inventoryList.childCount - 1; i >= 0; i--)
@@ -319,7 +352,7 @@ namespace HelloWorld.Assets.Scripts
 
             if (inventory.Count == 0)
             {
-                var empty = SampleUI.CreateText(inventoryList, "No inventory items yet.", 16, new Color(0.64f, 0.70f, 0.80f), FontStyle.Normal);
+                var empty = SampleUI.CreateText(inventoryList, "No cargo yet.", 16, new Color(0.64f, 0.70f, 0.80f), FontStyle.Normal);
                 empty.gameObject.GetComponent<LayoutElement>().preferredHeight = 30f;
                 return;
             }
@@ -328,124 +361,6 @@ namespace HelloWorld.Assets.Scripts
             {
                 CreateInventoryRow(inventoryList, item);
             }
-        }
-
-        private void RebuildOutposts(
-            IReadOnlyList<ReadOnlyOutpost> outposts,
-            ReadOnlyOutpost currentOutpost,
-            Action<ReadOnlyOutpost> onVisitOutpost)
-        {
-            var seen = new HashSet<string>();
-            var siblingIndex = 0;
-
-            foreach (var outpost in outposts)
-            {
-                var captured = outpost;
-                var key = outpost.valueId;
-                seen.Add(key);
-                var isCurrent = outpost.valueId == currentOutpost.valueId;
-                var unlocked = outpost.Save.Unlocked;
-                if (!outpostButtons.TryGetValue(key, out var button))
-                {
-                    button = CreateOutpostButton(
-                        outpostGrid,
-                        outpost.FullDisplayText,
-                        () => onVisitOutpost(captured));
-                    outpostButtons[key] = button;
-                    outpostButtonImages[key] = button.transform.Find("Image").GetComponent<Image>();
-                    outpostButtonLabels[key] = button.transform.Find("Label").GetComponent<Text>();
-                }
-
-                button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() => onVisitOutpost(captured));
-                button.transform.SetSiblingIndex(siblingIndex++);
-                button.interactable = unlocked && !isCurrent;
-
-                var icon = outpostButtonImages[key];
-                icon.sprite = TryGetOutpostImage(outpost);
-                icon.enabled = icon.sprite != null;
-                icon.color = unlocked
-                    ? (isCurrent ? new Color(0.70f, 0.76f, 0.84f, 0.85f) : Color.white)
-                    : new Color(0.48f, 0.52f, 0.60f, 0.75f);
-
-                var label = outpostButtonLabels[key];
-                label.text = outpost.FullDisplayText;
-                label.color = unlocked
-                    ? (isCurrent ? new Color(0.62f, 0.68f, 0.76f) : Color.white)
-                    : new Color(0.50f, 0.55f, 0.63f);
-            }
-
-            foreach (var key in outpostButtons.Keys.Where(key => !seen.Contains(key)).ToArray())
-            {
-                SampleUI.DestroyObject(outpostButtons[key].gameObject);
-                outpostButtons.Remove(key);
-                outpostButtonImages.Remove(key);
-                outpostButtonLabels.Remove(key);
-            }
-        }
-
-        private static Button CreateOutpostButton(
-            Transform parent,
-            string label,
-            Action action)
-        {
-            var rect = SampleUI.CreateRect(parent, label);
-            var layoutElement = rect.gameObject.AddComponent<LayoutElement>();
-            layoutElement.preferredWidth = 260f;
-            layoutElement.preferredHeight = 46f;
-            layoutElement.minWidth = 260f;
-            layoutElement.minHeight = 46f;
-            layoutElement.flexibleWidth = 0f;
-            layoutElement.flexibleHeight = 0f;
-
-            var background = rect.gameObject.AddComponent<Image>();
-            background.color = new Color(0.20f, 0.38f, 0.66f, 1f);
-
-            var button = rect.gameObject.AddComponent<Button>();
-            button.targetGraphic = background;
-            button.colors = SampleUI.PrimaryColors();
-            button.onClick.AddListener(() => action());
-
-            var row = rect.gameObject.AddComponent<HorizontalLayoutGroup>();
-            row.padding = new RectOffset(12, 14, 6, 6);
-            row.spacing = 10f;
-            row.childAlignment = TextAnchor.MiddleLeft;
-            row.childControlHeight = true;
-            row.childControlWidth = true;
-            row.childForceExpandHeight = false;
-            row.childForceExpandWidth = false;
-
-            var imageRect = SampleUI.CreateRect(rect, "Image");
-            var imageLayout = imageRect.gameObject.AddComponent<LayoutElement>();
-            imageLayout.preferredWidth = 30f;
-            imageLayout.preferredHeight = 30f;
-            imageLayout.minWidth = 30f;
-            imageLayout.minHeight = 30f;
-            var image = imageRect.gameObject.AddComponent<Image>();
-            image.preserveAspect = true;
-            image.raycastTarget = false;
-
-            var text = SampleUI.CreateText(rect, label, 14, Color.white, FontStyle.Bold);
-            text.gameObject.name = "Label";
-            text.alignment = TextAnchor.MiddleLeft;
-            text.horizontalOverflow = HorizontalWrapMode.Overflow;
-            text.gameObject.GetComponent<LayoutElement>().flexibleWidth = 1f;
-            return button;
-        }
-        private static void CreateChip(Transform parent, string label)
-        {
-            var chip = SampleUI.CreateRect(parent, label);
-            var layout = chip.gameObject.AddComponent<LayoutElement>();
-            layout.preferredWidth = Mathf.Max(86f, label.Length * 12f + 30f);
-            layout.preferredHeight = 32f;
-            var image = chip.gameObject.AddComponent<Image>();
-            image.color = new Color(0.18f, 0.30f, 0.48f, 1f);
-            var text = SampleUI.CreateText(chip, label, 15, new Color(0.92f, 0.96f, 1f), FontStyle.Bold);
-            text.alignment = TextAnchor.MiddleCenter;
-            text.rectTransform.anchorMin = Vector2.zero;
-            text.rectTransform.anchorMax = Vector2.one;
-            text.rectTransform.offsetMin = new Vector2(14f, 0f);
-            text.rectTransform.offsetMax = new Vector2(-14f, 0f);
         }
 
         private static void CreateInventoryRow(Transform parent, ReadOnlyItem item)
@@ -471,23 +386,6 @@ namespace HelloWorld.Assets.Scripts
             var value = SampleUI.CreateText(row, item.Value.ToString(), 15, new Color(0.72f, 0.80f, 0.92f), FontStyle.Normal);
             value.alignment = TextAnchor.MiddleRight;
             value.gameObject.GetComponent<LayoutElement>().preferredWidth = 70f;
-        }
-
-        private static Sprite TryGetOutpostImage(ReadOnlyOutpost outpost)
-        {
-            try
-            {
-                return outpost.Image;
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning($"Could not resolve image for outpost '{outpost.FullDisplayText}': {exception.Message}");
-                return null;
-            }
-        }
-        private static string DisplayName(Planet planet)
-        {
-            return planet.Text;
         }
     }
 }

@@ -53,6 +53,13 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
+        /// <summary>
+        /// Set by the ShowRelic dialogue function: the NEXT text node presents
+        /// this sprite instead of the speaker's portrait (the relic reveal —
+        /// e.g. the vault plaque under the Capitol), then reverts.
+        /// </summary>
+        private Sprite pendingRelic;
+
         public void Show(
             string name,
             Sprite image,
@@ -61,10 +68,16 @@ namespace HelloWorld.Assets.Scripts
         {
             EnsureBuilt();
             SpeakerName = name;
-            SpeakerImage = image;
+            SpeakerImage = pendingRelic != null ? pendingRelic : image;
+            pendingRelic = null;
             Text = text;
             ClearOptionButtons();
             root.SetActive(true);
+        }
+
+        public void ShowRelicSprite(Sprite relic)
+        {
+            pendingRelic = relic;
         }
 
         public void ClearOptionButtons()

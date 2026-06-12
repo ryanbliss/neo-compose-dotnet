@@ -33,6 +33,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         void PlaySpeakerAnimation(
             ReadOnlyAnimationInfo animation,
             NeoDeferredFunction<bool> deferred);
+
+        /// <summary>Presents an authored relic sprite on the next dialogue node.</summary>
+        void ShowRelicSprite(Sprite relic);
     }
 
     internal sealed class OutpostFunctionHandler : IOutpostFunctionHandler
@@ -70,6 +73,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             string log = $"<color=green>{Outpost.Name}:</color> {text}";
             Debug.Log(log);
             return log;
+        }
+
+        public bool ShowRelic()
+        {
+            // The relic is authored art from the project schema (Assets.Art),
+            // not a hard-coded asset path.
+            if (AnimationPlayer is null) return false;
+            AnimationPlayer.ShowRelicSprite(HelloWorldNeo.Instance.Assets.Art.VaultPlaqueSprite);
+            return true;
         }
     }
 
