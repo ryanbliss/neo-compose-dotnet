@@ -441,6 +441,19 @@ namespace NeoCompose.Runtime
             node.SetSerializedValue(key, value);
         }
 
+        /// <summary>
+        /// Writable view over a (possibly read-only) Custom node. Generated
+        /// ReadOnly classes route setters for members with an explicit
+        /// Save/Session storage stamp through this
+        /// (specs/attribute-storage.md §8.3); writes to unstamped keys still
+        /// throw the static-storage error inside
+        /// <see cref="NeoAttributeCustom.SetSerializedValue"/>.
+        /// </summary>
+        public static NeoAttributeCustomWritable AsWritable(NeoAttributeCustom node)
+        {
+            return node.AsWritableView();
+        }
+
         public static void SetValue(
             NeoAttributeDictionaryWritable node,
             string key,
@@ -1097,7 +1110,9 @@ namespace NeoCompose.Runtime
             bool required,
             bool saved,
             Func<NeoClient, NeoAttributeCustom, T>? readOnlyFactory,
-            Func<NeoClient, NeoAttributeCustomWritable, T> savedFactory)
+            // Nullable: a Static-constrained type (allowedStorage collapse)
+            // generates no writable class, so codegen passes null here.
+            Func<NeoClient, NeoAttributeCustomWritable, T>? savedFactory)
         {
             if (value is null)
             {
@@ -1160,6 +1175,11 @@ namespace NeoCompose.Runtime
                         "NSGetter returned an asset-owned custom value where a saved value was expected.");
                 }
 
+                if (savedFactory is null)
+                {
+                    throw new InvalidOperationException(
+                        "NSGetter custom value resolved to a writable placement, but the type's allowedStorage is static (no writable factory exists).");
+                }
                 return savedFactory(
                     client,
                     new NeoAttributeCustomWritable(client, attribute, valueId, ownership));
@@ -1181,7 +1201,7 @@ namespace NeoCompose.Runtime
             object? value,
             bool saved,
             Func<NeoClient, NeoAttributeCustom, T>? readOnlyFactory,
-            Func<NeoClient, NeoAttributeCustomWritable, T> savedFactory)
+            Func<NeoClient, NeoAttributeCustomWritable, T>? savedFactory)
         {
             T? resolved = ReadNSGetterCustom(
                 client,

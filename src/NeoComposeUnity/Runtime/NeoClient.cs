@@ -244,6 +244,7 @@ namespace NeoCompose.Runtime
         {
             this.loader = loader ?? throw new System.ArgumentNullException(nameof(loader));
             this.data = loader.Schema;
+            ValidateExportSchemaVersion(data.metadata);
             SaveOptions = saveOptions ?? new NeoSaveOptions();
             this.assetDatabase = assetDatabase;
             Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
@@ -387,42 +388,97 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        // Save and Session graphs are disjoint subtrees of the authored asset graph.
-        // Precomputed once at load, this maps every authored value id to the
-        // writable graph it belongs to — so a *sparse* overlay can still answer
-        // "is this value writable here?" before the value has been shadowed into the
-        // writable store (runtime-minted ids are caught by store membership below).
+        // Authored ownership is the per-value effective storage
+        // (specs/attribute-storage.md §2): every authored value id maps to the
+        // writable graph it belongs to, resolved positionally from the three
+        // stamped roots with each attribute's declared storage (resolved
+        // through the extends chain) overriding the inherited context. A
+        // *sparse* overlay can therefore answer "is this value writable
+        // here?" before the value has been shadowed into the writable store
+        // (runtime-minted ids are caught by store membership below). Only
+        // Save/Session entries are recorded — Static-effective values fall
+        // through to the Asset default.
         private readonly Dictionary<string, NeoValueOwnership> authoredOwnership = new();
 
         private void BuildAuthoredOwnershipMap()
         {
-            MarkAuthoredOwnership(data.project.rootSaveFileAttributeId, NeoValueOwnership.Save);
-            MarkAuthoredOwnership(data.project.rootSessionAttributeId, NeoValueOwnership.Session);
+            var visited = new HashSet<string>();
+            MarkAuthoredOwnership(data.project.rootAssetsAttributeId, NeoValueOwnership.Asset, visited);
+            MarkAuthoredOwnership(data.project.rootSaveFileAttributeId, NeoValueOwnership.Save, visited);
+            MarkAuthoredOwnership(data.project.rootSessionAttributeId, NeoValueOwnership.Session, visited);
         }
 
-        private void MarkAuthoredOwnership(string rootAttributeId, NeoValueOwnership ownership)
+        private void MarkAuthoredOwnership(
+            string rootAttributeId,
+            NeoValueOwnership ownership,
+            HashSet<string> visited)
         {
             if (!data.attributes.TryGetValue(rootAttributeId, out Attribute rootAttribute)
                 || rootAttribute.valueId is null)
             {
                 return;
             }
-            WalkAuthoredOwnership(rootAttribute.valueId, rootAttribute, ownership, new HashSet<string>());
+            WalkAuthoredOwnership(rootAttribute.valueId, rootAttribute, ownership, visited);
         }
 
         private void WalkAuthoredOwnership(
             string valueId,
             Attribute? attribute,
-            NeoValueOwnership ownership,
+            NeoValueOwnership inherited,
             HashSet<string> visited)
         {
             if (!visited.Add(valueId)) return;
-            authoredOwnership[valueId] = ownership;
+            NeoValueOwnership effective =
+                (attribute is null ? null : DeclaredOwnership(attribute)) ?? inherited;
+            if (effective != NeoValueOwnership.Asset)
+            {
+                authoredOwnership[valueId] = effective;
+            }
             if (!data.values.TryGetValue(valueId, out AttributeValue row)) return;
             foreach (var child in EnumerateOwnedChildLinks(row, attribute))
             {
-                WalkAuthoredOwnership(child.valueId, child.attribute, ownership, visited);
+                WalkAuthoredOwnership(child.valueId, child.attribute, effective, visited);
             }
+        }
+
+        /// <summary>
+        /// Declared storage of an attribute resolved through its
+        /// <see cref="Attribute.extendsAttributeId"/> chain (capped) —
+        /// mirrors the TS-side <c>declaredAttributeStorage</c>.
+        /// </summary>
+        internal NeoAttributeStorage DeclaredStorage(Attribute attribute)
+        {
+            Attribute? cursor = attribute;
+            for (int hops = 0; cursor is not null && hops < 16; hops++)
+            {
+                var declared = NeoAttributeStorageResolution.Parse(cursor.storage);
+                if (declared != NeoAttributeStorage.Inherit) return declared;
+                if (cursor.extendsAttributeId is null) return NeoAttributeStorage.Inherit;
+                data.attributes.TryGetValue(cursor.extendsAttributeId, out cursor);
+            }
+            return NeoAttributeStorage.Inherit;
+        }
+
+        /// <summary>
+        /// Ownership a declared storage stamp forces, or null when the
+        /// attribute inherits its placement parent's ownership.
+        /// </summary>
+        internal NeoValueOwnership? DeclaredOwnership(Attribute attribute)
+        {
+            return NeoAttributeStorageResolution.ToOwnership(DeclaredStorage(attribute));
+        }
+
+        private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
+        {
+            // Metadata is optional (test fixtures, hand-built exports) and
+            // schema version 1 predates the storage model (attributes simply
+            // have no `storage` field — every value reads as Inherit, which
+            // reproduces the legacy positional semantics). Anything newer
+            // than 2 is from a future web build this SDK does not understand.
+            if (metadata is null) return;
+            if (metadata.schemaVersion <= 2) return;
+            throw new System.InvalidOperationException(
+                $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (2). Update the NeoCompose SDK.");
         }
 
         internal bool TryGetValueOwnership(string id, out NeoValueOwnership ownership)
