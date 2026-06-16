@@ -47,6 +47,14 @@ namespace NeoCompose.Runtime.Json
         /// itself a stored value).
         /// </summary>
         public string? valueId;
+        /// <summary>
+        /// Storage class override (specs/attribute-storage.md): "static",
+        /// "save", or "session". Absent means the attribute inherits its
+        /// placement parent's effective storage. Resolved through the
+        /// <see cref="extendsAttributeId"/> chain like other override
+        /// fields.
+        /// </summary>
+        public string? storage;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
     }

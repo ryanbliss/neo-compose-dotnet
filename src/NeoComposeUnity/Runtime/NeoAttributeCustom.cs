@@ -60,19 +60,27 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Hook for child instantiation — returns the read-only kind.
-        /// <see cref="NeoAttributeCustomWritable"/> overrides this to
-        /// return Writable kinds so descendants of a writeable Custom are
-        /// also writeable. Sets <see cref="NeoAttribute.parent"/> on
-        /// the constructed child so consumers (e.g.,
-        /// <see cref="NeoAttributeNSGetter.Compute"/>) can walk up.
+        /// Hook for child instantiation — returns the read-only kind for
+        /// Inherit children. <see cref="NeoAttributeCustomWritable"/>
+        /// overrides this to return Writable kinds so descendants of a
+        /// writeable Custom are also writeable. An explicit declared
+        /// storage on the child (specs/attribute-storage.md §2.1) overrides
+        /// the family default in both directions: a Save/Session-stamped
+        /// child is writable even under a read-only parent. Sets
+        /// <see cref="NeoAttribute.parent"/> on the constructed child so
+        /// consumers (e.g., <see cref="NeoAttributeNSGetter.Compute"/>)
+        /// can walk up.
         /// </summary>
         protected virtual NeoAttribute CreateChild(
             NeoClient client,
             Attribute childAttribute,
             string? overrideValueId)
         {
-            var child = Create(client, childAttribute, overrideValueId);
+            NeoValueOwnership? declared = client.DeclaredOwnership(childAttribute);
+            NeoAttribute child =
+                declared == NeoValueOwnership.Save || declared == NeoValueOwnership.Session
+                    ? CreateWritable(client, childAttribute, overrideValueId, declared.Value)
+                    : Create(client, childAttribute, overrideValueId);
             child.parent = this;
             return child;
         }
@@ -103,6 +111,25 @@ namespace NeoCompose.Runtime
             }
             outAttribute = null;
             return false;
+        }
+
+        /// <summary>
+        /// Writable view over the same record (same attribute / value id /
+        /// ownership). Generated ReadOnly classes use this for members with
+        /// an explicit Save/Session storage stamp
+        /// (specs/attribute-storage.md §8.3): the view's
+        /// <see cref="SetSerializedValue"/> routes the stamped leaf's write
+        /// into the leaf's own writable store, while unstamped keys keep
+        /// throwing the static-storage error.
+        /// </summary>
+        internal NeoAttributeCustomWritable AsWritableView()
+        {
+            if (this is NeoAttributeCustomWritable writable) return writable;
+            var view = new NeoAttributeCustomWritable(client, attribute, overrideValueId, ownership)
+            {
+                parent = parent,
+            };
+            return view;
         }
 
         internal bool TryGetSchemaKeyForChild(
@@ -339,7 +366,18 @@ namespace NeoCompose.Runtime
             Attribute childAttribute,
             string? overrideValueId)
         {
-            var child = CreateWritable(client, childAttribute, overrideValueId, ownership);
+            // An explicit declared storage fixes the child's shape in both
+            // families (specs/attribute-storage.md §8.3): Static-stamped
+            // children stay read-only even under a writable parent;
+            // Save/Session stamps pin the child to that ownership store.
+            NeoValueOwnership? declared = client.DeclaredOwnership(childAttribute);
+            NeoAttribute child = declared switch
+            {
+                NeoValueOwnership.Asset => Create(client, childAttribute, overrideValueId),
+                NeoValueOwnership.Save or NeoValueOwnership.Session =>
+                    CreateWritable(client, childAttribute, overrideValueId, declared.Value),
+                _ => CreateWritable(client, childAttribute, overrideValueId, ownership),
+            };
             child.parent = this;
             return child;
         }
@@ -494,12 +532,30 @@ namespace NeoCompose.Runtime
                     $"Cannot be null when child attribute '{key}' is required");
             }
 
+            // Per-placement storage (specs/attribute-storage.md): a declared
+            // storage stamp on the child pins which writable store the leaf
+            // shadows into, independent of this record's own ownership — the
+            // headline case being a Save-stamped field on a static record.
+            NeoValueOwnership childOwnership =
+                client.DeclaredOwnership(childAttribute) ?? ownership;
+            if (childOwnership == NeoValueOwnership.Asset)
+            {
+                throw new System.InvalidOperationException(
+                    $"Cannot write '{key}' on Custom '{attribute.id}': its effective storage is static.");
+            }
+            bool recordWritable = ownership != NeoValueOwnership.Asset;
+
             if (value?.value is not null
                 && value.value.TryGetValue(key, out string existingValueId)
-                && client.TryGetValue(ownership, existingValueId, out AttributeValue? existing))
+                && client.TryGetValue(childOwnership, existingValueId, out AttributeValue? existing))
             {
                 if (setValue?.isValueReference == true)
                 {
+                    if (!recordWritable)
+                    {
+                        throw new System.InvalidOperationException(
+                            $"Cannot rebind '{key}' on static Custom '{attribute.id}': a static record's value map is authored data. Only the stamped leaf's own value may be written.");
+                    }
                     string importedValueId = client.ImportValueReference(ownership, setValue.valueId!);
                     ObjectAttributeValue record = EnsureWritableObject(nowIso);
                     record.value![key] = importedValueId;
@@ -514,15 +570,15 @@ namespace NeoCompose.Runtime
                 bool childWillSelfNotify = childAttributes.TryGetValue(key, out NeoAttribute? existingChild)
                     && ChildSelfNotifies(existingChild);
                 // Reuse the entry's stable id: a fresh row at the same id
-                // shadows the authored default in the writable store.
+                // shadows the authored default in the child's writable store.
                 AttributeValue next = AttributeValueFactory.Create(
                     childAttribute,
                     setValue?.value,
                     existingValueId,
                     existing.createdAt,
                     nowIso);
-                client.SetWritablePayloadRows(ownership, setValue?.value);
-                client.SetWritableValue(ownership, next);
+                client.SetWritablePayloadRows(childOwnership, setValue?.value);
+                client.SetWritableValue(childOwnership, next);
                 ReinitializeChildren();
                 if (!childWillSelfNotify)
                 {
@@ -532,7 +588,13 @@ namespace NeoCompose.Runtime
             }
 
             // No existing entry for this key — mint a fresh value row and
-            // link it under the record's value-map.
+            // link it under the record's value-map. A static record cannot
+            // gain keys at runtime: linking mutates the record itself.
+            if (!recordWritable)
+            {
+                throw new System.InvalidOperationException(
+                    $"Cannot write '{key}' on static Custom '{attribute.id}': the stamped leaf has no authored value to shadow, and a static record cannot gain new keys at runtime. Author a value for '{key}' in the web editor.");
+            }
             string newValueId;
             if (setValue?.isValueReference == true)
             {
@@ -543,8 +605,8 @@ namespace NeoCompose.Runtime
                 newValueId = System.Guid.NewGuid().ToString();
                 AttributeValue newValueRow = AttributeValueFactory.Create(
                     childAttribute, setValue?.value, newValueId, nowIso, nowIso);
-                client.SetWritablePayloadRows(ownership, setValue?.value);
-                client.SetWritableValue(ownership, newValueRow);
+                client.SetWritablePayloadRows(childOwnership, setValue?.value);
+                client.SetWritableValue(childOwnership, newValueRow);
             }
 
             ObjectAttributeValue keyedRecord = EnsureWritableObject(nowIso);

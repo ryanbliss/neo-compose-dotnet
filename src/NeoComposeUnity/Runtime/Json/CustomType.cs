@@ -27,6 +27,13 @@ namespace NeoCompose.Runtime.Json
         public string? extendsTypeId;
         public bool hiddenInAttributeSelector;
         public bool isAbstract;
+        /// <summary>
+        /// Storage placement constraint (specs/attribute-storage.md §4.3):
+        /// "static", "save", or "session". Absent/null means the type may be
+        /// placed at any storage class. Inherited through
+        /// <see cref="extendsTypeId"/> (narrow-only).
+        /// </summary>
+        public string? allowedStorage;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
     }
