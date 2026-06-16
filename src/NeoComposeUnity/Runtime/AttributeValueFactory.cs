@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
+using UnityEngine;
 
 namespace NeoCompose.Runtime
 {
@@ -82,6 +83,26 @@ namespace NeoCompose.Runtime
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = Cast<FileValue?>(rawPayload, attribute),
                 },
+                Vector2Attribute => new Vector2AttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = Vector2Payload(rawPayload, attribute),
+                },
+                Vector2IntAttribute => new Vector2AttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = Vector2IntPayload(rawPayload, attribute),
+                },
+                Vector3Attribute => new Vector3AttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = Vector3Payload(rawPayload, attribute),
+                },
+                Vector3IntAttribute => new Vector3AttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = Vector3IntPayload(rawPayload, attribute),
+                },
                 NSGetterAttribute => new NullAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
@@ -122,6 +143,61 @@ namespace NeoCompose.Runtime
             throw new System.ArgumentException(
                 $"Cannot set {attribute.GetType().Name} {attribute.id} from " +
                 $"{payload.GetType().Name}; expected {typeof(TExpected).Name}",
+                nameof(payload));
+        }
+
+        private static NeoVector2Value? Vector2Payload(object? payload, Attribute attribute)
+        {
+            if (payload is null) return null;
+            if (payload is NeoVector2Value raw) return raw;
+            if (payload is Vector2 vector) return NeoVectorValues.FromVector2(vector);
+            if (payload is NeoReadOnlyVector2 wrapper) return NeoVectorValues.FromVector2(wrapper.Value);
+            throw PayloadError(payload, attribute, "Vector2");
+        }
+
+        private static NeoVector2Value? Vector2IntPayload(object? payload, Attribute attribute)
+        {
+            if (payload is null) return null;
+            if (payload is NeoVector2Value raw)
+            {
+                _ = NeoVectorValues.ToVector2Int(raw);
+                return raw;
+            }
+            if (payload is Vector2Int vector) return NeoVectorValues.FromVector2Int(vector);
+            if (payload is NeoReadOnlyVector2Int wrapper) return NeoVectorValues.FromVector2Int(wrapper.Value);
+            throw PayloadError(payload, attribute, "Vector2Int");
+        }
+
+        private static NeoVector3Value? Vector3Payload(object? payload, Attribute attribute)
+        {
+            if (payload is null) return null;
+            if (payload is NeoVector3Value raw) return raw;
+            if (payload is Vector3 vector) return NeoVectorValues.FromVector3(vector);
+            if (payload is NeoReadOnlyVector3 wrapper) return NeoVectorValues.FromVector3(wrapper.Value);
+            throw PayloadError(payload, attribute, "Vector3");
+        }
+
+        private static NeoVector3Value? Vector3IntPayload(object? payload, Attribute attribute)
+        {
+            if (payload is null) return null;
+            if (payload is NeoVector3Value raw)
+            {
+                _ = NeoVectorValues.ToVector3Int(raw);
+                return raw;
+            }
+            if (payload is Vector3Int vector) return NeoVectorValues.FromVector3Int(vector);
+            if (payload is NeoReadOnlyVector3Int wrapper) return NeoVectorValues.FromVector3Int(wrapper.Value);
+            throw PayloadError(payload, attribute, "Vector3Int");
+        }
+
+        private static System.ArgumentException PayloadError(
+            object payload,
+            Attribute attribute,
+            string expected)
+        {
+            return new System.ArgumentException(
+                $"Cannot set {attribute.GetType().Name} {attribute.id} from " +
+                $"{payload.GetType().Name}; expected {expected}",
                 nameof(payload));
         }
     }

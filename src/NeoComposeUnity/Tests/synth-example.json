@@ -1,18 +1,39 @@
 {
   "metadata": {
-    "schemaVersion": 1,
+    "schemaVersion": 2,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
-      "label": "0.1.0",
       "major": 0,
       "minor": 1,
-      "patch": 0
-    }
+      "patch": 0,
+      "label": "0.1.0"
+    },
+    "status": {
+      "id": "draft",
+      "name": "Draft"
+    },
+    "releaseChannels": [
+      {
+        "id": "default-release-channel",
+        "slug": "default"
+      }
+    ],
+    "projectDocumentContentHash": "synth-project-document",
+    "codegenContractHash": "synth-codegen-contract",
+    "runtimeDataContractHash": "synth-runtime-data-contract"
   },
   "project": {
     "id": "test-project",
     "name": "Test Project",
+    "owner": {
+      "kind": "organization",
+      "id": "test-organization"
+    },
+    "author": {
+      "kind": "user",
+      "id": "test-user"
+    },
     "exportSettings": null,
     "rootAssetsAttributeId": "root-assets",
     "rootSaveFileAttributeId": "root-save",
@@ -21,7 +42,14 @@
     "defaultTextureTemplateId": null,
     "defaultAudioClipTemplateId": null,
     "createdAt": 0,
-    "updatedAt": 0
+    "updatedAt": 0,
+    "authorUser": null,
+    "latestVersion": null,
+    "latestVersionStatus": null,
+    "listContext": {
+      "kind": "public"
+    },
+    "ownerOrganization": null
   },
   "attributes": {
     "root-assets": {
@@ -138,6 +166,104 @@
         "value": true
       }
     },
+    "attr-position": {
+      "id": "attr-position",
+      "name": "Position",
+      "type": 16,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "defaultValue": {
+        "value": {
+          "x": 1,
+          "y": 2,
+          "z": 3
+        }
+      }
+    },
+    "attr-grid-cell": {
+      "id": "attr-grid-cell",
+      "name": "Grid Cell",
+      "type": 17,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "defaultValue": {
+        "value": {
+          "x": 4,
+          "y": 5,
+          "z": 6
+        }
+      }
+    },
+    "attr-path-entry": {
+      "id": "attr-path-entry",
+      "name": "Path Entry",
+      "type": 16,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "attr-path": {
+      "id": "attr-path",
+      "name": "Path",
+      "type": 6,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryAttributeId": "attr-path-entry"
+    },
+    "attr-move-to": {
+      "id": "attr-move-to",
+      "name": "MoveTo",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "deferred": false,
+      "returnTypeInfo": {
+        "type": 16,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "destination",
+          "type": 16,
+          "required": true
+        },
+        {
+          "name": "cell",
+          "type": 15,
+          "required": false
+        }
+      ]
+    },
+    "attr-native": {
+      "id": "attr-native",
+      "name": "Native",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "deferred": false,
+      "returnTypeInfo": {
+        "type": 3,
+        "required": true
+      },
+      "argumentTypes": []
+    },
     "attr-hero": {
       "id": "attr-hero",
       "name": "Hero",
@@ -151,7 +277,10 @@
       "defaultValue": {
         "value": {
           "Name": "v-name",
-          "Level": "v-level"
+          "Level": "v-level",
+          "Position": "v-position",
+          "GridCell": "v-grid-cell",
+          "Path": "v-path"
         }
       }
     },
@@ -858,7 +987,11 @@
       "name": "Hero",
       "schema": {
         "Name": "attr-name",
-        "Health": "attr-health"
+        "Health": "attr-health",
+        "Position": "attr-position",
+        "GridCell": "attr-grid-cell",
+        "Path": "attr-path",
+        "MoveTo": "attr-move-to"
       },
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
@@ -1009,6 +1142,37 @@
       "createdAt": 0,
       "updatedAt": 0
     },
+    "v-position": {
+      "id": "v-position",
+      "projectId": "p-1",
+      "value": {
+        "x": 1,
+        "y": 2,
+        "z": 3
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-grid-cell": {
+      "id": "v-grid-cell",
+      "projectId": "p-1",
+      "value": {
+        "x": 4,
+        "y": 5,
+        "z": 6
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-path": {
+      "id": "v-path",
+      "projectId": "p-1",
+      "value": [
+        "v-position"
+      ],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
     "v-list": {
       "id": "v-list",
       "projectId": "p-1",
@@ -1024,7 +1188,10 @@
       "projectId": "p-1",
       "value": {
         "Name": "v-name",
-        "Level": "v-level"
+        "Level": "v-level",
+        "Position": "v-position",
+        "GridCell": "v-grid-cell",
+        "Path": "v-path"
       },
       "createdAt": 0,
       "updatedAt": 0,

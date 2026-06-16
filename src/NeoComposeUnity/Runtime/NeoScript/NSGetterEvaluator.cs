@@ -10,6 +10,7 @@ using System.Linq;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
+using UnityEngine;
 using JsonAttribute = NeoCompose.Runtime.Json.Attribute;
 using JsonEnum = NeoCompose.Runtime.Json.Enum;
 
@@ -609,6 +610,10 @@ namespace NeoCompose.Runtime.NeoScript
             }
 
             string k = key?.ToString() ?? "null";
+            if (TryReadVectorComponent(receiver, k, out float component))
+            {
+                return component;
+            }
             if (k == "Id")
             {
                 if (receiver is INeoValueReference reference
@@ -932,6 +937,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return pointer is string text
                         && NeoDialogueMemoryQueries.HasVisited(ctx.memoryStore, text);
                 }
+                case VectorConstructorFunction vcf:
+                    return EvalVectorConstructor(vcf.info, scope, ctx);
                 case CountFunction cf:
                 {
                     var c = EvalPointer(cf.info.collectionPointer, scope, ctx);
@@ -1070,6 +1077,70 @@ namespace NeoCompose.Runtime.NeoScript
             if (c is string s) return s.Length;
             throw new NSGetterRuntimeError(
                 $"Cannot Count() {ReceiverTypeName(c)}; expected list, dictionary, or string");
+        }
+
+        private static object EvalVectorConstructor(
+            FunctionVectorConstructorInfo info,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            var components = new float[info.componentPointers.Length];
+            for (int i = 0; i < info.componentPointers.Length; i++)
+            {
+                var raw = EvalPointer(info.componentPointers[i], scope, ctx);
+                if (!TryAsDouble(raw, out double numeric)
+                    || double.IsNaN(numeric)
+                    || double.IsInfinity(numeric))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"{info.vectorType} component must be numeric; got {ReceiverTypeName(raw)}.");
+                }
+                components[i] = (float)numeric;
+            }
+
+            switch (info.vectorType)
+            {
+                case AttributeType.Vector2:
+                    EnsureVectorArity(components, 2, info.vectorType);
+                    return new NeoVector2Value { x = components[0], y = components[1] };
+                case AttributeType.Vector2Int:
+                    EnsureVectorArity(components, 2, info.vectorType);
+                    RequireIntegerComponent(components[0], "x");
+                    RequireIntegerComponent(components[1], "y");
+                    return new NeoVector2Value { x = components[0], y = components[1] };
+                case AttributeType.Vector3:
+                    EnsureVectorArity(components, 3, info.vectorType);
+                    return new NeoVector3Value { x = components[0], y = components[1], z = components[2] };
+                case AttributeType.Vector3Int:
+                    EnsureVectorArity(components, 3, info.vectorType);
+                    RequireIntegerComponent(components[0], "x");
+                    RequireIntegerComponent(components[1], "y");
+                    RequireIntegerComponent(components[2], "z");
+                    return new NeoVector3Value { x = components[0], y = components[1], z = components[2] };
+                default:
+                    throw new NSGetterRuntimeError($"Unsupported vector constructor '{info.vectorType}'.");
+            }
+        }
+
+        private static void EnsureVectorArity(
+            float[] components,
+            int expected,
+            AttributeType vectorType)
+        {
+            if (components.Length != expected)
+            {
+                throw new NSGetterRuntimeError(
+                    $"{vectorType} takes {expected} numeric arguments, got {components.Length}.");
+            }
+        }
+
+        private static void RequireIntegerComponent(float value, string component)
+        {
+            if (System.Math.Truncate(value) != value)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Vector component '{component}' must be an integer.");
+            }
         }
 
         private static IEnumerable<object?> CollectionEntries(object? c, Context ctx)
@@ -1214,6 +1285,14 @@ namespace NeoCompose.Runtime.NeoScript
                     return value is IDictionary<string, object?> audio &&
                         audio.TryGetValue("fileId", out var audioFileId) &&
                         audioFileId is string;
+                case AttributeType.Vector2:
+                    return IsVector2Value(value, requireIntegers: false);
+                case AttributeType.Vector2Int:
+                    return IsVector2Value(value, requireIntegers: true);
+                case AttributeType.Vector3:
+                    return IsVector3Value(value, requireIntegers: false);
+                case AttributeType.Vector3Int:
+                    return IsVector3Value(value, requireIntegers: true);
                 case AttributeType.List: return value is object?[];
                 case AttributeType.Dictionary:
                     return value is IDictionary<string, object?>;
@@ -1347,6 +1426,8 @@ namespace NeoCompose.Runtime.NeoScript
                         ["fileId"] = sp.value.fileId,
                         ["sliceIndex"] = sp.value.sliceIndex,
                     },
+                Vector2AttributeValue v => v.value,
+                Vector3AttributeValue v => v.value,
                 NullAttributeValue _ => null,
                 _ => null,
             };
@@ -1507,6 +1588,125 @@ namespace NeoCompose.Runtime.NeoScript
                 return i;
             }
             throw new NSGetterRuntimeError($"List index must be an integer; got '{key}'");
+        }
+
+        private static bool TryReadVectorComponent(
+            object? value,
+            string key,
+            out float component)
+        {
+            component = 0;
+            if (value is Vector2 vector2 && value is not Vector3)
+            {
+                if (key == "x") { component = vector2.x; return true; }
+                if (key == "y") { component = vector2.y; return true; }
+                return false;
+            }
+            if (value is Vector2Int vector2Int && value is not Vector3Int)
+            {
+                if (key == "x") { component = vector2Int.x; return true; }
+                if (key == "y") { component = vector2Int.y; return true; }
+                return false;
+            }
+            if (value is Vector3 vector3)
+            {
+                if (key == "x") { component = vector3.x; return true; }
+                if (key == "y") { component = vector3.y; return true; }
+                if (key == "z") { component = vector3.z; return true; }
+                return false;
+            }
+            if (value is Vector3Int vector3Int)
+            {
+                if (key == "x") { component = vector3Int.x; return true; }
+                if (key == "y") { component = vector3Int.y; return true; }
+                if (key == "z") { component = vector3Int.z; return true; }
+                return false;
+            }
+            if (value is NeoVector2Value v2)
+            {
+                if (key == "x") { component = v2.x; return true; }
+                if (key == "y") { component = v2.y; return true; }
+                if (value is NeoVector3Value v3 && key == "z")
+                {
+                    component = v3.z;
+                    return true;
+                }
+                return false;
+            }
+            if (value is IDictionary<string, object?> dict)
+            {
+                bool isVector2 = IsVector2Value(dict, requireIntegers: false);
+                bool isVector3 = IsVector3Value(dict, requireIntegers: false);
+                if (!isVector2 && !isVector3) return false;
+                if (key == "z" && !isVector3) return false;
+                if (key != "x" && key != "y" && key != "z") return false;
+                if (!dict.TryGetValue(key, out var raw)) return false;
+                if (!TryAsDouble(raw, out double numeric)) return false;
+                component = (float)numeric;
+                return true;
+            }
+            return false;
+        }
+
+        private static bool IsVector2Value(object? value, bool requireIntegers)
+        {
+            if (value is Vector2 vector2 && value is not Vector3)
+            {
+                return !requireIntegers || (IsInteger(vector2.x) && IsInteger(vector2.y));
+            }
+            if (value is Vector2Int && value is not Vector3Int) return true;
+            if (value is NeoReadOnlyVector2 wrapper)
+            {
+                Vector2 vector = wrapper.Value;
+                return !requireIntegers || (IsInteger(vector.x) && IsInteger(vector.y));
+            }
+            if (value is NeoReadOnlyVector2Int) return true;
+            if (value is NeoVector2Value v2 && value is not NeoVector3Value)
+            {
+                return !requireIntegers || (IsInteger(v2.x) && IsInteger(v2.y));
+            }
+            if (value is IDictionary<string, object?> dict && dict.Count == 2)
+            {
+                return TryAsDouble(dict.TryGetValue("x", out var x) ? x : null, out double xv)
+                    && TryAsDouble(dict.TryGetValue("y", out var y) ? y : null, out double yv)
+                    && (!requireIntegers || (IsInteger(xv) && IsInteger(yv)));
+            }
+            return false;
+        }
+
+        private static bool IsVector3Value(object? value, bool requireIntegers)
+        {
+            if (value is Vector3 vector3)
+            {
+                return !requireIntegers ||
+                    (IsInteger(vector3.x) && IsInteger(vector3.y) && IsInteger(vector3.z));
+            }
+            if (value is Vector3Int) return true;
+            if (value is NeoReadOnlyVector3 wrapper)
+            {
+                Vector3 vector = wrapper.Value;
+                return !requireIntegers ||
+                    (IsInteger(vector.x) && IsInteger(vector.y) && IsInteger(vector.z));
+            }
+            if (value is NeoReadOnlyVector3Int) return true;
+            if (value is NeoVector3Value v3)
+            {
+                return !requireIntegers ||
+                    (IsInteger(v3.x) && IsInteger(v3.y) && IsInteger(v3.z));
+            }
+            if (value is IDictionary<string, object?> dict && dict.Count == 3)
+            {
+                return TryAsDouble(dict.TryGetValue("x", out var x) ? x : null, out double xv)
+                    && TryAsDouble(dict.TryGetValue("y", out var y) ? y : null, out double yv)
+                    && TryAsDouble(dict.TryGetValue("z", out var z) ? z : null, out double zv)
+                    && (!requireIntegers || (IsInteger(xv) && IsInteger(yv) && IsInteger(zv)));
+            }
+            return false;
+        }
+
+        private static bool IsInteger(double value)
+        {
+            return System.Math.Truncate(value) == value;
         }
 
         private static string ReceiverTypeName(object? receiver)
@@ -1689,6 +1889,10 @@ namespace NeoCompose.Runtime.NeoScript
                 case AttributeType.String: return "string";
                 case AttributeType.Sprite: return "SpriteInfo";
                 case AttributeType.Audio: return "AudioClipInfo";
+                case AttributeType.Vector2: return "Vector2";
+                case AttributeType.Vector2Int: return "Vector2Int";
+                case AttributeType.Vector3: return "Vector3";
+                case AttributeType.Vector3Int: return "Vector3Int";
                 case AttributeType.Custom:
                 {
                     string typeId = (t as CustomTypeInfo)?.typeId ?? "";

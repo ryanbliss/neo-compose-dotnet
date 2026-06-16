@@ -2908,11 +2908,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
-        public bool Foo
+        public NeoReadOnlyVector3 Position
         {
             get
             {
-                return node.Get<NeoAttributeBool>("Foo").value?.value ?? throw new InvalidOperationException("Required bool 'Foo' has no value.");
+                return new NeoReadOnlyVector3(node.Get<NeoAttributeVector3>("Position"));
             }
         }
 
@@ -2920,14 +2920,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<bool> Foo = new("Foo");
+            public static readonly NeoField<NeoReadOnlyVector3> Position = new("Position");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Foo] = () => null,
+                [Fields.Position] = () => null,
             };
         }
 
@@ -2945,7 +2945,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Foo] = () => Foo,
+                [Fields.Position] = () => Position,
             };
         }
 
@@ -2969,27 +2969,27 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Session(bool? Foo = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Foo))
+        public Session(NeoVector3? Position = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Position))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(bool? Foo = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector3? Position = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            if (Foo is not null)
+            if (Position is not null)
             {
-                var FooValueId = Guid.NewGuid().ToString();
-                value["Foo"] = FooValueId;
-                valueRows.Add(new BoolAttributeValue
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
                 {
-                    id = FooValueId,
+                    id = PositionValueId,
                     createdAt = nowIso,
                     updatedAt = nowIso,
-                    value = Foo,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
                 });
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "63b261c9-46f2-4d37-84e9-06f16af04e58", value, valueRows);
@@ -3007,15 +3007,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
-        public new bool Foo
+        public new NeoVector3 Position
         {
             get
             {
-                return node.Get<NeoAttributeBool>("Foo").value?.value ?? throw new InvalidOperationException("Required bool 'Foo' has no value.");
+                return new NeoVector3(node.Get<NeoAttributeVector3>("Position"));
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Foo", NeoGeneratedTypesSupport.Value(value));
+                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value.Value);
             }
         }
 
@@ -3023,14 +3023,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<bool> Foo = new("Foo");
+            public static readonly NeoField<NeoVector3> Position = new("Position");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Foo] = () => null,
+                [Fields.Position] = () => null,
             };
         }
 
@@ -3048,7 +3048,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Foo] = () => Foo,
+                [Fields.Position] = () => Position,
             };
         }
 

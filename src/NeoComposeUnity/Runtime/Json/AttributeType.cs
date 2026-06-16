@@ -25,6 +25,10 @@ namespace NeoCompose.Runtime.Json
         Sprite = 11,
         Audio = 12,
         Function = 13,
+        Vector2 = 14,
+        Vector2Int = 15,
+        Vector3 = 16,
+        Vector3Int = 17,
         Unknown = -1,
         Void = -2,
     }

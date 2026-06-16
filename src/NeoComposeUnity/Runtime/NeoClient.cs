@@ -1121,6 +1121,27 @@ namespace NeoCompose.Runtime
                             sliceIndex = s.value.sliceIndex,
                         },
                 },
+                Vector2AttributeValue v => new Vector2AttributeValue
+                {
+                    value = v.value == null
+                        ? null
+                        : new NeoVector2Value
+                        {
+                            x = v.value.x,
+                            y = v.value.y,
+                        },
+                },
+                Vector3AttributeValue v => new Vector3AttributeValue
+                {
+                    value = v.value == null
+                        ? null
+                        : new NeoVector3Value
+                        {
+                            x = v.value.x,
+                            y = v.value.y,
+                            z = v.value.z,
+                        },
+                },
                 _ => throw new System.InvalidOperationException(
                     $"Unsupported save value row type '{row.GetType().Name}'."),
             };
@@ -1470,7 +1491,12 @@ namespace NeoCompose.Runtime
             object? receiver,
             object?[] args)
         {
-            if (IsNativeFunctionDeferred(attributeId))
+            if (!TryResolveFunctionAttribute(attributeId, out var attribute))
+            {
+                throw new NeoScript.NSGetterRuntimeError(
+                    $"No Function attribute exists for '{attributeId}'.");
+            }
+            if (attribute.deferred == true)
             {
                 throw new NeoDeferredFunctionRuntimeError(
                     $"Deferred Function '{attributeId}' can only be invoked from dialogue action runtime.");
@@ -1485,7 +1511,9 @@ namespace NeoCompose.Runtime
                 throw new NeoScript.NSGetterRuntimeError(
                     $"No native Function invoker is registered for attribute '{attributeId}'.");
             }
-            return invoker(this, receiver, args);
+            return NormalizeNativeFunctionReturn(
+                attribute.returnTypeInfo,
+                invoker(this, receiver, args));
         }
 
         public void InvokeDeferredNativeFunction(
@@ -1525,11 +1553,75 @@ namespace NeoCompose.Runtime
                     $"No deferred native Function invoker is registered for attribute '{attributeId}'.");
             }
 
+            System.Action<object?> completeNormalized =
+                value => complete(NormalizeNativeFunctionReturn(attribute.returnTypeInfo, value));
             NeoDeferredFunctionBase deferred = attribute.returnTypeInfo is VoidTypeInfo
                 ? new NeoDeferredFunction(attributeId, attribute.name, complete, fail)
-                : CreateTypedDeferredFunction(attribute, complete, fail);
+                : CreateTypedDeferredFunction(attribute, completeNormalized, fail);
             invoker(this, receiver, args, deferred);
             return deferred;
+        }
+
+        private static object? NormalizeNativeFunctionReturn(
+            Json.TypeInfo returnTypeInfo,
+            object? value)
+        {
+            if (returnTypeInfo is VoidTypeInfo) return null;
+            switch (returnTypeInfo.type)
+            {
+                case AttributeType.Vector2:
+                {
+                    Vector2? vector = NeoGeneratedTypesSupport.ReadVector2Value(value);
+                    return NormalizeVectorResult(
+                        returnTypeInfo,
+                        value,
+                        vector,
+                        v => NeoVectorValues.FromVector2(v));
+                }
+                case AttributeType.Vector2Int:
+                {
+                    Vector2Int? vector = NeoGeneratedTypesSupport.ReadVector2IntValue(value);
+                    return NormalizeVectorResult(
+                        returnTypeInfo,
+                        value,
+                        vector,
+                        v => NeoVectorValues.FromVector2Int(v));
+                }
+                case AttributeType.Vector3:
+                {
+                    Vector3? vector = NeoGeneratedTypesSupport.ReadVector3Value(value);
+                    return NormalizeVectorResult(
+                        returnTypeInfo,
+                        value,
+                        vector,
+                        v => NeoVectorValues.FromVector3(v));
+                }
+                case AttributeType.Vector3Int:
+                {
+                    Vector3Int? vector = NeoGeneratedTypesSupport.ReadVector3IntValue(value);
+                    return NormalizeVectorResult(
+                        returnTypeInfo,
+                        value,
+                        vector,
+                        v => NeoVectorValues.FromVector3Int(v));
+                }
+                default:
+                    return value;
+            }
+        }
+
+        private static object? NormalizeVectorResult<TVector>(
+            Json.TypeInfo returnTypeInfo,
+            object? rawValue,
+            TVector? vector,
+            System.Func<TVector, object> toRaw)
+            where TVector : struct
+        {
+            if (vector.HasValue) return toRaw(vector.Value);
+            if (rawValue is null && !returnTypeInfo.required) return null;
+            string typeName = returnTypeInfo.type.ToString();
+            throw new NeoDeferredFunctionRuntimeError(
+                $"Native Function returned a value that could not be converted to {typeName}.");
         }
 
         internal bool IsNativeFunctionDeferred(string attributeId)
@@ -1549,6 +1641,10 @@ namespace NeoCompose.Runtime
                 AttributeType.Int => new NeoDeferredFunction<int>(attribute.id, attribute.name, complete, fail),
                 AttributeType.Float => new NeoDeferredFunction<float>(attribute.id, attribute.name, complete, fail),
                 AttributeType.String => new NeoDeferredFunction<string?>(attribute.id, attribute.name, complete, fail),
+                AttributeType.Vector2 => new NeoDeferredFunction<Vector2>(attribute.id, attribute.name, complete, fail),
+                AttributeType.Vector2Int => new NeoDeferredFunction<Vector2Int>(attribute.id, attribute.name, complete, fail),
+                AttributeType.Vector3 => new NeoDeferredFunction<Vector3>(attribute.id, attribute.name, complete, fail),
+                AttributeType.Vector3Int => new NeoDeferredFunction<Vector3Int>(attribute.id, attribute.name, complete, fail),
                 _ => new NeoDeferredFunction<object?>(attribute.id, attribute.name, complete, fail),
             };
         }

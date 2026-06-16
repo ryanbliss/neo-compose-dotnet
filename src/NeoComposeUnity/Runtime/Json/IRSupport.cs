@@ -86,6 +86,7 @@ namespace NeoCompose.Runtime.Json
         public const string Count = "count";
         public const string VisitCount = "visitCount";
         public const string HasVisited = "hasVisited";
+        public const string VectorConstructor = "vectorConstructor";
     }
 
     public static class WritabilityKind

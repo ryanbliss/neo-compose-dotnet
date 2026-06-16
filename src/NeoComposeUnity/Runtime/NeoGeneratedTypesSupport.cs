@@ -62,6 +62,110 @@ namespace NeoCompose.Runtime
                     attributeName);
         }
 
+        public static NeoVector2Value Vector2Value(Vector2 value)
+        {
+            return NeoVectorValues.FromVector2(value);
+        }
+
+        public static NeoVector2Value Vector2IntValue(Vector2Int value)
+        {
+            return NeoVectorValues.FromVector2Int(value);
+        }
+
+        public static NeoVector3Value Vector3Value(Vector3 value)
+        {
+            return NeoVectorValues.FromVector3(value);
+        }
+
+        public static NeoVector3Value Vector3IntValue(Vector3Int value)
+        {
+            return NeoVectorValues.FromVector3Int(value);
+        }
+
+        public static Vector2? ReadVector2Value(object? value)
+        {
+            if (value is null) return null;
+            if (value is Vector2 vector) return vector;
+            if (value is NeoReadOnlyVector2 wrapper) return wrapper.Value;
+            if (value is NeoVector2Value raw) return NeoVectorValues.ToVector2(raw);
+            if (TryReadVectorComponents(value, false, out float x, out float y, out _))
+            {
+                return new Vector2(x, y);
+            }
+            return null;
+        }
+
+        public static Vector2Int? ReadVector2IntValue(object? value)
+        {
+            if (value is null) return null;
+            if (value is Vector2Int vector) return vector;
+            if (value is NeoReadOnlyVector2Int wrapper) return wrapper.Value;
+            if (value is NeoVector2Value raw) return NeoVectorValues.ToVector2Int(raw);
+            if (TryReadVectorComponents(value, false, out float x, out float y, out _))
+            {
+                return NeoVectorValues.ToVector2Int(new NeoVector2Value { x = x, y = y });
+            }
+            return null;
+        }
+
+        public static Vector3? ReadVector3Value(object? value)
+        {
+            if (value is null) return null;
+            if (value is Vector3 vector) return vector;
+            if (value is NeoReadOnlyVector3 wrapper) return wrapper.Value;
+            if (value is NeoVector3Value raw) return NeoVectorValues.ToVector3(raw);
+            if (TryReadVectorComponents(value, true, out float x, out float y, out float z))
+            {
+                return new Vector3(x, y, z);
+            }
+            return null;
+        }
+
+        public static Vector3Int? ReadVector3IntValue(object? value)
+        {
+            if (value is null) return null;
+            if (value is Vector3Int vector) return vector;
+            if (value is NeoReadOnlyVector3Int wrapper) return wrapper.Value;
+            if (value is NeoVector3Value raw) return NeoVectorValues.ToVector3Int(raw);
+            if (TryReadVectorComponents(value, true, out float x, out float y, out float z))
+            {
+                return NeoVectorValues.ToVector3Int(new NeoVector3Value { x = x, y = y, z = z });
+            }
+            return null;
+        }
+
+        public static void SetVector2(
+            NeoAttributeCustomWritable node,
+            string key,
+            Vector2 value)
+        {
+            SetValue(node, key, Value(Vector2Value(value)));
+        }
+
+        public static void SetVector2Int(
+            NeoAttributeCustomWritable node,
+            string key,
+            Vector2Int value)
+        {
+            SetValue(node, key, Value(Vector2IntValue(value)));
+        }
+
+        public static void SetVector3(
+            NeoAttributeCustomWritable node,
+            string key,
+            Vector3 value)
+        {
+            SetValue(node, key, Value(Vector3Value(value)));
+        }
+
+        public static void SetVector3Int(
+            NeoAttributeCustomWritable node,
+            string key,
+            Vector3Int value)
+        {
+            SetValue(node, key, Value(Vector3IntValue(value)));
+        }
+
         public static TGenerated GetOrCreateGeneratedCustomValue<TGenerated>(
             NeoClient client,
             NeoAttributeCustom node,
@@ -424,6 +528,57 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        private static bool TryReadVectorComponents(
+            object value,
+            bool zRequired,
+            out float x,
+            out float y,
+            out float z)
+        {
+            x = 0;
+            y = 0;
+            z = 0;
+            if (value is IDictionary<string, object?> dict)
+            {
+                if (dict.Count != (zRequired ? 3 : 2)) return false;
+                return TryReadFloat(dict.TryGetValue("x", out var xv) ? xv : null, out x)
+                    && TryReadFloat(dict.TryGetValue("y", out var yv) ? yv : null, out y)
+                    && (!zRequired || TryReadFloat(dict.TryGetValue("z", out var zv) ? zv : null, out z));
+            }
+            if (value is JObject obj)
+            {
+                if (obj.Count != (zRequired ? 3 : 2)) return false;
+                return TryReadFloat(obj["x"], out x)
+                    && TryReadFloat(obj["y"], out y)
+                    && (!zRequired || TryReadFloat(obj["z"], out z));
+            }
+            return false;
+        }
+
+        private static bool TryReadFloat(object? value, out float result)
+        {
+            switch (value)
+            {
+                case float f:
+                    result = f;
+                    return !float.IsNaN(f) && !float.IsInfinity(f);
+                case double d:
+                    result = (float)d;
+                    return !float.IsNaN(result) && !float.IsInfinity(result);
+                case int i:
+                    result = i;
+                    return true;
+                case long l:
+                    result = l;
+                    return true;
+                case JValue token:
+                    return TryReadFloat(token.Value, out result);
+                default:
+                    result = 0;
+                    return false;
+            }
+        }
+
         public static NeoValueWritePayload? ValueReference(
             INeoValueReference? value)
         {
@@ -640,6 +795,14 @@ namespace NeoCompose.Runtime
                             value = attr.defaultValue.value,
                             typeId = attr.defaultValue.typeId,
                         };
+                case Vector2Attribute attr:
+                    return CreateDefaultVector2Row(nowIso, attr.defaultValue);
+                case Vector2IntAttribute attr:
+                    return CreateDefaultVector2Row(nowIso, attr.defaultValue);
+                case Vector3Attribute attr:
+                    return CreateDefaultVector3Row(nowIso, attr.defaultValue);
+                case Vector3IntAttribute attr:
+                    return CreateDefaultVector3Row(nowIso, attr.defaultValue);
                 case StringAttribute attr:
                     return attr.defaultValue is null
                         ? null
@@ -816,6 +979,26 @@ namespace NeoCompose.Runtime
                         value = sourceValue.value,
                         typeId = source.typeId,
                     };
+                case Vector2Attribute or Vector2IntAttribute
+                    when source is Vector2AttributeValue sourceValue:
+                    return new Vector2AttributeValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = CloneVector2(sourceValue.value),
+                        typeId = source.typeId,
+                    };
+                case Vector3Attribute or Vector3IntAttribute
+                    when source is Vector3AttributeValue sourceValue:
+                    return new Vector3AttributeValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = CloneVector3(sourceValue.value),
+                        typeId = source.typeId,
+                    };
                 case StringAttribute when source is StringAttributeValue sourceValue:
                     return new StringAttributeValue
                     {
@@ -965,12 +1148,56 @@ namespace NeoCompose.Runtime
             };
         }
 
+        private static Vector2AttributeValue? CreateDefaultVector2Row(
+            string nowIso,
+            AttributeValueBase<NeoVector2Value?>? defaultValue)
+        {
+            return defaultValue is null
+                ? null
+                : new Vector2AttributeValue
+                {
+                    id = Guid.NewGuid().ToString(),
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = CloneVector2(defaultValue.value),
+                    typeId = defaultValue.typeId,
+                };
+        }
+
+        private static Vector3AttributeValue? CreateDefaultVector3Row(
+            string nowIso,
+            AttributeValueBase<NeoVector3Value?>? defaultValue)
+        {
+            return defaultValue is null
+                ? null
+                : new Vector3AttributeValue
+                {
+                    id = Guid.NewGuid().ToString(),
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = CloneVector3(defaultValue.value),
+                    typeId = defaultValue.typeId,
+                };
+        }
+
         private static string[]? CloneArray(string[]? source)
         {
             if (source is null) return null;
             var clone = new string[source.Length];
             Array.Copy(source, clone, source.Length);
             return clone;
+        }
+
+        private static NeoVector2Value? CloneVector2(NeoVector2Value? source)
+        {
+            return source is null ? null : new NeoVector2Value { x = source.x, y = source.y };
+        }
+
+        private static NeoVector3Value? CloneVector3(NeoVector3Value? source)
+        {
+            return source is null
+                ? null
+                : new NeoVector3Value { x = source.x, y = source.y, z = source.z };
         }
 
         public static NeoValuePayload? ValuePayload(

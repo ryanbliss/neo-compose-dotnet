@@ -10,6 +10,7 @@ using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace NeoCompose.Tests
 {
@@ -174,6 +175,16 @@ namespace NeoCompose.Tests
 
             public void RaiseLiveContent(string content) =>
                 OnLiveContentChanged?.Invoke(content);
+        }
+
+        private sealed class VectorFunctionHandler : IHeroFunctionHandler
+        {
+            public Vector3 MoveTo(Vector3 destination, Vector2Int? cell)
+            {
+                return cell.HasValue
+                    ? destination + new Vector3(cell.Value.x, cell.Value.y, 0)
+                    : destination;
+            }
         }
 
         [Test]
@@ -427,6 +438,55 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual("Hero", hero.Name);
             Assert.AreEqual(100, hero.Health);
+        }
+
+        [Test]
+        public void GeneratedVectorProperties_ReadAndMutateComponents()
+        {
+            var app = LoadGeneratedClient(out _);
+
+            var assetHero = (ReadOnlyHero)app.ResolveDialogueValue("v-dict")!;
+            Vector3 authoredPosition = assetHero.Position;
+            Vector3 pathEntry = assetHero.Path[0];
+
+            Assert.AreEqual(new Vector3(1, 2, 3), authoredPosition);
+            Assert.AreEqual(1f, assetHero.Position.x);
+            Assert.AreEqual(4, assetHero.GridCell!.x);
+            Assert.AreEqual(new Vector3(1, 2, 3), pathEntry);
+
+            var hero = new Hero(
+                Position: new NeoVector3(7, 8, 9),
+                GridCell: new NeoVector3Int(1, 2, 3),
+                Path: new[] { new NeoVector3(3, 4, 5) });
+
+            hero.Position.x = 10;
+            Assert.AreEqual(10f, hero.Position.x);
+
+            hero.Position = new Vector3(11, 12, 13);
+            Vector3 replaced = hero.Position;
+            Assert.AreEqual(new Vector3(11, 12, 13), replaced);
+
+            hero.GridCell!.z = 99;
+            Assert.AreEqual(99, hero.GridCell.z);
+
+            hero.GridCell = null;
+            Assert.IsNull(hero.GridCell);
+
+            hero.Path.Add(new Vector3(21, 22, 23));
+            Vector3 appended = hero.Path[1];
+            Assert.AreEqual(new Vector3(21, 22, 23), appended);
+        }
+
+        [Test]
+        public void GeneratedVectorFunction_UsesUnityNativeSignature()
+        {
+            var app = LoadGeneratedClient(out _);
+            var hero = (ReadOnlyHero)app.ResolveDialogueValue("v-dict")!;
+            hero.FunctionHandler = new VectorFunctionHandler();
+
+            var moved = hero.MoveTo(new Vector3(1, 2, 3), new Vector2Int(4, 5));
+
+            Assert.AreEqual(new Vector3(5, 7, 3), moved);
         }
 
         [Test]

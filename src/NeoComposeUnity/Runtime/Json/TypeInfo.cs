@@ -105,6 +105,10 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.String:
                 case AttributeType.Sprite:
                 case AttributeType.Audio:
+                case AttributeType.Vector2:
+                case AttributeType.Vector2Int:
+                case AttributeType.Vector3:
+                case AttributeType.Vector3Int:
                     return typeof(PrimitiveTypeInfo);
                 case AttributeType.Custom:
                     return typeof(CustomTypeInfo);
@@ -145,6 +149,10 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.String:
                 case AttributeType.Sprite:
                 case AttributeType.Audio:
+                case AttributeType.Vector2:
+                case AttributeType.Vector2Int:
+                case AttributeType.Vector3:
+                case AttributeType.Vector3Int:
                     return typeof(PrimitiveTypeInfo);
                 case AttributeType.Custom:
                     return typeof(CustomTypeInfo);
