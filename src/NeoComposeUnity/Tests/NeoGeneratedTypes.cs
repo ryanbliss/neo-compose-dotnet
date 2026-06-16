@@ -64,6 +64,19 @@ namespace Assets.Scripts.Neo
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
+                ["attr-move-to"] = (client, receiver, args) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ReadOnlyHero>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "MoveTo",
+                    "attr-move-to");
+                var destination = NeoGeneratedTypesSupport.ReadVector3Value(args[0]) ?? throw new InvalidOperationException("Required Vector3 argument 'destination' could not be resolved.");
+                var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(args[1]);
+                return target.MoveTo(destination, cell);
+                },
             };
 
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
@@ -268,11 +281,22 @@ namespace Assets.Scripts.Neo
         public static bool operator !=(Element? left, Element? right) => !(left == right);
     }
 
+    public interface IHeroFunctionHandler
+    {
+        Vector3 MoveTo(Vector3 destination, Vector2Int? cell);
+    }
+
     public partial class ReadOnlyHero : NeoGeneratedCustomValue
     {
         internal ReadOnlyHero(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "type-hero")
         {
+        }
+
+        public IHeroFunctionHandler? FunctionHandler
+        {
+            get => FunctionHandlerObject as IHeroFunctionHandler;
+            set => FunctionHandlerObject = value;
         }
 
         internal static ReadOnlyHero Create(NeoClient client, NeoAttributeCustom node)
@@ -303,6 +327,42 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        public NeoReadOnlyVector3 Position
+        {
+            get
+            {
+                return new NeoReadOnlyVector3(node.Get<NeoAttributeVector3>("Position"));
+            }
+        }
+
+        public NeoReadOnlyVector3Int? GridCell
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeVector3Int>("GridCell");
+                return child.value is null ? null : new NeoReadOnlyVector3Int(child);
+            }
+        }
+
+        public NeoReadOnlyList<NeoReadOnlyVector3> Path
+        {
+            get
+            {
+                return new NeoReadOnlyList<NeoReadOnlyVector3>(client, node.Get<NeoAttributeList>("Path"), (client, child) => new NeoReadOnlyVector3((NeoAttributeVector3)child));
+            }
+        }
+
+        public Vector3 MoveTo(Vector3 destination, Vector2Int? cell)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'MoveTo' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.MoveTo(destination, cell);
+        }
+
         public sealed class Fields
         {
             private Fields() {}
@@ -310,6 +370,12 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<string?> Name = new("Name");
 
             public static readonly NeoField<int?> Health = new("Health");
+
+            public static readonly NeoField<NeoReadOnlyVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoReadOnlyVector3Int?> GridCell = new("GridCell");
+
+            public static readonly NeoField<NeoReadOnlyList<NeoReadOnlyVector3>> Path = new("Path");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -318,6 +384,9 @@ namespace Assets.Scripts.Neo
             {
                 [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
                 [Fields.Health] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.GridCell] = () => null,
+                [Fields.Path] = () => null,
             };
         }
 
@@ -337,6 +406,9 @@ namespace Assets.Scripts.Neo
             {
                 [Fields.Name] = () => Name,
                 [Fields.Health] = () => Health,
+                [Fields.Position] = () => Position,
+                [Fields.GridCell] = () => GridCell,
+                [Fields.Path] = () => Path,
             };
         }
 
@@ -360,12 +432,12 @@ namespace Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
-        public Hero(string? Name = null, int? Health = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Health))
+        public Hero(string? Name = null, int? Health = null, NeoVector3? Position = null, NeoVector3Int? GridCell = null, IEnumerable<NeoVector3>? Path = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Health, Position, GridCell, Path))
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Health = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Health = null, NeoVector3? Position = null, NeoVector3Int? GridCell = null, IEnumerable<NeoVector3>? Path = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -394,6 +466,55 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = Health.HasValue ? Health.Value : (double?)null,
+                });
+            }
+            if (Position is not null)
+            {
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            if (GridCell is not null)
+            {
+                var GridCellValueId = Guid.NewGuid().ToString();
+                value["GridCell"] = GridCellValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = GridCellValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3IntValue(GridCell.Value),
+                });
+            }
+            if (Path is not null)
+            {
+                var PathValueId = Guid.NewGuid().ToString();
+                value["Path"] = PathValueId;
+                var PathIds = new List<string>();
+                foreach (var entry in Path)
+                {
+                    var entryValueId = Guid.NewGuid().ToString();
+                    PathIds.Add(entryValueId);
+                    valueRows.Add(new Vector3AttributeValue
+                    {
+                        id = entryValueId,
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = NeoGeneratedTypesSupport.Vector3Value(entry.Value),
+                    });
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = PathValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = PathIds.ToArray(),
                 });
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-hero", value, valueRows);
@@ -435,6 +556,45 @@ namespace Assets.Scripts.Neo
             }
         }
 
+        public new NeoVector3 Position
+        {
+            get
+            {
+                return new NeoVector3(node.Get<NeoAttributeVector3>("Position"));
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value.Value);
+            }
+        }
+
+        public new NeoVector3Int? GridCell
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeVector3Int>("GridCell");
+                return child.value is null ? null : new NeoVector3Int(child);
+            }
+            set
+            {
+                if (value is null)
+                {
+                    writableNode.Unset("GridCell");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetVector3Int(writableNode, "GridCell", value.Value);
+            }
+        }
+
+        public new NeoList<NeoVector3> Path
+        {
+            get
+            {
+                return new NeoList<NeoVector3>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Path"), (client, child) => new NeoVector3((NeoAttributeVector3)child), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.Vector3Value(item.Value)));
+            }
+        }
+
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -442,6 +602,12 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<string?> Name = new("Name");
 
             public static readonly NeoField<int?> Health = new("Health");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3Int?> GridCell = new("GridCell");
+
+            public static readonly NeoField<NeoList<NeoVector3>> Path = new("Path");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -450,6 +616,9 @@ namespace Assets.Scripts.Neo
             {
                 [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
                 [Fields.Health] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.GridCell] = () => null,
+                [Fields.Path] = () => null,
             };
         }
 
@@ -469,6 +638,9 @@ namespace Assets.Scripts.Neo
             {
                 [Fields.Name] = () => Name,
                 [Fields.Health] = () => Health,
+                [Fields.Position] = () => Position,
+                [Fields.GridCell] = () => GridCell,
+                [Fields.Path] = () => Path,
             };
         }
 

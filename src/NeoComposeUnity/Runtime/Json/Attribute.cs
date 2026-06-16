@@ -298,6 +298,18 @@ namespace NeoCompose.Runtime.Json
         public string? templateId;
     }
 
+    /// <summary>Mirror of TS-side <c>TAttributeVector2</c>.</summary>
+    public class Vector2Attribute : Attribute<NeoVector2Value?> { }
+
+    /// <summary>Mirror of TS-side <c>TAttributeVector2Int</c>.</summary>
+    public class Vector2IntAttribute : Attribute<NeoVector2Value?> { }
+
+    /// <summary>Mirror of TS-side <c>TAttributeVector3</c>.</summary>
+    public class Vector3Attribute : Attribute<NeoVector3Value?> { }
+
+    /// <summary>Mirror of TS-side <c>TAttributeVector3Int</c>.</summary>
+    public class Vector3IntAttribute : Attribute<NeoVector3Value?> { }
+
     public class AttributeConverter : DiscriminatedConverter<Attribute>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -322,6 +334,10 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Sprite: return typeof(SpriteAttribute);
                 case AttributeType.Audio: return typeof(AudioAttribute);
                 case AttributeType.Function: return typeof(FunctionAttribute);
+                case AttributeType.Vector2: return typeof(Vector2Attribute);
+                case AttributeType.Vector2Int: return typeof(Vector2IntAttribute);
+                case AttributeType.Vector3: return typeof(Vector3Attribute);
+                case AttributeType.Vector3Int: return typeof(Vector3IntAttribute);
                 default: return null;
             }
         }

@@ -91,6 +91,16 @@ namespace NeoCompose.Runtime.Json
         public Pointer pointer = null!;
     }
 
+    /// <summary>
+    /// Info shape for global vector constructors. Mirrors TS-side
+    /// <c>INSFunctionVectorConstructorInfo</c>.
+    /// </summary>
+    public class FunctionVectorConstructorInfo
+    {
+        public AttributeType vectorType;
+        public Pointer[] componentPointers = null!;
+    }
+
     // ---------- Per-function variants ----------
 
     public class SelectFunction : Function
@@ -133,6 +143,11 @@ namespace NeoCompose.Runtime.Json
         public FunctionDialogueMemoryInfo info = null!;
     }
 
+    public class VectorConstructorFunction : Function
+    {
+        public FunctionVectorConstructorInfo info = null!;
+    }
+
     public class FunctionConverter : DiscriminatedConverter<Function>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -147,6 +162,7 @@ namespace NeoCompose.Runtime.Json
                 case FunctionKind.Count: return typeof(CountFunction);
                 case FunctionKind.VisitCount: return typeof(VisitCountFunction);
                 case FunctionKind.HasVisited: return typeof(HasVisitedFunction);
+                case FunctionKind.VectorConstructor: return typeof(VectorConstructorFunction);
                 default: return null;
             }
         }

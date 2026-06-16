@@ -559,6 +559,10 @@ namespace NeoCompose.Runtime
                 IntAttribute => new PrimitiveTypeInfo { type = AttributeType.Int, required = attribute.required },
                 FloatAttribute => new PrimitiveTypeInfo { type = AttributeType.Float, required = attribute.required },
                 StringAttribute => new PrimitiveTypeInfo { type = AttributeType.String, required = attribute.required },
+                Vector2Attribute => new PrimitiveTypeInfo { type = AttributeType.Vector2, required = attribute.required },
+                Vector2IntAttribute => new PrimitiveTypeInfo { type = AttributeType.Vector2Int, required = attribute.required },
+                Vector3Attribute => new PrimitiveTypeInfo { type = AttributeType.Vector3, required = attribute.required },
+                Vector3IntAttribute => new PrimitiveTypeInfo { type = AttributeType.Vector3Int, required = attribute.required },
                 CustomAttribute custom => new CustomTypeInfo
                 {
                     type = AttributeType.Custom,
@@ -590,6 +594,14 @@ namespace NeoCompose.Runtime
                     return new FloatAttribute { id = id, type = AttributeType.Float };
                 case AttributeType.String:
                     return new StringAttribute { id = id, type = AttributeType.String };
+                case AttributeType.Vector2:
+                    return new Vector2Attribute { id = id, type = AttributeType.Vector2 };
+                case AttributeType.Vector2Int:
+                    return new Vector2IntAttribute { id = id, type = AttributeType.Vector2Int };
+                case AttributeType.Vector3:
+                    return new Vector3Attribute { id = id, type = AttributeType.Vector3 };
+                case AttributeType.Vector3Int:
+                    return new Vector3IntAttribute { id = id, type = AttributeType.Vector3Int };
                 case AttributeType.Custom:
                     return new CustomAttribute
                     {
@@ -674,6 +686,8 @@ namespace NeoCompose.Runtime
                 StringAttributeValue s => s.value,
                 ArrayAttributeValue a => a.value,
                 ObjectAttributeValue o => o.value,
+                Vector2AttributeValue v => v.value,
+                Vector3AttributeValue v => v.value,
                 NullAttributeValue => null,
                 _ => null,
             };

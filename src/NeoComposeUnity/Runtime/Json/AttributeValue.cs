@@ -166,6 +166,159 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Carrier for a Sprite <see cref="Attribute.defaultValue"/>.</summary>
     public class SpriteAttributeValueBase : AttributeValueBase<SpriteValue?> { }
 
+    [JsonConverter(typeof(NeoVector2ValueConverter))]
+    public class NeoVector2Value
+    {
+        public float x { get; set; }
+        public float y { get; set; }
+    }
+
+    [JsonConverter(typeof(NeoVector3ValueConverter))]
+    public class NeoVector3Value : NeoVector2Value
+    {
+        public float z { get; set; }
+    }
+
+    /// <summary>Carrier for Vector2 / Vector2Int defaults.</summary>
+    public class Vector2AttributeValueBase : AttributeValueBase<NeoVector2Value?> { }
+
+    /// <summary>Carrier for Vector3 / Vector3Int defaults.</summary>
+    public class Vector3AttributeValueBase : AttributeValueBase<NeoVector3Value?> { }
+
+    public class NeoVector2ValueConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(NeoVector2Value);
+        }
+
+        public override bool CanWrite => false;
+
+        public override object ReadJson(
+            JsonReader reader,
+            Type objectType,
+            object? existingValue,
+            JsonSerializer serializer)
+        {
+            var obj = JObject.Load(reader);
+            if (!LooksLikeVector2Value(obj))
+            {
+                throw new JsonSerializationException(
+                    "Vector2 value must have exactly numeric 'x' and 'y' fields.");
+            }
+            return new NeoVector2Value
+            {
+                x = ReadFiniteFloat(obj, "x"),
+                y = ReadFiniteFloat(obj, "y"),
+            };
+        }
+
+        public override void WriteJson(
+            JsonWriter writer,
+            object? value,
+            JsonSerializer serializer)
+        {
+            throw new NotImplementedException(
+                "NeoVector2ValueConverter is read-only; default serialization handles writes.");
+        }
+
+        internal static bool LooksLikeVector2Value(JToken token)
+        {
+            if (token.Type != JTokenType.Object) return false;
+            var obj = (JObject)token;
+            return obj.Count == 2 && IsFiniteNumber(obj["x"]) && IsFiniteNumber(obj["y"]);
+        }
+
+        internal static float ReadFiniteFloat(JObject obj, string key)
+        {
+            var token = obj[key] ?? throw new JsonSerializationException(
+                $"Vector value is missing '{key}'.");
+            if (!IsFiniteNumber(token))
+            {
+                throw new JsonSerializationException(
+                    $"Vector component '{key}' must be a finite number.");
+            }
+            var value = token.Value<float>();
+            if (float.IsNaN(value) || float.IsInfinity(value))
+            {
+                throw new JsonSerializationException(
+                    $"Vector component '{key}' must be a finite number.");
+            }
+            return value;
+        }
+
+        private static bool IsFiniteNumber(JToken? token)
+        {
+            if (token == null) return false;
+            if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
+            {
+                return false;
+            }
+            var value = token.Value<float>();
+            return !float.IsNaN(value) && !float.IsInfinity(value);
+        }
+    }
+
+    public class NeoVector3ValueConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(NeoVector3Value);
+        }
+
+        public override bool CanWrite => false;
+
+        public override object ReadJson(
+            JsonReader reader,
+            Type objectType,
+            object? existingValue,
+            JsonSerializer serializer)
+        {
+            var obj = JObject.Load(reader);
+            if (!LooksLikeVector3Value(obj))
+            {
+                throw new JsonSerializationException(
+                    "Vector3 value must have exactly numeric 'x', 'y', and 'z' fields.");
+            }
+            return new NeoVector3Value
+            {
+                x = NeoVector2ValueConverter.ReadFiniteFloat(obj, "x"),
+                y = NeoVector2ValueConverter.ReadFiniteFloat(obj, "y"),
+                z = NeoVector2ValueConverter.ReadFiniteFloat(obj, "z"),
+            };
+        }
+
+        public override void WriteJson(
+            JsonWriter writer,
+            object? value,
+            JsonSerializer serializer)
+        {
+            throw new NotImplementedException(
+                "NeoVector3ValueConverter is read-only; default serialization handles writes.");
+        }
+
+        internal static bool LooksLikeVector3Value(JToken token)
+        {
+            if (token.Type != JTokenType.Object) return false;
+            var obj = (JObject)token;
+            return obj.Count == 3
+                && IsFiniteNumber(obj["x"])
+                && IsFiniteNumber(obj["y"])
+                && IsFiniteNumber(obj["z"]);
+        }
+
+        private static bool IsFiniteNumber(JToken? token)
+        {
+            if (token == null) return false;
+            if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
+            {
+                return false;
+            }
+            var value = token.Value<float>();
+            return !float.IsNaN(value) && !float.IsInfinity(value);
+        }
+    }
+
     /// <summary>
     /// Two-mode dispatch converter for <see cref="AttributeValueBase"/>.
     ///
@@ -256,6 +409,8 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Array:
                     return typeof(ArrayAttributeValueBase);
                 case JTokenType.Object:
+                    if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3AttributeValueBase);
+                    if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2AttributeValueBase);
                     if (LooksLikeSpriteValue(token)) return typeof(SpriteAttributeValueBase);
                     if (LooksLikeFileValue(token)) return typeof(FileAttributeValueBase);
                     return typeof(ObjectAttributeValueBase);
@@ -363,6 +518,12 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Stored value for a Sprite attribute.</summary>
     public class SpriteAttributeValue : AttributeValue<SpriteValue?> { }
 
+    /// <summary>Stored value for a Vector2 / Vector2Int attribute.</summary>
+    public class Vector2AttributeValue : AttributeValue<NeoVector2Value?> { }
+
+    /// <summary>Stored value for a Vector3 / Vector3Int attribute.</summary>
+    public class Vector3AttributeValue : AttributeValue<NeoVector3Value?> { }
+
     /// <summary>
     /// Two-mode dispatch converter for <see cref="AttributeValue"/>.
     /// Same dual logic as <see cref="AttributeValueBaseConverter"/>,
@@ -426,6 +587,8 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Array:
                     return typeof(ArrayAttributeValue);
                 case JTokenType.Object:
+                    if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3AttributeValue);
+                    if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2AttributeValue);
                     if (LooksLikeSpriteValue(token)) return typeof(SpriteAttributeValue);
                     if (LooksLikeFileValue(token)) return typeof(FileAttributeValue);
                     return typeof(ObjectAttributeValue);

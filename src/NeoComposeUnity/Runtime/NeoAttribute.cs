@@ -161,6 +161,10 @@ namespace NeoCompose.Runtime
                 FunctionAttribute fn => new NeoAttributeFunction(client, fn, overrideValueId),
                 SpriteAttribute sp => new NeoAttributeSprite(client, sp, overrideValueId),
                 AudioAttribute au => new NeoAttributeAudio(client, au, overrideValueId),
+                Vector2Attribute v2 => new NeoAttributeVector2(client, v2, overrideValueId),
+                Vector2IntAttribute v2i => new NeoAttributeVector2Int(client, v2i, overrideValueId),
+                Vector3Attribute v3 => new NeoAttributeVector3(client, v3, overrideValueId),
+                Vector3IntAttribute v3i => new NeoAttributeVector3Int(client, v3i, overrideValueId),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}", nameof(attribute)),
             };
@@ -205,6 +209,10 @@ namespace NeoCompose.Runtime
                 FunctionAttribute fn => new NeoAttributeFunction(client, fn, overrideValueId, ownership),
                 SpriteAttribute sp => new NeoAttributeSpriteWritable(client, sp, overrideValueId, ownership),
                 AudioAttribute au => new NeoAttributeAudioWritable(client, au, overrideValueId, ownership),
+                Vector2Attribute v2 => new NeoAttributeVector2Writable(client, v2, overrideValueId, ownership),
+                Vector2IntAttribute v2i => new NeoAttributeVector2IntWritable(client, v2i, overrideValueId, ownership),
+                Vector3Attribute v3 => new NeoAttributeVector3Writable(client, v3, overrideValueId, ownership),
+                Vector3IntAttribute v3i => new NeoAttributeVector3IntWritable(client, v3i, overrideValueId, ownership),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}", nameof(attribute)),
             };
@@ -228,6 +236,10 @@ namespace NeoCompose.Runtime
                 FunctionAttribute => existing is NeoAttributeFunction,
                 SpriteAttribute => existing is NeoAttributeSpriteWritable,
                 AudioAttribute => existing is NeoAttributeAudioWritable,
+                Vector2Attribute => existing is NeoAttributeVector2Writable,
+                Vector2IntAttribute => existing is NeoAttributeVector2IntWritable,
+                Vector3Attribute => existing is NeoAttributeVector3Writable,
+                Vector3IntAttribute => existing is NeoAttributeVector3IntWritable,
                 _ => false,
             };
         }
