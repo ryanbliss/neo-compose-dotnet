@@ -86,6 +86,7 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, Dialogue> dialogues => data.dialogues;
         internal IReadOnlyDictionary<string, DialogueGroup> dialogueGroups => data.dialogueGroups;
         internal IReadOnlyDictionary<string, PriorityGroup> priorityGroups => data.priorityGroups;
+        internal IReadOnlyDictionary<string, TileGridContent> tileGridContents => data.tileGridContents;
         internal IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
         internal IReadOnlyDictionary<string, AttributeValue> sessionValues => sessionData.values;
         internal Project project => data.project;
@@ -1298,6 +1299,129 @@ namespace NeoCompose.Runtime
             };
         }
 
+        internal IEnumerable<TileGridRegionDelta> GetTileGridRegionDeltas(
+            NeoValueOwnership ownership,
+            string gridValueId,
+            string layerId,
+            string layerKind)
+        {
+            if (ownership == NeoValueOwnership.Asset) yield break;
+            var store = GetWritableStore(ownership);
+            EnsureTileGridDeltaMap(store);
+            if (!store.tileGridDeltas.TryGetValue(gridValueId, out var content)) yield break;
+            foreach (var region in content.regions)
+            {
+                if (region.gridValueId != gridValueId) continue;
+                if (region.layerId != layerId) continue;
+                if (region.layerKind != layerKind) continue;
+                yield return region;
+            }
+        }
+
+        internal IEnumerable<string> GetTileGridDeltaLayerIds(
+            NeoValueOwnership ownership,
+            string gridValueId,
+            string layerKind)
+        {
+            if (ownership == NeoValueOwnership.Asset) yield break;
+            var store = GetWritableStore(ownership);
+            EnsureTileGridDeltaMap(store);
+            if (!store.tileGridDeltas.TryGetValue(gridValueId, out var content)) yield break;
+            var yielded = new HashSet<string>();
+            foreach (var region in content.regions)
+            {
+                if (region.gridValueId != gridValueId) continue;
+                if (region.layerKind != layerKind) continue;
+                if (!yielded.Add(region.layerId)) continue;
+                yield return region.layerId;
+            }
+        }
+
+        internal TileGridRegionDelta? GetTileGridRegionDelta(
+            NeoValueOwnership ownership,
+            string gridValueId,
+            string layerId,
+            string layerKind,
+            string regionKey)
+        {
+            if (ownership == NeoValueOwnership.Asset) return null;
+            var store = GetWritableStore(ownership);
+            EnsureTileGridDeltaMap(store);
+            if (!store.tileGridDeltas.TryGetValue(gridValueId, out var content)) return null;
+            foreach (var region in content.regions)
+            {
+                if (region.gridValueId == gridValueId &&
+                    region.layerId == layerId &&
+                    region.layerKind == layerKind &&
+                    region.regionKey == regionKey)
+                {
+                    return region;
+                }
+            }
+            return null;
+        }
+
+        internal TileGridRegionDelta EnsureTileGridRegionDelta(
+            NeoValueOwnership ownership,
+            string gridValueId,
+            string layerId,
+            string layerKind,
+            string regionKey,
+            int regionX,
+            int regionY)
+        {
+            if (ownership == NeoValueOwnership.Asset)
+            {
+                throw new System.InvalidOperationException(
+                    "TileGrid runtime deltas cannot be written to asset-owned project data.");
+            }
+            var store = GetWritableStore(ownership);
+            EnsureTileGridDeltaMap(store);
+            if (!store.tileGridDeltas.TryGetValue(gridValueId, out var content))
+            {
+                content = new TileGridDeltaContent();
+                store.tileGridDeltas[gridValueId] = content;
+            }
+            foreach (var existing in content.regions)
+            {
+                if (existing.gridValueId == gridValueId &&
+                    existing.layerId == layerId &&
+                    existing.layerKind == layerKind &&
+                    existing.regionKey == regionKey)
+                {
+                    return existing;
+                }
+            }
+            var created = new TileGridRegionDelta
+            {
+                gridValueId = gridValueId,
+                layerId = layerId,
+                layerKind = layerKind,
+                regionKey = regionKey,
+                regionX = regionX,
+                regionY = regionY,
+                dataSchemaVersion = 1,
+                delta = new TileGridRegionDeltaPayload(),
+            };
+            content.regions.Add(created);
+            return created;
+        }
+
+        internal void TouchTileGridDelta(NeoValueOwnership ownership, string gridValueId)
+        {
+            if (ownership == NeoValueOwnership.Asset) return;
+            TouchWritableStoreUpdatedAt(ownership);
+            if (ownership == NeoValueOwnership.Save)
+            {
+                ScheduleLiveAutoCommit();
+            }
+        }
+
+        private static void EnsureTileGridDeltaMap(ProjectSaveData store)
+        {
+            store.tileGridDeltas ??= new Dictionary<string, TileGridDeltaContent>();
+        }
+
         internal bool TryResolveLookupCollectionValueId(
             string collectionAttributeId,
             string? collectionValueId,
@@ -1747,6 +1871,7 @@ namespace NeoCompose.Runtime
                 createdAt = NeoTimestamp.Now(),
                 // leave `values` empty until value(s) are written at runtime (sparse overlay)
                 values = new(),
+                tileGridDeltas = new(),
             };
             return empty;
         }
@@ -1760,6 +1885,7 @@ namespace NeoCompose.Runtime
                 version = BuildSaveVersionData(),
                 createdAt = NeoTimestamp.Now(),
                 values = new(),
+                tileGridDeltas = new(),
             };
         }
 
@@ -1897,6 +2023,8 @@ namespace NeoCompose.Runtime
 
                     SetSaveValue(row);
                 }
+
+                saveData.tileGridDeltas = incoming.tileGridDeltas ?? new();
             }
             finally
             {
@@ -2189,6 +2317,8 @@ namespace NeoCompose.Runtime
             // `DeserializeSaveData` returns null on empty/whitespace without throwing,
             // so a null/empty resolution still needs the default-build fallback.
             saveData = parsed ?? BuildDefaultSaveData();
+            saveData.values ??= new();
+            saveData.tileGridDeltas ??= new();
         }
     }
 }

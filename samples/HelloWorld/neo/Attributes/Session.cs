@@ -8,6 +8,6 @@ namespace ProjectSchema;
 [NeoCustomType("63b261c9-46f2-4d37-84e9-06f16af04e58", Hidden = true, ExtraJson = @"{""extendsTypeId"":null,""system"":null}")]
 public sealed class Session
 {
-    [NeoBool("8da60967-116a-4062-9cfb-e9d6a052914d", DefaultJson = @"{""value"":false}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
-    public bool Foo { get; init; }
+    [NeoVector3("1c7de3b5-6474-483c-aef5-fc48265199b0", DefaultJson = @"{""value"":{""x"":0,""y"":0,""z"":0}}", ExtraJson = @"{""extendsAttributeId"":null,""storage"":null,""system"":null}")]
+    public NeoVector3 Position { get; init; }
 }

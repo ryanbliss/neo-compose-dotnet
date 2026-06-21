@@ -16,16 +16,21 @@ namespace NeoCompose.Runtime.Json
     /// tombstones are just entries — kept opaque as raw JSON tokens, the same
     /// trust level as <see cref="NeoSaveValues"/>. <see cref="restoredToAuthored"/>
     /// deletes the overlay key entirely so the value falls back to the authored
-    /// default. The server rejects a key present in both collections.
+    /// default. <see cref="tileGridDeltas"/> is a nullable full replacement for
+    /// the TileGrid sidecar; null means unchanged, an empty dictionary clears all
+    /// save-side grid deltas. The server rejects a key present in both value
+    /// collections.
     /// </summary>
     public sealed class NeoSavePatch
     {
         public Dictionary<string, JToken> entries = new();
         public List<string> restoredToAuthored = new();
+        public Dictionary<string, TileGridDeltaContent>? tileGridDeltas;
 
         /// <summary>True when the patch changes nothing (the server rejects these).</summary>
         [JsonIgnore]
-        public bool IsEmpty => entries.Count == 0 && restoredToAuthored.Count == 0;
+        public bool IsEmpty =>
+            entries.Count == 0 && restoredToAuthored.Count == 0 && tileGridDeltas == null;
     }
 
     /// <summary>

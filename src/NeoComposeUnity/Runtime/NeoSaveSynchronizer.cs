@@ -52,8 +52,15 @@ namespace NeoCompose.Runtime
         /// for the next flush. Null until a load/flush establishes it.</summary>
         private JObject? liveBaseline;
 
+        /// <summary>The server-acknowledged TileGrid sidecar map; null until a
+        /// load/flush establishes it. Compared as JSON so live patches can send
+        /// a sidecar replacement only when authored world content actually
+        /// changed.</summary>
+        private JObject? liveTileGridDeltasBaseline;
+
         /// <summary>The most recently staged local save; what the next flush
-        /// diffs against <see cref="liveBaseline"/>.</summary>
+        /// diffs against <see cref="liveBaseline"/> and
+        /// <see cref="liveTileGridDeltasBaseline"/>.</summary>
         private LocalGameSave? stagedLive;
 
         private bool liveFlushLoopRunning;
@@ -552,6 +559,7 @@ namespace NeoCompose.Runtime
             liveBaseline = AsValuesObject(loaded.values) is JObject values
                 ? (JObject)values.DeepClone()
                 : null;
+            liveTileGridDeltasBaseline = TileGridDeltasObject(loaded.tileGridDeltas);
             RecordKnownLiveIdentity(
                 loaded.serverId, loaded.snapshotId, loaded.snapshotHash, loaded.synchronizedAt);
         }
@@ -731,7 +739,11 @@ namespace NeoCompose.Runtime
             }
 
             var baseline = liveBaseline ?? new JObject();
-            var patch = BuildLivePatch(baseline, staged);
+            var patch = BuildLivePatch(
+                baseline,
+                staged,
+                liveTileGridDeltasBaseline,
+                local.tileGridDeltas);
             if (patch.IsEmpty)
             {
                 if (ReferenceEquals(stagedLive, local)) liveFirstDirtyAt = -1;
@@ -773,6 +785,7 @@ namespace NeoCompose.Runtime
 
             RecordLiveHash(result.SnapshotHash);
             liveBaseline = (JObject)staged.DeepClone();
+            liveTileGridDeltasBaseline = TileGridDeltasObject(local.tileGridDeltas);
             local.snapshotId = result.SnapshotId;
             local.snapshotHash = result.SnapshotHash;
             local.synchronizedAt = result.SynchronizedAt.EpochMilliseconds;
@@ -856,6 +869,7 @@ namespace NeoCompose.Runtime
                 liveBaseline = AsValuesObject(serverHead.values) is JObject values
                     ? (JObject)values.DeepClone()
                     : null;
+                liveTileGridDeltasBaseline = TileGridDeltasObject(serverHead.tileGridDeltas);
                 liveFirstDirtyAt = -1;
                 RecordLiveHash(serverHead.snapshotHash);
                 OnLiveContentChanged?.Invoke(JsonConvert.SerializeObject(adopted));
@@ -923,6 +937,7 @@ namespace NeoCompose.Runtime
             liveBaseline = AsValuesObject(committed.values) is JObject values
                 ? (JObject)values.DeepClone()
                 : null;
+            liveTileGridDeltasBaseline = TileGridDeltasObject(committed.tileGridDeltas);
             local.serverId = committed.serverId;
             local.snapshotId = committed.snapshotId;
             local.snapshotHash = committed.snapshotHash;
@@ -958,6 +973,7 @@ namespace NeoCompose.Runtime
             liveBaseline = AsValuesObject(committed.values) is JObject serverValues
                 ? (JObject)serverValues.DeepClone()
                 : (JObject)staged.DeepClone();
+            liveTileGridDeltasBaseline = TileGridDeltasObject(committed.tileGridDeltas);
             local.serverId = committed.serverId;
             local.snapshotId = committed.snapshotId;
             local.snapshotHash = committed.snapshotHash;
@@ -1060,6 +1076,7 @@ namespace NeoCompose.Runtime
             }
 
             var merged = (JObject)remoteValues.DeepClone();
+            var mergedTileGridDeltas = CloneTileGridDeltas(remote.tileGridDeltas);
             var staged = stagedLive != null ? AsValuesObject(stagedLive.values) : null;
             if (staged != null && liveBaseline != null && liveFirstDirtyAt >= 0)
             {
@@ -1067,9 +1084,19 @@ namespace NeoCompose.Runtime
                 foreach (var pair in dirty.entries) merged[pair.Key] = pair.Value;
                 foreach (var key in dirty.restoredToAuthored) merged.Remove(key);
             }
+            if (stagedLive != null && liveTileGridDeltasBaseline != null && liveFirstDirtyAt >= 0)
+            {
+                var stagedTileGridDeltas = TileGridDeltasObject(stagedLive.tileGridDeltas);
+                if (!JToken.DeepEquals(liveTileGridDeltasBaseline, stagedTileGridDeltas))
+                {
+                    mergedTileGridDeltas = CloneTileGridDeltas(stagedLive.tileGridDeltas);
+                }
+            }
 
             liveBaseline = (JObject)remoteValues.DeepClone();
+            liveTileGridDeltasBaseline = TileGridDeltasObject(remote.tileGridDeltas);
             current.values = new NeoSaveValues(merged);
+            current.tileGridDeltas = mergedTileGridDeltas;
             current.snapshotId = remote.snapshotId;
             current.snapshotHash = remote.snapshotHash;
             current.synchronizedAt = remote.synchronizedAt.EpochMilliseconds;
@@ -1121,9 +1148,13 @@ namespace NeoCompose.Runtime
             }
         }
 
-        /// <summary>Per-key diff: entries for added/changed keys, restores for
-        /// keys the staged map no longer carries.</summary>
-        private static NeoSavePatch BuildLivePatch(JObject baseline, JObject staged)
+        /// <summary>Per-key diff for values plus an optional full replacement
+        /// for the TileGrid sidecar when authored world content changed.</summary>
+        private static NeoSavePatch BuildLivePatch(
+            JObject baseline,
+            JObject staged,
+            JObject? tileGridDeltasBaseline = null,
+            Dictionary<string, TileGridDeltaContent>? stagedTileGridDeltas = null)
         {
             var patch = new NeoSavePatch();
             foreach (var property in staged.Properties())
@@ -1143,6 +1174,17 @@ namespace NeoCompose.Runtime
                 }
             }
 
+            if (stagedTileGridDeltas != null)
+            {
+                var stagedTileGridDeltasObject = TileGridDeltasObject(stagedTileGridDeltas);
+                if (!JToken.DeepEquals(
+                        tileGridDeltasBaseline ?? new JObject(),
+                        stagedTileGridDeltasObject))
+                {
+                    patch.tileGridDeltas = CloneTileGridDeltas(stagedTileGridDeltas);
+                }
+            }
+
             return patch;
         }
 
@@ -1153,6 +1195,23 @@ namespace NeoCompose.Runtime
             if (values.Raw is JObject asObject) return asObject;
             if (values.IsNull) return new JObject();
             return null;
+        }
+
+        private static JObject TileGridDeltasObject(
+            Dictionary<string, TileGridDeltaContent>? tileGridDeltas) =>
+            JObject.FromObject(tileGridDeltas ?? new Dictionary<string, TileGridDeltaContent>());
+
+        private static Dictionary<string, TileGridDeltaContent> CloneTileGridDeltas(
+            Dictionary<string, TileGridDeltaContent>? tileGridDeltas)
+        {
+            if (tileGridDeltas == null || tileGridDeltas.Count == 0)
+            {
+                return new Dictionary<string, TileGridDeltaContent>();
+            }
+
+            return JsonConvert.DeserializeObject<Dictionary<string, TileGridDeltaContent>>(
+                JsonConvert.SerializeObject(tileGridDeltas))
+                ?? new Dictionary<string, TileGridDeltaContent>();
         }
 
         private static double DefaultLiveClock() =>
@@ -1283,6 +1342,7 @@ namespace NeoCompose.Runtime
                 version = local.version,
                 targetReleaseChannelId = core.TargetReleaseChannelId,
                 values = local.values,
+                tileGridDeltas = local.tileGridDeltas ?? new Dictionary<string, TileGridDeltaContent>(),
                 platforms = local.platforms,
                 systems = local.systems,
                 inputDevices = local.inputDevices,

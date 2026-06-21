@@ -27,6 +27,7 @@ namespace HelloWorld.Assets.Scripts
         private NeoSaveSynchronizer synchronizer;
         private CoreUI coreUI;
         private DialogueUI dialogueUI;
+        private LandingSceneUI landingSceneUI;
         private NeoDialogue activeDialogue;
         private IDisposable bitsSubscription;
         private IDisposable inventorySubscription;
@@ -50,6 +51,7 @@ namespace HelloWorld.Assets.Scripts
             this.synchronizer = synchronizer ?? throw new ArgumentNullException(nameof(synchronizer));
             coreUI = new CoreUI();
             dialogueUI = new DialogueUI();
+            landingSceneUI = new LandingSceneUI();
             OutpostFunctionHandler.AnimationPlayer = dialogueUI;
             return LoadClientAsync();
         }
@@ -83,6 +85,7 @@ namespace HelloWorld.Assets.Scripts
         public ReadOnlyOutpost CurrentOutpost => neo.Save.Location;
         public NeoReadOnlyList<ReadOnlyOutpost> Outposts => neo.Assets.Outposts;
         public NeoList<PlanetVisit> VisitedPlanets => neo.Save.Visited;
+        public bool OldConsoleLandingOpen => landingSceneUI?.IsOpen == true;
 
         public void OnVisitOutpost(ReadOnlyOutpost outpost)
         {
@@ -179,6 +182,25 @@ namespace HelloWorld.Assets.Scripts
             {
                 ShowDialogue(visitDialogue);
             }
+        }
+
+        public void OpenOldConsoleLanding()
+        {
+            if (neo == null) return;
+            if (!CanOpenOldConsoleLanding) return;
+
+            ClearDialogue();
+            coreUI.SetVisible(false);
+            landingSceneUI.Show(
+                neo.Assets.Worlds.OldConsoleLanding.Content,
+                CloseOldConsoleLanding);
+        }
+
+        public void CloseOldConsoleLanding()
+        {
+            landingSceneUI.Hide();
+            coreUI.SetVisible(true);
+            UpdateUI();
         }
 
         public void ShowDialogue(NeoDialogue dialogue)
@@ -334,11 +356,15 @@ namespace HelloWorld.Assets.Scripts
                 neo.Save.Bits, neo.Save.Inventory.ToArray(),
                 HasDialogueAvailable,
                 OnVisitOutpost,
+                CanOpenOldConsoleLanding,
+                OpenOldConsoleLanding,
                 onSave: OnSaveClicked,
                 onReset: () => Run(ResetAsync()),
                 onMenu: () => OnExitToMenu?.Invoke()
             );
         }
+
+        private bool CanOpenOldConsoleLanding => CurrentOutpost.Name == "Capitol OG";
 
         /// <summary>
         /// Map art for worlds whose outposts are moons. Authored sprites from
@@ -436,6 +462,7 @@ namespace HelloWorld.Assets.Scripts
             DisposeClient();
             OutpostFunctionHandler.AnimationPlayer = null;
             gameAudio.Dispose();
+            landingSceneUI.Dispose();
             dialogueUI.Dispose();
             coreUI.Dispose();
         }

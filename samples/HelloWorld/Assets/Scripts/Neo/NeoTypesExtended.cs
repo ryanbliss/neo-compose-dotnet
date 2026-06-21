@@ -106,6 +106,67 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static string ResourcePath(string name) => $"{ResourceDirectory}/{AssetName(name)}";
     }
 
+    internal static class OldConsoleLandingPresentation
+    {
+        public static Sprite ObjectSprite(object obj)
+        {
+            ReadOnlyArt art = HelloWorldNeo.RequireInstance().Assets.Art;
+
+            if (obj is ReadOnlyVaultPlaqueObject || obj is VaultPlaqueObject)
+            {
+                return art.VaultPlaqueSprite;
+            }
+            if (obj is ReadOnlyExitPromptObject || obj is ExitPromptObject)
+            {
+                return art.ShipSprite;
+            }
+
+            return art.FirstWorldIconSprite;
+        }
+
+        public static ConsoleObjectColliderShape ObjectCollider(object obj)
+        {
+            if (obj is ReadOnlyExitPromptObject || obj is ExitPromptObject)
+            {
+                return new ConsoleObjectColliderShape(
+                    new Vector2(2f, 1f),
+                    new Vector2(0.5f, 0f),
+                    isTrigger: true);
+            }
+
+            return new ConsoleObjectColliderShape(
+                Vector2.one,
+                Vector2.zero,
+                isTrigger: true);
+        }
+    }
+
+    public sealed class ConsoleObjectColliderShape
+    {
+        public ConsoleObjectColliderShape(Vector2 size, Vector2 offset, bool isTrigger)
+        {
+            Size = size;
+            Offset = offset;
+            IsTrigger = isTrigger;
+        }
+
+        public Vector2 Size { get; }
+        public Vector2 Offset { get; }
+        public bool IsTrigger { get; }
+    }
+
+    public abstract partial class ReadOnlyConsoleObject
+    {
+        public Sprite Sprite => OldConsoleLandingPresentation.ObjectSprite(this);
+        public object Collider => OldConsoleLandingPresentation.ObjectCollider(this);
+    }
+
+    public abstract partial class ConsoleObject
+    {
+        public Sprite Sprite => OldConsoleLandingPresentation.ObjectSprite(this);
+        public object Collider => OldConsoleLandingPresentation.ObjectCollider(this);
+    }
+
 #if UNITY_EDITOR
     // Example showing how you can hook into asset synchronization for things like creating AnimationClip assets from a list of Sprites
     public partial class ReadOnlyAnimationInfo

@@ -6,6 +6,7 @@ using System.Linq;
 using NeoCompose.Runtime;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 using HelloWorld.Assets.Scripts;
 using HelloWorld.Assets.Scripts.Neo;
 
@@ -28,6 +29,11 @@ namespace HelloWorld.Assets.Tests
         // tree, different prefix.)
         private const string FixturesRoot = "Assets/Tests";
         private const string SampleProjectRoot = "Assets/Resources/Neo";
+        private const string GlassFloorTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588142";
+        private const string BootGlyphTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588143";
+        private const string RedNovaWarningTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588144";
+        private const string PlayerSpawnObjectValueId = "8f96912d-5bbb-428c-84eb-8932ef588151";
+        private const string VaultPlaqueObjectValueId = "8f96912d-5bbb-428c-84eb-8932ef588152";
 
         private static string LoadFixture(string fileName)
         {
@@ -234,11 +240,161 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual("es-ES", client.Localization.CurrentLocale);
             Assert.AreEqual("Tierra", client.Save.Visited[0].World.Text);
         }
+
+        [Test]
+        public void TileGridRenderer_RendersOldConsoleLandingGeneratedContent()
+        {
+            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var content = client.Assets.Worlds.OldConsoleLanding.Content;
+
+            Assert.IsInstanceOf<ReadOnlyGlassFloorTile>(
+                content.Background.GetTile(new Vector2Int(1, 1)));
+            Assert.IsInstanceOf<ReadOnlyBootGlyphTile>(
+                content.Background.GetTile(new Vector2Int(2, 2)));
+            Assert.IsInstanceOf<ReadOnlyRedNovaWarningTile>(
+                content.Background.GetTile(new Vector2Int(0, 0)));
+            Assert.IsInstanceOf<ReadOnlyVoidTile>(
+                content.Collisions.GetTile(new Vector2Int(0, 0)));
+            Assert.IsInstanceOf<ReadOnlyPlayerSpawnObject>(
+                content.Objects.GetObject(new Vector2Int(1, 1)));
+            Assert.IsInstanceOf<ReadOnlyVaultPlaqueObject>(
+                content.Objects.GetObject(new Vector2Int(8, 8)));
+            Assert.IsInstanceOf<ReadOnlyExitPromptObject>(
+                content.Objects.GetObject(new Vector2Int(14, 1)));
+
+            var go = new GameObject("Neo TileGrid Renderer Smoke");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+
+                renderer.Render(content);
+
+                var tilemaps = go.GetComponentsInChildren<Tilemap>();
+                Assert.AreEqual(2, tilemaps.Length);
+                var backgroundTilemap = tilemaps.Single(tilemap =>
+                    tilemap.gameObject.name == "Tile Layer - Background");
+                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(1, 1, 0)));
+                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(2, 2, 0)));
+
+                var objectLayer = go.transform.Find("Object Layer - Objects");
+                Assert.IsNotNull(
+                    objectLayer,
+                    "Expected the generated object layer to render as a child root.");
+                Assert.AreEqual(3, objectLayer!.childCount);
+                AssertRenderedObject(objectLayer, "old-console-object-player-spawn");
+                AssertRenderedObject(objectLayer, "old-console-object-vault-plaque");
+                AssertRenderedObject(objectLayer, "old-console-object-exit-prompt");
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        private static void AssertRenderedObject(Transform objectLayer, string instanceId)
+        {
+            var rendered = objectLayer.Find($"Object - {instanceId}");
+            Assert.IsNotNull(rendered, $"Expected object instance '{instanceId}' to render.");
+            Assert.IsNotNull(rendered!.GetComponent<SpriteRenderer>());
+            Assert.IsNotNull(rendered.GetComponent<BoxCollider2D>());
+        }
+
+        [Test]
+        public void TileGridSaveAndSessionMutation_ConvertsOldConsoleLandingTiles()
+        {
+            var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
+            var cell = new Vector2Int(2, -3);
+            var glassFloor = ResolveSampleValue<ReadOnlyGlassFloorTile>(client, GlassFloorTileValueId);
+            var redNova = ResolveSampleValue<ReadOnlyRedNovaWarningTile>(client, RedNovaWarningTileValueId);
+            var bootGlyph = ResolveSampleValue<ReadOnlyBootGlyphTile>(client, BootGlyphTileValueId);
+            var saveContent = OldConsoleLandingGridContent.ResolveForSave(
+                client.Client,
+                client.Assets.Worlds.OldConsoleLanding.valueId!);
+
+            Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell));
+            AssertPlacementOk(saveContent.Background.TrySetTile(cell, glassFloor));
+            var placed = client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
+                .Single(tile => tile.Cell == cell);
+            Assert.AreSame(glassFloor, placed.Tile);
+
+            AssertPlacementOk(saveContent.Background.TryConvertTile(placed.InstanceId, redNova));
+            Assert.IsInstanceOf<ReadOnlyRedNovaWarningTile>(
+                client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell));
+            client.CommitAsync().GetAwaiter().GetResult();
+
+            var reopened = ReopenSampleClient(store, EnglishLocalizationOptions());
+            var reopenedTile = reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
+                .Single(tile => tile.Cell == cell);
+            Assert.AreEqual(placed.InstanceId, reopenedTile.InstanceId);
+            Assert.IsInstanceOf<ReadOnlyRedNovaWarningTile>(reopenedTile.Tile);
+
+            var sessionContent = OldConsoleLandingGridContent.ResolveForSession(
+                reopened.Client,
+                reopened.Assets.Worlds.OldConsoleLanding.valueId!);
+            AssertPlacementOk(sessionContent.Background.TryConvertTile(placed.InstanceId, bootGlyph));
+
+            Assert.IsInstanceOf<ReadOnlyBootGlyphTile>(
+                reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell));
+
+            var persistedAfterSession = ReopenSampleClient(store, EnglishLocalizationOptions());
+            var persistedTile = persistedAfterSession.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
+                .Single(tile => tile.Cell == cell);
+            Assert.AreEqual(placed.InstanceId, persistedTile.InstanceId);
+            Assert.IsInstanceOf<ReadOnlyRedNovaWarningTile>(persistedTile.Tile);
+        }
+
+        [Test]
+        public void TileGridSaveMutation_SpawnsSwapsAndDespawnsOldConsoleLandingObjects()
+        {
+            var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
+            var cell = new Vector2Int(4, -2);
+            var playerSpawn = ResolveSampleValue<ReadOnlyPlayerSpawnObject>(client, PlayerSpawnObjectValueId);
+            var vaultPlaque = ResolveSampleValue<ReadOnlyVaultPlaqueObject>(client, VaultPlaqueObjectValueId);
+            var saveContent = OldConsoleLandingGridContent.ResolveForSave(
+                client.Client,
+                client.Assets.Worlds.OldConsoleLanding.valueId!);
+
+            Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
+            AssertPlacementOk(saveContent.Objects.TrySpawn(cell, playerSpawn));
+
+            var placed = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
+                .Single(obj => obj.Cell == cell);
+            Assert.IsInstanceOf<ReadOnlyPlayerSpawnObject>(placed.Object);
+
+            var duplicate = saveContent.Objects.TrySpawn(cell, vaultPlaque);
+            Assert.IsFalse(duplicate.Ok);
+            Assert.AreEqual("tile-grid-object-cell-occupied", duplicate.ErrorCode);
+
+            AssertPlacementOk(saveContent.Objects.TrySwapVariant(placed.InstanceId, vaultPlaque));
+            var swapped = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
+                .Single(obj => obj.Cell == cell);
+            Assert.AreEqual(placed.InstanceId, swapped.InstanceId);
+            Assert.IsInstanceOf<ReadOnlyVaultPlaqueObject>(swapped.Object);
+            client.CommitAsync().GetAwaiter().GetResult();
+
+            var reopened = ReopenSampleClient(store, EnglishLocalizationOptions());
+            var reopenedInstance = reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
+                .Single(obj => obj.Cell == cell);
+            Assert.AreEqual(placed.InstanceId, reopenedInstance.InstanceId);
+            Assert.IsInstanceOf<ReadOnlyVaultPlaqueObject>(reopenedInstance.Object);
+
+            var reopenedSaveContent = OldConsoleLandingGridContent.ResolveForSave(
+                reopened.Client,
+                reopened.Assets.Worlds.OldConsoleLanding.valueId!);
+            AssertPlacementOk(reopenedSaveContent.Objects.TryDespawn(reopenedInstance.InstanceId));
+            Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
+            reopened.CommitAsync().GetAwaiter().GetResult();
+
+            var persistedAfterDespawn = ReopenSampleClient(store, EnglishLocalizationOptions());
+            Assert.IsNull(
+                persistedAfterDespawn.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObject(cell));
+        }
+
         // Builds the generated sample client over the Phase 9 save stack (project
         // store → save synchronizer) in place of the removed loadSave/handleSave
         // delegates. The async load completes synchronously over the in-hand JSON +
         // in-memory store, so blocking here is safe.
-        private static HelloWorldNeo LoadSampleClient(NeoLocalizationOptions? localizationOptions = null)
+        private static HelloWorldNeo LoadSampleClient(NeoLocalizationOptions localizationOptions = null)
         {
             return LoadSampleClient(
                 File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
@@ -247,13 +403,50 @@ namespace HelloWorld.Assets.Tests
 
         private static HelloWorldNeo LoadSampleClient(
             string projectJson,
-            NeoLocalizationOptions? localizationOptions)
+            NeoLocalizationOptions localizationOptions)
         {
             var store = new NeoProjectStore(dataSource: new NeoJsonProjectDataSource(projectJson), localStore: new NeoInMemoryLocalSaveStore());
             store.LoadAsync().GetAwaiter().GetResult();
             return HelloWorldNeo.Load(store.Open("save"), localizationOptions: localizationOptions)
                 .GetAwaiter()
                 .GetResult();
+        }
+
+        private static (NeoProjectStore Store, HelloWorldNeo Client) LoadSampleStack(
+            NeoLocalizationOptions localizationOptions)
+        {
+            var store = new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json"))),
+                localStore: new NeoInMemoryLocalSaveStore());
+            store.LoadAsync().GetAwaiter().GetResult();
+            return (store, ReopenSampleClient(store, localizationOptions));
+        }
+
+        private static HelloWorldNeo ReopenSampleClient(
+            NeoProjectStore store,
+            NeoLocalizationOptions localizationOptions)
+        {
+            return HelloWorldNeo.Load(store.Open("save"), localizationOptions: localizationOptions)
+                .GetAwaiter()
+                .GetResult();
+        }
+
+        private static T ResolveSampleValue<T>(HelloWorldNeo client, string valueId)
+            where T : class
+        {
+            var resolved = NeoGeneratedTypesSupport.ResolveCustomValue(
+                client.Client,
+                valueId,
+                HelloWorldNeo.NeoReadOnlyValueFactories,
+                HelloWorldNeo.NeoWritableValueFactories);
+            return resolved as T
+                ?? throw new System.InvalidOperationException(
+                    $"Expected sample value '{valueId}' to resolve as {typeof(T).Name}.");
+        }
+
+        private static void AssertPlacementOk(NeoPlacementResult result)
+        {
+            Assert.IsTrue(result.Ok, result.Message ?? result.ErrorCode);
         }
 
         // Builds a raw NeoClient (not the generated HelloWorld facade) over the save

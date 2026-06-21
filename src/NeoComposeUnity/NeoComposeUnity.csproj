@@ -38,12 +38,28 @@
       <HintPath>$(UnityManagedDir)/UnityEngine.AudioModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.GridModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.GridModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TilemapModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.TilemapModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.Physics2DModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.Physics2DModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.UnityWebRequestModule">
       <HintPath>$(UnityManagedDir)/UnityEngine.UnityWebRequestModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="Unity.Localization" Condition="Exists('$(NeoComposeUnityPackageAssembliesDir)/Unity.Localization.dll')">
       <HintPath>$(NeoComposeUnityPackageAssembliesDir)/Unity.Localization.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.2D.Tilemap.Extras" Condition="Exists('$(NeoComposeUnityPackageAssembliesDir)/Unity.2D.Tilemap.Extras.dll')">
+      <HintPath>$(NeoComposeUnityPackageAssembliesDir)/Unity.2D.Tilemap.Extras.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

@@ -2,7 +2,8 @@
     "name": "NeoCompose.Unity.Editor",
     "rootNamespace": "NeoCompose.Unity.Editor",
     "references": [
-        "NeoCompose.Unity"
+        "NeoCompose.Unity",
+        "Unity.2D.Tilemap.Extras"
     ],
     "includePlatforms": [
         "Editor"

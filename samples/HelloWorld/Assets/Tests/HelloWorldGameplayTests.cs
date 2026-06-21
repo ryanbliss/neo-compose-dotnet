@@ -9,6 +9,7 @@ using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 namespace HelloWorld.Assets.Tests
 {
@@ -153,6 +154,39 @@ namespace HelloWorld.Assets.Tests
             gameplay.OnDialogueFinish();
 
             Assert.IsNull(erased, "only the Loop ending wipes the save");
+        }
+
+        [Test]
+        public void OldConsoleLanding_EasterEggOpensGenerated2DWorldScene()
+        {
+            var gameplay = Spawn(LoadedStore().CreateNew());
+
+            Assert.IsFalse(gameplay.OldConsoleLandingOpen);
+
+            gameplay.OpenOldConsoleLanding();
+
+            Assert.IsTrue(gameplay.OldConsoleLandingOpen);
+            var renderer = Object.FindFirstObjectByType<NeoTileGridRenderer>();
+            Assert.IsNotNull(renderer);
+            var tilemaps = renderer.GetComponentsInChildren<Tilemap>();
+            Assert.AreEqual(2, tilemaps.Length);
+            var backgroundTilemap = tilemaps.Single(tilemap =>
+                tilemap.gameObject.name == "Tile Layer - Background");
+            Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(1, 1, 0)));
+            Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(2, 2, 0)));
+
+            var objectLayer = renderer.transform.Find("Object Layer - Objects");
+            Assert.IsNotNull(
+                objectLayer,
+                "The landing scene should render the generated object layer.");
+            Assert.AreEqual(3, objectLayer!.childCount);
+            Assert.IsNotNull(
+                objectLayer.Find("Object - old-console-object-player-spawn")?.GetComponent<BoxCollider2D>(),
+                "The authored player spawn should render with its collider.");
+
+            gameplay.CloseOldConsoleLanding();
+
+            Assert.IsFalse(gameplay.OldConsoleLandingOpen);
         }
 
         private static int QuestClock(HelloWorldGameplay gameplay)

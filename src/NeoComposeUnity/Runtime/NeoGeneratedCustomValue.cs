@@ -18,6 +18,8 @@ namespace NeoCompose.Runtime
         protected object? FunctionHandlerObject { get; set; }
 
         public string? valueId => node.overrideValueId ?? node.value?.id;
+        public string? typeId => node.value?.typeId ?? fallbackTypeId;
+        internal NeoClient Client => client;
 
         protected NeoGeneratedCustomValue(
             NeoClient client,

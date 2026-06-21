@@ -116,6 +116,7 @@ namespace NeoCompose.Tests
             // Envelope carries the save and the replaceSnapshot flag.
             StringAssert.Contains("\"replaceSnapshot\":true", http.sends[0].body);
             StringAssert.Contains("\"save\":", http.sends[0].body);
+            StringAssert.Contains("\"tileGridDeltas\":{}", http.sends[0].body);
         }
 
         [Test]
