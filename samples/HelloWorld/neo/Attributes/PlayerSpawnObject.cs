@@ -16,4 +16,10 @@ public sealed class PlayerSpawnObject : ConsoleObject
 
     [NeoString("1994e574-7fcd-4c5f-8abe-f3e807bd334d", ExtendsId = "3b02422f-1ef2-4a50-8386-155d5001082b", Localizable = false, DefaultJson = @"{""value"":""Player Spawn""}")]
     public string Name { get; init; }
+
+    [NeoList("35275ba0-4a3f-4b83-8b09-fccb7bd7a515", ExtendsId = "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071", Locked = true, DefaultJson = @"{""value"":[""d0d48343-8748-40bf-b35a-3e88cdd7e3a5""]}")]
+    public IReadOnlyList<NeoObjectBase> Children { get; init; }
+
+    [NeoList("47c21aa5-e852-41d2-882c-b4f555aee9dd", ExtendsId = "5a9ca1f5-a21b-4d4e-8c55-00341af594b4", Locked = true, EntryChainJson = @"[{""customTypeId"":""38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6"",""defaultValue"":{""value"":{}},""id"":""c2bf0c92-1d24-4950-bea3-37d5f195728d"",""locked"":true,""name"":""PlacementTile"",""required"":true,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""},""type"":7}]", DefaultJson = @"{""value"":[""6de63821-b102-4b62-aac6-c99c8aabecc9""]}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
+    public IReadOnlyList<NeoObjectPlacementTile> PlacementTiles { get; init; }
 }

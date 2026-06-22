@@ -158,13 +158,11 @@ namespace HelloWorld.Assets.Scripts.Neo
     public abstract partial class ReadOnlyConsoleObject
     {
         public Sprite Sprite => OldConsoleLandingPresentation.ObjectSprite(this);
-        public object Collider => OldConsoleLandingPresentation.ObjectCollider(this);
     }
 
     public abstract partial class ConsoleObject
     {
         public Sprite Sprite => OldConsoleLandingPresentation.ObjectSprite(this);
-        public object Collider => OldConsoleLandingPresentation.ObjectCollider(this);
     }
 
 #if UNITY_EDITOR
@@ -191,7 +189,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(assetPath);
             bool isNewAsset = false;
-            
+
             if (clip == null)
             {
                 clip = new AnimationClip();
@@ -204,9 +202,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             clip.name = NeoAnimationClipResources.AssetName(Name);
             clip.frameRate = fps;
-            
+
             // 1. Force the clip to be modern (Mecanim/Playables)
-            clip.legacy = false; 
+            clip.legacy = false;
 
             // 2. Configure Modern Looping / Wrap settings
             var settings = AnimationUtility.GetAnimationClipSettings(clip);
@@ -248,7 +246,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 EditorUtility.SetDirty(clip);
             }
-            
+
             AssetDatabase.SaveAssets();
             AssetDatabase.ImportAsset(assetPath);
         }

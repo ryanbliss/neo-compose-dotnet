@@ -6,7 +6,7 @@ using NeoCompose.Schema;
 namespace ProjectSchema;
 
 [NeoCustomType("7ed188f9-484b-4692-840d-436acf1635aa", Hidden = true, ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder."",""worldKind"":""objectCollider""}}")]
-public abstract class NeoObjectCollider
+public abstract class NeoCollider
 {
     [NeoVector2("c66c17e3-ecfc-4f41-96de-6a53bb2acd4f", Name = "Size", Locked = true, DefaultJson = @"{""value"":{""x"":1,""y"":1}}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
     public NeoVector2 size { get; init; }

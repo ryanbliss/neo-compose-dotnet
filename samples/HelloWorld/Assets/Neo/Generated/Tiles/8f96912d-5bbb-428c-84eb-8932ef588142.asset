@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: Neo Tile - 4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First world icon
+  m_Name: Neo Tile - acf20f9d-cd05-4205-a449-a0c21dcd4e12-glass-floor-tile_0_0
   m_EditorClassIdentifier: 
-  m_Sprite: {fileID: 21300000, guid: a8d2914a4e8c8425aaa0b44e6ae31561, type: 3}
+  m_Sprite: {fileID: -849249094, guid: d44d354aeaaa64a4c8511c6c6961b30d, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Transform:
     e00: 1

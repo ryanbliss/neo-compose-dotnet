@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "eb999d4d34feb55abcfce2d39c8de5a3a42465036ed83d6a7d607b537939aae9",
-        "codegenContractHash": "f85ff18f8f30174453ef9923ed6c2ac92ff186397705d4049fbeb9f874657efe",
-        "runtimeDataContractHash": "d251c4c56cc7ac033e0c75f35db78c7e3358401cb3e4f5f8f6c771f62ccda418"
+        "projectDocumentContentHash": "5b6e5c1d26e3d43f61780daeb7ef83450a04d1d2c87183b8d108c9f91c8660fa",
+        "codegenContractHash": "12c1b4aea6f1850ade5c1be9f56e98aa6f683a126a59e4786bad90442c97e50a",
+        "runtimeDataContractHash": "cfc2a4df2d5adba20a7cef8e67ba74f500f0850bdf81cd157e1c1b3ffb01d2c8"
     },
     "localization": {
         "schemaVersion": 1,
@@ -351,6 +351,17 @@
         "updatedAt": 1780175819483
     },
     "attributes": {
+        "01225bc0-9381-4c01-946c-488dd3c89bce": {
+            "createdAt": 1782014212397,
+            "customTypeId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
+            "id": "01225bc0-9381-4c01-946c-488dd3c89bce",
+            "locked": false,
+            "name": "Children Entry",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 7,
+            "updatedAt": 1782014212397
+        },
         "04100351-2919-4795-8aa6-fadd571a6036": {
             "createdAt": 1781993040926,
             "defaultValue": {
@@ -365,6 +376,28 @@
             "required": true,
             "type": 3,
             "updatedAt": 1781993040926
+        },
+        "04383910-20a1-4c7f-ad90-f87e165083ba": {
+            "createdAt": 1782012571783,
+            "customTypeId": "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "04383910-20a1-4c7f-ad90-f87e165083ba",
+            "locked": true,
+            "name": "Tile",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 7,
+            "updatedAt": 1782012571783
         },
         "04d5e145-412b-4499-a253-b03496a065f0": {
             "createdAt": 1777766819815,
@@ -1101,6 +1134,32 @@
             "type": 8,
             "updatedAt": 1778176361843
         },
+        "325dba0e-5967-4e18-937e-5c6800b68abc": {
+            "collectionAttributeId": "5161fb81-7254-4e41-b153-25138b8e9e74",
+            "collectionValueId": "0893eb05-41c5-40cb-a9d6-8397982519d4",
+            "createdAt": 1782012571783,
+            "defaultValue": {
+                "value": [
+                    "8f96912d-5bbb-428c-84eb-8932ef588121"
+                ]
+            },
+            "id": "325dba0e-5967-4e18-937e-5c6800b68abc",
+            "locked": true,
+            "multiselect": false,
+            "name": "TileLayer",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 9,
+            "updatedAt": 1782068826806
+        },
         "33e86f10-7989-4d82-9156-631a19e3bf06": {
             "code": "\treturn $\"{this.Name}, {this.Moon}, {this.Planet}\";",
             "createdAt": 1778735343252,
@@ -1273,6 +1332,23 @@
             "type": 10,
             "updatedAt": 1778735349101
         },
+        "35275ba0-4a3f-4b83-8b09-fccb7bd7a515": {
+            "createdAt": 1782014212397,
+            "defaultValue": {
+                "value": [
+                    "d0d48343-8748-40bf-b35a-3e88cdd7e3a5"
+                ]
+            },
+            "entryAttributeId": "99a98018-cf3f-40b0-8405-7b0e1e0020e0",
+            "extendsAttributeId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+            "id": "35275ba0-4a3f-4b83-8b09-fccb7bd7a515",
+            "locked": true,
+            "name": "Children",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 6,
+            "updatedAt": 1782014212397
+        },
         "35ac06e1-119c-4d1f-81e9-f119610e3865": {
             "createdAt": 1781246186689,
             "defaultValue": {
@@ -1334,6 +1410,17 @@
             },
             "type": 9,
             "updatedAt": 1781983836520
+        },
+        "3898975b-c6cc-4f35-a82e-89ba3ff240c6": {
+            "createdAt": 1782014212397,
+            "customTypeId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
+            "id": "3898975b-c6cc-4f35-a82e-89ba3ff240c6",
+            "locked": false,
+            "name": "Children Entry",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 7,
+            "updatedAt": 1782014212397
         },
         "3b02422f-1ef2-4a50-8386-155d5001082b": {
             "createdAt": 1781985413733,
@@ -2882,6 +2969,53 @@
             "updatedAt": 1778176777884,
             "valueId": "e621365a-edd1-43a7-b36a-18c35b515057"
         },
+        "430fca56-b45a-4896-9ab2-795a3faf57f6": {
+            "createdAt": 1782071674504,
+            "defaultValue": {
+                "value": [
+                    "293652f8-54d6-4168-89be-7ac75207dcd0"
+                ]
+            },
+            "entryAttributeId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "extendsAttributeId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
+            "id": "430fca56-b45a-4896-9ab2-795a3faf57f6",
+            "locked": true,
+            "name": "PlacementTiles",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 6,
+            "updatedAt": 1782071674504
+        },
+        "441cb790-a45f-4488-a5a9-6f375af6c369": {
+            "createdAt": 1782012571783,
+            "defaultValue": {
+                "value": ""
+            },
+            "id": "441cb790-a45f-4488-a5a9-6f375af6c369",
+            "localizable": false,
+            "locked": true,
+            "name": "Name",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 3,
+            "updatedAt": 1782012571783
+        },
         "444f7fa9-8160-4514-a3a7-eb63b327fa76": {
             "createdAt": 1781759873079,
             "customTypeId": "b737f725-5a4a-4d33-8bc5-c6953dbeff77",
@@ -2936,6 +3070,31 @@
             "required": true,
             "type": 6,
             "updatedAt": 1781759873079
+        },
+        "47c21aa5-e852-41d2-882c-b4f555aee9dd": {
+            "createdAt": 1782071674504,
+            "defaultValue": {
+                "value": [
+                    "6de63821-b102-4b62-aac6-c99c8aabecc9"
+                ]
+            },
+            "entryAttributeId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "extendsAttributeId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
+            "id": "47c21aa5-e852-41d2-882c-b4f555aee9dd",
+            "locked": true,
+            "name": "PlacementTiles",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 6,
+            "updatedAt": 1782071674504
         },
         "4868ab84-027a-405d-bfca-d04d4d4917fa": {
             "createdAt": 1781246186689,
@@ -3448,6 +3607,32 @@
             "updatedAt": 1781983596740,
             "valueId": "77aa6811-0794-455c-8642-a1e88b6f5408"
         },
+        "571a0e0b-b36c-45f3-ae9a-5fde39045c11": {
+            "createdAt": 1782071674504,
+            "defaultValue": {
+                "value": [
+                    "96cad433-4aed-4a9c-be34-fee3ebca8402",
+                    "8ba3f179-5171-4b77-99de-a8beec7bab25"
+                ]
+            },
+            "entryAttributeId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "extendsAttributeId": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
+            "id": "571a0e0b-b36c-45f3-ae9a-5fde39045c11",
+            "locked": true,
+            "name": "PlacementTiles",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 6,
+            "updatedAt": 1782071674504
+        },
         "5915099d-fc2e-4f4a-875c-dad704472d05": {
             "collectionAttributeId": "7fb51db7-60c7-4064-bcde-6938acea4fe8",
             "collectionValueId": "aa467eba-bc17-4cc6-933d-4c539caba2ad",
@@ -3487,6 +3672,28 @@
             "type": 1,
             "updatedAt": 1778181136287,
             "valueId": "41864bd4-c129-4353-b868-3e9a7cca257f"
+        },
+        "5a9ca1f5-a21b-4d4e-8c55-00341af594b4": {
+            "createdAt": 1782012571783,
+            "defaultValue": {
+                "value": []
+            },
+            "entryAttributeId": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "id": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4",
+            "locked": true,
+            "name": "PlacementTiles",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 6,
+            "updatedAt": 1782012571783
         },
         "5c877f60-4f89-41fc-ae54-c724b1733860": {
             "createdAt": 1781999981286,
@@ -3939,6 +4146,31 @@
             "updatedAt": 1781983596740,
             "valueId": "aa467eba-bc17-4cc6-933d-4c539caba2ad"
         },
+        "7fc41bde-418a-4507-8c4b-9b75d7012125": {
+            "createdAt": 1782012571783,
+            "defaultValue": {
+                "value": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                }
+            },
+            "id": "7fc41bde-418a-4507-8c4b-9b75d7012125",
+            "locked": true,
+            "name": "Position",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 16,
+            "updatedAt": 1782012571783
+        },
         "8042556b-586e-4f79-b358-80924968a7b8": {
             "createdAt": 1781270849822,
             "id": "8042556b-586e-4f79-b358-80924968a7b8",
@@ -4073,6 +4305,34 @@
             "type": 11,
             "updatedAt": 1781251248136
         },
+        "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b": {
+            "createdAt": 1782070492285,
+            "defaultValue": {
+                "value": {
+                    "x": 2,
+                    "y": 2,
+                    "z": 0
+                }
+            },
+            "extendsAttributeId": "e1d820d8-56b1-43ac-aa10-0a019f0dc38f",
+            "id": "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b",
+            "locked": true,
+            "name": "Size",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "storage": null,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 16,
+            "updatedAt": 1782114945376,
+            "valueId": "6b9330df-6838-4f7b-9725-52f81b120a8a"
+        },
         "8ece74e4-e17e-4e56-9ef6-8dc2bc9f59f0": {
             "createdAt": 1781855034923,
             "defaultValue": {
@@ -4199,6 +4459,39 @@
             "type": 12,
             "updatedAt": 1781255546299
         },
+        "98655d2b-ad0b-45e2-a901-62600b4d3a22": {
+            "createdAt": 1782012571783,
+            "defaultValue": {
+                "value": []
+            },
+            "entryAttributeId": "04383910-20a1-4c7f-ad90-f87e165083ba",
+            "id": "98655d2b-ad0b-45e2-a901-62600b4d3a22",
+            "locked": true,
+            "name": "Tiles",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 6,
+            "updatedAt": 1782012571783
+        },
+        "99a98018-cf3f-40b0-8405-7b0e1e0020e0": {
+            "createdAt": 1782014212397,
+            "customTypeId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
+            "id": "99a98018-cf3f-40b0-8405-7b0e1e0020e0",
+            "locked": false,
+            "name": "Children Entry",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 7,
+            "updatedAt": 1782014212397
+        },
         "99b07db1-f732-437e-a903-98183edca96b": {
             "createdAt": 1778021395169,
             "customTypeId": "6c6f3bb8-30a0-4132-b0d4-cce75943aedd",
@@ -4237,6 +4530,28 @@
             "required": true,
             "type": 3,
             "updatedAt": 1781993040926
+        },
+        "a0083c92-72f7-405f-8863-ff86f995d36d": {
+            "createdAt": 1782012571783,
+            "customTypeId": "7ed188f9-484b-4692-840d-436acf1635aa",
+            "defaultValue": {
+                "value": null
+            },
+            "id": "a0083c92-72f7-405f-8863-ff86f995d36d",
+            "locked": true,
+            "name": "Collider",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": false,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 7,
+            "updatedAt": 1782012571783
         },
         "a44ed1c2-3296-40e1-b9ef-7924ec97cb21": {
             "createdAt": 1781255546299,
@@ -4507,6 +4822,72 @@
             "type": 10,
             "updatedAt": 1778822219501
         },
+        "b0b3c45c-a87d-4218-b056-7418ef46aac5": {
+            "createdAt": 1782012571783,
+            "defaultValue": {
+                "value": {
+                    "x": 0,
+                    "y": 0
+                }
+            },
+            "id": "b0b3c45c-a87d-4218-b056-7418ef46aac5",
+            "locked": true,
+            "name": "Cell",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 15,
+            "updatedAt": 1782012571783
+        },
+        "b21bfd01-1234-4f49-ab6b-889f829cb148": {
+            "createdAt": 1782012571783,
+            "defaultValue": null,
+            "id": "b21bfd01-1234-4f49-ab6b-889f829cb148",
+            "localizable": false,
+            "locked": true,
+            "name": "Name",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 3,
+            "updatedAt": 1782012571783
+        },
+        "b3280478-f039-47a2-aa18-918175818bcb": {
+            "createdAt": 1782012571783,
+            "customTypeId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "b3280478-f039-47a2-aa18-918175818bcb",
+            "locked": true,
+            "name": "Child",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 7,
+            "updatedAt": 1782012571783
+        },
         "b562d0ae-f799-4364-b90c-b4f026c7d870": {
             "collectionAttributeId": "5161fb81-7254-4e41-b153-25138b8e9e74",
             "collectionValueId": "0893eb05-41c5-40cb-a9d6-8397982519d4",
@@ -4576,13 +4957,35 @@
             "type": 9,
             "updatedAt": 1781993040926
         },
+        "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071": {
+            "createdAt": 1782012571783,
+            "defaultValue": {
+                "value": []
+            },
+            "entryAttributeId": "b3280478-f039-47a2-aa18-918175818bcb",
+            "id": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+            "locked": true,
+            "name": "Children",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 6,
+            "updatedAt": 1782012571783
+        },
         "bb63d9bd-1571-4ef4-9453-e453db64ff41": {
             "collectionAttributeId": "5161fb81-7254-4e41-b153-25138b8e9e74",
             "collectionValueId": "0893eb05-41c5-40cb-a9d6-8397982519d4",
             "createdAt": 1781993040926,
             "defaultValue": {
                 "value": [
-                    "8f96912d-5bbb-428c-84eb-8932ef588121"
+                    "8f96912d-5bbb-428c-84eb-8932ef588122"
                 ]
             },
             "extendsAttributeId": "68221f3d-e17e-40c0-a5a1-34ca571b5cd7",
@@ -4592,8 +4995,10 @@
             "name": "CompatibleLayers",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
+            "system": null,
             "type": 9,
-            "updatedAt": 1781993040926
+            "updatedAt": 1782079558202,
+            "valueId": "755a0d66-0a7c-45fe-94eb-f5c1e0a36eba"
         },
         "bdd71ed6-7f39-4089-8375-fa5909835f00": {
             "collectionAttributeId": "5161fb81-7254-4e41-b153-25138b8e9e74",
@@ -4601,7 +5006,7 @@
             "createdAt": 1781993040926,
             "defaultValue": {
                 "value": [
-                    "8f96912d-5bbb-428c-84eb-8932ef588121"
+                    "8f96912d-5bbb-428c-84eb-8932ef588122"
                 ]
             },
             "extendsAttributeId": "376b91a0-62b1-4642-a0f0-d0df5322838c",
@@ -4611,8 +5016,10 @@
             "name": "DefaultLayer",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
+            "system": null,
             "type": 9,
-            "updatedAt": 1781993040926
+            "updatedAt": 1782079541731,
+            "valueId": "0101d7ad-f3bb-46c0-906a-61042f282708"
         },
         "bf4a75b5-acf9-4ff8-8511-57f871749db3": {
             "collectionAttributeId": "214df1a1-abca-4141-987b-380a5417c70a",
@@ -4647,6 +5054,45 @@
             "type": 6,
             "updatedAt": 1777852760546,
             "valueId": "8ed8c9f9-ea7a-4aa4-9b58-8454cb4db68e"
+        },
+        "c2bf0c92-1d24-4950-bea3-37d5f195728d": {
+            "createdAt": 1782012571783,
+            "customTypeId": "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
+            "defaultValue": {
+                "value": {}
+            },
+            "id": "c2bf0c92-1d24-4950-bea3-37d5f195728d",
+            "locked": true,
+            "name": "PlacementTile",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 7,
+            "updatedAt": 1782012571783
+        },
+        "c481dc1e-b5fd-4352-a76b-536cc3e17f71": {
+            "createdAt": 1782014212397,
+            "defaultValue": {
+                "value": [
+                    "522f0109-97d2-4ac1-ad7c-70357d278035"
+                ]
+            },
+            "entryAttributeId": "3898975b-c6cc-4f35-a82e-89ba3ff240c6",
+            "extendsAttributeId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+            "id": "c481dc1e-b5fd-4352-a76b-536cc3e17f71",
+            "locked": true,
+            "name": "Children",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 6,
+            "updatedAt": 1782014212397
         },
         "c66c17e3-ecfc-4f41-96de-6a53bb2acd4f": {
             "createdAt": 1781855034923,
@@ -5181,6 +5627,24 @@
             "updatedAt": 1778274659218,
             "valueId": "45e98d35-3ff0-46d2-a115-533466acd814"
         },
+        "de93c887-ea29-49bd-bfea-a6255b8b9a54": {
+            "createdAt": 1782014212397,
+            "defaultValue": {
+                "value": [
+                    "6dbdfc93-1071-4e62-85f4-eb6d0cc33f73",
+                    "4ca6b71b-2a7e-4f99-977d-1bcdb2556d9e"
+                ]
+            },
+            "entryAttributeId": "01225bc0-9381-4c01-946c-488dd3c89bce",
+            "extendsAttributeId": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+            "id": "de93c887-ea29-49bd-bfea-a6255b8b9a54",
+            "locked": true,
+            "name": "Children",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 6,
+            "updatedAt": 1782014212397
+        },
         "deabb583-d797-4c3e-bb07-3bafbb1e84b3": {
             "createdAt": 1781999981286,
             "defaultValue": {
@@ -5249,6 +5713,31 @@
             "type": 9,
             "updatedAt": 1781993040926
         },
+        "e1d820d8-56b1-43ac-aa10-0a019f0dc38f": {
+            "createdAt": 1782068826806,
+            "defaultValue": {
+                "value": {
+                    "x": 1,
+                    "y": 1,
+                    "z": 0
+                }
+            },
+            "id": "e1d820d8-56b1-43ac-aa10-0a019f0dc38f",
+            "locked": true,
+            "name": "Size",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 16,
+            "updatedAt": 1782068826806
+        },
         "e1f13e5c-3d16-476e-9fa4-c120959a4d32": {
             "createdAt": 1781255546299,
             "id": "e1f13e5c-3d16-476e-9fa4-c120959a4d32",
@@ -5258,6 +5747,30 @@
             "required": true,
             "type": 12,
             "updatedAt": 1781255546299
+        },
+        "e4960a5d-e86d-4570-844d-931f5709449a": {
+            "collectionAttributeId": "56831afd-18d8-418d-9bcf-c76c770592c4",
+            "collectionValueId": "77aa6811-0794-455c-8642-a1e88b6f5408",
+            "createdAt": 1782012571783,
+            "defaultValue": {
+                "value": null
+            },
+            "id": "e4960a5d-e86d-4570-844d-931f5709449a",
+            "locked": true,
+            "multiselect": false,
+            "name": "Tile",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": false,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "type": 9,
+            "updatedAt": 1782068826806
         },
         "e549555b-9276-48d8-be33-156972520d31": {
             "argumentTypes": [
@@ -5292,6 +5805,26 @@
             "required": true,
             "type": 12,
             "updatedAt": 1781255546299
+        },
+        "e9288ba9-f5a2-4485-8443-6afb155b31e0": {
+            "createdAt": 1782012571783,
+            "defaultValue": null,
+            "id": "e9288ba9-f5a2-4485-8443-6afb155b31e0",
+            "locked": true,
+            "name": "Sprite",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
+            },
+            "templateId": null,
+            "type": 11,
+            "updatedAt": 1782012571783
         },
         "e963862e-6228-4594-8220-8ef06098c253": {
             "createdAt": 1781855034923,
@@ -5891,7 +6424,7 @@
                 "Name",
                 "Sprite"
             ],
-            "updatedAt": 1781999981286
+            "updatedAt": 1782070355339
         },
         "11177bd5-0678-4bff-86b8-46718ff1827b": {
             "createdAt": 1779225029597,
@@ -5958,7 +6491,7 @@
             "schemaKeyOrder": [
                 "Name"
             ],
-            "updatedAt": 1781995601538
+            "updatedAt": 1782070355339
         },
         "22a62498-61f8-4b6f-8d4c-bc05743a5c2e": {
             "createdAt": 1781759873079,
@@ -6024,8 +6557,14 @@
             "isAbstract": true,
             "name": "NeoObjectPlacementTile",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "schema": {},
-            "schemaKeyOrder": [],
+            "schema": {
+                "Cell": "b0b3c45c-a87d-4218-b056-7418ef46aac5",
+                "Tile": "e4960a5d-e86d-4570-844d-931f5709449a"
+            },
+            "schemaKeyOrder": [
+                "Cell",
+                "Tile"
+            ],
             "system": {
                 "disallow": [
                     "editRecord",
@@ -6035,7 +6574,7 @@
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
                 "worldKind": "objectPlacementTile"
             },
-            "updatedAt": 1781759686435
+            "updatedAt": 1782012571783
         },
         "44d6324f-6507-4420-a919-3496681c3b21": {
             "createdAt": 1781255794887,
@@ -6075,7 +6614,7 @@
                 "Name",
                 "Sprite"
             ],
-            "updatedAt": 1781999981286
+            "updatedAt": 1782070355339
         },
         "48f37cd8-69d2-4cd3-ae44-7cfed7912415": {
             "createdAt": 1778021394091,
@@ -6125,20 +6664,27 @@
         },
         "4c2aa621-e662-419f-a5b5-d8dcfab9b29b": {
             "createdAt": 1781759686435,
+            "extendsTypeId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
             "hiddenInAttributeSelector": true,
             "id": "4c2aa621-e662-419f-a5b5-d8dcfab9b29b",
             "isAbstract": true,
             "name": "NeoObject",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
+                "Children": "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071",
+                "Collider": "a0083c92-72f7-405f-8863-ff86f995d36d",
                 "CompatibleLayers": "5915099d-fc2e-4f4a-875c-dad704472d05",
                 "DefaultLayer": "cf6e9aa2-dd4b-4673-a83b-5a15e617eb9a",
-                "Name": "3b02422f-1ef2-4a50-8386-155d5001082b"
+                "Name": "3b02422f-1ef2-4a50-8386-155d5001082b",
+                "PlacementTiles": "5a9ca1f5-a21b-4d4e-8c55-00341af594b4"
             },
             "schemaKeyOrder": [
                 "DefaultLayer",
                 "CompatibleLayers",
-                "Name"
+                "Name",
+                "PlacementTiles",
+                "Children",
+                "Collider"
             ],
             "system": {
                 "disallow": [
@@ -6149,7 +6695,7 @@
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
                 "worldKind": "object"
             },
-            "updatedAt": 1781985413733
+            "updatedAt": 1782012571783
         },
         "4cdf4a5b-b299-4253-854b-d25c0a4c7c20": {
             "createdAt": 1778021393032,
@@ -6184,16 +6730,22 @@
             "name": "ExitPromptObject",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
+                "Children": "de93c887-ea29-49bd-bfea-a6255b8b9a54",
                 "CompatibleLayers": "f05dfa96-f35a-440c-832d-b4462cb2f30a",
                 "DefaultLayer": "ff033c90-8bd5-4c57-929c-0af97005b9d3",
-                "Name": "14ec578e-0aa7-4d12-8d02-47463e03a1f3"
+                "Name": "14ec578e-0aa7-4d12-8d02-47463e03a1f3",
+                "PlacementTiles": "571a0e0b-b36c-45f3-ae9a-5fde39045c11",
+                "Size": "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b"
             },
             "schemaKeyOrder": [
                 "CompatibleLayers",
                 "DefaultLayer",
-                "Name"
+                "Name",
+                "Children",
+                "Size",
+                "PlacementTiles"
             ],
-            "updatedAt": 1781995727810
+            "updatedAt": 1782071674504
         },
         "60c25a92-cb01-46f7-b5cf-c9d950586116": {
             "createdAt": 1778274514976,
@@ -6282,6 +6834,33 @@
             "system": null,
             "updatedAt": 1780175961015
         },
+        "7cb1b706-95d2-4465-8e75-c82a6b7d8830": {
+            "createdAt": 1782012571783,
+            "extendsTypeId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
+            "hiddenInAttributeSelector": true,
+            "id": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "isAbstract": true,
+            "name": "NeoSpriteObject",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "schema": {
+                "Name": "441cb790-a45f-4488-a5a9-6f375af6c369",
+                "Sprite": "e9288ba9-f5a2-4485-8443-6afb155b31e0"
+            },
+            "schemaKeyOrder": [
+                "Name",
+                "Sprite"
+            ],
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "worldKind": "spriteObject"
+            },
+            "updatedAt": 1782012571783
+        },
         "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f": {
             "createdAt": 1781759873079,
             "extendsTypeId": "060620d4-9f8b-417a-ba43-d6f010fc6edc",
@@ -6291,23 +6870,27 @@
             "name": "PlayerSpawnObject",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
+                "Children": "35275ba0-4a3f-4b83-8b09-fccb7bd7a515",
                 "CompatibleLayers": "6ae49766-2186-48b8-b63e-62768cb3e88b",
                 "DefaultLayer": "ee30bd7d-5ba2-4a83-9fbe-38ee6b53d7ca",
-                "Name": "1994e574-7fcd-4c5f-8abe-f3e807bd334d"
+                "Name": "1994e574-7fcd-4c5f-8abe-f3e807bd334d",
+                "PlacementTiles": "47c21aa5-e852-41d2-882c-b4f555aee9dd"
             },
             "schemaKeyOrder": [
                 "CompatibleLayers",
                 "DefaultLayer",
-                "Name"
+                "Name",
+                "Children",
+                "PlacementTiles"
             ],
-            "updatedAt": 1781995744418
+            "updatedAt": 1782071674504
         },
         "7ed188f9-484b-4692-840d-436acf1635aa": {
             "createdAt": 1781759686435,
             "hiddenInAttributeSelector": true,
             "id": "7ed188f9-484b-4692-840d-436acf1635aa",
             "isAbstract": true,
-            "name": "NeoObjectCollider",
+            "name": "NeoCollider",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
                 "isTrigger": "6ed1890b-0ae6-4979-bf5b-6f216d69f432",
@@ -6328,7 +6911,7 @@
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
                 "worldKind": "objectCollider"
             },
-            "updatedAt": 1781855034923
+            "updatedAt": 1782017049604
         },
         "8ccfe860-309f-428b-b74c-76a873bdea8a": {
             "createdAt": 1778176595256,
@@ -6542,7 +7125,7 @@
                 "Name",
                 "Sprite"
             ],
-            "updatedAt": 1781999981286
+            "updatedAt": 1782070355339
         },
         "c1dc3dd7-397a-4f8f-acbf-b928cc66076d": {
             "createdAt": 1781759686435,
@@ -6581,16 +7164,20 @@
             "name": "VaultPlaqueObject",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
+                "Children": "c481dc1e-b5fd-4352-a76b-536cc3e17f71",
                 "CompatibleLayers": "b98218ae-934e-4359-a9cd-4ca82433dc51",
                 "DefaultLayer": "71bca16c-04c7-46ad-884b-002a1914bee8",
-                "Name": "9bcfd9a8-ef4a-4a89-b6d4-446c9baf01d7"
+                "Name": "9bcfd9a8-ef4a-4a89-b6d4-446c9baf01d7",
+                "PlacementTiles": "430fca56-b45a-4896-9ab2-795a3faf57f6"
             },
             "schemaKeyOrder": [
                 "CompatibleLayers",
                 "DefaultLayer",
-                "Name"
+                "Name",
+                "Children",
+                "PlacementTiles"
             ],
-            "updatedAt": 1781995758880
+            "updatedAt": 1782071674504
         },
         "d931c907-19cd-4f3d-b04a-e6f1945fb216": {
             "createdAt": 1781759873079,
@@ -6612,7 +7199,7 @@
                 "Name",
                 "Sprite"
             ],
-            "updatedAt": 1781999981286
+            "updatedAt": 1782070355339
         },
         "daf72c99-ad09-47d6-a863-f1ab31acf750": {
             "createdAt": 1781246186689,
@@ -6668,13 +7255,20 @@
         },
         "e78cfcd2-78ae-4656-9f04-6429bb0efe20": {
             "createdAt": 1781759686435,
+            "extendsTypeId": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
             "hiddenInAttributeSelector": true,
             "id": "e78cfcd2-78ae-4656-9f04-6429bb0efe20",
             "isAbstract": true,
             "name": "NeoTileLayerLink",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "schema": {},
-            "schemaKeyOrder": [],
+            "schema": {
+                "TileLayer": "325dba0e-5967-4e18-937e-5c6800b68abc",
+                "Tiles": "98655d2b-ad0b-45e2-a901-62600b4d3a22"
+            },
+            "schemaKeyOrder": [
+                "TileLayer",
+                "Tiles"
+            ],
             "system": {
                 "disallow": [
                     "editRecord",
@@ -6684,7 +7278,7 @@
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
                 "worldKind": "tileLayerLink"
             },
-            "updatedAt": 1781759686435
+            "updatedAt": 1782012571783
         },
         "e93a83cb-9bc2-46fe-9c85-d70465a89da8": {
             "createdAt": 1781759686435,
@@ -6719,6 +7313,35 @@
                 "worldKind": "tileGrid"
             },
             "updatedAt": 1781983596740
+        },
+        "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88": {
+            "createdAt": 1782012571783,
+            "extendsTypeId": null,
+            "hiddenInAttributeSelector": true,
+            "id": "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88",
+            "isAbstract": true,
+            "name": "NeoObjectBase",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "schema": {
+                "Name": "b21bfd01-1234-4f49-ab6b-889f829cb148",
+                "Position": "7fc41bde-418a-4507-8c4b-9b75d7012125",
+                "Size": "e1d820d8-56b1-43ac-aa10-0a019f0dc38f"
+            },
+            "schemaKeyOrder": [
+                "Name",
+                "Position",
+                "Size"
+            ],
+            "system": {
+                "disallow": [
+                    "editRecord",
+                    "deleteRecord",
+                    "selectRecord"
+                ],
+                "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder.",
+                "worldKind": "objectBase"
+            },
+            "updatedAt": 1782071674504
         },
         "fb219343-34db-4e82-baf0-09df9a2b5210": {
             "createdAt": 1781855034923,
@@ -6759,6 +7382,16 @@
         }
     },
     "values": {
+        "0101d7ad-f3bb-46c0-906a-61042f282708": {
+            "createdAt": 1782079541731,
+            "id": "0101d7ad-f3bb-46c0-906a-61042f282708",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782079541731,
+            "value": [
+                "8f96912d-5bbb-428c-84eb-8932ef588122"
+            ]
+        },
         "01c6e53a-2d04-4c56-80eb-55b257fb56bc": {
             "createdAt": 1781236863845,
             "id": "01c6e53a-2d04-4c56-80eb-55b257fb56bc",
@@ -6766,6 +7399,16 @@
             "typeId": null,
             "updatedAt": 1781236877449,
             "value": 95
+        },
+        "03ae7dbc-c8e8-4fc6-9fb8-f86f6a90b024": {
+            "createdAt": 1782012571783,
+            "id": "03ae7dbc-c8e8-4fc6-9fb8-f86f6a90b024",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782012998932,
+            "value": [
+                "d0d48343-8748-40bf-b35a-3e88cdd7e3a5"
+            ]
         },
         "049cbc32-0eb8-44d3-9907-fae7c6431d01": {
             "createdAt": 1781246253886,
@@ -6784,6 +7427,16 @@
             "typeId": null,
             "updatedAt": 1778179337286,
             "value": "2d50d81c-4e97-4799-9c16-448c25a750a5"
+        },
+        "05dc1eae-0ad9-4d41-845c-161631ea63da": {
+            "createdAt": 1782001724519,
+            "id": "05dc1eae-0ad9-4d41-845c-161631ea63da",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782001724519,
+            "value": {
+                "fileId": "666675d5-8a39-41c1-ba2c-18f014bf03f5",
+                "sliceIndex": 0
+            }
         },
         "0620378a-a52b-4881-b612-f0c8a70eef84": {
             "createdAt": 1781983596740,
@@ -6890,6 +7543,24 @@
             "value": {
                 "Name": "efffc5dd-267d-46bc-a46d-f4da843c84d8",
                 "Planet": "e0a46d9e-5318-493b-965f-8463d071641d"
+            }
+        },
+        "0b1a67df-7dcb-414b-b0fb-170426441d13": {
+            "createdAt": 1782012571783,
+            "id": "0b1a67df-7dcb-414b-b0fb-170426441d13",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782012571783,
+            "value": "BootGlyphTile"
+        },
+        "0b3a4c4c-770d-4f17-b646-210609435c85": {
+            "createdAt": 1782012971265,
+            "id": "0b3a4c4c-770d-4f17-b646-210609435c85",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": {
+                "fileId": "58b3b0b3-257a-46ee-ba87-bab09972ff63",
+                "sliceIndex": 0
             }
         },
         "0bd8e0e4-8f3d-4645-8312-c20b00444f49": {
@@ -7004,6 +7675,16 @@
                 "Value": "8969d76a-6f51-4f29-a2e0-17d2c530ec79"
             }
         },
+        "0ea9dbca-ede8-4203-ab46-06a8cfc202aa": {
+            "createdAt": 1782001724519,
+            "id": "0ea9dbca-ede8-4203-ab46-06a8cfc202aa",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782001724519,
+            "value": {
+                "fileId": "355390cf-4ce9-410d-af90-25273ae4bd3b",
+                "sliceIndex": 0
+            }
+        },
         "0eb04da7-480b-4bdb-a04e-eba6f58ffcc8": {
             "createdAt": 1778178994560,
             "id": "0eb04da7-480b-4bdb-a04e-eba6f58ffcc8",
@@ -7048,6 +7729,17 @@
                 "sliceIndex": 32
             }
         },
+        "11cb805e-bf4c-4237-b138-6e5aaaad943a": {
+            "createdAt": 1782071674504,
+            "id": "11cb805e-bf4c-4237-b138-6e5aaaad943a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782071674504,
+            "value": {
+                "x": 0,
+                "y": 0
+            }
+        },
         "11cd55b5-6d41-43be-9897-93ac91dd4777": {
             "createdAt": 1778021392834,
             "id": "11cd55b5-6d41-43be-9897-93ac91dd4777",
@@ -7066,6 +7758,15 @@
             "updatedAt": 1781983596740,
             "value": [
                 "8f96912d-5bbb-428c-84eb-8932ef588123"
+            ]
+        },
+        "1365274a-f5f6-4707-bea5-4ccfc061ff25": {
+            "createdAt": 1782012971265,
+            "id": "1365274a-f5f6-4707-bea5-4ccfc061ff25",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": [
+                "764c8907-074a-463c-9fd9-e5901234714a"
             ]
         },
         "155a3ca9-1d94-416a-84b7-c9eecbf4cc94": {
@@ -7105,6 +7806,16 @@
             "value": [
                 "8f96912d-5bbb-428c-84eb-8932ef588121"
             ]
+        },
+        "1783f182-330e-4b73-9c1b-8fbc19b2c5ec": {
+            "createdAt": 1782001724519,
+            "id": "1783f182-330e-4b73-9c1b-8fbc19b2c5ec",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782001724519,
+            "value": {
+                "fileId": "2c68221a-2a3c-45d4-8565-c5c23c0654d3",
+                "sliceIndex": 0
+            }
         },
         "18154c7e-8f9a-4767-b44c-a25b0e1ca234": {
             "createdAt": 1778180952143,
@@ -7373,6 +8084,22 @@
                 "io"
             ]
         },
+        "271867ea-dda2-4f3e-a947-a9696e462ddd": {
+            "createdAt": 1782012971265,
+            "id": "271867ea-dda2-4f3e-a947-a9696e462ddd",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": [
+                "8f96912d-5bbb-428c-84eb-8932ef588121"
+            ]
+        },
+        "2798bb90-0ad8-4e15-9702-2da0ac3137d7": {
+            "createdAt": 1782012971265,
+            "id": "2798bb90-0ad8-4e15-9702-2da0ac3137d7",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": ""
+        },
         "2831fdaa-9090-4bfc-aae3-c70c16a67151": {
             "createdAt": 1778021394803,
             "id": "2831fdaa-9090-4bfc-aae3-c70c16a67151",
@@ -7390,6 +8117,27 @@
             "value": {
                 "fileId": "501220c3-2e57-42d2-9e9e-02402cf89938",
                 "sliceIndex": 0
+            }
+        },
+        "29089d0e-c76e-4646-8cd2-5407d50671eb": {
+            "createdAt": 1782012571783,
+            "id": "29089d0e-c76e-4646-8cd2-5407d50671eb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782012998932,
+            "value": [
+                "6dbdfc93-1071-4e62-85f4-eb6d0cc33f73",
+                "4ca6b71b-2a7e-4f99-977d-1bcdb2556d9e"
+            ]
+        },
+        "293652f8-54d6-4168-89be-7ac75207dcd0": {
+            "createdAt": 1782071674504,
+            "id": "293652f8-54d6-4168-89be-7ac75207dcd0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
+            "updatedAt": 1782071674504,
+            "value": {
+                "Cell": "11cb805e-bf4c-4237-b138-6e5aaaad943a"
             }
         },
         "299b23d6-4ea0-4475-94f5-f59c4d18d9cd": {
@@ -7507,6 +8255,17 @@
                 "VisitCount": "cbe8a085-9fc4-4437-bc11-41e2fef601d0"
             }
         },
+        "312fe7d2-a1ef-44eb-8477-bd5e86129e5e": {
+            "createdAt": 1782071674504,
+            "id": "312fe7d2-a1ef-44eb-8477-bd5e86129e5e",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782071674504,
+            "value": {
+                "x": 1,
+                "y": 0
+            }
+        },
         "315b5b62-4a1f-4da7-8c96-c6dc8e14771a": {
             "createdAt": 1781246253886,
             "id": "315b5b62-4a1f-4da7-8c96-c6dc8e14771a",
@@ -7520,8 +8279,12 @@
             "id": "3243c7c0-c266-40ba-9d2b-175ca088e468",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": "07db44f3-8cc5-4164-aace-098ca68460f4",
-            "updatedAt": 1781989724216,
-            "value": {}
+            "updatedAt": 1782012571783,
+            "value": {
+                "CompatibleLayers": "ab5a4e1a-7627-418b-8f37-fe25c9ba75c9",
+                "DefaultLayer": "55313a73-3ec9-4ca7-91b5-e542badf21f2",
+                "Name": "0b1a67df-7dcb-414b-b0fb-170426441d13"
+            }
         },
         "327b3d70-dfa1-4c59-be69-274e1be781af": {
             "createdAt": 1781236918553,
@@ -7748,6 +8511,16 @@
                 "sliceIndex": 0
             }
         },
+        "3f8cbfe9-7e34-4ee9-a7f6-df8938301b85": {
+            "createdAt": 1782001724519,
+            "id": "3f8cbfe9-7e34-4ee9-a7f6-df8938301b85",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782001724519,
+            "value": {
+                "fileId": "acf20f9d-cd05-4205-a449-a0c21dcd4e12",
+                "sliceIndex": 0
+            }
+        },
         "4080730e-8f0e-423f-a960-fb34a4a2fd55": {
             "createdAt": 1781240858303,
             "id": "4080730e-8f0e-423f-a960-fb34a4a2fd55",
@@ -7800,6 +8573,14 @@
                 "Planet": "bc796fbb-3022-4b7d-a334-2f62c48b4e5e"
             }
         },
+        "42820a6e-afea-4ddb-b799-ca0d90d2beee": {
+            "createdAt": 1782012571783,
+            "id": "42820a6e-afea-4ddb-b799-ca0d90d2beee",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782012571783,
+            "value": []
+        },
         "432e5c7a-b66c-4c1a-b4f0-d71ce09bedf0": {
             "createdAt": 1779225718422,
             "id": "432e5c7a-b66c-4c1a-b4f0-d71ce09bedf0",
@@ -7827,6 +8608,17 @@
             "updatedAt": 1778274659162,
             "value": {
                 "Name": "3d955dc7-dbb2-4ff5-98b6-90a8ae14f77c"
+            }
+        },
+        "46e81ca2-d333-4d11-913e-0c3ccc38a5c9": {
+            "createdAt": 1782012971265,
+            "id": "46e81ca2-d333-4d11-913e-0c3ccc38a5c9",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782026719830,
+            "value": {
+                "x": 0,
+                "y": 0,
+                "z": 0
             }
         },
         "474e4439-c54f-430c-9a02-4705fc3615dd": {
@@ -7885,6 +8677,29 @@
                 "sliceIndex": 0
             }
         },
+        "4ca6b71b-2a7e-4f99-977d-1bcdb2556d9e": {
+            "createdAt": 1782012971265,
+            "id": "4ca6b71b-2a7e-4f99-977d-1bcdb2556d9e",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "e78cfcd2-78ae-4656-9f04-6429bb0efe20",
+            "updatedAt": 1782012971265,
+            "value": {
+                "Name": "729ca804-3468-4a9a-9fcd-b0da3598ec4d",
+                "Position": "c33e2302-8503-4d5a-9e05-7d2c1084dbb2",
+                "TileLayer": "271867ea-dda2-4f3e-a947-a9696e462ddd",
+                "Tiles": "1365274a-f5f6-4707-bea5-4ccfc061ff25"
+            }
+        },
+        "4d0d1da6-76a1-4ed1-b03a-8cfa0381d73c": {
+            "createdAt": 1782012971265,
+            "id": "4d0d1da6-76a1-4ed1-b03a-8cfa0381d73c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": {
+                "fileId": "ea5a70da-6213-4b4b-bd44-ab84adc449e0",
+                "sliceIndex": 0
+            }
+        },
         "4d68de6c-5fb2-4db7-9d5e-b5b11817c3cf": {
             "createdAt": 1779225740998,
             "id": "4d68de6c-5fb2-4db7-9d5e-b5b11817c3cf",
@@ -7895,6 +8710,14 @@
                 "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
                 "sliceIndex": 13
             }
+        },
+        "4d74542d-c9e0-4c7b-87ea-ed11ed241bf4": {
+            "createdAt": 1782012571783,
+            "id": "4d74542d-c9e0-4c7b-87ea-ed11ed241bf4",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782012571783,
+            "value": []
         },
         "4e4c0122-91f2-4441-a1e8-cab6ca74d4ae": {
             "createdAt": 1781251278129,
@@ -7954,6 +8777,28 @@
             "updatedAt": 1778178922587,
             "value": "b527cc12-03ba-495d-82d7-ed957f70eb92"
         },
+        "51f96355-fa16-4f33-8238-f84c06690fde": {
+            "createdAt": 1782012571783,
+            "id": "51f96355-fa16-4f33-8238-f84c06690fde",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782012998932,
+            "value": [
+                "522f0109-97d2-4ac1-ad7c-70357d278035"
+            ]
+        },
+        "522f0109-97d2-4ac1-ad7c-70357d278035": {
+            "createdAt": 1782012971265,
+            "id": "522f0109-97d2-4ac1-ad7c-70357d278035",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "updatedAt": 1782012971265,
+            "value": {
+                "Name": "2798bb90-0ad8-4e15-9702-2da0ac3137d7",
+                "Position": "a9da4ab8-bcd9-43ee-8f50-c7360cb89ff8",
+                "Sprite": "4d0d1da6-76a1-4ed1-b03a-8cfa0381d73c"
+            }
+        },
         "52e8e972-60f5-44ed-80e6-eb0f5a472ca0": {
             "createdAt": 1777846554732,
             "id": "52e8e972-60f5-44ed-80e6-eb0f5a472ca0",
@@ -7977,6 +8822,13 @@
                 "sliceIndex": 0
             }
         },
+        "537b54d1-172d-4d09-923b-843294613388": {
+            "createdAt": 1782012971265,
+            "id": "537b54d1-172d-4d09-923b-843294613388",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": ""
+        },
         "5380a52f-4d6e-4d63-b164-fadfef12003f": {
             "createdAt": 1779225922109,
             "id": "5380a52f-4d6e-4d63-b164-fadfef12003f",
@@ -7996,6 +8848,16 @@
             "updatedAt": 1781240904739,
             "value": 0
         },
+        "55313a73-3ec9-4ca7-91b5-e542badf21f2": {
+            "createdAt": 1782012571783,
+            "id": "55313a73-3ec9-4ca7-91b5-e542badf21f2",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782012571783,
+            "value": [
+                "8f96912d-5bbb-428c-84eb-8932ef588121"
+            ]
+        },
         "555389b1-1a61-416e-9ba8-4f1b4b9a9acf": {
             "createdAt": 1778021392235,
             "id": "555389b1-1a61-416e-9ba8-4f1b4b9a9acf",
@@ -8003,6 +8865,14 @@
             "typeId": null,
             "updatedAt": 1778021392235,
             "value": "9ab92755-798e-4379-a6bf-a86ff24f0592"
+        },
+        "55fc0709-788b-43f9-bb05-8ed20d207c34": {
+            "createdAt": 1782012571783,
+            "id": "55fc0709-788b-43f9-bb05-8ed20d207c34",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782012571783,
+            "value": []
         },
         "5683bd1f-2afd-4b3d-805d-7abb06e1db67": {
             "createdAt": 1778021392583,
@@ -8245,6 +9115,18 @@
                 "fileId": "1d017b1d-2a6d-4819-a6f7-3b228cc7a04e"
             }
         },
+        "6b9330df-6838-4f7b-9725-52f81b120a8a": {
+            "createdAt": 1782070492285,
+            "id": "6b9330df-6838-4f7b-9725-52f81b120a8a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782070492285,
+            "value": {
+                "x": 2,
+                "y": 1,
+                "z": 0
+            }
+        },
         "6b935eb9-feb6-465a-afb9-01cf431e06e9": {
             "createdAt": 1779225912647,
             "id": "6b935eb9-feb6-465a-afb9-01cf431e06e9",
@@ -8301,6 +9183,28 @@
             "updatedAt": 1778021395060,
             "value": {}
         },
+        "6dbdfc93-1071-4e62-85f4-eb6d0cc33f73": {
+            "createdAt": 1782012971265,
+            "id": "6dbdfc93-1071-4e62-85f4-eb6d0cc33f73",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "updatedAt": 1782012971265,
+            "value": {
+                "Name": "9cd36c77-9d63-445b-8bb4-4cc23feb2c4d",
+                "Position": "a50d13b4-44ac-4c53-a4c7-938cdfdb0c04",
+                "Sprite": "0b3a4c4c-770d-4f17-b646-210609435c85"
+            }
+        },
+        "6de63821-b102-4b62-aac6-c99c8aabecc9": {
+            "createdAt": 1782071674504,
+            "id": "6de63821-b102-4b62-aac6-c99c8aabecc9",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
+            "updatedAt": 1782071674504,
+            "value": {
+                "Cell": "8c947325-fdde-4e9e-938c-7a185a49538f"
+            }
+        },
         "6e6c4676-1f9f-4723-af84-e7b5dbdb3fa6": {
             "createdAt": 1778179758039,
             "id": "6e6c4676-1f9f-4723-af84-e7b5dbdb3fa6",
@@ -8335,6 +9239,13 @@
             "updatedAt": 1781240881010,
             "value": 0
         },
+        "729ca804-3468-4a9a-9fcd-b0da3598ec4d": {
+            "createdAt": 1782012971265,
+            "id": "729ca804-3468-4a9a-9fcd-b0da3598ec4d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": "Background"
+        },
         "73a11098-70fa-4608-bfb6-0ab25571e576": {
             "createdAt": 1781236971366,
             "id": "73a11098-70fa-4608-bfb6-0ab25571e576",
@@ -8353,6 +9264,17 @@
             "typeId": null,
             "updatedAt": 1778572897594,
             "value": ""
+        },
+        "755a0d66-0a7c-45fe-94eb-f5c1e0a36eba": {
+            "createdAt": 1782079547380,
+            "id": "755a0d66-0a7c-45fe-94eb-f5c1e0a36eba",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782079547380,
+            "value": [
+                "8f96912d-5bbb-428c-84eb-8932ef588121",
+                "8f96912d-5bbb-428c-84eb-8932ef588122"
+            ]
         },
         "759982e2-a7ae-4efe-99ac-2845f085f9c4": {
             "createdAt": 1781252857133,
@@ -8415,6 +9337,17 @@
             "updatedAt": 1778180468779,
             "value": "e692cce8-c8bd-4673-b516-1b24cfdfe014"
         },
+        "764c8907-074a-463c-9fd9-e5901234714a": {
+            "createdAt": 1782012971265,
+            "id": "764c8907-074a-463c-9fd9-e5901234714a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
+            "updatedAt": 1782012971265,
+            "value": {
+                "Cell": "c3347c17-bf29-4e8e-9dff-60e0f63c9739",
+                "Tile": "c0b8e423-64b8-4cfd-bf75-13e056f0db82"
+            }
+        },
         "77561c95-0c3f-4291-a79b-7e5562d8ee30": {
             "createdAt": 1777767446579,
             "id": "77561c95-0c3f-4291-a79b-7e5562d8ee30",
@@ -8431,12 +9364,13 @@
             "id": "77aa6811-0794-455c-8642-a1e88b6f5408",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": null,
-            "updatedAt": 1781983596740,
+            "updatedAt": 1782012571783,
             "value": [
                 "8f96912d-5bbb-428c-84eb-8932ef588141",
                 "8f96912d-5bbb-428c-84eb-8932ef588142",
                 "8f96912d-5bbb-428c-84eb-8932ef588143",
-                "8f96912d-5bbb-428c-84eb-8932ef588144"
+                "8f96912d-5bbb-428c-84eb-8932ef588144",
+                "3243c7c0-c266-40ba-9d2b-175ca088e468"
             ]
         },
         "77d598df-148c-437e-bbb8-4a88ea916278": {
@@ -8767,6 +9701,27 @@
                 "sliceIndex": 30
             }
         },
+        "8ba3f179-5171-4b77-99de-a8beec7bab25": {
+            "createdAt": 1782071674504,
+            "id": "8ba3f179-5171-4b77-99de-a8beec7bab25",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
+            "updatedAt": 1782071674504,
+            "value": {
+                "Cell": "312fe7d2-a1ef-44eb-8477-bd5e86129e5e"
+            }
+        },
+        "8c947325-fdde-4e9e-938c-7a185a49538f": {
+            "createdAt": 1782071674504,
+            "id": "8c947325-fdde-4e9e-938c-7a185a49538f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782071674504,
+            "value": {
+                "x": 0,
+                "y": 0
+            }
+        },
         "8cf66884-fb4a-4505-baea-fd2dfe40a5ff": {
             "createdAt": 1778181136655,
             "id": "8cf66884-fb4a-4505-baea-fd2dfe40a5ff",
@@ -8784,6 +9739,16 @@
             "value": {
                 "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
                 "sliceIndex": 40
+            }
+        },
+        "8d77c5f4-e12b-435b-b22d-ff68239b70e7": {
+            "createdAt": 1782012971265,
+            "id": "8d77c5f4-e12b-435b-b22d-ff68239b70e7",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": {
+                "fileId": "4bdf7916-db7e-42f9-8b75-02ab429ac1f2",
+                "sliceIndex": 0
             }
         },
         "8dd1fcb2-7e33-4aa0-a133-cb2d11b3ecfc": {
@@ -8998,13 +9963,13 @@
             "id": "8f96912d-5bbb-428c-84eb-8932ef588141",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2",
-            "updatedAt": 1781985413733,
+            "updatedAt": 1782012571783,
             "value": {
                 "CompatibleLayers": "359ec038-37da-47c0-a7b5-74ab5f992ab1",
                 "DefaultLayer": "0620378a-a52b-4881-b612-f0c8a70eef84",
-                "DisplayName": "8f96912d-5bbb-428c-84eb-8932ef588115",
                 "EligibleTileLayers": "8f96912d-5bbb-428c-84eb-8932ef588133",
-                "Name": "ab328712-6b03-4402-bbbf-8cf693390a5f"
+                "Name": "ab328712-6b03-4402-bbbf-8cf693390a5f",
+                "Sprite": "0ea9dbca-ede8-4203-ab46-06a8cfc202aa"
             }
         },
         "8f96912d-5bbb-428c-84eb-8932ef588142": {
@@ -9012,13 +9977,13 @@
             "id": "8f96912d-5bbb-428c-84eb-8932ef588142",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": "bda4cf72-c8da-4be0-8148-024d0fc2d826",
-            "updatedAt": 1781985413733,
+            "updatedAt": 1782012571783,
             "value": {
                 "CompatibleLayers": "6b102986-24c7-4bdf-b6ea-fe4b2a9bfea7",
                 "DefaultLayer": "177ce433-60d3-404e-8795-3f5902ccff57",
-                "DisplayName": "8f96912d-5bbb-428c-84eb-8932ef588116",
                 "EligibleTileLayers": "cf0d5218-227f-4a5c-ae76-afb11067be29",
-                "Name": "172561fb-ab4b-47d5-98db-c37d6b9aa767"
+                "Name": "172561fb-ab4b-47d5-98db-c37d6b9aa767",
+                "Sprite": "3f8cbfe9-7e34-4ee9-a7f6-df8938301b85"
             }
         },
         "8f96912d-5bbb-428c-84eb-8932ef588143": {
@@ -9026,13 +9991,13 @@
             "id": "8f96912d-5bbb-428c-84eb-8932ef588143",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": "07db44f3-8cc5-4164-aace-098ca68460f4",
-            "updatedAt": 1781985413733,
+            "updatedAt": 1782012571783,
             "value": {
                 "CompatibleLayers": "d196852c-79c9-4222-b239-6b9128ef56f9",
                 "DefaultLayer": "a1fee96e-b278-4fb9-8e14-55a76bd89b6e",
-                "DisplayName": "8f96912d-5bbb-428c-84eb-8932ef588117",
                 "EligibleTileLayers": "06b616e1-1b40-4bbf-b2a6-513955ee003e",
-                "Name": "893a4f96-ac54-418f-86dc-c519a585eb73"
+                "Name": "893a4f96-ac54-418f-86dc-c519a585eb73",
+                "Sprite": "1783f182-330e-4b73-9c1b-8fbc19b2c5ec"
             }
         },
         "8f96912d-5bbb-428c-84eb-8932ef588144": {
@@ -9040,13 +10005,13 @@
             "id": "8f96912d-5bbb-428c-84eb-8932ef588144",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": "d931c907-19cd-4f3d-b04a-e6f1945fb216",
-            "updatedAt": 1781985413733,
+            "updatedAt": 1782012571783,
             "value": {
                 "CompatibleLayers": "66a135c1-1084-4843-af28-fb08d0260181",
                 "DefaultLayer": "8ff49ad8-92d4-4bb7-b909-13e9343f5f6f",
-                "DisplayName": "8f96912d-5bbb-428c-84eb-8932ef588118",
                 "EligibleTileLayers": "5f59fcaf-17cb-44d3-9155-958480508927",
-                "Name": "6cd02bec-cdb4-498f-bcc7-1ddc3ab04648"
+                "Name": "6cd02bec-cdb4-498f-bcc7-1ddc3ab04648",
+                "Sprite": "05dc1eae-0ad9-4d41-845c-161631ea63da"
             }
         },
         "8f96912d-5bbb-428c-84eb-8932ef588151": {
@@ -9054,13 +10019,14 @@
             "id": "8f96912d-5bbb-428c-84eb-8932ef588151",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f",
-            "updatedAt": 1781985413733,
+            "updatedAt": 1782012571783,
             "value": {
+                "Children": "03ae7dbc-c8e8-4fc6-9fb8-f86f6a90b024",
                 "CompatibleLayers": "3b5530a3-4956-4128-8ebd-f67a420d49e3",
                 "DefaultLayer": "e631158f-486e-41de-9f3c-dc8c9d78d426",
-                "DisplayName": "8f96912d-5bbb-428c-84eb-8932ef588119",
                 "EligibleObjectLayers": "8f96912d-5bbb-428c-84eb-8932ef588134",
-                "Name": "94d741ae-8e15-4876-a4ac-42854b19704d"
+                "Name": "94d741ae-8e15-4876-a4ac-42854b19704d",
+                "PlacementTiles": "42820a6e-afea-4ddb-b799-ca0d90d2beee"
             }
         },
         "8f96912d-5bbb-428c-84eb-8932ef588152": {
@@ -9068,13 +10034,15 @@
             "id": "8f96912d-5bbb-428c-84eb-8932ef588152",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": "cacf06dd-db1d-4f48-99c7-f3cea5a6961f",
-            "updatedAt": 1781985413733,
+            "updatedAt": 1782012757473,
             "value": {
+                "Children": "51f96355-fa16-4f33-8238-f84c06690fde",
                 "CompatibleLayers": "de9ff738-716b-492c-9fbd-f6f15e534440",
                 "DefaultLayer": "135acd95-d636-4db3-9fe1-7765938f8e1a",
-                "DisplayName": "8f96912d-5bbb-428c-84eb-8932ef58811a",
                 "EligibleObjectLayers": "8f96912d-5bbb-428c-84eb-8932ef588134",
-                "Name": "1d95222b-88aa-4943-8916-de9eda83052a"
+                "Name": "1d95222b-88aa-4943-8916-de9eda83052a",
+                "PlacementTiles": "55fc0709-788b-43f9-bb05-8ed20d207c34",
+                "Position": "94a96948-8c0d-4894-9af2-4169aea500c5"
             }
         },
         "8f96912d-5bbb-428c-84eb-8932ef588153": {
@@ -9082,13 +10050,14 @@
             "id": "8f96912d-5bbb-428c-84eb-8932ef588153",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": "5c65b156-e83a-41c5-bef0-ee375798bdc2",
-            "updatedAt": 1781985413733,
+            "updatedAt": 1782012571783,
             "value": {
+                "Children": "29089d0e-c76e-4646-8cd2-5407d50671eb",
                 "CompatibleLayers": "47767f17-e9ac-45bb-9084-476f4eefb184",
                 "DefaultLayer": "5ac48221-be67-4ea9-ac52-dad4d99490ed",
-                "DisplayName": "8f96912d-5bbb-428c-84eb-8932ef58811b",
                 "EligibleObjectLayers": "8f96912d-5bbb-428c-84eb-8932ef588134",
-                "Name": "a8831ccd-994e-4dc2-860d-d65269986baf"
+                "Name": "a8831ccd-994e-4dc2-860d-d65269986baf",
+                "PlacementTiles": "4d74542d-c9e0-4c7b-87ea-ed11ed241bf4"
             }
         },
         "8f96912d-5bbb-428c-84eb-8932ef588161": {
@@ -9164,6 +10133,18 @@
             "updatedAt": 1778021394449,
             "value": 0
         },
+        "94a96948-8c0d-4894-9af2-4169aea500c5": {
+            "createdAt": 1782012757473,
+            "id": "94a96948-8c0d-4894-9af2-4169aea500c5",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782012757473,
+            "value": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            }
+        },
         "94d741ae-8e15-4876-a4ac-42854b19704d": {
             "createdAt": 1781985413733,
             "id": "94d741ae-8e15-4876-a4ac-42854b19704d",
@@ -9206,6 +10187,16 @@
             "typeId": null,
             "updatedAt": 1781236504253,
             "value": []
+        },
+        "96cad433-4aed-4a9c-be34-fee3ebca8402": {
+            "createdAt": 1782071674504,
+            "id": "96cad433-4aed-4a9c-be34-fee3ebca8402",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
+            "updatedAt": 1782071674504,
+            "value": {
+                "Cell": "a245b808-d54d-4abe-8d06-1fd55bc72e3c"
+            }
         },
         "972072f6-cde5-4c51-a750-abd45e061275": {
             "createdAt": 1781251289991,
@@ -9306,6 +10297,13 @@
                 "VisitCount": "70167d1e-9804-4991-b385-69157d00d756"
             }
         },
+        "9cd36c77-9d63-445b-8bb4-4cc23feb2c4d": {
+            "createdAt": 1782012971265,
+            "id": "9cd36c77-9d63-445b-8bb4-4cc23feb2c4d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": ""
+        },
         "9d559f55-d80f-442a-a964-766b3d45780d": {
             "createdAt": 1777846554350,
             "id": "9d559f55-d80f-442a-a964-766b3d45780d",
@@ -9381,6 +10379,17 @@
                 "8f96912d-5bbb-428c-84eb-8932ef588121"
             ]
         },
+        "a245b808-d54d-4abe-8d06-1fd55bc72e3c": {
+            "createdAt": 1782071674504,
+            "id": "a245b808-d54d-4abe-8d06-1fd55bc72e3c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782071674504,
+            "value": {
+                "x": 0,
+                "y": 0
+            }
+        },
         "a31a428c-9260-4309-85a5-e4f8382bac43": {
             "createdAt": 1778179793411,
             "id": "a31a428c-9260-4309-85a5-e4f8382bac43",
@@ -9422,6 +10431,17 @@
             "value": {
                 "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
                 "sliceIndex": 46
+            }
+        },
+        "a50d13b4-44ac-4c53-a4c7-938cdfdb0c04": {
+            "createdAt": 1782012971265,
+            "id": "a50d13b4-44ac-4c53-a4c7-938cdfdb0c04",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782022794214,
+            "value": {
+                "x": 0,
+                "y": 0,
+                "z": 0
             }
         },
         "a5da17df-d8cd-4459-892e-10ab5860b412": {
@@ -9490,6 +10510,17 @@
                 "pluto"
             ]
         },
+        "a9da4ab8-bcd9-43ee-8f50-c7360cb89ff8": {
+            "createdAt": 1782012971265,
+            "id": "a9da4ab8-bcd9-43ee-8f50-c7360cb89ff8",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            }
+        },
         "aa2f31a6-1866-4a48-bba4-23f93d151437": {
             "createdAt": 1778665407686,
             "id": "aa2f31a6-1866-4a48-bba4-23f93d151437",
@@ -9530,6 +10561,14 @@
             "typeId": null,
             "updatedAt": 1781985413733,
             "value": "Void"
+        },
+        "ab5a4e1a-7627-418b-8f37-fe25c9ba75c9": {
+            "createdAt": 1782012571783,
+            "id": "ab5a4e1a-7627-418b-8f37-fe25c9ba75c9",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1782012571783,
+            "value": null
         },
         "ab5eb09b-46ca-459d-bf72-27b0ef969698": {
             "createdAt": 1781258896034,
@@ -9745,6 +10784,15 @@
                 "ganymede"
             ]
         },
+        "c0b8e423-64b8-4cfd-bf75-13e056f0db82": {
+            "createdAt": 1782012971265,
+            "id": "c0b8e423-64b8-4cfd-bf75-13e056f0db82",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782012971265,
+            "value": [
+                "8f96912d-5bbb-428c-84eb-8932ef588143"
+            ]
+        },
         "c1fc5ba2-53c5-40e8-9cbd-6b40a5915287": {
             "createdAt": 1779225680025,
             "id": "c1fc5ba2-53c5-40e8-9cbd-6b40a5915287",
@@ -9785,6 +10833,27 @@
             "updatedAt": 1777846665497,
             "value": {
                 "Name": "950a99ac-8141-4a41-8948-5af71f983df5"
+            }
+        },
+        "c3347c17-bf29-4e8e-9dff-60e0f63c9739": {
+            "createdAt": 1782012971265,
+            "id": "c3347c17-bf29-4e8e-9dff-60e0f63c9739",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782022776936,
+            "value": {
+                "x": 1,
+                "y": 0
+            }
+        },
+        "c33e2302-8503-4d5a-9e05-7d2c1084dbb2": {
+            "createdAt": 1782012971265,
+            "id": "c33e2302-8503-4d5a-9e05-7d2c1084dbb2",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1782022674913,
+            "value": {
+                "x": 0,
+                "y": 0,
+                "z": 0
             }
         },
         "c40e0122-d171-4765-aecf-850e8d992173": {
@@ -10023,6 +11092,18 @@
             "typeId": null,
             "updatedAt": 1781855034923,
             "value": "Objects"
+        },
+        "d0d48343-8748-40bf-b35a-3e88cdd7e3a5": {
+            "createdAt": 1782012971265,
+            "id": "d0d48343-8748-40bf-b35a-3e88cdd7e3a5",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "updatedAt": 1782012971265,
+            "value": {
+                "Name": "537b54d1-172d-4d09-923b-843294613388",
+                "Position": "46e81ca2-d333-4d11-913e-0c3ccc38a5c9",
+                "Sprite": "8d77c5f4-e12b-435b-b22d-ff68239b70e7"
+            }
         },
         "d18cab07-8490-4ade-bbd0-41c3cab5ff4c": {
             "createdAt": 1781236971366,
@@ -47655,6 +48736,96 @@
                     "layerKind": "tile",
                     "regionKey": "0,0",
                     "regionX": 0,
+                    "regionY": 0
+                },
+                {
+                    "contentHash": "47136062ca332896ada6ec52c66eeb2de285ec0286c19e40b674c579c64836ff",
+                    "data": {
+                        "conflictOrder": [
+                            "a09a4708-5b5b-468e-8407-392a9d66fb2a",
+                            "a054d73b-e686-4bf0-841f-6a661a1b313a",
+                            "4ac8112a-a918-4358-9865-086bd6a85187"
+                        ],
+                        "instances": [
+                            {
+                                "id": "a09a4708-5b5b-468e-8407-392a9d66fb2a",
+                                "layerLinkId": "8f96912d-5bbb-428c-84eb-8932ef588122",
+                                "order": 0,
+                                "position": {
+                                    "x": -8,
+                                    "y": -4
+                                },
+                                "tileTypeId": "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2",
+                                "tileValueId": "8f96912d-5bbb-428c-84eb-8932ef588141"
+                            },
+                            {
+                                "id": "a054d73b-e686-4bf0-841f-6a661a1b313a",
+                                "layerLinkId": "8f96912d-5bbb-428c-84eb-8932ef588122",
+                                "order": 1,
+                                "position": {
+                                    "x": -9,
+                                    "y": -4
+                                },
+                                "tileTypeId": "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2",
+                                "tileValueId": "8f96912d-5bbb-428c-84eb-8932ef588141"
+                            },
+                            {
+                                "id": "4ac8112a-a918-4358-9865-086bd6a85187",
+                                "layerLinkId": "8f96912d-5bbb-428c-84eb-8932ef588122",
+                                "order": 2,
+                                "position": {
+                                    "x": -9,
+                                    "y": -3
+                                },
+                                "tileTypeId": "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2",
+                                "tileValueId": "8f96912d-5bbb-428c-84eb-8932ef588141"
+                            }
+                        ],
+                        "kind": "tile",
+                        "regionX": -1,
+                        "regionY": -1
+                    },
+                    "dataSchemaVersion": 1,
+                    "deleted": false,
+                    "gridValueId": "8f96912d-5bbb-428c-84eb-8932ef588161",
+                    "id": "59c51ce7-0909-444d-9fa6-1f10f7dce284",
+                    "layerId": "8f96912d-5bbb-428c-84eb-8932ef588122",
+                    "layerKind": "tile",
+                    "regionKey": "-1,-1",
+                    "regionX": -1,
+                    "regionY": -1
+                },
+                {
+                    "contentHash": "64857c9c76570e31b9e10abdbf020fa64228ffd7fd42d23ad62f8e9260921536",
+                    "data": {
+                        "conflictOrder": [
+                            "204bb3ac-4445-44ce-a4a7-a8eed0417ca6"
+                        ],
+                        "instances": [
+                            {
+                                "id": "204bb3ac-4445-44ce-a4a7-a8eed0417ca6",
+                                "layerLinkId": "8f96912d-5bbb-428c-84eb-8932ef588122",
+                                "order": 0,
+                                "position": {
+                                    "x": -8,
+                                    "y": 4
+                                },
+                                "tileTypeId": "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2",
+                                "tileValueId": "8f96912d-5bbb-428c-84eb-8932ef588141"
+                            }
+                        ],
+                        "kind": "tile",
+                        "regionX": -1,
+                        "regionY": 0
+                    },
+                    "dataSchemaVersion": 1,
+                    "deleted": false,
+                    "gridValueId": "8f96912d-5bbb-428c-84eb-8932ef588161",
+                    "id": "8c5d1623-d7b7-4351-ab26-6259596f2c09",
+                    "layerId": "8f96912d-5bbb-428c-84eb-8932ef588122",
+                    "layerKind": "tile",
+                    "regionKey": "-1,0",
+                    "regionX": -1,
                     "regionY": 0
                 },
                 {
