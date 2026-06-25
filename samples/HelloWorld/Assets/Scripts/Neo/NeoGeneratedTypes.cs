@@ -33,6 +33,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["11177bd5-0678-4bff-86b8-46718ff1827b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAnimationInfo.Create(client, node),
                 ["22a62498-61f8-4b6f-8d4c-bc05743a5c2e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyWorlds.Create(client, node),
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyComputedText.Create(client, node),
+                ["38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoObjectPlacementTile.Create(client, node),
                 ["44d6324f-6507-4420-a919-3496681c3b21"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAudio.Create(client, node),
                 ["48bcbba5-57c0-40fd-8df8-35f4e7ce73f2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyVoidTile.Create(client, node),
                 ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoDialogueMemory.Create(client, node),
@@ -44,7 +45,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoMemory.Create(client, node),
                 ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyLookupContainer.Create(client, node),
                 ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyPlanetVisit.Create(client, node),
+                ["7cb1b706-95d2-4465-8e75-c82a6b7d8830"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoSpriteObject.Create(client, node),
                 ["7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyPlayerSpawnObject.Create(client, node),
+                ["7ed188f9-484b-4692-840d-436acf1635aa"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoCollider.Create(client, node),
                 ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyOutpostSaveData.Create(client, node),
                 ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyLookupEntry.Create(client, node),
                 ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlySaturnOutpost.Create(client, node),
@@ -59,6 +62,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["d931c907-19cd-4f3d-b04a-e6f1945fb216"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyRedNovaWarningTile.Create(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyQuestState.Create(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAssets.Create(client, node),
+                ["e78cfcd2-78ae-4656-9f04-6429bb0efe20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoTileLayerLink.Create(client, node),
                 ["fb219343-34db-4e82-baf0-09df9a2b5210"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoSortingLayer.Create(client, node),
                 ["fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyConsoleTileLayer.Create(client, node),
             };
@@ -73,6 +77,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["11177bd5-0678-4bff-86b8-46718ff1827b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable(client, node),
                 ["22a62498-61f8-4b6f-8d4c-bc05743a5c2e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Worlds.CreateWritable(client, node),
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateWritable(client, node),
+                ["38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, node),
                 ["44d6324f-6507-4420-a919-3496681c3b21"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Audio.CreateWritable(client, node),
                 ["48bcbba5-57c0-40fd-8df8-35f4e7ce73f2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.VoidTile.CreateWritable(client, node),
                 ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, node),
@@ -84,7 +89,9 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(client, node),
                 ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateWritable(client, node),
                 ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, node),
+                ["7cb1b706-95d2-4465-8e75-c82a6b7d8830"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.CreateWritable(client, node),
                 ["7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlayerSpawnObject.CreateWritable(client, node),
+                ["7ed188f9-484b-4692-840d-436acf1635aa"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoCollider.CreateWritable(client, node),
                 ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.CreateWritable(client, node),
                 ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.CreateWritable(client, node),
                 ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SaturnOutpost.CreateWritable(client, node),
@@ -99,6 +106,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["d931c907-19cd-4f3d-b04a-e6f1945fb216"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile.CreateWritable(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.CreateWritable(client, node),
+                ["e78cfcd2-78ae-4656-9f04-6429bb0efe20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayerLink.CreateWritable(client, node),
                 ["fb219343-34db-4e82-baf0-09df9a2b5210"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateWritable(client, node),
                 ["fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ConsoleTileLayer.CreateWritable(client, node),
             };
@@ -2639,7 +2647,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public abstract partial class ReadOnlyNeoObjectPlacementTile : NeoGeneratedCustomValue
+    public partial class ReadOnlyNeoObjectPlacementTile : NeoGeneratedCustomValue
     {
         internal ReadOnlyNeoObjectPlacementTile(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6")
@@ -2653,7 +2661,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ReadOnlyNeoObjectPlacementTile' without a concrete client type id."),
+                    _ => new ReadOnlyNeoObjectPlacementTile(client, node),
                 };
             });
         }
@@ -2723,7 +2731,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
-    public abstract partial class NeoObjectPlacementTile : ReadOnlyNeoObjectPlacementTile
+    public partial class NeoObjectPlacementTile : ReadOnlyNeoObjectPlacementTile
     {
         internal NeoObjectPlacementTile(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
@@ -2732,6 +2740,44 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
+        public NeoObjectPlacementTile(NeoVector2Int? Cell = null, NeoLookupSelection? Tile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Cell, Tile))
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2Int? Cell = null, NeoLookupSelection? Tile = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Cell is not null)
+            {
+                var CellValueId = Guid.NewGuid().ToString();
+                value["Cell"] = CellValueId;
+                valueRows.Add(new Vector2AttributeValue
+                {
+                    id = CellValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector2IntValue(Cell.Value),
+                });
+            }
+            if (Tile is not null)
+            {
+                var TileValueId = Guid.NewGuid().ToString();
+                value["Tile"] = TileValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TileValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Tile.HasValue ? new[] { Tile.Value.valueId } : null,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6", value, valueRows);
+        }
+
         internal static NeoObjectPlacementTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObjectPlacementTile>(client, node, () =>
@@ -2739,7 +2785,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectPlacementTile' without a concrete client type id."),
+                    _ => new NeoObjectPlacementTile(client, node),
                 };
             });
         }
@@ -6404,7 +6450,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public abstract partial class ReadOnlyNeoSpriteObject : ReadOnlyNeoObjectBase
+    public partial class ReadOnlyNeoSpriteObject : ReadOnlyNeoObjectBase
     {
         internal ReadOnlyNeoSpriteObject(NeoClient client, NeoAttributeCustom node)
             : base(client, node)
@@ -6418,7 +6464,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ReadOnlyNeoSpriteObject' without a concrete client type id."),
+                    _ => new ReadOnlyNeoSpriteObject(client, node),
                 };
             });
         }
@@ -6488,11 +6534,71 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
-    public abstract partial class NeoSpriteObject : NeoObjectBase
+    public partial class NeoSpriteObject : NeoObjectBase
     {
         internal NeoSpriteObject(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
+        }
+
+        public NeoSpriteObject(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Sprite, Name, Position, Size))
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            var SpriteValueId = Guid.NewGuid().ToString();
+            value["Sprite"] = SpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = SpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
+            });
+            if (Position is not null)
+            {
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            if (Size is not null)
+            {
+                var SizeValueId = Guid.NewGuid().ToString();
+                value["Size"] = SizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = SizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7cb1b706-95d2-4465-8e75-c82a6b7d8830", value, valueRows);
         }
 
         internal new static NeoSpriteObject CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
@@ -6502,7 +6608,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoSpriteObject' without a concrete client type id."),
+                    _ => new NeoSpriteObject(client, node),
                 };
             });
         }
@@ -7044,7 +7150,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public abstract partial class ReadOnlyNeoCollider : NeoGeneratedCustomValue
+    public partial class ReadOnlyNeoCollider : NeoGeneratedCustomValue
     {
         internal ReadOnlyNeoCollider(NeoClient client, NeoAttributeCustom node)
             : base(client, node, "7ed188f9-484b-4692-840d-436acf1635aa")
@@ -7058,7 +7164,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ReadOnlyNeoCollider' without a concrete client type id."),
+                    _ => new ReadOnlyNeoCollider(client, node),
                 };
             });
         }
@@ -7140,7 +7246,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
-    public abstract partial class NeoCollider : ReadOnlyNeoCollider
+    public partial class NeoCollider : ReadOnlyNeoCollider
     {
         internal NeoCollider(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
@@ -7149,6 +7255,56 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
 
+        public NeoCollider(NeoVector2? size = null, NeoVector2? offset = null, bool? isTrigger = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(size, offset, isTrigger))
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2? size = null, NeoVector2? offset = null, bool? isTrigger = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (size is not null)
+            {
+                var sizeValueId = Guid.NewGuid().ToString();
+                value["size"] = sizeValueId;
+                valueRows.Add(new Vector2AttributeValue
+                {
+                    id = sizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector2Value(size.Value),
+                });
+            }
+            if (offset is not null)
+            {
+                var offsetValueId = Guid.NewGuid().ToString();
+                value["offset"] = offsetValueId;
+                valueRows.Add(new Vector2AttributeValue
+                {
+                    id = offsetValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector2Value(offset.Value),
+                });
+            }
+            if (isTrigger is not null)
+            {
+                var isTriggerValueId = Guid.NewGuid().ToString();
+                value["isTrigger"] = isTriggerValueId;
+                valueRows.Add(new BoolAttributeValue
+                {
+                    id = isTriggerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = isTrigger,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7ed188f9-484b-4692-840d-436acf1635aa", value, valueRows);
+        }
+
         internal static NeoCollider CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
             return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoCollider>(client, node, () =>
@@ -7156,7 +7312,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoCollider' without a concrete client type id."),
+                    _ => new NeoCollider(client, node),
                 };
             });
         }
@@ -12651,7 +12807,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public abstract partial class ReadOnlyNeoTileLayerLink : ReadOnlyNeoObjectBase
+    public partial class ReadOnlyNeoTileLayerLink : ReadOnlyNeoObjectBase
     {
         internal ReadOnlyNeoTileLayerLink(NeoClient client, NeoAttributeCustom node)
             : base(client, node)
@@ -12665,7 +12821,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ReadOnlyNeoTileLayerLink' without a concrete client type id."),
+                    _ => new ReadOnlyNeoTileLayerLink(client, node),
                 };
             });
         }
@@ -12735,11 +12891,85 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
-    public abstract partial class NeoTileLayerLink : NeoObjectBase
+    public partial class NeoTileLayerLink : NeoObjectBase
     {
         internal NeoTileLayerLink(NeoClient client, NeoAttributeCustomWritable node)
             : base(client, node)
         {
+        }
+
+        public NeoTileLayerLink(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoObjectPlacementTile>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size))
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoObjectPlacementTile>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var TileLayerValueId = Guid.NewGuid().ToString();
+            value["TileLayer"] = TileLayerValueId;
+            valueRows.Add(new ArrayAttributeValue
+            {
+                id = TileLayerValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { TileLayer.valueId },
+            });
+            if (Tiles is not null)
+            {
+                var TilesValueId = Guid.NewGuid().ToString();
+                value["Tiles"] = TilesValueId;
+                var TilesIds = new List<string>();
+                foreach (var entry in Tiles)
+                {
+                    TilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TilesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = TilesIds.ToArray(),
+                });
+            }
+            var NameValueId = Guid.NewGuid().ToString();
+            value["Name"] = NameValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = NameValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Name,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
+            });
+            if (Position is not null)
+            {
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            if (Size is not null)
+            {
+                var SizeValueId = Guid.NewGuid().ToString();
+                value["Size"] = SizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = SizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "e78cfcd2-78ae-4656-9f04-6429bb0efe20", value, valueRows);
         }
 
         internal new static NeoTileLayerLink CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
@@ -12749,7 +12979,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileLayerLink' without a concrete client type id."),
+                    _ => new NeoTileLayerLink(client, node),
                 };
             });
         }
@@ -13204,8 +13434,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return clientTypeId switch
                 {
                     "5c65b156-e83a-41c5-bef0-ee375798bdc2" => new ReadOnlyExitPromptObject(client, node),
+                    "7cb1b706-95d2-4465-8e75-c82a6b7d8830" => new ReadOnlyNeoSpriteObject(client, node),
                     "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new ReadOnlyPlayerSpawnObject(client, node),
                     "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new ReadOnlyVaultPlaqueObject(client, node),
+                    "e78cfcd2-78ae-4656-9f04-6429bb0efe20" => new ReadOnlyNeoTileLayerLink(client, node),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ReadOnlyNeoObjectBase' without a concrete client type id."),
                 };
             });
@@ -13304,8 +13536,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                 return clientTypeId switch
                 {
                     "5c65b156-e83a-41c5-bef0-ee375798bdc2" => new ExitPromptObject(client, node),
+                    "7cb1b706-95d2-4465-8e75-c82a6b7d8830" => new NeoSpriteObject(client, node),
                     "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node),
                     "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node),
+                    "e78cfcd2-78ae-4656-9f04-6429bb0efe20" => new NeoTileLayerLink(client, node),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
                 };
             });

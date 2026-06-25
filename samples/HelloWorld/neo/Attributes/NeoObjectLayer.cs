@@ -5,7 +5,7 @@ using NeoCompose.Schema;
 
 namespace ProjectSchema;
 
-[NeoCustomType("c1dc3dd7-397a-4f8f-acbf-b928cc66076d", Hidden = true, ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder."",""worldKind"":""objectLayer""}}")]
+[NeoCustomType("c1dc3dd7-397a-4f8f-acbf-b928cc66076d", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder."",""worldKind"":""objectLayer""}}")]
 public abstract class NeoObjectLayer
 {
     [NeoString("788a3dbc-6167-4320-83aa-1e884924f776", Locked = true, Localizable = false, DefaultJson = @"{""value"":""""}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]

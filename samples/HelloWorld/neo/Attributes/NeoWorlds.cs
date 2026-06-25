@@ -5,7 +5,7 @@ using NeoCompose.Schema;
 
 namespace ProjectSchema;
 
-[NeoCustomType("3415d063-b5b9-4cfb-a77d-ba6ebb5890e2", Hidden = true, ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder."",""worldKind"":""worldAssets""}}")]
+[NeoCustomType("3415d063-b5b9-4cfb-a77d-ba6ebb5890e2", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder."",""worldKind"":""worldAssets""}}")]
 public abstract class NeoWorlds
 {
     [NeoList("56831afd-18d8-418d-9bcf-c76c770592c4", Locked = true, EntryChainJson = @"[{""customTypeId"":""1968a188-8220-4d1a-99b2-f1d0cea0c802"",""defaultValue"":{""value"":{}},""id"":""2835bbe7-ba93-4bf4-bf63-90561770b5e0"",""locked"":true,""name"":""Tile"",""required"":true,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""},""type"":7}]", DefaultJson = @"{""value"":[]}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
