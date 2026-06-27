@@ -25,4 +25,7 @@ public abstract class NeoTileGrid
 
     [NeoLookup("2193c5a4-cca1-4cd1-b079-62b83c1664e8", Locked = true, CollectionId = "7fb51db7-60c7-4064-bcde-6938acea4fe8", DefaultJson = @"{""value"":[]}", ExtraJson = @"{""collectionValueId"":null,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
     public IReadOnlyList<NeoLookupRef> ObjectLayers { get; init; }
+
+    [NeoList("98578ba3-a70e-4397-9283-996a898d44c8", Locked = true, EntryChainJson = @"[{""customTypeId"":""6d069010-c47c-4744-89af-243f4448f537"",""defaultValue"":{""value"":{}},""id"":""f1d89b43-7de6-4d50-9614-342bcdf85531"",""locked"":true,""name"":""LayerGroup"",""required"":true,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""},""type"":7}]", DefaultJson = @"{""value"":[]}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
+    public IReadOnlyList<NeoLayerGroupBase> Children { get; init; }
 }

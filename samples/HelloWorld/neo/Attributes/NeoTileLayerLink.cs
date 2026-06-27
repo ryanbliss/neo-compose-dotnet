@@ -6,7 +6,7 @@ using NeoCompose.Schema;
 namespace ProjectSchema;
 
 [NeoCustomType("e78cfcd2-78ae-4656-9f04-6429bb0efe20", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder."",""worldKind"":""tileLayerLink""}}")]
-public sealed class NeoTileLayerLink : NeoObjectBase
+public sealed class NeoTileLayerLink : NeoLayerGroupBase
 {
     [NeoLookup("325dba0e-5967-4e18-937e-5c6800b68abc", Locked = true, CollectionId = "5161fb81-7254-4e41-b153-25138b8e9e74", DefaultJson = @"null", ExtraJson = @"{""collectionValueId"":null,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
     public NeoLookupRef TileLayer { get; init; }
