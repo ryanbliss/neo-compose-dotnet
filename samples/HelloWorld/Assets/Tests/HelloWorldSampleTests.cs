@@ -248,19 +248,19 @@ namespace HelloWorld.Assets.Tests
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
 
             Assert.IsInstanceOf<ReadOnlyGlassFloorTile>(
-                content.Background.GetTile(new Vector2Int(-6, -5)));
+                content.Background.GetTile(new Vector2Int(-6, 5)));
             Assert.IsInstanceOf<ReadOnlyBootGlyphTile>(
-                content.Background.GetTile(new Vector2Int(-5, -2)));
+                content.Background.GetTile(new Vector2Int(-5, 2)));
             Assert.IsInstanceOf<ReadOnlyRedNovaWarningTile>(
-                content.Background.GetTile(new Vector2Int(-8, -5)));
+                content.Background.GetTile(new Vector2Int(-8, 5)));
             Assert.IsInstanceOf<ReadOnlyVoidTile>(
                 content.Background.GetTile(new Vector2Int(9, 0)));
             Assert.IsInstanceOf<ReadOnlyPlayerSpawnObject>(
-                content.Objects.GetObject(new Vector2Int(0, -4)));
+                content.Objects.GetObject(new Vector2Int(0, 4)));
             Assert.IsInstanceOf<ReadOnlyVaultPlaqueObject>(
                 content.Objects.GetObject(new Vector2Int(0, 0)));
             Assert.IsInstanceOf<ReadOnlyExitPromptObject>(
-                content.Objects.GetObject(new Vector2Int(6, -1)));
+                content.Objects.GetObject(new Vector2Int(6, 1)));
 
             var go = new GameObject("Neo TileGrid Renderer Smoke");
             try
@@ -273,8 +273,8 @@ namespace HelloWorld.Assets.Tests
                 Assert.AreEqual(2, tilemaps.Length);
                 var backgroundTilemap = tilemaps.Single(tilemap =>
                     tilemap.gameObject.name == "Tile Layer - Background");
-                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-6, -5, 0)));
-                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-5, -2, 0)));
+                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-6, 5, 0)));
+                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-5, 2, 0)));
 
                 var objectLayer = go.transform.Find("Object Layer - Objects");
                 Assert.IsNotNull(
@@ -284,7 +284,7 @@ namespace HelloWorld.Assets.Tests
                 AssertRenderedObject(
                     objectLayer,
                     "old-console-object:player-spawn",
-                    new Vector3(0f, -4f, 0f),
+                    new Vector3(0f, 4f, 0f),
                     "4bdf7916-db7e-42f9-8b75-02ab429ac1f2-player-spawn-object");
                 AssertRenderedObject(
                     objectLayer,
@@ -294,7 +294,7 @@ namespace HelloWorld.Assets.Tests
                 AssertRenderedObject(
                     objectLayer,
                     "old-console-object:exit-prompt",
-                    new Vector3(6f, -1f, 0f),
+                    new Vector3(6f, 1f, 0f),
                     "58b3b0b3-257a-46ee-ba87-bab09972ff63-exit-prompt-object",
                     "2c68221a-2a3c-45d4-8565-c5c23c0654d3-boot-glyph-tile");
             }
@@ -353,7 +353,7 @@ namespace HelloWorld.Assets.Tests
         public void TileGridSaveAndSessionMutation_ConvertsOldConsoleLandingTiles()
         {
             var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
-            var cell = new Vector2Int(2, -3);
+            var cell = new Vector2Int(20, 20);
             var glassFloor = ResolveSampleValue<ReadOnlyGlassFloorTile>(client, GlassFloorTileValueId);
             var redNova = ResolveSampleValue<ReadOnlyRedNovaWarningTile>(client, RedNovaWarningTileValueId);
             var bootGlyph = ResolveSampleValue<ReadOnlyBootGlyphTile>(client, BootGlyphTileValueId);
@@ -397,7 +397,7 @@ namespace HelloWorld.Assets.Tests
         public void TileGridSaveMutation_SpawnsSwapsAndDespawnsOldConsoleLandingObjects()
         {
             var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
-            var cell = new Vector2Int(4, -2);
+            var cell = new Vector2Int(21, 20);
             var playerSpawn = ResolveSampleValue<ReadOnlyPlayerSpawnObject>(client, PlayerSpawnObjectValueId);
             var vaultPlaque = ResolveSampleValue<ReadOnlyVaultPlaqueObject>(client, VaultPlaqueObjectValueId);
             var saveContent = OldConsoleLandingGridContent.ResolveForSave(
