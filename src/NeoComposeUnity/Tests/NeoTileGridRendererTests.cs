@@ -309,6 +309,122 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Render_RendersObjectCompositionChildrenInsteadOfParentSprite()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            {
+                [ObjectTypeId] = (resolvedClient, node) =>
+                    new TestComposedObject(resolvedClient, node),
+                [TileTypeId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
+            };
+            var parentSprite = CreateTestSprite("legacy-parent");
+            var childSprite = CreateTestSprite("child-object");
+            var tileSprite = CreateTestSprite("child-tile");
+            var obj = (TestComposedObject)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "shop-object",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "floor-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            tile.Sprite = tileSprite;
+            obj.Sprite = parentSprite;
+            obj.Children = new object[]
+            {
+                new TestSpriteChild
+                {
+                    Name = "Sprite Child",
+                    Sprite = childSprite,
+                    Position = new Vector3(0f, 0f, 0f),
+                    Size = new Vector3(2f, 1f, 0f),
+                },
+                new TestTileLayerLinkChild
+                {
+                    Name = "Tile Link",
+                    Tiles = new object[]
+                    {
+                        new TestTileInstanceChild
+                        {
+                            Cell = new Vector2Int(1, 0),
+                            Tile = tile,
+                        },
+                    },
+                },
+            };
+            var go = new GameObject("NeoTileGridRenderer object composition test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.CellSize = 2f;
+                renderer.Render(
+                    NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[]
+                    {
+                        new TestObjectLayerRuntime(
+                            "object-layer",
+                            "Objects",
+                            ObjectTypeId,
+                            null,
+                            12,
+                            new[]
+                            {
+                                new NeoResolvedObjectInstance(
+                                    "object-1",
+                                    "object-layer",
+                                    new Vector2Int(3, 4),
+                                    new[] { new Vector2Int(3, 4) },
+                                    obj,
+                                    1),
+                            }),
+                    });
+
+                var objectRoot = go.transform
+                    .Find("Object Layer - Objects")
+                    ?.Find("Object - object-1");
+                Assert.IsNotNull(objectRoot);
+                Assert.AreEqual(new Vector3(6f, 8f, 0f), objectRoot!.localPosition);
+
+                var spriteRenderers = objectRoot.GetComponentsInChildren<SpriteRenderer>();
+                Assert.AreEqual(2, spriteRenderers.Length);
+                Assert.IsFalse(System.Array.Exists(
+                    spriteRenderers,
+                    spriteRenderer => spriteRenderer.sprite == parentSprite));
+
+                var spriteChild = objectRoot.Find("Sprite Child");
+                Assert.IsNotNull(spriteChild);
+                var spriteChildRenderer = spriteChild!.GetComponent<SpriteRenderer>();
+                Assert.AreEqual(new Vector3(2f, 1f, 0f), spriteChild.localPosition);
+                Assert.AreSame(childSprite, spriteChildRenderer.sprite);
+                Assert.AreEqual(4f, spriteChildRenderer.bounds.size.x, 0.0001f);
+                Assert.AreEqual(2f, spriteChildRenderer.bounds.size.y, 0.0001f);
+
+                var tileChild = objectRoot.Find("child-tile");
+                Assert.IsNotNull(tileChild);
+                var tileChildRenderer = tileChild!.GetComponent<SpriteRenderer>();
+                Assert.AreEqual(new Vector3(3f, 1f, 0f), tileChild.localPosition);
+                Assert.AreSame(tileSprite, tileChildRenderer.sprite);
+                Assert.AreEqual(2f, tileChildRenderer.bounds.size.x, 0.0001f);
+                Assert.AreEqual(2f, tileChildRenderer.bounds.size.y, 0.0001f);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(parentSprite.texture);
+                UnityEngine.Object.DestroyImmediate(parentSprite);
+                UnityEngine.Object.DestroyImmediate(childSprite.texture);
+                UnityEngine.Object.DestroyImmediate(childSprite);
+                UnityEngine.Object.DestroyImmediate(tileSprite.texture);
+                UnityEngine.Object.DestroyImmediate(tileSprite);
+            }
+        }
+
+        [Test]
         public void TryResolveObjectColliderSpec_ReadsVectorColliderFields()
         {
             var source = new ObjectWithVectorCollider
@@ -427,10 +543,69 @@ namespace NeoCompose.Tests
             public override IReadOnlyList<NeoResolvedTileInstance> GetTiles() => tiles;
         }
 
+        private sealed class TestObjectLayerRuntime : ReadOnlyNeoObjectLayerRuntime
+        {
+            private readonly IReadOnlyList<NeoResolvedObjectInstance> objects;
+
+            public TestObjectLayerRuntime(
+                string layerId,
+                string displayName,
+                string expectedTypeId,
+                string? sortingLayerName,
+                int? sortingOrder,
+                IReadOnlyList<NeoResolvedObjectInstance>? objects = null)
+                : base(
+                    layerId,
+                    displayName,
+                    expectedTypeId,
+                    sortingLayerName,
+                    sortingOrder)
+            {
+                this.objects = objects ?? new List<NeoResolvedObjectInstance>();
+            }
+
+            public override IReadOnlyList<NeoResolvedObjectInstance> GetObjects() =>
+                objects;
+        }
+
+        private sealed class TestComposedObject : NeoGeneratedCustomValue
+        {
+            public TestComposedObject(NeoClient client, NeoAttributeCustom node)
+                : base(client, node, ObjectTypeId)
+            {
+            }
+
+            public Sprite? Sprite { get; set; }
+            public IReadOnlyList<object> Children { get; set; } = new List<object>();
+        }
+
+        private sealed class TestSpriteChild
+        {
+            public string Name { get; set; } = "";
+            public Sprite? Sprite { get; set; }
+            public Vector3 Position { get; set; }
+            public Vector3 Size { get; set; } = Vector3.one;
+        }
+
+        private sealed class TestTileLayerLinkChild
+        {
+            public string Name { get; set; } = "";
+            public IReadOnlyList<object> Tiles { get; set; } = new List<object>();
+        }
+
+        private sealed class TestTileInstanceChild
+        {
+            public Vector2Int Cell { get; set; }
+            public NeoGeneratedCustomValue? Tile { get; set; }
+        }
+
         private static Sprite CreateTestSprite(string name)
         {
             var texture = new Texture2D(1, 1);
-            var sprite = Sprite.Create(texture, new Rect(0, 0, 1, 1), Vector2.zero);
+            var sprite = Sprite.Create(
+                texture,
+                new Rect(0, 0, 1, 1),
+                new Vector2(0.5f, 0.5f));
             sprite.name = name;
             return sprite;
         }

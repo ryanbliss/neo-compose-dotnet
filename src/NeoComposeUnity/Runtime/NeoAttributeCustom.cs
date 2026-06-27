@@ -311,11 +311,21 @@ namespace NeoCompose.Runtime
 
         private CustomType ResolveCustomType()
         {
-            if (!client.TryGetType(attribute.customTypeId, out CustomType? match))
+            string customTypeId = attribute.customTypeId;
+            if (!string.IsNullOrEmpty(value?.typeId))
+            {
+                customTypeId = value!.typeId!;
+            }
+            else if (!string.IsNullOrEmpty(attribute.defaultValue?.typeId))
+            {
+                customTypeId = attribute.defaultValue!.typeId!;
+            }
+
+            if (!client.TryGetType(customTypeId, out CustomType? match))
             {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(attribute.customTypeId),
-                    $"No custom type for {nameof(attribute)}.{nameof(attribute.customTypeId)} {attribute.customTypeId}");
+                    $"No custom type for {nameof(attribute)}.{nameof(attribute.customTypeId)} {customTypeId}");
             }
             return match;
         }

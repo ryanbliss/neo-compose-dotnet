@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.IO;
+using System.Collections.Generic;
 using NUnit.Framework;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -174,6 +175,57 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void CustomChild_ReadsSchemaDefault_WhenParentValueDoesNotReferenceChildRow()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildDefaultBackedProjectData());
+            var cardAttr = RequireAttribute<CustomAttribute>(client, "attr-card");
+
+            var card = NeoAttribute.Create(client, cardAttr, "v-card") as NeoAttributeCustom;
+            Assert.IsNotNull(card);
+
+            var name = card!.Get<NeoAttributeString>("Name");
+            Assert.AreEqual("Default Name", name.value?.value);
+        }
+
+        [Test]
+        public void List_ReadsDefaultEntryIds_WhenListHasNoStoredValueRow()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildDefaultBackedProjectData());
+            var listAttr = RequireAttribute<ListAttribute>(client, "attr-children");
+
+            var list = NeoAttribute.Create(client, listAttr, null) as NeoAttributeList;
+            Assert.IsNotNull(list);
+
+            Assert.AreEqual(2, list!.Count);
+            Assert.AreEqual(
+                "One",
+                ((NeoAttributeString)list[0]).value?.value);
+            Assert.AreEqual(
+                "Two",
+                ((NeoAttributeString)list[1]).value?.value);
+        }
+
+        [Test]
+        public void CustomListEntry_UsesConcreteRowType_ForInheritedSchemaDefaults()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildDefaultBackedProjectData());
+            var containerAttr = RequireAttribute<CustomAttribute>(client, "attr-container");
+
+            var container = NeoAttribute.Create(client, containerAttr, "v-container") as NeoAttributeCustom;
+            Assert.IsNotNull(container);
+
+            var items = container!.Get<NeoAttributeList>("Items");
+            Assert.AreEqual(1, items.Count);
+
+            var item = items[0] as NeoAttributeCustom;
+            Assert.IsNotNull(item);
+            Assert.AreEqual("type-derived-item", item!.inheritanceChain[0].id);
+            Assert.AreEqual(
+                "Inherited Name",
+                item.Get<NeoAttributeString>("Name").value?.value);
+        }
+
+        [Test]
         public void Create_FollowedByCreateWritable_ReplacesReadOnlyWithSavedInstance()
         {
             // Assets are constructed before Save and can register
@@ -195,6 +247,230 @@ namespace NeoCompose.Tests
                 "attr-altname",
                 null,
                 NeoValueOwnership.Session));
+        }
+
+        private static ProjectData BuildDefaultBackedProjectData()
+        {
+            var rootType = new CustomType
+            {
+                id = "type-root",
+                projectId = "project-defaults",
+                name = "Root",
+                schema = new Dictionary<string, string>(),
+            };
+            var cardType = new CustomType
+            {
+                id = "type-card",
+                projectId = "project-defaults",
+                name = "Card",
+                schema = new Dictionary<string, string>
+                {
+                    ["Name"] = "attr-default-name",
+                },
+            };
+            var containerType = new CustomType
+            {
+                id = "type-container",
+                projectId = "project-defaults",
+                name = "Container",
+                schema = new Dictionary<string, string>
+                {
+                    ["Items"] = "attr-items",
+                },
+            };
+            var baseItemType = new CustomType
+            {
+                id = "type-base-item",
+                projectId = "project-defaults",
+                name = "BaseItem",
+                schema = new Dictionary<string, string>
+                {
+                    ["Name"] = "attr-inherited-name",
+                },
+            };
+            var derivedItemType = new CustomType
+            {
+                id = "type-derived-item",
+                projectId = "project-defaults",
+                name = "DerivedItem",
+                extendsTypeId = baseItemType.id,
+                schema = new Dictionary<string, string>(),
+            };
+
+            return new ProjectData
+            {
+                project = new Project
+                {
+                    id = "project-defaults",
+                    _id = "project-defaults",
+                    name = "Defaults",
+                    rootAssetsAttributeId = "root-assets",
+                    rootSaveFileAttributeId = "root-save",
+                    rootSessionAttributeId = "root-session",
+                },
+                attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
+                {
+                    ["root-assets"] = RootAttribute("root-assets", "v-root-assets", rootType.id),
+                    ["root-save"] = RootAttribute("root-save", "v-root-save", rootType.id),
+                    ["root-session"] = RootAttribute("root-session", "v-root-session", rootType.id),
+                    ["attr-card"] = new CustomAttribute
+                    {
+                        id = "attr-card",
+                        projectId = "project-defaults",
+                        name = "Card",
+                        type = AttributeType.Custom,
+                        required = true,
+                        customTypeId = cardType.id,
+                    },
+                    ["attr-container"] = new CustomAttribute
+                    {
+                        id = "attr-container",
+                        projectId = "project-defaults",
+                        name = "Container",
+                        type = AttributeType.Custom,
+                        required = true,
+                        customTypeId = containerType.id,
+                    },
+                    ["attr-default-name"] = new StringAttribute
+                    {
+                        id = "attr-default-name",
+                        projectId = "project-defaults",
+                        name = "Name",
+                        type = AttributeType.String,
+                        required = true,
+                        defaultValue = new StringAttributeValueBase
+                        {
+                            value = "Default Name",
+                        },
+                    },
+                    ["attr-inherited-name"] = new StringAttribute
+                    {
+                        id = "attr-inherited-name",
+                        projectId = "project-defaults",
+                        name = "Inherited Name",
+                        type = AttributeType.String,
+                        required = true,
+                        defaultValue = new StringAttributeValueBase
+                        {
+                            value = "Inherited Name",
+                        },
+                    },
+                    ["attr-items"] = new ListAttribute
+                    {
+                        id = "attr-items",
+                        projectId = "project-defaults",
+                        name = "Items",
+                        type = AttributeType.List,
+                        required = true,
+                        entryAttributeId = "attr-item-entry",
+                    },
+                    ["attr-item-entry"] = new CustomAttribute
+                    {
+                        id = "attr-item-entry",
+                        projectId = "project-defaults",
+                        name = "Item Entry",
+                        type = AttributeType.Custom,
+                        required = true,
+                        customTypeId = baseItemType.id,
+                    },
+                    ["attr-children"] = new ListAttribute
+                    {
+                        id = "attr-children",
+                        projectId = "project-defaults",
+                        name = "Children",
+                        type = AttributeType.List,
+                        required = true,
+                        entryAttributeId = "attr-list-entry",
+                        defaultValue = new ArrayAttributeValueBase
+                        {
+                            value = new[] { "v-entry-one", "v-entry-two" },
+                        },
+                    },
+                    ["attr-list-entry"] = new StringAttribute
+                    {
+                        id = "attr-list-entry",
+                        projectId = "project-defaults",
+                        name = "Entry",
+                        type = AttributeType.String,
+                        required = true,
+                    },
+                },
+                values = new Dictionary<string, AttributeValue>
+                {
+                    ["v-root-assets"] = ObjectValue("v-root-assets", rootType.id),
+                    ["v-root-save"] = ObjectValue("v-root-save", rootType.id),
+                    ["v-root-session"] = ObjectValue("v-root-session", rootType.id),
+                    ["v-card"] = ObjectValue("v-card", cardType.id),
+                    ["v-container"] = ObjectValue(
+                        "v-container",
+                        containerType.id,
+                        new Dictionary<string, string>
+                        {
+                            ["Items"] = "v-items",
+                        }),
+                    ["v-items"] = ArrayValue("v-items", "v-derived-item"),
+                    ["v-derived-item"] = ObjectValue("v-derived-item", derivedItemType.id),
+                    ["v-entry-one"] = StringValue("v-entry-one", "One"),
+                    ["v-entry-two"] = StringValue("v-entry-two", "Two"),
+                },
+                types = new Dictionary<string, CustomType>
+                {
+                    [rootType.id] = rootType,
+                    [cardType.id] = cardType,
+                    [containerType.id] = containerType,
+                    [baseItemType.id] = baseItemType,
+                    [derivedItemType.id] = derivedItemType,
+                },
+                enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
+            };
+        }
+
+        private static CustomAttribute RootAttribute(
+            string id,
+            string valueId,
+            string customTypeId)
+        {
+            return new CustomAttribute
+            {
+                id = id,
+                projectId = "project-defaults",
+                name = id,
+                type = AttributeType.Custom,
+                required = true,
+                valueId = valueId,
+                customTypeId = customTypeId,
+            };
+        }
+
+        private static ObjectAttributeValue ObjectValue(
+            string id,
+            string typeId,
+            Dictionary<string, string>? value = null)
+        {
+            return new ObjectAttributeValue
+            {
+                id = id,
+                typeId = typeId,
+                value = value ?? new Dictionary<string, string>(),
+            };
+        }
+
+        private static ArrayAttributeValue ArrayValue(string id, params string[] values)
+        {
+            return new ArrayAttributeValue
+            {
+                id = id,
+                value = values,
+            };
+        }
+
+        private static StringAttributeValue StringValue(string id, string value)
+        {
+            return new StringAttributeValue
+            {
+                id = id,
+                value = value,
+            };
         }
     }
 }

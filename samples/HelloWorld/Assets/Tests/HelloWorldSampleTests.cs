@@ -248,19 +248,19 @@ namespace HelloWorld.Assets.Tests
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
 
             Assert.IsInstanceOf<ReadOnlyGlassFloorTile>(
-                content.Background.GetTile(new Vector2Int(1, 1)));
+                content.Background.GetTile(new Vector2Int(-6, -5)));
             Assert.IsInstanceOf<ReadOnlyBootGlyphTile>(
-                content.Background.GetTile(new Vector2Int(2, 2)));
+                content.Background.GetTile(new Vector2Int(-5, -2)));
             Assert.IsInstanceOf<ReadOnlyRedNovaWarningTile>(
-                content.Background.GetTile(new Vector2Int(0, 0)));
+                content.Background.GetTile(new Vector2Int(-8, -5)));
             Assert.IsInstanceOf<ReadOnlyVoidTile>(
-                content.Collisions.GetTile(new Vector2Int(0, 0)));
+                content.Background.GetTile(new Vector2Int(9, 0)));
             Assert.IsInstanceOf<ReadOnlyPlayerSpawnObject>(
-                content.Objects.GetObject(new Vector2Int(1, 1)));
+                content.Objects.GetObject(new Vector2Int(0, -4)));
             Assert.IsInstanceOf<ReadOnlyVaultPlaqueObject>(
-                content.Objects.GetObject(new Vector2Int(8, 8)));
+                content.Objects.GetObject(new Vector2Int(0, 0)));
             Assert.IsInstanceOf<ReadOnlyExitPromptObject>(
-                content.Objects.GetObject(new Vector2Int(14, 1)));
+                content.Objects.GetObject(new Vector2Int(6, -1)));
 
             var go = new GameObject("Neo TileGrid Renderer Smoke");
             try
@@ -273,17 +273,30 @@ namespace HelloWorld.Assets.Tests
                 Assert.AreEqual(2, tilemaps.Length);
                 var backgroundTilemap = tilemaps.Single(tilemap =>
                     tilemap.gameObject.name == "Tile Layer - Background");
-                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(1, 1, 0)));
-                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(2, 2, 0)));
+                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-6, -5, 0)));
+                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-5, -2, 0)));
 
                 var objectLayer = go.transform.Find("Object Layer - Objects");
                 Assert.IsNotNull(
                     objectLayer,
                     "Expected the generated object layer to render as a child root.");
                 Assert.AreEqual(3, objectLayer!.childCount);
-                AssertRenderedObject(objectLayer, "old-console-object-player-spawn");
-                AssertRenderedObject(objectLayer, "old-console-object-vault-plaque");
-                AssertRenderedObject(objectLayer, "old-console-object-exit-prompt");
+                AssertRenderedObject(
+                    objectLayer,
+                    "old-console-object:player-spawn",
+                    new Vector3(0f, -4f, 0f),
+                    "4bdf7916-db7e-42f9-8b75-02ab429ac1f2-player-spawn-object");
+                AssertRenderedObject(
+                    objectLayer,
+                    "old-console-object:vault-plaque",
+                    Vector3.zero,
+                    "ea5a70da-6213-4b4b-bd44-ab84adc449e0-vault-plaque-object");
+                AssertRenderedObject(
+                    objectLayer,
+                    "old-console-object:exit-prompt",
+                    new Vector3(6f, -1f, 0f),
+                    "58b3b0b3-257a-46ee-ba87-bab09972ff63-exit-prompt-object",
+                    "2c68221a-2a3c-45d4-8565-c5c23c0654d3-boot-glyph-tile");
             }
             finally
             {
@@ -291,11 +304,48 @@ namespace HelloWorld.Assets.Tests
             }
         }
 
-        private static void AssertRenderedObject(Transform objectLayer, string instanceId)
+        private static void AssertRenderedObject(
+            Transform objectLayer,
+            string instanceId,
+            Vector3 expectedLocalPosition,
+            params string[] expectedSpriteNameFragments)
         {
             var rendered = objectLayer.Find($"Object - {instanceId}");
             Assert.IsNotNull(rendered, $"Expected object instance '{instanceId}' to render.");
-            Assert.IsNotNull(rendered!.GetComponent<SpriteRenderer>());
+            Assert.AreEqual(expectedLocalPosition, rendered!.localPosition);
+
+            var spriteNames = rendered.GetComponentsInChildren<SpriteRenderer>()
+                .Select(spriteRenderer => spriteRenderer.sprite == null
+                    ? string.Empty
+                    : spriteRenderer.sprite.name)
+                .ToArray();
+            Assert.Greater(
+                spriteNames.Length,
+                0,
+                "Expected object composition children to render sprite output.");
+            foreach (var expectedSpriteNameFragment in expectedSpriteNameFragments)
+            {
+                Assert.IsTrue(
+                    spriteNames.Any(spriteName => spriteName.Contains(expectedSpriteNameFragment)),
+                    $"Expected object instance '{instanceId}' to render sprite '{expectedSpriteNameFragment}'. Rendered: {string.Join(", ", spriteNames)}");
+            }
+            Assert.IsFalse(
+                spriteNames.Any(spriteName =>
+                    spriteName.Contains("First world icon")
+                    || spriteName.Contains("Ship (thruster)")
+                    || spriteName.Contains("Vault plaque")),
+                $"Object instance '{instanceId}' rendered an old placeholder sprite. Rendered: {string.Join(", ", spriteNames)}");
+            foreach (var spriteRenderer in rendered.GetComponentsInChildren<SpriteRenderer>())
+            {
+                Assert.LessOrEqual(
+                    spriteRenderer.bounds.size.x,
+                    1.0001f,
+                    $"Object instance '{instanceId}' rendered '{spriteRenderer.sprite.name}' wider than one cell.");
+                Assert.LessOrEqual(
+                    spriteRenderer.bounds.size.y,
+                    1.0001f,
+                    $"Object instance '{instanceId}' rendered '{spriteRenderer.sprite.name}' taller than one cell.");
+            }
             Assert.IsNotNull(rendered.GetComponent<BoxCollider2D>());
         }
 

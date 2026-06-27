@@ -168,7 +168,7 @@ MonoBehaviour:
     assetPath: Assets/Resources/Neo/Files/Sprites/02e201f3-f061-4310-bdde-54e2dd905634-Vault
       plaque.png
     fileUpdatedAt: 1781252783251
-    lastDownloadedAt: 2026-06-21T03:32:48.3563180Z
+    lastDownloadedAt: 2026-06-27T10:30:30.3041200Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
@@ -180,7 +180,7 @@ MonoBehaviour:
     fileName: dialog-next.wav
     assetPath: Assets/Resources/Neo/Files/Audio/13ba540a-49c0-4928-b6ee-f3eed339c050-dialog-next.wav
     fileUpdatedAt: 1781255443021
-    lastDownloadedAt: 2026-06-21T03:32:48.7097210Z
+    lastDownloadedAt: 2026-06-27T10:30:30.4244670Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
@@ -191,7 +191,7 @@ MonoBehaviour:
     fileName: dialog-open.wav
     assetPath: Assets/Resources/Neo/Files/Audio/1d017b1d-2a6d-4819-a6f7-3b228cc7a04e-dialog-open.wav
     fileUpdatedAt: 1781255427477
-    lastDownloadedAt: 2026-06-21T03:32:49.3901630Z
+    lastDownloadedAt: 2026-06-27T10:30:30.5223400Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
@@ -218,7 +218,7 @@ MonoBehaviour:
     assetPath: Assets/Resources/Neo/Files/Sprites/4e7ce3fa-2fc2-4e75-b8d3-a9b0d30d3506-First
       world icon.png
     fileUpdatedAt: 1781252789252
-    lastDownloadedAt: 2026-06-21T03:32:51.3834570Z
+    lastDownloadedAt: 2026-06-27T10:30:30.7202420Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
@@ -230,7 +230,7 @@ MonoBehaviour:
     fileName: rocket-thrust.wav
     assetPath: Assets/Resources/Neo/Files/Audio/581af432-06f7-4b80-b673-fcc387039159-rocket-thrust.wav
     fileUpdatedAt: 1781255516953
-    lastDownloadedAt: 2026-06-21T03:32:51.8906960Z
+    lastDownloadedAt: 2026-06-27T10:30:30.8245430Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
@@ -241,7 +241,7 @@ MonoBehaviour:
     fileName: bits-spend.wav
     assetPath: Assets/Resources/Neo/Files/Audio/8421abd8-bbce-40eb-bb5c-9a62bd733256-bits-spend.wav
     fileUpdatedAt: 1781255485448
-    lastDownloadedAt: 2026-06-21T03:32:52.6007990Z
+    lastDownloadedAt: 2026-06-27T10:30:31.0364880Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
@@ -268,7 +268,7 @@ MonoBehaviour:
     fileName: dialog-close.wav
     assetPath: Assets/Resources/Neo/Files/Audio/8fd1307e-600d-4da4-a346-be2a971032ad-dialog-close.wav
     fileUpdatedAt: 1781255457878
-    lastDownloadedAt: 2026-06-21T03:32:53.0713540Z
+    lastDownloadedAt: 2026-06-27T10:30:31.2399740Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
@@ -279,7 +279,7 @@ MonoBehaviour:
     fileName: bits-gain.wav
     assetPath: Assets/Resources/Neo/Files/Audio/bdfb6dee-83d1-4c24-b9f3-9e539ab66603-bits-gain.wav
     fileUpdatedAt: 1781255472144
-    lastDownloadedAt: 2026-06-21T03:32:53.8744950Z
+    lastDownloadedAt: 2026-06-27T10:30:31.4353580Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
@@ -290,7 +290,7 @@ MonoBehaviour:
     fileName: item-get.wav
     assetPath: Assets/Resources/Neo/Files/Audio/c1a2fa28-c886-48c0-8d06-1bcc195a5f80-item-get.wav
     fileUpdatedAt: 1781255501337
-    lastDownloadedAt: 2026-06-21T03:32:54.1742280Z
+    lastDownloadedAt: 2026-06-27T10:30:31.7478370Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
@@ -301,7 +301,7 @@ MonoBehaviour:
     fileName: Sun.png
     assetPath: Assets/Resources/Neo/Files/Sprites/301f56dd-27b3-46f4-8b86-6492ef7b7910-Sun.png
     fileUpdatedAt: 1781263290315
-    lastDownloadedAt: 2026-06-21T03:32:50.3758250Z
+    lastDownloadedAt: 2026-06-27T10:30:30.6216000Z
     templateId: 
     templateUpdatedAt: 
     lastAppliedTemplateEditsAt: 
@@ -452,6 +452,42 @@ MonoBehaviour:
     importSettingsVersion: 2026-05-13.2
     sprites:
     - {fileID: -849249094, guid: d44d354aeaaa64a4c8511c6c6961b30d, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 4bdf7916-db7e-42f9-8b75-02ab429ac1f2
+    fileName: player-spawn-object.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/4bdf7916-db7e-42f9-8b75-02ab429ac1f2-player-spawn-object.png
+    fileUpdatedAt: 1782012867015
+    lastDownloadedAt: 2026-06-27T10:28:59.7590070Z
+    templateId: 41f9d343-4cf4-4790-87b3-a9c421f54d26
+    templateUpdatedAt: 1778619781984
+    lastAppliedTemplateEditsAt: 2026-06-27T10:28:59.7590070Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 921393717, guid: d3f974017b5cb4cca954d056050e308e, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 58b3b0b3-257a-46ee-ba87-bab09972ff63
+    fileName: exit-prompt-object.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/58b3b0b3-257a-46ee-ba87-bab09972ff63-exit-prompt-object.png
+    fileUpdatedAt: 1782012870771
+    lastDownloadedAt: 2026-06-27T10:29:00.2374610Z
+    templateId: 41f9d343-4cf4-4790-87b3-a9c421f54d26
+    templateUpdatedAt: 1778619781984
+    lastAppliedTemplateEditsAt: 2026-06-27T10:29:00.2374610Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 1821442529, guid: 28cd5b6859b7a4578a9ec28282c2bc7a, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: ea5a70da-6213-4b4b-bd44-ab84adc449e0
+    fileName: vault-plaque-object.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/ea5a70da-6213-4b4b-bd44-ab84adc449e0-vault-plaque-object.png
+    fileUpdatedAt: 1782012866680
+    lastDownloadedAt: 2026-06-27T10:29:01.1498910Z
+    templateId: 41f9d343-4cf4-4790-87b3-a9c421f54d26
+    templateUpdatedAt: 1778619781984
+    lastAppliedTemplateEditsAt: 2026-06-27T10:29:01.1498910Z
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: 4370173, guid: 834c448916feb424c98a4ff374cbc520, type: 3}
     audioClip: {fileID: 0}
   tileAssets:
   - tileValueId: 8f96912d-5bbb-428c-84eb-8932ef588142

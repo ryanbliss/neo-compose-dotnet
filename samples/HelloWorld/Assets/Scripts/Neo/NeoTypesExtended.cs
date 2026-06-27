@@ -108,22 +108,6 @@ namespace HelloWorld.Assets.Scripts.Neo
 
     internal static class OldConsoleLandingPresentation
     {
-        public static Sprite ObjectSprite(object obj)
-        {
-            ReadOnlyArt art = HelloWorldNeo.RequireInstance().Assets.Art;
-
-            if (obj is ReadOnlyVaultPlaqueObject || obj is VaultPlaqueObject)
-            {
-                return art.VaultPlaqueSprite;
-            }
-            if (obj is ReadOnlyExitPromptObject || obj is ExitPromptObject)
-            {
-                return art.ShipSprite;
-            }
-
-            return art.FirstWorldIconSprite;
-        }
-
         public static ConsoleObjectColliderShape ObjectCollider(object obj)
         {
             if (obj is ReadOnlyExitPromptObject || obj is ExitPromptObject)
@@ -153,16 +137,6 @@ namespace HelloWorld.Assets.Scripts.Neo
         public Vector2 Size { get; }
         public Vector2 Offset { get; }
         public bool IsTrigger { get; }
-    }
-
-    public abstract partial class ReadOnlyConsoleObject
-    {
-        public Sprite Sprite => OldConsoleLandingPresentation.ObjectSprite(this);
-    }
-
-    public abstract partial class ConsoleObject
-    {
-        public Sprite Sprite => OldConsoleLandingPresentation.ObjectSprite(this);
     }
 
 #if UNITY_EDITOR

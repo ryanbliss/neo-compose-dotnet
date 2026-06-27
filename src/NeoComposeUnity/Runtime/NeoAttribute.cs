@@ -342,8 +342,17 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                if (valueId is null) return null;
-                if (!client.TryGetOverlaidValue(ownership, valueId, out TValue? match)) return null;
+                var resolvedValueId = valueId;
+                if (resolvedValueId is null)
+                {
+                    return AttributeValueFactory.CreateFromDefault(
+                        attribute,
+                        $"__neo_default:{attribute.id}",
+                        attribute.createdAt,
+                        attribute.updatedAt) as TValue;
+                }
+
+                if (!client.TryGetOverlaidValue(ownership, resolvedValueId, out TValue? match)) return null;
                 return match;
             }
         }

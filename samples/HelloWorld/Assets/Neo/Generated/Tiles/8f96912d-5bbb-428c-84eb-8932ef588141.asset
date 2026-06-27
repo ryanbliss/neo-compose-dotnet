@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 13312, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: 8f96912d-5bbb-428c-84eb-8932ef588141
+  m_Name: Neo Tile - 355390cf-4ce9-410d-af90-25273ae4bd3b-void-tile_0_0
   m_EditorClassIdentifier: 
   m_Sprite: {fileID: 376367721, guid: 04c350cbfe33b4b9886cb688da9776fe, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
