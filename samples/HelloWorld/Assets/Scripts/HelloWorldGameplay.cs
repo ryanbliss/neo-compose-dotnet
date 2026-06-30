@@ -27,7 +27,7 @@ namespace HelloWorld.Assets.Scripts
         private NeoSaveSynchronizer synchronizer;
         private CoreUI coreUI;
         private DialogueUI dialogueUI;
-        private LandingSceneUI landingSceneUI;
+        private LandingSceneGameplay landingSceneGameplay;
         private NeoDialogue activeDialogue;
         private IDisposable bitsSubscription;
         private IDisposable inventorySubscription;
@@ -53,7 +53,6 @@ namespace HelloWorld.Assets.Scripts
             this.synchronizer = synchronizer ?? throw new ArgumentNullException(nameof(synchronizer));
             coreUI = new CoreUI();
             dialogueUI = new DialogueUI();
-            landingSceneUI = new LandingSceneUI();
             OutpostFunctionHandler.AnimationPlayer = dialogueUI;
             return LoadClientAsync();
         }
@@ -87,7 +86,7 @@ namespace HelloWorld.Assets.Scripts
         public IReadOnlyOutpost CurrentOutpost => neo.Save.Location;
         public NeoReadOnlyList<IReadOnlyOutpost> Outposts => neo.Assets.Outposts;
         public NeoList<PlanetVisit> VisitedPlanets => neo.Save.Visited;
-        public bool OldConsoleLandingOpen => landingSceneUI?.IsOpen == true;
+        public bool OldConsoleLandingOpen => landingSceneGameplay?.IsOpen == true;
 
         public void OnVisitOutpost(IReadOnlyOutpost outpost)
         {
@@ -193,7 +192,7 @@ namespace HelloWorld.Assets.Scripts
 
             ClearDialogue();
             coreUI.SetVisible(false);
-            landingSceneUI.Show(
+            landingSceneGameplay = new LandingSceneGameplay(
                 neo,
                 CloseOldConsoleLanding,
                 SaveWithIndicatorAsync,
@@ -203,7 +202,10 @@ namespace HelloWorld.Assets.Scripts
 
         public void CloseOldConsoleLanding()
         {
-            landingSceneUI.Hide();
+            var landing = landingSceneGameplay;
+            landingSceneGameplay = null;
+            landing?.Close();
+            landing?.Dispose();
             coreUI.SetVisible(true);
             UpdateUI();
         }
@@ -505,14 +507,15 @@ namespace HelloWorld.Assets.Scripts
             DisposeClient();
             OutpostFunctionHandler.AnimationPlayer = null;
             gameAudio.Dispose();
-            landingSceneUI.Dispose();
+            landingSceneGameplay?.Dispose();
+            landingSceneGameplay = null;
             dialogueUI.Dispose();
             coreUI.Dispose();
         }
 
         private void Update()
         {
-            landingSceneUI?.Tick();
+            landingSceneGameplay?.Tick();
         }
 
         private static int CurrentUnixTime => (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds();
