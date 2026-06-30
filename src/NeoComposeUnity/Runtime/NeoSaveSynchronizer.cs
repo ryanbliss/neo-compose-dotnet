@@ -336,6 +336,11 @@ namespace NeoCompose.Runtime
             }
             catch (Exception ex)
             {
+                if (createAsLiveSessionId != null && IsTerminalLiveFlushFailure(ex))
+                {
+                    throw;
+                }
+
                 OnCommitError?.Invoke(ex);
                 if (core.RequireCloudCommit) throw;
                 // Best-effort: the local commit stands, but a cloud failure that
@@ -1051,10 +1056,46 @@ namespace NeoCompose.Runtime
         private void HandleLiveFlushFailure(Exception exception)
         {
             OnCommitError?.Invoke(exception);
+            if (IsTerminalLiveFlushFailure(exception))
+            {
+                StopLiveFlushRetries();
+                if (exception is OperationCanceledException) return;
+
+                Debug.LogWarning(
+                    $"[NeoCompose] Live flush for save \"{CustomId}\" stopped because the " +
+                    $"realtime provider is no longer available. The staged change is in the " +
+                    $"local store and reconciles on the next load. " +
+                    $"{exception.GetType().Name}: {exception.Message}");
+                return;
+            }
+
             Debug.LogWarning(
                 $"[NeoCompose] Live flush for save \"{CustomId}\" failed; the staged changes " +
                 $"compose into the next flush. {exception.GetType().Name}: {exception.Message}");
             ReArmLiveFlush();
+        }
+
+        private bool IsTerminalLiveFlushFailure(Exception exception)
+        {
+            if (liveTornDown) return true;
+            if (exception is ObjectDisposedException) return true;
+            if (exception is OperationCanceledException) return true;
+            return false;
+        }
+
+        private void StopLiveFlushRetries()
+        {
+            liveTornDown = true;
+            liveFirstDirtyAt = -1;
+            var realtime = core.RealtimeProvider;
+            if (liveConnectionHook != null && realtime != null)
+            {
+                realtime.OnConnectionStateChanged -= liveConnectionHook;
+                liveConnectionHook = null;
+            }
+
+            realtimeHeadSubscription?.Dispose();
+            realtimeHeadSubscription = null;
         }
 
         private void ReArmLiveFlush()
@@ -1286,24 +1327,29 @@ namespace NeoCompose.Runtime
         /// when the transport is still up.</summary>
         public void Dispose()
         {
-            if (!liveTornDown && liveFirstDirtyAt >= 0 && LiveModeEnabled)
-            {
-                var realtime = core.RealtimeProvider;
-                if (realtime != null && realtime.CanCommit)
-                {
-                    KickTeardownFlush(realtime);
-                }
-            }
+            if (liveTornDown) return;
+
+            var realtime = core.RealtimeProvider;
+            bool shouldFlush =
+                liveFirstDirtyAt >= 0
+                && LiveModeEnabled
+                && realtime != null
+                && realtime.CanCommit;
 
             liveTornDown = true;
-            if (liveConnectionHook != null && core.RealtimeProvider != null)
+            if (liveConnectionHook != null && realtime != null)
             {
-                core.RealtimeProvider.OnConnectionStateChanged -= liveConnectionHook;
+                realtime.OnConnectionStateChanged -= liveConnectionHook;
                 liveConnectionHook = null;
             }
 
             realtimeHeadSubscription?.Dispose();
             realtimeHeadSubscription = null;
+
+            if (shouldFlush)
+            {
+                KickTeardownFlush(realtime!);
+            }
         }
 
         /// <summary><c>async void</c> on purpose: Dispose cannot await, and the

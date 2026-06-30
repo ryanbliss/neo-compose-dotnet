@@ -576,6 +576,55 @@ namespace NeoCompose.Tests
                 Is.EquivalentTo(new[] { "a" }));
         }
 
+        [Test]
+        public async Task DisposedProviderFailure_StopsLiveFlushRetries()
+        {
+            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            await ForkEstablishedAsync(sync, realtime, scheduler);
+            var errors = new List<Exception>();
+            sync.OnCommitError += errors.Add;
+
+            realtime.livePatchThrows =
+                new ObjectDisposedException("ConvexRealtimeProvider");
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                replaceSnapshot: false);
+
+            scheduler.Advance(0.5);
+            Assert.That(errors, Has.Count.EqualTo(1));
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+
+            scheduler.Advance(10);
+            realtime.SetState(NeoRealtimeConnectionState.Connected);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1),
+                "provider disposal is terminal for this live session; it must not retry forever");
+        }
+
+        [Test]
+        public async Task CanceledProviderFailure_StopsLiveFlushRetries()
+        {
+            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            await ForkEstablishedAsync(sync, realtime, scheduler);
+            var errors = new List<Exception>();
+            sync.OnCommitError += errors.Add;
+
+            realtime.livePatchThrows = new TaskCanceledException("The operation was canceled.");
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                replaceSnapshot: false);
+
+            scheduler.Advance(0.5);
+            Assert.That(errors, Has.Count.EqualTo(1));
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+
+            scheduler.Advance(10);
+            realtime.SetState(NeoRealtimeConnectionState.Connected);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1),
+                "provider cancellation during shutdown is terminal for this live session");
+        }
+
         /// <summary>
         /// The auto-write trigger: while a live session is active the game
         /// never calls save — every save-value write schedules an automatic
