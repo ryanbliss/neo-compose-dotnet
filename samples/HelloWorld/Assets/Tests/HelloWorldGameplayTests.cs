@@ -1,6 +1,7 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -10,6 +11,7 @@ using NeoCompose.Runtime;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using UnityEngine.TestTools;
 
 namespace HelloWorld.Assets.Tests
 {
@@ -156,8 +158,8 @@ namespace HelloWorld.Assets.Tests
             Assert.IsNull(erased, "only the Loop ending wipes the save");
         }
 
-        [Test]
-        public void OldConsoleLanding_EasterEggOpensGenerated2DWorldScene()
+        [UnityTest]
+        public IEnumerator OldConsoleLanding_EasterEggOpensGenerated2DWorldScene()
         {
             var gameplay = Spawn(LoadedStore().CreateNew());
 
@@ -166,7 +168,18 @@ namespace HelloWorld.Assets.Tests
             gameplay.OpenOldConsoleLanding();
 
             Assert.IsTrue(gameplay.OldConsoleLandingOpen);
-            var renderer = Object.FindFirstObjectByType<NeoTileGridRenderer>();
+            NeoTileGridRenderer renderer = null;
+            for (int frame = 0; frame < 120; frame += 1)
+            {
+                renderer = Object.FindFirstObjectByType<NeoTileGridRenderer>();
+                if (renderer != null
+                    && renderer.GetComponentsInChildren<Tilemap>().Length >= 2)
+                {
+                    break;
+                }
+                yield return null;
+            }
+
             Assert.IsNotNull(renderer);
             var tilemaps = renderer.GetComponentsInChildren<Tilemap>();
             Assert.AreEqual(2, tilemaps.Length);
@@ -181,7 +194,7 @@ namespace HelloWorld.Assets.Tests
                 "The landing scene should render the generated object layer.");
             Assert.AreEqual(3, objectLayer!.childCount);
             Assert.IsNotNull(
-                objectLayer.Find("Object - old-console-object-player-spawn")?.GetComponent<BoxCollider2D>(),
+                objectLayer.Find("Object - old-console-object:player-spawn")?.GetComponent<BoxCollider2D>(),
                 "The authored player spawn should render with its collider.");
 
             gameplay.CloseOldConsoleLanding();
@@ -460,13 +473,13 @@ namespace HelloWorld.Assets.Tests
             return neo.Save.Inventory.Any(item => item.Name == itemName);
         }
 
-        private static ReadOnlyOutpost OutpostByName(HelloWorldGameplay gameplay, string name)
+        private static IReadOnlyOutpost OutpostByName(HelloWorldGameplay gameplay, string name)
         {
             return gameplay.Outposts.First(o => o.Name == name);
         }
 
         /// <summary>Walks a Visits-group dialogue start to finish, failing on any action error.</summary>
-        private static void WalkVisit(HelloWorldNeo neo, ReadOnlyOutpost outpost, bool preferFirstOption)
+        private static void WalkVisit(HelloWorldNeo neo, IReadOnlyOutpost outpost, bool preferFirstOption)
         {
             // The real flow: intros run on the first landing; visit dialogues
             // unlock on RETURN trips.
@@ -520,7 +533,7 @@ namespace HelloWorld.Assets.Tests
             dialogue.Dispose();
         }
 
-        private static void WalkIntro(HelloWorldNeo neo, ReadOnlyOutpost outpost)
+        private static void WalkIntro(HelloWorldNeo neo, IReadOnlyOutpost outpost)
         {
             Assert.IsTrue(
                 neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue),

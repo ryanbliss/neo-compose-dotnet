@@ -142,7 +142,10 @@ namespace NeoCompose.Runtime
                 // No unlinked-values warning: transient factory values mid-action
                 // are normal between explicit saves, and the auto-commit cadence
                 // would turn the hint into spam.
-                await CommitCoreAsync(replaceSnapshot: false, warnUnlinked: false);
+                await CommitCoreAsync(
+                    replaceSnapshot: false,
+                    warnUnlinked: false,
+                    flushLiveImmediately: false);
             }
             catch (System.Exception exception)
             {
@@ -428,18 +431,45 @@ namespace NeoCompose.Runtime
             NeoValueOwnership inherited,
             HashSet<string> visited)
         {
-            if (!visited.Add(valueId)) return;
             NeoValueOwnership effective =
                 (attribute is null ? null : DeclaredOwnership(attribute)) ?? inherited;
+            if (!data.values.TryGetValue(valueId, out AttributeValue row)) return;
+            if (row is ObjectAttributeValue { typeId: not null } obj
+                && TryResolveCustomTypeAllowedOwnership(obj.typeId, out NeoValueOwnership typeOwnership))
+            {
+                effective = typeOwnership;
+            }
+            string visitKey = $"{effective}:{attribute?.id ?? ""}:{valueId}";
+            if (!visited.Add(visitKey)) return;
             if (effective != NeoValueOwnership.Asset)
             {
                 authoredOwnership[valueId] = effective;
             }
-            if (!data.values.TryGetValue(valueId, out AttributeValue row)) return;
             foreach (var child in EnumerateOwnedChildLinks(row, attribute))
             {
                 WalkAuthoredOwnership(child.valueId, child.attribute, effective, visited);
             }
+        }
+
+        private bool TryResolveCustomTypeAllowedOwnership(
+            string typeId,
+            out NeoValueOwnership ownership)
+        {
+            string? cursor = typeId;
+            for (int hops = 0; cursor is not null && hops < 16; hops++)
+            {
+                if (!data.types.TryGetValue(cursor, out CustomType type)) break;
+                NeoValueOwnership? declared = NeoAttributeStorageResolution.ToOwnership(
+                    NeoAttributeStorageResolution.Parse(type.allowedStorage));
+                if (declared is not null)
+                {
+                    ownership = declared.Value;
+                    return true;
+                }
+                cursor = type.extendsTypeId;
+            }
+            ownership = NeoValueOwnership.Asset;
+            return false;
         }
 
         /// <summary>
@@ -734,10 +764,19 @@ namespace NeoCompose.Runtime
             NeoValueOwnership targetOwnership,
             string sourceValueId)
         {
+            return ImportValueReference(targetOwnership, sourceValueId, out _);
+        }
+
+        internal string ImportValueReference(
+            NeoValueOwnership targetOwnership,
+            string sourceValueId,
+            out bool sourceMoved)
+        {
             if (targetOwnership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException("Cannot import a writable value into asset ownership.");
             }
+            sourceMoved = false;
             if (!TryGetValueOwnership(sourceValueId, out NeoValueOwnership sourceOwnership))
             {
                 return sourceValueId;
@@ -758,6 +797,7 @@ namespace NeoCompose.Runtime
                     TryInferAttributeForValueId(sourceValueId, out Attribute? sourceAttribute)
                         ? sourceAttribute
                         : null);
+                sourceMoved = true;
                 return sourceValueId;
             }
             return CloneValueGraphToOwnership(
@@ -900,9 +940,11 @@ namespace NeoCompose.Runtime
                     : null;
             }
 
-            string? customTypeId = sourceAttribute is CustomAttribute custom
-                ? custom.customTypeId
-                : (row as ObjectAttributeValue)?.typeId;
+            string? customTypeId = (row as ObjectAttributeValue)?.typeId;
+            if (string.IsNullOrEmpty(customTypeId) && sourceAttribute is CustomAttribute custom)
+            {
+                customTypeId = custom.customTypeId;
+            }
             if (string.IsNullOrEmpty(customTypeId)) return null;
             if (!TryResolveMergedSchemaAttribute(customTypeId!, key, out Attribute? childAttribute))
             {
@@ -1588,6 +1630,19 @@ namespace NeoCompose.Runtime
             return generated;
         }
 
+        internal void RegisterGeneratedCustomValue(
+            NeoGeneratedCustomValue generated,
+            NeoAttributeCustom node)
+        {
+            string key = MakeNodeKey(node.attribute.id, node.overrideValueId, node.ownership);
+            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedCustomValue existing)
+                && !ReferenceEquals(existing, generated))
+            {
+                existing.Dispose();
+            }
+            generatedValuesInternal[key] = generated;
+        }
+
         internal void UnregisterGeneratedCustomValue(NeoGeneratedCustomValue generated, NeoAttributeCustom node)
         {
             string key = MakeNodeKey(node.attribute.id, node.overrideValueId, node.ownership);
@@ -2040,9 +2095,15 @@ namespace NeoCompose.Runtime
         }
 
         public Awaitable CommitAsync(bool replaceSnapshot = false) =>
-            CommitCoreAsync(replaceSnapshot, warnUnlinked: true);
+            CommitCoreAsync(
+                replaceSnapshot,
+                warnUnlinked: true,
+                flushLiveImmediately: true);
 
-        private async Awaitable CommitCoreAsync(bool replaceSnapshot, bool warnUnlinked)
+        private async Awaitable CommitCoreAsync(
+            bool replaceSnapshot,
+            bool warnUnlinked,
+            bool flushLiveImmediately)
         {
             if (warnUnlinked)
             {
@@ -2058,7 +2119,17 @@ namespace NeoCompose.Runtime
             var savedAt = NeoTimestamp.Now();
             saveData.updatedAt = savedAt;
             CaptureSaveDiagnostics(savedAt);
-            await loader.CommitSaveContentAsync(SerializeSaveData(), replaceSnapshot);
+            var content = SerializeSaveData();
+            if (flushLiveImmediately && loader is NeoSaveSynchronizer synchronizer)
+            {
+                await synchronizer.CommitSaveContentAsync(
+                    content,
+                    replaceSnapshot,
+                    flushLiveImmediately: true);
+                return;
+            }
+
+            await loader.CommitSaveContentAsync(content, replaceSnapshot);
         }
 
         public int RunGarbageCollector()
@@ -2102,6 +2173,22 @@ namespace NeoCompose.Runtime
             {
                 MarkReachableValue(ownership, rootAttribute.valueId, reachable);
             }
+            foreach (var pair in authoredOwnership)
+            {
+                if (pair.Value == ownership)
+                {
+                    MarkReachableValue(ownership, pair.Key, reachable);
+                }
+            }
+            foreach (var row in data.values.Values)
+            {
+                if (row is ObjectAttributeValue { typeId: not null } obj
+                    && TryResolveCustomTypeAllowedOwnership(obj.typeId, out NeoValueOwnership typeOwnership)
+                    && typeOwnership == ownership)
+                {
+                    MarkReachableValue(ownership, row.id, reachable);
+                }
+            }
             return reachable;
         }
 
@@ -2123,6 +2210,9 @@ namespace NeoCompose.Runtime
                 : null;
             foreach (var child in EnumerateOwnedChildLinks(val, sourceAttribute))
             {
+                NeoValueOwnership childOwnership =
+                    (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
+                if (childOwnership != ownership) continue;
                 MarkReachableValue(ownership, child.valueId, reachable, child.attribute);
             }
         }

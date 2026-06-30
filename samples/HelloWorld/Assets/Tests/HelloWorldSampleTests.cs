@@ -3,6 +3,7 @@
 
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using NeoCompose.Runtime;
 using NUnit.Framework;
 using UnityEngine;
@@ -34,6 +35,35 @@ namespace HelloWorld.Assets.Tests
         private const string RedNovaWarningTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588144";
         private const string PlayerSpawnObjectValueId = "8f96912d-5bbb-428c-84eb-8932ef588151";
         private const string VaultPlaqueObjectValueId = "8f96912d-5bbb-428c-84eb-8932ef588152";
+        private const string BlockedPathValueId = "432f5226-99d8-4d59-8cf0-4d86ca64462f";
+        private static readonly string[] OldConsoleLandingDialogueIds =
+        {
+            "2a49e84a-ab1f-4468-a9a3-f29796cbf086",
+            "d755935f-4c3a-4d43-8c40-4ba3f7d28063",
+            "12729fbc-56a7-4d8f-b04a-ac039604dfe9",
+            "d5a8097d-f02b-41c7-8356-9442a4a29412",
+            "7a6bcb67-d42a-4eb8-9934-0263d506e85c",
+            "da73bce9-0d39-4c27-bb09-32b538f97f61",
+            "bbda459e-c77e-4084-9047-22b1dfbb0bff",
+        };
+        private static readonly IReadOnlyDictionary<string, string> OldConsoleLandingExpectedTextByDialogueId =
+            new Dictionary<string, string>
+            {
+                ["2a49e84a-ab1f-4468-a9a3-f29796cbf086"] =
+                    "The teal path hums under the floor",
+                ["d755935f-4c3a-4d43-8c40-4ba3f7d28063"] =
+                    "The boot trace matches the blocked path.",
+                ["12729fbc-56a7-4d8f-b04a-ac039604dfe9"] =
+                    "The boot glyph records your step",
+                ["d5a8097d-f02b-41c7-8356-9442a4a29412"] =
+                    "The path clears with a save delta",
+                ["7a6bcb67-d42a-4eb8-9934-0263d506e85c"] =
+                    "The exit prompt blinks in standby.",
+                ["da73bce9-0d39-4c27-bb09-32b538f97f61"] =
+                    "The vault plaque lists a small recovery reward",
+                ["bbda459e-c77e-4084-9047-22b1dfbb0bff"] =
+                    "The plaque warms under your hand.",
+            };
 
         private static string LoadFixture(string fileName)
         {
@@ -152,8 +182,8 @@ namespace HelloWorld.Assets.Tests
             dialogue.OnShow += node =>
             {
                 shown.Add(node);
-                Assert.IsInstanceOf<ReadOnlyOutpost>(node.Primary);
-                var primary = (ReadOnlyOutpost)node.Primary!;
+                Assert.IsInstanceOf<Outpost>(node.Primary);
+                var primary = (Outpost)node.Primary!;
                 Assert.AreEqual(capitol.valueId, primary.valueId);
                 Assert.AreEqual("Capitol OG", primary.Name);
                 if (node.Options.Count > 0)
@@ -169,7 +199,69 @@ namespace HelloWorld.Assets.Tests
 
             Assert.IsTrue(finished);
             Assert.GreaterOrEqual(shown.Count, 1);
-            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds(), client.SerializeSaveData());
+        }
+
+        [Test]
+        public void GeneratedDialogue_OldConsoleLandingFlowsAreAuthoredNeoDialogues()
+        {
+            var client = LoadSampleClient(EnglishLocalizationOptions());
+
+            foreach (var dialogueId in OldConsoleLandingDialogueIds)
+            {
+                Assert.IsTrue(
+                    client.Dialogues.TryTrigger(dialogueId, out NeoDialogue dialogue),
+                    $"Expected old-console landing dialogue '{dialogueId}' to trigger directly.");
+
+                var shown = new System.Collections.Generic.List<NeoDialogueTextNode>();
+                bool finished = false;
+                dialogue.OnShow += node =>
+                {
+                    shown.Add(node);
+                    if (node.Primary is not null)
+                    {
+                        Assert.IsInstanceOf<BlockedPath>(node.Primary);
+                    }
+                    if (node.Options.Count > 0)
+                    {
+                        Assert.IsFalse(string.IsNullOrWhiteSpace(node.Options[0].Text));
+                        node.Options[0].Select();
+                        return;
+                    }
+                    node.Next();
+                };
+                dialogue.OnFinish += () => finished = true;
+
+                dialogue.Start();
+
+                Assert.IsTrue(finished, dialogueId);
+                Assert.GreaterOrEqual(shown.Count, 1, dialogueId);
+                Assert.IsTrue(
+                    shown.Any(node => node.Text.Contains(OldConsoleLandingExpectedTextByDialogueId[dialogueId])),
+                    dialogueId);
+                dialogue.Dispose();
+            }
+        }
+
+        [Test]
+        public void DialogueUI_RendersAboveSceneCameras()
+        {
+            var dialogueUI = new DialogueUI();
+            try
+            {
+                dialogueUI.Show("Console", null, "The dialogue should sit above the active scene camera.");
+
+                var root = GameObject.Find("Dialogue UI");
+                Assert.IsNotNull(root);
+                var canvas = root!.GetComponent<Canvas>();
+                Assert.IsNotNull(canvas);
+                Assert.AreEqual(RenderMode.ScreenSpaceOverlay, canvas.renderMode);
+                Assert.GreaterOrEqual(canvas.sortingOrder, 1000);
+            }
+            finally
+            {
+                dialogueUI.Dispose();
+            }
         }
 
         [Test]
@@ -213,6 +305,45 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public void GeneratedReadOnlyOutpost_AllowsSaveBackedChildMutation()
+        {
+            var client = LoadSampleClient(EnglishLocalizationOptions());
+
+            IReadOnlyOutpost outpost = client.Assets.Outposts.First();
+            Assert.IsTrue(outpost.IsReadOnly);
+            Assert.IsInstanceOf<Outpost>(outpost);
+            Assert.IsFalse(outpost.TryWritable(out Outpost writableOutpost));
+            Assert.IsNull(writableOutpost);
+
+            var before = outpost.Save.VisitCount;
+            outpost.Save.VisitCount = before + 1;
+
+            Assert.AreEqual(before + 1, outpost.Save.VisitCount);
+            var serialized = client.SerializeSaveData();
+            StringAssert.Contains($"\"value\":{before + 1}", serialized);
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+        }
+
+        [Test]
+        public void GeneratedSaveBackedDescendant_AllowsWritableCastFromBaseInterface()
+        {
+            var client = LoadSampleClient(EnglishLocalizationOptions());
+
+            IReadOnlyNeoLayerGroupBase group = client.Assets.Worlds.OldConsoleLanding.Children
+                .First(check => check.Name == "Blocked Path");
+
+            Assert.IsFalse(group.IsReadOnly);
+            Assert.IsTrue(group.TryWritable(out BlockedPath blocked));
+            Assert.IsFalse(blocked.IsReadOnly);
+            Assert.DoesNotThrow(() => Assert.GreaterOrEqual(blocked.Tiles.Count, 0));
+            Assert.Greater(blocked.Tiles.Count, 0);
+
+            Assert.DoesNotThrow(() => Assert.IsTrue(blocked.ClearPath()));
+            Assert.AreEqual(0, blocked.Tiles.Count);
+            StringAssert.Contains("\"value\":[]", client.SerializeSaveData());
+        }
+
+        [Test]
         public void GeneratedCustomValues_ReturnCachedInstances()
         {
             var client = LoadSampleClient(EnglishLocalizationOptions());
@@ -247,19 +378,25 @@ namespace HelloWorld.Assets.Tests
             var client = LoadSampleClient(EnglishLocalizationOptions());
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
 
-            Assert.IsInstanceOf<ReadOnlyGlassFloorTile>(
+            Assert.IsInstanceOf<GlassFloorTile>(
                 content.Background.GetTile(new Vector2Int(-6, 5)));
-            Assert.IsInstanceOf<ReadOnlyBootGlyphTile>(
+            Assert.IsInstanceOf<BootGlyphTile>(
                 content.Background.GetTile(new Vector2Int(-5, 2)));
-            Assert.IsInstanceOf<ReadOnlyRedNovaWarningTile>(
+            Assert.IsInstanceOf<RedNovaWarningTile>(
                 content.Background.GetTile(new Vector2Int(-8, 5)));
-            Assert.IsInstanceOf<ReadOnlyVoidTile>(
+            Assert.IsInstanceOf<VoidTile>(
                 content.Background.GetTile(new Vector2Int(9, 0)));
-            Assert.IsInstanceOf<ReadOnlyPlayerSpawnObject>(
+            Assert.IsInstanceOf<VoidTile>(
+                content.Collisions.GetTile(new Vector2Int(0, 1)));
+            Assert.IsInstanceOf<VoidTile>(
+                content.Collisions.GetTile(new Vector2Int(1, 1)));
+            Assert.IsInstanceOf<VoidTile>(
+                content.Collisions.GetTile(new Vector2Int(2, 1)));
+            Assert.IsInstanceOf<PlayerSpawnObject>(
                 content.Objects.GetObject(new Vector2Int(0, 4)));
-            Assert.IsInstanceOf<ReadOnlyVaultPlaqueObject>(
+            Assert.IsInstanceOf<VaultPlaqueObject>(
                 content.Objects.GetObject(new Vector2Int(0, 0)));
-            Assert.IsInstanceOf<ReadOnlyExitPromptObject>(
+            Assert.IsInstanceOf<ExitPromptObject>(
                 content.Objects.GetObject(new Vector2Int(6, 1)));
 
             var go = new GameObject("Neo TileGrid Renderer Smoke");
@@ -275,6 +412,9 @@ namespace HelloWorld.Assets.Tests
                     tilemap.gameObject.name == "Tile Layer - Background");
                 Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-6, 5, 0)));
                 Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-5, 2, 0)));
+                var collisionTilemap = tilemaps.Single(tilemap =>
+                    tilemap.gameObject.name == "Tile Layer - Collisions");
+                Assert.IsNotNull(collisionTilemap.GetTile(new Vector3Int(0, 1, 0)));
 
                 var objectLayer = go.transform.Find("Object Layer - Objects");
                 Assert.IsNotNull(
@@ -350,13 +490,76 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public void TileGridSaveMutation_RemovesOldConsoleLandingCollisionBarrier()
+        {
+            var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
+            var blockerCell = new Vector2Int(0, 1);
+            var saveContent = OldConsoleLandingGridContent.ResolveForSave(
+                client.Client,
+                client.Assets.Worlds.OldConsoleLanding.valueId!);
+
+            var blocker = client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTiles()
+                .Single(tile => tile.Cell == blockerCell);
+            Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, blocker.SourceKind);
+            Assert.AreEqual(BlockedPathValueId, blocker.SourceTileLayerLinkId);
+            Assert.IsInstanceOf<VoidTile>(blocker.Tile);
+
+            AssertPlacementOk(saveContent.Collisions.TryRemoveTile(blocker.InstanceId));
+            Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
+            client.CommitAsync().GetAwaiter().GetResult();
+
+            var reopened = ReopenSampleClient(store, EnglishLocalizationOptions());
+            Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
+            Assert.IsInstanceOf<VoidTile>(
+                reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(new Vector2Int(1, 1)));
+            Assert.IsInstanceOf<VoidTile>(
+                reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(new Vector2Int(2, 1)));
+        }
+
+        [Test]
+        public void GeneratedBlockedPathClearPath_RemovesLinkedCollisionTiles()
+        {
+            var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
+            var blocked = client.Assets.Worlds.OldConsoleLanding.Children
+                .First(check => check.Name == "Blocked Path") as BlockedPath;
+            Assert.IsNotNull(blocked);
+
+            var blockerCells = client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTiles()
+                .Where(tile => tile.SourceTileLayerLinkId == BlockedPathValueId)
+                .Select(tile => tile.Cell)
+                .ToArray();
+            Assert.Greater(blockerCells.Length, 0);
+
+            Assert.IsTrue(blocked!.ClearPath());
+
+            CollectionAssert.IsEmpty(
+                client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTiles()
+                    .Where(tile => tile.SourceTileLayerLinkId == BlockedPathValueId)
+                    .Select(tile => tile.Cell)
+                    .ToArray());
+            foreach (var cell in blockerCells)
+            {
+                Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(cell));
+            }
+            Assert.AreEqual(0, blocked.Tiles.Count);
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+
+            client.CommitAsync().GetAwaiter().GetResult();
+            var reopened = ReopenSampleClient(store, EnglishLocalizationOptions());
+            foreach (var cell in blockerCells)
+            {
+                Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(cell));
+            }
+        }
+
+        [Test]
         public void TileGridSaveAndSessionMutation_ConvertsOldConsoleLandingTiles()
         {
             var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
             var cell = new Vector2Int(20, 20);
-            var glassFloor = ResolveSampleValue<ReadOnlyGlassFloorTile>(client, GlassFloorTileValueId);
-            var redNova = ResolveSampleValue<ReadOnlyRedNovaWarningTile>(client, RedNovaWarningTileValueId);
-            var bootGlyph = ResolveSampleValue<ReadOnlyBootGlyphTile>(client, BootGlyphTileValueId);
+            var glassFloor = ResolveSampleValue<GlassFloorTile>(client, GlassFloorTileValueId);
+            var redNova = ResolveSampleValue<RedNovaWarningTile>(client, RedNovaWarningTileValueId);
+            var bootGlyph = ResolveSampleValue<BootGlyphTile>(client, BootGlyphTileValueId);
             var saveContent = OldConsoleLandingGridContent.ResolveForSave(
                 client.Client,
                 client.Assets.Worlds.OldConsoleLanding.valueId!);
@@ -368,7 +571,7 @@ namespace HelloWorld.Assets.Tests
             Assert.AreSame(glassFloor, placed.Tile);
 
             AssertPlacementOk(saveContent.Background.TryConvertTile(placed.InstanceId, redNova));
-            Assert.IsInstanceOf<ReadOnlyRedNovaWarningTile>(
+            Assert.IsInstanceOf<RedNovaWarningTile>(
                 client.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell));
             client.CommitAsync().GetAwaiter().GetResult();
 
@@ -376,21 +579,21 @@ namespace HelloWorld.Assets.Tests
             var reopenedTile = reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
                 .Single(tile => tile.Cell == cell);
             Assert.AreEqual(placed.InstanceId, reopenedTile.InstanceId);
-            Assert.IsInstanceOf<ReadOnlyRedNovaWarningTile>(reopenedTile.Tile);
+            Assert.IsInstanceOf<RedNovaWarningTile>(reopenedTile.Tile);
 
             var sessionContent = OldConsoleLandingGridContent.ResolveForSession(
                 reopened.Client,
                 reopened.Assets.Worlds.OldConsoleLanding.valueId!);
             AssertPlacementOk(sessionContent.Background.TryConvertTile(placed.InstanceId, bootGlyph));
 
-            Assert.IsInstanceOf<ReadOnlyBootGlyphTile>(
+            Assert.IsInstanceOf<BootGlyphTile>(
                 reopened.Assets.Worlds.OldConsoleLanding.Content.Background.GetTile(cell));
 
             var persistedAfterSession = ReopenSampleClient(store, EnglishLocalizationOptions());
             var persistedTile = persistedAfterSession.Assets.Worlds.OldConsoleLanding.Content.Background.GetTiles()
                 .Single(tile => tile.Cell == cell);
             Assert.AreEqual(placed.InstanceId, persistedTile.InstanceId);
-            Assert.IsInstanceOf<ReadOnlyRedNovaWarningTile>(persistedTile.Tile);
+            Assert.IsInstanceOf<RedNovaWarningTile>(persistedTile.Tile);
         }
 
         [Test]
@@ -398,8 +601,8 @@ namespace HelloWorld.Assets.Tests
         {
             var (store, client) = LoadSampleStack(EnglishLocalizationOptions());
             var cell = new Vector2Int(21, 20);
-            var playerSpawn = ResolveSampleValue<ReadOnlyPlayerSpawnObject>(client, PlayerSpawnObjectValueId);
-            var vaultPlaque = ResolveSampleValue<ReadOnlyVaultPlaqueObject>(client, VaultPlaqueObjectValueId);
+            var playerSpawn = ResolveSampleValue<PlayerSpawnObject>(client, PlayerSpawnObjectValueId);
+            var vaultPlaque = ResolveSampleValue<VaultPlaqueObject>(client, VaultPlaqueObjectValueId);
             var saveContent = OldConsoleLandingGridContent.ResolveForSave(
                 client.Client,
                 client.Assets.Worlds.OldConsoleLanding.valueId!);
@@ -409,7 +612,7 @@ namespace HelloWorld.Assets.Tests
 
             var placed = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
                 .Single(obj => obj.Cell == cell);
-            Assert.IsInstanceOf<ReadOnlyPlayerSpawnObject>(placed.Object);
+            Assert.IsInstanceOf<PlayerSpawnObject>(placed.Object);
 
             var duplicate = saveContent.Objects.TrySpawn(cell, vaultPlaque);
             Assert.IsFalse(duplicate.Ok);
@@ -419,14 +622,14 @@ namespace HelloWorld.Assets.Tests
             var swapped = client.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
                 .Single(obj => obj.Cell == cell);
             Assert.AreEqual(placed.InstanceId, swapped.InstanceId);
-            Assert.IsInstanceOf<ReadOnlyVaultPlaqueObject>(swapped.Object);
+            Assert.IsInstanceOf<VaultPlaqueObject>(swapped.Object);
             client.CommitAsync().GetAwaiter().GetResult();
 
             var reopened = ReopenSampleClient(store, EnglishLocalizationOptions());
             var reopenedInstance = reopened.Assets.Worlds.OldConsoleLanding.Content.Objects.GetObjects()
                 .Single(obj => obj.Cell == cell);
             Assert.AreEqual(placed.InstanceId, reopenedInstance.InstanceId);
-            Assert.IsInstanceOf<ReadOnlyVaultPlaqueObject>(reopenedInstance.Object);
+            Assert.IsInstanceOf<VaultPlaqueObject>(reopenedInstance.Object);
 
             var reopenedSaveContent = OldConsoleLandingGridContent.ResolveForSave(
                 reopened.Client,

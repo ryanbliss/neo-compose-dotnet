@@ -36,6 +36,8 @@ namespace HelloWorld.Assets.Scripts
         private int lastBits;
         private int lastInventoryCount;
         private bool dialogueOpenSoundPlayed;
+        private bool activeDialogueCountsAsOutpostVisit;
+        private Action activeDialogueCompletion;
 
         /// <summary>Raised when the player chooses to return to the save-file menu.</summary>
         public event Action OnExitToMenu;
@@ -82,12 +84,12 @@ namespace HelloWorld.Assets.Scripts
 
         public string HelloWorldText => neo.Assets.Computed.fullText;
         public Planet World => neo.Save.World;
-        public ReadOnlyOutpost CurrentOutpost => neo.Save.Location;
-        public NeoReadOnlyList<ReadOnlyOutpost> Outposts => neo.Assets.Outposts;
+        public IReadOnlyOutpost CurrentOutpost => neo.Save.Location;
+        public NeoReadOnlyList<IReadOnlyOutpost> Outposts => neo.Assets.Outposts;
         public NeoList<PlanetVisit> VisitedPlanets => neo.Save.Visited;
         public bool OldConsoleLandingOpen => landingSceneUI?.IsOpen == true;
 
-        public void OnVisitOutpost(ReadOnlyOutpost outpost)
+        public void OnVisitOutpost(IReadOnlyOutpost outpost)
         {
             if (!outpost.Save.Unlocked) return;
 
@@ -127,7 +129,7 @@ namespace HelloWorld.Assets.Scripts
         /// Items earn their keep here — the Cloudsilk Parasol shields the first
         /// hops entirely, the Gyro Stabilizer waives the outer-system surcharge.
         /// </summary>
-        internal void AdvanceFlareClock(ReadOnlyOutpost destination)
+        internal void AdvanceFlareClock(IReadOnlyOutpost destination)
         {
             if (neo.Save.Quest.Stage == QuestStage.ended) return;
             bool hasParasol = HasItem("Cloudsilk Parasol");
@@ -171,7 +173,7 @@ namespace HelloWorld.Assets.Scripts
             TriggerDialogue(neo.Save.Location);
         }
 
-        public void TriggerDialogue(ReadOnlyOutpost outpost)
+        public void TriggerDialogue(IReadOnlyOutpost outpost)
         {
             UpdateUI();
             if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue introDialogue))
@@ -192,8 +194,11 @@ namespace HelloWorld.Assets.Scripts
             ClearDialogue();
             coreUI.SetVisible(false);
             landingSceneUI.Show(
-                neo.Assets.Worlds.OldConsoleLanding.Content,
-                CloseOldConsoleLanding);
+                neo,
+                CloseOldConsoleLanding,
+                SaveWithIndicatorAsync,
+                TriggerLandingDialogue,
+                () => activeDialogue != null);
         }
 
         public void CloseOldConsoleLanding()
@@ -205,7 +210,15 @@ namespace HelloWorld.Assets.Scripts
 
         public void ShowDialogue(NeoDialogue dialogue)
         {
-            if (dialogue.Primary is ReadOnlyOutpost outpost)
+            ShowDialogue(dialogue, countAsOutpostVisit: true, onFinish: null);
+        }
+
+        private void ShowDialogue(
+            NeoDialogue dialogue,
+            bool countAsOutpostVisit,
+            Action onFinish)
+        {
+            if (dialogue.Primary is Outpost outpost)
             {
                 dialogueUI.Show(outpost.FullDisplayText, outpost.Image, $"Traveling to {outpost.Planet.Text}...");
             }
@@ -215,15 +228,26 @@ namespace HelloWorld.Assets.Scripts
             dialogue.OnFinish += OnDialogueFinish;
             dialogue.OnError += OnDialogueError;
             dialogueOpenSoundPlayed = false;
-            dialogue.Start();
+            activeDialogueCountsAsOutpostVisit = countAsOutpostVisit;
+            activeDialogueCompletion = onFinish;
             activeDialogue = dialogue;
+            dialogue.Start();
+        }
+
+        private bool TriggerLandingDialogue(string dialogueId, Action onFinish)
+        {
+            ClearDialogue();
+            if (!neo.Dialogues.TryTrigger(dialogueId, out NeoDialogue dialogue))
+            {
+                return false;
+            }
+
+            ShowDialogue(dialogue, countAsOutpostVisit: false, onFinish);
+            return true;
         }
 
         public void OnDialogueShow(NeoDialogueTextNode node)
         {
-            if (node.Primary is not ReadOnlyOutpost outpost)
-                throw new Exception($"Expected linked type of {typeof(ReadOnlyOutpost)}");
-
             // First node of a dialogue gets the "open" chirp; later nodes the
             // softer "next" tick.
             gameAudio.Play(dialogueOpenSoundPlayed
@@ -231,7 +255,17 @@ namespace HelloWorld.Assets.Scripts
                 : neo.Assets.Audio.DialogOpenSfx);
             dialogueOpenSoundPlayed = true;
 
-            dialogueUI.Show(outpost.FullDisplayText, outpost.Image, node.Text);
+            if (node.Primary is Outpost outpost)
+            {
+                dialogueUI.Show(outpost.FullDisplayText, outpost.Image, node.Text);
+            }
+            else
+            {
+                dialogueUI.Show(
+                    node.Name ?? activeDialogue?.Name ?? "Old Console Landing",
+                    null,
+                    node.Text);
+            }
 
             if (node.Options.Count > 0)
             {
@@ -270,9 +304,16 @@ namespace HelloWorld.Assets.Scripts
 
         public void OnDialogueFinish()
         {
+            bool countAsOutpostVisit = activeDialogueCountsAsOutpostVisit;
+            Action completion = activeDialogueCompletion;
+
             gameAudio.Play(neo.Assets.Audio.DialogCloseSfx);
-            CurrentOutpost.Save.VisitCount += 1;
+            if (countAsOutpostVisit)
+            {
+                CurrentOutpost.Save.VisitCount += 1;
+            }
             ClearDialogue();
+            completion?.Invoke();
             if (neo.Save.Quest.Ending == WorldEnding.helloWorld)
             {
                 // The Loop ending: the player erases the only persistent thing —
@@ -304,11 +345,11 @@ namespace HelloWorld.Assets.Scripts
         public void OnDialogueError(Exception exception)
         {
             Debug.LogError(exception);
-            dialogueUI.Reset();
+            ClearDialogue();
         }
 
         private void OnInventoryChanged(
-            NeoReadOnlyLookupSet<ReadOnlyItem> items,
+            NeoReadOnlyLookupSet<IReadOnlyItem> items,
             NeoChangeSource source)
         {
             int count = items.Count;
@@ -382,7 +423,7 @@ namespace HelloWorld.Assets.Scripts
         /// evaluation is pure until <c>Start()</c>, so peeking is free — this
         /// is what feeds the map's "something to do here" badges.
         /// </summary>
-        private bool HasDialogueAvailable(ReadOnlyOutpost outpost)
+        private bool HasDialogueAvailable(IReadOnlyOutpost outpost)
         {
             if (neo == null) return false;
             if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue intro))
@@ -454,6 +495,8 @@ namespace HelloWorld.Assets.Scripts
         {
             activeDialogue?.Dispose();
             activeDialogue = null;
+            activeDialogueCountsAsOutpostVisit = false;
+            activeDialogueCompletion = null;
             dialogueUI.Reset();
         }
 
@@ -465,6 +508,11 @@ namespace HelloWorld.Assets.Scripts
             landingSceneUI.Dispose();
             dialogueUI.Dispose();
             coreUI.Dispose();
+        }
+
+        private void Update()
+        {
+            landingSceneUI?.Tick();
         }
 
         private static int CurrentUnixTime => (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds();

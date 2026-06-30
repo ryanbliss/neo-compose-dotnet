@@ -43,7 +43,11 @@ namespace NeoCompose.Runtime
             Attribute childAttribute,
             string? overrideValueId)
         {
-            var child = Create(client, childAttribute, overrideValueId);
+            NeoValueOwnership? declared = client.DeclaredOwnership(childAttribute);
+            NeoAttribute child =
+                declared == NeoValueOwnership.Save || declared == NeoValueOwnership.Session
+                    ? CreateWritable(client, childAttribute, overrideValueId, declared.Value)
+                    : Create(client, childAttribute, overrideValueId);
             child.parent = this;
             return child;
         }
@@ -97,17 +101,27 @@ namespace NeoCompose.Runtime
 
         protected void ReinitializeChildren()
         {
-            // Dispose any existing children before clearing — they
-            // may have been bound to value-ids that aren't in the
-            // new value graph, and leaving them registered would
-            // leak them in client.nodes.
-            foreach (var child in childAttributes.Values) child.Dispose();
-            childAttributes.Clear();
-            if (value?.value is null) return;
+            var previousChildren = childAttributes;
+            childAttributes = new();
+            if (value?.value is null)
+            {
+                foreach (var child in previousChildren.Values) child.Dispose();
+                return;
+            }
             foreach (var kvp in value.value)
             {
+                if (previousChildren.TryGetValue(kvp.Key, out NeoAttribute? existing)
+                    && existing.attribute.id == entryAttribute.id
+                    && (existing.overrideValueId == kvp.Value
+                        || existing.value?.id == kvp.Value))
+                {
+                    childAttributes[kvp.Key] = existing;
+                    previousChildren.Remove(kvp.Key);
+                    continue;
+                }
                 childAttributes[kvp.Key] = CreateChild(client, entryAttribute, kvp.Value);
             }
+            foreach (var child in previousChildren.Values) child.Dispose();
         }
 
         private Attribute ResolveEntryAttribute()
@@ -135,7 +149,14 @@ namespace NeoCompose.Runtime
             Attribute childAttribute,
             string? overrideValueId)
         {
-            var child = CreateWritable(client, childAttribute, overrideValueId, ownership);
+            NeoValueOwnership? declared = client.DeclaredOwnership(childAttribute);
+            NeoAttribute child = declared switch
+            {
+                NeoValueOwnership.Asset => Create(client, childAttribute, overrideValueId),
+                NeoValueOwnership.Save or NeoValueOwnership.Session =>
+                    CreateWritable(client, childAttribute, overrideValueId, declared.Value),
+                _ => CreateWritable(client, childAttribute, overrideValueId, ownership),
+            };
             child.parent = this;
             return child;
         }
@@ -156,25 +177,34 @@ namespace NeoCompose.Runtime
                     $"Cannot be null when entry attribute is required");
             }
             string nowIso = System.DateTime.UtcNow.ToString("o");
+            NeoValueOwnership entryOwnership =
+                client.DeclaredOwnership(entryAttribute) ?? ownership;
 
             if (value?.value is not null
                 && value.value.TryGetValue(key, out string existingValueId)
-                && client.TryGetValue(ownership, existingValueId, out AttributeValue? existing))
+                && client.TryGetValue(entryOwnership, existingValueId, out AttributeValue? existing))
             {
                 if (setValue?.isValueReference == true)
                 {
-                    string importedValueId = client.ImportValueReference(ownership, setValue.valueId!);
+                    string importedValueId = client.ImportValueReference(
+                        entryOwnership,
+                        setValue.valueId!,
+                        out bool sourceMoved);
                     ObjectAttributeValue parentRow = EnsureWritableObject(nowIso);
                     parentRow.value![key] = importedValueId;
                     parentRow.updatedAt = nowIso;
                     client.SetWritableValue(ownership, parentRow);
                     value = parentRow;
-                    client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, existingValueId);
+                    client.RemoveWritableValueAndDescendantsIfUnlinked(entryOwnership, existingValueId);
                     if (childAttributes.TryGetValue(key, out NeoAttribute? linkedOldChild))
                     {
                         linkedOldChild.Dispose();
                     }
                     childAttributes[key] = CreateChild(client, entryAttribute, importedValueId);
+                    if (sourceMoved)
+                    {
+                        setValue.RetargetMovedReference(client, entryAttribute, importedValueId, entryOwnership);
+                    }
                     NotifyChanged();
                     return;
                 }
@@ -186,8 +216,8 @@ namespace NeoCompose.Runtime
                     existingValueId,
                     existing.createdAt,
                     nowIso);
-                client.SetWritablePayloadRows(ownership, setValue?.value);
-                client.SetWritableValue(ownership, next);
+                client.SetWritablePayloadRows(entryOwnership, setValue?.value);
+                client.SetWritableValue(entryOwnership, next);
                 if (childAttributes.TryGetValue(key, out NeoAttribute? oldChild))
                 {
                     oldChild.Dispose();
@@ -200,15 +230,22 @@ namespace NeoCompose.Runtime
             string newValueId;
             if (setValue?.isValueReference == true)
             {
-                newValueId = client.ImportValueReference(ownership, setValue.valueId!);
+                newValueId = client.ImportValueReference(
+                    entryOwnership,
+                    setValue.valueId!,
+                    out bool sourceMoved);
+                if (sourceMoved)
+                {
+                    setValue.RetargetMovedReference(client, entryAttribute, newValueId, entryOwnership);
+                }
             }
             else
             {
                 newValueId = System.Guid.NewGuid().ToString();
                 AttributeValue newValueRow = AttributeValueFactory.Create(
                     entryAttribute, setValue?.value, newValueId, nowIso, nowIso);
-                client.SetWritablePayloadRows(ownership, setValue?.value);
-                client.SetWritableValue(ownership, newValueRow);
+                client.SetWritablePayloadRows(entryOwnership, setValue?.value);
+                client.SetWritableValue(entryOwnership, newValueRow);
             }
 
             ObjectAttributeValue keyedRow = EnsureWritableObject(nowIso);

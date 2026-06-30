@@ -168,6 +168,32 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task ExplicitCommit_FlushesLiveSnapshotBeforeReturning()
+        {
+            var (_, sync, api, local, realtime, _) = await LiveSessionAsync();
+            var commits = new List<LocalGameSave>();
+            sync.OnCommitSuccess += commits.Add;
+
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
+                RemoteWithValues("snap-live", "hash-live", "{\"a\":1}", "session-x")));
+
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent("{\"a\":1}"),
+                replaceSnapshot: false,
+                flushLiveImmediately: true);
+
+            Assert.That(realtime.forks, Has.Count.EqualTo(1),
+                "explicit save must not wait for the live flush debounce");
+            Assert.That(
+                realtime.forks[0].patch.entries,
+                Is.Not.Empty,
+                "the immediate flush carries the staged save-value write");
+            Assert.That(commits, Has.Count.EqualTo(1), "local commit still succeeds");
+            Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("\"a\":1"));
+            Assert.That(api.commits, Is.Empty, "still no classic REST commit");
+        }
+
+        [Test]
         public async Task FirstFlush_ForksTheHeadWithThePerKeyPatch()
         {
             var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();

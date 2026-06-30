@@ -31,7 +31,7 @@ namespace HelloWorld.Assets.Scripts
         private RectTransform inventoryOverlay;
         private RectTransform inventoryList;
         private SystemMapUI systemMap;
-        private IReadOnlyList<ReadOnlyItem> lastInventory = Array.Empty<ReadOnlyItem>();
+        private IReadOnlyList<IReadOnlyItem> lastInventory = Array.Empty<IReadOnlyItem>();
         private int seenItemCount;
         private bool inventoryOpen;
         private readonly List<Image> stormSegments = new();
@@ -43,17 +43,17 @@ namespace HelloWorld.Assets.Scripts
             string questHint,
             int storm,
             bool knowsStormExact,
-            ReadOnlyAnimationInfo shipAnimation,
-            ReadOnlyAnimationInfo flareAnimation,
+            IReadOnlyAnimationInfo shipAnimation,
+            IReadOnlyAnimationInfo flareAnimation,
             Sprite sunSprite,
             AudioClip thrustSfx,
             Func<string, Sprite> parentPlanetSprite,
-            ReadOnlyOutpost currentOutpost,
-            IReadOnlyList<ReadOnlyOutpost> outposts,
+            IReadOnlyOutpost currentOutpost,
+            IReadOnlyList<IReadOnlyOutpost> outposts,
             int bits,
-            IReadOnlyList<ReadOnlyItem> inventory,
-            Func<ReadOnlyOutpost, bool> hasNewContent,
-            Action<ReadOnlyOutpost> onVisitOutpost,
+            IReadOnlyList<IReadOnlyItem> inventory,
+            Func<IReadOnlyOutpost, bool> hasNewContent,
+            Action<IReadOnlyOutpost> onVisitOutpost,
             bool canOpenLandingScene,
             Action onOpenLandingScene,
             Action onSave,
@@ -473,7 +473,7 @@ namespace HelloWorld.Assets.Scripts
             return card;
         }
 
-        private void RebuildInventory(IReadOnlyList<ReadOnlyItem> inventory)
+        private void RebuildInventory(IReadOnlyList<IReadOnlyItem> inventory)
         {
             for (var i = inventoryList.childCount - 1; i >= 0; i--)
             {
@@ -493,7 +493,7 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        private static void CreateInventoryRow(Transform parent, ReadOnlyItem item)
+        private static void CreateInventoryRow(Transform parent, IReadOnlyItem item)
         {
             var row = SampleUI.CreateRect(parent, item.Name);
             row.gameObject.AddComponent<LayoutElement>().preferredHeight = 34f;

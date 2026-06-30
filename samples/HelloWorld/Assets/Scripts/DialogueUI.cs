@@ -132,7 +132,7 @@ namespace HelloWorld.Assets.Scripts
         }
 
         public void PlaySpeakerAnimation(
-            ReadOnlyAnimationInfo animationInfo,
+            IReadOnlyAnimationInfo animationInfo,
             NeoDeferredFunction<bool> deferred)
         {
             EnsureBuilt();
@@ -166,14 +166,8 @@ namespace HelloWorld.Assets.Scripts
 
             root = new GameObject("Dialogue UI", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             var canvas = root.GetComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceCamera;
-            canvas.worldCamera = Camera.main;
-            canvas.planeDistance = 1f;
-            canvas.sortingOrder = 100;
-            if (canvas.worldCamera == null)
-            {
-                canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            }
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 1000;
 
             var scaler = root.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;

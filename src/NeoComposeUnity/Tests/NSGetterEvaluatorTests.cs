@@ -505,7 +505,7 @@ namespace NeoCompose.Tests
                 client,
                 heroAttr,
                 "generated-this-row");
-            var generatedThis = ReadOnlyHero.Create(client, node);
+            var generatedThis = Hero.Create(client, node);
             var getter = ReturnFunction(
                 KeyOf(
                     new VariablePointer

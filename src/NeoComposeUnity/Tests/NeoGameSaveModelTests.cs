@@ -47,6 +47,46 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void RemoteLoader_LoadsTileGridDeltaIntegerFieldsFromRealtimeDecimals()
+        {
+            var json =
+                "{" +
+                "\"serverId\":\"server-1\"," +
+                "\"id\":\"save-1\"," +
+                "\"snapshotId\":\"snap-1\"," +
+                "\"snapshotHash\":\"hash-1\"," +
+                "\"releaseChannelId\":\"channel-dev\"," +
+                "\"snapshotName\":\"Auto 1\"," +
+                "\"name\":\"My Save\"," +
+                "\"projectId\":\"project-1\"," +
+                "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
+                "\"author\":{\"kind\":\"user\",\"id\":\"user-1\"}," +
+                "\"actor\":{\"kind\":\"user\",\"id\":\"user-1\"}," +
+                "\"values\":{}," +
+                "\"tileGridDeltas\":{\"grid-value-1\":{\"schemaVersion\":\"1.0\",\"regions\":[{" +
+                "\"gridValueId\":\"grid-value-1\"," +
+                "\"layerId\":\"background-layer\"," +
+                "\"layerKind\":\"tile\"," +
+                "\"regionKey\":\"0,0\"," +
+                "\"regionX\":\"0.0\"," +
+                "\"regionY\":0.0," +
+                "\"dataSchemaVersion\":\"1.0\"," +
+                "\"delta\":{\"entries\":{},\"removedInstanceIds\":[],\"restoredToAuthored\":[]}," +
+                "\"contentHash\":\"hash-1\"}]}}," +
+                "\"platforms\":null,\"systems\":null,\"inputDevices\":null," +
+                "\"createdAt\":1,\"updatedAt\":2,\"synchronizedAt\":3,\"archivedAt\":null" +
+                "}";
+
+            var save = RemoteGameSaveLoader.Load(json);
+
+            var content = save.tileGridDeltas["grid-value-1"];
+            Assert.That(content.schemaVersion, Is.EqualTo(1));
+            Assert.That(content.regions[0].regionX, Is.EqualTo(0));
+            Assert.That(content.regions[0].regionY, Is.EqualTo(0));
+            Assert.That(content.regions[0].dataSchemaVersion, Is.EqualTo(1));
+        }
+
+        [Test]
         public void RemoteLoader_NullArchivedAt_LeavesArchivedAtUnset()
         {
             var save = RemoteGameSaveLoader.Load(RemoteJson);

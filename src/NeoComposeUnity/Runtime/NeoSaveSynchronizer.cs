@@ -64,6 +64,9 @@ namespace NeoCompose.Runtime
         private LocalGameSave? stagedLive;
 
         private bool liveFlushLoopRunning;
+        private bool liveFlushOperationRunning;
+        private readonly List<AwaitableCompletionSource> liveFlushWaiters =
+            new List<AwaitableCompletionSource>();
         private bool liveTornDown;
         private double liveLastStagedAt;
         private double liveFirstDirtyAt = -1;
@@ -211,7 +214,13 @@ namespace NeoCompose.Runtime
             }
         }
 
-        public async Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot)
+        public Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot) =>
+            CommitSaveContentAsync(content, replaceSnapshot, flushLiveImmediately: false);
+
+        internal async Awaitable CommitSaveContentAsync(
+            string content,
+            bool replaceSnapshot,
+            bool flushLiveImmediately)
         {
             if (string.IsNullOrWhiteSpace(content))
             {
@@ -224,7 +233,7 @@ namespace NeoCompose.Runtime
             // the live snapshot IS the in-place target.
             if (LiveModeEnabled)
             {
-                await StageLiveCommitAsync(content);
+                await StageLiveCommitAsync(content, flushLiveImmediately);
                 return;
             }
 
@@ -605,7 +614,9 @@ namespace NeoCompose.Runtime
         /// depends on the network), surface success, and mark the session dirty
         /// so the throttled flush pipeline picks the change up.
         /// </summary>
-        private async Awaitable StageLiveCommitAsync(string content)
+        private async Awaitable StageLiveCommitAsync(
+            string content,
+            bool flushImmediately = false)
         {
             State = NeoSaveSynchronizerState.Committing;
             try
@@ -636,7 +647,14 @@ namespace NeoCompose.Runtime
 
                 liveLastStagedAt = LiveClock();
                 if (liveFirstDirtyAt < 0) liveFirstDirtyAt = liveLastStagedAt;
-                KickLiveFlushLoop();
+                if (flushImmediately)
+                {
+                    await FlushLiveNowAsync();
+                }
+                else
+                {
+                    KickLiveFlushLoop();
+                }
             }
             catch (Exception)
             {
@@ -697,7 +715,47 @@ namespace NeoCompose.Runtime
                     return;
                 }
 
+                await FlushLiveOnceSerializedAsync(realtime);
+            }
+        }
+
+        private async Awaitable FlushLiveNowAsync()
+        {
+            if (liveTornDown || liveFirstDirtyAt < 0) return;
+
+            var realtime = core.RealtimeProvider;
+            if (realtime == null || !realtime.CanCommit)
+            {
+                KickLiveFlushLoop();
+                return;
+            }
+
+            await FlushLiveOnceSerializedAsync(realtime);
+        }
+
+        private async Awaitable FlushLiveOnceSerializedAsync(INeoRealtimeProvider realtime)
+        {
+            while (liveFlushOperationRunning)
+            {
+                var waiter = new AwaitableCompletionSource();
+                liveFlushWaiters.Add(waiter);
+                await waiter.Awaitable;
+            }
+
+            liveFlushOperationRunning = true;
+            try
+            {
                 await FlushLiveOnceAsync(realtime);
+            }
+            finally
+            {
+                liveFlushOperationRunning = false;
+                var waiters = liveFlushWaiters.ToArray();
+                liveFlushWaiters.Clear();
+                foreach (var waiter in waiters)
+                {
+                    waiter.TrySetResult();
+                }
             }
         }
 
@@ -1254,7 +1312,7 @@ namespace NeoCompose.Runtime
         {
             try
             {
-                await FlushLiveOnceAsync(realtime);
+                await FlushLiveOnceSerializedAsync(realtime);
             }
             catch (Exception exception)
             {

@@ -5,33 +5,63 @@
 
 using System;
 using System.Collections.Generic;
+using NeoCompose.Runtime.Json;
 
 namespace NeoCompose.Runtime
 {
     public abstract class NeoGeneratedCustomValue
         : NeoNode, IDisposable, INeoValuePayloadProvider, INeoValueReference
     {
-        protected readonly NeoAttributeCustom node;
+        protected NeoAttributeCustom node { get; private set; }
         private readonly string fallbackTypeId;
         private bool isDisposed;
         private readonly List<IDisposable> subscriptions = new();
+        private NeoAttributeCustomWritable? writableNodeCache;
         protected object? FunctionHandlerObject { get; set; }
+        protected NeoValueOwnership InheritedStorageOwnership { get; private set; }
+        protected NeoAttributeCustomWritable writableNode =>
+            writableNodeCache ??= NeoGeneratedTypesSupport.AsWritable(node, InheritedStorageOwnership);
 
         public string? valueId => node.overrideValueId ?? node.value?.id;
         public string? typeId => node.value?.typeId ?? fallbackTypeId;
+        public bool IsReadOnly { get; }
         internal NeoClient Client => client;
 
         protected NeoGeneratedCustomValue(
             NeoClient client,
             NeoAttributeCustom node,
-            string fallbackTypeId)
+            string fallbackTypeId,
+            bool isReadOnly = true,
+            NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client)
         {
             this.node = node;
             this.fallbackTypeId = fallbackTypeId;
+            IsReadOnly = isReadOnly;
+            InheritedStorageOwnership = inheritedStorageOwnership;
             this.node.OnChanged += HandleNodeChanged;
             this.node.OnDisposed += HandleNodeDisposed;
             LazyInitialize();
+        }
+
+        protected void ThrowIfReadOnly(string memberName)
+        {
+            if (!IsReadOnly) return;
+            throw new InvalidOperationException(
+                $"Cannot write generated Neo member '{memberName}' because this {GetType().Name} value is read-only.");
+        }
+
+        public bool TryWritable<TWritable>(out TWritable writable)
+            where TWritable : class, INeoValueReference
+        {
+            if (!IsReadOnly && this is TWritable match)
+            {
+                writable = match;
+                return true;
+            }
+
+            writable = null!;
+            return false;
         }
 
         public virtual void Dispose()
@@ -45,7 +75,60 @@ namespace NeoCompose.Runtime
             subscriptions.Clear();
             node.OnChanged -= HandleNodeChanged;
             node.OnDisposed -= HandleNodeDisposed;
+            if (writableNodeCache is not null && !ReferenceEquals(writableNodeCache, node))
+            {
+                writableNodeCache.Dispose();
+            }
+            writableNodeCache = null;
             client.UnregisterGeneratedCustomValue(this, node);
+        }
+
+        internal void RetargetWritableReference(
+            CustomAttribute attribute,
+            string valueId,
+            NeoValueOwnership ownership)
+        {
+            if (IsReadOnly) return;
+            if (ownership == NeoValueOwnership.Asset) return;
+            if (node.attribute.id == attribute.id
+                && node.overrideValueId == valueId
+                && node.ownership == ownership)
+            {
+                InheritedStorageOwnership = ownership;
+                return;
+            }
+
+            var next = NeoAttribute.CreateWritable(
+                client,
+                attribute,
+                valueId,
+                ownership) as NeoAttributeCustomWritable;
+            if (next is null)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot retarget generated value '{GetType().Name}' to non-custom attribute '{attribute.id}'.");
+            }
+
+            var previous = node;
+            previous.OnChanged -= HandleNodeChanged;
+            previous.OnDisposed -= HandleNodeDisposed;
+            client.UnregisterGeneratedCustomValue(this, previous);
+            if (writableNodeCache is not null && !ReferenceEquals(writableNodeCache, previous))
+            {
+                writableNodeCache.Dispose();
+            }
+
+            node = next;
+            InheritedStorageOwnership = ownership;
+            writableNodeCache = next;
+            node.OnChanged += HandleNodeChanged;
+            node.OnDisposed += HandleNodeDisposed;
+            client.RegisterGeneratedCustomValue(this, node);
+
+            if (!ReferenceEquals(previous, next))
+            {
+                previous.Dispose();
+            }
         }
 
         /// <summary>

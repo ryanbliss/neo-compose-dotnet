@@ -516,6 +516,7 @@ namespace NeoCompose.Runtime
             }
             client.SetWritableValue(ownership, newRow);
             value = newRow;
+            boundValueId = newRow.id;
             if (parent is not null)
             {
                 parent.BindChildValueId(this, newRow.id);
@@ -523,7 +524,6 @@ namespace NeoCompose.Runtime
             }
             // Parentless root with no authored default — remember the minted
             // id on the node so its own resolution chain finds it.
-            boundValueId = newRow.id;
         }
 
         /// <summary>

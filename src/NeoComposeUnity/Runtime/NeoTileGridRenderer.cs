@@ -7,11 +7,27 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Threading;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
 namespace NeoCompose.Runtime
 {
+    public sealed class NeoTileGridRenderOptions
+    {
+        public int MaxTilesPerFrame { get; set; } = 512;
+
+        public int MaxObjectsPerFrame { get; set; } = 8;
+
+        public bool YieldBeforeRender { get; set; } = true;
+
+        public CancellationToken CancellationToken { get; set; } = default;
+
+        internal int NormalizedMaxTilesPerFrame => Math.Max(1, MaxTilesPerFrame);
+
+        internal int NormalizedMaxObjectsPerFrame => Math.Max(1, MaxObjectsPerFrame);
+    }
+
     /// <summary>
     /// Default runtime renderer for Neo TileGrid content. It renders winning
     /// tile candidates into Unity Tilemaps and object instances into child
@@ -47,6 +63,7 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<NeoGeneratedCustomValue, TileBase> generatedTileBases = new();
         private readonly Dictionary<string, TileBase> tileBasesByValueId = new();
         private readonly Dictionary<TileBase, NeoGeneratedCustomValue> valuesByTileBase = new();
+        private readonly Dictionary<string, Tilemap> tilemapsByLayerId = new();
         private RendererSmartTileNeighborMatcher? smartTileMatcher;
 
         public NeoTileGridLifecycle? Lifecycle { get; set; }
@@ -110,6 +127,36 @@ namespace NeoCompose.Runtime
                     "ObjectLayersInOrder"));
         }
 
+        public Awaitable RenderAsync(
+            object generatedGridContent,
+            NeoTileGridRenderOptions? options = null)
+        {
+            if (generatedGridContent == null)
+            {
+                throw new ArgumentNullException(nameof(generatedGridContent));
+            }
+
+            var primitive = ReadProperty<NeoReadOnlyTileGridPrimitive>(
+                generatedGridContent,
+                "Primitive");
+            if (primitive == null)
+            {
+                throw new ArgumentException(
+                    "Generated grid content must expose a Primitive property.",
+                    nameof(generatedGridContent));
+            }
+
+            return RenderAsync(
+                primitive,
+                ReadLayerList<ReadOnlyNeoTileLayerRuntime>(
+                    generatedGridContent,
+                    "TileLayersInOrder"),
+                ReadLayerList<ReadOnlyNeoObjectLayerRuntime>(
+                    generatedGridContent,
+                    "ObjectLayersInOrder"),
+                options);
+        }
+
         public void Render(
             NeoReadOnlyTileGridPrimitive primitive,
             IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
@@ -119,7 +166,11 @@ namespace NeoCompose.Runtime
             if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
 
             var grid = EnsureGrid();
-            if (clearBeforeRender) ClearChildren(grid.transform);
+            if (clearBeforeRender)
+            {
+                ClearChildren(grid.transform);
+                tilemapsByLayerId.Clear();
+            }
 
             int sortingOrder = 0;
             foreach (var layer in tileLayers)
@@ -129,13 +180,20 @@ namespace NeoCompose.Runtime
                     layer,
                     sortingOrder++ * FallbackSortingOrderStride);
                 Lifecycle?.OnTileLayerCreated(new NeoTileLayerContext(this, layer, tilemap));
+                var positions = new List<Vector3Int>();
+                var tiles = new List<TileBase>();
                 foreach (var tile in layer.GetTiles())
                 {
                     var tileBase = TileBaseFor(tile.Tile);
                     if (tileBase == null) continue;
-                    tilemap.SetTile(
-                        new Vector3Int(tile.Cell.x, tile.Cell.y, 0),
-                        tileBase);
+                    positions.Add(new Vector3Int(tile.Cell.x, tile.Cell.y, 0));
+                    tiles.Add(tileBase);
+                }
+
+                if (positions.Count > 0)
+                {
+                    tilemap.SetTiles(positions.ToArray(), tiles.ToArray());
+                    tilemap.CompressBounds();
                 }
             }
 
@@ -157,13 +215,121 @@ namespace NeoCompose.Runtime
             Lifecycle?.OnGridLoaded(new NeoTileGridLoadedContext(this, primitive));
         }
 
+        public async Awaitable RenderAsync(
+            NeoReadOnlyTileGridPrimitive primitive,
+            IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
+            IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null,
+            NeoTileGridRenderOptions? options = null)
+        {
+            if (primitive == null) throw new ArgumentNullException(nameof(primitive));
+            if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
+
+            options ??= new NeoTileGridRenderOptions();
+            var token = options.CancellationToken;
+            token.ThrowIfCancellationRequested();
+
+            if (options.YieldBeforeRender)
+            {
+                await YieldNextFrameAsync(token);
+            }
+
+            var grid = EnsureGrid();
+            if (clearBeforeRender)
+            {
+                ClearChildren(grid.transform);
+                tilemapsByLayerId.Clear();
+                await YieldNextFrameAsync(token);
+            }
+
+            int sortingOrder = 0;
+            foreach (var layer in tileLayers)
+            {
+                token.ThrowIfCancellationRequested();
+                var tilemap = CreateTilemap(
+                    grid.transform,
+                    layer,
+                    sortingOrder++ * FallbackSortingOrderStride);
+                var positions = new List<Vector3Int>(options.NormalizedMaxTilesPerFrame);
+                var tiles = new List<TileBase>(options.NormalizedMaxTilesPerFrame);
+                foreach (var tile in layer.GetTiles())
+                {
+                    token.ThrowIfCancellationRequested();
+                    var tileBase = TileBaseFor(tile.Tile);
+                    if (tileBase == null) continue;
+
+                    positions.Add(new Vector3Int(tile.Cell.x, tile.Cell.y, 0));
+                    tiles.Add(tileBase);
+                    if (positions.Count < options.NormalizedMaxTilesPerFrame) continue;
+
+                    SetTileBatch(tilemap, positions, tiles);
+                    positions.Clear();
+                    tiles.Clear();
+                    await YieldNextFrameAsync(token);
+                }
+
+                if (positions.Count > 0)
+                {
+                    SetTileBatch(tilemap, positions, tiles);
+                }
+
+                tilemap.CompressBounds();
+                Lifecycle?.OnTileLayerCreated(new NeoTileLayerContext(this, layer, tilemap));
+                await YieldNextFrameAsync(token);
+            }
+
+            if (renderObjects && objectLayers != null)
+            {
+                foreach (var layer in objectLayers)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var root = CreateObjectLayerRoot(grid.transform, layer);
+                    Lifecycle?.OnObjectLayerCreated(new NeoObjectLayerContext(this, layer, root));
+                    var layerFallbackSortingOrder =
+                        sortingOrder++ * FallbackSortingOrderStride;
+                    var renderedThisFrame = 0;
+                    foreach (var obj in layer.GetObjects())
+                    {
+                        token.ThrowIfCancellationRequested();
+                        SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
+                        renderedThisFrame += 1;
+                        if (renderedThisFrame < options.NormalizedMaxObjectsPerFrame) continue;
+                        renderedThisFrame = 0;
+                        await YieldNextFrameAsync(token);
+                    }
+
+                    await YieldNextFrameAsync(token);
+                }
+            }
+
+            token.ThrowIfCancellationRequested();
+            Lifecycle?.OnGridLoaded(new NeoTileGridLoadedContext(this, primitive));
+        }
+
         public void Clear()
         {
             ClearChildren(EnsureGrid().transform);
+            tilemapsByLayerId.Clear();
             spriteTiles.Clear();
             generatedTileBases.Clear();
             tileBasesByValueId.Clear();
             valuesByTileBase.Clear();
+        }
+
+        public bool TryClearTile(string layerId, Vector2Int cell)
+        {
+            if (string.IsNullOrEmpty(layerId)) return false;
+            if (!tilemapsByLayerId.TryGetValue(layerId, out var tilemap) || tilemap == null)
+            {
+                return false;
+            }
+
+            var position = new Vector3Int(cell.x, cell.y, 0);
+            if (tilemap.GetTile(position) == null) return true;
+
+            tilemap.SetTile(position, null);
+            RefreshTileAndNeighbors(tilemap, position);
+            tilemap.CompressBounds();
+            return true;
         }
 
         private Grid EnsureGrid()
@@ -191,6 +357,7 @@ namespace NeoCompose.Runtime
             var tilemap = go.AddComponent<Tilemap>();
             var renderer = go.AddComponent<TilemapRenderer>();
             ApplySorting(renderer, layer.SortingLayerName, layer.SortingOrder ?? sortingOrder);
+            tilemapsByLayerId[layer.LayerId] = tilemap;
             return tilemap;
         }
 
@@ -826,6 +993,38 @@ namespace NeoCompose.Runtime
                 else
                 {
                     UnityEngine.Object.DestroyImmediate(child);
+                }
+            }
+        }
+
+        private static void SetTileBatch(
+            Tilemap tilemap,
+            List<Vector3Int> positions,
+            List<TileBase> tiles)
+        {
+            if (positions.Count == 0) return;
+            tilemap.SetTiles(positions.ToArray(), tiles.ToArray());
+        }
+
+        private static async Awaitable YieldNextFrameAsync(CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            if (Application.isPlaying)
+            {
+                await Awaitable.NextFrameAsync(token);
+            }
+        }
+
+        private static void RefreshTileAndNeighbors(Tilemap tilemap, Vector3Int position)
+        {
+            for (int y = -1; y <= 1; y += 1)
+            {
+                for (int x = -1; x <= 1; x += 1)
+                {
+                    tilemap.RefreshTile(new Vector3Int(
+                        position.x + x,
+                        position.y + y,
+                        position.z));
                 }
             }
         }

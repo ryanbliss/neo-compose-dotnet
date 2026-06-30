@@ -4,3 +4,4 @@
 using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("NeoCompose.Unity.Tests")]
+[assembly: InternalsVisibleTo("NeoComposeUnity.Tests")]

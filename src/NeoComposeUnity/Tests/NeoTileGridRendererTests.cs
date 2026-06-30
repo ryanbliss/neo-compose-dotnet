@@ -3,12 +3,15 @@
 
 #nullable enable
 
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.Tilemaps;
+using UnityEngine.TestTools;
 using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Tests
@@ -79,6 +82,159 @@ namespace NeoCompose.Tests
             finally
             {
                 UnityEngine.Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void TryClearTile_UpdatesExistingTilemapWithoutRebuilding()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            {
+                [TileTypeId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
+            };
+            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "floor-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            var sprite = CreateTestSprite("clearable");
+            tile.Sprite = sprite;
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>());
+            var go = new GameObject("NeoTileGridRenderer incremental clear test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(
+                    primitive,
+                    new[]
+                    {
+                        new TestTileLayerRuntime(
+                            "background-layer",
+                            "Background",
+                            TileTypeId,
+                            null,
+                            null,
+                            new[]
+                            {
+                                new NeoResolvedTileInstance(
+                                    "tile-1",
+                                    "background-layer",
+                                    Vector2Int.zero,
+                                    tile,
+                                    0),
+                            }),
+                    });
+
+                var tilemap = go.GetComponentInChildren<Tilemap>();
+                Assert.IsNotNull(tilemap);
+                Assert.IsNotNull(tilemap!.GetTile(Vector3Int.zero));
+                var childCount = go.transform.childCount;
+
+                Assert.IsTrue(renderer.TryClearTile("background-layer", Vector2Int.zero));
+
+                Assert.AreEqual(childCount, go.transform.childCount);
+                Assert.AreSame(tilemap, go.GetComponentInChildren<Tilemap>());
+                Assert.IsNull(tilemap.GetTile(Vector3Int.zero));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(sprite.texture);
+                UnityEngine.Object.DestroyImmediate(sprite);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator RenderAsync_RendersTileLayerOverFrames()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            {
+                [TileTypeId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
+            };
+            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "floor-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            var sprite = CreateTestSprite("async-render");
+            tile.Sprite = sprite;
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>());
+            var go = new GameObject("NeoTileGridRenderer async render test");
+            Exception? error = null;
+            var complete = false;
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                Render();
+
+                for (int frame = 0; frame < 120 && !complete; frame += 1)
+                {
+                    yield return null;
+                }
+
+                if (error != null) throw error;
+                Assert.IsTrue(complete, "Async tile grid render did not complete.");
+                var tilemap = go.GetComponentInChildren<Tilemap>();
+                Assert.IsNotNull(tilemap);
+                Assert.IsNotNull(tilemap!.GetTile(Vector3Int.zero));
+
+                async void Render()
+                {
+                    try
+                    {
+                        await renderer.RenderAsync(
+                            primitive,
+                            new[]
+                            {
+                                new TestTileLayerRuntime(
+                                    "background-layer",
+                                    "Background",
+                                    TileTypeId,
+                                    null,
+                                    null,
+                                    new[]
+                                    {
+                                        new NeoResolvedTileInstance(
+                                            "tile-1",
+                                            "background-layer",
+                                            Vector2Int.zero,
+                                            tile,
+                                            0),
+                                    }),
+                            },
+                            options: new NeoTileGridRenderOptions
+                            {
+                                MaxTilesPerFrame = 1,
+                                YieldBeforeRender = true,
+                            });
+                    }
+                    catch (Exception exception)
+                    {
+                        error = exception;
+                    }
+                    finally
+                    {
+                        complete = true;
+                    }
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(sprite.texture);
+                UnityEngine.Object.DestroyImmediate(sprite);
             }
         }
 

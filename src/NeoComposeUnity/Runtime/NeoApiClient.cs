@@ -269,7 +269,9 @@ namespace NeoCompose.Runtime
         private static T Deserialize<T>(string json, string description)
             where T : class
         {
-            var response = JsonConvert.DeserializeObject<T>(json);
+            var response = JsonConvert.DeserializeObject<T>(
+                json,
+                NeoSaveJson.ContentSettings);
             if (response == null)
             {
                 throw new InvalidOperationException($"Neo Compose {description} response was empty.");

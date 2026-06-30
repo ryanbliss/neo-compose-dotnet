@@ -585,7 +585,8 @@ namespace NeoCompose.Runtime
             return value is null
                 ? null
                 : NeoValueWritePayload.FromValueReference(
-                    LookupSelectionId(value.valueId));
+                    LookupSelectionId(value.valueId),
+                    value);
         }
 
         public static void SetValue(
@@ -598,15 +599,19 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Writable view over a (possibly read-only) Custom node. Generated
-        /// ReadOnly classes route setters for members with an explicit
-        /// Save/Session storage stamp through this
-        /// (specs/attribute-storage.md §8.3); writes to unstamped keys still
-        /// throw the static-storage error inside
-        /// <see cref="NeoAttributeCustom.SetSerializedValue"/>.
+        /// classes use the overload with an inherited ownership context when
+        /// inherited members should resolve storage from the concrete owner.
         /// </summary>
         public static NeoAttributeCustomWritable AsWritable(NeoAttributeCustom node)
         {
             return node.AsWritableView();
+        }
+
+        public static NeoAttributeCustomWritable AsWritable(
+            NeoAttributeCustom node,
+            NeoValueOwnership inheritedOwnership)
+        {
+            return node.AsWritableView(inheritedOwnership);
         }
 
         public static void SetValue(

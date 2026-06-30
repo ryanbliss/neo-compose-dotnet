@@ -152,14 +152,16 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient();
             var nameAttr = RequireAttribute<StringAttribute>(client, "attr-name");
-            // attr-name has no authored valueId in the fixture, so the
-            // freshly-constructed standalone node has value == null until set.
+            // attr-name has an authored default in the fixture, so a
+            // freshly-constructed standalone node resolves through that default
+            // until a writable row is set.
             var node = (NeoAttributeStringWritable)NeoAttribute.CreateWritable(
                 client,
                 nameAttr,
                 null,
                 NeoValueOwnership.Save);
-            Assert.IsNull(node.value);
+            Assert.IsNotNull(node.value);
+            Assert.AreEqual("Hero", node.value!.value);
 
             // Stable-id overlay: a write mints a value bound to this
             // (parentless) node and tracks it directly — no override-map hop.
@@ -246,7 +248,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(firstChild.isDisposed);
             Assert.IsFalse(client.nodes.ContainsKey($"session:attr-name_{firstValueId}"));
             Assert.IsFalse(client.TryGetValue<StringAttributeValue>(firstValueId, out _),
-                "Removed entry's value row should be GC'd from saveData");
+                "Removed entry's value row should be GC'd from writable data");
             Assert.AreEqual(1, tags.Count);
         }
 
