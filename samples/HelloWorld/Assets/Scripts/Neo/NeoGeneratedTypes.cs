@@ -11159,7 +11159,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
-    public partial class ReadOnlyOldConsoleLandingGridContent
+    public partial class ReadOnlyOldConsoleLandingGridContent : INeoTileGridContent
     {
         protected ReadOnlyOldConsoleLandingGridContent(NeoReadOnlyTileGridPrimitive primitive, ReadOnlyOldConsoleLandingGridBackgroundTileLayer background, ReadOnlyOldConsoleLandingGridCollisionsTileLayer collisions, ReadOnlyOldConsoleLandingGridObjectsObjectLayer objects)
         {
@@ -11187,11 +11187,18 @@ namespace HelloWorld.Assets.Scripts.Neo
         public ReadOnlyOldConsoleLandingGridCollisionsTileLayer Collisions { get; }
         public ReadOnlyOldConsoleLandingGridObjectsObjectLayer Objects { get; }
 
+        public NeoTileGridRenderer? Renderer => Primitive.Renderer;
+
+        public IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler)
+        {
+            return Primitive.OnChanged(handler);
+        }
+
         public IReadOnlyList<ReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
         public IReadOnlyList<ReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
     }
 
-    public partial class OldConsoleLandingGridContent : ReadOnlyOldConsoleLandingGridContent
+    public partial class OldConsoleLandingGridContent : ReadOnlyOldConsoleLandingGridContent, INeoWritableTileGridContent
     {
         private OldConsoleLandingGridContent(NeoTileGridPrimitive primitive)
             : base(primitive, new OldConsoleLandingGridBackgroundTileLayer(primitive), new OldConsoleLandingGridCollisionsTileLayer(primitive), new OldConsoleLandingGridObjectsObjectLayer(primitive))
@@ -11233,9 +11240,18 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         public new NeoTileGridPrimitive Primitive { get; }
 
+        NeoReadOnlyTileGridPrimitive INeoTileGridContent.Primitive => Primitive;
+
         public new OldConsoleLandingGridBackgroundTileLayer Background { get; }
         public new OldConsoleLandingGridCollisionsTileLayer Collisions { get; }
         public new OldConsoleLandingGridObjectsObjectLayer Objects { get; }
+
+        public new NeoTileGridRenderer? Renderer => Primitive.Renderer;
+
+        public new IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler)
+        {
+            return Primitive.OnChanged(handler);
+        }
 
     }
 }

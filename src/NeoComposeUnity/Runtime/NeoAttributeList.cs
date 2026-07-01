@@ -55,6 +55,8 @@ namespace NeoCompose.Runtime
 
         public int Count => childAttributes.Count;
 
+        internal NeoListChangedArgs? ActiveListChange { get; private set; }
+
         public IEnumerator<NeoAttribute> GetEnumerator() =>
             childAttributes.GetEnumerator();
 
@@ -110,6 +112,19 @@ namespace NeoCompose.Runtime
             foreach (var child in previousChildren)
             {
                 if (child is not null) child.Dispose();
+            }
+        }
+
+        protected void NotifyListChanged(NeoListChangedArgs change)
+        {
+            ActiveListChange = change ?? NeoListChangedArgs.Unknown;
+            try
+            {
+                NotifyChanged();
+            }
+            finally
+            {
+                ActiveListChange = null;
             }
         }
 
@@ -202,7 +217,9 @@ namespace NeoCompose.Runtime
             value = parentRow;
 
             ReinitializeChildren();
-            NotifyChanged();
+            NotifyListChanged(new NeoListChangedArgs(
+                NeoListChangeKind.Add,
+                addedValueIds: new[] { newValueId }));
         }
 
         /// <summary>
@@ -246,7 +263,11 @@ namespace NeoCompose.Runtime
                 {
                     entryValue.RetargetMovedReference(client, entryAttribute, importedValueId, entryOwnership);
                 }
-                NotifyChanged();
+                NotifyListChanged(new NeoListChangedArgs(
+                    NeoListChangeKind.Replace,
+                    removedValueIds: new[] { entryValueId },
+                    addedValueIds: new[] { importedValueId },
+                    replacedValueIds: new[] { entryValueId }));
                 return;
             }
 
@@ -265,7 +286,9 @@ namespace NeoCompose.Runtime
             client.SetWritableValue(entryOwnership, next);
             childAttributes[index].Dispose();
             childAttributes[index] = CreateChild(client, entryAttribute, entryValueId);
-            NotifyChanged();
+            NotifyListChanged(new NeoListChangedArgs(
+                NeoListChangeKind.Set,
+                replacedValueIds: new[] { entryValueId }));
         }
 
         /// <summary>
@@ -305,8 +328,52 @@ namespace NeoCompose.Runtime
             childAttributes.RemoveAt(index);
 
             // GC the orphaned value graph from the writable store.
-            client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, removedValueId);
-            NotifyChanged();
+            NeoValueOwnership entryOwnership =
+                client.DeclaredOwnership(entryAttribute) ?? ownership;
+            client.RemoveWritableValueAndDescendantsIfUnlinked(entryOwnership, removedValueId);
+            NotifyListChanged(new NeoListChangedArgs(
+                NeoListChangeKind.Remove,
+                removedValueIds: new[] { removedValueId }));
+        }
+
+        internal void ClearSerialized()
+        {
+            if (value?.value is null || value.value.Length == 0)
+            {
+                return;
+            }
+
+            string nowIso = System.DateTime.UtcNow.ToString("o");
+            ArrayAttributeValue parentRow = EnsureWritableArray(nowIso);
+            string[] removedValueIds = parentRow.value ?? System.Array.Empty<string>();
+            if (removedValueIds.Length == 0)
+            {
+                return;
+            }
+
+            parentRow.value = System.Array.Empty<string>();
+            parentRow.updatedAt = nowIso;
+            client.SetWritableValue(ownership, parentRow);
+            value = parentRow;
+
+            foreach (var child in childAttributes)
+            {
+                child.Dispose();
+            }
+            childAttributes.Clear();
+
+            NeoValueOwnership entryOwnership =
+                client.DeclaredOwnership(entryAttribute) ?? ownership;
+            foreach (var removedValueId in removedValueIds)
+            {
+                client.RemoveWritableValueAndDescendantsIfUnlinked(
+                    entryOwnership,
+                    removedValueId);
+            }
+
+            NotifyListChanged(new NeoListChangedArgs(
+                NeoListChangeKind.Clear,
+                removedValueIds: removedValueIds));
         }
 
         /// <summary>

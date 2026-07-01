@@ -26,6 +26,7 @@ namespace NeoCompose.Runtime
         public string? typeId => node.value?.typeId ?? fallbackTypeId;
         public bool IsReadOnly { get; }
         internal NeoClient Client => client;
+        internal NeoRenderBindingStore RenderBindings { get; } = new();
 
         protected NeoGeneratedCustomValue(
             NeoClient client,
@@ -73,6 +74,7 @@ namespace NeoCompose.Runtime
                 subscription.Dispose();
             }
             subscriptions.Clear();
+            RenderBindings.Dispose();
             node.OnChanged -= HandleNodeChanged;
             node.OnDisposed -= HandleNodeDisposed;
             if (writableNodeCache is not null && !ReferenceEquals(writableNodeCache, node))
@@ -163,6 +165,19 @@ namespace NeoCompose.Runtime
         private void HandleNodeDisposed(NeoAttribute disposed)
         {
             Dispose();
+        }
+
+        internal IDisposable WatchAnyChange(
+            Action<NeoGeneratedCustomValue, NeoAttribute, NeoChangeSource> handler)
+        {
+            if (handler is null) throw new ArgumentNullException(nameof(handler));
+            void Handle(NeoAttribute changed)
+            {
+                handler(this, changed, client.CurrentChangeSource);
+            }
+            node.OnChanged += Handle;
+            return TrackSubscription(new NeoDisposableSubscription(
+                () => node.OnChanged -= Handle));
         }
 
         protected IDisposable WatchField<T>(

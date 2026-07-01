@@ -83,18 +83,6 @@ namespace HelloWorld.Assets.Scripts
             EnsurePlayer();
         }
 
-        public void ClearTiles(string layerId, System.Collections.Generic.IEnumerable<Vector2Int> cells)
-        {
-            foreach (var cell in cells)
-            {
-                if (!renderer.TryClearTile(layerId, cell))
-                {
-                    Debug.LogWarning(
-                        $"Neo Compose: rendered tilemap for layer '{layerId}' was not available for incremental barrier clear.");
-                }
-            }
-        }
-
         public void MovePlayerTo(Vector2Int cell)
         {
             EnsurePlayer();

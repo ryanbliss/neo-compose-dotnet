@@ -32,7 +32,10 @@ namespace HelloWorld.Assets.Scripts
         private readonly HashSet<Vector2Int> blockedPathCells = new();
         private readonly HashSet<Vector2Int> bootGlyphCells = new();
         private readonly List<NeoResolvedObjectInstance> objectInstances = new();
+        private IDisposable collisionSubscription;
+        private IDisposable barrierSubscription;
         private bool barrierOpening;
+        private bool barrierWasActive;
         private bool loading;
         private int loadGeneration;
         private CancellationTokenSource loadCancellation;
@@ -59,6 +62,7 @@ namespace HelloWorld.Assets.Scripts
                 throw new InvalidCastException("Old Console Landing 'Blocked Path' must resolve as BlockedPath.");
             }
             blockedPath = blocked;
+            barrierWasActive = IsBarrierActive();
 
             ui.MoveRequested += OnMoveRequested;
             ui.InteractRequested += OnInteractRequested;
@@ -95,6 +99,7 @@ namespace HelloWorld.Assets.Scripts
         {
             loadGeneration++;
             CancelLoad();
+            DisposeContentSubscriptions();
             loading = false;
             ui.Hide();
         }
@@ -106,6 +111,7 @@ namespace HelloWorld.Assets.Scripts
 
             loadGeneration++;
             CancelLoad();
+            DisposeContentSubscriptions();
             ui.MoveRequested -= OnMoveRequested;
             ui.InteractRequested -= OnInteractRequested;
             ui.CloseRequested -= RequestClose;
@@ -115,13 +121,6 @@ namespace HelloWorld.Assets.Scripts
         public void Tick()
         {
             if (!IsOpen || loading) return;
-
-            var sync = SynchronizeBlockedPathState();
-            if (sync.Changed)
-            {
-                ui.ClearTiles(Content.Collisions.LayerId, sync.RemovedCells);
-                ui.MovePlayerTo(PlayerCell);
-            }
 
             RenderChrome();
             ui.SetPromptVisible(!DialogueIsOpen);
@@ -171,6 +170,7 @@ namespace HelloWorld.Assets.Scripts
                 if (!IsCurrentLoad(generation)) return;
 
                 BuildInteractionCache();
+                SubscribeContentChanges();
                 CompleteWorldLoad();
                 ui.MovePlayerTo(PlayerCell);
                 ui.Frame(WorldBounds);
@@ -194,6 +194,37 @@ namespace HelloWorld.Assets.Scripts
                     ui.SetLoadingVisible(false);
                 }
             }
+        }
+
+        private void SubscribeContentChanges()
+        {
+            DisposeContentSubscriptions();
+            collisionSubscription = Content.Collisions.OnChanged(args =>
+            {
+                ApplyCollisionDelta(args);
+                UpdatePrompt();
+                RenderChrome();
+            });
+            barrierWasActive = IsBarrierActive();
+            barrierSubscription = blockedPath.Tiles.OnChanged((_, __) =>
+            {
+                bool isActive = IsBarrierActive();
+                if (barrierWasActive && !isActive)
+                {
+                    PersistBarrierOpenAsync();
+                }
+                barrierWasActive = isActive;
+                UpdatePrompt();
+                RenderChrome();
+            });
+        }
+
+        private void DisposeContentSubscriptions()
+        {
+            collisionSubscription?.Dispose();
+            collisionSubscription = null;
+            barrierSubscription?.Dispose();
+            barrierSubscription = null;
         }
 
         private bool IsCurrentLoad(int generation) =>
@@ -304,47 +335,6 @@ namespace HelloWorld.Assets.Scripts
             SetStatus("Nothing answers here. Try a glyph tile, the teal blocker, or the exit prompt.");
         }
 
-        private LandingSceneBarrierSync SynchronizeBlockedPathState()
-        {
-            var currentBlockedTiles = Content.Collisions.GetTiles()
-                .Where(tile =>
-                    tile.SourceKind == NeoTileOutputSourceKind.TileLayerLink &&
-                    !string.IsNullOrEmpty(tile.SourceTileLayerLinkId))
-                .ToArray();
-            var currentBlockedCells = currentBlockedTiles
-                .Select(tile => tile.Cell)
-                .ToHashSet();
-            if (blockedPathCells.SetEquals(currentBlockedCells))
-            {
-                return LandingSceneBarrierSync.Unchanged;
-            }
-
-            var wasClosed = blockedPathCells.Any(cell => collisionCells.Contains(cell));
-            var removedCells = blockedPathCells.Except(currentBlockedCells).ToArray();
-
-            foreach (var cell in removedCells)
-            {
-                collisionCells.Remove(cell);
-            }
-
-            blockedPathCells.Clear();
-            foreach (var tile in currentBlockedTiles)
-            {
-                blockedPathCells.Add(tile.Cell);
-                collisionCells.Add(tile.Cell);
-            }
-
-            UpdatePrompt();
-
-            var isOpen = !blockedPathCells.Any(cell => collisionCells.Contains(cell));
-            if (wasClosed && isOpen)
-            {
-                PersistBarrierOpenAsync();
-            }
-
-            return new LandingSceneBarrierSync(removedCells);
-        }
-
         private async void PersistBarrierOpenAsync()
         {
             if (barrierOpening) return;
@@ -393,8 +383,7 @@ namespace HelloWorld.Assets.Scripts
             foreach (var tile in Content.Collisions.GetTiles())
             {
                 collisionCells.Add(tile.Cell);
-                if (tile.SourceKind == NeoTileOutputSourceKind.TileLayerLink &&
-                    !string.IsNullOrEmpty(tile.SourceTileLayerLinkId))
+                if (IsBlockedPathCollision(tile))
                 {
                     blockedPathCells.Add(tile.Cell);
                 }
@@ -416,6 +405,59 @@ namespace HelloWorld.Assets.Scripts
             }
 
             WorldBounds = bounds.ToBounds();
+        }
+
+        private void ApplyCollisionDelta(NeoTileLayerChangedArgs args)
+        {
+            foreach (var cell in args.CellsToClear)
+            {
+                RemoveCollisionCell(cell);
+            }
+
+            foreach (var cell in args.CellsToSetOrRefresh)
+            {
+                RefreshCollisionCell(cell);
+            }
+        }
+
+        private void RefreshCollisionCell(Vector2Int cell)
+        {
+            var tile = Content.Collisions.ResolveTile(cell);
+            if (tile == null)
+            {
+                RemoveCollisionCell(cell);
+                return;
+            }
+
+            collisionCells.Add(cell);
+            if (IsBlockedPathCollision(tile))
+            {
+                blockedPathCells.Add(cell);
+            }
+            else
+            {
+                blockedPathCells.Remove(cell);
+            }
+
+            IncludeWorldCell(cell);
+        }
+
+        private void RemoveCollisionCell(Vector2Int cell)
+        {
+            collisionCells.Remove(cell);
+            blockedPathCells.Remove(cell);
+        }
+
+        private bool IsBlockedPathCollision(NeoResolvedTileInstance tile) =>
+            tile.SourceKind == NeoTileOutputSourceKind.TileLayerLink &&
+            !string.IsNullOrEmpty(tile.SourceTileLayerLinkId) &&
+            string.Equals(tile.SourceTileLayerLinkId, blockedPath.valueId, StringComparison.Ordinal);
+
+        private void IncludeWorldCell(Vector2Int cell)
+        {
+            var bounds = WorldBounds;
+            bounds.Encapsulate(new Vector3(cell.x, cell.y, 0f));
+            WorldBounds = bounds;
         }
 
         private bool CanEnter(Vector2Int cell)
@@ -585,16 +627,4 @@ namespace HelloWorld.Assets.Scripts
         }
     }
 
-    internal readonly struct LandingSceneBarrierSync
-    {
-        public static readonly LandingSceneBarrierSync Unchanged = new(Array.Empty<Vector2Int>());
-
-        public LandingSceneBarrierSync(IReadOnlyList<Vector2Int> removedCells)
-        {
-            RemovedCells = removedCells ?? Array.Empty<Vector2Int>();
-        }
-
-        public IReadOnlyList<Vector2Int> RemovedCells { get; }
-        public bool Changed => RemovedCells.Count > 0;
-    }
 }

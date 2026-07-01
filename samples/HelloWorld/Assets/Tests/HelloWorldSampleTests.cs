@@ -553,6 +553,56 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public void TileGridRenderer_LiveSyncClearsOldConsoleLandingBarrierWhenSourceTilesClear()
+        {
+            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var content = client.Assets.Worlds.OldConsoleLanding.Content;
+            var blocked = client.Assets.Worlds.OldConsoleLanding.Children
+                .First(check => check.Name == "Blocked Path") as BlockedPath;
+            Assert.IsNotNull(blocked);
+            var blockerCells = content.Collisions.GetTiles()
+                .Where(tile => tile.SourceTileLayerLinkId == BlockedPathValueId)
+                .Select(tile => tile.Cell)
+                .ToArray();
+            Assert.Greater(blockerCells.Length, 0);
+
+            var go = new GameObject("Neo TileGrid Renderer Live Barrier Clear");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(content);
+
+                Assert.IsTrue(renderer.IsLiveSynced);
+                Assert.AreSame(content, renderer.CurrentContent);
+                var collisionTilemap = go.GetComponentsInChildren<Tilemap>()
+                    .Single(tilemap => tilemap.gameObject.name == "Tile Layer - Collisions");
+                foreach (var cell in blockerCells)
+                {
+                    Assert.IsNotNull(collisionTilemap.GetTile(new Vector3Int(cell.x, cell.y, 0)));
+                }
+
+                NeoTileLayerChangedArgs? observedLayerChange = null;
+                using var layerSubscription = content.Collisions.OnChanged(args =>
+                    observedLayerChange = args);
+                blocked!.Tiles.Clear();
+
+                Assert.IsNotNull(observedLayerChange);
+                Assert.AreEqual(NeoTileGridChangeSourceKind.TileLayerLink, observedLayerChange!.SourceKind);
+                Assert.AreEqual(BlockedPathValueId, observedLayerChange.SourceId);
+                CollectionAssert.AreEquivalent(blockerCells, observedLayerChange.CellsToClear);
+                Assert.AreEqual(0, observedLayerChange.CellsToSetOrRefresh.Count);
+                foreach (var cell in blockerCells)
+                {
+                    Assert.IsNull(collisionTilemap.GetTile(new Vector3Int(cell.x, cell.y, 0)));
+                }
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
         public void TileGridSaveAndSessionMutation_ConvertsOldConsoleLandingTiles()
         {
             var (store, client) = LoadSampleStack(EnglishLocalizationOptions());

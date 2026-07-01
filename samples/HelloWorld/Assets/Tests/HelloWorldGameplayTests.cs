@@ -202,6 +202,57 @@ namespace HelloWorld.Assets.Tests
             Assert.IsFalse(gameplay.OldConsoleLandingOpen);
         }
 
+        [UnityTest]
+        public IEnumerator OldConsoleLanding_BarrierClearUpdatesGameplayCacheFromTileDelta()
+        {
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            var neo = GameplayNeo(gameplay);
+            LandingSceneGameplay landing = null;
+
+            try
+            {
+                landing = new LandingSceneGameplay(
+                    neo,
+                    () => { },
+                    null,
+                    (_, __) => false,
+                    () => false);
+
+                yield return WaitForLandingSceneLoad(landing);
+
+                var blocked = neo.Assets.Worlds.OldConsoleLanding.Children
+                    .First(check => check.Name == "Blocked Path") as BlockedPath;
+                Assert.IsNotNull(blocked);
+
+                var blockerCells = landing.Content.Collisions.GetTiles()
+                    .Where(tile => tile.SourceTileLayerLinkId == blocked!.valueId)
+                    .Select(tile => tile.Cell)
+                    .ToArray();
+                Assert.Greater(blockerCells.Length, 0);
+
+                SetLandingPlayerCell(
+                    landing,
+                    FindWalkableNeighbor(landing.Content, blockerCells));
+                InvokeLandingUpdatePrompt(landing);
+                StringAssert.Contains("barrier", landing.PromptText);
+
+                blocked!.Tiles.Clear();
+                yield return null;
+
+                Assert.IsFalse(
+                    landing.PromptText.Contains("barrier"),
+                    "Clearing the model tiles should update the gameplay barrier cache through the collision delta.");
+                foreach (var cell in blockerCells)
+                {
+                    Assert.IsNull(landing.Content.Collisions.GetTile(cell));
+                }
+            }
+            finally
+            {
+                landing?.Dispose();
+            }
+        }
+
         private static int QuestClock(HelloWorldGameplay gameplay)
         {
             return GameplayNeo(gameplay).Save.Quest.FlareClock;
@@ -267,6 +318,57 @@ namespace HelloWorld.Assets.Tests
                 "neo",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             return (HelloWorldNeo)field.GetValue(gameplay);
+        }
+
+        private static IEnumerator WaitForLandingSceneLoad(LandingSceneGameplay landing)
+        {
+            for (var frame = 0; frame < 120; frame += 1)
+            {
+                if (landing.StatusText.StartsWith("WASD moves."))
+                {
+                    yield break;
+                }
+
+                yield return null;
+            }
+
+            Assert.Fail("Landing scene did not finish loading.");
+        }
+
+        private static Vector2Int FindWalkableNeighbor(
+            ReadOnlyOldConsoleLandingGridContent content,
+            IReadOnlyCollection<Vector2Int> targetCells)
+        {
+            var collisionCells = new HashSet<Vector2Int>(
+                content.Collisions.GetTiles().Select(tile => tile.Cell));
+
+            foreach (var cell in content.Background.GetTiles().Select(tile => tile.Cell))
+            {
+                if (collisionCells.Contains(cell)) continue;
+                if (targetCells.Any(target => Mathf.Abs(target.x - cell.x) + Mathf.Abs(target.y - cell.y) <= 1))
+                {
+                    return cell;
+                }
+            }
+
+            Assert.Fail("No walkable cell was adjacent to the blocked path.");
+            return default;
+        }
+
+        private static void SetLandingPlayerCell(LandingSceneGameplay landing, Vector2Int cell)
+        {
+            var setter = typeof(LandingSceneGameplay)
+                .GetProperty(nameof(LandingSceneGameplay.PlayerCell))
+                .GetSetMethod(nonPublic: true);
+            setter.Invoke(landing, new object[] { cell });
+        }
+
+        private static void InvokeLandingUpdatePrompt(LandingSceneGameplay landing)
+        {
+            var method = typeof(LandingSceneGameplay).GetMethod(
+                "UpdatePrompt",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            method.Invoke(landing, null);
         }
 
         [Test]

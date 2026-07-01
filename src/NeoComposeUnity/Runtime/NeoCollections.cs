@@ -9,6 +9,39 @@ using System.Collections.Generic;
 
 namespace NeoCompose.Runtime
 {
+    public enum NeoListChangeKind
+    {
+        Unknown = 0,
+        Add = 1,
+        Set = 2,
+        Remove = 3,
+        Clear = 4,
+        Replace = 5,
+    }
+
+    public sealed class NeoListChangedArgs
+    {
+        public static readonly NeoListChangedArgs Unknown =
+            new(NeoListChangeKind.Unknown);
+
+        public NeoListChangedArgs(
+            NeoListChangeKind kind,
+            IReadOnlyList<string>? removedValueIds = null,
+            IReadOnlyList<string>? addedValueIds = null,
+            IReadOnlyList<string>? replacedValueIds = null)
+        {
+            Kind = kind;
+            RemovedValueIds = removedValueIds ?? Array.Empty<string>();
+            AddedValueIds = addedValueIds ?? Array.Empty<string>();
+            ReplacedValueIds = replacedValueIds ?? Array.Empty<string>();
+        }
+
+        public NeoListChangeKind Kind { get; }
+        public IReadOnlyList<string> RemovedValueIds { get; }
+        public IReadOnlyList<string> AddedValueIds { get; }
+        public IReadOnlyList<string> ReplacedValueIds { get; }
+    }
+
     internal static class NeoCollectionSubscription
     {
         /// <summary>
@@ -25,6 +58,22 @@ namespace NeoCompose.Runtime
         {
             if (handler is null) throw new ArgumentNullException(nameof(handler));
             void Handle(NeoAttribute changed) => handler(collection, client.CurrentChangeSource);
+            node.OnChanged += Handle;
+            return new NeoDisposableSubscription(() => node.OnChanged -= Handle);
+        }
+
+        public static IDisposable WatchList<T>(
+            NeoAttributeList node,
+            NeoClient client,
+            NeoReadOnlyList<T> collection,
+            Action<NeoReadOnlyList<T>, NeoListChangedArgs, NeoChangeSource> handler)
+        {
+            if (handler is null) throw new ArgumentNullException(nameof(handler));
+            void Handle(NeoAttribute changed) =>
+                handler(
+                    collection,
+                    node.ActiveListChange ?? NeoListChangedArgs.Unknown,
+                    client.CurrentChangeSource);
             node.OnChanged += Handle;
             return new NeoDisposableSubscription(() => node.OnChanged -= Handle);
         }
@@ -55,6 +104,12 @@ namespace NeoCompose.Runtime
         public IDisposable OnChanged(Action<NeoReadOnlyList<T>, NeoChangeSource> handler)
         {
             return NeoCollectionSubscription.Watch(node, client, this, handler);
+        }
+
+        public IDisposable OnChanged(
+            Action<NeoReadOnlyList<T>, NeoListChangedArgs, NeoChangeSource> handler)
+        {
+            return NeoCollectionSubscription.WatchList(node, client, this, handler);
         }
 
         public T this[int index] => createItem(client, node[index]);
@@ -124,11 +179,7 @@ namespace NeoCompose.Runtime
 
         public void Clear()
         {
-            var writableNode = RequireWritableNode();
-            for (int i = Count - 1; i >= 0; i--)
-            {
-                writableNode.RemoveAt(i);
-            }
+            RequireWritableNode().ClearSerialized();
         }
 
         public bool Contains(T item) => IndexOf(item) >= 0;

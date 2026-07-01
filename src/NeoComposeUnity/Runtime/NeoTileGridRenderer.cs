@@ -8,6 +8,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
+using NeoCompose.Runtime.Json;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -20,6 +21,8 @@ namespace NeoCompose.Runtime
         public int MaxObjectsPerFrame { get; set; } = 8;
 
         public bool YieldBeforeRender { get; set; } = true;
+
+        public bool LiveSync { get; set; } = true;
 
         public CancellationToken CancellationToken { get; set; } = default;
 
@@ -64,7 +67,41 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, TileBase> tileBasesByValueId = new();
         private readonly Dictionary<TileBase, NeoGeneratedCustomValue> valuesByTileBase = new();
         private readonly Dictionary<string, Tilemap> tilemapsByLayerId = new();
+        private readonly Dictionary<string, Dictionary<Vector2Int, TileBase>> renderedTilesByLayerId = new();
+        private readonly Dictionary<string, Dictionary<Vector2Int, int>> tileCandidateCountsByLayerId = new();
+        private readonly Dictionary<string, Dictionary<Vector2Int, string>> renderedTileSourceIdsByLayerId = new();
+        private readonly Dictionary<NeoTileSourceProjectionKey, Dictionary<Vector2Int, NeoResolvedTileInstance>>
+            sourceLinkTilesByLayerAndSource = new();
+        private readonly Dictionary<string, ReadOnlyNeoTileLayerRuntime> tileLayersByLayerId = new();
+        private readonly Dictionary<string, ReadOnlyNeoObjectLayerRuntime> objectLayersByLayerId = new();
+        private readonly Dictionary<string, GameObject> objectLayerRootsByLayerId = new();
+        private readonly Dictionary<NeoObjectInstanceId, GameObject> objectRootsByInstanceId = new();
+        private readonly Dictionary<string, int> objectLayerFallbackSortingOrdersByLayerId = new();
         private RendererSmartTileNeighborMatcher? smartTileMatcher;
+        private NeoTileGridRenderSession? liveSession;
+        private INeoTileGridContent? currentContent;
+
+        private readonly struct NeoTileSourceProjectionKey
+            : IEquatable<NeoTileSourceProjectionKey>
+        {
+            public NeoTileSourceProjectionKey(string layerId, string sourceId)
+            {
+                LayerId = layerId ?? throw new ArgumentNullException(nameof(layerId));
+                SourceId = sourceId ?? throw new ArgumentNullException(nameof(sourceId));
+            }
+
+            public string LayerId { get; }
+            public string SourceId { get; }
+
+            public bool Equals(NeoTileSourceProjectionKey other) =>
+                LayerId == other.LayerId && SourceId == other.SourceId;
+
+            public override bool Equals(object? obj) =>
+                obj is NeoTileSourceProjectionKey other && Equals(other);
+
+            public override int GetHashCode() =>
+                HashCode.Combine(LayerId, SourceId);
+        }
 
         public NeoTileGridLifecycle? Lifecycle { get; set; }
 
@@ -100,6 +137,10 @@ namespace NeoCompose.Runtime
             set => addSpriteBoundsColliders = value;
         }
 
+        public bool IsLiveSynced => liveSession != null;
+
+        public INeoTileGridContent? CurrentContent => currentContent;
+
         public void Render(object generatedGridContent)
         {
             if (generatedGridContent == null)
@@ -107,24 +148,14 @@ namespace NeoCompose.Runtime
                 throw new ArgumentNullException(nameof(generatedGridContent));
             }
 
-            var primitive = ReadProperty<NeoReadOnlyTileGridPrimitive>(
-                generatedGridContent,
-                "Primitive");
-            if (primitive == null)
+            if (generatedGridContent is not INeoTileGridContent content)
             {
                 throw new ArgumentException(
-                    "Generated grid content must expose a Primitive property.",
+                    "Generated grid content must implement INeoTileGridContent.",
                     nameof(generatedGridContent));
             }
 
-            Render(
-                primitive,
-                ReadLayerList<ReadOnlyNeoTileLayerRuntime>(
-                    generatedGridContent,
-                    "TileLayersInOrder"),
-                ReadLayerList<ReadOnlyNeoObjectLayerRuntime>(
-                    generatedGridContent,
-                    "ObjectLayersInOrder"));
+            Render(content);
         }
 
         public Awaitable RenderAsync(
@@ -136,28 +167,60 @@ namespace NeoCompose.Runtime
                 throw new ArgumentNullException(nameof(generatedGridContent));
             }
 
-            var primitive = ReadProperty<NeoReadOnlyTileGridPrimitive>(
-                generatedGridContent,
-                "Primitive");
-            if (primitive == null)
+            if (generatedGridContent is not INeoTileGridContent content)
             {
                 throw new ArgumentException(
-                    "Generated grid content must expose a Primitive property.",
+                    "Generated grid content must implement INeoTileGridContent.",
                     nameof(generatedGridContent));
             }
 
-            return RenderAsync(
-                primitive,
-                ReadLayerList<ReadOnlyNeoTileLayerRuntime>(
-                    generatedGridContent,
-                    "TileLayersInOrder"),
-                ReadLayerList<ReadOnlyNeoObjectLayerRuntime>(
-                    generatedGridContent,
-                    "ObjectLayersInOrder"),
+            return RenderAsync(content, options);
+        }
+
+        public void Render(INeoTileGridContent content)
+        {
+            if (content == null) throw new ArgumentNullException(nameof(content));
+
+            StopLiveSync();
+            RenderOneShot(
+                content.Primitive,
+                content.TileLayersInOrder,
+                content.ObjectLayersInOrder);
+            currentContent = content;
+            StartLiveSync(content);
+        }
+
+        public async Awaitable RenderAsync(
+            INeoTileGridContent content,
+            NeoTileGridRenderOptions? options = null)
+        {
+            if (content == null) throw new ArgumentNullException(nameof(content));
+
+            options ??= new NeoTileGridRenderOptions();
+            StopLiveSync();
+            await RenderOneShotAsync(
+                content.Primitive,
+                content.TileLayersInOrder,
+                content.ObjectLayersInOrder,
                 options);
+            currentContent = content;
+            if (options.LiveSync)
+            {
+                StartLiveSync(content);
+            }
         }
 
         public void Render(
+            NeoReadOnlyTileGridPrimitive primitive,
+            IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
+            IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null)
+        {
+            StopLiveSync();
+            currentContent = null;
+            RenderOneShot(primitive, tileLayers, objectLayers);
+        }
+
+        private void RenderOneShot(
             NeoReadOnlyTileGridPrimitive primitive,
             IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
             IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null)
@@ -169,12 +232,13 @@ namespace NeoCompose.Runtime
             if (clearBeforeRender)
             {
                 ClearChildren(grid.transform);
-                tilemapsByLayerId.Clear();
+                ClearRenderedIndexes();
             }
 
             int sortingOrder = 0;
             foreach (var layer in tileLayers)
             {
+                tileLayersByLayerId[layer.LayerId] = layer;
                 var tilemap = CreateTilemap(
                     grid.transform,
                     layer,
@@ -182,13 +246,19 @@ namespace NeoCompose.Runtime
                 Lifecycle?.OnTileLayerCreated(new NeoTileLayerContext(this, layer, tilemap));
                 var positions = new List<Vector3Int>();
                 var tiles = new List<TileBase>();
-                foreach (var tile in layer.GetTiles())
+                var renderedTiles = new Dictionary<Vector2Int, TileBase>();
+                var snapshot = layer.GetRenderSnapshot();
+                CacheTileLayerSnapshot(layer.LayerId, snapshot);
+                foreach (var tile in snapshot.Winners)
                 {
                     var tileBase = TileBaseFor(tile.Tile);
                     if (tileBase == null) continue;
                     positions.Add(new Vector3Int(tile.Cell.x, tile.Cell.y, 0));
                     tiles.Add(tileBase);
+                    renderedTiles[tile.Cell] = tileBase;
+                    CacheRenderedTileSource(layer.LayerId, tile);
                 }
+                renderedTilesByLayerId[layer.LayerId] = renderedTiles;
 
                 if (positions.Count > 0)
                 {
@@ -201,13 +271,17 @@ namespace NeoCompose.Runtime
             {
                 foreach (var layer in objectLayers)
                 {
+                    objectLayersByLayerId[layer.LayerId] = layer;
                     var root = CreateObjectLayerRoot(grid.transform, layer);
                     Lifecycle?.OnObjectLayerCreated(new NeoObjectLayerContext(this, layer, root));
                     var layerFallbackSortingOrder =
                         sortingOrder++ * FallbackSortingOrderStride;
+                    objectLayerFallbackSortingOrdersByLayerId[layer.LayerId] =
+                        layerFallbackSortingOrder;
                     foreach (var obj in layer.GetObjects())
                     {
-                        SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
+                        objectRootsByInstanceId[obj.InstanceId] =
+                            SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
                     }
                 }
             }
@@ -216,6 +290,17 @@ namespace NeoCompose.Runtime
         }
 
         public async Awaitable RenderAsync(
+            NeoReadOnlyTileGridPrimitive primitive,
+            IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
+            IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null,
+            NeoTileGridRenderOptions? options = null)
+        {
+            StopLiveSync();
+            currentContent = null;
+            await RenderOneShotAsync(primitive, tileLayers, objectLayers, options);
+        }
+
+        private async Awaitable RenderOneShotAsync(
             NeoReadOnlyTileGridPrimitive primitive,
             IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
             IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null,
@@ -237,7 +322,7 @@ namespace NeoCompose.Runtime
             if (clearBeforeRender)
             {
                 ClearChildren(grid.transform);
-                tilemapsByLayerId.Clear();
+                ClearRenderedIndexes();
                 await YieldNextFrameAsync(token);
             }
 
@@ -245,13 +330,17 @@ namespace NeoCompose.Runtime
             foreach (var layer in tileLayers)
             {
                 token.ThrowIfCancellationRequested();
+                tileLayersByLayerId[layer.LayerId] = layer;
                 var tilemap = CreateTilemap(
                     grid.transform,
                     layer,
                     sortingOrder++ * FallbackSortingOrderStride);
                 var positions = new List<Vector3Int>(options.NormalizedMaxTilesPerFrame);
                 var tiles = new List<TileBase>(options.NormalizedMaxTilesPerFrame);
-                foreach (var tile in layer.GetTiles())
+                var renderedTiles = new Dictionary<Vector2Int, TileBase>();
+                var snapshot = layer.GetRenderSnapshot();
+                CacheTileLayerSnapshot(layer.LayerId, snapshot);
+                foreach (var tile in snapshot.Winners)
                 {
                     token.ThrowIfCancellationRequested();
                     var tileBase = TileBaseFor(tile.Tile);
@@ -259,6 +348,8 @@ namespace NeoCompose.Runtime
 
                     positions.Add(new Vector3Int(tile.Cell.x, tile.Cell.y, 0));
                     tiles.Add(tileBase);
+                    renderedTiles[tile.Cell] = tileBase;
+                    CacheRenderedTileSource(layer.LayerId, tile);
                     if (positions.Count < options.NormalizedMaxTilesPerFrame) continue;
 
                     SetTileBatch(tilemap, positions, tiles);
@@ -273,6 +364,7 @@ namespace NeoCompose.Runtime
                 }
 
                 tilemap.CompressBounds();
+                renderedTilesByLayerId[layer.LayerId] = renderedTiles;
                 Lifecycle?.OnTileLayerCreated(new NeoTileLayerContext(this, layer, tilemap));
                 await YieldNextFrameAsync(token);
             }
@@ -282,15 +374,19 @@ namespace NeoCompose.Runtime
                 foreach (var layer in objectLayers)
                 {
                     token.ThrowIfCancellationRequested();
+                    objectLayersByLayerId[layer.LayerId] = layer;
                     var root = CreateObjectLayerRoot(grid.transform, layer);
                     Lifecycle?.OnObjectLayerCreated(new NeoObjectLayerContext(this, layer, root));
                     var layerFallbackSortingOrder =
                         sortingOrder++ * FallbackSortingOrderStride;
+                    objectLayerFallbackSortingOrdersByLayerId[layer.LayerId] =
+                        layerFallbackSortingOrder;
                     var renderedThisFrame = 0;
                     foreach (var obj in layer.GetObjects())
                     {
                         token.ThrowIfCancellationRequested();
-                        SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
+                        objectRootsByInstanceId[obj.InstanceId] =
+                            SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
                         renderedThisFrame += 1;
                         if (renderedThisFrame < options.NormalizedMaxObjectsPerFrame) continue;
                         renderedThisFrame = 0;
@@ -307,12 +403,27 @@ namespace NeoCompose.Runtime
 
         public void Clear()
         {
+            StopLiveSync();
+            currentContent = null;
             ClearChildren(EnsureGrid().transform);
-            tilemapsByLayerId.Clear();
+            ClearRenderedIndexes();
             spriteTiles.Clear();
             generatedTileBases.Clear();
             tileBasesByValueId.Clear();
             valuesByTileBase.Clear();
+        }
+
+        public void StopLiveSync()
+        {
+            var session = liveSession;
+            if (session == null) return;
+            liveSession = null;
+            session.Dispose();
+        }
+
+        private void OnDestroy()
+        {
+            StopLiveSync();
         }
 
         public bool TryClearTile(string layerId, Vector2Int cell)
@@ -326,10 +437,246 @@ namespace NeoCompose.Runtime
             var position = new Vector3Int(cell.x, cell.y, 0);
             if (tilemap.GetTile(position) == null) return true;
 
+            if (renderedTilesByLayerId.TryGetValue(layerId, out var renderedTiles))
+            {
+                renderedTiles.Remove(cell);
+            }
             tilemap.SetTile(position, null);
-            RefreshTileAndNeighbors(tilemap, position);
             tilemap.CompressBounds();
             return true;
+        }
+
+        private void StartLiveSync(INeoTileGridContent content)
+        {
+            liveSession = new NeoTileGridRenderSession(this, content);
+        }
+
+        private void HandleGridChanged(NeoTileGridChangedArgs args)
+        {
+            if (currentContent == null) return;
+            if (args.GridValueId != currentContent.Primitive.GridValueId) return;
+
+            foreach (var layerChange in args.TileLayers)
+            {
+                if (!tileLayersByLayerId.TryGetValue(layerChange.LayerId, out var layer))
+                {
+                    continue;
+                }
+                ApplyTileLayerDelta(layer, layerChange);
+            }
+
+            if (!renderObjects) return;
+            foreach (var layerChange in args.ObjectLayers)
+            {
+                if (!objectLayersByLayerId.TryGetValue(layerChange.LayerId, out var layer))
+                {
+                    continue;
+                }
+                ApplyObjectLayerDelta(layer, layerChange);
+            }
+        }
+
+        private void ApplyTileLayerDelta(
+            ReadOnlyNeoTileLayerRuntime layer,
+            NeoTileLayerChangedArgs change)
+        {
+            if (!tilemapsByLayerId.TryGetValue(layer.LayerId, out var tilemap) ||
+                tilemap == null)
+            {
+                return;
+            }
+
+            if (!renderedTilesByLayerId.TryGetValue(layer.LayerId, out var renderedTiles))
+            {
+                renderedTiles = new Dictionary<Vector2Int, TileBase>();
+                renderedTilesByLayerId[layer.LayerId] = renderedTiles;
+            }
+
+            var touchedCells = new HashSet<Vector2Int>();
+            foreach (var cell in change.CellsToClear)
+            {
+                touchedCells.Add(cell);
+                if (TryApplyCachedSourceTileDelta(
+                        layer.LayerId,
+                        tilemap,
+                        renderedTiles,
+                        change,
+                        cell,
+                        isClear: true))
+                {
+                    continue;
+                }
+                SetResolvedTileAt(layer, tilemap, renderedTiles, cell);
+            }
+
+            foreach (var cell in change.CellsToSetOrRefresh)
+            {
+                touchedCells.Add(cell);
+                if (TryApplyCachedSourceTileDelta(
+                        layer.LayerId,
+                        tilemap,
+                        renderedTiles,
+                        change,
+                        cell,
+                        isClear: false))
+                {
+                    continue;
+                }
+                SetResolvedTileAt(layer, tilemap, renderedTiles, cell);
+            }
+        }
+
+        private bool TryApplyCachedSourceTileDelta(
+            string layerId,
+            Tilemap tilemap,
+            Dictionary<Vector2Int, TileBase> renderedTiles,
+            NeoTileLayerChangedArgs change,
+            Vector2Int cell,
+            bool isClear)
+        {
+            if (change.SourceKind != NeoTileGridChangeSourceKind.TileLayerLink ||
+                string.IsNullOrEmpty(change.SourceId))
+            {
+                return false;
+            }
+
+            int candidateCount = GetTileCandidateCount(layerId, cell);
+            if (isClear)
+            {
+                if (candidateCount > 0) return false;
+                SetTileBaseAt(
+                    layerId,
+                    tilemap,
+                    renderedTiles,
+                    cell,
+                    null,
+                    null);
+                return true;
+            }
+
+            var key = new NeoTileSourceProjectionKey(layerId, change.SourceId!);
+            if (!sourceLinkTilesByLayerAndSource.TryGetValue(key, out var sourceTiles) ||
+                !sourceTiles.TryGetValue(cell, out var tile))
+            {
+                return false;
+            }
+            if (candidateCount > 1) return false;
+
+            SetTileBaseAt(
+                layerId,
+                tilemap,
+                renderedTiles,
+                cell,
+                TileBaseFor(tile.Tile),
+                change.SourceId);
+            return true;
+        }
+
+        private void SetResolvedTileAt(
+            ReadOnlyNeoTileLayerRuntime layer,
+            Tilemap tilemap,
+            Dictionary<Vector2Int, TileBase> renderedTiles,
+            Vector2Int cell)
+        {
+            var resolved = layer.ResolveTile(cell);
+            TileBase? nextTile = resolved == null ? null : TileBaseFor(resolved.Tile);
+            SetTileBaseAt(
+                layer.LayerId,
+                tilemap,
+                renderedTiles,
+                cell,
+                nextTile,
+                resolved?.SourceKind == NeoTileOutputSourceKind.TileLayerLink
+                    ? resolved.SourceTileLayerLinkId
+                    : null);
+        }
+
+        private void SetTileBaseAt(
+            string layerId,
+            Tilemap tilemap,
+            Dictionary<Vector2Int, TileBase> renderedTiles,
+            Vector2Int cell,
+            TileBase? nextTile,
+            string? sourceId)
+        {
+            var position = new Vector3Int(cell.x, cell.y, 0);
+            TileBase? previousTile = renderedTiles.TryGetValue(cell, out var stored)
+                ? stored
+                : tilemap.GetTile(position);
+            if (nextTile == null)
+            {
+                renderedTiles.Remove(cell);
+                if (renderedTileSourceIdsByLayerId.TryGetValue(layerId, out var sourcesByCell))
+                {
+                    sourcesByCell.Remove(cell);
+                }
+            }
+            else
+            {
+                renderedTiles[cell] = nextTile;
+                if (!string.IsNullOrEmpty(sourceId))
+                {
+                    if (!renderedTileSourceIdsByLayerId.TryGetValue(layerId, out var sourcesByCell))
+                    {
+                        sourcesByCell = new Dictionary<Vector2Int, string>();
+                        renderedTileSourceIdsByLayerId[layerId] = sourcesByCell;
+                    }
+                    sourcesByCell[cell] = sourceId!;
+                }
+                else if (renderedTileSourceIdsByLayerId.TryGetValue(layerId, out var sourcesByCell))
+                {
+                    sourcesByCell.Remove(cell);
+                }
+            }
+            if (tilemap.GetTile(position) == nextTile) return;
+            tilemap.SetTile(position, nextTile);
+            RefreshIfSmartTileChanged(tilemap, position, previousTile, nextTile);
+        }
+
+        private void ApplyObjectLayerDelta(
+            ReadOnlyNeoObjectLayerRuntime layer,
+            NeoObjectLayerChangedArgs change)
+        {
+            if (!objectLayerRootsByLayerId.TryGetValue(layer.LayerId, out var root) ||
+                root == null)
+            {
+                root = CreateObjectLayerRoot(EnsureGrid().transform, layer);
+                Lifecycle?.OnObjectLayerCreated(new NeoObjectLayerContext(this, layer, root));
+            }
+
+            var fallbackSortingOrder = objectLayerFallbackSortingOrdersByLayerId.TryGetValue(
+                layer.LayerId,
+                out int storedFallbackSortingOrder)
+                    ? storedFallbackSortingOrder
+                    : objectLayerFallbackSortingOrdersByLayerId.Count * FallbackSortingOrderStride;
+            objectLayerFallbackSortingOrdersByLayerId[layer.LayerId] = fallbackSortingOrder;
+
+            foreach (var instanceId in change.RemovedInstances)
+            {
+                DestroyRenderedObject(instanceId);
+            }
+
+            foreach (var instanceId in change.AddedOrChangedInstances)
+            {
+                DestroyRenderedObject(instanceId);
+                var resolved = layer.ResolveObject(instanceId);
+                if (resolved == null) continue;
+                objectRootsByInstanceId[instanceId] =
+                    SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);
+            }
+        }
+
+        private void DestroyRenderedObject(NeoObjectInstanceId instanceId)
+        {
+            if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
+                root == null)
+            {
+                objectRootsByInstanceId.Remove(instanceId);
+                return;
+            }
+
+            objectRootsByInstanceId.Remove(instanceId);
+            DestroyCompositionRoot(root);
         }
 
         private Grid EnsureGrid()
@@ -345,6 +692,146 @@ namespace NeoCompose.Runtime
 
             unityGrid.cellSize = new Vector3(cellSize, cellSize, 0f);
             return unityGrid;
+        }
+
+        private void ClearRenderedIndexes()
+        {
+            tilemapsByLayerId.Clear();
+            renderedTilesByLayerId.Clear();
+            tileCandidateCountsByLayerId.Clear();
+            renderedTileSourceIdsByLayerId.Clear();
+            sourceLinkTilesByLayerAndSource.Clear();
+            tileLayersByLayerId.Clear();
+            objectLayersByLayerId.Clear();
+            objectLayerRootsByLayerId.Clear();
+            objectRootsByInstanceId.Clear();
+            objectLayerFallbackSortingOrdersByLayerId.Clear();
+        }
+
+        private void CacheTileLayerSnapshot(
+            string layerId,
+            NeoTileLayerRenderSnapshot snapshot)
+        {
+            tileCandidateCountsByLayerId[layerId] =
+                new Dictionary<Vector2Int, int>(snapshot.CandidateCountsByCell);
+
+            var sourceIdsToRemove = new List<NeoTileSourceProjectionKey>();
+            foreach (var key in sourceLinkTilesByLayerAndSource.Keys)
+            {
+                if (key.LayerId == layerId) sourceIdsToRemove.Add(key);
+            }
+            foreach (var key in sourceIdsToRemove)
+            {
+                sourceLinkTilesByLayerAndSource.Remove(key);
+            }
+
+            foreach (var pair in snapshot.TileLayerLinkTilesBySourceId)
+            {
+                var key = new NeoTileSourceProjectionKey(layerId, pair.Key);
+                sourceLinkTilesByLayerAndSource[key] = ToCellMap(pair.Value);
+            }
+        }
+
+        private void CacheRenderedTileSource(
+            string layerId,
+            NeoResolvedTileInstance tile)
+        {
+            if (!renderedTileSourceIdsByLayerId.TryGetValue(layerId, out var sourcesByCell))
+            {
+                sourcesByCell = new Dictionary<Vector2Int, string>();
+                renderedTileSourceIdsByLayerId[layerId] = sourcesByCell;
+            }
+            if (tile.SourceKind == NeoTileOutputSourceKind.TileLayerLink &&
+                !string.IsNullOrEmpty(tile.SourceTileLayerLinkId))
+            {
+                sourcesByCell[tile.Cell] = tile.SourceTileLayerLinkId!;
+            }
+            else
+            {
+                sourcesByCell.Remove(tile.Cell);
+            }
+        }
+
+        private static Dictionary<Vector2Int, NeoResolvedTileInstance> ToCellMap(
+            IEnumerable<NeoResolvedTileInstance> tiles)
+        {
+            var map = new Dictionary<Vector2Int, NeoResolvedTileInstance>();
+            foreach (var tile in tiles)
+            {
+                map[tile.Cell] = tile;
+            }
+            return map;
+        }
+
+        private Dictionary<Vector2Int, NeoResolvedTileInstance> GetCachedSourceProjection(
+            NeoTileSourceProjectionKey key)
+        {
+            return sourceLinkTilesByLayerAndSource.TryGetValue(key, out var cached)
+                ? new Dictionary<Vector2Int, NeoResolvedTileInstance>(cached)
+                : new Dictionary<Vector2Int, NeoResolvedTileInstance>();
+        }
+
+        private void UpdateCachedSourceProjection(
+            NeoTileSourceProjectionKey key,
+            Dictionary<Vector2Int, NeoResolvedTileInstance> nextProjection)
+        {
+            sourceLinkTilesByLayerAndSource.TryGetValue(key, out var previousProjection);
+            previousProjection ??= new Dictionary<Vector2Int, NeoResolvedTileInstance>();
+
+            if (!tileCandidateCountsByLayerId.TryGetValue(key.LayerId, out var candidateCounts))
+            {
+                candidateCounts = new Dictionary<Vector2Int, int>();
+                tileCandidateCountsByLayerId[key.LayerId] = candidateCounts;
+            }
+
+            foreach (var cell in previousProjection.Keys)
+            {
+                if (nextProjection.ContainsKey(cell)) continue;
+                if (candidateCounts.TryGetValue(cell, out int count) && count > 1)
+                {
+                    candidateCounts[cell] = count - 1;
+                }
+                else
+                {
+                    candidateCounts.Remove(cell);
+                }
+            }
+
+            foreach (var cell in nextProjection.Keys)
+            {
+                if (previousProjection.ContainsKey(cell)) continue;
+                candidateCounts[cell] = candidateCounts.TryGetValue(cell, out int count)
+                    ? count + 1
+                    : 1;
+            }
+
+            if (nextProjection.Count == 0)
+            {
+                sourceLinkTilesByLayerAndSource.Remove(key);
+                return;
+            }
+            sourceLinkTilesByLayerAndSource[key] =
+                new Dictionary<Vector2Int, NeoResolvedTileInstance>(nextProjection);
+        }
+
+        private int GetTileCandidateCount(string layerId, Vector2Int cell)
+        {
+            return tileCandidateCountsByLayerId.TryGetValue(layerId, out var counts) &&
+                counts.TryGetValue(cell, out int count)
+                    ? count
+                    : 0;
+        }
+
+        private IReadOnlyList<NeoTileLayerLinkDependency> GetCachedTileLayerLinkDependencies()
+        {
+            var dependencies = new List<NeoTileLayerLinkDependency>();
+            foreach (var key in sourceLinkTilesByLayerAndSource.Keys)
+            {
+                dependencies.Add(new NeoTileLayerLinkDependency(
+                    key.SourceId,
+                    key.LayerId));
+            }
+            return dependencies;
         }
 
         private Tilemap CreateTilemap(
@@ -367,10 +854,11 @@ namespace NeoCompose.Runtime
         {
             var go = new GameObject($"Object Layer - {layer.DisplayName}");
             go.transform.SetParent(parent, false);
+            objectLayerRootsByLayerId[layer.LayerId] = go;
             return go;
         }
 
-        private void SpawnObject(
+        private GameObject SpawnObject(
             Transform parent,
             ReadOnlyNeoObjectLayerRuntime layer,
             NeoResolvedObjectInstance instance,
@@ -393,13 +881,13 @@ namespace NeoCompose.Runtime
             if (TryResolveObjectColliderSpec(instance.Object, out var colliderSpec))
             {
                 ApplyBoxCollider(go, colliderSpec);
-                if (renderedChildren > 0) return;
+                if (renderedChildren > 0) return go;
             }
 
-            if (renderedChildren > 0) return;
+            if (renderedChildren > 0) return go;
 
             var sprite = ResolveSprite(instance.Object);
-            if (sprite == null) return;
+            if (sprite == null) return go;
 
             RenderSpriteChild(
                 go.transform,
@@ -409,6 +897,7 @@ namespace NeoCompose.Runtime
                 Vector3.zero,
                 ReadCellSpan(instance.Object),
                 sortingOrder);
+            return go;
         }
 
         private int RenderObjectComposition(
@@ -706,6 +1195,39 @@ namespace NeoCompose.Runtime
                 tileBasesByValueId[valueId!] = tileBase;
             }
             valuesByTileBase[tileBase] = value;
+        }
+
+        private void RefreshIfSmartTileChanged(
+            Tilemap tilemap,
+            Vector3Int position,
+            TileBase? previousTile,
+            TileBase? nextTile)
+        {
+            if (RequiresManualRefresh(previousTile) || RequiresManualRefresh(nextTile))
+            {
+                RefreshTileAndNeighbors(tilemap, position);
+                return;
+            }
+
+            for (int y = -1; y <= 1; y += 1)
+            {
+                for (int x = -1; x <= 1; x += 1)
+                {
+                    var neighborPosition = new Vector3Int(
+                        position.x + x,
+                        position.y + y,
+                        position.z);
+                    if (!RequiresManualRefresh(tilemap.GetTile(neighborPosition))) continue;
+                    tilemap.RefreshTile(neighborPosition);
+                }
+            }
+        }
+
+        private bool RequiresManualRefresh(TileBase? tileBase)
+        {
+            return tileBase != null &&
+                valuesByTileBase.TryGetValue(tileBase, out var value) &&
+                NeoTileAssetFactory.TryResolveSmartTile(value, out _);
         }
 
         private Sprite? ResolveSprite(NeoGeneratedCustomValue value)
@@ -1026,6 +1548,322 @@ namespace NeoCompose.Runtime
                         position.y + y,
                         position.z));
                 }
+            }
+        }
+
+        private sealed class NeoTileGridRenderSession : IDisposable
+        {
+            private readonly NeoTileGridRenderer owner;
+            private readonly List<IDisposable> subscriptions = new();
+            private bool disposed;
+
+            public NeoTileGridRenderSession(
+                NeoTileGridRenderer owner,
+                INeoTileGridContent content)
+            {
+                this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
+                Content = content ?? throw new ArgumentNullException(nameof(content));
+                Content.Primitive.Renderer = owner;
+
+                subscriptions.Add(Content.OnChanged(owner.HandleGridChanged));
+                var dependencies = new List<NeoTileLayerLinkDependency>();
+                var seenDependencies = new HashSet<string>();
+                AddDependencies(Content.Primitive.GetTileLayerLinkDependencies());
+                AddDependencies(owner.GetCachedTileLayerLinkDependencies());
+
+                foreach (var dependency in dependencies)
+                {
+                    var source = Content.Primitive.ResolveGeneratedCustomValue(
+                        dependency.SourceValueId);
+                    if (source == null) continue;
+                    subscriptions.Add(new NeoTileLayerLinkRenderer(
+                        owner,
+                        Content,
+                        dependency,
+                        source));
+                }
+
+                void AddDependencies(IReadOnlyList<NeoTileLayerLinkDependency> incoming)
+                {
+                    foreach (var dependency in incoming)
+                    {
+                        string key = $"{dependency.SourceValueId}\n{dependency.TargetTileLayerId}";
+                        if (!seenDependencies.Add(key)) continue;
+                        dependencies.Add(dependency);
+                    }
+                }
+            }
+
+            public INeoTileGridContent Content { get; }
+
+            public void Dispose()
+            {
+                if (disposed) return;
+                disposed = true;
+                foreach (var subscription in subscriptions)
+                {
+                    subscription.Dispose();
+                }
+                subscriptions.Clear();
+                if (ReferenceEquals(Content.Primitive.Renderer, owner))
+                {
+                    Content.Primitive.Renderer = null;
+                }
+            }
+        }
+
+        private sealed class NeoTileLayerLinkRenderer : IDisposable
+        {
+            private readonly NeoTileGridRenderer owner;
+            private readonly INeoTileGridContent content;
+            private readonly NeoTileLayerLinkDependency dependency;
+            private readonly NeoGeneratedCustomValue source;
+            private readonly IDisposable subscription;
+            private readonly IDisposable writableValueSubscription;
+            private Dictionary<Vector2Int, NeoResolvedTileInstance> previousTilesByCell;
+            private bool disposed;
+
+            public NeoTileLayerLinkRenderer(
+                NeoTileGridRenderer owner,
+                INeoTileGridContent content,
+                NeoTileLayerLinkDependency dependency,
+                NeoGeneratedCustomValue source)
+            {
+                this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
+                this.content = content ?? throw new ArgumentNullException(nameof(content));
+                this.dependency = dependency;
+                this.source = source ?? throw new ArgumentNullException(nameof(source));
+                var key = new NeoTileSourceProjectionKey(
+                    dependency.TargetTileLayerId,
+                    dependency.SourceValueId);
+                previousTilesByCell = owner.GetCachedSourceProjection(key);
+                if (previousTilesByCell.Count == 0)
+                {
+                    previousTilesByCell = ToCellMap(content.Primitive.GetTileLayerLinkTiles(
+                        dependency.TargetTileLayerId,
+                        dependency.SourceValueId));
+                    owner.UpdateCachedSourceProjection(key, previousTilesByCell);
+                }
+                subscription = source.WatchAnyChange((_, __, changeSource) =>
+                    HandleSourceChanged(changeSource, preferValueRows: false));
+                source.Client.OnWritableValueChanged += HandleWritableValueChanged;
+                writableValueSubscription = new NeoDisposableSubscription(() =>
+                    source.Client.OnWritableValueChanged -= HandleWritableValueChanged);
+            }
+
+            private void HandleWritableValueChanged(
+                NeoValueOwnership ownership,
+                string valueId)
+            {
+                if (disposed) return;
+                if (!IsSourceValueId(valueId)) return;
+                HandleSourceChanged(
+                    source.Client.CurrentChangeSource,
+                    preferValueRows: true);
+            }
+
+            private bool IsSourceValueId(string valueId)
+            {
+                if (string.IsNullOrEmpty(valueId)) return false;
+                if (valueId == dependency.SourceValueId || valueId == source.valueId)
+                {
+                    return true;
+                }
+                if (string.IsNullOrEmpty(source.valueId) ||
+                    !source.Client.TryGetValue(source.valueId!, out ObjectAttributeValue? row) ||
+                    row.value is null)
+                {
+                    return false;
+                }
+                return IsSourceChildValueId(row, "Tiles", valueId) ||
+                    IsSourceChildValueId(row, "TileLayer", valueId) ||
+                    IsSourceChildValueId(row, "Position", valueId) ||
+                    IsSourceChildValueId(row, "Size", valueId);
+            }
+
+            private static bool IsSourceChildValueId(
+                ObjectAttributeValue row,
+                string key,
+                string valueId)
+            {
+                return row.value is not null &&
+                    row.value.TryGetValue(key, out string childValueId) &&
+                    childValueId == valueId;
+            }
+
+            private void HandleSourceChanged(
+                NeoChangeSource changeSource,
+                bool preferValueRows)
+            {
+                if (disposed) return;
+                var currentTilesByCell = preferValueRows
+                    ? SnapshotSourceTilesFromValueRows()
+                    : SnapshotSourceTilesFromWrapper();
+                var cellsToClear = new List<Vector2Int>();
+                foreach (var cell in previousTilesByCell.Keys)
+                {
+                    if (currentTilesByCell.ContainsKey(cell)) continue;
+                    cellsToClear.Add(cell);
+                }
+
+                var cellsToSetOrRefresh = new List<Vector2Int>(
+                    currentTilesByCell.Keys);
+                previousTilesByCell = currentTilesByCell;
+                owner.UpdateCachedSourceProjection(
+                    new NeoTileSourceProjectionKey(
+                        dependency.TargetTileLayerId,
+                        dependency.SourceValueId),
+                    currentTilesByCell);
+                if (cellsToClear.Count == 0 && cellsToSetOrRefresh.Count == 0)
+                {
+                    return;
+                }
+
+                content.Primitive.NotifyTileLayerChanged(
+                    dependency.TargetTileLayerId,
+                    cellsToClear,
+                    cellsToSetOrRefresh,
+                    NeoTileGridChangeSourceKind.TileLayerLink,
+                    dependency.SourceValueId,
+                    changeSource);
+            }
+
+            private Dictionary<Vector2Int, NeoResolvedTileInstance> SnapshotSourceTilesFromWrapper()
+            {
+                var tiles = new Dictionary<Vector2Int, NeoResolvedTileInstance>();
+                var origin = ReadSourceOrigin();
+                var order = 0;
+                foreach (var tileInstance in ReadEnumerableProperty(source, "Tiles"))
+                {
+                    var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(
+                        ReadOptionalProperty(tileInstance, "Cell"));
+                    if (cell == null) continue;
+                    var tileValue = ReadOptionalProperty(tileInstance, "Tile")
+                        as NeoGeneratedCustomValue;
+                    if (tileValue == null) continue;
+                    var instanceValue = tileInstance as INeoValueReference;
+                    string instanceId = string.IsNullOrEmpty(instanceValue?.valueId)
+                        ? $"{dependency.SourceValueId}:{order}"
+                        : instanceValue!.valueId!;
+                    var projectedCell = origin + cell.Value;
+                    tiles[projectedCell] = new NeoResolvedTileInstance(
+                        instanceId,
+                        dependency.TargetTileLayerId,
+                        projectedCell,
+                        tileValue,
+                        order++,
+                        NeoTileOutputSourceKind.TileLayerLink,
+                        null,
+                        dependency.SourceValueId);
+                }
+                return tiles;
+            }
+
+            private Dictionary<Vector2Int, NeoResolvedTileInstance> SnapshotSourceTilesFromValueRows()
+            {
+                var tiles = new Dictionary<Vector2Int, NeoResolvedTileInstance>();
+                string sourceValueId = source.valueId ?? dependency.SourceValueId;
+                if (!source.Client.TryGetValue(sourceValueId, out ObjectAttributeValue? sourceRow) ||
+                    sourceRow.value is null ||
+                    !sourceRow.value.TryGetValue("Tiles", out string tilesValueId) ||
+                    !source.Client.TryGetValue(tilesValueId, out ArrayAttributeValue? tilesRow) ||
+                    tilesRow.value is null)
+                {
+                    return tiles;
+                }
+
+                var origin = ReadSourceOrigin(sourceRow);
+                var order = 0;
+                foreach (var tileInstanceValueId in tilesRow.value)
+                {
+                    if (!source.Client.TryGetValue(tileInstanceValueId, out ObjectAttributeValue? tileInstanceRow) ||
+                        tileInstanceRow.value is null ||
+                        !TryReadCell(tileInstanceRow, out Vector2Int localCell) ||
+                        !TryReadTileValue(tileInstanceRow, out NeoGeneratedCustomValue? tileValue))
+                    {
+                        continue;
+                    }
+
+                    var projectedCell = origin + localCell;
+                    tiles[projectedCell] = new NeoResolvedTileInstance(
+                        tileInstanceValueId,
+                        dependency.TargetTileLayerId,
+                        projectedCell,
+                        tileValue!,
+                        order++,
+                        NeoTileOutputSourceKind.TileLayerLink,
+                        null,
+                        dependency.SourceValueId);
+                }
+                return tiles;
+            }
+
+            private Vector2Int ReadSourceOrigin()
+            {
+                var position = NeoGeneratedTypesSupport.ReadVector3Value(
+                    ReadOptionalProperty(source, "Position"));
+                if (position == null) return Vector2Int.zero;
+                return new Vector2Int(
+                    Mathf.RoundToInt(position.Value.x),
+                    Mathf.RoundToInt(position.Value.y));
+            }
+
+            private Vector2Int ReadSourceOrigin(ObjectAttributeValue sourceRow)
+            {
+                if (sourceRow.value is null ||
+                    !sourceRow.value.TryGetValue("Position", out string positionValueId) ||
+                    !source.Client.TryGetValue(positionValueId, out Vector3AttributeValue? positionRow) ||
+                    positionRow.value is null)
+                {
+                    return Vector2Int.zero;
+                }
+                return new Vector2Int(
+                    Mathf.RoundToInt(positionRow.value.x),
+                    Mathf.RoundToInt(positionRow.value.y));
+            }
+
+            private bool TryReadCell(
+                ObjectAttributeValue tileInstanceRow,
+                out Vector2Int cell)
+            {
+                cell = default;
+                if (tileInstanceRow.value is null ||
+                    !tileInstanceRow.value.TryGetValue("Cell", out string cellValueId) ||
+                    !source.Client.TryGetValue(cellValueId, out Vector2AttributeValue? cellRow) ||
+                    cellRow.value is null)
+                {
+                    return false;
+                }
+                cell = new Vector2Int(
+                    Mathf.RoundToInt(cellRow.value.x),
+                    Mathf.RoundToInt(cellRow.value.y));
+                return true;
+            }
+
+            private bool TryReadTileValue(
+                ObjectAttributeValue tileInstanceRow,
+                out NeoGeneratedCustomValue? tile)
+            {
+                tile = null;
+                if (tileInstanceRow.value is null ||
+                    !tileInstanceRow.value.TryGetValue("Tile", out string tileLookupValueId) ||
+                    !source.Client.TryGetValue(tileLookupValueId, out ArrayAttributeValue? tileLookup) ||
+                    tileLookup.value is null ||
+                    tileLookup.value.Length == 0)
+                {
+                    return false;
+                }
+                tile = content.Primitive.ResolveGeneratedCustomValue(tileLookup.value[0]);
+                return tile != null;
+            }
+
+            public void Dispose()
+            {
+                if (disposed) return;
+                disposed = true;
+                subscription.Dispose();
+                writableValueSubscription.Dispose();
+                previousTilesByCell.Clear();
             }
         }
 
