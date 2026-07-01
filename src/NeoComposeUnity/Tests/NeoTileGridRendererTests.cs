@@ -49,7 +49,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual("shop-1:shop-floor-link-output:floor-local", tiles[0].InstanceId.Value);
             Assert.AreEqual("shop-1", tiles[0].SourceObjectInstanceId);
             Assert.AreEqual("shop-floor-link", tiles[0].SourceTileLayerLinkId);
-            Assert.IsInstanceOf<TestTile>(tiles[0].Tile);
+            Assert.IsInstanceOf<TestTile>(tiles[0].Info);
             Assert.AreEqual(1, candidates.Count);
             Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, candidates[0].SourceKind);
         }
@@ -124,7 +124,7 @@ namespace NeoCompose.Tests
 
                 layer.ThrowOnGetTiles = true;
                 layer.ThrowOnGetRenderSnapshot = true;
-                layer.ThrowOnResolveTile = true;
+                layer.ThrowOnGetTile = true;
                 source.ClearTiles();
 
                 Assert.AreEqual(1, changed);
@@ -949,7 +949,7 @@ namespace NeoCompose.Tests
             public int GetRenderSnapshotCalls { get; private set; }
             public bool ThrowOnGetTiles { get; set; }
             public bool ThrowOnGetRenderSnapshot { get; set; }
-            public bool ThrowOnResolveTile { get; set; }
+            public bool ThrowOnGetTile { get; set; }
 
             internal override NeoTileLayerRenderSnapshot GetRenderSnapshot()
             {
@@ -973,14 +973,14 @@ namespace NeoCompose.Tests
                 return base.GetTiles();
             }
 
-            public override NeoResolvedTileInstance? ResolveTile(Vector2Int cell)
+            public override NeoResolvedTileInstance? GetTile(Vector2Int cell)
             {
-                if (ThrowOnResolveTile)
+                if (ThrowOnGetTile)
                 {
                     throw new InvalidOperationException(
                         "Live sync should use cached source deltas for simple clears.");
                 }
-                return base.ResolveTile(cell);
+                return base.GetTile(cell);
             }
         }
 

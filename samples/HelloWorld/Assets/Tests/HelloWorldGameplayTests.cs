@@ -253,6 +253,54 @@ namespace HelloWorld.Assets.Tests
             }
         }
 
+        [UnityTest]
+        public IEnumerator OldConsoleLanding_InteractWithBootGlyphDoesNotLoopTileLookup()
+        {
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            var neo = GameplayNeo(gameplay);
+            LandingSceneGameplay landing = null;
+            var triggered = false;
+
+            try
+            {
+                landing = new LandingSceneGameplay(
+                    neo,
+                    () => { },
+                    null,
+                    (_, onFinish) =>
+                    {
+                        triggered = true;
+                        for (int tick = 0; tick < 8; tick += 1)
+                        {
+                            neo.Save.Quest.FlareClock += 1;
+                        }
+                        onFinish?.Invoke();
+                        return true;
+                    },
+                    () => false);
+
+                yield return WaitForLandingSceneLoad(landing);
+
+                var bootGlyphCell = landing.Content.Background.GetTiles()
+                    .First(tile => tile.Info is BootGlyphTile)
+                    .Cell;
+                SetLandingPlayerCell(landing, bootGlyphCell);
+                InvokeLandingUpdatePrompt(landing);
+                StringAssert.Contains("boot glyph", landing.PromptText);
+
+                InvokeLandingInteract(landing);
+                yield return null;
+
+                Assert.IsTrue(triggered);
+                Assert.IsInstanceOf<BootGlyphTile>(
+                    landing.Content.Background.GetTile(bootGlyphCell)?.Info);
+            }
+            finally
+            {
+                landing?.Dispose();
+            }
+        }
+
         private static int QuestClock(HelloWorldGameplay gameplay)
         {
             return GameplayNeo(gameplay).Save.Quest.FlareClock;
@@ -367,6 +415,14 @@ namespace HelloWorld.Assets.Tests
         {
             var method = typeof(LandingSceneGameplay).GetMethod(
                 "UpdatePrompt",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            method.Invoke(landing, null);
+        }
+
+        private static void InvokeLandingInteract(LandingSceneGameplay landing)
+        {
+            var method = typeof(LandingSceneGameplay).GetMethod(
+                "Interact",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             method.Invoke(landing, null);
         }

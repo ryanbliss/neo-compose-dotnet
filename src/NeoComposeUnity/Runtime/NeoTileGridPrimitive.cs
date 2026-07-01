@@ -342,7 +342,7 @@ namespace NeoCompose.Runtime
         public bool HasConflict => Candidates.Count > 1;
     }
 
-    public sealed class NeoResolvedTileInstance
+    public class NeoResolvedTileInstance
     {
         public NeoResolvedTileInstance(
             NeoTileInstanceId instanceId,
@@ -357,7 +357,8 @@ namespace NeoCompose.Runtime
             InstanceId = instanceId;
             LayerId = layerId ?? throw new ArgumentNullException(nameof(layerId));
             Cell = cell;
-            Tile = tile ?? throw new ArgumentNullException(nameof(tile));
+            Info = tile ?? throw new ArgumentNullException(nameof(tile));
+            Tile = tile;
             Order = order;
             SourceKind = sourceKind;
             SourceObjectInstanceId = sourceObjectInstanceId;
@@ -367,14 +368,69 @@ namespace NeoCompose.Runtime
         public NeoTileInstanceId InstanceId { get; }
         public string LayerId { get; }
         public Vector2Int Cell { get; }
+        public INeoValueReference Info { get; }
         public NeoGeneratedCustomValue Tile { get; }
         public int Order { get; }
         public NeoTileOutputSourceKind SourceKind { get; }
         public string? SourceObjectInstanceId { get; }
         public string? SourceTileLayerLinkId { get; }
+
+        public bool TryGetTile<TTile>(out TTile tile)
+            where TTile : class, INeoValueReference
+        {
+            tile = Info as TTile;
+            return tile != null;
+        }
+
+        public NeoResolvedTileInstance<TTile>? As<TTile>()
+            where TTile : class, INeoValueReference
+        {
+            return Info is TTile tile
+                ? new NeoResolvedTileInstance<TTile>(
+                    InstanceId,
+                    LayerId,
+                    Cell,
+                    tile,
+                    Order,
+                    SourceKind,
+                    SourceObjectInstanceId,
+                    SourceTileLayerLinkId)
+                : null;
+        }
     }
 
-    public sealed class NeoResolvedObjectInstance
+    public sealed class NeoResolvedTileInstance<TTile> : NeoResolvedTileInstance
+        where TTile : class, INeoValueReference
+    {
+        public NeoResolvedTileInstance(
+            NeoTileInstanceId instanceId,
+            string layerId,
+            Vector2Int cell,
+            TTile info,
+            int order,
+            NeoTileOutputSourceKind sourceKind = NeoTileOutputSourceKind.Direct,
+            string? sourceObjectInstanceId = null,
+            string? sourceTileLayerLinkId = null)
+            : base(
+                instanceId,
+                layerId,
+                cell,
+                info as NeoGeneratedCustomValue
+                    ?? throw new ArgumentException(
+                        "Resolved tile info must be a generated Neo custom value.",
+                        nameof(info)),
+                order,
+                sourceKind,
+                sourceObjectInstanceId,
+                sourceTileLayerLinkId)
+        {
+            Info = info;
+        }
+
+        public new TTile Info { get; }
+    }
+
+    public class NeoResolvedObjectInstance
     {
         public NeoResolvedObjectInstance(
             NeoObjectInstanceId instanceId,
@@ -388,7 +444,8 @@ namespace NeoCompose.Runtime
             LayerId = layerId ?? throw new ArgumentNullException(nameof(layerId));
             Cell = cell;
             Footprint = footprint ?? throw new ArgumentNullException(nameof(footprint));
-            Object = obj ?? throw new ArgumentNullException(nameof(obj));
+            Info = obj ?? throw new ArgumentNullException(nameof(obj));
+            Object = obj;
             Order = order;
         }
 
@@ -396,8 +453,57 @@ namespace NeoCompose.Runtime
         public string LayerId { get; }
         public Vector2Int Cell { get; }
         public IReadOnlyList<Vector2Int> Footprint { get; }
+        public INeoValueReference Info { get; }
         public NeoGeneratedCustomValue Object { get; }
         public int Order { get; }
+
+        public bool TryGetObject<TObject>(out TObject obj)
+            where TObject : class, INeoValueReference
+        {
+            obj = Info as TObject;
+            return obj != null;
+        }
+
+        public NeoResolvedObjectInstance<TObject>? As<TObject>()
+            where TObject : class, INeoValueReference
+        {
+            return Info is TObject obj
+                ? new NeoResolvedObjectInstance<TObject>(
+                    InstanceId,
+                    LayerId,
+                    Cell,
+                    Footprint,
+                    obj,
+                    Order)
+                : null;
+        }
+    }
+
+    public sealed class NeoResolvedObjectInstance<TObject> : NeoResolvedObjectInstance
+        where TObject : class, INeoValueReference
+    {
+        public NeoResolvedObjectInstance(
+            NeoObjectInstanceId instanceId,
+            string layerId,
+            Vector2Int cell,
+            IReadOnlyList<Vector2Int> footprint,
+            TObject info,
+            int order)
+            : base(
+                instanceId,
+                layerId,
+                cell,
+                footprint,
+                info as NeoGeneratedCustomValue
+                    ?? throw new ArgumentException(
+                        "Resolved object info must be a generated Neo custom value.",
+                        nameof(info)),
+                order)
+        {
+            Info = info;
+        }
+
+        public new TObject Info { get; }
     }
 
     internal sealed class NeoTileLayerRenderSnapshot
@@ -465,7 +571,10 @@ namespace NeoCompose.Runtime
             return new NeoTileLayerRenderSnapshot(winners, sources, candidateCounts);
         }
 
-        public virtual NeoResolvedTileInstance? ResolveTile(Vector2Int cell) => null;
+        public virtual NeoResolvedTileInstance? GetTile(Vector2Int cell) => null;
+
+        public virtual NeoResolvedTileInstance? ResolveTile(Vector2Int cell) =>
+            GetTile(cell);
 
         public virtual IDisposable OnChanged(Action<NeoTileLayerChangedArgs> handler) =>
             new NeoDisposableSubscription(() => {});
@@ -498,8 +607,23 @@ namespace NeoCompose.Runtime
         public virtual IReadOnlyList<NeoResolvedObjectInstance> GetObjects() =>
             Array.Empty<NeoResolvedObjectInstance>();
 
-        public virtual NeoResolvedObjectInstance? ResolveObject(NeoObjectInstanceId instanceId) =>
+        public virtual NeoResolvedObjectInstance? GetObject(NeoObjectInstanceId instanceId) =>
             null;
+
+        public virtual NeoResolvedObjectInstance? GetObject(Vector2Int cell) =>
+            null;
+
+        public virtual IReadOnlyList<NeoResolvedObjectInstance> GetObjects(Vector2Int cell) =>
+            Array.Empty<NeoResolvedObjectInstance>();
+
+        public virtual NeoResolvedObjectInstance? ResolveObject(NeoObjectInstanceId instanceId) =>
+            GetObject(instanceId);
+
+        public virtual NeoResolvedObjectInstance? ResolveObject(Vector2Int cell) =>
+            GetObject(cell);
+
+        public virtual IReadOnlyList<NeoResolvedObjectInstance> ResolveObjects(Vector2Int cell) =>
+            GetObjects(cell);
 
         public virtual IDisposable OnChanged(Action<NeoObjectLayerChangedArgs> handler) =>
             new NeoDisposableSubscription(() => {});
@@ -522,8 +646,8 @@ namespace NeoCompose.Runtime
             this.primitive = primitive ?? throw new ArgumentNullException(nameof(primitive));
         }
 
-        public TTile? GetTile(Vector2Int cell) =>
-            primitive.GetTile<TTile>(LayerId, cell, ExpectedTypeId);
+        public override NeoResolvedTileInstance? GetTile(Vector2Int cell) =>
+            primitive.ResolveTileCached(LayerId, cell, ExpectedTypeId);
 
         public IReadOnlyList<NeoTileCandidate<TTile>> GetCandidates(Vector2Int cell) =>
             primitive.GetTileCandidates<TTile>(LayerId, cell, ExpectedTypeId);
@@ -538,7 +662,7 @@ namespace NeoCompose.Runtime
             primitive.GetTileLayerRenderSnapshot(LayerId, ExpectedTypeId);
 
         public override NeoResolvedTileInstance? ResolveTile(Vector2Int cell) =>
-            primitive.ResolveTile(LayerId, cell, ExpectedTypeId);
+            GetTile(cell);
 
         public override IDisposable OnChanged(Action<NeoTileLayerChangedArgs> handler) =>
             primitive.OnTileLayerChanged(LayerId, handler);
@@ -561,14 +685,26 @@ namespace NeoCompose.Runtime
             this.primitive = primitive ?? throw new ArgumentNullException(nameof(primitive));
         }
 
-        public TObject? GetObject(Vector2Int cell) =>
-            primitive.GetObject<TObject>(LayerId, cell, ExpectedTypeId);
-
         public override IReadOnlyList<NeoResolvedObjectInstance> GetObjects() =>
             primitive.GetObjects(LayerId, ExpectedTypeId);
 
-        public override NeoResolvedObjectInstance? ResolveObject(NeoObjectInstanceId instanceId) =>
+        public override NeoResolvedObjectInstance? GetObject(NeoObjectInstanceId instanceId) =>
             primitive.ResolveObjectInstance(LayerId, instanceId, ExpectedTypeId);
+
+        public override NeoResolvedObjectInstance? GetObject(Vector2Int cell) =>
+            primitive.ResolveObjectAtCellCached(LayerId, cell, ExpectedTypeId);
+
+        public override IReadOnlyList<NeoResolvedObjectInstance> GetObjects(Vector2Int cell) =>
+            primitive.ResolveObjectsAtCellCached(LayerId, cell, ExpectedTypeId);
+
+        public override NeoResolvedObjectInstance? ResolveObject(NeoObjectInstanceId instanceId) =>
+            GetObject(instanceId);
+
+        public override NeoResolvedObjectInstance? ResolveObject(Vector2Int cell) =>
+            GetObject(cell);
+
+        public override IReadOnlyList<NeoResolvedObjectInstance> ResolveObjects(Vector2Int cell) =>
+            GetObjects(cell);
 
         public override IDisposable OnChanged(Action<NeoObjectLayerChangedArgs> handler) =>
             primitive.OnObjectLayerChanged(LayerId, handler);
@@ -583,6 +719,7 @@ namespace NeoCompose.Runtime
             new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>();
         private readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> readOnlyFactories;
         private readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory> writableFactories;
+        private NeoTileGridLookupCache? lookupCache;
         private event Action<NeoTileGridChangedArgs>? Changed;
 
         protected NeoReadOnlyTileGridPrimitive(
@@ -602,6 +739,10 @@ namespace NeoCompose.Runtime
         public string GridValueId { get; }
         public TileGridContent? Content { get; }
         public NeoTileGridRenderer? Renderer { get; internal set; }
+        internal NeoClient Client => client;
+
+        internal NeoTileGridLookupCache LookupCache =>
+            lookupCache ??= new NeoTileGridLookupCache(this);
 
         public IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler)
         {
@@ -698,6 +839,7 @@ namespace NeoCompose.Runtime
 
         internal void NotifyChanged(NeoTileGridChangedArgs args)
         {
+            lookupCache?.Apply(args);
             Changed?.Invoke(args);
         }
 
@@ -1063,6 +1205,14 @@ namespace NeoCompose.Runtime
             return candidates.Count == 0 ? null : candidates[candidates.Count - 1];
         }
 
+        internal NeoResolvedTileInstance? ResolveTileCached(
+            string layerId,
+            Vector2Int cell,
+            string expectedTileFamilyTypeId = "")
+        {
+            return LookupCache.ResolveTile(layerId, cell, expectedTileFamilyTypeId);
+        }
+
         internal virtual IReadOnlyList<NeoResolvedTileInstance> GetTileLayerLinkTiles(
             string layerId,
             string sourceTileLayerLinkId,
@@ -1156,6 +1306,64 @@ namespace NeoCompose.Runtime
                 }
             }
             return best;
+        }
+
+        internal virtual IReadOnlyList<NeoResolvedObjectInstance> ResolveObjectsAtCell(
+            string layerId,
+            Vector2Int cell,
+            string expectedObjectFamilyTypeId = "")
+        {
+            var objects = new List<NeoResolvedObjectInstance>();
+            foreach (var region in ResolveLayerRegions(layerId, "object"))
+            {
+                var instances = ReadInstances(region.Data);
+                if (instances is null) continue;
+                foreach (var rawInstance in instances)
+                {
+                    if (rawInstance is not JObject instance) continue;
+                    if (!ObjectInstanceOccupiesCell(instance, cell)) continue;
+                    if (!TryReadCell(instance["position"], out Vector2Int position)) continue;
+                    string? instanceId = ReadString(instance["id"]);
+                    string? objectValueId = ReadString(instance["objectValueId"]);
+                    if (string.IsNullOrEmpty(instanceId) || string.IsNullOrEmpty(objectValueId)) continue;
+                    var obj = ResolveGeneratedValue<NeoGeneratedCustomValue>(
+                        objectValueId!,
+                        expectedObjectFamilyTypeId);
+                    if (obj is null) continue;
+                    objects.Add(new NeoResolvedObjectInstance(
+                        instanceId!,
+                        layerId,
+                        position,
+                        ReadFootprint(instance, position),
+                        obj,
+                        ReadInt(instance["order"]) ?? 0));
+                }
+            }
+            objects.Sort((left, right) =>
+            {
+                int order = left.Order.CompareTo(right.Order);
+                return order != 0
+                    ? order
+                    : left.InstanceId.Value.CompareTo(right.InstanceId.Value);
+            });
+            return objects;
+        }
+
+        internal NeoResolvedObjectInstance? ResolveObjectAtCellCached(
+            string layerId,
+            Vector2Int cell,
+            string expectedObjectFamilyTypeId = "")
+        {
+            var objects = LookupCache.ResolveObjects(layerId, cell, expectedObjectFamilyTypeId);
+            return objects.Count == 0 ? null : objects[objects.Count - 1];
+        }
+
+        internal IReadOnlyList<NeoResolvedObjectInstance> ResolveObjectsAtCellCached(
+            string layerId,
+            Vector2Int cell,
+            string expectedObjectFamilyTypeId = "")
+        {
+            return LookupCache.ResolveObjects(layerId, cell, expectedObjectFamilyTypeId);
         }
 
         public virtual IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
@@ -1478,6 +1686,34 @@ namespace NeoCompose.Runtime
 
             if (Content.tileLayerLinks is null) return dependencies;
 
+            foreach (var link in Content.tileLayerLinks)
+            {
+                if (link is null) continue;
+                string? sourceId = ResolveTileLayerLinkSourceId(link);
+                if (string.IsNullOrEmpty(sourceId) ||
+                    string.IsNullOrEmpty(link.targetTileLayerId))
+                {
+                    continue;
+                }
+
+                AddTileLayerLinkDependency(
+                    dependencies,
+                    seen,
+                    sourceId!,
+                    link.targetTileLayerId);
+            }
+            return dependencies;
+        }
+
+        internal IReadOnlyList<NeoTileLayerLinkDependency> GetAuthoredTileLayerLinkDependencies()
+        {
+            if (Content?.tileLayerLinks is null)
+            {
+                return Array.Empty<NeoTileLayerLinkDependency>();
+            }
+
+            var dependencies = new List<NeoTileLayerLinkDependency>();
+            var seen = new HashSet<string>();
             foreach (var link in Content.tileLayerLinks)
             {
                 if (link is null) continue;

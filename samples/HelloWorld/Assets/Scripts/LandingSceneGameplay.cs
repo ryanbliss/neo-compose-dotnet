@@ -27,11 +27,6 @@ namespace HelloWorld.Assets.Scripts
         private readonly Func<string, Action, bool> triggerDialogue;
         private readonly Func<bool> dialogueIsOpen;
         private readonly BlockedPath blockedPath;
-        private readonly HashSet<Vector2Int> walkableCells = new();
-        private readonly HashSet<Vector2Int> collisionCells = new();
-        private readonly HashSet<Vector2Int> blockedPathCells = new();
-        private readonly HashSet<Vector2Int> bootGlyphCells = new();
-        private readonly List<NeoResolvedObjectInstance> objectInstances = new();
         private IDisposable collisionSubscription;
         private IDisposable barrierSubscription;
         private bool barrierOpening;
@@ -169,7 +164,7 @@ namespace HelloWorld.Assets.Scripts
                 await ui.RenderGridAsync(Content, token);
                 if (!IsCurrentLoad(generation)) return;
 
-                BuildInteractionCache();
+                BuildWorldBounds();
                 SubscribeContentChanges();
                 CompleteWorldLoad();
                 ui.MovePlayerTo(PlayerCell);
@@ -199,9 +194,8 @@ namespace HelloWorld.Assets.Scripts
         private void SubscribeContentChanges()
         {
             DisposeContentSubscriptions();
-            collisionSubscription = Content.Collisions.OnChanged(args =>
+            collisionSubscription = Content.Collisions.OnChanged(_ =>
             {
-                ApplyCollisionDelta(args);
                 UpdatePrompt();
                 RenderChrome();
             });
@@ -361,38 +355,22 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        private void BuildInteractionCache()
+        private void BuildWorldBounds()
         {
             var bounds = new CellBoundsAccumulator();
-            walkableCells.Clear();
-            collisionCells.Clear();
-            blockedPathCells.Clear();
-            bootGlyphCells.Clear();
-            objectInstances.Clear();
 
             foreach (var tile in Content.Background.GetTiles())
             {
-                walkableCells.Add(tile.Cell);
                 bounds.Include(tile.Cell);
-                if (tile.Tile is BootGlyphTile)
-                {
-                    bootGlyphCells.Add(tile.Cell);
-                }
             }
 
             foreach (var tile in Content.Collisions.GetTiles())
             {
-                collisionCells.Add(tile.Cell);
-                if (IsBlockedPathCollision(tile))
-                {
-                    blockedPathCells.Add(tile.Cell);
-                }
                 bounds.Include(tile.Cell);
             }
 
             foreach (var obj in Content.Objects.GetObjects())
             {
-                objectInstances.Add(obj);
                 if (obj.Footprint.Count == 0)
                 {
                     bounds.Include(obj.Cell);
@@ -407,62 +385,15 @@ namespace HelloWorld.Assets.Scripts
             WorldBounds = bounds.ToBounds();
         }
 
-        private void ApplyCollisionDelta(NeoTileLayerChangedArgs args)
-        {
-            foreach (var cell in args.CellsToClear)
-            {
-                RemoveCollisionCell(cell);
-            }
-
-            foreach (var cell in args.CellsToSetOrRefresh)
-            {
-                RefreshCollisionCell(cell);
-            }
-        }
-
-        private void RefreshCollisionCell(Vector2Int cell)
-        {
-            var tile = Content.Collisions.ResolveTile(cell);
-            if (tile == null)
-            {
-                RemoveCollisionCell(cell);
-                return;
-            }
-
-            collisionCells.Add(cell);
-            if (IsBlockedPathCollision(tile))
-            {
-                blockedPathCells.Add(cell);
-            }
-            else
-            {
-                blockedPathCells.Remove(cell);
-            }
-
-            IncludeWorldCell(cell);
-        }
-
-        private void RemoveCollisionCell(Vector2Int cell)
-        {
-            collisionCells.Remove(cell);
-            blockedPathCells.Remove(cell);
-        }
-
         private bool IsBlockedPathCollision(NeoResolvedTileInstance tile) =>
             tile.SourceKind == NeoTileOutputSourceKind.TileLayerLink &&
             !string.IsNullOrEmpty(tile.SourceTileLayerLinkId) &&
             string.Equals(tile.SourceTileLayerLinkId, blockedPath.valueId, StringComparison.Ordinal);
 
-        private void IncludeWorldCell(Vector2Int cell)
-        {
-            var bounds = WorldBounds;
-            bounds.Encapsulate(new Vector3(cell.x, cell.y, 0f));
-            WorldBounds = bounds;
-        }
-
         private bool CanEnter(Vector2Int cell)
         {
-            return walkableCells.Contains(cell) && !collisionCells.Contains(cell);
+            return Content.Background.GetTile(cell) != null &&
+                Content.Collisions.GetTile(cell) == null;
         }
 
         private bool IsBarrierActive() =>
@@ -470,11 +401,11 @@ namespace HelloWorld.Assets.Scripts
 
         private bool TryFindNearbyBarrier(out Vector2Int cell)
         {
-            foreach (var barrierCell in blockedPathCells)
+            foreach (var candidate in NearbyCells(PlayerCell))
             {
-                if (!collisionCells.Contains(barrierCell)) continue;
-                if (!IsNear(PlayerCell, barrierCell)) continue;
-                cell = barrierCell;
+                var tile = Content.Collisions.GetTile(candidate);
+                if (tile == null || !IsBlockedPathCollision(tile)) continue;
+                cell = candidate;
                 return true;
             }
 
@@ -484,10 +415,11 @@ namespace HelloWorld.Assets.Scripts
 
         private bool TryFindNearbyBootGlyph(out Vector2Int cell)
         {
-            foreach (var bootGlyphCell in bootGlyphCells)
+            foreach (var candidate in NearbyCells(PlayerCell))
             {
-                if (!IsNear(PlayerCell, bootGlyphCell)) continue;
-                cell = bootGlyphCell;
+                var tile = Content.Background.GetTile(candidate);
+                if (tile == null || !tile.TryGetTile<BootGlyphTile>(out _)) continue;
+                cell = candidate;
                 return true;
             }
 
@@ -498,32 +430,34 @@ namespace HelloWorld.Assets.Scripts
         private bool TryFindNearbyObject<T>(out NeoResolvedObjectInstance instance)
             where T : NeoGeneratedCustomValue
         {
-            foreach (var obj in objectInstances)
+            foreach (var cell in NearbyCells(PlayerCell))
             {
-                if (obj.Object is not T) continue;
-                IEnumerable<Vector2Int> cells = obj.Footprint.Count == 0
-                    ? new[] { obj.Cell }
-                    : obj.Footprint;
-                if (!cells.Any(cell => IsNear(PlayerCell, cell))) continue;
-                instance = obj;
-                return true;
+                foreach (var obj in Content.Objects.GetObjects(cell))
+                {
+                    if (!obj.TryGetObject<T>(out _)) continue;
+                    instance = obj;
+                    return true;
+                }
             }
 
             instance = default;
             return false;
         }
 
-        private static bool IsNear(Vector2Int a, Vector2Int b)
+        private static IEnumerable<Vector2Int> NearbyCells(Vector2Int cell)
         {
-            var distance = Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
-            return distance <= 1;
+            yield return cell;
+            yield return cell + Vector2Int.up;
+            yield return cell + Vector2Int.down;
+            yield return cell + Vector2Int.left;
+            yield return cell + Vector2Int.right;
         }
 
         private Vector2Int FindPlayerSpawnCell()
         {
-            foreach (var obj in objectInstances)
+            foreach (var obj in Content.Objects.GetObjects())
             {
-                if (obj.Object is PlayerSpawnObject) return obj.Cell;
+                if (obj.TryGetObject<PlayerSpawnObject>(out _)) return obj.Cell;
             }
 
             return new Vector2Int(0, 4);

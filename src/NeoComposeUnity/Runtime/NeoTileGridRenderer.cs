@@ -578,7 +578,7 @@ namespace NeoCompose.Runtime
             Dictionary<Vector2Int, TileBase> renderedTiles,
             Vector2Int cell)
         {
-            var resolved = layer.ResolveTile(cell);
+            var resolved = layer.GetTile(cell);
             TileBase? nextTile = resolved == null ? null : TileBaseFor(resolved.Tile);
             SetTileBaseAt(
                 layer.LayerId,
@@ -659,7 +659,7 @@ namespace NeoCompose.Runtime
             foreach (var instanceId in change.AddedOrChangedInstances)
             {
                 DestroyRenderedObject(instanceId);
-                var resolved = layer.ResolveObject(instanceId);
+                var resolved = layer.GetObject(instanceId);
                 if (resolved == null) continue;
                 objectRootsByInstanceId[instanceId] =
                     SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);
