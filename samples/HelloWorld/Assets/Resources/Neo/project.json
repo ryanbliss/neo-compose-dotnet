@@ -19,7 +19,7 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "2bfd95cc9938318b75189ff13c11c1a1eb196bab6c2033ed3c3097c9ade650a9",
+        "projectDocumentContentHash": "9686db4a4cade2e74f589f9eaa39fcfc5ddb295cf64631d3d80ef5a73d60885f",
         "codegenContractHash": "6138d4cc9c38f80f9b5d3f2628d082377b010833be9de23b37c184b9d4ef921c",
         "runtimeDataContractHash": "c2c477020af3398df43cdebb65f1d62f5616e59ee8fe9c4988b90ec80f2c7569"
     },
@@ -9014,6 +9014,17 @@
                 "8f96912d-5bbb-428c-84eb-8932ef588142"
             ]
         },
+        "057ce3a7-2208-4d6c-903e-8d7b425991d8": {
+            "createdAt": 1783029550359,
+            "id": "057ce3a7-2208-4d6c-903e-8d7b425991d8",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550359,
+            "value": [
+                "5feb5de0-1fec-4127-9866-4cc7b2d97910",
+                "28649c7a-2428-4eca-96b0-0594be113a36"
+            ]
+        },
         "058027fd-8f02-48bf-bfc4-3188820a41fc": {
             "createdAt": 1782973982714,
             "id": "058027fd-8f02-48bf-bfc4-3188820a41fc",
@@ -9887,6 +9898,17 @@
                 "y": 5
             }
         },
+        "0d969699-f2d6-420f-8861-293af838cb5a": {
+            "createdAt": 1783029550359,
+            "id": "0d969699-f2d6-420f-8861-293af838cb5a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550359,
+            "value": {
+                "x": 1,
+                "y": 1
+            }
+        },
         "0d9d65a5-2900-42d7-a720-fe505ed4eb36": {
             "createdAt": 1782952202186,
             "id": "0d9d65a5-2900-42d7-a720-fe505ed4eb36",
@@ -10445,9 +10467,9 @@
             "createdAt": 1782012971265,
             "id": "1365274a-f5f6-4707-bea5-4ccfc061ff25",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1782339958421,
+            "updatedAt": 1783029520364,
             "value": [
-                "2010d79b-fdcd-4e79-bb23-fa09254ad224"
+                "fa6f6f5c-f432-41cc-aa5a-c92445b947fb"
             ]
         },
         "13923f9c-5a3f-4de6-b55c-62d40036c399": {
@@ -10968,6 +10990,14 @@
                 "fileId": "615fb640-00f1-416b-af1b-be81a97efc44",
                 "sliceIndex": 14
             }
+        },
+        "1998ebb3-f53a-4ec3-9eb6-b522ab65d9cd": {
+            "createdAt": 1783029550360,
+            "id": "1998ebb3-f53a-4ec3-9eb6-b522ab65d9cd",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550360,
+            "value": false
         },
         "19bac5cd-4af2-4a5a-ac95-b0ad6bf61006": {
             "createdAt": 1782952202186,
@@ -11773,12 +11803,12 @@
             "id": "1d57ae36-0e0a-4558-a03b-27b5eb0a733d",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": null,
-            "updatedAt": 1782957314513,
+            "updatedAt": 1783029592277,
             "value": [
+                "old-console-object:recovery-cache",
                 "old-console-object:player-spawn",
-                "old-console-object:exit-prompt",
                 "old-console-object:vault-plaque",
-                "old-console-object:recovery-cache"
+                "dfc95664-b19c-4da0-aa98-31dcfbc34e0d"
             ]
         },
         "1d5ffe72-0bca-4bf1-bad4-fe70d562c313": {
@@ -12302,6 +12332,19 @@
                 "Tile": "5eeb153f-0a33-4e59-a96f-844eba27ec80"
             }
         },
+        "23e126b2-3177-4798-9651-3da0aae2ecd7": {
+            "createdAt": 1783029550356,
+            "id": "23e126b2-3177-4798-9651-3da0aae2ecd7",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+            "updatedAt": 1783029550356,
+            "value": {
+                "Name": "62397f14-0654-4cdd-8573-d3fcd39067fd",
+                "Position": "829b0930-a41a-4b33-be6e-220cdac18f77",
+                "Size": "24b2e17d-0680-4839-ba80-4bedf44d5d86",
+                "Sprite": "a851d70e-1e29-49f1-a0e9-2a064991d4a1"
+            }
+        },
         "23e3068c-84ca-4d96-a576-617ddc5710eb": {
             "createdAt": 1782973690110,
             "id": "23e3068c-84ca-4d96-a576-617ddc5710eb",
@@ -12377,6 +12420,18 @@
             "typeId": null,
             "updatedAt": 1782974337661,
             "value": []
+        },
+        "24b2e17d-0680-4839-ba80-4bedf44d5d86": {
+            "createdAt": 1783029550355,
+            "id": "24b2e17d-0680-4839-ba80-4bedf44d5d86",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550355,
+            "value": {
+                "x": 1,
+                "y": 1,
+                "z": 0
+            }
         },
         "24b6aa94-2d6e-4618-892f-df668ed5bac9": {
             "createdAt": 1779225737868,
@@ -12781,6 +12836,16 @@
             "value": {
                 "fileId": "501220c3-2e57-42d2-9e9e-02402cf89938",
                 "sliceIndex": 0
+            }
+        },
+        "28649c7a-2428-4eca-96b0-0594be113a36": {
+            "createdAt": 1783029550359,
+            "id": "28649c7a-2428-4eca-96b0-0594be113a36",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550359,
+            "value": {
+                "Cell": "d730b76d-d98f-48e4-8d83-7dd46804b7ca"
             }
         },
         "2876201b-9d20-4e76-8862-f091bfa5f47d": {
@@ -14100,6 +14165,17 @@
                 "Tile": "d0ad21f1-f088-4e7f-af11-8b4b3922724b"
             }
         },
+        "346287ca-aedc-48a8-839c-ee2d5362adfb": {
+            "createdAt": 1783029550358,
+            "id": "346287ca-aedc-48a8-839c-ee2d5362adfb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550358,
+            "value": {
+                "x": 1,
+                "y": 0
+            }
+        },
         "34847ed4-97ba-4d60-82b1-6854b8ceb2b6": {
             "createdAt": 1782973918616,
             "id": "34847ed4-97ba-4d60-82b1-6854b8ceb2b6",
@@ -14386,6 +14462,17 @@
             "updatedAt": 1781236754687,
             "value": 180
         },
+        "36eac912-3dcc-4dd3-9362-cf44edf987f1": {
+            "createdAt": 1783029550358,
+            "id": "36eac912-3dcc-4dd3-9362-cf44edf987f1",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550358,
+            "value": [
+                "23e126b2-3177-4798-9651-3da0aae2ecd7",
+                "64a83de1-d170-4a38-a35d-4bdb847a2a88"
+            ]
+        },
         "36fb7172-4381-4743-bc4b-e6d57e089c80": {
             "createdAt": 1782952202186,
             "id": "36fb7172-4381-4743-bc4b-e6d57e089c80",
@@ -14630,6 +14717,17 @@
             "value": [
                 "0b17f75d-d2df-481c-8520-f0a04df5ea58"
             ]
+        },
+        "3961b5fa-4bf7-49f0-9fa4-e42e4ca6dc5d": {
+            "createdAt": 1783029520364,
+            "id": "3961b5fa-4bf7-49f0-9fa4-e42e4ca6dc5d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029520364,
+            "value": {
+                "x": 1,
+                "y": 0
+            }
         },
         "396be4c3-22d7-4198-ae41-89ec8504fc76": {
             "createdAt": 1782952202186,
@@ -15267,6 +15365,16 @@
                 "Cell": "9696e3c6-c5c1-455a-8921-e16cd1764828",
                 "Tile": "6141c878-9364-44d9-82b5-3196eec169ad"
             }
+        },
+        "4011b76e-baad-47b8-97a8-55c9b43fc78a": {
+            "createdAt": 1783029550358,
+            "id": "4011b76e-baad-47b8-97a8-55c9b43fc78a",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550358,
+            "value": [
+                "8f96912d-5bbb-428c-84eb-8932ef588144"
+            ]
         },
         "40367fe6-d700-4951-887f-055152eb1601": {
             "createdAt": 1782952229512,
@@ -16089,6 +16197,16 @@
                 "y": 4
             }
         },
+        "48814a86-7a12-41dc-8d86-2fca64523598": {
+            "createdAt": 1783029550355,
+            "id": "48814a86-7a12-41dc-8d86-2fca64523598",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550355,
+            "value": [
+                "8f96912d-5bbb-428c-84eb-8932ef588123"
+            ]
+        },
         "488df274-3c05-4698-8ab3-74da4ece2b9a": {
             "createdAt": 1782952217267,
             "id": "488df274-3c05-4698-8ab3-74da4ece2b9a",
@@ -16429,6 +16547,14 @@
                 "Cell": "ef8a9411-8a9f-48da-8b4b-4d6792bc313c",
                 "Tile": "7b10fa44-7fbd-434c-85fe-8150a5af73d8"
             }
+        },
+        "4c22a2e6-039b-4daf-94e4-05299a5b7ec6": {
+            "createdAt": 1783029550356,
+            "id": "4c22a2e6-039b-4daf-94e4-05299a5b7ec6",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550356,
+            "value": "Background"
         },
         "4c268b3b-4187-4db1-9149-e2b83c66a3ad": {
             "createdAt": 1782952202186,
@@ -17469,6 +17595,17 @@
                 "Tile": "2a163814-b07b-4af4-b630-2dd3a2804a74"
             }
         },
+        "56ab9966-880e-4c57-b865-9dc0ad593334": {
+            "createdAt": 1783029550358,
+            "id": "56ab9966-880e-4c57-b865-9dc0ad593334",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550358,
+            "value": {
+                "Cell": "346287ca-aedc-48a8-839c-ee2d5362adfb",
+                "Tile": "4011b76e-baad-47b8-97a8-55c9b43fc78a"
+            }
+        },
         "56b4c0ce-6cfa-4e26-846c-9e7d70afe6aa": {
             "createdAt": 1782973190559,
             "id": "56b4c0ce-6cfa-4e26-846c-9e7d70afe6aa",
@@ -17812,6 +17949,18 @@
             "value": {
                 "Cell": "6289e541-9033-423e-836d-716a7c1e72d3",
                 "Tile": "6c9378ce-59e2-4dfd-a35d-1c446cbf0b5c"
+            }
+        },
+        "593b8531-b00c-4425-82cb-ac5279e437e0": {
+            "createdAt": 1783029550359,
+            "id": "593b8531-b00c-4425-82cb-ac5279e437e0",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550359,
+            "value": {
+                "x": 2,
+                "y": 1,
+                "z": 0
             }
         },
         "5952def0-e1f5-4104-b858-7cfc5bb1b44e": {
@@ -18347,6 +18496,16 @@
                 "y": -4
             }
         },
+        "5e6b2dad-e233-4772-98df-70cc9c2bd938": {
+            "createdAt": 1783029520364,
+            "id": "5e6b2dad-e233-4772-98df-70cc9c2bd938",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029520364,
+            "value": [
+                "8f96912d-5bbb-428c-84eb-8932ef588144"
+            ]
+        },
         "5e75f6d8-6f5e-468d-a553-1ef3943738f9": {
             "createdAt": 1782973487187,
             "id": "5e75f6d8-6f5e-468d-a553-1ef3943738f9",
@@ -18455,6 +18614,16 @@
             "value": {
                 "x": 3,
                 "y": -6
+            }
+        },
+        "5feb5de0-1fec-4127-9866-4cc7b2d97910": {
+            "createdAt": 1783029550359,
+            "id": "5feb5de0-1fec-4127-9866-4cc7b2d97910",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550359,
+            "value": {
+                "Cell": "9b8e18e3-d5b8-41c1-aca4-b0221e66ed9d"
             }
         },
         "5ff3da3b-b7b3-4032-b2ef-c5e5ce953982": {
@@ -18713,6 +18882,14 @@
                 "y": -2
             }
         },
+        "62397f14-0654-4cdd-8573-d3fcd39067fd": {
+            "createdAt": 1783029550355,
+            "id": "62397f14-0654-4cdd-8573-d3fcd39067fd",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550355,
+            "value": ""
+        },
         "623ec647-2184-4d5e-ab74-a0d32c8b5f85": {
             "createdAt": 1782973462378,
             "id": "623ec647-2184-4d5e-ab74-a0d32c8b5f85",
@@ -18909,6 +19086,20 @@
             "value": {
                 "x": -7,
                 "y": -3
+            }
+        },
+        "64a83de1-d170-4a38-a35d-4bdb847a2a88": {
+            "createdAt": 1783029550358,
+            "id": "64a83de1-d170-4a38-a35d-4bdb847a2a88",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "e78cfcd2-78ae-4656-9f04-6429bb0efe20",
+            "updatedAt": 1783029550358,
+            "value": {
+                "Name": "4c22a2e6-039b-4daf-94e4-05299a5b7ec6",
+                "Position": "eabf482b-274a-4c75-bf69-e58bc6e77482",
+                "Size": "d2d3c454-e856-4e7b-b812-0ade78f40b2f",
+                "TileLayer": "cac1b3f4-b857-41a6-8da1-39e6d07a069c",
+                "Tiles": "7d2bfa46-00b6-4408-a99e-f7965cd0c1e7"
             }
         },
         "64b97ed1-502e-454c-a1d3-5a1676f85b9e": {
@@ -21221,6 +21412,16 @@
                 "y": 5
             }
         },
+        "7d2bfa46-00b6-4408-a99e-f7965cd0c1e7": {
+            "createdAt": 1783029550358,
+            "id": "7d2bfa46-00b6-4408-a99e-f7965cd0c1e7",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550358,
+            "value": [
+                "56ab9966-880e-4c57-b865-9dc0ad593334"
+            ]
+        },
         "7d4fbe4c-7ad1-458b-9fdd-7b8b518cb08a": {
             "createdAt": 1782952202186,
             "id": "7d4fbe4c-7ad1-458b-9fdd-7b8b518cb08a",
@@ -21757,6 +21958,18 @@
                 "Reputation": "5be479bc-754f-497b-b3d5-d1ceb7d1c7b5",
                 "Unlocked": "ae076231-7d66-48ce-91a0-af7b96bfcfa6",
                 "VisitCount": "e1434cbe-18b8-4530-b832-977f2a5d6858"
+            }
+        },
+        "829b0930-a41a-4b33-be6e-220cdac18f77": {
+            "createdAt": 1783029550355,
+            "id": "829b0930-a41a-4b33-be6e-220cdac18f77",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550355,
+            "value": {
+                "x": 0,
+                "y": 0,
+                "z": 0
             }
         },
         "829cb39d-b2e7-4ab4-9ee3-d2e573714abf": {
@@ -24410,6 +24623,17 @@
                 "8f96912d-5bbb-428c-84eb-8932ef588141"
             ]
         },
+        "9b8e18e3-d5b8-41c1-aca4-b0221e66ed9d": {
+            "createdAt": 1783029550359,
+            "id": "9b8e18e3-d5b8-41c1-aca4-b0221e66ed9d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550359,
+            "value": {
+                "x": 0,
+                "y": 0
+            }
+        },
         "9b8ff1ea-63e0-4110-9fb4-567f49ed6ecc": {
             "createdAt": 1782952217267,
             "id": "9b8ff1ea-63e0-4110-9fb4-567f49ed6ecc",
@@ -25727,6 +25951,17 @@
                 "Value": "223e8197-b0fd-461b-94c2-dfff67167140"
             }
         },
+        "a851d70e-1e29-49f1-a0e9-2a064991d4a1": {
+            "createdAt": 1783029550356,
+            "id": "a851d70e-1e29-49f1-a0e9-2a064991d4a1",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550356,
+            "value": {
+                "fileId": "58b3b0b3-257a-46ee-ba87-bab09972ff63",
+                "sliceIndex": 0
+            }
+        },
         "a8831ccd-994e-4dc2-860d-d65269986baf": {
             "createdAt": 1781985413733,
             "id": "a8831ccd-994e-4dc2-860d-d65269986baf",
@@ -26284,6 +26519,14 @@
                 "x": 1,
                 "y": 1
             }
+        },
+        "ad998424-0354-464b-88ed-6dcc77494564": {
+            "createdAt": 1783029550355,
+            "id": "ad998424-0354-464b-88ed-6dcc77494564",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550355,
+            "value": "Exit Prompt"
         },
         "ada6717c-d46e-4e10-a83d-572a0b7ea68b": {
             "createdAt": 1782952202186,
@@ -29055,6 +29298,16 @@
                 "Tile": "d88d9a11-8688-4fa5-b830-cfe44826174d"
             }
         },
+        "cac1b3f4-b857-41a6-8da1-39e6d07a069c": {
+            "createdAt": 1783029550357,
+            "id": "cac1b3f4-b857-41a6-8da1-39e6d07a069c",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550357,
+            "value": [
+                "8f96912d-5bbb-428c-84eb-8932ef588121"
+            ]
+        },
         "cac5a9c3-fcfa-47eb-b48a-fcb56b67a4ed": {
             "createdAt": 1782952202186,
             "id": "cac5a9c3-fcfa-47eb-b48a-fcb56b67a4ed",
@@ -29115,6 +29368,16 @@
             "typeId": null,
             "updatedAt": 1778021393990,
             "value": {}
+        },
+        "cb8a4f29-b25f-48db-834e-0ca9efb05725": {
+            "createdAt": 1783029550355,
+            "id": "cb8a4f29-b25f-48db-834e-0ca9efb05725",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550355,
+            "value": [
+                "8f96912d-5bbb-428c-84eb-8932ef588123"
+            ]
         },
         "cb9d0a98-c139-4e78-b4b1-69cf85d4c4c3": {
             "createdAt": 1782952202186,
@@ -30140,6 +30403,18 @@
                 "Tile": "8b4ca8cd-cf9c-478f-8f75-574eacdea559"
             }
         },
+        "d2d3c454-e856-4e7b-b812-0ade78f40b2f": {
+            "createdAt": 1783029550357,
+            "id": "d2d3c454-e856-4e7b-b812-0ade78f40b2f",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550357,
+            "value": {
+                "x": 1,
+                "y": 1,
+                "z": 0
+            }
+        },
         "d2e99778-61dd-4db4-ba31-7988407c5ab6": {
             "createdAt": 1782952202186,
             "id": "d2e99778-61dd-4db4-ba31-7988407c5ab6",
@@ -30512,6 +30787,17 @@
             "value": {
                 "Cell": "50c45c08-d95d-42c1-9d2c-1fe7a562fe74",
                 "Tile": "5cb94a5c-78cb-46f4-9b91-5c6a32038bdf"
+            }
+        },
+        "d730b76d-d98f-48e4-8d83-7dd46804b7ca": {
+            "createdAt": 1783029550359,
+            "id": "d730b76d-d98f-48e4-8d83-7dd46804b7ca",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550359,
+            "value": {
+                "x": 1,
+                "y": 0
             }
         },
         "d733721f-c07c-470e-acbe-7d73dd6965db": {
@@ -31379,6 +31665,23 @@
                 "8f96912d-5bbb-428c-84eb-8932ef588141"
             ]
         },
+        "dfc95664-b19c-4da0-aa98-31dcfbc34e0d": {
+            "createdAt": 1783029550360,
+            "id": "dfc95664-b19c-4da0-aa98-31dcfbc34e0d",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "5c65b156-e83a-41c5-bef0-ee375798bdc2",
+            "updatedAt": 1783029550360,
+            "value": {
+                "Children": "36eac912-3dcc-4dd3-9362-cf44edf987f1",
+                "Collider": "f2a53954-c19c-4a6c-83c5-4c48dd415beb",
+                "CompatibleLayers": "cb8a4f29-b25f-48db-834e-0ca9efb05725",
+                "DefaultLayer": "48814a86-7a12-41dc-8d86-2fca64523598",
+                "Name": "ad998424-0354-464b-88ed-6dcc77494564",
+                "PlacementTiles": "057ce3a7-2208-4d6c-903e-8d7b425991d8",
+                "Position": "fb6c7f78-1078-4818-a048-7752ea18f8dd",
+                "Size": "593b8531-b00c-4425-82cb-ac5279e437e0"
+            }
+        },
         "e01d46f1-fbba-4b69-afab-cf3575e894a2": {
             "createdAt": 1782952202186,
             "id": "e01d46f1-fbba-4b69-afab-cf3575e894a2",
@@ -31489,6 +31792,17 @@
             "value": {
                 "x": 8,
                 "y": 1
+            }
+        },
+        "e0b5a981-d9aa-4e28-b576-8fdd4c4e3501": {
+            "createdAt": 1783029550359,
+            "id": "e0b5a981-d9aa-4e28-b576-8fdd4c4e3501",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550359,
+            "value": {
+                "x": 0,
+                "y": 0
             }
         },
         "e0b77304-bf4b-4b69-8dec-058019f873a9": {
@@ -32569,6 +32883,18 @@
                 "8f96912d-5bbb-428c-84eb-8932ef588141"
             ]
         },
+        "eabf482b-274a-4c75-bf69-e58bc6e77482": {
+            "createdAt": 1783029550357,
+            "id": "eabf482b-274a-4c75-bf69-e58bc6e77482",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550357,
+            "value": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            }
+        },
         "ead7222b-86b4-48ac-bf9a-f9162689a8f2": {
             "createdAt": 1778922605660,
             "id": "ead7222b-86b4-48ac-bf9a-f9162689a8f2",
@@ -33249,6 +33575,18 @@
             "value": {
                 "x": -10,
                 "y": -2
+            }
+        },
+        "f2a53954-c19c-4a6c-83c5-4c48dd415beb": {
+            "createdAt": 1783029550360,
+            "id": "f2a53954-c19c-4a6c-83c5-4c48dd415beb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029550360,
+            "value": {
+                "isTrigger": "1998ebb3-f53a-4ec3-9eb6-b522ab65d9cd",
+                "offset": "e0b5a981-d9aa-4e28-b576-8fdd4c4e3501",
+                "size": "0d969699-f2d6-420f-8861-293af838cb5a"
             }
         },
         "f2b148d1-6060-4b14-8ede-e0cdb6ebfcc3": {
@@ -33942,6 +34280,17 @@
                 "8f96912d-5bbb-428c-84eb-8932ef588141"
             ]
         },
+        "fa6f6f5c-f432-41cc-aa5a-c92445b947fb": {
+            "createdAt": 1783029520364,
+            "id": "fa6f6f5c-f432-41cc-aa5a-c92445b947fb",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",
+            "updatedAt": 1783029520364,
+            "value": {
+                "Cell": "3961b5fa-4bf7-49f0-9fa4-e42e4ca6dc5d",
+                "Tile": "5e6b2dad-e233-4772-98df-70cc9c2bd938"
+            }
+        },
         "fa7724c2-7681-4b6a-a7fa-e05dd8105680": {
             "createdAt": 1782952229512,
             "id": "fa7724c2-7681-4b6a-a7fa-e05dd8105680",
@@ -34010,6 +34359,18 @@
             "value": {
                 "x": -5,
                 "y": 6
+            }
+        },
+        "fb6c7f78-1078-4818-a048-7752ea18f8dd": {
+            "createdAt": 1783029550360,
+            "id": "fb6c7f78-1078-4818-a048-7752ea18f8dd",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "typeId": null,
+            "updatedAt": 1783029639194,
+            "value": {
+                "x": -9,
+                "y": 2,
+                "z": 0
             }
         },
         "fb72a4db-71ae-45f1-afbe-b62a4d141f48": {
@@ -70623,7 +70984,7 @@
                 ],
                 "importedAssets": [],
                 "boundsHint": null,
-                "contentHash": "canonical-fnv1a32:630dfd0e"
+                "contentHash": "canonical-fnv1a32:9056860e"
             },
             "regions": [
                 {
@@ -70650,56 +71011,51 @@
                                 }
                             },
                             {
-                                "id": "old-console-object:exit-prompt",
-                                "objectLayerId": "8f96912d-5bbb-428c-84eb-8932ef588123",
-                                "objectTypeId": "5c65b156-e83a-41c5-bef0-ee375798bdc2",
-                                "objectValueId": "old-console-object:exit-prompt",
-                                "order": 1,
-                                "position": {
-                                    "x": -9,
-                                    "y": 1,
-                                    "z": 0
-                                },
-                                "footprint": [
-                                    {
-                                        "x": -9,
-                                        "y": 1
-                                    },
-                                    {
-                                        "x": -9,
-                                        "y": 2
-                                    },
-                                    {
-                                        "x": -9,
-                                        "y": 3
-                                    }
-                                ]
-                            },
-                            {
                                 "id": "old-console-object:vault-plaque",
                                 "objectLayerId": "8f96912d-5bbb-428c-84eb-8932ef588123",
                                 "objectTypeId": "cacf06dd-db1d-4f48-99c7-f3cea5a6961f",
                                 "objectValueId": "old-console-object:vault-plaque",
-                                "order": 2,
+                                "order": 1,
                                 "position": {
                                     "x": -2,
                                     "y": 2,
                                     "z": 0
                                 }
+                            },
+                            {
+                                "id": "dfc95664-b19c-4da0-aa98-31dcfbc34e0d",
+                                "objectLayerId": "8f96912d-5bbb-428c-84eb-8932ef588123",
+                                "objectTypeId": "5c65b156-e83a-41c5-bef0-ee375798bdc2",
+                                "objectValueId": "dfc95664-b19c-4da0-aa98-31dcfbc34e0d",
+                                "order": 2,
+                                "position": {
+                                    "x": -9,
+                                    "y": 2,
+                                    "z": 0
+                                },
+                                "footprint": [
+                                    {
+                                        "x": -9,
+                                        "y": 2
+                                    },
+                                    {
+                                        "x": -8,
+                                        "y": 2
+                                    }
+                                ]
                             }
                         ],
                         "kind": "object",
                         "occupiedCells": {
                             "-7,2": "old-console-object:player-spawn",
-                            "-9,1": "old-console-object:exit-prompt",
-                            "-9,2": "old-console-object:exit-prompt",
-                            "-9,3": "old-console-object:exit-prompt",
-                            "-2,2": "old-console-object:vault-plaque"
+                            "-2,2": "old-console-object:vault-plaque",
+                            "-9,2": "dfc95664-b19c-4da0-aa98-31dcfbc34e0d",
+                            "-8,2": "dfc95664-b19c-4da0-aa98-31dcfbc34e0d"
                         },
                         "regionX": -1,
                         "regionY": 0
                     },
-                    "contentHash": "canonical-fnv1a32:83d08ca2",
+                    "contentHash": "canonical-fnv1a32:2e6833ec",
                     "deleted": false
                 },
                 {

@@ -50,19 +50,19 @@ namespace HelloWorld.Assets.Tests
             new Dictionary<string, string>
             {
                 ["2a49e84a-ab1f-4468-a9a3-f29796cbf086"] =
-                    "The teal path hums under the floor",
+                    "A wall of teal light hums across the corridor",
                 ["d755935f-4c3a-4d43-8c40-4ba3f7d28063"] =
-                    "The boot trace matches the blocked path.",
+                    "The field collapses into a line of falling sparks.",
                 ["12729fbc-56a7-4d8f-b04a-ac039604dfe9"] =
-                    "The boot glyph records your step",
+                    "The dark tile wakes under your boots",
                 ["d5a8097d-f02b-41c7-8356-9442a4a29412"] =
-                    "The path clears with a save delta",
+                    "Relaying now.",
                 ["7a6bcb67-d42a-4eb8-9934-0263d506e85c"] =
-                    "The exit prompt blinks in standby.",
+                    "Your ship's launch console idles",
                 ["da73bce9-0d39-4c27-bb09-32b538f97f61"] =
-                    "The vault plaque lists a small recovery reward",
+                    "RECOVERY CACHE AHEAD",
                 ["bbda459e-c77e-4084-9047-22b1dfbb0bff"] =
-                    "The plaque warms under your hand.",
+                    "SEAL RELEASED",
             };
 
         private static string LoadFixture(string fileName)
@@ -378,32 +378,30 @@ namespace HelloWorld.Assets.Tests
             var client = LoadSampleClient(EnglishLocalizationOptions());
             var content = client.Assets.Worlds.OldConsoleLanding.Content;
 
-            Assert.IsInstanceOf<GlassFloorTile>(
+            Assert.IsInstanceOf<VoidTile>(
                 content.Background.GetTile(new Vector2Int(-6, 5))?.Info);
             Assert.IsInstanceOf<BootGlyphTile>(
-                content.Background.GetTile(new Vector2Int(-5, 2))?.Info);
+                content.Background.GetTile(new Vector2Int(-7, -6))?.Info);
             NeoResolvedTileInstance<BootGlyphTile> typedBootGlyph =
-                content.Background.GetTile<BootGlyphTile>(new Vector2Int(-5, 2));
+                content.Background.GetTile<BootGlyphTile>(new Vector2Int(-7, -6));
             Assert.IsNotNull(typedBootGlyph);
             Assert.IsInstanceOf<RedNovaWarningTile>(
-                content.Background.GetTile(new Vector2Int(-8, 5))?.Info);
-            Assert.IsInstanceOf<VoidTile>(
+                content.Background.GetTile(new Vector2Int(1, 1))?.Info);
+            Assert.IsInstanceOf<GlassFloorTile>(
                 content.Background.GetTile(new Vector2Int(9, 0))?.Info);
-            Assert.IsInstanceOf<VoidTile>(
+            Assert.IsInstanceOf<SealBarrierTile>(
                 content.Collisions.GetTile(new Vector2Int(0, 1))?.Info);
-            Assert.IsInstanceOf<VoidTile>(
-                content.Collisions.GetTile(new Vector2Int(1, 1))?.Info);
-            Assert.IsInstanceOf<VoidTile>(
-                content.Collisions.GetTile(new Vector2Int(2, 1))?.Info);
+            Assert.IsNull(content.Collisions.GetTile(new Vector2Int(1, 1)));
+            Assert.IsNull(content.Collisions.GetTile(new Vector2Int(2, 1)));
             Assert.IsInstanceOf<PlayerSpawnObject>(
-                content.Objects.GetObject(new Vector2Int(0, 4))?.Info);
+                content.Objects.GetObject(new Vector2Int(-7, 2))?.Info);
             NeoResolvedObjectInstance<PlayerSpawnObject> typedPlayerSpawn =
-                content.Objects.GetObject<PlayerSpawnObject>(new Vector2Int(0, 4));
+                content.Objects.GetObject<PlayerSpawnObject>(new Vector2Int(-7, 2));
             Assert.IsNotNull(typedPlayerSpawn);
             Assert.IsInstanceOf<VaultPlaqueObject>(
-                content.Objects.GetObject(new Vector2Int(0, 0))?.Info);
+                content.Objects.GetObject(new Vector2Int(-2, 2))?.Info);
             Assert.IsInstanceOf<ExitPromptObject>(
-                content.Objects.GetObject(new Vector2Int(6, 1))?.Info);
+                content.Objects.GetObject(new Vector2Int(-9, 2))?.Info);
 
             var go = new GameObject("Neo TileGrid Renderer Smoke");
             try
@@ -417,7 +415,7 @@ namespace HelloWorld.Assets.Tests
                 var backgroundTilemap = tilemaps.Single(tilemap =>
                     tilemap.gameObject.name == "Tile Layer - Background");
                 Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-6, 5, 0)));
-                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-5, 2, 0)));
+                Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(-7, -6, 0)));
                 var collisionTilemap = tilemaps.Single(tilemap =>
                     tilemap.gameObject.name == "Tile Layer - Collisions");
                 Assert.IsNotNull(collisionTilemap.GetTile(new Vector3Int(0, 1, 0)));
@@ -426,23 +424,28 @@ namespace HelloWorld.Assets.Tests
                 Assert.IsNotNull(
                     objectLayer,
                     "Expected the generated object layer to render as a child root.");
-                Assert.AreEqual(3, objectLayer!.childCount);
+                Assert.AreEqual(4, objectLayer!.childCount);
                 AssertRenderedObject(
                     objectLayer,
                     "old-console-object:player-spawn",
-                    new Vector3(0f, 4f, 0f),
+                    new Vector3(-7f, 2f, 0f),
                     "4bdf7916-db7e-42f9-8b75-02ab429ac1f2-player-spawn-object");
                 AssertRenderedObject(
                     objectLayer,
                     "old-console-object:vault-plaque",
-                    Vector3.zero,
+                    new Vector3(-2f, 2f, 0f),
                     "ea5a70da-6213-4b4b-bd44-ab84adc449e0-vault-plaque-object");
                 AssertRenderedObject(
                     objectLayer,
-                    "old-console-object:exit-prompt",
-                    new Vector3(6f, 1f, 0f),
+                    "dfc95664-b19c-4da0-aa98-31dcfbc34e0d",
+                    new Vector3(-9f, 2f, 0f),
                     "58b3b0b3-257a-46ee-ba87-bab09972ff63-exit-prompt-object",
-                    "2c68221a-2a3c-45d4-8565-c5c23c0654d3-boot-glyph-tile");
+                    "666675d5-8a39-41c1-ba2c-18f014bf03f5-red-nova-warning-tile");
+                AssertRenderedObject(
+                    objectLayer,
+                    "old-console-object:recovery-cache",
+                    new Vector3(6f, 2f, 0f),
+                    "ea87154e-d1dd-49f4-8050-96f1493a81fc-recovery-cache-object");
             }
             finally
             {
@@ -508,7 +511,7 @@ namespace HelloWorld.Assets.Tests
                 .Single(tile => tile.Cell == blockerCell);
             Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, blocker.SourceKind);
             Assert.AreEqual(BlockedPathValueId, blocker.SourceTileLayerLinkId);
-            Assert.IsInstanceOf<VoidTile>(blocker.Info);
+            Assert.IsInstanceOf<SealBarrierTile>(blocker.Info);
 
             AssertPlacementOk(saveContent.Collisions.TryRemoveTile(blocker.InstanceId));
             Assert.IsNull(client.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
@@ -516,10 +519,9 @@ namespace HelloWorld.Assets.Tests
 
             var reopened = ReopenSampleClient(store, EnglishLocalizationOptions());
             Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(blockerCell));
-            Assert.IsInstanceOf<VoidTile>(
-                reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(new Vector2Int(1, 1))?.Info);
-            Assert.IsInstanceOf<VoidTile>(
-                reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(new Vector2Int(2, 1))?.Info);
+            Assert.IsInstanceOf<SealBarrierTile>(
+                reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(new Vector2Int(0, 2))?.Info);
+            Assert.IsNull(reopened.Assets.Worlds.OldConsoleLanding.Content.Collisions.GetTile(new Vector2Int(1, 1)));
         }
 
         [Test]
@@ -623,7 +625,7 @@ namespace HelloWorld.Assets.Tests
             var playerSpawn = content.Objects.GetObjects()
                 .Single(instance => instance.Info is PlayerSpawnObject);
 
-            Assert.IsInstanceOf<VoidTile>(content.Collisions.GetTile(blockerCell)?.Info);
+            Assert.IsInstanceOf<SealBarrierTile>(content.Collisions.GetTile(blockerCell)?.Info);
             Assert.AreEqual(BlockedPathValueId, content.GetTile(blockerCell)?.SourceTileLayerLinkId);
             Assert.AreEqual(BlockedPathValueId, blocked!.GetTile(content, blockerCell)?.SourceTileLayerLinkId);
             Assert.IsInstanceOf<PlayerSpawnObject>(content.GetObject(playerSpawn.Cell)?.Info);

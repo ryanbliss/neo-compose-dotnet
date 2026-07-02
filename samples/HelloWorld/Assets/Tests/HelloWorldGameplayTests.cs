@@ -192,7 +192,7 @@ namespace HelloWorld.Assets.Tests
             Assert.IsNotNull(
                 objectLayer,
                 "The landing scene should render the generated object layer.");
-            Assert.AreEqual(3, objectLayer!.childCount);
+            Assert.AreEqual(4, objectLayer!.childCount);
             Assert.IsNotNull(
                 objectLayer.Find("Object - old-console-object:player-spawn")?.GetComponent<BoxCollider2D>(),
                 "The authored player spawn should render with its collider.");
@@ -234,13 +234,13 @@ namespace HelloWorld.Assets.Tests
                     landing,
                     FindWalkableNeighbor(landing.Content, blockerCells));
                 InvokeLandingUpdatePrompt(landing);
-                StringAssert.Contains("barrier", landing.PromptText);
+                StringAssert.Contains("vault seal", landing.PromptText);
 
                 blocked!.Tiles.Clear();
                 yield return null;
 
                 Assert.IsFalse(
-                    landing.PromptText.Contains("barrier"),
+                    landing.PromptText.Contains("vault seal"),
                     "Clearing the model tiles should update the gameplay barrier cache through the collision delta.");
                 foreach (var cell in blockerCells)
                 {
