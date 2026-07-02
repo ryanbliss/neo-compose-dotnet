@@ -44,6 +44,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, node),
                 ["5c65b156-e83a-41c5-bef0-ee375798bdc2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject.Create(client, node),
                 ["60c25a92-cb01-46f7-b5cf-c9d950586116"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, node),
+                ["628e0cce-5472-4bec-addd-71230b8e64a6"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, node),
                 ["63b261c9-46f2-4d37-84e9-06f16af04e58"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Session.Create(client, node),
                 ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.Create(client, node),
                 ["720c1361-de9e-4c12-b90e-bb6ac9e1ce8b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SealBarrierTile.Create(client, node),
@@ -52,6 +53,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["7cb1b706-95d2-4465-8e75-c82a6b7d8830"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.Create(client, node),
                 ["7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlayerSpawnObject.Create(client, node),
                 ["7ed188f9-484b-4692-840d-436acf1635aa"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, node),
+                ["89b38b34-c040-4e69-8707-487f1484a056"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, node),
                 ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.Create(client, node),
                 ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.Create(client, node),
                 ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SaturnOutpost.Create(client, node),
@@ -64,6 +66,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["b737f725-5a4a-4d33-8bc5-c6953dbeff77"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ConsoleObjectLayer.Create(client, node),
                 ["bda4cf72-c8da-4be0-8148-024d0fc2d826"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.GlassFloorTile.Create(client, node),
                 ["cacf06dd-db1d-4f48-99c7-f3cea5a6961f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.VaultPlaqueObject.Create(client, node),
+                ["d500e920-87d9-4804-affa-1bd8fc5e91ae"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, node),
                 ["d931c907-19cd-4f3d-b04a-e6f1945fb216"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile.Create(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.QuestState.Create(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.Create(client, node),
@@ -94,6 +97,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, node),
                 ["5c65b156-e83a-41c5-bef0-ee375798bdc2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject.CreateWritable(client, node),
                 ["60c25a92-cb01-46f7-b5cf-c9d950586116"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Item.CreateWritable(client, node),
+                ["628e0cce-5472-4bec-addd-71230b8e64a6"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.CreateWritable(client, node),
                 ["63b261c9-46f2-4d37-84e9-06f16af04e58"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Session.CreateWritable(client, node),
                 ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(client, node),
                 ["720c1361-de9e-4c12-b90e-bb6ac9e1ce8b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SealBarrierTile.CreateWritable(client, node),
@@ -102,6 +106,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["7cb1b706-95d2-4465-8e75-c82a6b7d8830"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.CreateWritable(client, node),
                 ["7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlayerSpawnObject.CreateWritable(client, node),
                 ["7ed188f9-484b-4692-840d-436acf1635aa"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoCollider.CreateWritable(client, node),
+                ["89b38b34-c040-4e69-8707-487f1484a056"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.CreateWritable(client, node),
                 ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.CreateWritable(client, node),
                 ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.CreateWritable(client, node),
                 ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SaturnOutpost.CreateWritable(client, node),
@@ -114,6 +119,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 ["b737f725-5a4a-4d33-8bc5-c6953dbeff77"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ConsoleObjectLayer.CreateWritable(client, node),
                 ["bda4cf72-c8da-4be0-8148-024d0fc2d826"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.GlassFloorTile.CreateWritable(client, node),
                 ["cacf06dd-db1d-4f48-99c7-f3cea5a6961f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.VaultPlaqueObject.CreateWritable(client, node),
+                ["d500e920-87d9-4804-affa-1bd8fc5e91ae"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.CreateWritable(client, node),
                 ["d931c907-19cd-4f3d-b04a-e6f1945fb216"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile.CreateWritable(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.CreateWritable(client, node),
@@ -354,6 +360,74 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
+    public sealed class NeoSmartTileOutput : IEquatable<NeoSmartTileOutput>
+    {
+        private static readonly Dictionary<string, NeoSmartTileOutput> values = new Dictionary<string, NeoSmartTileOutput>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileOutput(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileOutput Animation = FromOptionId("Animation");
+        public static readonly NeoSmartTileOutput Random = FromOptionId("Random");
+        public static readonly NeoSmartTileOutput Single = FromOptionId("Single");
+
+        public static NeoSmartTileOutput FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileOutput(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileOutput>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "Animation" => true,
+                "Random" => true,
+                "Single" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "Animation" => "d6191a4c-6b7b-4e86-a1ed-adbb43f2752c",
+                "Random" => "37e58009-597f-4075-8f84-793a5e63cb44",
+                "Single" => "35370b82-4269-4fdf-b768-c268edbab60e",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileOutput value) => value.optionId;
+        public static implicit operator NeoSmartTileOutput(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileOutput? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileOutput);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileOutput? left, NeoSmartTileOutput? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileOutput? left, NeoSmartTileOutput? right) => !(left == right);
+    }
     public sealed class Planet : IEquatable<Planet>
     {
         private static readonly Dictionary<string, Planet> values = new Dictionary<string, Planet>();
@@ -439,6 +513,74 @@ namespace HelloWorld.Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
         public static bool operator ==(Planet? left, Planet? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(Planet? left, Planet? right) => !(left == right);
+    }
+    public sealed class NeoSmartTileCollider : IEquatable<NeoSmartTileCollider>
+    {
+        private static readonly Dictionary<string, NeoSmartTileCollider> values = new Dictionary<string, NeoSmartTileCollider>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileCollider(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileCollider Grid = FromOptionId("Grid");
+        public static readonly NeoSmartTileCollider None = FromOptionId("None");
+        public static readonly NeoSmartTileCollider Sprite = FromOptionId("Sprite");
+
+        public static NeoSmartTileCollider FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileCollider(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileCollider>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "Grid" => true,
+                "None" => true,
+                "Sprite" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "Grid" => "0465f25d-046c-404a-b642-0bc9a52ca208",
+                "None" => "63c4fc38-4be9-4fdb-925c-5b7d3942fa21",
+                "Sprite" => "9c77cfbc-049e-44c9-8dae-144ad8758c1b",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileCollider value) => value.optionId;
+        public static implicit operator NeoSmartTileCollider(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileCollider? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileCollider);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileCollider? left, NeoSmartTileCollider? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileCollider? left, NeoSmartTileCollider? right) => !(left == right);
     }
     public sealed class SaturnMoon : IEquatable<SaturnMoon>
     {
@@ -652,6 +794,77 @@ namespace HelloWorld.Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
         public static bool operator ==(QuestStage? left, QuestStage? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(QuestStage? left, QuestStage? right) => !(left == right);
+    }
+    public sealed class NeoSmartTileCondition : IEquatable<NeoSmartTileCondition>
+    {
+        private static readonly Dictionary<string, NeoSmartTileCondition> values = new Dictionary<string, NeoSmartTileCondition>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileCondition(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileCondition InheritsFromType = FromOptionId("InheritsFromType");
+        public static readonly NeoSmartTileCondition NotInheritsFromType = FromOptionId("NotInheritsFromType");
+        public static readonly NeoSmartTileCondition NotThis = FromOptionId("NotThis");
+        public static readonly NeoSmartTileCondition This = FromOptionId("This");
+
+        public static NeoSmartTileCondition FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileCondition(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileCondition>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "InheritsFromType" => true,
+                "NotInheritsFromType" => true,
+                "NotThis" => true,
+                "This" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "InheritsFromType" => "ce735446-bbb5-4f10-ab06-5f43e7be9ff0",
+                "NotInheritsFromType" => "d305c446-c6f3-4f07-83d4-8388d6695a4c",
+                "NotThis" => "7dcfeadc-d448-478d-82ae-33ebbdd62c7a",
+                "This" => "7a6d716c-1c9f-45c5-8f15-29d87beb162b",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileCondition value) => value.optionId;
+        public static implicit operator NeoSmartTileCondition(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileCondition? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileCondition);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileCondition? left, NeoSmartTileCondition? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileCondition? left, NeoSmartTileCondition? right) => !(left == right);
     }
     public sealed class WorldEnding : IEquatable<WorldEnding>
     {
@@ -901,12 +1114,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public BootGlyphTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite), false, NeoValueOwnership.Session)
+        public BootGlyphTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -960,6 +1173,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     updatedAt = nowIso,
                     value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
                 });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "07db44f3-8cc5-4164-aace-098ca68460f4", value, valueRows);
         }
@@ -1076,6 +1293,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -1086,6 +1305,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.DefaultLayer] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
@@ -1107,6 +1327,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.DefaultLayer] = () => DefaultLayer,
                 [Fields.Name] = () => Name,
                 [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
@@ -1322,7 +1543,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoTile : INeoValueReference
+    public interface IReadOnlyNeoTile : INeoValueReference, INeoSmartTileSource
     {
         bool IsReadOnly { get; }
 
@@ -1336,10 +1557,12 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         string Name { get; }
 
+        new IReadOnlyNeoSmartTile? SmartTile { get; }
+
         Sprite Sprite { get; }
     }
 
-    public abstract partial class NeoTile : NeoGeneratedCustomValue, IReadOnlyNeoTile
+    public abstract partial class NeoTile : NeoGeneratedCustomValue, IReadOnlyNeoTile, INeoSmartTileSource
     {
         internal NeoTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "1968a188-8220-4d1a-99b2-f1d0cea0c802", isReadOnly, inheritedStorageOwnership)
@@ -1392,6 +1615,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoTile>(out writable);
         }
 
+        INeoSmartTile? INeoSmartTileSource.SmartTile => SmartTile;
+
         public NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
@@ -1417,6 +1642,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public IReadOnlyNeoSmartTile? SmartTile
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("SmartTile");
+                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
+            }
+        }
+
         public Sprite Sprite
         {
             get
@@ -1437,6 +1671,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
 
             public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -1447,6 +1683,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Sprite] = () => null,
                 [Fields.DefaultLayer] = () => null,
                 [Fields.CompatibleLayers] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
@@ -1468,6 +1705,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Sprite] = () => Sprite,
                 [Fields.DefaultLayer] = () => DefaultLayer,
                 [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
@@ -1574,6 +1812,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
 
             public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -1584,6 +1824,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Sprite] = () => null,
                 [Fields.DefaultLayer] = () => null,
                 [Fields.CompatibleLayers] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
@@ -1605,6 +1846,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Sprite] = () => Sprite,
                 [Fields.DefaultLayer] = () => DefaultLayer,
                 [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
@@ -3026,29 +3268,26 @@ namespace HelloWorld.Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        public BlockedPath(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, TileLayer, Tiles, Position, Size), false, NeoValueOwnership.Session)
+        public BlockedPath(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            if (TileLayer is not null)
+            var TileLayerValueId = Guid.NewGuid().ToString();
+            value["TileLayer"] = TileLayerValueId;
+            valueRows.Add(new ArrayAttributeValue
             {
-                var TileLayerValueId = Guid.NewGuid().ToString();
-                value["TileLayer"] = TileLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TileLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = TileLayer.HasValue ? new[] { TileLayer.Value.valueId } : null,
-                });
-            }
+                id = TileLayerValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { TileLayer.valueId },
+            });
             if (Tiles is not null)
             {
                 var TilesValueId = Guid.NewGuid().ToString();
@@ -3237,12 +3476,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public VoidTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite), false, NeoValueOwnership.Session)
+        public VoidTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3296,6 +3535,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     updatedAt = nowIso,
                     value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
                 });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", value, valueRows);
         }
@@ -3412,6 +3655,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -3422,6 +3667,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.DefaultLayer] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
@@ -3443,6 +3689,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.DefaultLayer] = () => DefaultLayer,
                 [Fields.Name] = () => Name,
                 [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
@@ -4964,6 +5211,198 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
+    public interface IReadOnlyNeoSmartTileNeighbor : INeoValueReference, INeoSmartTileNeighbor
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSmartTileNeighbor writable);
+
+        new NeoReadOnlyVector2Int Cell { get; }
+
+        new NeoSmartTileCondition Condition { get; }
+
+        IReadOnlyNeoTile? Tile { get; }
+    }
+
+    public partial class NeoSmartTileNeighbor : NeoGeneratedCustomValue, IReadOnlyNeoSmartTileNeighbor, INeoSmartTileNeighbor
+    {
+        internal NeoSmartTileNeighbor(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "628e0cce-5472-4bec-addd-71230b8e64a6", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoSmartTileNeighbor(NeoVector2Int? Cell = null, NeoSmartTileCondition? Condition = null, NeoLookupSelection? Tile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Cell, Condition, Tile), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2Int? Cell = null, NeoSmartTileCondition? Condition = null, NeoLookupSelection? Tile = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Cell is not null)
+            {
+                var CellValueId = Guid.NewGuid().ToString();
+                value["Cell"] = CellValueId;
+                valueRows.Add(new Vector2AttributeValue
+                {
+                    id = CellValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector2IntValue(Cell.Value),
+                });
+            }
+            if (Condition is not null)
+            {
+                var ConditionValueId = Guid.NewGuid().ToString();
+                value["Condition"] = ConditionValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ConditionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Condition is null ? null : new[] { Condition.optionId },
+                });
+            }
+            if (Tile is not null)
+            {
+                var TileValueId = Guid.NewGuid().ToString();
+                value["Tile"] = TileValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TileValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Tile.HasValue ? new[] { Tile.Value.valueId } : null,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "628e0cce-5472-4bec-addd-71230b8e64a6", value, valueRows);
+        }
+
+        internal static NeoSmartTileNeighbor Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTileNeighbor>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTileNeighbor(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static NeoSmartTileNeighbor CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTileNeighbor>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTileNeighbor(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSmartTileNeighbor writable)
+        {
+            return TryWritable<NeoSmartTileNeighbor>(out writable);
+        }
+
+        Vector2Int INeoSmartTileNeighbor.Cell => Cell.Value;
+        string INeoSmartTileNeighbor.Condition => Condition.optionId;
+        string? INeoSmartTileNeighbor.TileValueId => Tile?.valueId;
+
+        public NeoReadOnlyVector2Int Cell
+        {
+            get
+            {
+                return new NeoReadOnlyVector2Int(node.Get<NeoAttributeVector2Int>("Cell"));
+            }
+        }
+
+        public NeoSmartTileCondition Condition
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Condition"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Condition' has no selected option.") : NeoSmartTileCondition.FromOptionId(selected);
+            }
+        }
+
+        public IReadOnlyNeoTile? Tile
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("Tile").GetSelected();
+                return selected.Count == 0 ? null : global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<NeoSmartTileCondition> Condition = new("Condition");
+
+            public static readonly NeoField<IReadOnlyNeoTile?> Tile = new("Tile");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Cell] = () => null,
+                [Fields.Condition] = () => null,
+                [Fields.Tile] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Cell] = () => Cell,
+                [Fields.Condition] = () => Condition,
+                [Fields.Tile] = () => Tile,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
     public interface IReadOnlySession : INeoValueReference
     {
         bool IsReadOnly { get; }
@@ -5377,12 +5816,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public SealBarrierTile(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Sprite, DefaultLayer, CompatibleLayers), false, NeoValueOwnership.Session)
+        public SealBarrierTile(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Sprite, DefaultLayer, CompatibleLayers, SmartTile), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -5436,6 +5875,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     updatedAt = nowIso,
                     value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
                 });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", value, valueRows);
         }
@@ -5552,6 +5995,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
 
             public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -5562,6 +6007,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Sprite] = () => null,
                 [Fields.DefaultLayer] = () => null,
                 [Fields.CompatibleLayers] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
@@ -5583,6 +6029,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Sprite] = () => Sprite,
                 [Fields.DefaultLayer] = () => DefaultLayer,
                 [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
@@ -6634,6 +7081,175 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.size] = () => size,
                 [Fields.offset] = () => offset,
                 [Fields.isTrigger] = () => isTrigger,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoSmartTile : INeoValueReference, INeoSmartTile
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSmartTile writable);
+
+        new NeoSmartTileCollider DefaultCollider { get; }
+
+        new NeoReadOnlyList<IReadOnlyNeoSmartTileRule> Rules { get; }
+    }
+
+    public partial class NeoSmartTile : NeoGeneratedCustomValue, IReadOnlyNeoSmartTile, INeoSmartTile
+    {
+        internal NeoSmartTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "89b38b34-c040-4e69-8707-487f1484a056", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoSmartTile(NeoSmartTileCollider? DefaultCollider = null, IEnumerable<NeoSmartTileRule>? Rules = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DefaultCollider, Rules), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoSmartTileCollider? DefaultCollider = null, IEnumerable<NeoSmartTileRule>? Rules = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (DefaultCollider is not null)
+            {
+                var DefaultColliderValueId = Guid.NewGuid().ToString();
+                value["DefaultCollider"] = DefaultColliderValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultColliderValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultCollider is null ? null : new[] { DefaultCollider.optionId },
+                });
+            }
+            if (Rules is not null)
+            {
+                var RulesValueId = Guid.NewGuid().ToString();
+                value["Rules"] = RulesValueId;
+                var RulesIds = new List<string>();
+                foreach (var entry in Rules)
+                {
+                    RulesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = RulesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = RulesIds.ToArray(),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "89b38b34-c040-4e69-8707-487f1484a056", value, valueRows);
+        }
+
+        internal static NeoSmartTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTile(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static NeoSmartTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTile(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSmartTile writable)
+        {
+            return TryWritable<NeoSmartTile>(out writable);
+        }
+
+        string INeoSmartTile.DefaultCollider => DefaultCollider.optionId;
+        IReadOnlyList<INeoSmartTileRule> INeoSmartTile.Rules => Rules;
+
+        public NeoSmartTileCollider DefaultCollider
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("DefaultCollider"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'DefaultCollider' has no selected option.") : NeoSmartTileCollider.FromOptionId(selected);
+            }
+        }
+
+        public NeoReadOnlyList<IReadOnlyNeoSmartTileRule> Rules
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoSmartTileRule>(client, node.Get<NeoAttributeList>("Rules"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoSmartTileCollider> DefaultCollider = new("DefaultCollider");
+
+            public static readonly NeoField<NeoList<NeoSmartTileRule>> Rules = new("Rules");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.DefaultCollider] = () => null,
+                [Fields.Rules] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.DefaultCollider] = () => DefaultCollider,
+                [Fields.Rules] = () => Rules,
             };
         }
 
@@ -8339,12 +8955,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public HullPlatingTile(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Sprite, DefaultLayer, CompatibleLayers), false, NeoValueOwnership.Session)
+        public HullPlatingTile(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Sprite, DefaultLayer, CompatibleLayers, SmartTile), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -8398,6 +9014,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     updatedAt = nowIso,
                     value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
                 });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "a8305a31-7f6c-4ff5-8a9f-5871ef451093", value, valueRows);
         }
@@ -8514,6 +9134,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
 
             public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -8524,6 +9146,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Sprite] = () => null,
                 [Fields.DefaultLayer] = () => null,
                 [Fields.CompatibleLayers] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
@@ -8545,6 +9168,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Sprite] = () => Sprite,
                 [Fields.DefaultLayer] = () => DefaultLayer,
                 [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
@@ -9202,12 +9826,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public GlassFloorTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite), false, NeoValueOwnership.Session)
+        public GlassFloorTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -9261,6 +9885,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     updatedAt = nowIso,
                     value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
                 });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "bda4cf72-c8da-4be0-8148-024d0fc2d826", value, valueRows);
         }
@@ -9377,6 +10005,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -9387,6 +10017,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.DefaultLayer] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
@@ -9408,6 +10039,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.DefaultLayer] = () => DefaultLayer,
                 [Fields.Name] = () => Name,
                 [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
@@ -9899,6 +10531,297 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
+    public interface IReadOnlyNeoSmartTileRule : INeoValueReference, INeoSmartTileRule
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSmartTileRule writable);
+
+        new NeoSmartTileCollider Collider { get; }
+
+        new double MaxAnimationSpeed { get; }
+
+        new double MinAnimationSpeed { get; }
+
+        new NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor> Neighbors { get; }
+
+        new NeoSmartTileOutput Output { get; }
+
+        new NeoReadOnlyList<Sprite> Sprites { get; }
+    }
+
+    public partial class NeoSmartTileRule : NeoGeneratedCustomValue, IReadOnlyNeoSmartTileRule, INeoSmartTileRule
+    {
+        internal NeoSmartTileRule(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "d500e920-87d9-4804-affa-1bd8fc5e91ae", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoSmartTileRule(IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, IEnumerable<Sprite>? Sprites = null, NeoSmartTileOutput? Output = null, NeoSmartTileCollider? Collider = null, double? MinAnimationSpeed = null, double? MaxAnimationSpeed = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Neighbors, Sprites, Output, Collider, MinAnimationSpeed, MaxAnimationSpeed), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, IEnumerable<Sprite>? Sprites = null, NeoSmartTileOutput? Output = null, NeoSmartTileCollider? Collider = null, double? MinAnimationSpeed = null, double? MaxAnimationSpeed = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Neighbors is not null)
+            {
+                var NeighborsValueId = Guid.NewGuid().ToString();
+                value["Neighbors"] = NeighborsValueId;
+                var NeighborsIds = new List<string>();
+                foreach (var entry in Neighbors)
+                {
+                    NeighborsIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = NeighborsValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeighborsIds.ToArray(),
+                });
+            }
+            if (Sprites is not null)
+            {
+                var SpritesValueId = Guid.NewGuid().ToString();
+                value["Sprites"] = SpritesValueId;
+                var SpritesIds = new List<string>();
+                foreach (var entry in Sprites)
+                {
+                    var entryValueId = Guid.NewGuid().ToString();
+                    SpritesIds.Add(entryValueId);
+                    valueRows.Add(new SpriteAttributeValue
+                    {
+                        id = entryValueId,
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = NeoGeneratedTypesSupport.SpriteValue(client, entry),
+                    });
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = SpritesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = SpritesIds.ToArray(),
+                });
+            }
+            if (Output is not null)
+            {
+                var OutputValueId = Guid.NewGuid().ToString();
+                value["Output"] = OutputValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = OutputValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Output is null ? null : new[] { Output.optionId },
+                });
+            }
+            if (Collider is not null)
+            {
+                var ColliderValueId = Guid.NewGuid().ToString();
+                value["Collider"] = ColliderValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ColliderValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Collider is null ? null : new[] { Collider.optionId },
+                });
+            }
+            if (MinAnimationSpeed is not null)
+            {
+                var MinAnimationSpeedValueId = Guid.NewGuid().ToString();
+                value["MinAnimationSpeed"] = MinAnimationSpeedValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = MinAnimationSpeedValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = MinAnimationSpeed,
+                });
+            }
+            if (MaxAnimationSpeed is not null)
+            {
+                var MaxAnimationSpeedValueId = Guid.NewGuid().ToString();
+                value["MaxAnimationSpeed"] = MaxAnimationSpeedValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = MaxAnimationSpeedValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = MaxAnimationSpeed,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "d500e920-87d9-4804-affa-1bd8fc5e91ae", value, valueRows);
+        }
+
+        internal static NeoSmartTileRule Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTileRule>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTileRule(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static NeoSmartTileRule CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTileRule>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTileRule(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSmartTileRule writable)
+        {
+            return TryWritable<NeoSmartTileRule>(out writable);
+        }
+
+        IReadOnlyList<INeoSmartTileNeighbor> INeoSmartTileRule.Neighbors => Neighbors;
+        IReadOnlyList<Sprite> INeoSmartTileRule.Sprites => Sprites;
+        string INeoSmartTileRule.Output => Output.optionId;
+        string INeoSmartTileRule.Collider => Collider.optionId;
+        double INeoSmartTileRule.MinAnimationSpeed => MinAnimationSpeed;
+        double INeoSmartTileRule.MaxAnimationSpeed => MaxAnimationSpeed;
+
+        public NeoSmartTileCollider Collider
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Collider"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Collider' has no selected option.") : NeoSmartTileCollider.FromOptionId(selected);
+            }
+        }
+
+        public double MaxAnimationSpeed
+        {
+            get
+            {
+                return node.Get<NeoAttributeFloat>("MaxAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MaxAnimationSpeed' has no value.");
+            }
+        }
+
+        public double MinAnimationSpeed
+        {
+            get
+            {
+                return node.Get<NeoAttributeFloat>("MinAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MinAnimationSpeed' has no value.");
+            }
+        }
+
+        public NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor> Neighbors
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor>(client, node.Get<NeoAttributeList>("Neighbors"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public NeoSmartTileOutput Output
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Output"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Output' has no selected option.") : NeoSmartTileOutput.FromOptionId(selected);
+            }
+        }
+
+        public NeoReadOnlyList<Sprite> Sprites
+        {
+            get
+            {
+                return new NeoReadOnlyList<Sprite>(client, node.Get<NeoAttributeList>("Sprites"), (client, child) => ((NeoAttributeSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset."));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoList<NeoSmartTileNeighbor>> Neighbors = new("Neighbors");
+
+            public static readonly NeoField<NeoList<Sprite>> Sprites = new("Sprites");
+
+            public static readonly NeoField<NeoSmartTileOutput> Output = new("Output");
+
+            public static readonly NeoField<NeoSmartTileCollider> Collider = new("Collider");
+
+            public static readonly NeoField<double> MinAnimationSpeed = new("MinAnimationSpeed");
+
+            public static readonly NeoField<double> MaxAnimationSpeed = new("MaxAnimationSpeed");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Neighbors] = () => null,
+                [Fields.Sprites] = () => null,
+                [Fields.Output] = () => null,
+                [Fields.Collider] = () => null,
+                [Fields.MinAnimationSpeed] = () => null,
+                [Fields.MaxAnimationSpeed] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Neighbors] = () => Neighbors,
+                [Fields.Sprites] = () => Sprites,
+                [Fields.Output] = () => Output,
+                [Fields.Collider] = () => Collider,
+                [Fields.MinAnimationSpeed] = () => MinAnimationSpeed,
+                [Fields.MaxAnimationSpeed] = () => MaxAnimationSpeed,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
     public interface IReadOnlyRedNovaWarningTile : IReadOnlyConsoleTile
     {
         new bool IsReadOnly { get; }
@@ -9923,12 +10846,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public RedNovaWarningTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite), false, NeoValueOwnership.Session)
+        public RedNovaWarningTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -9982,6 +10905,10 @@ namespace HelloWorld.Assets.Scripts.Neo
                     updatedAt = nowIso,
                     value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
                 });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "d931c907-19cd-4f3d-b04a-e6f1945fb216", value, valueRows);
         }
@@ -10098,6 +11025,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -10108,6 +11037,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.DefaultLayer] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
@@ -10129,6 +11059,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.DefaultLayer] = () => DefaultLayer,
                 [Fields.Name] = () => Name,
                 [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
@@ -10809,29 +11740,26 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoTileLayerLink(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, TileLayer, Tiles, Position, Size), false, NeoValueOwnership.Session)
+        public NeoTileLayerLink(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            if (TileLayer is not null)
+            var TileLayerValueId = Guid.NewGuid().ToString();
+            value["TileLayer"] = TileLayerValueId;
+            valueRows.Add(new ArrayAttributeValue
             {
-                var TileLayerValueId = Guid.NewGuid().ToString();
-                value["TileLayer"] = TileLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TileLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = TileLayer.HasValue ? new[] { TileLayer.Value.valueId } : null,
-                });
-            }
+                id = TileLayerValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { TileLayer.valueId },
+            });
             if (Tiles is not null)
             {
                 var TilesValueId = Guid.NewGuid().ToString();
@@ -11382,26 +12310,29 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoObjectLayerLink(NeoLookupSelection ObjectLayer, string Name, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(ObjectLayer, Name, Objects, Position, Size), false, NeoValueOwnership.Session)
+        public NeoObjectLayerLink(string Name, NeoLookupSelection? ObjectLayer = null, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ObjectLayer, Objects, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection ObjectLayer, string Name, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection? ObjectLayer = null, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            var ObjectLayerValueId = Guid.NewGuid().ToString();
-            value["ObjectLayer"] = ObjectLayerValueId;
-            valueRows.Add(new ArrayAttributeValue
+            if (ObjectLayer is not null)
             {
-                id = ObjectLayerValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new[] { ObjectLayer.valueId },
-            });
+                var ObjectLayerValueId = Guid.NewGuid().ToString();
+                value["ObjectLayer"] = ObjectLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ObjectLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ObjectLayer.HasValue ? new[] { ObjectLayer.Value.valueId } : null,
+                });
+            }
             if (Objects is not null)
             {
                 var ObjectsValueId = Guid.NewGuid().ToString();

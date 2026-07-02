@@ -525,6 +525,47 @@ MonoBehaviour:
     sprites:
     - {fileID: 1339592785, guid: 19b7e5f30850f40db933ba07e78e72a8, type: 3}
     audioClip: {fileID: 0}
+  - fileId: 7d8b0f36-24c6-4be5-afaa-065be59100b1
+    fileName: hull-plating-autotile.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/7d8b0f36-24c6-4be5-afaa-065be59100b1-hull-plating-autotile.png
+    fileUpdatedAt: 1782972926742
+    lastDownloadedAt: 2026-07-02T06:52:55.1667270Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -474274219, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: -1783089152, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: 230397505, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: 1761385410, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: -410888856, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: 408267425, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: 886648296, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: -785643172, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: 1108762771, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: 580680433, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: 1296259572, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: -754105451, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: -888162199, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: 1742596771, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: 1626975721, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    - {fileID: 1350114762, guid: 2a914b98b47ee4f8487146a48f7dba0d, type: 3}
+    audioClip: {fileID: 0}
+  - fileId: 84de284b-34fe-4775-8385-f9edf883c90d
+    fileName: glass-floor-variants.png
+    assetPath: Assets/Resources/Neo/Files/Sprites/84de284b-34fe-4775-8385-f9edf883c90d-glass-floor-variants.png
+    fileUpdatedAt: 1782972952590
+    lastDownloadedAt: 2026-07-02T06:52:55.1772600Z
+    templateId: 66504747-cbd5-4026-9d4c-89a0644f8192
+    templateUpdatedAt: 
+    lastAppliedTemplateEditsAt: 
+    importSettingsVersion: 2026-05-13.2
+    sprites:
+    - {fileID: -1426893588, guid: 020316b11f10c457f88f6813001595c9, type: 3}
+    - {fileID: 144691850, guid: 020316b11f10c457f88f6813001595c9, type: 3}
+    - {fileID: -981331918, guid: 020316b11f10c457f88f6813001595c9, type: 3}
+    audioClip: {fileID: 0}
   tileAssets:
   - tileValueId: 8f96912d-5bbb-428c-84eb-8932ef588142
     tileTypeId: bda4cf72-c8da-4be0-8148-024d0fc2d826

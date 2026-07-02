@@ -50,11 +50,16 @@ namespace NeoCompose.Runtime
 
         public static bool TryResolveSmartTile(
             NeoGeneratedCustomValue value,
-            out NeoSmartTile smartTile)
+            out INeoSmartTile smartTile)
         {
-            var raw = ReadOptionalProperty(value, "SmartTile")
-                ?? ReadOptionalProperty(value, "smartTile");
-            return NeoSmartTileRuleTileConverter.TryRead(raw, out smartTile);
+            if (value is INeoSmartTileSource source && source.SmartTile is { } resolved)
+            {
+                smartTile = resolved;
+                return true;
+            }
+
+            smartTile = null!;
+            return false;
         }
 
         public static Sprite? ResolveSprite(NeoGeneratedCustomValue value)
@@ -79,36 +84,6 @@ namespace NeoCompose.Runtime
                 if (sprite != null) return sprite;
             }
 
-            return null;
-        }
-
-        internal static object? ReadOptionalProperty(object source, string propertyName)
-        {
-            var properties = source.GetType().GetProperties(
-                BindingFlags.Public | BindingFlags.Instance);
-            foreach (var property in properties)
-            {
-                if (property.GetIndexParameters().Length > 0) continue;
-                if (!string.Equals(
-                    property.Name,
-                    propertyName,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-                try
-                {
-                    return property.GetValue(source);
-                }
-                catch (TargetInvocationException)
-                {
-                    return null;
-                }
-                catch (InvalidOperationException)
-                {
-                    return null;
-                }
-            }
             return null;
         }
 

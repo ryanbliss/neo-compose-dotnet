@@ -80,6 +80,7 @@ namespace NeoCompose.Runtime
         private RendererSmartTileNeighborMatcher? smartTileMatcher;
         private NeoTileGridRenderSession? liveSession;
         private INeoTileGridContent? currentContent;
+        private NeoReadOnlyTileGridPrimitive? renderedPrimitive;
 
         private readonly struct NeoTileSourceProjectionKey
             : IEquatable<NeoTileSourceProjectionKey>
@@ -228,6 +229,7 @@ namespace NeoCompose.Runtime
             if (primitive == null) throw new ArgumentNullException(nameof(primitive));
             if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
 
+            renderedPrimitive = primitive;
             var grid = EnsureGrid();
             if (clearBeforeRender)
             {
@@ -310,6 +312,7 @@ namespace NeoCompose.Runtime
             if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
 
             options ??= new NeoTileGridRenderOptions();
+            renderedPrimitive = primitive;
             var token = options.CancellationToken;
             token.ThrowIfCancellationRequested();
 
@@ -405,6 +408,7 @@ namespace NeoCompose.Runtime
         {
             StopLiveSync();
             currentContent = null;
+            renderedPrimitive = null;
             ClearChildren(EnsureGrid().transform);
             ClearRenderedIndexes();
             spriteTiles.Clear();
@@ -1347,7 +1351,32 @@ namespace NeoCompose.Runtime
 
         private static object? ReadOptionalProperty(object source, string propertyName)
         {
-            return NeoTileAssetFactory.ReadOptionalProperty(source, propertyName);
+            var properties = source.GetType().GetProperties(
+                BindingFlags.Public | BindingFlags.Instance);
+            foreach (var property in properties)
+            {
+                if (property.GetIndexParameters().Length > 0) continue;
+                if (!string.Equals(
+                    property.Name,
+                    propertyName,
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                try
+                {
+                    return property.GetValue(source);
+                }
+                catch (TargetInvocationException)
+                {
+                    return null;
+                }
+                catch (InvalidOperationException)
+                {
+                    return null;
+                }
+            }
+            return null;
         }
 
         private static IEnumerable<object> ReadEnumerableProperty(
@@ -1391,7 +1420,7 @@ namespace NeoCompose.Runtime
         }
 
         private bool MatchesSmartTileNeighbor(
-            NeoSmartTileNeighbor neighbor,
+            NeoRuleTileNeighbor neighbor,
             TileBase? other)
         {
             switch (neighbor.Kind)
@@ -1403,35 +1432,47 @@ namespace NeoCompose.Runtime
                 case NeoSmartTileNeighborKind.NotExactTile:
                     return !MatchesExactSmartTileNeighbor(neighbor, other);
                 case NeoSmartTileNeighborKind.InheritsFromType:
-                    return other != null
-                        && TryGetGeneratedValueForTileBase(other, out var inheritedValue)
-                        && IsTypeOrSubtype(inheritedValue, neighbor.TypeId);
+                    return MatchesInheritsSmartTileNeighbor(neighbor, other);
                 case NeoSmartTileNeighborKind.NotInheritsFromType:
-                    return other == null
-                        || !TryGetGeneratedValueForTileBase(other, out var notInheritedValue)
-                        || !IsTypeOrSubtype(notInheritedValue, neighbor.TypeId);
-                case NeoSmartTileNeighborKind.Tag:
-                    return false;
-                case NeoSmartTileNeighborKind.NotTag:
-                    return true;
+                    return !MatchesInheritsSmartTileNeighbor(neighbor, other);
                 default:
                     return false;
             }
         }
 
         private bool MatchesExactSmartTileNeighbor(
-            NeoSmartTileNeighbor neighbor,
+            NeoRuleTileNeighbor neighbor,
             TileBase? other)
         {
-            if (neighbor.Tile != null)
-            {
-                return TileBaseFor(neighbor.Tile) == other;
-            }
-
             return other != null
                 && !string.IsNullOrEmpty(neighbor.TileValueId)
                 && TryGetGeneratedValueForTileBase(other, out var value)
                 && string.Equals(value.valueId, neighbor.TileValueId, StringComparison.Ordinal);
+        }
+
+        private bool MatchesInheritsSmartTileNeighbor(
+            NeoRuleTileNeighbor neighbor,
+            TileBase? other)
+        {
+            if (other == null) return false;
+            if (string.IsNullOrEmpty(neighbor.TileValueId)) return false;
+            if (!TryGetGeneratedValueForTileBase(other, out var otherValue))
+            {
+                return false;
+            }
+            var referencedTile = ResolveTileValueById(neighbor.TileValueId!);
+            if (referencedTile == null) return false;
+            return IsTypeOrSubtype(otherValue, referencedTile.typeId);
+        }
+
+        private NeoGeneratedCustomValue? ResolveTileValueById(string tileValueId)
+        {
+            if (tileBasesByValueId.TryGetValue(tileValueId, out var tileBase)
+                && valuesByTileBase.TryGetValue(tileBase, out var cached))
+            {
+                return cached;
+            }
+            return renderedPrimitive?.ResolveGeneratedCustomValue(tileValueId);
         }
 
         private bool TryGetGeneratedValueForTileBase(
@@ -1877,7 +1918,7 @@ namespace NeoCompose.Runtime
                 this.owner = owner ?? throw new ArgumentNullException(nameof(owner));
             }
 
-            public bool Matches(NeoSmartTileNeighbor neighbor, TileBase? other) =>
+            public bool Matches(NeoRuleTileNeighbor neighbor, TileBase? other) =>
                 owner.MatchesSmartTileNeighbor(neighbor, other);
         }
     }

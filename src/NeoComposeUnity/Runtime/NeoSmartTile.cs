@@ -4,15 +4,71 @@
 #nullable enable
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Reflection;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
 namespace NeoCompose.Runtime
 {
+    /// <summary>
+    /// Bridge contract implemented by generated tile classes that carry smart
+    /// tile data. The code generator emits implementations of
+    /// <see cref="INeoSmartTileSource"/> (and the interfaces it exposes) so the
+    /// runtime can consume authored smart tile data without reflection.
+    /// </summary>
+    public interface INeoSmartTileSource
+    {
+        INeoSmartTile? SmartTile { get; }
+    }
+
+    public interface INeoSmartTile
+    {
+        /// <summary>
+        /// Collider enum option id. See <see cref="NeoSmartTileOptionIds"/>.
+        /// </summary>
+        string DefaultCollider { get; }
+
+        IReadOnlyList<INeoSmartTileRule> Rules { get; }
+    }
+
+    public interface INeoSmartTileRule
+    {
+        IReadOnlyList<INeoSmartTileNeighbor> Neighbors { get; }
+
+        IReadOnlyList<Sprite> Sprites { get; }
+
+        /// <summary>
+        /// Output enum option id. See <see cref="NeoSmartTileOptionIds"/>.
+        /// </summary>
+        string Output { get; }
+
+        /// <summary>
+        /// Collider enum option id. See <see cref="NeoSmartTileOptionIds"/>.
+        /// </summary>
+        string Collider { get; }
+
+        double MinAnimationSpeed { get; }
+
+        double MaxAnimationSpeed { get; }
+    }
+
+    public interface INeoSmartTileNeighbor
+    {
+        Vector2Int Cell { get; }
+
+        /// <summary>
+        /// Condition enum option id. See <see cref="NeoSmartTileOptionIds"/>.
+        /// A cell without a stored neighbor entry means "don't care", so there
+        /// is no option id for that state.
+        /// </summary>
+        string Condition { get; }
+
+        /// <summary>
+        /// The referenced tile value id for the inherits-from-type conditions.
+        /// </summary>
+        string? TileValueId { get; }
+    }
+
     public enum NeoSmartTileNeighborKind
     {
         DontCare = 0,
@@ -22,8 +78,6 @@ namespace NeoCompose.Runtime
         NotExactTile = 4,
         InheritsFromType = 5,
         NotInheritsFromType = 6,
-        Tag = 7,
-        NotTag = 8,
     }
 
     public enum NeoSmartTileOutputMode
@@ -33,6 +87,11 @@ namespace NeoCompose.Runtime
         Animation = 2,
     }
 
+    /// <summary>
+    /// Reserved parse target for future transform option ids. Smart tile data
+    /// has no transform fields in v1; converted rules keep Unity's Fixed
+    /// transforms.
+    /// </summary>
     public enum NeoSmartTileTransformMode
     {
         Fixed = 0,
@@ -43,54 +102,110 @@ namespace NeoCompose.Runtime
         RotatedMirror = 5,
     }
 
-    public sealed class NeoSmartTile
+    /// <summary>
+    /// Smart tile enum option ids authored on the web side. These exact ids
+    /// are pinned in the neo-compose repo at
+    /// <c>src/models/custom-types/world-system-types.ts</c> — keep both sides
+    /// in sync.
+    /// </summary>
+    public static class NeoSmartTileOptionIds
     {
-        public Sprite? DefaultSprite { get; set; }
-        public GameObject? DefaultGameObject { get; set; }
-        public Tile.ColliderType DefaultColliderType { get; set; } =
-            Tile.ColliderType.Sprite;
-        public List<NeoSmartTileRule> Rules { get; } = new();
-    }
+        public const string ConditionThis = "This";
+        public const string ConditionNotThis = "NotThis";
+        public const string ConditionInheritsFromType = "InheritsFromType";
+        public const string ConditionNotInheritsFromType = "NotInheritsFromType";
 
-    public sealed class NeoSmartTileRule
-    {
-        public List<NeoSmartTileNeighbor> Neighbors { get; } = new();
-        public List<Sprite> Sprites { get; } = new();
-        public GameObject? GameObject { get; set; }
-        public float MinAnimationSpeed { get; set; } = 1f;
-        public float MaxAnimationSpeed { get; set; } = 1f;
-        public float PerlinScale { get; set; } = 0.5f;
-        public NeoSmartTileOutputMode Output { get; set; } = NeoSmartTileOutputMode.Single;
-        public Tile.ColliderType ColliderType { get; set; } = Tile.ColliderType.Sprite;
-        public NeoSmartTileTransformMode RuleTransform { get; set; } =
-            NeoSmartTileTransformMode.Fixed;
-        public NeoSmartTileTransformMode RandomTransform { get; set; } =
-            NeoSmartTileTransformMode.Fixed;
-    }
+        public const string OutputSingle = "Single";
+        public const string OutputRandom = "Random";
+        public const string OutputAnimation = "Animation";
 
-    public sealed class NeoSmartTileNeighbor
-    {
-        public NeoSmartTileNeighbor()
+        public const string ColliderNone = "None";
+        public const string ColliderSprite = "Sprite";
+        public const string ColliderGrid = "Grid";
+
+        public static NeoSmartTileNeighborKind ParseCondition(string condition)
         {
+            switch (condition)
+            {
+                case ConditionThis:
+                    return NeoSmartTileNeighborKind.This;
+                case ConditionNotThis:
+                    return NeoSmartTileNeighborKind.NotThis;
+                case ConditionInheritsFromType:
+                    return NeoSmartTileNeighborKind.InheritsFromType;
+                case ConditionNotInheritsFromType:
+                    return NeoSmartTileNeighborKind.NotInheritsFromType;
+                default:
+                    throw new ArgumentException(
+                        "Unrecognized smart tile neighbor Condition option id "
+                            + $"'{condition}'.",
+                        nameof(condition));
+            }
         }
 
-        public NeoSmartTileNeighbor(Vector3Int offset, NeoSmartTileNeighborKind kind)
+        public static NeoSmartTileOutputMode ParseOutput(string output)
+        {
+            switch (output)
+            {
+                case OutputSingle:
+                    return NeoSmartTileOutputMode.Single;
+                case OutputRandom:
+                    return NeoSmartTileOutputMode.Random;
+                case OutputAnimation:
+                    return NeoSmartTileOutputMode.Animation;
+                default:
+                    throw new ArgumentException(
+                        $"Unrecognized smart tile rule Output option id '{output}'.",
+                        nameof(output));
+            }
+        }
+
+        public static Tile.ColliderType ParseCollider(string collider)
+        {
+            switch (collider)
+            {
+                case ColliderNone:
+                    return Tile.ColliderType.None;
+                case ColliderSprite:
+                    return Tile.ColliderType.Sprite;
+                case ColliderGrid:
+                    return Tile.ColliderType.Grid;
+                default:
+                    throw new ArgumentException(
+                        $"Unrecognized smart tile Collider option id '{collider}'.",
+                        nameof(collider));
+            }
+        }
+    }
+
+    /// <summary>
+    /// A neighbor condition registered on a <see cref="NeoRuleTile"/> that
+    /// Unity's built-in This/NotThis matching cannot evaluate. Matching is
+    /// delegated to an <see cref="INeoSmartTileNeighborMatcher"/> supplied by
+    /// the renderer.
+    /// </summary>
+    public sealed class NeoRuleTileNeighbor
+    {
+        public NeoRuleTileNeighbor(
+            Vector3Int offset,
+            NeoSmartTileNeighborKind kind,
+            string? tileValueId = null)
         {
             Offset = offset;
             Kind = kind;
+            TileValueId = tileValueId;
         }
 
-        public Vector3Int Offset { get; set; }
-        public NeoSmartTileNeighborKind Kind { get; set; }
-        public NeoGeneratedCustomValue? Tile { get; set; }
-        public string? TileValueId { get; set; }
-        public string? TypeId { get; set; }
-        public string? Tag { get; set; }
+        public Vector3Int Offset { get; }
+
+        public NeoSmartTileNeighborKind Kind { get; }
+
+        public string? TileValueId { get; }
     }
 
     public interface INeoSmartTileNeighborMatcher
     {
-        bool Matches(NeoSmartTileNeighbor neighbor, TileBase? other);
+        bool Matches(NeoRuleTileNeighbor neighbor, TileBase? other);
     }
 
     public sealed class NeoRuleTile : RuleTile
@@ -99,7 +214,7 @@ namespace NeoCompose.Runtime
         private List<NeoRuleTileCustomNeighbor> serializedCustomNeighbors = new();
 
         [NonSerialized]
-        private Dictionary<int, NeoSmartTileNeighbor>? customNeighbors;
+        private Dictionary<int, NeoRuleTileNeighbor>? customNeighbors;
 
         private INeoSmartTileNeighborMatcher? matcher;
 
@@ -109,7 +224,7 @@ namespace NeoCompose.Runtime
             customNeighbors = null;
         }
 
-        public int RegisterCustomNeighbor(NeoSmartTileNeighbor neighbor)
+        public int RegisterCustomNeighbor(NeoRuleTileNeighbor neighbor)
         {
             if (neighbor == null) throw new ArgumentNullException(nameof(neighbor));
             var neighbors = CustomNeighbors;
@@ -129,12 +244,12 @@ namespace NeoCompose.Runtime
             return base.RuleMatch(neighbor, other);
         }
 
-        private Dictionary<int, NeoSmartTileNeighbor> CustomNeighbors
+        private Dictionary<int, NeoRuleTileNeighbor> CustomNeighbors
         {
             get
             {
                 if (customNeighbors != null) return customNeighbors;
-                customNeighbors = new Dictionary<int, NeoSmartTileNeighbor>();
+                customNeighbors = new Dictionary<int, NeoRuleTileNeighbor>();
                 foreach (var entry in serializedCustomNeighbors)
                 {
                     customNeighbors[entry.Id] = entry.ToNeighbor();
@@ -155,45 +270,35 @@ namespace NeoCompose.Runtime
         private NeoSmartTileNeighborKind kind;
         [SerializeField]
         private string tileValueId = "";
-        [SerializeField]
-        private string typeId = "";
-        [SerializeField]
-        private string tag = "";
 
         public int Id => id;
 
         public static NeoRuleTileCustomNeighbor From(
             int id,
-            NeoSmartTileNeighbor neighbor)
+            NeoRuleTileNeighbor neighbor)
         {
             return new NeoRuleTileCustomNeighbor
             {
                 id = id,
                 offset = neighbor.Offset,
                 kind = neighbor.Kind,
-                tileValueId = neighbor.TileValueId ?? neighbor.Tile?.valueId ?? "",
-                typeId = neighbor.TypeId ?? "",
-                tag = neighbor.Tag ?? "",
+                tileValueId = neighbor.TileValueId ?? "",
             };
         }
 
-        public NeoSmartTileNeighbor ToNeighbor()
+        public NeoRuleTileNeighbor ToNeighbor()
         {
-            return new NeoSmartTileNeighbor(offset, kind)
-            {
-                TileValueId = string.IsNullOrWhiteSpace(tileValueId)
-                    ? null
-                    : tileValueId,
-                TypeId = string.IsNullOrWhiteSpace(typeId) ? null : typeId,
-                Tag = string.IsNullOrWhiteSpace(tag) ? null : tag,
-            };
+            return new NeoRuleTileNeighbor(
+                offset,
+                kind,
+                string.IsNullOrWhiteSpace(tileValueId) ? null : tileValueId);
         }
     }
 
     public static class NeoSmartTileRuleTileConverter
     {
         public static NeoRuleTile ToRuleTile(
-            NeoSmartTile smartTile,
+            INeoSmartTile smartTile,
             INeoSmartTileNeighborMatcher? matcher = null,
             Sprite? fallbackDefaultSprite = null)
         {
@@ -202,26 +307,26 @@ namespace NeoCompose.Runtime
             var tile = ScriptableObject.CreateInstance<NeoRuleTile>();
             tile.name = "Neo Smart Tile";
             tile.Configure(matcher);
-            tile.m_DefaultSprite = smartTile.DefaultSprite ?? fallbackDefaultSprite;
-            tile.m_DefaultGameObject = smartTile.DefaultGameObject;
-            tile.m_DefaultColliderType = smartTile.DefaultColliderType;
+            tile.m_DefaultSprite = fallbackDefaultSprite;
+            tile.m_DefaultColliderType =
+                NeoSmartTileOptionIds.ParseCollider(smartTile.DefaultCollider);
 
-            foreach (var smartRule in smartTile.Rules)
+            var rules = smartTile.Rules;
+            for (int ruleIndex = 0; ruleIndex < rules.Count; ruleIndex += 1)
             {
+                var smartRule = rules[ruleIndex];
                 var rule = new RuleTile.TilingRule
                 {
-                    m_Sprites = SpritesForRule(smartRule, tile.m_DefaultSprite),
-                    m_GameObject = smartRule.GameObject,
-                    m_MinAnimationSpeed = Mathf.Max(0f, smartRule.MinAnimationSpeed),
-                    m_MaxAnimationSpeed = Mathf.Max(0f, smartRule.MaxAnimationSpeed),
-                    m_PerlinScale = Mathf.Max(0.0001f, smartRule.PerlinScale),
-                    m_Output = ToUnityOutput(smartRule.Output),
-                    m_ColliderType = smartRule.ColliderType,
-                    m_RandomTransform = ToUnityTransform(smartRule.RandomTransform),
-                    m_RuleTransform = ToUnityTransform(smartRule.RuleTransform),
+                    m_Sprites = SpritesForRule(smartRule.Sprites, tile.m_DefaultSprite),
+                    m_MinAnimationSpeed = ToAnimationSpeed(smartRule.MinAnimationSpeed),
+                    m_MaxAnimationSpeed = ToAnimationSpeed(smartRule.MaxAnimationSpeed),
+                    m_Output = ToUnityOutput(
+                        NeoSmartTileOptionIds.ParseOutput(smartRule.Output)),
+                    m_ColliderType =
+                        NeoSmartTileOptionIds.ParseCollider(smartRule.Collider),
                 };
 
-                rule.ApplyNeighbors(BuildUnityNeighbors(smartRule, tile));
+                rule.ApplyNeighbors(BuildUnityNeighbors(smartRule, ruleIndex, tile));
                 tile.m_TilingRules.Add(rule);
             }
 
@@ -229,92 +334,72 @@ namespace NeoCompose.Runtime
             return tile;
         }
 
-        public static bool TryRead(object? source, out NeoSmartTile smartTile)
-        {
-            smartTile = new NeoSmartTile();
-            if (source == null) return false;
-            if (source is NeoSmartTile typed)
-            {
-                smartTile = typed;
-                return true;
-            }
-
-            bool foundAny = false;
-            if (TryReadSprite(source, "DefaultSprite", out var defaultSprite)
-                || TryReadSprite(source, "Sprite", out defaultSprite))
-            {
-                smartTile.DefaultSprite = defaultSprite;
-                foundAny = true;
-            }
-            if (TryReadGameObject(source, "DefaultGameObject", out var defaultGameObject)
-                || TryReadGameObject(source, "GameObject", out defaultGameObject))
-            {
-                smartTile.DefaultGameObject = defaultGameObject;
-                foundAny = true;
-            }
-            if (TryReadColliderType(source, "DefaultColliderType", out var defaultCollider)
-                || TryReadColliderType(source, "ColliderType", out defaultCollider))
-            {
-                smartTile.DefaultColliderType = defaultCollider;
-                foundAny = true;
-            }
-
-            var rawRules = ReadOptionalProperty(source, "Rules")
-                ?? ReadOptionalProperty(source, "TilingRules")
-                ?? ReadOptionalProperty(source, "SmartTileRules");
-            if (rawRules is IEnumerable enumerable)
-            {
-                foreach (var rawRule in enumerable)
-                {
-                    if (rawRule == null) continue;
-                    smartTile.Rules.Add(ReadRule(rawRule));
-                }
-                foundAny = true;
-            }
-
-            return foundAny;
-        }
-
         private static Dictionary<Vector3Int, int> BuildUnityNeighbors(
-            NeoSmartTileRule smartRule,
+            INeoSmartTileRule smartRule,
+            int ruleIndex,
             NeoRuleTile tile)
         {
             var result = new Dictionary<Vector3Int, int>();
             foreach (var neighbor in smartRule.Neighbors)
             {
-                int? unityNeighbor = ToUnityNeighbor(neighbor, tile);
-                if (unityNeighbor == null) continue;
-                result[neighbor.Offset] = unityNeighbor.Value;
+                var offset = new Vector3Int(neighbor.Cell.x, neighbor.Cell.y, 0);
+                result[offset] = ToUnityNeighbor(neighbor, ruleIndex, offset, tile);
             }
             return result;
         }
 
-        private static int? ToUnityNeighbor(NeoSmartTileNeighbor neighbor, NeoRuleTile tile)
+        private static int ToUnityNeighbor(
+            INeoSmartTileNeighbor neighbor,
+            int ruleIndex,
+            Vector3Int offset,
+            NeoRuleTile tile)
         {
-            switch (neighbor.Kind)
+            var kind = NeoSmartTileOptionIds.ParseCondition(neighbor.Condition);
+            if (kind == NeoSmartTileNeighborKind.This)
             {
-                case NeoSmartTileNeighborKind.DontCare:
-                    return null;
-                case NeoSmartTileNeighborKind.This:
-                    return RuleTile.TilingRuleOutput.Neighbor.This;
-                case NeoSmartTileNeighborKind.NotThis:
-                    return RuleTile.TilingRuleOutput.Neighbor.NotThis;
-                default:
-                    return tile.RegisterCustomNeighbor(neighbor);
+                return RuleTile.TilingRuleOutput.Neighbor.This;
             }
+            if (kind == NeoSmartTileNeighborKind.NotThis)
+            {
+                return RuleTile.TilingRuleOutput.Neighbor.NotThis;
+            }
+
+            // ParseCondition only returns This, NotThis, or the two
+            // inherits-from-type kinds, which require a referenced tile value.
+            if (string.IsNullOrEmpty(neighbor.TileValueId))
+            {
+                throw new InvalidOperationException(
+                    $"Smart tile rule {ruleIndex} neighbor at cell "
+                        + $"({neighbor.Cell.x}, {neighbor.Cell.y}) uses condition "
+                        + $"'{neighbor.Condition}' but has no TileValueId.");
+            }
+
+            return tile.RegisterCustomNeighbor(
+                new NeoRuleTileNeighbor(offset, kind, neighbor.TileValueId));
         }
 
         private static Sprite[] SpritesForRule(
-            NeoSmartTileRule rule,
+            IReadOnlyList<Sprite> sprites,
             Sprite? fallbackDefaultSprite)
         {
-            if (rule.Sprites.Count > 0)
+            if (sprites.Count > 0)
             {
-                return rule.Sprites.ToArray();
+                var copied = new Sprite[sprites.Count];
+                for (int index = 0; index < sprites.Count; index += 1)
+                {
+                    copied[index] = sprites[index];
+                }
+                return copied;
             }
-            var sprites = new Sprite[1];
-            if (fallbackDefaultSprite != null) sprites[0] = fallbackDefaultSprite;
-            return sprites;
+
+            var fallback = new Sprite[1];
+            if (fallbackDefaultSprite != null) fallback[0] = fallbackDefaultSprite;
+            return fallback;
+        }
+
+        private static float ToAnimationSpeed(double value)
+        {
+            return Mathf.Max(0f, (float)value);
         }
 
         private static RuleTile.TilingRuleOutput.OutputSprite ToUnityOutput(
@@ -329,322 +414,6 @@ namespace NeoCompose.Runtime
                 default:
                     return RuleTile.TilingRuleOutput.OutputSprite.Single;
             }
-        }
-
-        private static RuleTile.TilingRuleOutput.Transform ToUnityTransform(
-            NeoSmartTileTransformMode transform)
-        {
-            switch (transform)
-            {
-                case NeoSmartTileTransformMode.Rotated:
-                    return RuleTile.TilingRuleOutput.Transform.Rotated;
-                case NeoSmartTileTransformMode.MirrorX:
-                    return RuleTile.TilingRuleOutput.Transform.MirrorX;
-                case NeoSmartTileTransformMode.MirrorY:
-                    return RuleTile.TilingRuleOutput.Transform.MirrorY;
-                case NeoSmartTileTransformMode.MirrorXY:
-                    return RuleTile.TilingRuleOutput.Transform.MirrorXY;
-                case NeoSmartTileTransformMode.RotatedMirror:
-                    return RuleTile.TilingRuleOutput.Transform.RotatedMirror;
-                default:
-                    return RuleTile.TilingRuleOutput.Transform.Fixed;
-            }
-        }
-
-        private static NeoSmartTileRule ReadRule(object source)
-        {
-            if (source is NeoSmartTileRule typed) return typed;
-
-            var rule = new NeoSmartTileRule();
-            AddSprites(rule.Sprites, ReadOptionalProperty(source, "Sprites"));
-            if (rule.Sprites.Count == 0
-                && TryReadSprite(source, "Sprite", out var sprite)
-                && sprite != null)
-            {
-                rule.Sprites.Add(sprite);
-            }
-
-            if (TryReadGameObject(source, "GameObject", out var gameObject))
-            {
-                rule.GameObject = gameObject;
-            }
-            if (TryReadFloat(source, "MinAnimationSpeed", out var minSpeed)
-                || TryReadFloat(source, "AnimationSpeed", out minSpeed))
-            {
-                rule.MinAnimationSpeed = minSpeed;
-            }
-            if (TryReadFloat(source, "MaxAnimationSpeed", out var maxSpeed)
-                || TryReadFloat(source, "AnimationSpeed", out maxSpeed))
-            {
-                rule.MaxAnimationSpeed = maxSpeed;
-            }
-            if (TryReadFloat(source, "PerlinScale", out var perlinScale))
-            {
-                rule.PerlinScale = perlinScale;
-            }
-            if (TryReadEnum(source, "Output", out NeoSmartTileOutputMode output)
-                || TryReadEnum(source, "OutputMode", out output)
-                || TryReadEnum(source, "OutputSprite", out output))
-            {
-                rule.Output = output;
-            }
-            if (TryReadEnum(source, "RuleTransform", out NeoSmartTileTransformMode ruleTransform)
-                || TryReadEnum(source, "Transform", out ruleTransform))
-            {
-                rule.RuleTransform = ruleTransform;
-            }
-            if (TryReadEnum(source, "RandomTransform", out NeoSmartTileTransformMode randomTransform))
-            {
-                rule.RandomTransform = randomTransform;
-            }
-            if (TryReadColliderType(source, "ColliderType", out var colliderType))
-            {
-                rule.ColliderType = colliderType;
-            }
-
-            var rawNeighbors = ReadOptionalProperty(source, "Neighbors");
-            if (rawNeighbors is IEnumerable enumerable)
-            {
-                foreach (var rawNeighbor in enumerable)
-                {
-                    if (rawNeighbor == null) continue;
-                    rule.Neighbors.Add(ReadNeighbor(rawNeighbor));
-                }
-            }
-
-            return rule;
-        }
-
-        private static NeoSmartTileNeighbor ReadNeighbor(object source)
-        {
-            if (source is NeoSmartTileNeighbor typed) return typed;
-
-            var neighbor = new NeoSmartTileNeighbor();
-            if (TryReadVector3Int(source, "Offset", out var offset)
-                || TryReadVector3Int(source, "Position", out offset)
-                || TryReadVector3Int(source, "Cell", out offset))
-            {
-                neighbor.Offset = offset;
-            }
-            if (TryReadEnum(source, "Kind", out NeoSmartTileNeighborKind kind)
-                || TryReadEnum(source, "State", out kind)
-                || TryReadEnum(source, "Neighbor", out kind)
-                || TryReadEnum(source, "Condition", out kind))
-            {
-                neighbor.Kind = kind;
-            }
-            neighbor.Tile = ReadOptionalProperty(source, "Tile") as NeoGeneratedCustomValue
-                ?? ReadOptionalProperty(source, "TileValue") as NeoGeneratedCustomValue
-                ?? ReadOptionalProperty(source, "Value") as NeoGeneratedCustomValue;
-            neighbor.TileValueId = ReadOptionalProperty(source, "TileValueId") as string
-                ?? ReadOptionalProperty(source, "TileId") as string
-                ?? neighbor.Tile?.valueId;
-            neighbor.TypeId = ReadOptionalProperty(source, "TypeId") as string
-                ?? ReadOptionalProperty(source, "TileTypeId") as string
-                ?? ReadOptionalProperty(source, "BaseTypeId") as string;
-            neighbor.Tag = ReadOptionalProperty(source, "Tag") as string
-                ?? ReadOptionalProperty(source, "Category") as string;
-            return neighbor;
-        }
-
-        private static void AddSprites(List<Sprite> sprites, object? value)
-        {
-            if (value == null) return;
-            if (value is Sprite sprite)
-            {
-                sprites.Add(sprite);
-                return;
-            }
-            if (value is IEnumerable enumerable)
-            {
-                foreach (var item in enumerable)
-                {
-                    if (item is Sprite itemSprite) sprites.Add(itemSprite);
-                }
-            }
-        }
-
-        private static bool TryReadSprite(
-            object source,
-            string propertyName,
-            out Sprite? sprite)
-        {
-            sprite = ReadOptionalProperty(source, propertyName) as Sprite;
-            return sprite != null;
-        }
-
-        private static bool TryReadGameObject(
-            object source,
-            string propertyName,
-            out GameObject? gameObject)
-        {
-            gameObject = ReadOptionalProperty(source, propertyName) as GameObject;
-            return gameObject != null;
-        }
-
-        private static bool TryReadVector3Int(
-            object source,
-            string propertyName,
-            out Vector3Int value)
-        {
-            value = default;
-            var raw = ReadOptionalProperty(source, propertyName);
-            if (raw is Vector3Int vector3Int)
-            {
-                value = vector3Int;
-                return true;
-            }
-            if (raw is Vector2Int vector2Int)
-            {
-                value = new Vector3Int(vector2Int.x, vector2Int.y, 0);
-                return true;
-            }
-            var sdkVector3 = NeoGeneratedTypesSupport.ReadVector3IntValue(raw);
-            if (sdkVector3 != null)
-            {
-                value = sdkVector3.Value;
-                return true;
-            }
-            var sdkVector2 = NeoGeneratedTypesSupport.ReadVector2IntValue(raw);
-            if (sdkVector2 == null) return false;
-            value = new Vector3Int(sdkVector2.Value.x, sdkVector2.Value.y, 0);
-            return true;
-        }
-
-        private static bool TryReadFloat(
-            object source,
-            string propertyName,
-            out float value)
-        {
-            value = 0f;
-            var raw = ReadOptionalProperty(source, propertyName);
-            if (raw == null) return false;
-            switch (raw)
-            {
-                case float f:
-                    value = f;
-                    return true;
-                case double d:
-                    value = (float)d;
-                    return true;
-                case int i:
-                    value = i;
-                    return true;
-                case long l:
-                    value = l;
-                    return true;
-                case decimal m:
-                    value = (float)m;
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        private static bool TryReadColliderType(
-            object source,
-            string propertyName,
-            out Tile.ColliderType value)
-        {
-            value = Tile.ColliderType.Sprite;
-            var raw = ReadOptionalProperty(source, propertyName);
-            if (raw is Tile.ColliderType colliderType)
-            {
-                value = colliderType;
-                return true;
-            }
-            if (raw is int intValue && Enum.IsDefined(typeof(Tile.ColliderType), intValue))
-            {
-                value = (Tile.ColliderType)intValue;
-                return true;
-            }
-            if (raw is string stringValue)
-            {
-                return Enum.TryParse(stringValue, true, out value);
-            }
-            return false;
-        }
-
-        private static bool TryReadEnum<TEnum>(
-            object source,
-            string propertyName,
-            out TEnum value)
-            where TEnum : struct
-        {
-            value = default;
-            var raw = ReadOptionalProperty(source, propertyName);
-            if (raw is TEnum typed)
-            {
-                value = typed;
-                return true;
-            }
-            if (raw is string stringValue)
-            {
-                string normalized = stringValue.Replace("-", "")
-                    .Replace("_", "")
-                    .Replace(" ", "");
-                foreach (var name in Enum.GetNames(typeof(TEnum)))
-                {
-                    if (!string.Equals(
-                        name,
-                        normalized,
-                        StringComparison.OrdinalIgnoreCase))
-                    {
-                        continue;
-                    }
-                    value = (TEnum)Enum.Parse(typeof(TEnum), name);
-                    return true;
-                }
-                return Enum.TryParse(stringValue, true, out value);
-            }
-            if (raw == null) return false;
-            if (!IsIntegerLike(raw)) return false;
-            int intValue = Convert.ToInt32(raw, CultureInfo.InvariantCulture);
-            if (!Enum.IsDefined(typeof(TEnum), intValue)) return false;
-            value = (TEnum)Enum.ToObject(typeof(TEnum), intValue);
-            return true;
-        }
-
-        private static bool IsIntegerLike(object value)
-        {
-            return value is byte
-                || value is sbyte
-                || value is short
-                || value is ushort
-                || value is int
-                || value is uint
-                || value is long
-                || value is ulong;
-        }
-
-        private static object? ReadOptionalProperty(object source, string propertyName)
-        {
-            var properties = source.GetType().GetProperties(
-                BindingFlags.Public | BindingFlags.Instance);
-            foreach (var property in properties)
-            {
-                if (property.GetIndexParameters().Length > 0) continue;
-                if (!string.Equals(
-                    property.Name,
-                    propertyName,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-                try
-                {
-                    return property.GetValue(source);
-                }
-                catch (TargetInvocationException)
-                {
-                    return null;
-                }
-                catch (InvalidOperationException)
-                {
-                    return null;
-                }
-            }
-            return null;
         }
     }
 }

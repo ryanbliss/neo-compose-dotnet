@@ -22,6 +22,9 @@ namespace NeoCompose.Tests
         private const string ObjectTypeId = "object-type";
         private const string TileLayerLinkTypeId = "tile-layer-link-type";
         private const string TileInstanceTypeId = "tile-instance-type";
+        private const string BaseTileTypeId = "base-tile-type";
+        private const string SubTileTypeId = "sub-tile-type";
+        private const string OtherTileTypeId = "other-tile-type";
 
         [Test]
         public void TileLayerLinkPayloadsResolveThroughCurrentObjectPosition()
@@ -408,60 +411,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void SmartTileRuleTileConverter_MapsUnityRuleTileFields()
-        {
-            var defaultSprite = CreateTestSprite("default");
-            var ruleSprite = CreateTestSprite("rule");
-            var randomSprite = CreateTestSprite("random");
-            var smartTile = new NeoSmartTile
-            {
-                DefaultSprite = defaultSprite,
-                DefaultColliderType = Tile.ColliderType.None,
-            };
-            var rule = new NeoSmartTileRule
-            {
-                Output = NeoSmartTileOutputMode.Random,
-                RuleTransform = NeoSmartTileTransformMode.MirrorXY,
-                RandomTransform = NeoSmartTileTransformMode.Rotated,
-                ColliderType = Tile.ColliderType.Sprite,
-                MinAnimationSpeed = 0.25f,
-                MaxAnimationSpeed = 1.75f,
-                PerlinScale = 0.8f,
-            };
-            rule.Sprites.Add(ruleSprite);
-            rule.Sprites.Add(randomSprite);
-            rule.Neighbors.Add(new NeoSmartTileNeighbor(
-                new Vector3Int(0, 1, 0),
-                NeoSmartTileNeighborKind.This));
-            rule.Neighbors.Add(new NeoSmartTileNeighbor(
-                new Vector3Int(1, 0, 0),
-                NeoSmartTileNeighborKind.NotThis));
-            rule.Neighbors.Add(new NeoSmartTileNeighbor(
-                new Vector3Int(-1, 0, 0),
-                NeoSmartTileNeighborKind.DontCare));
-            smartTile.Rules.Add(rule);
-
-            var unityTile = NeoSmartTileRuleTileConverter.ToRuleTile(smartTile);
-
-            Assert.AreSame(defaultSprite, unityTile.m_DefaultSprite);
-            Assert.AreEqual(Tile.ColliderType.None, unityTile.m_DefaultColliderType);
-            Assert.AreEqual(1, unityTile.m_TilingRules.Count);
-            var unityRule = unityTile.m_TilingRules[0];
-            Assert.AreEqual(RuleTile.TilingRuleOutput.OutputSprite.Random, unityRule.m_Output);
-            Assert.AreEqual(RuleTile.TilingRuleOutput.Transform.MirrorXY, unityRule.m_RuleTransform);
-            Assert.AreEqual(RuleTile.TilingRuleOutput.Transform.Rotated, unityRule.m_RandomTransform);
-            Assert.AreEqual(Tile.ColliderType.Sprite, unityRule.m_ColliderType);
-            Assert.AreEqual(0.25f, unityRule.m_MinAnimationSpeed);
-            Assert.AreEqual(1.75f, unityRule.m_MaxAnimationSpeed);
-            Assert.AreEqual(0.8f, unityRule.m_PerlinScale);
-            CollectionAssert.AreEqual(new[] { ruleSprite, randomSprite }, unityRule.m_Sprites);
-            Assert.AreEqual(2, unityRule.m_Neighbors.Count);
-            Assert.IsTrue(unityRule.GetNeighbors().ContainsKey(new Vector3Int(0, 1, 0)));
-            Assert.IsTrue(unityRule.GetNeighbors().ContainsKey(new Vector3Int(1, 0, 0)));
-            Assert.IsFalse(unityRule.GetNeighbors().ContainsKey(new Vector3Int(-1, 0, 0)));
-        }
-
-        [Test]
         public void AssetDatabase_ResolvesGeneratedTileAssets()
         {
             var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();
@@ -576,17 +525,18 @@ namespace NeoCompose.Tests
                 "floor-tile",
                 factories,
                 new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
-            tile.Sprite = CreateTestSprite("fallback");
-            tile.SmartTile = new NeoSmartTile
+            var fallbackSprite = CreateTestSprite("fallback");
+            tile.Sprite = fallbackSprite;
+            var smartTile = new TestSmartTile
             {
-                DefaultSprite = CreateTestSprite("smart-default"),
-                DefaultColliderType = Tile.ColliderType.None,
+                DefaultCollider = NeoSmartTileOptionIds.ColliderNone,
             };
-            tile.SmartTile.Rules.Add(new NeoSmartTileRule
+            smartTile.Rules.Add(new TestSmartTileRule
             {
-                ColliderType = Tile.ColliderType.Sprite,
-                Output = NeoSmartTileOutputMode.Single,
+                Collider = NeoSmartTileOptionIds.ColliderSprite,
+                Output = NeoSmartTileOptionIds.OutputSingle,
             });
+            tile.SmartTile = smartTile;
 
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
@@ -622,14 +572,172 @@ namespace NeoCompose.Tests
                 var tilemap = go.GetComponentInChildren<Tilemap>();
                 Assert.IsNotNull(tilemap);
                 var renderedTile = tilemap!.GetTile(Vector3Int.zero);
-                Assert.IsInstanceOf<RuleTile>(renderedTile);
-                var ruleTile = (RuleTile)renderedTile;
-                Assert.AreSame(tile.SmartTile.DefaultSprite, ruleTile.m_DefaultSprite);
+                Assert.IsInstanceOf<NeoRuleTile>(renderedTile);
+                var ruleTile = (NeoRuleTile)renderedTile;
+                Assert.AreSame(fallbackSprite, ruleTile.m_DefaultSprite);
                 Assert.AreEqual(Tile.ColliderType.None, ruleTile.m_DefaultColliderType);
+                Assert.AreEqual(1, ruleTile.m_TilingRules.Count);
+                Assert.AreEqual(
+                    Tile.ColliderType.Sprite,
+                    ruleTile.m_TilingRules[0].m_ColliderType);
             }
             finally
             {
                 UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(fallbackSprite.texture);
+                UnityEngine.Object.DestroyImmediate(fallbackSprite);
+            }
+        }
+
+        [Test]
+        public void Render_PaintingNeighborRefreshesSmartTileAndMatchesSubtype()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories = BuildInheritanceTileFactories();
+            var smartTileValue = (TestTile)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "floor-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            var neighborValue = (TestTile)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "sub-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            var defaultSprite = CreateTestSprite("smart-default");
+            var connectedSprite = CreateTestSprite("smart-connected");
+            var neighborSprite = CreateTestSprite("subtype-neighbor");
+            smartTileValue.Sprite = defaultSprite;
+            neighborValue.Sprite = neighborSprite;
+            smartTileValue.SmartTile = SmartTileWithInheritsNeighbor(
+                connectedSprite,
+                "base-tile");
+
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>());
+            var layer = new MutableTestTileLayerRuntime(
+                "background-layer",
+                "Background",
+                TileTypeId);
+            layer.SetTile(new NeoResolvedTileInstance(
+                "smart-origin",
+                "background-layer",
+                Vector2Int.zero,
+                smartTileValue,
+                0));
+            var content = new TestTileGridContent(primitive, new[] { layer });
+            var go = new GameObject("NeoTileGridRenderer smart neighbor refresh test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(content);
+
+                var tilemap = go.GetComponentInChildren<Tilemap>();
+                Assert.IsNotNull(tilemap);
+                Assert.IsInstanceOf<NeoRuleTile>(tilemap!.GetTile(Vector3Int.zero));
+                Assert.AreSame(defaultSprite, tilemap.GetSprite(Vector3Int.zero));
+
+                layer.SetTile(new NeoResolvedTileInstance(
+                    "subtype-neighbor",
+                    "background-layer",
+                    new Vector2Int(1, 0),
+                    neighborValue,
+                    1));
+                primitive.NotifyTileLayerChanged(
+                    "background-layer",
+                    Array.Empty<Vector2Int>(),
+                    new[] { new Vector2Int(1, 0) },
+                    NeoTileGridChangeSourceKind.Direct,
+                    null);
+
+                Assert.AreSame(neighborSprite, tilemap.GetSprite(new Vector3Int(1, 0, 0)));
+                Assert.AreSame(connectedSprite, tilemap.GetSprite(Vector3Int.zero));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(defaultSprite);
+                DestroyTestSprite(connectedSprite);
+                DestroyTestSprite(neighborSprite);
+            }
+        }
+
+        [Test]
+        public void Render_InheritsFromTypeRuleRejectsUnrelatedNeighbor()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories = BuildInheritanceTileFactories();
+            var smartTileValue = (TestTile)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "floor-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            var neighborValue = (TestTile)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "other-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            var defaultSprite = CreateTestSprite("smart-default");
+            var connectedSprite = CreateTestSprite("smart-connected");
+            var neighborSprite = CreateTestSprite("unrelated-neighbor");
+            smartTileValue.Sprite = defaultSprite;
+            neighborValue.Sprite = neighborSprite;
+            smartTileValue.SmartTile = SmartTileWithInheritsNeighbor(
+                connectedSprite,
+                "base-tile");
+
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>());
+            var layer = new MutableTestTileLayerRuntime(
+                "background-layer",
+                "Background",
+                TileTypeId);
+            layer.SetTile(new NeoResolvedTileInstance(
+                "smart-origin",
+                "background-layer",
+                Vector2Int.zero,
+                smartTileValue,
+                0));
+            var content = new TestTileGridContent(primitive, new[] { layer });
+            var go = new GameObject("NeoTileGridRenderer smart unrelated neighbor test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(content);
+
+                var tilemap = go.GetComponentInChildren<Tilemap>();
+                Assert.IsNotNull(tilemap);
+
+                layer.SetTile(new NeoResolvedTileInstance(
+                    "unrelated-neighbor",
+                    "background-layer",
+                    new Vector2Int(1, 0),
+                    neighborValue,
+                    1));
+                primitive.NotifyTileLayerChanged(
+                    "background-layer",
+                    Array.Empty<Vector2Int>(),
+                    new[] { new Vector2Int(1, 0) },
+                    NeoTileGridChangeSourceKind.Direct,
+                    null);
+
+                Assert.AreSame(neighborSprite, tilemap!.GetSprite(new Vector3Int(1, 0, 0)));
+                Assert.AreSame(defaultSprite, tilemap.GetSprite(Vector3Int.zero));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                DestroyTestSprite(defaultSprite);
+                DestroyTestSprite(connectedSprite);
+                DestroyTestSprite(neighborSprite);
             }
         }
 
@@ -833,7 +941,7 @@ namespace NeoCompose.Tests
             public bool isTrigger { get; set; }
         }
 
-        private sealed class TestTile : NeoGeneratedCustomValue
+        private sealed class TestTile : NeoGeneratedCustomValue, INeoSmartTileSource
         {
             public TestTile(NeoClient client, NeoAttributeCustom node)
                 : base(client, node, TileTypeId)
@@ -841,7 +949,70 @@ namespace NeoCompose.Tests
             }
 
             public Sprite? Sprite { get; set; }
-            public NeoSmartTile? SmartTile { get; set; }
+            public INeoSmartTile? SmartTile { get; set; }
+        }
+
+        private sealed class TestSmartTile : INeoSmartTile
+        {
+            public string DefaultCollider { get; set; } =
+                NeoSmartTileOptionIds.ColliderSprite;
+
+            public List<INeoSmartTileRule> Rules { get; } = new();
+
+            IReadOnlyList<INeoSmartTileRule> INeoSmartTile.Rules => Rules;
+        }
+
+        private sealed class TestSmartTileRule : INeoSmartTileRule
+        {
+            public List<INeoSmartTileNeighbor> Neighbors { get; } = new();
+
+            public List<Sprite> Sprites { get; } = new();
+
+            public string Output { get; set; } = NeoSmartTileOptionIds.OutputSingle;
+
+            public string Collider { get; set; } = NeoSmartTileOptionIds.ColliderSprite;
+
+            public double MinAnimationSpeed { get; set; } = 1d;
+
+            public double MaxAnimationSpeed { get; set; } = 1d;
+
+            IReadOnlyList<INeoSmartTileNeighbor> INeoSmartTileRule.Neighbors => Neighbors;
+
+            IReadOnlyList<Sprite> INeoSmartTileRule.Sprites => Sprites;
+        }
+
+        private sealed class TestSmartTileNeighbor : INeoSmartTileNeighbor
+        {
+            public Vector2Int Cell { get; set; }
+
+            public string Condition { get; set; } = NeoSmartTileOptionIds.ConditionThis;
+
+            public string? TileValueId { get; set; }
+        }
+
+        private sealed class MutableTestTileLayerRuntime : ReadOnlyNeoTileLayerRuntime
+        {
+            private readonly Dictionary<Vector2Int, NeoResolvedTileInstance> tilesByCell =
+                new();
+
+            public MutableTestTileLayerRuntime(
+                string layerId,
+                string displayName,
+                string expectedTypeId)
+                : base(layerId, displayName, expectedTypeId, null, null)
+            {
+            }
+
+            public void SetTile(NeoResolvedTileInstance tile)
+            {
+                tilesByCell[tile.Cell] = tile;
+            }
+
+            public override IReadOnlyList<NeoResolvedTileInstance> GetTiles() =>
+                new List<NeoResolvedTileInstance>(tilesByCell.Values);
+
+            public override NeoResolvedTileInstance? GetTile(Vector2Int cell) =>
+                tilesByCell.TryGetValue(cell, out var tile) ? tile : null;
         }
 
         private sealed class TestTileLayerLink : NeoGeneratedCustomValue
@@ -1045,6 +1216,47 @@ namespace NeoCompose.Tests
             return sprite;
         }
 
+        private static void DestroyTestSprite(Sprite sprite)
+        {
+            UnityEngine.Object.DestroyImmediate(sprite.texture);
+            UnityEngine.Object.DestroyImmediate(sprite);
+        }
+
+        private static TestSmartTile SmartTileWithInheritsNeighbor(
+            Sprite connectedSprite,
+            string tileValueId)
+        {
+            var rule = new TestSmartTileRule();
+            rule.Sprites.Add(connectedSprite);
+            rule.Neighbors.Add(new TestSmartTileNeighbor
+            {
+                Cell = new Vector2Int(1, 0),
+                Condition = NeoSmartTileOptionIds.ConditionInheritsFromType,
+                TileValueId = tileValueId,
+            });
+            var smartTile = new TestSmartTile();
+            smartTile.Rules.Add(rule);
+            return smartTile;
+        }
+
+        private static Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            BuildInheritanceTileFactories()
+        {
+            NeoGeneratedTypesSupport.ReadOnlyCustomFactory factory =
+                (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(
+                        resolvedClient,
+                        node,
+                        () => new TestTile(resolvedClient, node));
+            return new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            {
+                [TileTypeId] = factory,
+                [BaseTileTypeId] = factory,
+                [SubTileTypeId] = factory,
+                [OtherTileTypeId] = factory,
+            };
+        }
+
         private static Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
             BuildReadOnlyFactories()
         {
@@ -1146,6 +1358,28 @@ namespace NeoCompose.Tests
                     ["Tiles"] = "tile-layer-link-tiles-attribute",
                 },
             };
+            var baseTileType = new CustomType
+            {
+                id = BaseTileTypeId,
+                projectId = "project-a",
+                name = "Base Tile",
+                schema = new Dictionary<string, string>(),
+            };
+            var subTileType = new CustomType
+            {
+                id = SubTileTypeId,
+                projectId = "project-a",
+                name = "Sub Tile",
+                extendsTypeId = BaseTileTypeId,
+                schema = new Dictionary<string, string>(),
+            };
+            var otherTileType = new CustomType
+            {
+                id = OtherTileTypeId,
+                projectId = "project-a",
+                name = "Other Tile",
+                schema = new Dictionary<string, string>(),
+            };
             return new ProjectData
             {
                 project = new Project
@@ -1186,6 +1420,9 @@ namespace NeoCompose.Tests
                     ["root-save-value"] = ObjectValue("root-save-value", rootType.id),
                     ["root-session-value"] = ObjectValue("root-session-value", rootType.id),
                     ["floor-tile"] = ObjectValue("floor-tile", TileTypeId),
+                    ["base-tile"] = ObjectValue("base-tile", BaseTileTypeId),
+                    ["sub-tile"] = ObjectValue("sub-tile", SubTileTypeId),
+                    ["other-tile"] = ObjectValue("other-tile", OtherTileTypeId),
                     ["shop-object"] = ObjectValue("shop-object", ObjectTypeId),
                     ["shop-floor-link"] = new ObjectAttributeValue
                     {
@@ -1209,6 +1446,9 @@ namespace NeoCompose.Tests
                     [ObjectTypeId] = objectType,
                     [TileInstanceTypeId] = tileInstanceType,
                     [TileLayerLinkTypeId] = tileLayerLinkType,
+                    [BaseTileTypeId] = baseTileType,
+                    [SubTileTypeId] = subTileType,
+                    [OtherTileTypeId] = otherTileType,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
                 tileGridContents = new Dictionary<string, TileGridContent>
