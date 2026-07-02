@@ -18,7 +18,7 @@ namespace HelloWorld.Assets.Scripts
     /// </summary>
     internal sealed class LandingSceneGameplay : IDisposable
     {
-        private const int BarrierRewardBits = 25;
+        private const int CacheRewardBits = 25;
 
         private readonly HelloWorldNeo neo;
         private readonly LandingSceneUI ui = new();
@@ -80,6 +80,9 @@ namespace HelloWorld.Assets.Scripts
 
         private bool RewardClaimed =>
             neo.Dialogues.HasVisited(LandingDialogueIds.BootGlyphSealReady);
+
+        private bool CacheClaimed =>
+            neo.Dialogues.HasVisited(LandingDialogueIds.RecoveryCache);
 
         public void Open()
         {
@@ -258,7 +261,7 @@ namespace HelloWorld.Assets.Scripts
             var target = PlayerCell + delta;
             if (!CanEnter(target))
             {
-                SetStatus("The collision layer catches your boot before the step lands.");
+                SetStatus("Hull plating. It does not negotiate.");
                 return false;
             }
 
@@ -275,7 +278,7 @@ namespace HelloWorld.Assets.Scripts
                 {
                     TriggerLandingDialogue(
                         LandingDialogueIds.BootGlyphSealLocked,
-                        () => SetStatus("Look for a dark boot-glyph floor tile and press E beside it."));
+                        () => SetStatus("The seal wants a boot trace. Find the glowing glyph in the south chamber and press E beside it."));
                     return;
                 }
 
@@ -289,8 +292,22 @@ namespace HelloWorld.Assets.Scripts
                     LandingDialogueIds.BootGlyphAttuned,
                     () =>
                     {
-                        SetStatus("Boot trace captured. Take it to the teal blocker or the exit prompt.");
+                        SetStatus("Boot trace captured. Take it to the vault seal — or let the ship's console relay it.");
                     });
+                return;
+            }
+
+            if (TryFindNearbyObject<RecoveryCacheObject>(out _))
+            {
+                if (CacheClaimed)
+                {
+                    SetStatus("The cache is empty. The receipt, however, is eternal.");
+                    return;
+                }
+
+                TriggerLandingDialogue(
+                    LandingDialogueIds.RecoveryCache,
+                    () => ClaimCacheRewardAsync());
                 return;
             }
 
@@ -320,13 +337,13 @@ namespace HelloWorld.Assets.Scripts
                     () =>
                     {
                         SetStatus(IsBarrierActive()
-                            ? "Find the glyph trace and open the blocker before claiming the reward."
-                            : "The reward path is open. The save has the receipt.");
+                            ? "Find the boot glyph and release the seal before claiming the cache."
+                            : "The vault stands open. The save has the receipt.");
                     });
                 return;
             }
 
-            SetStatus("Nothing answers here. Try a glyph tile, the teal blocker, or the exit prompt.");
+            SetStatus("Nothing answers here. Try the boot glyph, the vault seal, or your ship's console.");
         }
 
         private async void PersistBarrierOpenAsync()
@@ -336,8 +353,7 @@ namespace HelloWorld.Assets.Scripts
 
             try
             {
-                neo.Save.Bits += BarrierRewardBits;
-                SetStatus($"Barrier removed. +{BarrierRewardBits} bits recovered from the old landing cache.");
+                SetStatus("Seal released. The vault corridor stands open.");
 
                 if (saveAction != null)
                 {
@@ -347,11 +363,31 @@ namespace HelloWorld.Assets.Scripts
             catch (Exception exception)
             {
                 Debug.LogError(exception);
-                SetStatus("The barrier opened locally, but save failed. Check the console.");
+                SetStatus("The seal opened locally, but save failed. Check the console.");
             }
             finally
             {
                 barrierOpening = false;
+            }
+        }
+
+        private async void ClaimCacheRewardAsync()
+        {
+            try
+            {
+                neo.Save.Bits += CacheRewardBits;
+                SetStatus($"+{CacheRewardBits} bits recovered from the cache.");
+                UpdatePrompt();
+
+                if (saveAction != null)
+                {
+                    await saveAction();
+                }
+            }
+            catch (Exception exception)
+            {
+                Debug.LogError(exception);
+                SetStatus("The cache opened locally, but save failed. Check the console.");
             }
         }
 
@@ -460,7 +496,7 @@ namespace HelloWorld.Assets.Scripts
                 if (obj.TryGetObject<PlayerSpawnObject>(out _)) return obj.Cell;
             }
 
-            return new Vector2Int(0, 4);
+            return new Vector2Int(-7, 2);
         }
 
         private void UpdatePrompt()
@@ -468,8 +504,8 @@ namespace HelloWorld.Assets.Scripts
             if (TryFindNearbyBarrier(out _))
             {
                 PromptText = GlyphAttuned
-                    ? "E Unblock barrier"
-                    : "E Inspect sealed barrier";
+                    ? "E Release vault seal"
+                    : "E Inspect vault seal";
                 return;
             }
 
@@ -482,8 +518,14 @@ namespace HelloWorld.Assets.Scripts
             if (TryFindNearbyObject<ExitPromptObject>(out _))
             {
                 PromptText = IsBarrierActive()
-                    ? "E Ask exit prompt"
-                    : "E Review launch prompt";
+                    ? "E Ask launch console"
+                    : "E Review launch console";
+                return;
+            }
+
+            if (TryFindNearbyObject<RecoveryCacheObject>(out _))
+            {
+                PromptText = CacheClaimed ? "E Cache (claimed)" : "E Open recovery cache";
                 return;
             }
 
@@ -521,6 +563,7 @@ namespace HelloWorld.Assets.Scripts
             public const string ExitPromptQuiet = "7a6bcb67-d42a-4eb8-9934-0263d506e85c";
             public const string VaultPlaqueLocked = "da73bce9-0d39-4c27-bb09-32b538f97f61";
             public const string VaultPlaqueReward = "bbda459e-c77e-4084-9047-22b1dfbb0bff";
+            public const string RecoveryCache = "cb0ac79c-f3b4-4c96-b968-8c4173c1f712";
         }
 
         private struct CellBoundsAccumulator
