@@ -19,7 +19,7 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "f5b854a1ffb982c9a2d7ed04b6ae40c71cc428ae7e68977bc91a1aab520fe8a2",
+        "projectDocumentContentHash": "d0cc6b906c1d0d4aee441532b42e6a3fedfa670ffae991321f84fcd95d0637e6",
         "codegenContractHash": "42083391f123ae4712b71dc02d9bded2360bc4670bfed7ba1440486f84734a12",
         "runtimeDataContractHash": "ec174220e04cbc76633bf0620d2b9883fe2c73c1abd427f14b2d62a4fbd00032"
     },
@@ -12495,18 +12495,6 @@
                 "y": -6
             }
         },
-        "3243c7c0-c266-40ba-9d2b-175ca088e468": {
-            "createdAt": 1781989724216,
-            "id": "3243c7c0-c266-40ba-9d2b-175ca088e468",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "typeId": "07db44f3-8cc5-4164-aace-098ca68460f4",
-            "updatedAt": 1782012571783,
-            "value": {
-                "CompatibleLayers": "ab5a4e1a-7627-418b-8f37-fe25c9ba75c9",
-                "DefaultLayer": "55313a73-3ec9-4ca7-91b5-e542badf21f2",
-                "Name": "0b1a67df-7dcb-414b-b0fb-170426441d13"
-            }
-        },
         "3260849f-1a45-4b20-9c5f-98666401be71": {
             "createdAt": 1782957291869,
             "id": "3260849f-1a45-4b20-9c5f-98666401be71",
@@ -15429,20 +15417,6 @@
             "value": {
                 "x": 5,
                 "y": -2
-            }
-        },
-        "55afe9c2-3a95-41e5-a83b-6e646b50a6e8": {
-            "createdAt": 1782952202186,
-            "id": "55afe9c2-3a95-41e5-a83b-6e646b50a6e8",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "typeId": "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2",
-            "updatedAt": 1782952202186,
-            "value": {
-                "CompatibleLayers": "d6beb50c-918e-4e57-b672-8c8016692556",
-                "DefaultLayer": "ffeab05d-d8f4-4e65-8248-2d2f09d78058",
-                "EligibleTileLayers": "901b7f8a-6a8e-426e-8d93-10f59c3db593",
-                "Name": "71d3472f-71e2-4ab4-85d6-5dd102523fd8",
-                "Sprite": "dd057979-26a8-44f7-9e59-5de486583ab3"
             }
         },
         "55cf319d-73b2-4db9-8954-5da3597b882d": {
@@ -27685,20 +27659,6 @@
             "value": [
                 "8f96912d-5bbb-428c-84eb-8932ef588141"
             ]
-        },
-        "e54e3dd9-cce6-4b8e-9a21-fa1871461ccc": {
-            "createdAt": 1782952202186,
-            "id": "e54e3dd9-cce6-4b8e-9a21-fa1871461ccc",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "typeId": "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2",
-            "updatedAt": 1782952202186,
-            "value": {
-                "CompatibleLayers": "f91e46df-51b0-47a8-835c-92a893f42704",
-                "DefaultLayer": "29dad526-d5c3-4309-bad8-29bbe6d967c4",
-                "EligibleTileLayers": "021b5a6c-67ff-44f2-b1b1-7bd1e9aee303",
-                "Name": "da9487aa-808e-48c3-9b71-7d4e3c4dada3",
-                "Sprite": "8f5f3afd-c0a7-4b62-ad6a-ef2331d66b50"
-            }
         },
         "e5a771b0-4aee-4c2c-a282-f3899a16cd2e": {
             "createdAt": 1782952217267,
