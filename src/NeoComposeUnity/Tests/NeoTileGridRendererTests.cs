@@ -972,6 +972,9 @@ namespace NeoCompose.Tests
 
             public string Collider { get; set; } = NeoSmartTileOptionIds.ColliderSprite;
 
+            public string RuleTransform { get; set; } =
+                NeoSmartTileOptionIds.TransformFixed;
+
             public double MinAnimationSpeed { get; set; } = 1d;
 
             public double MaxAnimationSpeed { get; set; } = 1d;

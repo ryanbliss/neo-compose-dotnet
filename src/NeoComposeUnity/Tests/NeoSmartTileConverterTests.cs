@@ -159,6 +159,70 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ToRuleTile_MapsTransformOptionIds()
+        {
+            var smartTile = SmartTileWithRules(
+                new FakeSmartTileRule
+                {
+                    RuleTransform = NeoSmartTileOptionIds.TransformFixed,
+                },
+                new FakeSmartTileRule
+                {
+                    RuleTransform = NeoSmartTileOptionIds.TransformRotated,
+                },
+                new FakeSmartTileRule
+                {
+                    RuleTransform = NeoSmartTileOptionIds.TransformMirrorX,
+                },
+                new FakeSmartTileRule
+                {
+                    RuleTransform = NeoSmartTileOptionIds.TransformMirrorY,
+                },
+                new FakeSmartTileRule
+                {
+                    RuleTransform = NeoSmartTileOptionIds.TransformMirrorXY,
+                },
+                new FakeSmartTileRule
+                {
+                    RuleTransform = NeoSmartTileOptionIds.TransformRotatedMirror,
+                });
+
+            var tile = Convert(smartTile);
+
+            Assert.AreEqual(
+                RuleTile.TilingRuleOutput.Transform.Fixed,
+                tile.m_TilingRules[0].m_RuleTransform);
+            Assert.AreEqual(
+                RuleTile.TilingRuleOutput.Transform.Rotated,
+                tile.m_TilingRules[1].m_RuleTransform);
+            Assert.AreEqual(
+                RuleTile.TilingRuleOutput.Transform.MirrorX,
+                tile.m_TilingRules[2].m_RuleTransform);
+            Assert.AreEqual(
+                RuleTile.TilingRuleOutput.Transform.MirrorY,
+                tile.m_TilingRules[3].m_RuleTransform);
+            Assert.AreEqual(
+                RuleTile.TilingRuleOutput.Transform.MirrorXY,
+                tile.m_TilingRules[4].m_RuleTransform);
+            Assert.AreEqual(
+                RuleTile.TilingRuleOutput.Transform.RotatedMirror,
+                tile.m_TilingRules[5].m_RuleTransform);
+        }
+
+        [Test]
+        public void ToRuleTile_UnknownTransformOptionIdThrows()
+        {
+            var smartTile = SmartTileWithRules(new FakeSmartTileRule
+            {
+                RuleTransform = "Sideways",
+            });
+
+            var error = Assert.Throws<ArgumentException>(() => Convert(smartTile));
+            StringAssert.Contains("Sideways", error!.Message);
+            StringAssert.Contains("RuleTransform", error.Message);
+        }
+
+        [Test]
         public void ToRuleTile_UsesRuleSpritesWhenProvided()
         {
             var ruleSprite = CreateSprite("rule");
@@ -315,6 +379,9 @@ namespace NeoCompose.Tests
             public string Output { get; set; } = NeoSmartTileOptionIds.OutputSingle;
 
             public string Collider { get; set; } = NeoSmartTileOptionIds.ColliderSprite;
+
+            public string RuleTransform { get; set; } =
+                NeoSmartTileOptionIds.TransformFixed;
 
             public double MinAnimationSpeed { get; set; } = 1d;
 

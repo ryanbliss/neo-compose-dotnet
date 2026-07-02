@@ -47,6 +47,11 @@ namespace NeoCompose.Runtime
         /// </summary>
         string Collider { get; }
 
+        /// <summary>
+        /// Rule transform enum option id. See <see cref="NeoSmartTileOptionIds"/>.
+        /// </summary>
+        string RuleTransform { get; }
+
         double MinAnimationSpeed { get; }
 
         double MaxAnimationSpeed { get; }
@@ -87,11 +92,6 @@ namespace NeoCompose.Runtime
         Animation = 2,
     }
 
-    /// <summary>
-    /// Reserved parse target for future transform option ids. Smart tile data
-    /// has no transform fields in v1; converted rules keep Unity's Fixed
-    /// transforms.
-    /// </summary>
     public enum NeoSmartTileTransformMode
     {
         Fixed = 0,
@@ -122,6 +122,13 @@ namespace NeoCompose.Runtime
         public const string ColliderNone = "None";
         public const string ColliderSprite = "Sprite";
         public const string ColliderGrid = "Grid";
+
+        public const string TransformFixed = "Fixed";
+        public const string TransformRotated = "Rotated";
+        public const string TransformMirrorX = "MirrorX";
+        public const string TransformMirrorY = "MirrorY";
+        public const string TransformMirrorXY = "MirrorXY";
+        public const string TransformRotatedMirror = "RotatedMirror";
 
         public static NeoSmartTileNeighborKind ParseCondition(string condition)
         {
@@ -174,6 +181,30 @@ namespace NeoCompose.Runtime
                     throw new ArgumentException(
                         $"Unrecognized smart tile Collider option id '{collider}'.",
                         nameof(collider));
+            }
+        }
+
+        public static NeoSmartTileTransformMode ParseTransform(string transform)
+        {
+            switch (transform)
+            {
+                case TransformFixed:
+                    return NeoSmartTileTransformMode.Fixed;
+                case TransformRotated:
+                    return NeoSmartTileTransformMode.Rotated;
+                case TransformMirrorX:
+                    return NeoSmartTileTransformMode.MirrorX;
+                case TransformMirrorY:
+                    return NeoSmartTileTransformMode.MirrorY;
+                case TransformMirrorXY:
+                    return NeoSmartTileTransformMode.MirrorXY;
+                case TransformRotatedMirror:
+                    return NeoSmartTileTransformMode.RotatedMirror;
+                default:
+                    throw new ArgumentException(
+                        "Unrecognized smart tile rule RuleTransform option id "
+                            + $"'{transform}'.",
+                        nameof(transform));
             }
         }
     }
@@ -324,6 +355,8 @@ namespace NeoCompose.Runtime
                         NeoSmartTileOptionIds.ParseOutput(smartRule.Output)),
                     m_ColliderType =
                         NeoSmartTileOptionIds.ParseCollider(smartRule.Collider),
+                    m_RuleTransform = ToUnityTransform(
+                        NeoSmartTileOptionIds.ParseTransform(smartRule.RuleTransform)),
                 };
 
                 rule.ApplyNeighbors(BuildUnityNeighbors(smartRule, ruleIndex, tile));
@@ -413,6 +446,26 @@ namespace NeoCompose.Runtime
                     return RuleTile.TilingRuleOutput.OutputSprite.Animation;
                 default:
                     return RuleTile.TilingRuleOutput.OutputSprite.Single;
+            }
+        }
+
+        private static RuleTile.TilingRuleOutput.Transform ToUnityTransform(
+            NeoSmartTileTransformMode transform)
+        {
+            switch (transform)
+            {
+                case NeoSmartTileTransformMode.Rotated:
+                    return RuleTile.TilingRuleOutput.Transform.Rotated;
+                case NeoSmartTileTransformMode.MirrorX:
+                    return RuleTile.TilingRuleOutput.Transform.MirrorX;
+                case NeoSmartTileTransformMode.MirrorY:
+                    return RuleTile.TilingRuleOutput.Transform.MirrorY;
+                case NeoSmartTileTransformMode.MirrorXY:
+                    return RuleTile.TilingRuleOutput.Transform.MirrorXY;
+                case NeoSmartTileTransformMode.RotatedMirror:
+                    return RuleTile.TilingRuleOutput.Transform.RotatedMirror;
+                default:
+                    return RuleTile.TilingRuleOutput.Transform.Fixed;
             }
         }
     }

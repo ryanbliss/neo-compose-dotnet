@@ -940,6 +940,83 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(WorldEnding? left, WorldEnding? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(WorldEnding? left, WorldEnding? right) => !(left == right);
     }
+    public sealed class NeoSmartTileTransform : IEquatable<NeoSmartTileTransform>
+    {
+        private static readonly Dictionary<string, NeoSmartTileTransform> values = new Dictionary<string, NeoSmartTileTransform>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileTransform(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileTransform Fixed = FromOptionId("Fixed");
+        public static readonly NeoSmartTileTransform MirrorX = FromOptionId("MirrorX");
+        public static readonly NeoSmartTileTransform MirrorXY = FromOptionId("MirrorXY");
+        public static readonly NeoSmartTileTransform MirrorY = FromOptionId("MirrorY");
+        public static readonly NeoSmartTileTransform Rotated = FromOptionId("Rotated");
+        public static readonly NeoSmartTileTransform RotatedMirror = FromOptionId("RotatedMirror");
+
+        public static NeoSmartTileTransform FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileTransform(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileTransform>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "Fixed" => true,
+                "MirrorX" => true,
+                "MirrorXY" => true,
+                "MirrorY" => true,
+                "Rotated" => true,
+                "RotatedMirror" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "Fixed" => "8e21d44a-8cc4-4bca-aea4-419c3ec1b1da",
+                "MirrorX" => "b586d36f-35f7-4482-9cf7-8740d247f93f",
+                "MirrorXY" => "f6057c5a-d772-4043-a327-b785a8776379",
+                "MirrorY" => "7a8a6e8e-2775-4ba9-995a-4edf8b988bf6",
+                "Rotated" => "678e286f-3f0a-4fe4-8ae2-0fcebccec0c3",
+                "RotatedMirror" => "a9d35370-fe60-40b4-afae-f8269c8aa55b",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileTransform value) => value.optionId;
+        public static implicit operator NeoSmartTileTransform(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileTransform? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileTransform);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => !(left == right);
+    }
 
     public interface IReadOnlyConsoleObject : IReadOnlyNeoObject
     {
@@ -3268,26 +3345,29 @@ namespace HelloWorld.Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        public BlockedPath(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size), false, NeoValueOwnership.Session)
+        public BlockedPath(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, TileLayer, Tiles, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            var TileLayerValueId = Guid.NewGuid().ToString();
-            value["TileLayer"] = TileLayerValueId;
-            valueRows.Add(new ArrayAttributeValue
+            if (TileLayer is not null)
             {
-                id = TileLayerValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new[] { TileLayer.valueId },
-            });
+                var TileLayerValueId = Guid.NewGuid().ToString();
+                value["TileLayer"] = TileLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TileLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = TileLayer.HasValue ? new[] { TileLayer.Value.valueId } : null,
+                });
+            }
             if (Tiles is not null)
             {
                 var TilesValueId = Guid.NewGuid().ToString();
@@ -10549,6 +10629,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new NeoSmartTileOutput Output { get; }
 
+        new NeoSmartTileTransform RuleTransform { get; }
+
         new NeoReadOnlyList<Sprite> Sprites { get; }
     }
 
@@ -10559,12 +10641,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoSmartTileRule(IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, IEnumerable<Sprite>? Sprites = null, NeoSmartTileOutput? Output = null, NeoSmartTileCollider? Collider = null, double? MinAnimationSpeed = null, double? MaxAnimationSpeed = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Neighbors, Sprites, Output, Collider, MinAnimationSpeed, MaxAnimationSpeed), false, NeoValueOwnership.Session)
+        public NeoSmartTileRule(IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, IEnumerable<Sprite>? Sprites = null, NeoSmartTileOutput? Output = null, NeoSmartTileCollider? Collider = null, double? MinAnimationSpeed = null, double? MaxAnimationSpeed = null, NeoSmartTileTransform? RuleTransform = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Neighbors, Sprites, Output, Collider, MinAnimationSpeed, MaxAnimationSpeed, RuleTransform), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, IEnumerable<Sprite>? Sprites = null, NeoSmartTileOutput? Output = null, NeoSmartTileCollider? Collider = null, double? MinAnimationSpeed = null, double? MaxAnimationSpeed = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, IEnumerable<Sprite>? Sprites = null, NeoSmartTileOutput? Output = null, NeoSmartTileCollider? Collider = null, double? MinAnimationSpeed = null, double? MaxAnimationSpeed = null, NeoSmartTileTransform? RuleTransform = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -10660,6 +10742,18 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = MaxAnimationSpeed,
                 });
             }
+            if (RuleTransform is not null)
+            {
+                var RuleTransformValueId = Guid.NewGuid().ToString();
+                value["RuleTransform"] = RuleTransformValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = RuleTransformValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = RuleTransform is null ? null : new[] { RuleTransform.optionId },
+                });
+            }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "d500e920-87d9-4804-affa-1bd8fc5e91ae", value, valueRows);
         }
 
@@ -10701,6 +10795,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         IReadOnlyList<Sprite> INeoSmartTileRule.Sprites => Sprites;
         string INeoSmartTileRule.Output => Output.optionId;
         string INeoSmartTileRule.Collider => Collider.optionId;
+        string INeoSmartTileRule.RuleTransform => RuleTransform.optionId;
         double INeoSmartTileRule.MinAnimationSpeed => MinAnimationSpeed;
         double INeoSmartTileRule.MaxAnimationSpeed => MaxAnimationSpeed;
 
@@ -10746,6 +10841,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public NeoSmartTileTransform RuleTransform
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("RuleTransform"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'RuleTransform' has no selected option.") : NeoSmartTileTransform.FromOptionId(selected);
+            }
+        }
+
         public NeoReadOnlyList<Sprite> Sprites
         {
             get
@@ -10769,6 +10873,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<double> MinAnimationSpeed = new("MinAnimationSpeed");
 
             public static readonly NeoField<double> MaxAnimationSpeed = new("MaxAnimationSpeed");
+
+            public static readonly NeoField<NeoSmartTileTransform> RuleTransform = new("RuleTransform");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -10781,6 +10887,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => null,
                 [Fields.MinAnimationSpeed] = () => null,
                 [Fields.MaxAnimationSpeed] = () => null,
+                [Fields.RuleTransform] = () => null,
             };
         }
 
@@ -10804,6 +10911,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => Collider,
                 [Fields.MinAnimationSpeed] = () => MinAnimationSpeed,
                 [Fields.MaxAnimationSpeed] = () => MaxAnimationSpeed,
+                [Fields.RuleTransform] = () => RuleTransform,
             };
         }
 
@@ -11740,26 +11848,29 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoTileLayerLink(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size), false, NeoValueOwnership.Session)
+        public NeoTileLayerLink(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, TileLayer, Tiles, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            var TileLayerValueId = Guid.NewGuid().ToString();
-            value["TileLayer"] = TileLayerValueId;
-            valueRows.Add(new ArrayAttributeValue
+            if (TileLayer is not null)
             {
-                id = TileLayerValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new[] { TileLayer.valueId },
-            });
+                var TileLayerValueId = Guid.NewGuid().ToString();
+                value["TileLayer"] = TileLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TileLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = TileLayer.HasValue ? new[] { TileLayer.Value.valueId } : null,
+                });
+            }
             if (Tiles is not null)
             {
                 var TilesValueId = Guid.NewGuid().ToString();
@@ -12310,29 +12421,26 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoObjectLayerLink(string Name, NeoLookupSelection? ObjectLayer = null, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ObjectLayer, Objects, Position, Size), false, NeoValueOwnership.Session)
+        public NeoObjectLayerLink(NeoLookupSelection ObjectLayer, string Name, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(ObjectLayer, Name, Objects, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection? ObjectLayer = null, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection ObjectLayer, string Name, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            if (ObjectLayer is not null)
+            var ObjectLayerValueId = Guid.NewGuid().ToString();
+            value["ObjectLayer"] = ObjectLayerValueId;
+            valueRows.Add(new ArrayAttributeValue
             {
-                var ObjectLayerValueId = Guid.NewGuid().ToString();
-                value["ObjectLayer"] = ObjectLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ObjectLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ObjectLayer.HasValue ? new[] { ObjectLayer.Value.valueId } : null,
-                });
-            }
+                id = ObjectLayerValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { ObjectLayer.valueId },
+            });
             if (Objects is not null)
             {
                 var ObjectsValueId = Guid.NewGuid().ToString();
