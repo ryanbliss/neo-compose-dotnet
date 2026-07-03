@@ -22,56 +22,61 @@ namespace HelloWorld.Assets.Scripts
     }
 
     /// <summary>
-    /// SDK-facing gameplay model for the Old Console Landing sample. It owns
-    /// generated Neo values, save-backed mutations, dialogue triggers, collision
-    /// state, and prompts; <see cref="LandingSceneUI"/> owns Unity presentation.
+    /// Gameplay for the Old Console Landing sample. It owns generated Neo values,
+    /// save-backed mutations, dialogue triggers, collision state, and prompts;
+    /// <see cref="LandingSceneUI"/> owns Unity presentation. Spawn it with
+    /// <see cref="Open"/>; destroy its GameObject to close the scene.
     /// </summary>
-    public sealed class LandingSceneGameplay : IDisposable
+    public sealed class LandingSceneGameplay : MonoBehaviour
     {
         private const int CacheRewardBits = 25;
 
         /// <summary>The player's interaction reach: their own cell plus the four neighbors.</summary>
         private static readonly NeoCellPattern WithinReachPattern = NeoCellPattern.Cross(1);
 
-        private readonly HelloWorldNeo neo;
         private readonly LandingSceneUI ui = new();
-        private readonly ILandingSceneHost host;
-        private readonly BlockedPath blockedPath;
+        private HelloWorldNeo neo;
+        private ILandingSceneHost host;
+        private BlockedPath blockedPath;
         private IDisposable collisionSubscription;
-        private bool barrierOpening;
         private bool barrierWasActive;
         private bool loading;
-        private bool disposed;
-        private IReadOnlyOldConsoleLandingGrid Grid;
         // Resolved once: each Grid.Content access resolves a fresh content
         // instance with its own primitive, and change events only flow through
         // the instance the renderer live-syncs — so render, queries, and
         // subscriptions must share this one.
-        private readonly ReadOnlyOldConsoleLandingGridContent content;
+        private IReadOnlyOldConsoleLandingGrid Grid;
+        private ReadOnlyOldConsoleLandingGridContent content;
 
-        public LandingSceneGameplay(HelloWorldNeo neo, ILandingSceneHost host)
+        public static LandingSceneGameplay Open(HelloWorldNeo neo, ILandingSceneHost host)
         {
-            this.neo = neo ?? throw new ArgumentNullException(nameof(neo));
-            this.host = host ?? throw new ArgumentNullException(nameof(host));
+            var gameplay = new GameObject("Old Console Landing Gameplay")
+                .AddComponent<LandingSceneGameplay>();
+            gameplay.Initialize(neo, host);
+            return gameplay;
+        }
+
+        private void Initialize(HelloWorldNeo neo, ILandingSceneHost host)
+        {
+            this.neo = neo;
+            this.host = host;
             Grid = neo.Assets.Worlds.OldConsoleLanding;
             content = Grid.Content;
-            blockedPath = neo.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>();
+            blockedPath = Grid.GetRequiredChild<BlockedPath>();
             barrierWasActive = IsBarrierActive();
 
             ui.MoveRequested += OnMoveRequested;
             ui.InteractRequested += OnInteractRequested;
-            ui.CloseRequested += RequestClose;
+            ui.CloseRequested += host.CloseLandingScene;
 
-            Open();
+            UpdatePrompt();
+            ui.Show();
+            LoadWorldAsync();
         }
 
-        public bool IsOpen => ui.IsOpen;
         public Vector2Int PlayerCell { get; private set; }
-        public Bounds WorldBounds { get; private set; } =
-            new Bounds(Vector3.zero, new Vector3(10f, 7f, 1f));
         public string PromptText { get; private set; } = "WASD Move  •  E Interact";
         public string StatusText { get; private set; } = string.Empty;
-        public bool DialogueIsOpen => host.DialogueIsOpen;
 
         private bool GlyphAttuned =>
             neo.Dialogues.HasVisited(LandingDialogueIds.BootGlyphAttuned);
@@ -82,51 +87,28 @@ namespace HelloWorld.Assets.Scripts
         private bool CacheClaimed =>
             neo.Dialogues.HasVisited(LandingDialogueIds.RecoveryCache);
 
-        public void Open()
+        private void Update()
         {
-            barrierOpening = false;
-            SetStatus(string.Empty);
-            UpdatePrompt();
-            ui.Show();
-            LoadWorldAsync();
+            if (loading) return;
+
+            RenderChrome();
+            ui.SetPromptVisible(!host.DialogueIsOpen);
+            if (host.DialogueIsOpen) return;
+
+            ui.Tick();
         }
 
-        public void Close()
+        private void OnDestroy()
         {
-            DisposeContentSubscriptions();
-            loading = false;
-            ui.Hide();
-        }
-
-        public void Dispose()
-        {
-            if (disposed) return;
-            disposed = true;
-
-            DisposeContentSubscriptions();
-            ui.MoveRequested -= OnMoveRequested;
-            ui.InteractRequested -= OnInteractRequested;
-            ui.CloseRequested -= RequestClose;
+            collisionSubscription?.Dispose();
             // Destroying the UI tears down the renderer, which cancels any
             // still-running RenderGridAsync for us.
             ui.Dispose();
         }
 
-        public void Tick()
-        {
-            if (!IsOpen || loading) return;
-
-            RenderChrome();
-            ui.SetPromptVisible(!DialogueIsOpen);
-            if (DialogueIsOpen) return;
-
-            ui.Tick();
-        }
-
         private void OnMoveRequested(Vector2Int delta)
         {
-            bool moved = TryMove(delta);
-            if (moved) ui.MovePlayerTo(PlayerCell);
+            if (TryMove(delta)) ui.MovePlayerTo(PlayerCell);
             RenderChrome();
         }
 
@@ -134,11 +116,6 @@ namespace HelloWorld.Assets.Scripts
         {
             Interact();
             RenderChrome();
-        }
-
-        private void RequestClose()
-        {
-            host.CloseLandingScene();
         }
 
         private async void LoadWorldAsync()
@@ -154,43 +131,24 @@ namespace HelloWorld.Assets.Scripts
             }
             catch (OperationCanceledException)
             {
-                // Superseded by a newer render or torn down mid-load; whoever
-                // cancelled us owns the UI state now.
+                // Torn down mid-load; whoever cancelled us owns the UI now.
                 return;
             }
-            catch (Exception exception)
-            {
-                Debug.LogError(exception);
-                if (disposed) return;
-                loading = false;
-                ui.SetLoadingVisible(false);
-                ui.RenderChrome(PromptText, "The landing grid failed to load. Check the console.");
-                return;
-            }
-
-            if (disposed || !IsOpen) return;
 
             loading = false;
             ui.SetLoadingVisible(false);
-            WorldBounds = ComputeWorldBounds();
-            SubscribeContentChanges();
-            PlayerCell = FindPlayerSpawnCell();
-            UpdatePrompt();
-            SetStatus("WASD moves. E talks to whatever the old console is whispering through.");
-            ui.MovePlayerTo(PlayerCell);
-            ui.Frame(WorldBounds);
-            RenderChrome();
-            ui.SetPromptVisible(true);
-        }
-
-        private void SubscribeContentChanges()
-        {
-            DisposeContentSubscriptions();
-            barrierWasActive = IsBarrierActive();
             // Barrier tiles project onto the Collisions layer, so this single
             // subscription hears both direct edits and blocked-path changes —
             // the args say which source caused each one.
             collisionSubscription = content.Collisions.OnChanged(OnCollisionsChanged);
+            PlayerCell = content.Objects.GetObjects<PlayerSpawnObject>().First().Cell;
+            UpdatePrompt();
+            StatusText = "WASD moves. E talks to whatever the old console is whispering through.";
+            ui.MovePlayerTo(PlayerCell);
+            var cellBounds = content.ComputeCellBounds();
+            ui.Frame(new Bounds(cellBounds.center, cellBounds.size));
+            RenderChrome();
+            ui.SetPromptVisible(true);
         }
 
         private void OnCollisionsChanged(NeoTileLayerChangedArgs args)
@@ -208,12 +166,6 @@ namespace HelloWorld.Assets.Scripts
             RenderChrome();
         }
 
-        private void DisposeContentSubscriptions()
-        {
-            collisionSubscription?.Dispose();
-            collisionSubscription = null;
-        }
-
         private void RenderChrome()
         {
             ui.RenderChrome(PromptText, StatusText);
@@ -224,7 +176,7 @@ namespace HelloWorld.Assets.Scripts
             var target = PlayerCell + delta;
             if (!CanEnter(target))
             {
-                SetStatus("Hull plating. It does not negotiate.");
+                StatusText = "Hull plating. It does not negotiate.";
                 return false;
             }
 
@@ -241,7 +193,7 @@ namespace HelloWorld.Assets.Scripts
                 {
                     TriggerLandingDialogue(
                         LandingDialogueIds.BootGlyphSealLocked,
-                        () => SetStatus("The seal wants a boot trace. Find the glowing glyph in the south chamber and press E beside it.")
+                        () => StatusText = "The seal wants a boot trace. Find the glowing glyph in the south chamber and press E beside it."
                     );
                     return;
                 }
@@ -254,10 +206,7 @@ namespace HelloWorld.Assets.Scripts
             {
                 TriggerLandingDialogue(
                     LandingDialogueIds.BootGlyphAttuned,
-                    () =>
-                    {
-                        SetStatus("Boot trace captured. Take it to the vault seal — or let the ship's console relay it.");
-                    }
+                    () => StatusText = "Boot trace captured. Take it to the vault seal — or let the ship's console relay it."
                 );
                 return;
             }
@@ -266,7 +215,7 @@ namespace HelloWorld.Assets.Scripts
             {
                 if (CacheClaimed)
                 {
-                    SetStatus("The cache is empty. The receipt, however, is eternal.");
+                    StatusText = "The cache is empty. The receipt, however, is eternal.";
                     return;
                 }
 
@@ -303,35 +252,28 @@ namespace HelloWorld.Assets.Scripts
                         : LandingDialogueIds.VaultPlaqueReward,
                     () =>
                     {
-                        SetStatus(IsBarrierActive()
+                        StatusText = IsBarrierActive()
                             ? "Find the boot glyph and release the seal before claiming the cache."
-                            : "The vault stands open. The save has the receipt.");
+                            : "The vault stands open. The save has the receipt.";
                     }
                 );
                 return;
             }
 
-            SetStatus("Nothing answers here. Try the boot glyph, the vault seal, or your ship's console.");
+            StatusText = "Nothing answers here. Try the boot glyph, the vault seal, or your ship's console.";
         }
 
         private async void PersistBarrierOpenAsync()
         {
-            if (barrierOpening) return;
-            barrierOpening = true;
-
             try
             {
-                SetStatus("Seal released. The vault corridor stands open.");
+                StatusText = "Seal released. The vault corridor stands open.";
                 await host.SaveProgressAsync();
             }
             catch (Exception exception)
             {
                 Debug.LogError(exception);
-                SetStatus("The seal opened locally, but save failed. Check the console.");
-            }
-            finally
-            {
-                barrierOpening = false;
+                StatusText = "The seal opened locally, but save failed. Check the console.";
             }
         }
 
@@ -340,26 +282,15 @@ namespace HelloWorld.Assets.Scripts
             try
             {
                 neo.Save.Bits += CacheRewardBits;
-                SetStatus($"+{CacheRewardBits} bits recovered from the cache.");
+                StatusText = $"+{CacheRewardBits} bits recovered from the cache.";
                 UpdatePrompt();
                 await host.SaveProgressAsync();
             }
             catch (Exception exception)
             {
                 Debug.LogError(exception);
-                SetStatus("The cache opened locally, but save failed. Check the console.");
+                StatusText = "The cache opened locally, but save failed. Check the console.";
             }
-        }
-
-        private Bounds ComputeWorldBounds()
-        {
-            var cellBounds = content.ComputeCellBounds();
-            if (cellBounds.size == Vector3Int.zero)
-            {
-                return new Bounds(Vector3.zero, new Vector3(10f, 7f, 1f));
-            }
-
-            return new Bounds(cellBounds.center, cellBounds.size);
         }
 
         private bool CanEnter(Vector2Int cell)
@@ -381,12 +312,6 @@ namespace HelloWorld.Assets.Scripts
             where T : class, INeoValueReference
         {
             return content.Objects.GetObject<T>(PlayerCell, WithinReachPattern) is not null;
-        }
-
-        private Vector2Int FindPlayerSpawnCell()
-        {
-            var spawn = content.Objects.GetObjects<PlayerSpawnObject>().FirstOrDefault();
-            return spawn?.Cell ?? new Vector2Int(-7, 2);
         }
 
         private void UpdatePrompt()
@@ -428,11 +353,6 @@ namespace HelloWorld.Assets.Scripts
             PromptText = "WASD Move  •  E Interact";
         }
 
-        private void SetStatus(string message)
-        {
-            StatusText = message ?? string.Empty;
-        }
-
         private void TriggerLandingDialogue(string dialogueId, Action onFinish)
         {
             if (host.TryTriggerDialogue(dialogueId, onFinish))
@@ -441,7 +361,7 @@ namespace HelloWorld.Assets.Scripts
             }
 
             Debug.LogWarning($"Neo Compose: landing dialogue '{dialogueId}' could not be triggered.");
-            SetStatus("That Neo dialogue flow is missing from the sample export.");
+            StatusText = "That Neo dialogue flow is missing from the sample export.";
         }
 
         private static class LandingDialogueIds

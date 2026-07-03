@@ -86,7 +86,7 @@ namespace HelloWorld.Assets.Scripts
         public IReadOnlyOutpost CurrentOutpost => neo.Save.Location;
         public NeoReadOnlyList<IReadOnlyOutpost> Outposts => neo.Assets.Outposts;
         public NeoList<PlanetVisit> VisitedPlanets => neo.Save.Visited;
-        public bool OldConsoleLandingOpen => landingSceneGameplay?.IsOpen == true;
+        public bool OldConsoleLandingOpen => landingSceneGameplay != null;
 
         public void OnVisitOutpost(IReadOnlyOutpost outpost)
         {
@@ -192,7 +192,7 @@ namespace HelloWorld.Assets.Scripts
 
             ClearDialogue();
             coreUI.SetVisible(false);
-            landingSceneGameplay = new LandingSceneGameplay(neo, host: this);
+            landingSceneGameplay = LandingSceneGameplay.Open(neo, host: this);
         }
 
         bool ILandingSceneHost.DialogueIsOpen => activeDialogue != null;
@@ -206,10 +206,7 @@ namespace HelloWorld.Assets.Scripts
 
         public void CloseOldConsoleLanding()
         {
-            var landing = landingSceneGameplay;
-            landingSceneGameplay = null;
-            landing?.Close();
-            landing?.Dispose();
+            DestroyLandingScene();
             coreUI.SetVisible(true);
             UpdateUI();
         }
@@ -511,15 +508,16 @@ namespace HelloWorld.Assets.Scripts
             DisposeClient();
             OutpostFunctionHandler.AnimationPlayer = null;
             gameAudio.Dispose();
-            landingSceneGameplay?.Dispose();
-            landingSceneGameplay = null;
+            DestroyLandingScene();
             dialogueUI.Dispose();
             coreUI.Dispose();
         }
 
-        private void Update()
+        private void DestroyLandingScene()
         {
-            landingSceneGameplay?.Tick();
+            var landing = landingSceneGameplay;
+            landingSceneGameplay = null;
+            if (landing != null) SampleUI.DestroyObject(landing.gameObject);
         }
 
         private static int CurrentUnixTime => (int)DateTimeOffset.UtcNow.ToUnixTimeSeconds();

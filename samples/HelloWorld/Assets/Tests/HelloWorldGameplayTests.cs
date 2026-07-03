@@ -221,7 +221,7 @@ namespace HelloWorld.Assets.Tests
 
             try
             {
-                landing = new LandingSceneGameplay(neo, new TestLandingHost());
+                landing = LandingSceneGameplay.Open(neo, new TestLandingHost());
 
                 yield return WaitForLandingSceneLoad(landing);
 
@@ -262,7 +262,7 @@ namespace HelloWorld.Assets.Tests
             }
             finally
             {
-                landing?.Dispose();
+                if (landing != null) Object.DestroyImmediate(landing.gameObject);
             }
         }
 
@@ -276,7 +276,7 @@ namespace HelloWorld.Assets.Tests
 
             try
             {
-                landing = new LandingSceneGameplay(neo, new TestLandingHost
+                landing = LandingSceneGameplay.Open(neo, new TestLandingHost
                 {
                     OnTriggerDialogue = (_, onFinish) =>
                     {
@@ -309,7 +309,7 @@ namespace HelloWorld.Assets.Tests
             }
             finally
             {
-                landing?.Dispose();
+                if (landing != null) Object.DestroyImmediate(landing.gameObject);
             }
         }
 

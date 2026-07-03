@@ -53,11 +53,6 @@ namespace HelloWorld.Assets.Scripts
             if (Input.GetKeyDown(KeyCode.E)) InteractRequested?.Invoke();
         }
 
-        public void Hide()
-        {
-            if (root != null) root.SetActive(false);
-        }
-
         public void Dispose()
         {
             if (root != null)
