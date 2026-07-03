@@ -192,10 +192,20 @@ namespace HelloWorld.Assets.Tests
             Assert.IsNotNull(
                 objectLayer,
                 "The landing scene should render the generated object layer.");
-            Assert.AreEqual(4, objectLayer!.childCount);
+            Assert.AreEqual(
+                3,
+                objectLayer!.childCount,
+                "The spawn marker is a lifecycle-vetoed authoring marker, not a rendered object.");
+            Assert.IsNull(
+                objectLayer.Find("Object - old-console-object:player-spawn"),
+                "ShouldRenderObject should keep the player spawn marker out of the scene.");
+            var playerSpriteRenderer = renderer.transform.Find("Player")?.GetComponent<SpriteRenderer>();
             Assert.IsNotNull(
-                objectLayer.Find("Object - old-console-object:player-spawn")?.GetComponent<BoxCollider2D>(),
-                "The authored player spawn should render with its collider.");
+                playerSpriteRenderer,
+                "The landing UI should present the player at the authored spawn.");
+            Assert.IsNotNull(
+                playerSpriteRenderer!.sprite,
+                "The player should use the spawn marker's authored sprite (or the fallback).");
 
             gameplay.CloseOldConsoleLanding();
 
@@ -211,32 +221,34 @@ namespace HelloWorld.Assets.Tests
 
             try
             {
-                landing = new LandingSceneGameplay(
-                    neo,
-                    () => { },
-                    null,
-                    (_, __) => false,
-                    () => false);
+                landing = new LandingSceneGameplay(neo, new TestLandingHost());
 
                 yield return WaitForLandingSceneLoad(landing);
 
-                var blocked = neo.Assets.Worlds.OldConsoleLanding.Children
-                    .First(check => check.Name == "Blocked Path") as BlockedPath;
+                var content = neo.Assets.Worlds.OldConsoleLanding.Content;
+                var blocked = neo.Assets.Worlds.OldConsoleLanding.GetChild<BlockedPath>();
                 Assert.IsNotNull(blocked);
 
-                var blockerCells = landing.Content.Collisions.GetTiles()
-                    .Where(tile => tile.SourceTileLayerLinkId == blocked!.valueId)
+                // The link's own grid-space query matches what it projects
+                // onto the Collisions layer.
+                var blockerCells = blocked!.GetTiles()
                     .Select(tile => tile.Cell)
                     .ToArray();
                 Assert.Greater(blockerCells.Length, 0);
+                foreach (var cell in blockerCells)
+                {
+                    Assert.AreEqual(
+                        blocked.valueId,
+                        content.Collisions.GetTile(cell)?.SourceTileLayerLinkId);
+                }
 
                 SetLandingPlayerCell(
                     landing,
-                    FindWalkableNeighbor(landing.Content, blockerCells));
+                    FindWalkableNeighbor(content, blockerCells));
                 InvokeLandingUpdatePrompt(landing);
                 StringAssert.Contains("vault seal", landing.PromptText);
 
-                blocked!.Tiles.Clear();
+                blocked.Tiles.Clear();
                 yield return null;
 
                 Assert.IsFalse(
@@ -244,7 +256,8 @@ namespace HelloWorld.Assets.Tests
                     "Clearing the model tiles should update the gameplay barrier cache through the collision delta.");
                 foreach (var cell in blockerCells)
                 {
-                    Assert.IsNull(landing.Content.Collisions.GetTile(cell));
+                    Assert.IsNull(content.Collisions.GetTile(cell));
+                    Assert.IsNull(blocked.GetTile(cell));
                 }
             }
             finally
@@ -263,11 +276,9 @@ namespace HelloWorld.Assets.Tests
 
             try
             {
-                landing = new LandingSceneGameplay(
-                    neo,
-                    () => { },
-                    null,
-                    (_, onFinish) =>
+                landing = new LandingSceneGameplay(neo, new TestLandingHost
+                {
+                    OnTriggerDialogue = (_, onFinish) =>
                     {
                         triggered = true;
                         for (int tick = 0; tick < 8; tick += 1)
@@ -277,11 +288,12 @@ namespace HelloWorld.Assets.Tests
                         onFinish?.Invoke();
                         return true;
                     },
-                    () => false);
+                });
 
                 yield return WaitForLandingSceneLoad(landing);
 
-                var bootGlyphCell = landing.Content.Background.GetTiles()
+                var content = neo.Assets.Worlds.OldConsoleLanding.Content;
+                var bootGlyphCell = content.Background.GetTiles()
                     .First(tile => tile.Info is BootGlyphTile)
                     .Cell;
                 SetLandingPlayerCell(landing, bootGlyphCell);
@@ -293,7 +305,7 @@ namespace HelloWorld.Assets.Tests
 
                 Assert.IsTrue(triggered);
                 Assert.IsInstanceOf<BootGlyphTile>(
-                    landing.Content.Background.GetTile(bootGlyphCell)?.Info);
+                    content.Background.GetTile(bootGlyphCell)?.Info);
             }
             finally
             {
@@ -366,6 +378,28 @@ namespace HelloWorld.Assets.Tests
                 "neo",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             return (HelloWorldNeo)field.GetValue(gameplay);
+        }
+
+        private sealed class TestLandingHost : ILandingSceneHost
+        {
+            public System.Func<string, System.Action, bool> OnTriggerDialogue { get; set; } =
+                (_, __) => false;
+
+            public bool DialogueIsOpen => false;
+
+            public void CloseLandingScene()
+            {
+            }
+
+            public async Awaitable SaveProgressAsync()
+            {
+                await Awaitable.NextFrameAsync();
+            }
+
+            public bool TryTriggerDialogue(string dialogueId, System.Action onFinish)
+            {
+                return OnTriggerDialogue(dialogueId, onFinish);
+            }
         }
 
         private static IEnumerator WaitForLandingSceneLoad(LandingSceneGameplay landing)

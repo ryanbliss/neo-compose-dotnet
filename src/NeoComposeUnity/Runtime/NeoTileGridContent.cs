@@ -389,6 +389,538 @@ namespace NeoCompose.Runtime
         {
             return content.GetObjects<TObject>(source, cell);
         }
+
+        // --- NeoCellPattern overloads ---
+        // Single-result pattern queries return the first match in pattern order, so
+        // center-out patterns mean "the nearest match". Multi-result pattern queries
+        // concatenate per-cell results in pattern order.
+
+        public static NeoResolvedTileInstance? GetTile(
+            this ReadOnlyNeoTileLayerRuntime layer,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var tile = layer.GetTile(cell);
+                if (tile is not null) return tile;
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+            this ReadOnlyNeoTileLayerRuntime layer,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var tiles = new List<NeoResolvedTileInstance>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var tile = layer.GetTile(cell);
+                if (tile is not null)
+                {
+                    tiles.Add(tile);
+                }
+            }
+            return tiles;
+        }
+
+        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+            this ReadOnlyNeoTileLayerRuntime layer,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TTile : class, INeoValueReference
+        {
+            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var tile = layer.GetTile<TTile>(cell);
+                if (tile is not null) return tile;
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+            this ReadOnlyNeoTileLayerRuntime layer,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TTile : class, INeoValueReference
+        {
+            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var tiles = new List<NeoResolvedTileInstance<TTile>>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var tile = layer.GetTile<TTile>(cell);
+                if (tile is not null)
+                {
+                    tiles.Add(tile);
+                }
+            }
+            return tiles;
+        }
+
+        public static NeoResolvedObjectInstance? GetObject(
+            this ReadOnlyNeoObjectLayerRuntime layer,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var obj = layer.GetObject(cell);
+                if (obj is not null) return obj;
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+            this ReadOnlyNeoObjectLayerRuntime layer,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var objects = new List<NeoResolvedObjectInstance>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                objects.AddRange(layer.GetObjects(cell));
+            }
+            return objects;
+        }
+
+        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+            this ReadOnlyNeoObjectLayerRuntime layer,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TObject : class, INeoValueReference
+        {
+            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var typedObjects = layer.GetObjects<TObject>(cell);
+                if (typedObjects.Count > 0) return typedObjects[0];
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+            this ReadOnlyNeoObjectLayerRuntime layer,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TObject : class, INeoValueReference
+        {
+            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                typedObjects.AddRange(layer.GetObjects<TObject>(cell));
+            }
+            return typedObjects;
+        }
+
+        public static NeoResolvedTileInstance? GetTile(
+            this INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var tile = content.GetTile(cell);
+                if (tile is not null) return tile;
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+            this INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var tiles = new List<NeoResolvedTileInstance>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                tiles.AddRange(content.GetTiles(cell));
+            }
+            return tiles;
+        }
+
+        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+            this INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TTile : class, INeoValueReference
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var tile = content.GetTile<TTile>(cell);
+                if (tile is not null) return tile;
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+            this INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TTile : class, INeoValueReference
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var tiles = new List<NeoResolvedTileInstance<TTile>>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                tiles.AddRange(content.GetTiles<TTile>(cell));
+            }
+            return tiles;
+        }
+
+        public static NeoResolvedObjectInstance? GetObject(
+            this INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var obj = content.GetObject(cell);
+                if (obj is not null) return obj;
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+            this INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var objects = new List<NeoResolvedObjectInstance>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                objects.AddRange(content.GetObjects(cell));
+            }
+            return objects;
+        }
+
+        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+            this INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TObject : class, INeoValueReference
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var typedObjects = content.GetObjects<TObject>(cell);
+                if (typedObjects.Count > 0) return typedObjects[0];
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+            this INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TObject : class, INeoValueReference
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                typedObjects.AddRange(content.GetObjects<TObject>(cell));
+            }
+            return typedObjects;
+        }
+
+        public static NeoResolvedTileInstance? GetTile(
+            this INeoTileGridContent content,
+            INeoValueReference source,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var tile = content.GetTile(source, cell);
+                if (tile is not null) return tile;
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+            this INeoTileGridContent content,
+            INeoValueReference source,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var tiles = new List<NeoResolvedTileInstance>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                tiles.AddRange(content.GetTiles(source, cell));
+            }
+            return tiles;
+        }
+
+        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+            this INeoTileGridContent content,
+            INeoValueReference source,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TTile : class, INeoValueReference
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var tile = content.GetTile<TTile>(source, cell);
+                if (tile is not null) return tile;
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+            this INeoTileGridContent content,
+            INeoValueReference source,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TTile : class, INeoValueReference
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var tiles = new List<NeoResolvedTileInstance<TTile>>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                tiles.AddRange(content.GetTiles<TTile>(source, cell));
+            }
+            return tiles;
+        }
+
+        public static NeoResolvedObjectInstance? GetObject(
+            this INeoTileGridContent content,
+            INeoValueReference source,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var obj = content.GetObject(source, cell);
+                if (obj is not null) return obj;
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+            this INeoTileGridContent content,
+            INeoValueReference source,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var objects = new List<NeoResolvedObjectInstance>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                objects.AddRange(content.GetObjects(source, cell));
+            }
+            return objects;
+        }
+
+        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+            this INeoTileGridContent content,
+            INeoValueReference source,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TObject : class, INeoValueReference
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                var typedObjects = content.GetObjects<TObject>(source, cell);
+                if (typedObjects.Count > 0) return typedObjects[0];
+            }
+            return null;
+        }
+
+        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+            this INeoTileGridContent content,
+            INeoValueReference source,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TObject : class, INeoValueReference
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            if (pattern is null) throw new ArgumentNullException(nameof(pattern));
+            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            foreach (var cell in pattern.GetCells(origin))
+            {
+                typedObjects.AddRange(content.GetObjects<TObject>(source, cell));
+            }
+            return typedObjects;
+        }
+
+        public static NeoResolvedTileInstance? GetTile(
+            this INeoValueReference source,
+            INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            return content.GetTile(source, origin, pattern);
+        }
+
+        public static IReadOnlyList<NeoResolvedTileInstance> GetTiles(
+            this INeoValueReference source,
+            INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            return content.GetTiles(source, origin, pattern);
+        }
+
+        public static NeoResolvedTileInstance<TTile>? GetTile<TTile>(
+            this INeoValueReference source,
+            INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TTile : class, INeoValueReference
+        {
+            return content.GetTile<TTile>(source, origin, pattern);
+        }
+
+        public static IReadOnlyList<NeoResolvedTileInstance<TTile>> GetTiles<TTile>(
+            this INeoValueReference source,
+            INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TTile : class, INeoValueReference
+        {
+            return content.GetTiles<TTile>(source, origin, pattern);
+        }
+
+        public static NeoResolvedObjectInstance? GetObject(
+            this INeoValueReference source,
+            INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            return content.GetObject(source, origin, pattern);
+        }
+
+        public static IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
+            this INeoValueReference source,
+            INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+        {
+            return content.GetObjects(source, origin, pattern);
+        }
+
+        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+            this INeoValueReference source,
+            INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TObject : class, INeoValueReference
+        {
+            return content.GetObject<TObject>(source, origin, pattern);
+        }
+
+        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+            this INeoValueReference source,
+            INeoTileGridContent content,
+            Vector2Int origin,
+            NeoCellPattern pattern)
+            where TObject : class, INeoValueReference
+        {
+            return content.GetObjects<TObject>(source, origin, pattern);
+        }
+
+        /// <summary>
+        /// The cell-space bounding box of every tile and object in the content —
+        /// e.g. for framing a camera. Position is the minimum occupied cell and
+        /// size spans the occupied cells (z flattened to a depth of 1). Size is
+        /// zero when the content has no tiles or objects.
+        /// </summary>
+        public static BoundsInt ComputeCellBounds(this INeoTileGridContent content)
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+
+            bool hasCells = false;
+            int minX = 0, minY = 0, maxX = 0, maxY = 0;
+
+            void Include(Vector2Int cell)
+            {
+                if (!hasCells)
+                {
+                    minX = maxX = cell.x;
+                    minY = maxY = cell.y;
+                    hasCells = true;
+                    return;
+                }
+
+                minX = Mathf.Min(minX, cell.x);
+                minY = Mathf.Min(minY, cell.y);
+                maxX = Mathf.Max(maxX, cell.x);
+                maxY = Mathf.Max(maxY, cell.y);
+            }
+
+            foreach (var layer in content.TileLayersInOrder)
+            {
+                foreach (var tile in layer.GetTiles())
+                {
+                    Include(tile.Cell);
+                }
+            }
+
+            foreach (var layer in content.ObjectLayersInOrder)
+            {
+                foreach (var obj in layer.GetObjects())
+                {
+                    if (obj.Footprint.Count == 0)
+                    {
+                        Include(obj.Cell);
+                        continue;
+                    }
+                    foreach (var cell in obj.Footprint)
+                    {
+                        Include(cell);
+                    }
+                }
+            }
+
+            if (!hasCells)
+            {
+                return new BoundsInt();
+            }
+
+            return new BoundsInt(
+                new Vector3Int(minX, minY, 0),
+                new Vector3Int(maxX - minX + 1, maxY - minY + 1, 1));
+        }
     }
 
     public sealed class NeoTileGridChangedArgs

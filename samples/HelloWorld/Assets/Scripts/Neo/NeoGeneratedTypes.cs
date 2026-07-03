@@ -4312,6 +4312,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoObject writable);
 
+        TChild? GetChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        bool TryGetChild<TChild>(out TChild child, string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        TChild GetRequiredChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedCustomValue;
+
         NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
 
         IReadOnlyNeoCollider? Collider { get; }
@@ -4372,6 +4380,26 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out NeoObject writable)
         {
             return TryWritable<NeoObject>(out writable);
+        }
+
+        public TChild? GetChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.TryGetGeneratedChild(((IReadOnlyNeoObject)this).Children, name, out TChild child) ? child : null;
+        }
+
+        public bool TryGetChild<TChild>(out TChild child, string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.TryGetGeneratedChild(((IReadOnlyNeoObject)this).Children, name, out child);
+        }
+
+        public TChild GetRequiredChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.GetRequiredGeneratedChild<TChild>(this, ((IReadOnlyNeoObject)this).Children, name);
+        }
+
+        public IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.GetGeneratedChildren<TChild>(((IReadOnlyNeoObject)this).Children);
         }
 
         public NeoReadOnlyList<IReadOnlyNeoObjectBase> Children
@@ -11828,7 +11856,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoTileLayerLink : IReadOnlyNeoLayerGroupBase
+    public interface IReadOnlyNeoTileLayerLink : IReadOnlyNeoLayerGroupBase, INeoTileLayerLinkValue
     {
         new bool IsReadOnly { get; }
 
@@ -11841,7 +11869,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         NeoReadOnlyList<IReadOnlyNeoTileInstance> Tiles { get; }
     }
 
-    public partial class NeoTileLayerLink : NeoLayerGroupBase, IReadOnlyNeoTileLayerLink
+    public partial class NeoTileLayerLink : NeoLayerGroupBase, IReadOnlyNeoTileLayerLink, INeoTileLayerLinkValue
     {
         internal NeoTileLayerLink(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -12063,6 +12091,14 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out NeoTileGrid writable);
 
+        TChild? GetChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        bool TryGetChild<TChild>(out TChild child, string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        TChild GetRequiredChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedCustomValue;
+
         NeoReadOnlyVector3 CellSize { get; }
 
         NeoReadOnlyList<IReadOnlyNeoLayerGroupBase> Children { get; }
@@ -12119,6 +12155,26 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out NeoTileGrid writable)
         {
             return TryWritable<NeoTileGrid>(out writable);
+        }
+
+        public TChild? GetChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.TryGetGeneratedChild(((IReadOnlyNeoTileGrid)this).Children, name, out TChild child) ? child : null;
+        }
+
+        public bool TryGetChild<TChild>(out TChild child, string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.TryGetGeneratedChild(((IReadOnlyNeoTileGrid)this).Children, name, out child);
+        }
+
+        public TChild GetRequiredChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.GetRequiredGeneratedChild<TChild>(this, ((IReadOnlyNeoTileGrid)this).Children, name);
+        }
+
+        public IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.GetGeneratedChildren<TChild>(((IReadOnlyNeoTileGrid)this).Children);
         }
 
         public NeoReadOnlyVector3 CellSize
@@ -12401,7 +12457,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyNeoObjectLayerLink : IReadOnlyNeoLayerGroupBase
+    public interface IReadOnlyNeoObjectLayerLink : IReadOnlyNeoLayerGroupBase, INeoObjectLayerLinkValue
     {
         new bool IsReadOnly { get; }
 
@@ -12414,7 +12470,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         NeoReadOnlyList<IReadOnlyNeoObjectBase> Objects { get; }
     }
 
-    public partial class NeoObjectLayerLink : NeoLayerGroupBase, IReadOnlyNeoObjectLayerLink
+    public partial class NeoObjectLayerLink : NeoLayerGroupBase, IReadOnlyNeoObjectLayerLink, INeoObjectLayerLinkValue
     {
         internal NeoObjectLayerLink(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)

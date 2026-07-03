@@ -2,9 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using UnityEngine;
@@ -12,51 +10,52 @@ using UnityEngine;
 namespace HelloWorld.Assets.Scripts
 {
     /// <summary>
+    /// What the landing scene needs from the screen that opened it: dialogue
+    /// presentation, save plumbing, and a way to hand control back.
+    /// </summary>
+    public interface ILandingSceneHost
+    {
+        bool DialogueIsOpen { get; }
+        void CloseLandingScene();
+        Awaitable SaveProgressAsync();
+        bool TryTriggerDialogue(string dialogueId, Action onFinish);
+    }
+
+    /// <summary>
     /// SDK-facing gameplay model for the Old Console Landing sample. It owns
     /// generated Neo values, save-backed mutations, dialogue triggers, collision
     /// state, and prompts; <see cref="LandingSceneUI"/> owns Unity presentation.
     /// </summary>
-    internal sealed class LandingSceneGameplay : IDisposable
+    public sealed class LandingSceneGameplay : IDisposable
     {
         private const int CacheRewardBits = 25;
 
+        /// <summary>The player's interaction reach: their own cell plus the four neighbors.</summary>
+        private static readonly NeoCellPattern WithinReachPattern = NeoCellPattern.Cross(1);
+
         private readonly HelloWorldNeo neo;
         private readonly LandingSceneUI ui = new();
-        private readonly Action closeRequested;
-        private readonly Func<Awaitable> saveAction;
-        private readonly Func<string, Action, bool> triggerDialogue;
-        private readonly Func<bool> dialogueIsOpen;
+        private readonly ILandingSceneHost host;
         private readonly BlockedPath blockedPath;
         private IDisposable collisionSubscription;
-        private IDisposable barrierSubscription;
         private bool barrierOpening;
         private bool barrierWasActive;
         private bool loading;
-        private int loadGeneration;
-        private CancellationTokenSource loadCancellation;
         private bool disposed;
+        private IReadOnlyOldConsoleLandingGrid Grid;
+        // Resolved once: each Grid.Content access resolves a fresh content
+        // instance with its own primitive, and change events only flow through
+        // the instance the renderer live-syncs — so render, queries, and
+        // subscriptions must share this one.
+        private readonly ReadOnlyOldConsoleLandingGridContent content;
 
-        public LandingSceneGameplay(
-            HelloWorldNeo neo,
-            Action onCloseRequested,
-            Func<Awaitable> onSave,
-            Func<string, Action, bool> onTriggerDialogue,
-            Func<bool> onDialogueIsOpen)
+        public LandingSceneGameplay(HelloWorldNeo neo, ILandingSceneHost host)
         {
             this.neo = neo ?? throw new ArgumentNullException(nameof(neo));
-            closeRequested = onCloseRequested ?? throw new ArgumentNullException(nameof(onCloseRequested));
-            saveAction = onSave;
-            triggerDialogue = onTriggerDialogue ?? throw new ArgumentNullException(nameof(onTriggerDialogue));
-            dialogueIsOpen = onDialogueIsOpen ?? throw new ArgumentNullException(nameof(onDialogueIsOpen));
-            Content = neo.Assets.Worlds.OldConsoleLanding.Content;
-
-            var blockedGroup = neo.Assets.Worlds.OldConsoleLanding.Children
-                .First(check => check.Name == "Blocked Path");
-            if (!blockedGroup.TryWritable(out BlockedPath blocked))
-            {
-                throw new InvalidCastException("Old Console Landing 'Blocked Path' must resolve as BlockedPath.");
-            }
-            blockedPath = blocked;
+            this.host = host ?? throw new ArgumentNullException(nameof(host));
+            Grid = neo.Assets.Worlds.OldConsoleLanding;
+            content = Grid.Content;
+            blockedPath = neo.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>();
             barrierWasActive = IsBarrierActive();
 
             ui.MoveRequested += OnMoveRequested;
@@ -67,13 +66,12 @@ namespace HelloWorld.Assets.Scripts
         }
 
         public bool IsOpen => ui.IsOpen;
-        public ReadOnlyOldConsoleLandingGridContent Content { get; }
         public Vector2Int PlayerCell { get; private set; }
         public Bounds WorldBounds { get; private set; } =
             new Bounds(Vector3.zero, new Vector3(10f, 7f, 1f));
         public string PromptText { get; private set; } = "WASD Move  •  E Interact";
         public string StatusText { get; private set; } = string.Empty;
-        public bool DialogueIsOpen => dialogueIsOpen.Invoke();
+        public bool DialogueIsOpen => host.DialogueIsOpen;
 
         private bool GlyphAttuned =>
             neo.Dialogues.HasVisited(LandingDialogueIds.BootGlyphAttuned);
@@ -90,13 +88,11 @@ namespace HelloWorld.Assets.Scripts
             SetStatus(string.Empty);
             UpdatePrompt();
             ui.Show();
-            StartLoadWorld();
+            LoadWorldAsync();
         }
 
         public void Close()
         {
-            loadGeneration++;
-            CancelLoad();
             DisposeContentSubscriptions();
             loading = false;
             ui.Hide();
@@ -107,12 +103,12 @@ namespace HelloWorld.Assets.Scripts
             if (disposed) return;
             disposed = true;
 
-            loadGeneration++;
-            CancelLoad();
             DisposeContentSubscriptions();
             ui.MoveRequested -= OnMoveRequested;
             ui.InteractRequested -= OnInteractRequested;
             ui.CloseRequested -= RequestClose;
+            // Destroying the UI tears down the renderer, which cancels any
+            // still-running RenderGridAsync for us.
             ui.Dispose();
         }
 
@@ -142,118 +138,85 @@ namespace HelloWorld.Assets.Scripts
 
         private void RequestClose()
         {
-            closeRequested.Invoke();
+            host.CloseLandingScene();
         }
 
-        private void StartLoadWorld()
+        private async void LoadWorldAsync()
         {
-            CancelLoad();
-            int generation = ++loadGeneration;
-            loadCancellation = new CancellationTokenSource();
             loading = true;
             ui.SetPromptVisible(false);
             ui.RenderChrome(string.Empty, string.Empty);
             ui.SetLoadingVisible(true, "Loading tile grid...");
-            LoadWorldAsync(generation, loadCancellation.Token);
-        }
 
-        private async void LoadWorldAsync(int generation, CancellationToken token)
-        {
             try
             {
-                await YieldNextFrameAsync(token);
-                if (!IsCurrentLoad(generation)) return;
-
-                await ui.RenderGridAsync(Content, token);
-                if (!IsCurrentLoad(generation)) return;
-
-                BuildWorldBounds();
-                SubscribeContentChanges();
-                CompleteWorldLoad();
-                ui.MovePlayerTo(PlayerCell);
-                ui.Frame(WorldBounds);
-                RenderChrome();
-                ui.SetPromptVisible(true);
+                await ui.RenderGridAsync(content);
+            }
+            catch (OperationCanceledException)
+            {
+                // Superseded by a newer render or torn down mid-load; whoever
+                // cancelled us owns the UI state now.
+                return;
             }
             catch (Exception exception)
             {
-                if (exception is OperationCanceledException) return;
                 Debug.LogError(exception);
-                if (IsCurrentLoad(generation))
-                {
-                    ui.RenderChrome(PromptText, "The landing grid failed to load. Check the console.");
-                }
+                if (disposed) return;
+                loading = false;
+                ui.SetLoadingVisible(false);
+                ui.RenderChrome(PromptText, "The landing grid failed to load. Check the console.");
+                return;
             }
-            finally
-            {
-                if (IsCurrentLoad(generation))
-                {
-                    loading = false;
-                    ui.SetLoadingVisible(false);
-                }
-            }
+
+            if (disposed || !IsOpen) return;
+
+            loading = false;
+            ui.SetLoadingVisible(false);
+            WorldBounds = ComputeWorldBounds();
+            SubscribeContentChanges();
+            PlayerCell = FindPlayerSpawnCell();
+            UpdatePrompt();
+            SetStatus("WASD moves. E talks to whatever the old console is whispering through.");
+            ui.MovePlayerTo(PlayerCell);
+            ui.Frame(WorldBounds);
+            RenderChrome();
+            ui.SetPromptVisible(true);
         }
 
         private void SubscribeContentChanges()
         {
             DisposeContentSubscriptions();
-            collisionSubscription = Content.Collisions.OnChanged(_ =>
-            {
-                UpdatePrompt();
-                RenderChrome();
-            });
             barrierWasActive = IsBarrierActive();
-            barrierSubscription = blockedPath.Tiles.OnChanged((_, __) =>
+            // Barrier tiles project onto the Collisions layer, so this single
+            // subscription hears both direct edits and blocked-path changes —
+            // the args say which source caused each one.
+            collisionSubscription = content.Collisions.OnChanged(OnCollisionsChanged);
+        }
+
+        private void OnCollisionsChanged(NeoTileLayerChangedArgs args)
+        {
+            bool barrierChanged =
+                args.SourceKind == NeoTileGridChangeSourceKind.TileLayerLink &&
+                string.Equals(args.SourceId, blockedPath.valueId, StringComparison.Ordinal);
+            bool isActive = IsBarrierActive();
+            if (barrierChanged && barrierWasActive && !isActive)
             {
-                bool isActive = IsBarrierActive();
-                if (barrierWasActive && !isActive)
-                {
-                    PersistBarrierOpenAsync();
-                }
-                barrierWasActive = isActive;
-                UpdatePrompt();
-                RenderChrome();
-            });
+                PersistBarrierOpenAsync();
+            }
+            barrierWasActive = isActive;
+            UpdatePrompt();
+            RenderChrome();
         }
 
         private void DisposeContentSubscriptions()
         {
             collisionSubscription?.Dispose();
             collisionSubscription = null;
-            barrierSubscription?.Dispose();
-            barrierSubscription = null;
-        }
-
-        private bool IsCurrentLoad(int generation) =>
-            IsOpen && generation == loadGeneration && !disposed;
-
-        private static async Awaitable YieldNextFrameAsync(CancellationToken token)
-        {
-            token.ThrowIfCancellationRequested();
-            if (Application.isPlaying)
-            {
-                await Awaitable.NextFrameAsync(token);
-            }
-        }
-
-        private void CancelLoad()
-        {
-            if (loadCancellation == null) return;
-            loadCancellation.Cancel();
-            loadCancellation.Dispose();
-            loadCancellation = null;
         }
 
         private void RenderChrome()
         {
             ui.RenderChrome(PromptText, StatusText);
-        }
-
-        private void CompleteWorldLoad()
-        {
-            PlayerCell = FindPlayerSpawnCell();
-            UpdatePrompt();
-            SetStatus("WASD moves. E talks to whatever the old console is whispering through.");
         }
 
         private bool TryMove(Vector2Int delta)
@@ -272,13 +235,14 @@ namespace HelloWorld.Assets.Scripts
 
         private void Interact()
         {
-            if (TryFindNearbyBarrier(out _))
+            if (NearBarrier())
             {
                 if (!GlyphAttuned)
                 {
                     TriggerLandingDialogue(
                         LandingDialogueIds.BootGlyphSealLocked,
-                        () => SetStatus("The seal wants a boot trace. Find the glowing glyph in the south chamber and press E beside it."));
+                        () => SetStatus("The seal wants a boot trace. Find the glowing glyph in the south chamber and press E beside it.")
+                    );
                     return;
                 }
 
@@ -286,18 +250,19 @@ namespace HelloWorld.Assets.Scripts
                 return;
             }
 
-            if (!GlyphAttuned && TryFindNearbyBootGlyph(out _))
+            if (!GlyphAttuned && NearBootGlyph())
             {
                 TriggerLandingDialogue(
                     LandingDialogueIds.BootGlyphAttuned,
                     () =>
                     {
                         SetStatus("Boot trace captured. Take it to the vault seal — or let the ship's console relay it.");
-                    });
+                    }
+                );
                 return;
             }
 
-            if (TryFindNearbyObject<RecoveryCacheObject>(out _))
+            if (NearObject<RecoveryCacheObject>())
             {
                 if (CacheClaimed)
                 {
@@ -307,22 +272,24 @@ namespace HelloWorld.Assets.Scripts
 
                 TriggerLandingDialogue(
                     LandingDialogueIds.RecoveryCache,
-                    () => ClaimCacheRewardAsync());
+                    () => ClaimCacheRewardAsync()
+                );
                 return;
             }
 
-            if (TryFindNearbyObject<ExitPromptObject>(out _))
+            if (NearObject<ExitPromptObject>())
             {
                 var barrierClosed = IsBarrierActive();
                 TriggerLandingDialogue(
                     barrierClosed && GlyphAttuned
                         ? LandingDialogueIds.ExitPromptRelay
                         : LandingDialogueIds.ExitPromptQuiet,
-                    UpdatePrompt);
+                    UpdatePrompt
+                );
                 return;
             }
 
-            if (TryFindNearbyObject<VaultPlaqueObject>(out _))
+            if (NearObject<VaultPlaqueObject>())
             {
                 if (IsBarrierActive() && GlyphAttuned)
                 {
@@ -339,7 +306,8 @@ namespace HelloWorld.Assets.Scripts
                         SetStatus(IsBarrierActive()
                             ? "Find the boot glyph and release the seal before claiming the cache."
                             : "The vault stands open. The save has the receipt.");
-                    });
+                    }
+                );
                 return;
             }
 
@@ -354,11 +322,7 @@ namespace HelloWorld.Assets.Scripts
             try
             {
                 SetStatus("Seal released. The vault corridor stands open.");
-
-                if (saveAction != null)
-                {
-                    await saveAction();
-                }
+                await host.SaveProgressAsync();
             }
             catch (Exception exception)
             {
@@ -378,11 +342,7 @@ namespace HelloWorld.Assets.Scripts
                 neo.Save.Bits += CacheRewardBits;
                 SetStatus($"+{CacheRewardBits} bits recovered from the cache.");
                 UpdatePrompt();
-
-                if (saveAction != null)
-                {
-                    await saveAction();
-                }
+                await host.SaveProgressAsync();
             }
             catch (Exception exception)
             {
@@ -391,117 +351,47 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        private void BuildWorldBounds()
+        private Bounds ComputeWorldBounds()
         {
-            var bounds = new CellBoundsAccumulator();
-
-            foreach (var tile in Content.Background.GetTiles())
+            var cellBounds = content.ComputeCellBounds();
+            if (cellBounds.size == Vector3Int.zero)
             {
-                bounds.Include(tile.Cell);
+                return new Bounds(Vector3.zero, new Vector3(10f, 7f, 1f));
             }
 
-            foreach (var tile in Content.Collisions.GetTiles())
-            {
-                bounds.Include(tile.Cell);
-            }
-
-            foreach (var obj in Content.Objects.GetObjects())
-            {
-                if (obj.Footprint.Count == 0)
-                {
-                    bounds.Include(obj.Cell);
-                    continue;
-                }
-                foreach (var cell in obj.Footprint)
-                {
-                    bounds.Include(cell);
-                }
-            }
-
-            WorldBounds = bounds.ToBounds();
+            return new Bounds(cellBounds.center, cellBounds.size);
         }
-
-        private bool IsBlockedPathCollision(NeoResolvedTileInstance tile) =>
-            tile.SourceKind == NeoTileOutputSourceKind.TileLayerLink &&
-            !string.IsNullOrEmpty(tile.SourceTileLayerLinkId) &&
-            string.Equals(tile.SourceTileLayerLinkId, blockedPath.valueId, StringComparison.Ordinal);
 
         private bool CanEnter(Vector2Int cell)
         {
-            return Content.Background.GetTile(cell) != null &&
-                Content.Collisions.GetTile(cell) == null;
+            return content.Background.GetTile(cell) != null &&
+                content.Collisions.GetTile(cell) == null;
         }
 
         private bool IsBarrierActive() =>
             blockedPath.Tiles.Count > 0;
 
-        private bool TryFindNearbyBarrier(out Vector2Int cell)
+        private bool NearBarrier() =>
+            blockedPath.GetTile(PlayerCell, WithinReachPattern) is not null;
+
+        private bool NearBootGlyph() =>
+            content.Background.GetTile<BootGlyphTile>(PlayerCell, WithinReachPattern) is not null;
+
+        private bool NearObject<T>()
+            where T : class, INeoValueReference
         {
-            foreach (var candidate in NearbyCells(PlayerCell))
-            {
-                var tile = Content.Collisions.GetTile(candidate);
-                if (tile == null || !IsBlockedPathCollision(tile)) continue;
-                cell = candidate;
-                return true;
-            }
-
-            cell = default;
-            return false;
-        }
-
-        private bool TryFindNearbyBootGlyph(out Vector2Int cell)
-        {
-            foreach (var candidate in NearbyCells(PlayerCell))
-            {
-                var tile = Content.Background.GetTile(candidate);
-                if (tile == null || !tile.TryGetTile<BootGlyphTile>(out _)) continue;
-                cell = candidate;
-                return true;
-            }
-
-            cell = default;
-            return false;
-        }
-
-        private bool TryFindNearbyObject<T>(out NeoResolvedObjectInstance instance)
-            where T : NeoGeneratedCustomValue
-        {
-            foreach (var cell in NearbyCells(PlayerCell))
-            {
-                foreach (var obj in Content.Objects.GetObjects(cell))
-                {
-                    if (!obj.TryGetObject<T>(out _)) continue;
-                    instance = obj;
-                    return true;
-                }
-            }
-
-            instance = default;
-            return false;
-        }
-
-        private static IEnumerable<Vector2Int> NearbyCells(Vector2Int cell)
-        {
-            yield return cell;
-            yield return cell + Vector2Int.up;
-            yield return cell + Vector2Int.down;
-            yield return cell + Vector2Int.left;
-            yield return cell + Vector2Int.right;
+            return content.Objects.GetObject<T>(PlayerCell, WithinReachPattern) is not null;
         }
 
         private Vector2Int FindPlayerSpawnCell()
         {
-            foreach (var obj in Content.Objects.GetObjects())
-            {
-                if (obj.TryGetObject<PlayerSpawnObject>(out _)) return obj.Cell;
-            }
-
-            return new Vector2Int(-7, 2);
+            var spawn = content.Objects.GetObjects<PlayerSpawnObject>().FirstOrDefault();
+            return spawn?.Cell ?? new Vector2Int(-7, 2);
         }
 
         private void UpdatePrompt()
         {
-            if (TryFindNearbyBarrier(out _))
+            if (NearBarrier())
             {
                 PromptText = GlyphAttuned
                     ? "E Release vault seal"
@@ -509,13 +399,13 @@ namespace HelloWorld.Assets.Scripts
                 return;
             }
 
-            if (TryFindNearbyBootGlyph(out _) && !GlyphAttuned)
+            if (NearBootGlyph() && !GlyphAttuned)
             {
                 PromptText = "E Read boot glyph";
                 return;
             }
 
-            if (TryFindNearbyObject<ExitPromptObject>(out _))
+            if (NearObject<ExitPromptObject>())
             {
                 PromptText = IsBarrierActive()
                     ? "E Ask launch console"
@@ -523,13 +413,13 @@ namespace HelloWorld.Assets.Scripts
                 return;
             }
 
-            if (TryFindNearbyObject<RecoveryCacheObject>(out _))
+            if (NearObject<RecoveryCacheObject>())
             {
                 PromptText = CacheClaimed ? "E Cache (claimed)" : "E Open recovery cache";
                 return;
             }
 
-            if (TryFindNearbyObject<VaultPlaqueObject>(out _))
+            if (NearObject<VaultPlaqueObject>())
             {
                 PromptText = RewardClaimed ? "E Read plaque again" : "E Inspect reward plaque";
                 return;
@@ -545,7 +435,7 @@ namespace HelloWorld.Assets.Scripts
 
         private void TriggerLandingDialogue(string dialogueId, Action onFinish)
         {
-            if (triggerDialogue(dialogueId, onFinish))
+            if (host.TryTriggerDialogue(dialogueId, onFinish))
             {
                 return;
             }
@@ -565,43 +455,5 @@ namespace HelloWorld.Assets.Scripts
             public const string VaultPlaqueReward = "bbda459e-c77e-4084-9047-22b1dfbb0bff";
             public const string RecoveryCache = "cb0ac79c-f3b4-4c96-b968-8c4173c1f712";
         }
-
-        private struct CellBoundsAccumulator
-        {
-            private bool hasCells;
-            private int minX;
-            private int minY;
-            private int maxX;
-            private int maxY;
-
-            public void Include(Vector2Int cell)
-            {
-                if (!hasCells)
-                {
-                    minX = maxX = cell.x;
-                    minY = maxY = cell.y;
-                    hasCells = true;
-                    return;
-                }
-
-                minX = Mathf.Min(minX, cell.x);
-                minY = Mathf.Min(minY, cell.y);
-                maxX = Mathf.Max(maxX, cell.x);
-                maxY = Mathf.Max(maxY, cell.y);
-            }
-
-            public Bounds ToBounds()
-            {
-                if (!hasCells)
-                {
-                    return new Bounds(Vector3.zero, new Vector3(10f, 7f, 1f));
-                }
-
-                var center = new Vector3((minX + maxX) * 0.5f, (minY + maxY) * 0.5f, 0f);
-                var size = new Vector3(maxX - minX + 1f, maxY - minY + 1f, 1f);
-                return new Bounds(center, size);
-            }
-        }
     }
-
 }

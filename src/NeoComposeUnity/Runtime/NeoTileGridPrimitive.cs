@@ -81,6 +81,13 @@ namespace NeoCompose.Runtime
         public virtual void OnGridLoaded(NeoTileGridLoadedContext context) {}
         public virtual void OnTileLayerCreated(NeoTileLayerContext context) {}
         public virtual void OnObjectLayerCreated(NeoObjectLayerContext context) {}
+
+        /// <summary>
+        /// Render-time filter for object instances. Return false to skip rendering
+        /// an instance (e.g. authoring markers like spawn points). Presentation
+        /// only — the instance stays in the grid data and in queries.
+        /// </summary>
+        public virtual bool ShouldRenderObject(NeoObjectRenderContext context) => true;
         public virtual void BeforeSetTile(NeoTileSetContext context) {}
         public virtual void BeforeConvertTile(NeoTileConvertContext context) {}
         public virtual void BeforeResetTile(NeoTileResetContext context) {}
@@ -134,6 +141,23 @@ namespace NeoCompose.Runtime
         public NeoTileGridRenderer Renderer { get; }
         public ReadOnlyNeoObjectLayerRuntime Layer { get; }
         public GameObject Root { get; }
+    }
+
+    public sealed class NeoObjectRenderContext
+    {
+        public NeoObjectRenderContext(
+            NeoTileGridRenderer renderer,
+            ReadOnlyNeoObjectLayerRuntime layer,
+            NeoResolvedObjectInstance instance)
+        {
+            Renderer = renderer ?? throw new ArgumentNullException(nameof(renderer));
+            Layer = layer ?? throw new ArgumentNullException(nameof(layer));
+            Instance = instance ?? throw new ArgumentNullException(nameof(instance));
+        }
+
+        public NeoTileGridRenderer Renderer { get; }
+        public ReadOnlyNeoObjectLayerRuntime Layer { get; }
+        public NeoResolvedObjectInstance Instance { get; }
     }
 
     public abstract class NeoTileGridMutationContext

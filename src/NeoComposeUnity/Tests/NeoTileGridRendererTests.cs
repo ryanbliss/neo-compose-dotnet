@@ -411,6 +411,278 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void RenderAsync_SupersedesInFlightRender_NewestWins()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid");
+            var go = new GameObject("NeoTileGridRenderer restart test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                Exception? firstError = null;
+                var firstCompleted = false;
+                var secondCompleted = false;
+                var restarted = false;
+                // Kick off a second render from inside the first one — the
+                // edit-mode equivalent of a caller restarting mid-flight.
+                renderer.Lifecycle = new TileLayerCreatedCallbackLifecycle(() =>
+                {
+                    if (restarted) return;
+                    restarted = true;
+                    SecondRender();
+                });
+
+                FirstRender();
+
+                Assert.IsTrue(restarted, "The first render never reached its tile layer.");
+                Assert.IsTrue(secondCompleted, "The newest render must win.");
+                Assert.IsFalse(firstCompleted, "The superseded render must not complete.");
+                Assert.IsInstanceOf<OperationCanceledException>(firstError);
+
+                async void FirstRender()
+                {
+                    try
+                    {
+                        await renderer.RenderAsync(primitive, new[] { EmptyBackgroundLayer() });
+                        firstCompleted = true;
+                    }
+                    catch (Exception exception)
+                    {
+                        firstError = exception;
+                    }
+                }
+
+                async void SecondRender()
+                {
+                    await renderer.RenderAsync(primitive, new[] { EmptyBackgroundLayer() });
+                    secondCompleted = true;
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+            }
+
+            static TestTileLayerRuntime EmptyBackgroundLayer() => new(
+                "background-layer",
+                "Background",
+                TileTypeId,
+                null,
+                null);
+        }
+
+        [Test]
+        public void Render_ShouldRenderObjectVetoSkipsMarkers_AndTryGetObjectRootFindsRendered()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            {
+                [ObjectTypeId] = (resolvedClient, node) =>
+                    new TestComposedObject(resolvedClient, node),
+            };
+            var obj = (TestComposedObject)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "shop-object",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            var sprite = CreateTestSprite("veto-test");
+            obj.Sprite = sprite;
+            var go = new GameObject("NeoTileGridRenderer veto test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Lifecycle = new VetoObjectLifecycle("object-2");
+                renderer.Render(
+                    NeoReadOnlyTileGridPrimitive.Resolve(client, "town-grid"),
+                    new List<ReadOnlyNeoTileLayerRuntime>(),
+                    new[]
+                    {
+                        new TestObjectLayerRuntime(
+                            "object-layer",
+                            "Objects",
+                            ObjectTypeId,
+                            null,
+                            12,
+                            new[]
+                            {
+                                new NeoResolvedObjectInstance(
+                                    "object-1",
+                                    "object-layer",
+                                    new Vector2Int(0, 0),
+                                    new[] { new Vector2Int(0, 0) },
+                                    obj,
+                                    0),
+                                new NeoResolvedObjectInstance(
+                                    "object-2",
+                                    "object-layer",
+                                    new Vector2Int(1, 0),
+                                    new[] { new Vector2Int(1, 0) },
+                                    obj,
+                                    1),
+                            }),
+                    });
+
+                var layerRoot = go.transform.Find("Object Layer - Objects");
+                Assert.IsNotNull(layerRoot);
+                var renderedRoot = layerRoot!.Find("Object - object-1");
+                Assert.IsNotNull(renderedRoot, "The non-vetoed object should render.");
+                Assert.IsNull(
+                    layerRoot.Find("Object - object-2"),
+                    "ShouldRenderObject returning false must skip the instance.");
+
+                Assert.IsTrue(renderer.TryGetObjectRoot("object-1", out var foundRoot));
+                Assert.AreSame(renderedRoot!.gameObject, foundRoot);
+                Assert.IsFalse(renderer.TryGetObjectRoot("object-2", out _));
+                Assert.IsFalse(renderer.TryGetObjectRoot("missing-object", out _));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
+                UnityEngine.Object.DestroyImmediate(sprite.texture);
+                UnityEngine.Object.DestroyImmediate(sprite);
+            }
+        }
+
+        private sealed class TileLayerCreatedCallbackLifecycle : NeoTileGridLifecycle
+        {
+            private readonly Action onTileLayerCreated;
+
+            public TileLayerCreatedCallbackLifecycle(Action onTileLayerCreated)
+            {
+                this.onTileLayerCreated = onTileLayerCreated;
+            }
+
+            public override void OnTileLayerCreated(NeoTileLayerContext context)
+            {
+                onTileLayerCreated();
+            }
+        }
+
+        private sealed class VetoObjectLifecycle : NeoTileGridLifecycle
+        {
+            private readonly string vetoedInstanceId;
+
+            public VetoObjectLifecycle(string vetoedInstanceId)
+            {
+                this.vetoedInstanceId = vetoedInstanceId;
+            }
+
+            public override bool ShouldRenderObject(NeoObjectRenderContext context)
+            {
+                return context.Instance.InstanceId.Value != vetoedInstanceId;
+            }
+        }
+
+        [Test]
+        public void TileLayerLinkQueries_ProjectAuthoredTilesFromTheLinkOrigin()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            {
+                [TileTypeId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
+            };
+            var tile = (TestTile)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "floor-tile",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            var link = new FakeTileLayerLinkValue
+            {
+                Position = new Vector3(10f, 20f, 0f),
+                Tiles = new object[]
+                {
+                    new FakeTileInstanceValue { Cell = new Vector2Int(1, 2), Tile = tile },
+                    new FakeTileInstanceValue { Cell = new Vector2Int(2, 2), Tile = tile },
+                },
+            };
+
+            var tiles = link.GetTiles();
+            Assert.AreEqual(2, tiles.Count);
+            Assert.AreEqual(new Vector2Int(11, 22), tiles[0].Cell);
+            Assert.AreEqual(new Vector2Int(12, 22), tiles[1].Cell);
+            Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, tiles[0].SourceKind);
+            Assert.AreEqual("fake-tile-link", tiles[0].SourceTileLayerLinkId);
+            Assert.AreEqual("fake-target-layer", tiles[0].LayerId);
+
+            Assert.IsNotNull(link.GetTile(new Vector2Int(11, 22)));
+            Assert.IsNull(link.GetTile(new Vector2Int(1, 2)), "local cells must be projected");
+            Assert.IsNotNull(link.GetTile<TestTile>(new Vector2Int(11, 22)));
+
+            // Pattern queries search projected cells, nearest first.
+            Assert.IsNotNull(link.GetTile(new Vector2Int(13, 22), NeoCellPattern.Cross(1)));
+            Assert.IsNull(link.GetTile(new Vector2Int(15, 22), NeoCellPattern.Cross(1)));
+            Assert.AreEqual(2, link.GetTiles(new Vector2Int(11, 22), NeoCellPattern.Box(1)).Count);
+        }
+
+        [Test]
+        public void ObjectLayerLinkQueries_ProjectAuthoredObjectsFromTheLinkOrigin()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildTileGridProjectData());
+            var factories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            {
+                [ObjectTypeId] = (resolvedClient, node) =>
+                    new TestComposedObject(resolvedClient, node),
+            };
+            var obj = (TestComposedObject)NeoGeneratedTypesSupport.ResolveCustomValue(
+                client,
+                "shop-object",
+                factories,
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>())!;
+            var link = new FakeObjectLayerLinkValue
+            {
+                Position = new Vector3(5f, 5f, 0f),
+                Objects = new object[] { obj },
+            };
+
+            var objects = link.GetObjects();
+            Assert.AreEqual(1, objects.Count);
+            // TestComposedObject has no Position, so it projects at the link origin.
+            Assert.AreEqual(new Vector2Int(5, 5), objects[0].Cell);
+            Assert.AreEqual("fake-object-layer", objects[0].LayerId);
+            Assert.AreSame(obj, objects[0].Info);
+
+            Assert.IsNotNull(link.GetObject(new Vector2Int(5, 5)));
+            Assert.IsNotNull(link.GetObject<TestComposedObject>(new Vector2Int(5, 5)));
+            Assert.IsNull(link.GetObject(new Vector2Int(6, 5)));
+            Assert.IsNotNull(link.GetObject(new Vector2Int(6, 5), NeoCellPattern.Cross(1)));
+            Assert.IsNull(link.GetObject(new Vector2Int(8, 5), NeoCellPattern.Cross(1)));
+        }
+
+        private sealed class FakeLayerReference : INeoValueReference
+        {
+            public FakeLayerReference(string valueId)
+            {
+                this.valueId = valueId;
+            }
+
+            public string? valueId { get; }
+        }
+
+        private sealed class FakeTileLayerLinkValue : INeoTileLayerLinkValue
+        {
+            public string? valueId => "fake-tile-link";
+            public Vector3 Position { get; set; }
+            public INeoValueReference TileLayer { get; } = new FakeLayerReference("fake-target-layer");
+            public IReadOnlyList<object> Tiles { get; set; } = new List<object>();
+        }
+
+        private sealed class FakeTileInstanceValue
+        {
+            public Vector2Int Cell { get; set; }
+            public NeoGeneratedCustomValue? Tile { get; set; }
+        }
+
+        private sealed class FakeObjectLayerLinkValue : INeoObjectLayerLinkValue
+        {
+            public string? valueId => "fake-object-link";
+            public Vector3 Position { get; set; }
+            public INeoValueReference ObjectLayer { get; } = new FakeLayerReference("fake-object-layer");
+            public IReadOnlyList<object> Objects { get; set; } = new List<object>();
+        }
+
+        [Test]
         public void AssetDatabase_ResolvesGeneratedTileAssets()
         {
             var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();

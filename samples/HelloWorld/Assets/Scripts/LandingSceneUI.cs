@@ -3,7 +3,6 @@
 
 using System;
 using System.Linq;
-using System.Threading;
 using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using UnityEngine;
@@ -28,6 +27,7 @@ namespace HelloWorld.Assets.Scripts
         private Text statusText;
         private GameObject loadingPanel;
         private Text loadingText;
+        private Sprite authoredPlayerSprite;
         private Sprite fallbackPlayerSprite;
 
         public event Action<Vector2Int> MoveRequested;
@@ -67,18 +67,13 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        public async Awaitable RenderGridAsync(
-            ReadOnlyOldConsoleLandingGridContent content,
-            CancellationToken cancellationToken)
+        public async Awaitable RenderGridAsync(ReadOnlyOldConsoleLandingGridContent content)
         {
-            await renderer.RenderAsync(content, new NeoTileGridRenderOptions
-            {
-                MaxTilesPerFrame = 256,
-                MaxObjectsPerFrame = 2,
-                YieldBeforeRender = false,
-                CancellationToken = cancellationToken,
-            });
+            // Restart-safe: a newer RenderAsync (or destroying the renderer)
+            // cancels this one, so no cancellation plumbing is needed here.
+            await renderer.RenderAsync(content);
 
+            authoredPlayerSprite = ResolveAuthoredPlayerSprite(content);
             player = null;
             EnsurePlayer();
         }
@@ -134,23 +129,20 @@ namespace HelloWorld.Assets.Scripts
             player = new GameObject("Player");
             player.transform.SetParent(renderer.transform, false);
             var spriteRenderer = player.AddComponent<SpriteRenderer>();
-            spriteRenderer.sprite = FindRenderedPlayerSprite() ?? CreateFallbackPlayerSprite();
+            spriteRenderer.sprite = authoredPlayerSprite != null
+                ? authoredPlayerSprite
+                : CreateFallbackPlayerSprite();
             spriteRenderer.sortingOrder = 20_000;
             ScaleSpriteRendererToCell(spriteRenderer);
         }
 
-        private Sprite FindRenderedPlayerSprite()
+        private static Sprite ResolveAuthoredPlayerSprite(
+            ReadOnlyOldConsoleLandingGridContent content)
         {
-            var objectLayer = renderer.transform.Find("Object Layer - Objects");
-            if (objectLayer == null) return null;
-
-            var spawn = objectLayer.Find("Object - old-console-object:player-spawn");
-            if (spawn == null) return null;
-
-            spawn.gameObject.SetActive(false);
-            return spawn.GetComponentsInChildren<SpriteRenderer>(includeInactive: true)
-                .Select(spriteRenderer => spriteRenderer.sprite)
-                .FirstOrDefault(sprite => sprite != null);
+            // The spawn marker's art comes from its authored child sprite
+            // object — no need to scrape the rendered hierarchy for it.
+            var spawn = content.Objects.GetObjects<PlayerSpawnObject>().FirstOrDefault();
+            return spawn?.Info.GetChild<NeoSpriteObject>()?.Sprite;
         }
 
         private static void ScaleSpriteRendererToCell(SpriteRenderer spriteRenderer)
@@ -348,6 +340,13 @@ namespace HelloWorld.Assets.Scripts
                 }
 
                 context.Tilemap.gameObject.AddComponent<TilemapCollider2D>();
+            }
+
+            public override bool ShouldRenderObject(NeoObjectRenderContext context)
+            {
+                // The spawn marker only authors WHERE the player starts;
+                // LandingSceneUI presents the player itself.
+                return context.Instance.Info is not PlayerSpawnObject;
             }
         }
     }

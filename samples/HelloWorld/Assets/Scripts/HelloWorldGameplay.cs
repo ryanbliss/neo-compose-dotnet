@@ -21,7 +21,7 @@ namespace HelloWorld.Assets.Scripts
     /// gameplay GameObject is the only thing the menu has to do — no cross-object
     /// disposal bookkeeping.
     /// </remarks>
-    public sealed class HelloWorldGameplay : MonoBehaviour
+    public sealed class HelloWorldGameplay : MonoBehaviour, ILandingSceneHost
     {
         private HelloWorldNeo neo;
         private NeoSaveSynchronizer synchronizer;
@@ -192,13 +192,17 @@ namespace HelloWorld.Assets.Scripts
 
             ClearDialogue();
             coreUI.SetVisible(false);
-            landingSceneGameplay = new LandingSceneGameplay(
-                neo,
-                CloseOldConsoleLanding,
-                SaveWithIndicatorAsync,
-                TriggerLandingDialogue,
-                () => activeDialogue != null);
+            landingSceneGameplay = new LandingSceneGameplay(neo, host: this);
         }
+
+        bool ILandingSceneHost.DialogueIsOpen => activeDialogue != null;
+
+        void ILandingSceneHost.CloseLandingScene() => CloseOldConsoleLanding();
+
+        Awaitable ILandingSceneHost.SaveProgressAsync() => SaveWithIndicatorAsync();
+
+        bool ILandingSceneHost.TryTriggerDialogue(string dialogueId, Action onFinish) =>
+            TriggerLandingDialogue(dialogueId, onFinish);
 
         public void CloseOldConsoleLanding()
         {

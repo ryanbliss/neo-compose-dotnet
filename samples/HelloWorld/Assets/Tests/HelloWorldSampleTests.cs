@@ -344,6 +344,150 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
+        public void GeneratedChildAccessors_ResolveTypedChildrenFromTheLiveList()
+        {
+            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var grid = client.Assets.Worlds.OldConsoleLanding;
+
+            // GetComponent-style: first assignable child, writable-resolved.
+            var blocked = grid.GetRequiredChild<BlockedPath>();
+            Assert.IsFalse(blocked.IsReadOnly);
+            Assert.Greater(blocked.Tiles.Count, 0);
+
+            Assert.AreSame(blocked, grid.GetChild<BlockedPath>());
+            Assert.AreSame(blocked, grid.GetChild<BlockedPath>("Blocked Path"));
+            Assert.IsNull(grid.GetChild<BlockedPath>("Not A Real Group"));
+
+            Assert.IsTrue(grid.TryGetChild(out BlockedPath viaTry));
+            Assert.AreSame(blocked, viaTry);
+
+            // Assignability: querying by the base link type also matches.
+            Assert.IsNotNull(grid.GetChild<NeoTileLayerLink>());
+            CollectionAssert.Contains(grid.GetChildren<BlockedPath>().ToArray(), blocked);
+
+            var missing = Assert.Throws<System.InvalidOperationException>(
+                () => grid.GetRequiredChild<JupiterOutpost>());
+            StringAssert.Contains("has no child of type 'JupiterOutpost'", missing!.Message);
+        }
+
+        [Test]
+        public void CellPatternQueries_FindNearbyTilesAndObjectsNearestFirst()
+        {
+            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var content = client.Assets.Worlds.OldConsoleLanding.Content;
+            var blocked = client.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>();
+            var reach = NeoCellPattern.Cross(1);
+
+            // The seal barrier projects a collision tile at (0, 1): standing on
+            // it or beside it is within reach, the far side of the map is not.
+            Assert.IsNotNull(content.GetTile(blocked, new Vector2Int(0, 1), reach));
+            Assert.IsNotNull(content.GetTile(blocked, new Vector2Int(1, 1), reach));
+            Assert.IsNull(content.GetTile(blocked, new Vector2Int(9, 0), reach));
+
+            // Typed tile query: the boot glyph at (-7, -6) is reachable from a neighbor.
+            Assert.IsNotNull(
+                content.Background.GetTile<BootGlyphTile>(new Vector2Int(-7, -5), reach));
+            Assert.IsNull(
+                content.Background.GetTile<BootGlyphTile>(new Vector2Int(0, 0), reach));
+
+            // Typed object query: the player spawn at (-7, 2) from one cell away.
+            Assert.IsNotNull(
+                content.Objects.GetObject<PlayerSpawnObject>(new Vector2Int(-6, 2), reach));
+            Assert.IsNull(
+                content.Objects.GetObject<PlayerSpawnObject>(new Vector2Int(9, 0), reach));
+
+            // Nearest-first: standing on the barrier, the center cell wins.
+            var nearest = content.GetTile(blocked, new Vector2Int(0, 1), reach);
+            Assert.AreEqual(new Vector2Int(0, 1), nearest!.Cell);
+        }
+
+        [Test]
+        public void TileLayerLinkQueries_MatchTheTilesTheLinkProjectsOntoItsLayer()
+        {
+            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var content = client.Assets.Worlds.OldConsoleLanding.Content;
+            var blocked = client.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>();
+
+            var tiles = blocked.GetTiles();
+            Assert.AreEqual(blocked.Tiles.Count, tiles.Count);
+            foreach (var tile in tiles)
+            {
+                Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, tile.SourceKind);
+                Assert.AreEqual(blocked.valueId, tile.SourceTileLayerLinkId);
+                Assert.AreEqual(content.Collisions.LayerId, tile.LayerId);
+                // The link's grid-space cells line up with the Collisions layer.
+                Assert.AreEqual(
+                    blocked.valueId,
+                    content.Collisions.GetTile(tile.Cell)?.SourceTileLayerLinkId);
+            }
+
+            var barrier = tiles.First();
+            Assert.IsInstanceOf<SealBarrierTile>(barrier.Info);
+            Assert.IsNotNull(blocked.GetTile(barrier.Cell));
+            Assert.IsNotNull(blocked.GetTile<SealBarrierTile>(barrier.Cell));
+
+            // Pattern overloads: adjacent is within reach, far away is not.
+            var reach = NeoCellPattern.Cross(1);
+            Assert.IsNotNull(blocked.GetTile(barrier.Cell + Vector2Int.right, reach));
+            Assert.IsNull(blocked.GetTile(barrier.Cell + new Vector2Int(50, 50), reach));
+        }
+
+        [Test]
+        public void TileLayerLinkQueries_SeeTheCurrentTilesDuringChangeCallbacks()
+        {
+            // Regression guard for the notification-ordering trap: value rows
+            // update before change events fire, while wrapper child nodes can
+            // lag one dispatch behind. The link projection must read current
+            // state even inside a collision-layer change callback.
+            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var content = client.Assets.Worlds.OldConsoleLanding.Content;
+            var blocked = client.Assets.Worlds.OldConsoleLanding.GetRequiredChild<BlockedPath>();
+            var go = new GameObject("Link projection callback test");
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.Render(content);
+                int notifications = 0;
+                int projectionDuringCallback = -1;
+                using var subscription = content.Collisions.OnChanged(_ =>
+                {
+                    notifications++;
+                    projectionDuringCallback = blocked.GetTiles().Count;
+                });
+
+                blocked.Tiles.Clear();
+
+                Assert.Greater(
+                    notifications,
+                    0,
+                    "The collision layer subscription should hear the link clear.");
+                Assert.AreEqual(0, projectionDuringCallback);
+                Assert.AreEqual(0, blocked.GetTiles().Count);
+            }
+            finally
+            {
+                Object.DestroyImmediate(go);
+            }
+        }
+
+        [Test]
+        public void ComputeCellBounds_SpansTheAuthoredWorld()
+        {
+            var client = LoadSampleClient(EnglishLocalizationOptions());
+            var content = client.Assets.Worlds.OldConsoleLanding.Content;
+
+            var bounds = content.ComputeCellBounds();
+
+            Assert.AreNotEqual(Vector3Int.zero, bounds.size);
+            // Known authored extremes from the landing grid.
+            Assert.IsTrue(bounds.Contains(new Vector3Int(-9, 2, 0)), "exit prompt cell");
+            Assert.IsTrue(bounds.Contains(new Vector3Int(9, 0, 0)), "glass floor cell");
+            Assert.IsTrue(bounds.Contains(new Vector3Int(-7, -6, 0)), "boot glyph cell");
+            Assert.IsTrue(bounds.Contains(new Vector3Int(-6, 5, 0)), "void tile cell");
+            Assert.AreEqual(1, bounds.size.z);
+        }
+
+        [Test]
         public void GeneratedCustomValues_ReturnCachedInstances()
         {
             var client = LoadSampleClient(EnglishLocalizationOptions());

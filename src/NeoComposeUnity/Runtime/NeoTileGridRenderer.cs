@@ -81,6 +81,7 @@ namespace NeoCompose.Runtime
         private NeoTileGridRenderSession? liveSession;
         private INeoTileGridContent? currentContent;
         private NeoReadOnlyTileGridPrimitive? renderedPrimitive;
+        private CancellationTokenSource? activeRenderCancellation;
 
         private readonly struct NeoTileSourceProjectionKey
             : IEquatable<NeoTileSourceProjectionKey>
@@ -182,6 +183,7 @@ namespace NeoCompose.Runtime
         {
             if (content == null) throw new ArgumentNullException(nameof(content));
 
+            CancelInFlightRender();
             StopLiveSync();
             RenderOneShot(
                 content.Primitive,
@@ -191,6 +193,12 @@ namespace NeoCompose.Runtime
             StartLiveSync(content);
         }
 
+        /// <summary>
+        /// Renders the content over multiple frames. A new render on this renderer
+        /// supersedes an in-flight one: the newest call wins and the superseded call
+        /// observes <see cref="OperationCanceledException"/>, so callers never need
+        /// their own generation counters.
+        /// </summary>
         public async Awaitable RenderAsync(
             INeoTileGridContent content,
             NeoTileGridRenderOptions? options = null)
@@ -199,15 +207,24 @@ namespace NeoCompose.Runtime
 
             options ??= new NeoTileGridRenderOptions();
             StopLiveSync();
-            await RenderOneShotAsync(
-                content.Primitive,
-                content.TileLayersInOrder,
-                content.ObjectLayersInOrder,
-                options);
-            currentContent = content;
-            if (options.LiveSync)
+            var renderScope = BeginRenderScope(options.CancellationToken);
+            try
             {
-                StartLiveSync(content);
+                await RenderOneShotAsync(
+                    content.Primitive,
+                    content.TileLayersInOrder,
+                    content.ObjectLayersInOrder,
+                    options,
+                    renderScope.Token);
+                currentContent = content;
+                if (options.LiveSync)
+                {
+                    StartLiveSync(content);
+                }
+            }
+            finally
+            {
+                EndRenderScope(renderScope);
             }
         }
 
@@ -216,6 +233,7 @@ namespace NeoCompose.Runtime
             IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
             IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null)
         {
+            CancelInFlightRender();
             StopLiveSync();
             currentContent = null;
             RenderOneShot(primitive, tileLayers, objectLayers);
@@ -282,6 +300,7 @@ namespace NeoCompose.Runtime
                         layerFallbackSortingOrder;
                     foreach (var obj in layer.GetObjects())
                     {
+                        if (!ShouldRenderObjectInstance(layer, obj)) continue;
                         objectRootsByInstanceId[obj.InstanceId] =
                             SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
                     }
@@ -291,29 +310,72 @@ namespace NeoCompose.Runtime
             Lifecycle?.OnGridLoaded(new NeoTileGridLoadedContext(this, primitive));
         }
 
+        /// <summary>
+        /// Renders the layers over multiple frames. A new render on this renderer
+        /// supersedes an in-flight one: the newest call wins and the superseded call
+        /// observes <see cref="OperationCanceledException"/>, so callers never need
+        /// their own generation counters.
+        /// </summary>
         public async Awaitable RenderAsync(
             NeoReadOnlyTileGridPrimitive primitive,
             IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
             IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null,
             NeoTileGridRenderOptions? options = null)
         {
+            options ??= new NeoTileGridRenderOptions();
             StopLiveSync();
             currentContent = null;
-            await RenderOneShotAsync(primitive, tileLayers, objectLayers, options);
+            var renderScope = BeginRenderScope(options.CancellationToken);
+            try
+            {
+                await RenderOneShotAsync(primitive, tileLayers, objectLayers, options, renderScope.Token);
+            }
+            finally
+            {
+                EndRenderScope(renderScope);
+            }
+        }
+
+        /// <summary>
+        /// Cancels the render scope of any in-flight <c>RenderAsync</c>. The superseded
+        /// call still owns (and disposes) its own scope; this only signals it.
+        /// </summary>
+        private void CancelInFlightRender()
+        {
+            var inFlight = activeRenderCancellation;
+            if (inFlight == null) return;
+            activeRenderCancellation = null;
+            inFlight.Cancel();
+        }
+
+        private CancellationTokenSource BeginRenderScope(CancellationToken callerToken)
+        {
+            CancelInFlightRender();
+            var renderScope = CancellationTokenSource.CreateLinkedTokenSource(callerToken);
+            activeRenderCancellation = renderScope;
+            return renderScope;
+        }
+
+        private void EndRenderScope(CancellationTokenSource renderScope)
+        {
+            if (activeRenderCancellation == renderScope)
+            {
+                activeRenderCancellation = null;
+            }
+            renderScope.Dispose();
         }
 
         private async Awaitable RenderOneShotAsync(
             NeoReadOnlyTileGridPrimitive primitive,
             IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
-            IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null,
-            NeoTileGridRenderOptions? options = null)
+            IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers,
+            NeoTileGridRenderOptions options,
+            CancellationToken token)
         {
             if (primitive == null) throw new ArgumentNullException(nameof(primitive));
             if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
 
-            options ??= new NeoTileGridRenderOptions();
             renderedPrimitive = primitive;
-            var token = options.CancellationToken;
             token.ThrowIfCancellationRequested();
 
             if (options.YieldBeforeRender)
@@ -388,6 +450,7 @@ namespace NeoCompose.Runtime
                     foreach (var obj in layer.GetObjects())
                     {
                         token.ThrowIfCancellationRequested();
+                        if (!ShouldRenderObjectInstance(layer, obj)) continue;
                         objectRootsByInstanceId[obj.InstanceId] =
                             SpawnObject(root.transform, layer, obj, layerFallbackSortingOrder);
                         renderedThisFrame += 1;
@@ -406,6 +469,7 @@ namespace NeoCompose.Runtime
 
         public void Clear()
         {
+            CancelInFlightRender();
             StopLiveSync();
             currentContent = null;
             renderedPrimitive = null;
@@ -427,7 +491,34 @@ namespace NeoCompose.Runtime
 
         private void OnDestroy()
         {
+            CancelInFlightRender();
             StopLiveSync();
+        }
+
+        /// <summary>
+        /// Looks up the root GameObject this renderer created for an object instance.
+        /// False when the instance hasn't been rendered (unknown id, vetoed by
+        /// <see cref="NeoTileGridLifecycle.ShouldRenderObject"/>, or already despawned).
+        /// </summary>
+        public bool TryGetObjectRoot(NeoObjectInstanceId instanceId, out GameObject root)
+        {
+            if (objectRootsByInstanceId.TryGetValue(instanceId, out var rendered) && rendered != null)
+            {
+                root = rendered;
+                return true;
+            }
+
+            root = null!;
+            return false;
+        }
+
+        private bool ShouldRenderObjectInstance(
+            ReadOnlyNeoObjectLayerRuntime layer,
+            NeoResolvedObjectInstance instance)
+        {
+            var lifecycle = Lifecycle;
+            if (lifecycle == null) return true;
+            return lifecycle.ShouldRenderObject(new NeoObjectRenderContext(this, layer, instance));
         }
 
         public bool TryClearTile(string layerId, Vector2Int cell)
@@ -665,6 +756,7 @@ namespace NeoCompose.Runtime
                 DestroyRenderedObject(instanceId);
                 var resolved = layer.GetObject(instanceId);
                 if (resolved == null) continue;
+                if (!ShouldRenderObjectInstance(layer, resolved)) continue;
                 objectRootsByInstanceId[instanceId] =
                     SpawnObject(root.transform, layer, resolved, fallbackSortingOrder);
             }

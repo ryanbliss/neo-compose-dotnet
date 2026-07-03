@@ -175,6 +175,107 @@ namespace NeoCompose.Runtime
             return client.GetOrCreateGeneratedCustomValue(node, create);
         }
 
+        /// <summary>
+        /// Core of the generated <c>GetChild&lt;T&gt;</c> family. Enumerates a generated
+        /// Children collection live (no caching), returning the first child assignable
+        /// to <typeparamref name="TChild"/> in list order, optionally filtered by an
+        /// ordinal match on the child's <c>Name</c>. Each match is resolved to its
+        /// writable twin when one exists, otherwise returned as-is.
+        /// </summary>
+        public static bool TryGetGeneratedChild<TChild>(
+            System.Collections.IEnumerable? children,
+            string? name,
+            out TChild child)
+            where TChild : NeoGeneratedCustomValue
+        {
+            if (children is not null)
+            {
+                foreach (var item in children)
+                {
+                    var resolved = ResolveGeneratedChild<TChild>(item, name);
+                    if (resolved is null) continue;
+                    child = resolved;
+                    return true;
+                }
+            }
+
+            child = null!;
+            return false;
+        }
+
+        /// <summary>
+        /// Required variant of <see cref="TryGetGeneratedChild{TChild}"/> for children
+        /// the content contract guarantees to exist.
+        /// </summary>
+        public static TChild GetRequiredGeneratedChild<TChild>(
+            NeoGeneratedCustomValue owner,
+            System.Collections.IEnumerable? children,
+            string? name)
+            where TChild : NeoGeneratedCustomValue
+        {
+            if (owner is null) throw new ArgumentNullException(nameof(owner));
+            if (TryGetGeneratedChild(children, name, out TChild child))
+            {
+                return child;
+            }
+
+            string nameFilter = name is null ? string.Empty : $" named '{name}'";
+            throw new InvalidOperationException(
+                $"Generated value '{owner.GetType().Name}' (valueId '{owner.valueId}') has no child of type '{typeof(TChild).Name}'{nameFilter}.");
+        }
+
+        /// <summary>
+        /// Plural variant of <see cref="TryGetGeneratedChild{TChild}"/>: every child
+        /// assignable to <typeparamref name="TChild"/>, in list order.
+        /// </summary>
+        public static IReadOnlyList<TChild> GetGeneratedChildren<TChild>(
+            System.Collections.IEnumerable? children)
+            where TChild : NeoGeneratedCustomValue
+        {
+            if (children is null) return Array.Empty<TChild>();
+
+            var matches = new List<TChild>();
+            foreach (var item in children)
+            {
+                var resolved = ResolveGeneratedChild<TChild>(item, name: null);
+                if (resolved is null) continue;
+                matches.Add(resolved);
+            }
+            return matches;
+        }
+
+        private static TChild? ResolveGeneratedChild<TChild>(object? item, string? name)
+            where TChild : NeoGeneratedCustomValue
+        {
+            if (item is not NeoGeneratedCustomValue value) return null;
+
+            TChild? typed;
+            if (value.TryWritable(out TChild writable))
+            {
+                typed = writable;
+            }
+            else
+            {
+                typed = value as TChild;
+            }
+            if (typed is null) return null;
+
+            if (name is not null
+                && !string.Equals(ReadGeneratedName(typed), name, StringComparison.Ordinal))
+            {
+                return null;
+            }
+
+            return typed;
+        }
+
+        private static string? ReadGeneratedName(NeoGeneratedCustomValue value)
+        {
+            var nameProperty = value.GetType().GetProperty("Name", typeof(string));
+            if (nameProperty is null || !nameProperty.CanRead) return null;
+            return nameProperty.GetValue(value) as string;
+        }
+
         public static object? ResolveCustomValue(
             NeoClient client,
             string valueId,

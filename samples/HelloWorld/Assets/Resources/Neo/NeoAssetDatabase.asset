@@ -571,29 +571,29 @@ MonoBehaviour:
     tileTypeId: bda4cf72-c8da-4be0-8148-024d0fc2d826
     assetPath: Assets/Neo/Generated/RuleTiles/8f96912d-5bbb-428c-84eb-8932ef588142.asset
     contentHash: bda4cf72-c8da-4be0-8148-024d0fc2d826:1782974324424:rule
-    tileBase: {fileID: 0}
+    tileBase: {fileID: 11400000, guid: 54173af08727941ae985cdef981487ce, type: 2}
   - tileValueId: 8f96912d-5bbb-428c-84eb-8932ef588143
     tileTypeId: 07db44f3-8cc5-4164-aace-098ca68460f4
     assetPath: Assets/Neo/Generated/RuleTiles/8f96912d-5bbb-428c-84eb-8932ef588143.asset
     contentHash: 07db44f3-8cc5-4164-aace-098ca68460f4:1782012571783:rule
-    tileBase: {fileID: 0}
+    tileBase: {fileID: 11400000, guid: ecaa895f5d1cf43a0bc00c59634eeade, type: 2}
   - tileValueId: 8f96912d-5bbb-428c-84eb-8932ef588144
     tileTypeId: d931c907-19cd-4f3d-b04a-e6f1945fb216
     assetPath: Assets/Neo/Generated/RuleTiles/8f96912d-5bbb-428c-84eb-8932ef588144.asset
     contentHash: d931c907-19cd-4f3d-b04a-e6f1945fb216:1782012571783:rule
-    tileBase: {fileID: 0}
+    tileBase: {fileID: 11400000, guid: 3501a7cd97e754af3a0247ab992f0e24, type: 2}
   - tileValueId: 8f96912d-5bbb-428c-84eb-8932ef588141
     tileTypeId: 48bcbba5-57c0-40fd-8df8-35f4e7ce73f2
     assetPath: Assets/Neo/Generated/RuleTiles/8f96912d-5bbb-428c-84eb-8932ef588141.asset
     contentHash: 48bcbba5-57c0-40fd-8df8-35f4e7ce73f2:1782012571783:rule
-    tileBase: {fileID: 0}
+    tileBase: {fileID: 11400000, guid: 32d15864df9414dfe9d450d11e7aac46, type: 2}
   - tileValueId: 54325d98-7172-4f7b-b1d3-47216c623a0b
     tileTypeId: a8305a31-7f6c-4ff5-8a9f-5871ef451093
     assetPath: Assets/Neo/Generated/RuleTiles/54325d98-7172-4f7b-b1d3-47216c623a0b.asset
     contentHash: a8305a31-7f6c-4ff5-8a9f-5871ef451093:1782973082162:rule
-    tileBase: {fileID: 0}
+    tileBase: {fileID: 11400000, guid: 0f293d9ee9d6a4eff9718774595142bf, type: 2}
   - tileValueId: 8a8de722-376b-424c-b43e-a258af1348d8
     tileTypeId: 720c1361-de9e-4c12-b90e-bb6ac9e1ce8b
     assetPath: Assets/Neo/Generated/RuleTiles/8a8de722-376b-424c-b43e-a258af1348d8.asset
     contentHash: 720c1361-de9e-4c12-b90e-bb6ac9e1ce8b:1782955089959:rule
-    tileBase: {fileID: 0}
+    tileBase: {fileID: 11400000, guid: 87846ecc4eefe4ea3a5720dbfcdbf0cd, type: 2}
