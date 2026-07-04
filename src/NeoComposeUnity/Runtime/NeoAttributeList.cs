@@ -511,6 +511,21 @@ namespace NeoCompose.Runtime
                 client.DeclaredOwnership(entryAttribute) ?? ownership;
             ArrayAttributeValue containerRow = ResolveUnorderedContainerForAdd(nowIso);
             string containerValueId = containerRow.id;
+            // Storage partitions (spec §6): created member rows live in their
+            // container's partition. The member row itself would inherit
+            // through its containerId at the write chokepoint; payload rows
+            // (owned children of the new member) have no containment edge, so
+            // they are stamped here.
+            string? partitionMapKey =
+                client.ResolveEffectiveRow(containerValueId)?.mapKey ?? containerRow.mapKey;
+            if (partitionMapKey is not null && entryValue?.value is NeoValuePayload wrappedPayload)
+            {
+                foreach (var payloadRow in wrappedPayload.valueRows)
+                {
+                    if (!string.IsNullOrEmpty(payloadRow.mapKey)) continue;
+                    payloadRow.mapKey = partitionMapKey;
+                }
+            }
 
             string newValueId;
             if (entryValue?.isValueReference == true)

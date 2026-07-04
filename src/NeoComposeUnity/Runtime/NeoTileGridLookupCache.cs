@@ -36,6 +36,7 @@ namespace NeoCompose.Runtime
         {
             this.primitive = primitive ?? throw new ArgumentNullException(nameof(primitive));
             primitive.Client.OnWritableValueChanged += HandleWritableValueChanged;
+            primitive.Client.OnValuePartitionChanged += HandleValuePartitionChanged;
         }
 
         // ------------------------------------------------------------------
@@ -96,6 +97,15 @@ namespace NeoCompose.Runtime
         {
             InvalidateDependents(tileLayers, valueId);
             InvalidateDependents(objectLayers, valueId);
+        }
+
+        /// <summary>Storage-partition load/unload rewrites a chunk of the
+        /// authored graph wholesale; load/unload is rare, so every layer index
+        /// is dropped for a lazy rebuild rather than diffing dependencies.</summary>
+        private void HandleValuePartitionChanged(string mapKey)
+        {
+            tileLayers.Clear();
+            objectLayers.Clear();
         }
 
         private static void InvalidateDependents<TIndex>(

@@ -1378,13 +1378,21 @@ namespace NeoCompose.Runtime
         private NeoSaveCommitRequest BuildCommitRequest(
             LocalGameSave local, string? baseSnapshotId, string? createAsLiveSessionId = null)
         {
+            // Storage partitions (§6): the locally-staged overlay is merged
+            // (all partitions in one map — the durable local shape); the
+            // commit wire splits by each row's mapKey stamp so the server
+            // stores one snapshot doc per dirty partition. Overlays with no
+            // stamped rows pass through untouched (partitions == null keeps
+            // the pre-partition commit shape).
+            var (mainValues, partitions) = NeoSaveValuePartitions.Split(local.values);
             return new NeoSaveCommitRequest
             {
                 customId = string.IsNullOrEmpty(local.customId) ? CustomId : local.customId,
                 name = local.name,
                 version = local.version,
                 targetReleaseChannelId = core.TargetReleaseChannelId,
-                values = local.values,
+                values = mainValues,
+                valuePartitions = partitions,
                 platforms = local.platforms,
                 systems = local.systems,
                 inputDevices = local.inputDevices,

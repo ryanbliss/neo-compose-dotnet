@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace NeoCompose.Runtime.Json
 {
@@ -20,6 +21,18 @@ namespace NeoCompose.Runtime.Json
         public VersionData version = new VersionData();
         public string targetReleaseChannelId = "";
         public NeoSaveValues values = NeoSaveValues.Empty;
+
+        /// <summary>
+        /// Storage-partition split of the commit
+        /// (specs/list-attribute-and-tilegrid-scaling.md §6): when set,
+        /// <see cref="values"/> carries ONLY main-partition rows and each
+        /// non-main row rides in its partition's overlay here, keyed by
+        /// partition key. Null (omitted from the wire) when the overlay has
+        /// no partition-stamped rows — the pre-partition commit shape.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, NeoSaveValues>? valuePartitions;
+
         public List<GameRuntimePlatform>? platforms;
         public List<GameSystemInfo>? systems;
         public List<GameInputDeviceInfo>? inputDevices;

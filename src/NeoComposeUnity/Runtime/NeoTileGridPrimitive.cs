@@ -864,14 +864,28 @@ namespace NeoCompose.Runtime
             GridValueId = gridValueId ?? throw new ArgumentNullException(nameof(gridValueId));
             this.readOnlyFactories = readOnlyFactories ?? EmptyReadOnlyFactories;
             this.writableFactories = writableFactories ?? EmptyWritableFactories;
+            // Storage partitions (spec §6): resolving a grid primitive IS the
+            // content-access path — lazily merge the grid's `world:<id>`
+            // partition (no-op for grids authored in the main partition).
+            client.EnsureWorldPartitionLoaded(gridValueId);
         }
 
         public string GridValueId { get; }
         public NeoTileGridRenderer? Renderer { get; internal set; }
         internal NeoClient Client => client;
 
-        internal NeoTileGridLookupCache LookupCache =>
-            lookupCache ??= new NeoTileGridLookupCache(this);
+        internal NeoTileGridLookupCache LookupCache
+        {
+            get
+            {
+                // Covers explicit UnloadValuePartition-then-reaccess: the
+                // primitive outlives the unload, so every indexed query
+                // re-ensures the world partition (two dictionary probes when
+                // already loaded).
+                client.EnsureWorldPartitionLoaded(GridValueId);
+                return lookupCache ??= new NeoTileGridLookupCache(this);
+            }
+        }
 
         public IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler)
         {
@@ -2480,11 +2494,18 @@ namespace NeoCompose.Runtime
             }
 
             var now = NeoTimestamp.Now();
+            // Storage partitions: the placement subtree lives in its
+            // container's partition. The placement row would inherit through
+            // its containerId; its owned Cell/Tile children have no
+            // containment edge of their own, so the whole subtree is stamped
+            // here at creation.
+            string? partitionMapKey = client.ResolveEffectiveRow(link.ListValueId)?.mapKey;
             var cellRow = new Vector2AttributeValue
             {
                 id = Guid.NewGuid().ToString(),
                 createdAt = now,
                 updatedAt = now,
+                mapKey = partitionMapKey,
                 value = new NeoVector2Value { x = cell.x, y = cell.y },
             };
             var tileRow = new ArrayAttributeValue
@@ -2492,6 +2513,7 @@ namespace NeoCompose.Runtime
                 id = Guid.NewGuid().ToString(),
                 createdAt = now,
                 updatedAt = now,
+                mapKey = partitionMapKey,
                 value = new[] { tileValueId },
             };
             var placementRow = new ObjectAttributeValue
@@ -2501,6 +2523,7 @@ namespace NeoCompose.Runtime
                 updatedAt = now,
                 typeId = placementTypeId,
                 containerId = link.ListValueId,
+                mapKey = partitionMapKey,
                 value = new Dictionary<string, string>
                 {
                     [cellKey] = cellRow.id,
@@ -2529,12 +2552,16 @@ namespace NeoCompose.Runtime
             string? sizeKey = FindSchemaKey(objectTypeId, SizeKeyCandidatesForWrite);
 
             var now = NeoTimestamp.Now();
+            // Storage partitions: the spawned object's subtree lives in its
+            // container's partition (see CreatePlacementRows).
+            string? partitionMapKey = client.ResolveEffectiveRow(link.ListValueId)?.mapKey;
             var record = new Dictionary<string, string>();
             var positionRow = new Vector3AttributeValue
             {
                 id = Guid.NewGuid().ToString(),
                 createdAt = now,
                 updatedAt = now,
+                mapKey = partitionMapKey,
                 value = new NeoVector3Value { x = cell.x, y = cell.y, z = 0 },
             };
             record[positionKey] = positionRow.id;
@@ -2546,6 +2573,7 @@ namespace NeoCompose.Runtime
                     id = Guid.NewGuid().ToString(),
                     createdAt = now,
                     updatedAt = now,
+                    mapKey = partitionMapKey,
                     value = new NeoVector3Value { x = 1, y = 1, z = 0 },
                 };
                 record[sizeKey] = sizeRow.id;
@@ -2557,6 +2585,7 @@ namespace NeoCompose.Runtime
                 updatedAt = now,
                 typeId = objectTypeId,
                 containerId = link.ListValueId,
+                mapKey = partitionMapKey,
                 value = record,
             };
             client.SetWritableValue(writeOwnership, positionRow);
@@ -2590,6 +2619,8 @@ namespace NeoCompose.Runtime
                 {
                     id = record.TileLookupValueId,
                     createdAt = now,
+                    // A fresh lookup row belongs to its placement's partition.
+                    mapKey = client.ResolveEffectiveRow(record.PlacementValueId)?.mapKey,
                 };
             }
             next.value = new[] { tileValueId };

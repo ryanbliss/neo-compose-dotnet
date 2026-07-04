@@ -249,6 +249,7 @@ namespace NeoCompose.Runtime
             this.data = loader.Schema;
             ValidateExportSchemaVersion(data.metadata);
             ValidateNoLegacyTileGridContents(data);
+            AdoptStampedMainValueRows();
             SaveOptions = saveOptions ?? new NeoSaveOptions();
             this.assetDatabase = assetDatabase;
             Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
@@ -520,6 +521,18 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// Guard + adoption for partition-stamped rows found in the main
+        /// values map at construction (spec §6). Guard choice: a stamp whose
+        /// partition the export does NOT ship is REJECTED LOUDLY (a
+        /// hand-edited or miswritten export — main-partition rows are never
+        /// stamped). A stamp whose partition DOES ship is adopted as
+        /// already-loaded: <see cref="ProjectData"/> is shared across clients
+        /// (one <c>NeoProjectStore</c> schema, many saves), so a sibling
+        /// client's <see cref="LoadValuePartition"/> legitimately leaves the
+        /// partition's rows merged in — re-rejecting or re-loading them would
+        /// double-load. The stamp stays on the row either way.
+        /// </summary>
         private static void ValidateNoLegacyTileGridContents(ProjectData data)
         {
             // Defense in depth beside the schema-version gate: a hand-built or
@@ -529,6 +542,45 @@ namespace NeoCompose.Runtime
             if (data.tileGridContents.Count == 0) return;
             throw new System.InvalidOperationException(
                 "Project export contains a non-empty 'tileGridContents' payload, which predates the values-native tile grid. Re-export the project from the current web app; tile data now ships exclusively in 'values'.");
+        }
+
+        private void AdoptStampedMainValueRows()
+        {
+            // A freshly parsed export's `values` map carries no `mapKey` stamps
+            // (partition rows ship under `valuePartitions`). But this ctor also
+            // runs against a ProjectData whose partitions were already merged
+            // into `values` by an earlier client's LoadValuePartition (the same
+            // schema object reused across reconstructions) — those rows ARE
+            // stamped and ARE legitimately loaded. Distinguish the two:
+            //   - stamped AND present in valuePartitions[mapKey] => already
+            //     loaded, adopt it into the loaded-partition tracking.
+            //   - stamped but NOT backed by its partition => corrupt export,
+            //     reject loudly (a main row must not claim a partition it does
+            //     not belong to).
+            foreach (var pair in data.values)
+            {
+                string? mapKey = pair.Value?.mapKey;
+                if (string.IsNullOrEmpty(mapKey)) continue;
+                if (!PartitionShipsRow(mapKey!, pair.Key))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Value '{pair.Key}' in the main 'values' map is stamped with partition '{mapKey}', but no such row ships under 'valuePartitions[\"{mapKey}\"]'. Partition rows must ship in their partition; re-export the project from the current web app.");
+                }
+                if (!loadedPartitionRowIds.TryGetValue(mapKey!, out var rowIds))
+                {
+                    rowIds = new HashSet<string>();
+                    loadedPartitionRowIds[mapKey!] = rowIds;
+                }
+                rowIds.Add(pair.Key);
+            }
+        }
+
+        private bool PartitionShipsRow(string mapKey, string rowId)
+        {
+            if (data.valuePartitions is null) return false;
+            if (!data.valuePartitions.TryGetValue(mapKey, out var token)) return false;
+            return token is Newtonsoft.Json.Linq.JObject partition
+                && partition[rowId] is not null;
         }
 
         internal bool TryGetValueOwnership(string id, out NeoValueOwnership ownership)
@@ -742,6 +794,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             TAttributeValue value) where TAttributeValue : AttributeValue
         {
+            StampMapKeyForWrite(ownership, value);
             GetWritableStore(ownership).values[value.id] = value;
             IndexStoreWrite(ownership, value);
             TouchWritableStoreUpdatedAt(ownership);
@@ -757,6 +810,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             TAttributeValue value) where TAttributeValue : AttributeValue
         {
+            StampMapKeyForWrite(ownership, value);
             GetWritableStore(ownership).values[value.id] = value;
             IndexStoreWrite(ownership, value);
             TouchWritableStoreUpdatedAt(ownership);
@@ -1225,6 +1279,9 @@ namespace NeoCompose.Runtime
             // containerId is immutable membership identity: a clone-on-write
             // shadow of a member row stays a member of the same container.
             clone.containerId = row.containerId;
+            // mapKey is immutable partition identity: a shadow of a
+            // partition-stamped row stays in the same storage partition.
+            clone.mapKey = row.mapKey;
             return clone;
         }
 
@@ -1486,6 +1543,245 @@ namespace NeoCompose.Runtime
                 members.Remove(id);
             }
             byRow.Remove(id);
+        }
+
+        // -----------------------------------------------------------------
+        // Storage partitions (specs/list-attribute-and-tilegrid-scaling.md
+        // §6). A partition is a named subset of the authored values map that
+        // ships under `project.json`'s `valuePartitions[mapKey]` and stays
+        // raw JSON until loaded. Loading materializes the partition's rows
+        // into the ONE authored dictionary (in-memory stays a single map per
+        // ownership); unloading removes exactly those rows again. World
+        // grids use `world:<gridValueId>` and are auto-loaded by the tile
+        // grid primitive's content resolution path.
+        //
+        // Partition subtrees are asset content by contract (Save/Session
+        // storage overrides force the "main" partition on the web side), so
+        // load/unload never touches the authored-ownership overlay map.
+        // -----------------------------------------------------------------
+
+        private readonly Dictionary<string, HashSet<string>> loadedPartitionRowIds = new();
+
+        /// <summary>Partition keys currently merged into the authored values map.</summary>
+        public IReadOnlyCollection<string> LoadedValuePartitions => loadedPartitionRowIds.Keys;
+
+        /// <summary>
+        /// Raised after a partition's rows are merged into (load) or removed
+        /// from (unload) the authored values map. Derived indexes over
+        /// authored content (tile grid lookup caches) key on this to drop and
+        /// lazily rebuild.
+        /// </summary>
+        internal event System.Action<string>? OnValuePartitionChanged;
+
+        /// <summary>True when the partition's rows are currently loaded.</summary>
+        public bool IsValuePartitionLoaded(string mapKey) =>
+            loadedPartitionRowIds.ContainsKey(mapKey);
+
+        /// <summary>True when the export ships a partition under <paramref name="mapKey"/>.</summary>
+        internal bool HasValuePartition(string mapKey) =>
+            data.valuePartitions is not null && data.valuePartitions.ContainsKey(mapKey);
+
+        /// <summary>
+        /// Auto-load hook for the tile grid resolution path: loads the grid's
+        /// <c>world:&lt;gridValueId&gt;</c> partition when the export ships one
+        /// and it isn't loaded yet. No-op for grids whose content is authored
+        /// in the main partition, so the public GetTile/etc. surface works
+        /// unchanged either way.
+        /// </summary>
+        internal void EnsureWorldPartitionLoaded(string gridValueId)
+        {
+            string mapKey = MakeWorldPartitionKey(gridValueId);
+            if (loadedPartitionRowIds.ContainsKey(mapKey)) return;
+            if (!HasValuePartition(mapKey)) return;
+            LoadValuePartition(mapKey);
+        }
+
+        /// <summary>The partition key a world grid's subtree is stamped with.</summary>
+        public static string MakeWorldPartitionKey(string gridValueId) => $"world:{gridValueId}";
+
+        /// <summary>
+        /// Materializes the partition's raw rows into typed
+        /// <see cref="AttributeValue"/>s and merges them into the authored
+        /// values map, updating the membership index incrementally and
+        /// invalidating derived indexes. Idempotent — loading a loaded
+        /// partition is a no-op. Throws when the export has no such
+        /// partition (listing the available keys).
+        /// </summary>
+        public void LoadValuePartition(string mapKey)
+        {
+            EnsureNotDisposed();
+            if (string.IsNullOrEmpty(mapKey))
+            {
+                throw new System.ArgumentException(
+                    "Partition mapKey cannot be null or empty.", nameof(mapKey));
+            }
+            if (loadedPartitionRowIds.ContainsKey(mapKey)) return;
+            if (data.valuePartitions is null
+                || !data.valuePartitions.TryGetValue(mapKey, out Newtonsoft.Json.Linq.JToken token))
+            {
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(mapKey),
+                    $"Project export has no value partition '{mapKey}'. Available partitions: [{string.Join(", ", AvailableValuePartitionKeys())}].");
+            }
+            if (token is not Newtonsoft.Json.Linq.JObject partitionObject)
+            {
+                throw new System.InvalidOperationException(
+                    $"Value partition '{mapKey}' is not a JSON object of value rows (got {token.Type}).");
+            }
+
+            var rows = partitionObject.ToObject<Dictionary<string, AttributeValue>>();
+            if (rows is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"Value partition '{mapKey}' could not be deserialized into value rows.");
+            }
+
+            var rowIds = new HashSet<string>();
+            foreach (var pair in rows)
+            {
+                AttributeValue row = pair.Value;
+                if (row.id != pair.Key)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Value partition '{mapKey}' row keyed '{pair.Key}' carries mismatched id '{row.id}'.");
+                }
+                if (data.values.ContainsKey(row.id))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Value partition '{mapKey}' row '{row.id}' collides with a value id already loaded in another partition or the main values map.");
+                }
+                if (!string.IsNullOrEmpty(row.mapKey) && row.mapKey != mapKey)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Value partition '{mapKey}' row '{row.id}' is stamped with a different partition '{row.mapKey}'.");
+                }
+                // Partition residency is the stamp's source of truth —
+                // self-heal a missing per-row stamp.
+                row.mapKey = mapKey;
+                data.values[row.id] = row;
+                rowIds.Add(row.id);
+                if (!string.IsNullOrEmpty(row.containerId))
+                {
+                    AddMembership(
+                        authoredEntriesByContainer, authoredContainerByRow, row.id, row.containerId!);
+                }
+            }
+            loadedPartitionRowIds[mapKey] = rowIds;
+            OnValuePartitionChanged?.Invoke(mapKey);
+        }
+
+        /// <summary>
+        /// Removes a loaded partition's authored rows and the derived
+        /// index entries / attribute wrappers touching them. Throws when the
+        /// partition isn't loaded, and when a save/session overlay still
+        /// shadows a row in the partition — unloading with pending overlay
+        /// writes is a caller bug (commit or discard them first).
+        /// </summary>
+        public void UnloadValuePartition(string mapKey)
+        {
+            EnsureNotDisposed();
+            if (!loadedPartitionRowIds.TryGetValue(mapKey, out HashSet<string> rowIds))
+            {
+                throw new System.InvalidOperationException(
+                    $"Value partition '{mapKey}' is not loaded. Loaded partitions: [{string.Join(", ", loadedPartitionRowIds.Keys)}].");
+            }
+            ThrowIfOverlayShadowsPartition(NeoValueOwnership.Save, mapKey, rowIds);
+            ThrowIfOverlayShadowsPartition(NeoValueOwnership.Session, mapKey, rowIds);
+            DisposeWrappersTouchingRows(rowIds);
+            foreach (var rowId in rowIds)
+            {
+                if (authoredContainerByRow.TryGetValue(rowId, out string containerId))
+                {
+                    if (authoredEntriesByContainer.TryGetValue(containerId, out var members))
+                    {
+                        members.Remove(rowId);
+                    }
+                    authoredContainerByRow.Remove(rowId);
+                }
+                data.values.Remove(rowId);
+            }
+            loadedPartitionRowIds.Remove(mapKey);
+            OnValuePartitionChanged?.Invoke(mapKey);
+        }
+
+        private IEnumerable<string> AvailableValuePartitionKeys()
+        {
+            if (data.valuePartitions is null) yield break;
+            foreach (var key in data.valuePartitions.Keys) yield return key;
+        }
+
+        private void ThrowIfOverlayShadowsPartition(
+            NeoValueOwnership ownership,
+            string mapKey,
+            HashSet<string> rowIds)
+        {
+            foreach (var pair in GetWritableStore(ownership).values)
+            {
+                bool inPartition = rowIds.Contains(pair.Key) || pair.Value.mapKey == mapKey;
+                if (!inPartition) continue;
+                throw new System.InvalidOperationException(
+                    $"Cannot unload value partition '{mapKey}': the {ownership} overlay still shadows row '{pair.Key}' in that partition. Commit or discard the overlay writes before unloading.");
+            }
+        }
+
+        /// <summary>
+        /// Disposes every registered <see cref="NeoAttribute"/> wrapper (and
+        /// generated custom value) bound to one of the partition rows being
+        /// unloaded, so no live wrapper keeps referencing a removed row.
+        /// </summary>
+        private void DisposeWrappersTouchingRows(HashSet<string> rowIds)
+        {
+            var staleNodes = new List<NeoAttribute>();
+            foreach (var node in nodesInternal.Values)
+            {
+                bool touches =
+                    (node.value is not null && rowIds.Contains(node.value.id))
+                    || (node.overrideValueId is not null && rowIds.Contains(node.overrideValueId));
+                if (touches) staleNodes.Add(node);
+            }
+            var staleGenerated = new List<NeoGeneratedCustomValue>();
+            foreach (var generated in generatedValuesInternal.Values)
+            {
+                if (generated.valueId is not null && rowIds.Contains(generated.valueId))
+                {
+                    staleGenerated.Add(generated);
+                }
+            }
+            foreach (var generated in staleGenerated)
+            {
+                generated.Dispose();
+            }
+            foreach (var node in staleNodes)
+            {
+                node.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Partition-stamp inheritance chokepoint for overlay writes (spec
+        /// §6): a row written without a stamp inherits, in order, the stamp
+        /// of the row it shadows (authored, or the save row beneath a session
+        /// write), then its containment container's effective stamp (created
+        /// member rows live in their container's partition). Rows that
+        /// resolve no stamp are main-partition and stay unstamped.
+        /// </summary>
+        private void StampMapKeyForWrite(NeoValueOwnership ownership, AttributeValue value)
+        {
+            if (!string.IsNullOrEmpty(value.mapKey)) return;
+            if (data.values.TryGetValue(value.id, out AttributeValue authored))
+            {
+                value.mapKey = authored.mapKey;
+                return;
+            }
+            if (ownership == NeoValueOwnership.Session
+                && saveData.values.TryGetValue(value.id, out AttributeValue saveRow)
+                && !string.IsNullOrEmpty(saveRow.mapKey))
+            {
+                value.mapKey = saveRow.mapKey;
+                return;
+            }
+            if (string.IsNullOrEmpty(value.containerId)) return;
+            value.mapKey = ResolveEffectiveRow(value.containerId!)?.mapKey;
         }
 
         /// <summary>
@@ -2366,6 +2662,18 @@ namespace NeoCompose.Runtime
                 {
                     MarkReachableValue(ownership, row.id, reachable);
                 }
+            }
+            // Storage partitions: overlay rows stamped into a partition that
+            // is NOT currently loaded cannot be judged — their containment
+            // container (and the rest of the authored subtree anchoring them)
+            // is not in memory. Keep them; reachability re-applies normally
+            // once the partition loads.
+            var store = GetWritableStore(ownership);
+            foreach (var row in store.values.Values)
+            {
+                if (string.IsNullOrEmpty(row.mapKey)) continue;
+                if (loadedPartitionRowIds.ContainsKey(row.mapKey!)) continue;
+                reachable.Add(row.id);
             }
             ExpandContainmentReachability(ownership, reachable);
             return reachable;

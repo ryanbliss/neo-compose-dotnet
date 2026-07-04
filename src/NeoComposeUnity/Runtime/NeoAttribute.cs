@@ -71,6 +71,15 @@ namespace NeoCompose.Runtime
             this.attribute = attribute;
             this.overrideValueId = overrideValueId;
             this.ownership = ownership;
+            // Storage partitions (spec §6): binding a node to a world grid's
+            // value id IS content access — lazily merge the grid's
+            // `world:<valueId>` partition before subclasses resolve the row
+            // (two dictionary probes when no such partition exists).
+            string? boundValueId = overrideValueId ?? attribute.valueId;
+            if (boundValueId is not null)
+            {
+                client.EnsureWorldPartitionLoaded(boundValueId);
+            }
         }
 
         /// <summary>

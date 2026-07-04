@@ -54,6 +54,19 @@ namespace NeoCompose.Runtime.Json
         public Project project = null!;
         public Dictionary<string, Attribute> attributes = null!;
         public Dictionary<string, AttributeValue> values = null!;
+
+        /// <summary>
+        /// Storage partitions (specs/list-attribute-and-tilegrid-scaling.md
+        /// §6): every non-main partition of the export, keyed by partition
+        /// key (<c>mapKey</c>, e.g. <c>world:&lt;gridValueId&gt;</c>) with the
+        /// partition's value rows keyed by value id. Kept as raw
+        /// <see cref="JToken"/>s so parsing project.json does NOT materialize
+        /// partition rows — a partition's rows are deserialized into typed
+        /// <see cref="AttributeValue"/>s only when
+        /// <c>NeoClient.LoadValuePartition</c> loads it. Null on exports
+        /// predating partitions (equivalent to "no partitions").
+        /// </summary>
+        public Dictionary<string, JToken>? valuePartitions;
         public Dictionary<string, CustomType> types = null!;
         public Dictionary<string, Enum> enums = null!;
         public Dictionary<string, ProjectFile> files = new();

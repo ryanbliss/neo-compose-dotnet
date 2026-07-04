@@ -463,6 +463,18 @@ namespace NeoCompose.Runtime.Json
         public string? containerId { get; set; }
 
         /// <summary>
+        /// Storage partition stamp (specs/list-attribute-and-tilegrid-scaling.md
+        /// §6): the partition this row is serialized/loaded/committed with.
+        /// Absent (<c>null</c>) means the "main" partition. Stamped at creation
+        /// and immutable thereafter; world grids stamp their whole subtree with
+        /// <c>world:&lt;gridValueId&gt;</c>. Purely a lifecycle/serialization
+        /// concern — the in-memory value graph stays one dictionary per
+        /// ownership regardless of partition.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? mapKey { get; set; }
+
+        /// <summary>
         /// Save-overlay tombstone marker. When set to
         /// <see cref="NeoValueMarks.Removed"/>, this row represents an
         /// <b>explicitly removed/emptied</b> optional value and resolves as
