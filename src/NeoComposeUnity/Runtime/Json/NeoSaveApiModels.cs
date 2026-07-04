@@ -20,7 +20,6 @@ namespace NeoCompose.Runtime.Json
         public VersionData version = new VersionData();
         public string targetReleaseChannelId = "";
         public NeoSaveValues values = NeoSaveValues.Empty;
-        public Dictionary<string, TileGridDeltaContent> tileGridDeltas = new();
         public List<GameRuntimePlatform>? platforms;
         public List<GameSystemInfo>? systems;
         public List<GameInputDeviceInfo>? inputDevices;

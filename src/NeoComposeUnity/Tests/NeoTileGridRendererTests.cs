@@ -49,7 +49,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, tiles.Count);
             Assert.AreEqual(new Vector2Int(9, 22), tiles[0].Cell);
             Assert.AreEqual(NeoTileOutputSourceKind.TileLayerLink, tiles[0].SourceKind);
-            Assert.AreEqual("shop-1:shop-floor-link-output:floor-local", tiles[0].InstanceId.Value);
+            Assert.AreEqual("shop-1:shop-floor-link:floor-local", tiles[0].InstanceId.Value);
             Assert.AreEqual("shop-1", tiles[0].SourceObjectInstanceId);
             Assert.AreEqual("shop-floor-link", tiles[0].SourceTileLayerLinkId);
             Assert.IsInstanceOf<TestTile>(tiles[0].Info);
@@ -1581,6 +1581,7 @@ namespace NeoCompose.Tests
                     typeId = TileLayerLinkTypeId,
                     value = new Dictionary<string, string>
                     {
+                        ["TileLayer"] = "shop-floor-link-layer",
                         ["Tiles"] = "shop-floor-link-tiles",
                     },
                 });
@@ -1593,6 +1594,16 @@ namespace NeoCompose.Tests
                 });
         }
 
+        private const string GridTypeId = "grid-type";
+        private const string ObjectLayerLinkTypeId = "object-layer-link-type";
+
+        /// <summary>
+        /// Values-native world fixture: the grid value's "Children" ordered
+        /// list carries a (empty) direct tile layer link plus an object layer
+        /// link whose placed object "shop-1" (at 10,20) carries a
+        /// TileLayerLink child "shop-floor-link" projecting "floor-local"
+        /// (local cell -1,2 -> grid cell 9,22) into "background-layer".
+        /// </summary>
         private static ProjectData BuildTileGridProjectData()
         {
             var rootType = new CustomType
@@ -1601,6 +1612,16 @@ namespace NeoCompose.Tests
                 projectId = "project-a",
                 name = "Root",
                 schema = new Dictionary<string, string>(),
+            };
+            var gridType = new CustomType
+            {
+                id = GridTypeId,
+                projectId = "project-a",
+                name = "Grid",
+                schema = new Dictionary<string, string>
+                {
+                    ["Children"] = "grid-children-attribute",
+                },
             };
             var tileType = new CustomType
             {
@@ -1614,14 +1635,22 @@ namespace NeoCompose.Tests
                 id = ObjectTypeId,
                 projectId = "project-a",
                 name = "Object",
-                schema = new Dictionary<string, string>(),
+                schema = new Dictionary<string, string>
+                {
+                    ["Position"] = "object-position-attribute",
+                    ["Children"] = "object-children-attribute",
+                },
             };
             var tileInstanceType = new CustomType
             {
                 id = TileInstanceTypeId,
                 projectId = "project-a",
                 name = "Tile Instance",
-                schema = new Dictionary<string, string>(),
+                schema = new Dictionary<string, string>
+                {
+                    ["Cell"] = "tile-instance-cell-attribute",
+                    ["Tile"] = "tile-instance-tile-attribute",
+                },
             };
             var tileLayerLinkType = new CustomType
             {
@@ -1630,7 +1659,19 @@ namespace NeoCompose.Tests
                 name = "Tile Layer Link",
                 schema = new Dictionary<string, string>
                 {
+                    ["TileLayer"] = "tile-layer-link-layer-attribute",
                     ["Tiles"] = "tile-layer-link-tiles-attribute",
+                },
+            };
+            var objectLayerLinkType = new CustomType
+            {
+                id = ObjectLayerLinkTypeId,
+                projectId = "project-a",
+                name = "Object Layer Link",
+                schema = new Dictionary<string, string>
+                {
+                    ["ObjectLayer"] = "object-layer-link-layer-attribute",
+                    ["Objects"] = "object-layer-link-objects-attribute",
                 },
             };
             var baseTileType = new CustomType
@@ -1671,6 +1712,60 @@ namespace NeoCompose.Tests
                     ["root-assets"] = RootAttribute("root-assets", "root-assets-value", rootType.id),
                     ["root-save"] = RootAttribute("root-save", "root-save-value", rootType.id),
                     ["root-session"] = RootAttribute("root-session", "root-session-value", rootType.id),
+                    ["grid-children-attribute"] = new ListAttribute
+                    {
+                        id = "grid-children-attribute",
+                        projectId = "project-a",
+                        name = "Children",
+                        type = AttributeType.List,
+                        entryAttributeId = "grid-child-entry-attribute",
+                    },
+                    ["grid-child-entry-attribute"] = new CustomAttribute
+                    {
+                        id = "grid-child-entry-attribute",
+                        projectId = "project-a",
+                        name = "Child",
+                        type = AttributeType.Custom,
+                        customTypeId = TileLayerLinkTypeId,
+                    },
+                    ["object-position-attribute"] = new Vector3Attribute
+                    {
+                        id = "object-position-attribute",
+                        projectId = "project-a",
+                        name = "Position",
+                        type = AttributeType.Vector3,
+                    },
+                    ["object-children-attribute"] = new ListAttribute
+                    {
+                        id = "object-children-attribute",
+                        projectId = "project-a",
+                        name = "Children",
+                        type = AttributeType.List,
+                        entryAttributeId = "grid-child-entry-attribute",
+                    },
+                    ["tile-instance-cell-attribute"] = new Vector2IntAttribute
+                    {
+                        id = "tile-instance-cell-attribute",
+                        projectId = "project-a",
+                        name = "Cell",
+                        type = AttributeType.Vector2Int,
+                    },
+                    ["tile-instance-tile-attribute"] = new LookupAttribute
+                    {
+                        id = "tile-instance-tile-attribute",
+                        projectId = "project-a",
+                        name = "Tile",
+                        type = AttributeType.Lookup,
+                        collectionAttributeId = "tile-layer-link-tiles-attribute",
+                    },
+                    ["tile-layer-link-layer-attribute"] = new LookupAttribute
+                    {
+                        id = "tile-layer-link-layer-attribute",
+                        projectId = "project-a",
+                        name = "TileLayer",
+                        type = AttributeType.Lookup,
+                        collectionAttributeId = "grid-children-attribute",
+                    },
                     ["tile-layer-link-tiles-attribute"] = new ListAttribute
                     {
                         id = "tile-layer-link-tiles-attribute",
@@ -1688,6 +1783,31 @@ namespace NeoCompose.Tests
                         type = AttributeType.Custom,
                         customTypeId = TileInstanceTypeId,
                     },
+                    ["object-layer-link-layer-attribute"] = new LookupAttribute
+                    {
+                        id = "object-layer-link-layer-attribute",
+                        projectId = "project-a",
+                        name = "ObjectLayer",
+                        type = AttributeType.Lookup,
+                        collectionAttributeId = "grid-children-attribute",
+                    },
+                    ["object-layer-link-objects-attribute"] = new ListAttribute
+                    {
+                        id = "object-layer-link-objects-attribute",
+                        projectId = "project-a",
+                        name = "Objects",
+                        type = AttributeType.List,
+                        entryAttributeId = "object-layer-link-object-entry-attribute",
+                        listKind = NeoListKinds.Unordered,
+                    },
+                    ["object-layer-link-object-entry-attribute"] = new CustomAttribute
+                    {
+                        id = "object-layer-link-object-entry-attribute",
+                        projectId = "project-a",
+                        name = "Object",
+                        type = AttributeType.Custom,
+                        customTypeId = ObjectTypeId,
+                    },
                 },
                 values = new Dictionary<string, AttributeValue>
                 {
@@ -1699,103 +1819,138 @@ namespace NeoCompose.Tests
                     ["sub-tile"] = ObjectValue("sub-tile", SubTileTypeId),
                     ["other-tile"] = ObjectValue("other-tile", OtherTileTypeId),
                     ["shop-object"] = ObjectValue("shop-object", ObjectTypeId),
+                    ["town-grid"] = new ObjectAttributeValue
+                    {
+                        id = "town-grid",
+                        typeId = GridTypeId,
+                        value = new Dictionary<string, string>
+                        {
+                            ["Children"] = "town-grid-children",
+                        },
+                    },
+                    ["town-grid-children"] = new ArrayAttributeValue
+                    {
+                        id = "town-grid-children",
+                        value = new[] { "background-link", "objects-link" },
+                    },
+                    ["background-link"] = new ObjectAttributeValue
+                    {
+                        id = "background-link",
+                        typeId = TileLayerLinkTypeId,
+                        value = new Dictionary<string, string>
+                        {
+                            ["TileLayer"] = "background-link-layer",
+                            ["Tiles"] = "background-link-tiles",
+                        },
+                    },
+                    ["background-link-layer"] = new ArrayAttributeValue
+                    {
+                        id = "background-link-layer",
+                        value = new[] { "background-layer" },
+                    },
+                    ["background-link-tiles"] = new ArrayAttributeValue
+                    {
+                        id = "background-link-tiles",
+                        value = System.Array.Empty<string>(),
+                    },
+                    ["objects-link"] = new ObjectAttributeValue
+                    {
+                        id = "objects-link",
+                        typeId = ObjectLayerLinkTypeId,
+                        value = new Dictionary<string, string>
+                        {
+                            ["ObjectLayer"] = "objects-link-layer",
+                            ["Objects"] = "objects-link-objects",
+                        },
+                    },
+                    ["objects-link-layer"] = new ArrayAttributeValue
+                    {
+                        id = "objects-link-layer",
+                        value = new[] { "object-layer" },
+                    },
+                    ["objects-link-objects"] = new ArrayAttributeValue
+                    {
+                        id = "objects-link-objects",
+                        value = System.Array.Empty<string>(),
+                    },
+                    // Membership by join: shop-1 carries the Objects list
+                    // value id as its containerId.
+                    ["shop-1"] = new ObjectAttributeValue
+                    {
+                        id = "shop-1",
+                        typeId = ObjectTypeId,
+                        containerId = "objects-link-objects",
+                        value = new Dictionary<string, string>
+                        {
+                            ["Position"] = "shop-1-position",
+                            ["Children"] = "shop-1-children",
+                        },
+                    },
+                    ["shop-1-position"] = new Vector3AttributeValue
+                    {
+                        id = "shop-1-position",
+                        value = new NeoVector3Value { x = 10, y = 20, z = 0 },
+                    },
+                    ["shop-1-children"] = new ArrayAttributeValue
+                    {
+                        id = "shop-1-children",
+                        value = new[] { "shop-floor-link" },
+                    },
                     ["shop-floor-link"] = new ObjectAttributeValue
                     {
                         id = "shop-floor-link",
                         typeId = TileLayerLinkTypeId,
                         value = new Dictionary<string, string>
                         {
+                            ["TileLayer"] = "shop-floor-link-layer",
                             ["Tiles"] = "shop-floor-link-tiles",
                         },
+                    },
+                    ["shop-floor-link-layer"] = new ArrayAttributeValue
+                    {
+                        id = "shop-floor-link-layer",
+                        value = new[] { "background-layer" },
                     },
                     ["shop-floor-link-tiles"] = new ArrayAttributeValue
                     {
                         id = "shop-floor-link-tiles",
                         value = new[] { "floor-local" },
                     },
+                    ["floor-local"] = new ObjectAttributeValue
+                    {
+                        id = "floor-local",
+                        typeId = TileInstanceTypeId,
+                        value = new Dictionary<string, string>
+                        {
+                            ["Cell"] = "floor-local-cell",
+                            ["Tile"] = "floor-local-tile",
+                        },
+                    },
+                    ["floor-local-cell"] = new Vector2AttributeValue
+                    {
+                        id = "floor-local-cell",
+                        value = new NeoVector2Value { x = -1, y = 2 },
+                    },
+                    ["floor-local-tile"] = new ArrayAttributeValue
+                    {
+                        id = "floor-local-tile",
+                        value = new[] { "floor-tile" },
+                    },
                 },
                 types = new Dictionary<string, CustomType>
                 {
                     [rootType.id] = rootType,
+                    [GridTypeId] = gridType,
                     [TileTypeId] = tileType,
                     [ObjectTypeId] = objectType,
                     [TileInstanceTypeId] = tileInstanceType,
                     [TileLayerLinkTypeId] = tileLayerLinkType,
+                    [ObjectLayerLinkTypeId] = objectLayerLinkType,
                     [BaseTileTypeId] = baseTileType,
                     [SubTileTypeId] = subTileType,
                     [OtherTileTypeId] = otherTileType,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
-                tileGridContents = new Dictionary<string, TileGridContent>
-                {
-                    ["town-grid"] = new TileGridContent
-                    {
-                        schemaVersion = 1,
-                        manifest = new TileGridManifest
-                        {
-                            id = "manifest-1",
-                            gridValueId = "town-grid",
-                            schemaVersion = 1,
-                            regionSize = 32,
-                            layerOrder = new List<string> { "background-layer", "object-layer" },
-                            importedAssets = new List<JToken>(),
-                            contentHash = "manifest-hash",
-                        },
-                        regions = new List<TileGridRegion>
-                        {
-                            new TileGridRegion
-                            {
-                                id = "object-region-1",
-                                gridValueId = "town-grid",
-                                layerId = "object-layer",
-                                layerKind = "object",
-                                regionKey = "0,0",
-                                regionX = 0,
-                                regionY = 0,
-                                dataSchemaVersion = 1,
-                                data = JObject.Parse(@"{
-                                  ""kind"": ""object"",
-                                  ""instances"": [
-                                    {
-                                      ""id"": ""shop-1"",
-                                      ""objectValueId"": ""shop-object"",
-                                      ""position"": { ""x"": 10, ""y"": 20 },
-                                      ""objectLayerId"": ""object-layer"",
-                                      ""order"": 2
-                                    }
-                                  ]
-                                }"),
-                                contentHash = "object-region-hash",
-                            },
-                        },
-                        tileLayerLinks = new List<TileGridLayerLinkPayload>
-                        {
-                            new TileGridLayerLinkPayload
-                            {
-                                id = "shop-floor-link-output",
-                                gridValueId = "town-grid",
-                                objectLayerId = "object-layer",
-                                objectInstanceId = "shop-1",
-                                objectValueId = "shop-object",
-                                tileLayerLinkValueId = "shop-floor-link",
-                                targetTileLayerId = "background-layer",
-                                origin = new TileGridCell { x = 0, y = 0 },
-                                order = 10,
-                                tiles = new List<TileGridLayerLinkTile>
-                                {
-                                    new TileGridLayerLinkTile
-                                    {
-                                        id = "floor-local",
-                                        tileValueId = "floor-tile",
-                                        tileTypeId = TileTypeId,
-                                        position = new TileGridCell { x = -1, y = 2 },
-                                        order = 3,
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
             };
         }
 

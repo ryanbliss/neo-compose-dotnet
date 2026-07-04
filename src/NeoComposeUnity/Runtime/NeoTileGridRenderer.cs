@@ -1905,9 +1905,20 @@ namespace NeoCompose.Runtime
                     return tiles;
                 }
 
+                // Inline array ids (ordered lists, legacy factory rows) plus
+                // the unordered membership join (rows whose containerId is the
+                // Tiles list value).
+                var tileInstanceValueIds = new List<string>(tilesRow.value);
+                var seenTileInstanceIds = new HashSet<string>(tileInstanceValueIds);
+                foreach (var joinedId in source.Client.GetUnorderedListEntryIds(tilesValueId))
+                {
+                    if (!seenTileInstanceIds.Add(joinedId)) continue;
+                    tileInstanceValueIds.Add(joinedId);
+                }
+
                 var origin = ReadSourceOrigin(sourceRow);
                 var order = 0;
-                foreach (var tileInstanceValueId in tilesRow.value)
+                foreach (var tileInstanceValueId in tileInstanceValueIds)
                 {
                     if (!source.Client.TryGetValue(tileInstanceValueId, out ObjectAttributeValue? tileInstanceRow) ||
                         tileInstanceRow.value is null ||

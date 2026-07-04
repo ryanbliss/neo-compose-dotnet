@@ -213,44 +213,62 @@ namespace NeoCompose.Unity.Editor
             AssetDatabase.SaveAssets();
         }
 
+        /// <summary>
+        /// Tile asset value ids referenced by tile placements. Placements are
+        /// containment members (rows carrying a containerId) whose record has
+        /// a "Tile" single-select Lookup — the values-native shape that
+        /// replaced the derived tileGridContents regions.
+        /// </summary>
         private static IEnumerable<string> EnumerateReferencedTileValueIds(ProjectData projectData)
         {
             var seen = new HashSet<string>();
-            foreach (var content in projectData.tileGridContents.Values)
+            foreach (var row in projectData.values.Values)
             {
-                if (content == null) continue;
-                foreach (var region in content.regions ?? new List<TileGridRegion>())
+                if (row is not ObjectAttributeValue placement) continue;
+                if (string.IsNullOrEmpty(placement.containerId)) continue;
+                if (string.IsNullOrEmpty(placement.typeId)) continue;
+                if (placement.value == null) continue;
+                string? tileKey = FindTileSchemaKey(projectData, placement.typeId!);
+                if (tileKey == null) continue;
+                if (!placement.value.TryGetValue(tileKey, out string tileLookupId)) continue;
+                if (!projectData.values.TryGetValue(tileLookupId, out AttributeValue lookupRow)) continue;
+                if (lookupRow is not ArrayAttributeValue lookupArray || lookupArray.value == null) continue;
+                foreach (var tileValueId in lookupArray.value)
                 {
-                    if (region == null || region.layerKind != "tile" || region.data == null) continue;
-                    foreach (var instance in ReadTileInstances(region.data))
-                    {
-                        var tileValueId = instance["tileValueId"]?.Value<string>();
-                        if (!string.IsNullOrWhiteSpace(tileValueId) && seen.Add(tileValueId!))
-                        {
-                            yield return tileValueId!;
-                        }
-                    }
-                }
-
-                foreach (var link in content.tileLayerLinks ?? new List<TileGridLayerLinkPayload>())
-                {
-                    if (link?.tiles == null) continue;
-                    foreach (var tile in link.tiles)
-                    {
-                        if (tile == null || string.IsNullOrWhiteSpace(tile.tileValueId)) continue;
-                        if (seen.Add(tile.tileValueId)) yield return tile.tileValueId;
-                    }
+                    if (string.IsNullOrWhiteSpace(tileValueId)) continue;
+                    if (seen.Add(tileValueId)) yield return tileValueId;
                 }
             }
         }
 
-        private static IEnumerable<JObject> ReadTileInstances(JToken data)
+        private static readonly string[] TileSchemaKeyCandidates = { "Tile", "tileValue", "tileValueId" };
+
+        private static string? FindTileSchemaKey(ProjectData projectData, string typeId)
         {
-            if (data["instances"] is not JArray instances) yield break;
-            foreach (var token in instances)
+            if (!projectData.types.TryGetValue(typeId, out CustomType type) || type == null) return null;
+            IList<MergedSchemaEntry> merged;
+            try
             {
-                if (token is JObject obj) yield return obj;
+                merged = CustomTypeInheritance.MergeSchemas(
+                    CustomTypeInheritance.ResolveChain(
+                        typeId,
+                        id => projectData.types.TryGetValue(id, out CustomType match) ? match : null));
             }
+            catch (CircularInheritanceError)
+            {
+                return null;
+            }
+            foreach (var candidate in TileSchemaKeyCandidates)
+            {
+                foreach (var entry in merged)
+                {
+                    if (string.Equals(entry.schemaKey, candidate, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return entry.schemaKey;
+                    }
+                }
+            }
+            return null;
         }
 
         private static string GeneratedTileAssetPath(string tileValueId, TileBase tileBase)

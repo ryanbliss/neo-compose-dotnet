@@ -136,6 +136,25 @@ namespace NeoCompose.Runtime.Json
     public class ListAttribute : Attribute<string[]?>
     {
         public string entryAttributeId = null!;
+
+        /// <summary>
+        /// List kind (mirrors TS-side <c>TListKind</c>): "ordered"
+        /// (or absent — today's behavior: entries stored inline as a
+        /// <c>string[]</c> of entry value ids, array order is the list
+        /// order) or "unordered" (the stored value is ONLY the
+        /// null-vs-present discriminator — <c>null</c> or <c>[]</c>;
+        /// membership resolves by join over
+        /// <see cref="AttributeValue.containerId"/>). Immutable after
+        /// creation.
+        /// </summary>
+        public string? listKind;
+    }
+
+    /// <summary>Well-known values for <see cref="ListAttribute.listKind"/>.</summary>
+    public static class NeoListKinds
+    {
+        public const string Ordered = "ordered";
+        public const string Unordered = "unordered";
     }
 
     /// <summary>Mirror of TS-side <c>TAttributeCustom</c>.</summary>

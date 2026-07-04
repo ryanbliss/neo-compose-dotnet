@@ -83,39 +83,6 @@ namespace NeoCompose.Convex.Tests
         }
 
         [Test]
-        public async Task SaveListSubscriptionParsesTileGridDeltaIntegerFieldsFromRealtimeDecimals()
-        {
-            var provider = await CreateConnectedProviderAsync();
-            var received = new List<NeoSaveFileList>();
-            provider.SubscribeSaveList("channel-dev", received.Add);
-
-            var remoteSaveWithDeltas =
-                RemoteSaveJson.TrimEnd('}') +
-                ",\"tileGridDeltas\":{\"grid-value-1\":{\"schemaVersion\":\"1.0\",\"regions\":[{" +
-                "\"gridValueId\":\"grid-value-1\"," +
-                "\"layerId\":\"background-layer\"," +
-                "\"layerKind\":\"tile\"," +
-                "\"regionKey\":\"0,0\"," +
-                "\"regionX\":\"0.0\"," +
-                "\"regionY\":0.0," +
-                "\"dataSchemaVersion\":\"1.0\"," +
-                "\"delta\":{\"entries\":{},\"removedInstanceIds\":[],\"restoredToAuthored\":[]}," +
-                "\"contentHash\":\"hash-1\"}]}}}";
-
-            socket.PushJson(
-                "gameSaves:list",
-                "{\"saves\":[" + remoteSaveWithDeltas +
-                "],\"cloneRequired\":{\"save-1\":false}}");
-            dispatcher.Flush();
-
-            var save = received[0].saves[0];
-            var region = save.tileGridDeltas["grid-value-1"].regions[0];
-            Assert.That(region.dataSchemaVersion, Is.EqualTo(1));
-            Assert.That(region.regionX, Is.EqualTo(0));
-            Assert.That(region.regionY, Is.EqualTo(0));
-        }
-
-        [Test]
         public async Task SaveHeadSubscriptionTargetsTheGetQueryAndParses()
         {
             var provider = await CreateConnectedProviderAsync();

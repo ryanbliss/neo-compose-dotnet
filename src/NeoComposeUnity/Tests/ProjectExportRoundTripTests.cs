@@ -107,25 +107,27 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(export.files);
             Assert.IsNotNull(export.textureTemplates);
             Assert.IsNotNull(export.audioClipTemplates);
-            Assert.IsNotNull(export.tileGridContents);
+            Assert.IsNull(export.tileGridContents);
             Assert.AreEqual(0, export.dialogues.Count);
             Assert.AreEqual(0, export.dialogueGroups.Count);
             Assert.AreEqual(0, export.priorityGroups.Count);
             Assert.AreEqual(0, export.files.Count);
             Assert.AreEqual(0, export.textureTemplates.Count);
             Assert.AreEqual(0, export.audioClipTemplates.Count);
-            Assert.AreEqual(0, export.tileGridContents.Count);
         }
 
         [Test]
-        public void TileGridContents_DeserializeToWorldDto()
+        public void LegacyTileGridContents_ParseIntoTheGuardTokenForLoudRejection()
         {
+            // Exports at schema version 3+ never carry tileGridContents; the
+            // field survives only as a legacy detector so NeoClient can throw
+            // a pinpointed error instead of silently dropping tile data.
             var json = @"
 {
   ""project"": {
     ""_id"": ""project-a"",
     ""id"": ""project-a"",
-    ""name"": ""World Export"",
+    ""name"": ""Legacy Export"",
     ""rootAssetsAttributeId"": ""assets-root"",
     ""rootSaveFileAttributeId"": ""save-root"",
     ""createdAt"": ""1970-01-01T00:00:00.000Z"",
@@ -136,81 +138,15 @@ namespace NeoCompose.Tests
   ""types"": {},
   ""enums"": {},
   ""tileGridContents"": {
-    ""town-grid"": {
-      ""schemaVersion"": 1,
-      ""manifest"": {
-        ""id"": ""manifest-1"",
-        ""gridValueId"": ""town-grid"",
-        ""schemaVersion"": 1,
-        ""regionSize"": 32,
-        ""sourceVersionId"": null,
-        ""layerOrder"": [""background-link""],
-        ""importedAssets"": [],
-        ""boundsHint"": { ""minX"": 0, ""minY"": 0, ""maxX"": 10, ""maxY"": 10 },
-        ""contentHash"": ""manifest-hash""
-      },
-      ""regions"": [
-        {
-          ""id"": ""region-1"",
-          ""gridValueId"": ""town-grid"",
-          ""layerId"": ""background-link"",
-          ""layerKind"": ""tile"",
-          ""regionKey"": ""0,0"",
-          ""regionX"": 0,
-          ""regionY"": 0,
-          ""dataSchemaVersion"": 1,
-          ""data"": {
-            ""kind"": ""tile"",
-            ""instances"": [
-              { ""id"": ""tile-1"", ""tileValueId"": ""grass"", ""position"": { ""x"": 1, ""y"": 2 } }
-            ]
-          },
-          ""contentHash"": ""region-hash"",
-          ""deleted"": false
-        }
-      ],
-      ""tileLayerLinks"": [
-        {
-          ""id"": ""shop-floor-link-output"",
-          ""gridValueId"": ""town-grid"",
-          ""objectLayerId"": ""objects"",
-          ""objectInstanceId"": ""shop-1"",
-          ""objectValueId"": ""shop"",
-          ""tileLayerLinkValueId"": ""shop-floor-link"",
-          ""targetTileLayerId"": ""background-link"",
-          ""origin"": { ""x"": 4, ""y"": 5 },
-          ""order"": 10,
-          ""tiles"": [
-            {
-              ""id"": ""shop-floor-0-0"",
-              ""tileValueId"": ""wood-floor"",
-              ""tileTypeId"": ""floor-tile"",
-              ""position"": { ""x"": 0, ""y"": 0 },
-              ""order"": 1
-            }
-          ]
-        }
-      ]
-    }
+    ""town-grid"": { ""schemaVersion"": 1, ""regions"": [] }
   }
 }";
 
             var export = Deserialize(json);
 
-            Assert.IsTrue(export.tileGridContents.ContainsKey("town-grid"));
-            var content = export.tileGridContents["town-grid"];
-            Assert.AreEqual(1, content.schemaVersion);
-            Assert.AreEqual("town-grid", content.manifest.gridValueId);
-            Assert.AreEqual(32, content.manifest.regionSize);
-            Assert.AreEqual("background-link", content.manifest.layerOrder[0]);
-            Assert.AreEqual(1, content.regions.Count);
-            Assert.AreEqual("tile", content.regions[0].layerKind);
-            Assert.AreEqual("tile-1", content.regions[0].data!["instances"]![0]!["id"]!.Value<string>());
-            Assert.AreEqual(1, content.tileLayerLinks.Count);
-            Assert.AreEqual("shop-floor-link-output", content.tileLayerLinks[0].id);
-            Assert.AreEqual("background-link", content.tileLayerLinks[0].targetTileLayerId);
-            Assert.AreEqual(1, content.tileLayerLinks[0].tiles.Count);
-            Assert.AreEqual("wood-floor", content.tileLayerLinks[0].tiles[0].tileValueId);
+            Assert.IsNotNull(export.tileGridContents);
+            Assert.AreEqual(1, export.tileGridContents!.Count);
+            Assert.IsNotNull(export.tileGridContents["town-grid"]);
         }
 
         [Test]

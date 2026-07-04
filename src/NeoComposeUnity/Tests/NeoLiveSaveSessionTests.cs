@@ -63,41 +63,26 @@ namespace NeoCompose.Tests
         private static string LiveSaveContent(
             string values,
             string snapshotId = "snap-1",
-            string snapshotHash = "hash-1",
-            string tileGridDeltas = "{}")
+            string snapshotHash = "hash-1")
         {
             return "{\"name\":\"Live Save\",\"projectId\":\"project-1\"," +
                 "\"customId\":\"save-1\",\"releaseChannelId\":\"" + LiveChannel + "\"," +
                 "\"serverId\":\"server-save-1\",\"snapshotId\":\"" + snapshotId + "\"," +
                 "\"snapshotHash\":\"" + snapshotHash + "\",\"synchronizedAt\":3," +
                 "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
-                "\"values\":" + values + ",\"tileGridDeltas\":" + tileGridDeltas +
+                "\"values\":" + values +
                 ",\"createdAt\":1,\"updatedAt\":2}";
         }
 
         private static RemoteGameSave RemoteWithValues(
             string snapshotId, string snapshotHash, string valuesJson,
-            string? liveSessionId = null,
-            string tileGridDeltasJson = "{}")
+            string? liveSessionId = null)
         {
             var remote = NeoSaveTestSupport.Remote("save-1", snapshotId, snapshotHash);
             remote.values = new NeoSaveValues(JToken.Parse(valuesJson));
-            remote.tileGridDeltas =
-                JsonConvert.DeserializeObject<Dictionary<string, TileGridDeltaContent>>(
-                    tileGridDeltasJson)
-                ?? new Dictionary<string, TileGridDeltaContent>();
             remote.liveSessionId = liveSessionId;
             return remote;
         }
-
-        private static string TileGridDeltasJson(string tileValueId) =>
-            "{\"grid-value-1\":{\"schemaVersion\":1,\"regions\":[{" +
-            "\"gridValueId\":\"grid-value-1\",\"layerId\":\"background-layer\"," +
-            "\"layerKind\":\"tile\",\"regionKey\":\"0:0\",\"regionX\":0,\"regionY\":0," +
-            "\"dataSchemaVersion\":1,\"delta\":{\"entries\":{\"0,0\":{\"tileValueId\":\"" +
-            tileValueId +
-            "\"}},\"removedInstanceIds\":[],\"restoredToAuthored\":[]}," +
-            "\"contentHash\":\"hash-" + tileValueId + "\"}]}}";
 
         private static async Task<(NeoProjectStore store,
             NeoSaveSynchronizer sync,
@@ -282,34 +267,6 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public async Task TileGridDeltaChanges_FlushAsLiveSidecarPatch()
-        {
-            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
-            await ForkEstablishedAsync(sync, realtime, scheduler);
-
-            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
-                "snap-live", "hash-2", new NeoTimestamp(42)));
-            await sync.CommitSaveContentAsync(
-                LiveSaveContent(
-                    "{\"a\":1}",
-                    "snap-live",
-                    "hash-live",
-                    TileGridDeltasJson("session-dirt")),
-                replaceSnapshot: false);
-            scheduler.Advance(0.5);
-
-            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
-            var patch = realtime.livePatches[0].patch;
-            Assert.That(patch.entries, Is.Empty, "no ordinary values changed");
-            Assert.That(patch.restoredToAuthored, Is.Empty);
-            Assert.That(patch.tileGridDeltas, Is.Not.Null);
-            var region = patch.tileGridDeltas!["grid-value-1"].regions[0];
-            Assert.That(
-                region.delta.entries["0,0"]["tileValueId"]!.ToString(),
-                Is.EqualTo("session-dirt"));
-        }
-
-        [Test]
         public async Task RemovedKeys_FlushAsRestoredToAuthored()
         {
             var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
@@ -390,27 +347,6 @@ namespace NeoCompose.Tests
             Assert.That(liveChanges[0], Does.Contain("\"web\":5"));
             Assert.That(sync.ActiveSave!.snapshotHash, Is.EqualTo("hash-web"));
             Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("\"web\":5"));
-        }
-
-        [Test]
-        public async Task CoEditorPatch_AppliesTileGridDeltasWhenClean()
-        {
-            var (_, sync, _, local, realtime, scheduler) = await LiveSessionAsync();
-            await ForkEstablishedAsync(sync, realtime, scheduler);
-            var liveChanges = new List<string>();
-            sync.OnLiveContentChanged += liveChanges.Add;
-
-            realtime.PushHead(RemoteWithValues(
-                "snap-live",
-                "hash-web",
-                "{\"a\":1}",
-                "session-x",
-                TileGridDeltasJson("web-path")));
-
-            Assert.That(liveChanges, Has.Count.EqualTo(1));
-            Assert.That(liveChanges[0], Does.Contain("\"web-path\""));
-            Assert.That(sync.ActiveSave!.tileGridDeltas, Contains.Key("grid-value-1"));
-            Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("\"web-path\""));
         }
 
         [Test]

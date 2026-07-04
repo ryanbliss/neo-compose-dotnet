@@ -41,13 +41,6 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public NeoSaveValues values = NeoSaveValues.Empty;
 
-        /// <summary>
-        /// TileGrid region deltas stored beside the ordinary value overlay. Kept
-        /// typed because the world payload is already sidecar data rather than an
-        /// opaque attribute-value graph.
-        /// </summary>
-        public Dictionary<string, TileGridDeltaContent> tileGridDeltas = new();
-
         /// <summary>Platforms that wrote this save, or null when diagnostics are off.</summary>
         public List<GameRuntimePlatform>? platforms;
 
@@ -182,7 +175,6 @@ namespace NeoCompose.Runtime.Json
                 projectId = remote.projectId,
                 version = remote.version,
                 values = remote.values,
-                tileGridDeltas = remote.tileGridDeltas ?? new Dictionary<string, TileGridDeltaContent>(),
                 platforms = remote.platforms,
                 systems = remote.systems,
                 inputDevices = remote.inputDevices,

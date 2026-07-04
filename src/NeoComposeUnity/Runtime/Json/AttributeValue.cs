@@ -452,6 +452,17 @@ namespace NeoCompose.Runtime.Json
         public NeoTimestamp updatedAt { get; set; }
 
         /// <summary>
+        /// Set iff this row is an entry of an <b>unordered</b> List value
+        /// (<see cref="ListAttribute.listKind"/> == "unordered"): the list
+        /// VALUE id the row belongs to. Stamped at creation and immutable
+        /// thereafter — membership of an unordered list is the set of live
+        /// rows carrying its id here; the list value itself stores only the
+        /// null-vs-present discriminator (<c>null</c> or <c>[]</c>).
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? containerId { get; set; }
+
+        /// <summary>
         /// Save-overlay tombstone marker. When set to
         /// <see cref="NeoValueMarks.Removed"/>, this row represents an
         /// <b>explicitly removed/emptied</b> optional value and resolves as

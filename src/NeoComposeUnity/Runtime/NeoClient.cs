@@ -86,7 +86,6 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, Dialogue> dialogues => data.dialogues;
         internal IReadOnlyDictionary<string, DialogueGroup> dialogueGroups => data.dialogueGroups;
         internal IReadOnlyDictionary<string, PriorityGroup> priorityGroups => data.priorityGroups;
-        internal IReadOnlyDictionary<string, TileGridContent> tileGridContents => data.tileGridContents;
         internal IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
         internal IReadOnlyDictionary<string, AttributeValue> sessionValues => sessionData.values;
         internal Project project => data.project;
@@ -249,6 +248,7 @@ namespace NeoCompose.Runtime
             this.loader = loader ?? throw new System.ArgumentNullException(nameof(loader));
             this.data = loader.Schema;
             ValidateExportSchemaVersion(data.metadata);
+            ValidateNoLegacyTileGridContents(data);
             SaveOptions = saveOptions ?? new NeoSaveOptions();
             this.assetDatabase = assetDatabase;
             Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
@@ -258,6 +258,7 @@ namespace NeoCompose.Runtime
             ValidateFunctionAttributes();
             LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
+            BuildMembershipIndex();
             BuildAuthoredOwnershipMap();
             InitializeSaveDefaults();
             InitializeSessionDefaults();
@@ -501,15 +502,33 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            // Metadata is optional (test fixtures, hand-built exports) and
-            // schema version 1 predates the storage model (attributes simply
-            // have no `storage` field — every value reads as Inherit, which
-            // reproduces the legacy positional semantics). Anything newer
-            // than 2 is from a future web build this SDK does not understand.
+            // Metadata is optional (test fixtures, hand-built exports). Schema
+            // version 3 is the values-native tile grid contract: exports no
+            // longer carry derived `tileGridContents` regions and containment
+            // lists are unordered (membership by `containerId`). Older exports
+            // are structurally incompatible and must be re-exported.
             if (metadata is null) return;
-            if (metadata.schemaVersion <= 2) return;
+            if (metadata.schemaVersion < 3)
+            {
+                throw new System.InvalidOperationException(
+                    $"Project export schema version {metadata.schemaVersion} predates the values-native tile grid (this SDK requires 3). Re-export the project from the current web app.");
+            }
+            if (metadata.schemaVersion > 3)
+            {
+                throw new System.InvalidOperationException(
+                    $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (3). Update the NeoCompose SDK.");
+            }
+        }
+
+        private static void ValidateNoLegacyTileGridContents(ProjectData data)
+        {
+            // Defense in depth beside the schema-version gate: a hand-built or
+            // version-stripped export still may not smuggle legacy derived
+            // regions past the values-native contract.
+            if (data.tileGridContents is null) return;
+            if (data.tileGridContents.Count == 0) return;
             throw new System.InvalidOperationException(
-                $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (2). Update the NeoCompose SDK.");
+                "Project export contains a non-empty 'tileGridContents' payload, which predates the values-native tile grid. Re-export the project from the current web app; tile data now ships exclusively in 'values'.");
         }
 
         internal bool TryGetValueOwnership(string id, out NeoValueOwnership ownership)
@@ -703,9 +722,15 @@ namespace NeoCompose.Runtime
         {
             if (ownership == NeoValueOwnership.Asset) return false;
             var store = GetWritableStore(ownership);
+            TryResolveContainerIdForValueId(id, out string? memberContainerId);
             if (!store.values.Remove(id)) return false;
+            IndexStoreRemove(ownership, id);
             TouchWritableStoreUpdatedAt(ownership);
             OnWritableValueChanged?.Invoke(ownership, id);
+            if (memberContainerId is not null)
+            {
+                RaiseContainerChanged(ownership, memberContainerId);
+            }
             if (ownership == NeoValueOwnership.Save)
             {
                 RaiseSaveValueChanged(id);
@@ -718,8 +743,10 @@ namespace NeoCompose.Runtime
             TAttributeValue value) where TAttributeValue : AttributeValue
         {
             GetWritableStore(ownership).values[value.id] = value;
+            IndexStoreWrite(ownership, value);
             TouchWritableStoreUpdatedAt(ownership);
             OnWritableValueChanged?.Invoke(ownership, value.id);
+            NotifyContainerMembershipChanged(ownership, value.id);
             if (ownership == NeoValueOwnership.Save)
             {
                 RaiseSaveValueChanged(value.id);
@@ -731,6 +758,7 @@ namespace NeoCompose.Runtime
             TAttributeValue value) where TAttributeValue : AttributeValue
         {
             GetWritableStore(ownership).values[value.id] = value;
+            IndexStoreWrite(ownership, value);
             TouchWritableStoreUpdatedAt(ownership);
         }
 
@@ -822,6 +850,7 @@ namespace NeoCompose.Runtime
             if (!sourceStore.values.TryGetValue(valueId, out AttributeValue? row)) return;
 
             targetStore.values[valueId] = row;
+            IndexStoreWrite(targetOwnership, row);
             foreach (var child in EnumerateOwnedChildLinks(row, sourceAttribute))
             {
                 PromoteValueGraph(
@@ -832,6 +861,7 @@ namespace NeoCompose.Runtime
                     child.attribute);
             }
             sourceStore.values.Remove(valueId);
+            IndexStoreRemove(sourceOwnership, valueId);
             OnWritableValueChanged?.Invoke(sourceOwnership, valueId);
             OnWritableValueChanged?.Invoke(targetOwnership, valueId);
             if (targetOwnership == NeoValueOwnership.Save) RaiseSaveValueChanged(valueId);
@@ -1192,6 +1222,9 @@ namespace NeoCompose.Runtime
             clone.createdAt = row.createdAt;
             clone.updatedAt = row.updatedAt;
             clone.typeId = row.typeId;
+            // containerId is immutable membership identity: a clone-on-write
+            // shadow of a member row stays a member of the same container.
+            clone.containerId = row.containerId;
             return clone;
         }
 
@@ -1246,10 +1279,16 @@ namespace NeoCompose.Runtime
                     }
                     break;
             }
+            TryResolveContainerIdForValueId(valueId, out string? memberContainerId);
             if (store.values.Remove(valueId))
             {
+                IndexStoreRemove(ownership, valueId);
                 TouchWritableStoreUpdatedAt(ownership);
                 OnWritableValueChanged?.Invoke(ownership, valueId);
+                if (memberContainerId is not null)
+                {
+                    RaiseContainerChanged(ownership, memberContainerId);
+                }
                 if (ownership == NeoValueOwnership.Save)
                 {
                     RaiseSaveValueChanged(valueId);
@@ -1299,10 +1338,16 @@ namespace NeoCompose.Runtime
                     }
                     break;
             }
+            TryResolveContainerIdForValueId(valueId, out string? memberContainerId);
             if (store.values.Remove(valueId))
             {
+                IndexStoreRemove(ownership, valueId);
                 TouchWritableStoreUpdatedAt(ownership);
                 OnWritableValueChanged?.Invoke(ownership, valueId);
+                if (memberContainerId is not null)
+                {
+                    RaiseContainerChanged(ownership, memberContainerId);
+                }
                 if (ownership == NeoValueOwnership.Save)
                 {
                     RaiseSaveValueChanged(valueId);
@@ -1341,127 +1386,264 @@ namespace NeoCompose.Runtime
             };
         }
 
-        internal IEnumerable<TileGridRegionDelta> GetTileGridRegionDeltas(
-            NeoValueOwnership ownership,
-            string gridValueId,
-            string layerId,
-            string layerKind)
+        // -----------------------------------------------------------------
+        // Unordered-list membership index (specs/list-attribute-and-tilegrid
+        // -scaling.md §1.2/§3.3). Membership of an unordered list value is
+        // the set of live rows whose `containerId` names it. The index is
+        // layered like the value overlay: authored rows (data.values) plus
+        // per-store overlay rows join; an overlay tombstone
+        // (`mark: "removed"`) at a member id subtracts that member.
+        // Built in one pass at load and maintained incrementally by the
+        // store write/remove chokepoints below.
+        // -----------------------------------------------------------------
+
+        private readonly Dictionary<string, HashSet<string>> authoredEntriesByContainer = new();
+        private readonly Dictionary<string, string> authoredContainerByRow = new();
+        private readonly Dictionary<string, HashSet<string>> saveEntriesByContainer = new();
+        private readonly Dictionary<string, string> saveContainerByRow = new();
+        private readonly Dictionary<string, HashSet<string>> sessionEntriesByContainer = new();
+        private readonly Dictionary<string, string> sessionContainerByRow = new();
+
+        private void BuildMembershipIndex()
         {
-            if (ownership == NeoValueOwnership.Asset) yield break;
-            var store = GetWritableStore(ownership);
-            EnsureTileGridDeltaMap(store);
-            if (!store.tileGridDeltas.TryGetValue(gridValueId, out var content)) yield break;
-            foreach (var region in content.regions)
+            authoredEntriesByContainer.Clear();
+            authoredContainerByRow.Clear();
+            foreach (var row in data.values.Values)
             {
-                if (region.gridValueId != gridValueId) continue;
-                if (region.layerId != layerId) continue;
-                if (region.layerKind != layerKind) continue;
-                yield return region;
+                if (string.IsNullOrEmpty(row.containerId)) continue;
+                AddMembership(
+                    authoredEntriesByContainer, authoredContainerByRow, row.id, row.containerId!);
+            }
+            RebuildStoreMembership(NeoValueOwnership.Save);
+            RebuildStoreMembership(NeoValueOwnership.Session);
+        }
+
+        private void RebuildStoreMembership(NeoValueOwnership ownership)
+        {
+            var (byContainer, byRow) = MembershipMaps(ownership);
+            byContainer.Clear();
+            byRow.Clear();
+            foreach (var row in GetWritableStore(ownership).values.Values)
+            {
+                if (string.IsNullOrEmpty(row.containerId)) continue;
+                AddMembership(byContainer, byRow, row.id, row.containerId!);
             }
         }
 
-        internal IEnumerable<string> GetTileGridDeltaLayerIds(
-            NeoValueOwnership ownership,
-            string gridValueId,
-            string layerKind)
+        private (Dictionary<string, HashSet<string>> byContainer, Dictionary<string, string> byRow)
+            MembershipMaps(NeoValueOwnership ownership)
         {
-            if (ownership == NeoValueOwnership.Asset) yield break;
-            var store = GetWritableStore(ownership);
-            EnsureTileGridDeltaMap(store);
-            if (!store.tileGridDeltas.TryGetValue(gridValueId, out var content)) yield break;
-            var yielded = new HashSet<string>();
-            foreach (var region in content.regions)
+            return ownership switch
             {
-                if (region.gridValueId != gridValueId) continue;
-                if (region.layerKind != layerKind) continue;
-                if (!yielded.Add(region.layerId)) continue;
-                yield return region.layerId;
-            }
+                NeoValueOwnership.Save => (saveEntriesByContainer, saveContainerByRow),
+                NeoValueOwnership.Session => (sessionEntriesByContainer, sessionContainerByRow),
+                _ => throw new System.InvalidOperationException(
+                    $"Ownership '{ownership}' does not have a membership index."),
+            };
         }
 
-        internal TileGridRegionDelta? GetTileGridRegionDelta(
-            NeoValueOwnership ownership,
-            string gridValueId,
-            string layerId,
-            string layerKind,
-            string regionKey)
+        private static void AddMembership(
+            Dictionary<string, HashSet<string>> byContainer,
+            Dictionary<string, string> byRow,
+            string rowId,
+            string containerId)
         {
-            if (ownership == NeoValueOwnership.Asset) return null;
-            var store = GetWritableStore(ownership);
-            EnsureTileGridDeltaMap(store);
-            if (!store.tileGridDeltas.TryGetValue(gridValueId, out var content)) return null;
-            foreach (var region in content.regions)
+            if (!byContainer.TryGetValue(containerId, out var members))
             {
-                if (region.gridValueId == gridValueId &&
-                    region.layerId == layerId &&
-                    region.layerKind == layerKind &&
-                    region.regionKey == regionKey)
+                members = new HashSet<string>();
+                byContainer[containerId] = members;
+            }
+            members.Add(rowId);
+            byRow[rowId] = containerId;
+        }
+
+        /// <summary>Index maintenance chokepoint for a store write at <c>value.id</c>.</summary>
+        private void IndexStoreWrite(NeoValueOwnership ownership, AttributeValue value)
+        {
+            var (byContainer, byRow) = MembershipMaps(ownership);
+            if (byRow.TryGetValue(value.id, out string previousContainerId)
+                && previousContainerId != value.containerId)
+            {
+                if (byContainer.TryGetValue(previousContainerId, out var previousMembers))
                 {
-                    return region;
+                    previousMembers.Remove(value.id);
                 }
+                byRow.Remove(value.id);
             }
+            if (!string.IsNullOrEmpty(value.containerId))
+            {
+                AddMembership(byContainer, byRow, value.id, value.containerId!);
+            }
+        }
+
+        /// <summary>Index maintenance chokepoint for a store removal at <paramref name="id"/>.</summary>
+        private void IndexStoreRemove(NeoValueOwnership ownership, string id)
+        {
+            var (byContainer, byRow) = MembershipMaps(ownership);
+            if (!byRow.TryGetValue(id, out string containerId)) return;
+            if (byContainer.TryGetValue(containerId, out var members))
+            {
+                members.Remove(id);
+            }
+            byRow.Remove(id);
+        }
+
+        /// <summary>
+        /// Resolves the container the row at <paramref name="valueId"/>
+        /// belongs to (its stamped <see cref="AttributeValue.containerId"/>),
+        /// looking across all layers — including through overlay tombstones,
+        /// which carry no containerId themselves but subtract an authored or
+        /// lower-layer member.
+        /// </summary>
+        internal bool TryResolveContainerIdForValueId(
+            string valueId,
+            [NotNullWhen(true)] out string? containerId)
+        {
+            if (sessionContainerByRow.TryGetValue(valueId, out string sessionContainer))
+            {
+                containerId = sessionContainer;
+                return true;
+            }
+            if (saveContainerByRow.TryGetValue(valueId, out string saveContainer))
+            {
+                containerId = saveContainer;
+                return true;
+            }
+            if (authoredContainerByRow.TryGetValue(valueId, out string authoredContainer))
+            {
+                containerId = authoredContainer;
+                return true;
+            }
+            containerId = null;
+            return false;
+        }
+
+        /// <summary>
+        /// Live member ids of the unordered list value at
+        /// <paramref name="containerValueId"/>, id-sorted (ordinal) for
+        /// deterministic enumeration. Respects the overlay cascade AND the
+        /// null-vs-present discriminator: the container value resolves
+        /// through the overlay (session → save → authored); a missing,
+        /// tombstoned, or <c>null</c>-valued container yields no members.
+        /// </summary>
+        internal IReadOnlyCollection<string> GetUnorderedListEntryIds(string containerValueId)
+        {
+            var containerRow = ResolveEffectiveRow(containerValueId);
+            if (containerRow is null) return System.Array.Empty<string>();
+            if (containerRow.IsRemoved) return System.Array.Empty<string>();
+            if (containerRow is not ArrayAttributeValue arrayRow) return System.Array.Empty<string>();
+            if (arrayRow.value is null) return System.Array.Empty<string>();
+
+            var members = new List<string>();
+            var seen = new HashSet<string>();
+            CollectLiveMembers(authoredEntriesByContainer, containerValueId, seen, members);
+            CollectLiveMembers(saveEntriesByContainer, containerValueId, seen, members);
+            CollectLiveMembers(sessionEntriesByContainer, containerValueId, seen, members);
+            members.Sort(System.StringComparer.Ordinal);
+            return members;
+        }
+
+        private void CollectLiveMembers(
+            Dictionary<string, HashSet<string>> byContainer,
+            string containerValueId,
+            HashSet<string> seen,
+            List<string> members)
+        {
+            if (!byContainer.TryGetValue(containerValueId, out var candidates)) return;
+            foreach (var memberId in candidates)
+            {
+                if (!seen.Add(memberId)) continue;
+                var effective = ResolveEffectiveRow(memberId);
+                if (effective is null) continue;
+                if (effective.IsRemoved) continue;
+                members.Add(memberId);
+            }
+        }
+
+        /// <summary>Raw overlay resolution (session → save → authored) WITHOUT
+        /// tombstone fallthrough — a tombstone row is returned as-is so callers
+        /// can distinguish "explicitly removed" from "absent".</summary>
+        internal AttributeValue? ResolveEffectiveRow(string valueId)
+        {
+            if (sessionData.values.TryGetValue(valueId, out AttributeValue sessionRow)) return sessionRow;
+            if (saveData.values.TryGetValue(valueId, out AttributeValue saveRow)) return saveRow;
+            if (data.values.TryGetValue(valueId, out AttributeValue authoredRow)) return authoredRow;
             return null;
         }
 
-        internal TileGridRegionDelta EnsureTileGridRegionDelta(
+        /// <summary>
+        /// Notifies subscribers bound to a member row's CONTAINER that its
+        /// membership changed (a member row was added, replaced, tombstoned,
+        /// or dropped). Unordered containment never writes the container row
+        /// itself, so this is the coarse invalidation signal container-bound
+        /// consumers (spatial indexes, link renderers) key on.
+        /// </summary>
+        private void NotifyContainerMembershipChanged(
             NeoValueOwnership ownership,
-            string gridValueId,
-            string layerId,
-            string layerKind,
-            string regionKey,
-            int regionX,
-            int regionY)
+            string memberValueId)
         {
-            if (ownership == NeoValueOwnership.Asset)
+            if (!TryResolveContainerIdForValueId(memberValueId, out string? containerId)) return;
+            RaiseContainerChanged(ownership, containerId!);
+        }
+
+        // Bulk membership operations (Clear, whole-list assignment) suspend
+        // per-member container notifications and flush one coalesced
+        // notification per container when the scope disposes, so container
+        // subscribers observe a single membership change per bulk edit.
+        private int containerNotificationSuspensions;
+        private readonly List<(NeoValueOwnership ownership, string containerId)>
+            pendingContainerNotifications = new();
+
+        internal System.IDisposable SuspendContainerNotifications()
+        {
+            containerNotificationSuspensions += 1;
+            return new NeoDisposableAction(FlushContainerNotifications);
+        }
+
+        private void FlushContainerNotifications()
+        {
+            containerNotificationSuspensions -= 1;
+            if (containerNotificationSuspensions > 0) return;
+            if (pendingContainerNotifications.Count == 0) return;
+            var pending = new List<(NeoValueOwnership, string)>(pendingContainerNotifications);
+            pendingContainerNotifications.Clear();
+            foreach (var (ownership, containerId) in pending)
             {
-                throw new System.InvalidOperationException(
-                    "TileGrid runtime deltas cannot be written to asset-owned project data.");
+                OnWritableValueChanged?.Invoke(ownership, containerId);
             }
-            var store = GetWritableStore(ownership);
-            EnsureTileGridDeltaMap(store);
-            if (!store.tileGridDeltas.TryGetValue(gridValueId, out var content))
+        }
+
+        private void RaiseContainerChanged(NeoValueOwnership ownership, string containerId)
+        {
+            if (containerNotificationSuspensions > 0)
             {
-                content = new TileGridDeltaContent();
-                store.tileGridDeltas[gridValueId] = content;
-            }
-            foreach (var existing in content.regions)
-            {
-                if (existing.gridValueId == gridValueId &&
-                    existing.layerId == layerId &&
-                    existing.layerKind == layerKind &&
-                    existing.regionKey == regionKey)
+                if (!pendingContainerNotifications.Contains((ownership, containerId)))
                 {
-                    return existing;
+                    pendingContainerNotifications.Add((ownership, containerId));
                 }
+                return;
             }
-            var created = new TileGridRegionDelta
-            {
-                gridValueId = gridValueId,
-                layerId = layerId,
-                layerKind = layerKind,
-                regionKey = regionKey,
-                regionX = regionX,
-                regionY = regionY,
-                dataSchemaVersion = 1,
-                delta = new TileGridRegionDeltaPayload(),
-            };
-            content.regions.Add(created);
-            return created;
+            OnWritableValueChanged?.Invoke(ownership, containerId);
         }
 
-        internal void TouchTileGridDelta(NeoValueOwnership ownership, string gridValueId)
+        /// <summary>
+        /// Resolves whether <paramref name="attribute"/> declares the
+        /// unordered list kind, walking the <see cref="Attribute.extendsAttributeId"/>
+        /// override chain like other inherited attribute fields.
+        /// </summary>
+        internal bool IsUnorderedList(ListAttribute attribute)
         {
-            if (ownership == NeoValueOwnership.Asset) return;
-            TouchWritableStoreUpdatedAt(ownership);
-            if (ownership == NeoValueOwnership.Save)
+            Attribute? cursor = attribute;
+            for (int hops = 0; cursor is not null && hops < 16; hops++)
             {
-                ScheduleLiveAutoCommit();
+                if (cursor is ListAttribute list && !string.IsNullOrEmpty(list.listKind))
+                {
+                    return list.listKind == NeoListKinds.Unordered;
+                }
+                if (cursor.extendsAttributeId is null) return false;
+                data.attributes.TryGetValue(cursor.extendsAttributeId, out cursor);
             }
-        }
-
-        private static void EnsureTileGridDeltaMap(ProjectSaveData store)
-        {
-            store.tileGridDeltas ??= new Dictionary<string, TileGridDeltaContent>();
+            return false;
         }
 
         internal bool TryResolveLookupCollectionValueId(
@@ -1926,7 +2108,6 @@ namespace NeoCompose.Runtime
                 createdAt = NeoTimestamp.Now(),
                 // leave `values` empty until value(s) are written at runtime (sparse overlay)
                 values = new(),
-                tileGridDeltas = new(),
             };
             return empty;
         }
@@ -1940,7 +2121,6 @@ namespace NeoCompose.Runtime
                 version = BuildSaveVersionData(),
                 createdAt = NeoTimestamp.Now(),
                 values = new(),
-                tileGridDeltas = new(),
             };
         }
 
@@ -2078,8 +2258,6 @@ namespace NeoCompose.Runtime
 
                     SetSaveValue(row);
                 }
-
-                saveData.tileGridDeltas = incoming.tileGridDeltas ?? new();
             }
             finally
             {
@@ -2189,7 +2367,76 @@ namespace NeoCompose.Runtime
                     MarkReachableValue(ownership, row.id, reachable);
                 }
             }
+            ExpandContainmentReachability(ownership, reachable);
             return reachable;
+        }
+
+        /// <summary>
+        /// Containment is a reachability edge (spec §1.6): a member row of an
+        /// unordered list is reachable iff its container row is reachable AND
+        /// the container's resolved value is <c>[]</c> (present). Removal
+        /// tombstones at member ids are reachable whenever their container is
+        /// — they are the durable record that an authored member was removed
+        /// and must survive GC. Live member rows behind a null container are
+        /// anomalies per the cascade rule and stay collectable. Runs to a
+        /// fixpoint because members may themselves own containers.
+        /// </summary>
+        private void ExpandContainmentReachability(
+            NeoValueOwnership ownership,
+            HashSet<string> reachable)
+        {
+            var store = GetWritableStore(ownership);
+            var (storeByContainer, _) = MembershipMaps(ownership);
+            bool grew = true;
+            while (grew)
+            {
+                grew = false;
+                var containerIds = new HashSet<string>(authoredEntriesByContainer.Keys);
+                containerIds.UnionWith(storeByContainer.Keys);
+                foreach (var containerId in containerIds)
+                {
+                    if (!reachable.Contains(containerId)) continue;
+                    bool containerPresent =
+                        TryGetOverlaidValue(ownership, containerId, out ArrayAttributeValue? containerRow)
+                        && containerRow.value is not null;
+
+                    foreach (var memberId in EnumerateContainerMemberIds(storeByContainer, containerId))
+                    {
+                        bool isTombstone =
+                            store.values.TryGetValue(memberId, out AttributeValue overlayRow)
+                            && overlayRow.IsRemoved;
+                        if (isTombstone)
+                        {
+                            if (reachable.Add(memberId)) grew = true;
+                            continue;
+                        }
+                        if (!containerPresent) continue;
+                        if (reachable.Contains(memberId)) continue;
+                        MarkReachableValue(ownership, memberId, reachable);
+                        grew = true;
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<string> EnumerateContainerMemberIds(
+            Dictionary<string, HashSet<string>> storeByContainer,
+            string containerId)
+        {
+            if (authoredEntriesByContainer.TryGetValue(containerId, out var authoredMembers))
+            {
+                foreach (var id in authoredMembers) yield return id;
+            }
+            if (storeByContainer.TryGetValue(containerId, out var storeMembers))
+            {
+                foreach (var id in storeMembers)
+                {
+                    if (authoredMembers is null || !authoredMembers.Contains(id))
+                    {
+                        yield return id;
+                    }
+                }
+            }
         }
 
         private void MarkReachableValue(
@@ -2408,7 +2655,6 @@ namespace NeoCompose.Runtime
             // so a null/empty resolution still needs the default-build fallback.
             saveData = parsed ?? BuildDefaultSaveData();
             saveData.values ??= new();
-            saveData.tileGridDeltas ??= new();
         }
     }
 }

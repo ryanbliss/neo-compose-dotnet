@@ -168,13 +168,5 @@ namespace NeoCompose.Runtime.Json
         /// <c>mark: "removed"</c> tombstone to express an explicit unset.
         /// </summary>
         public Dictionary<string, AttributeValue> values = null!;
-
-        /// <summary>
-        /// Runtime-owned TileGrid region deltas keyed by grid value id. Region
-        /// entries are sparse overlays against authored grid content; session
-        /// deltas shadow save deltas in the same way session values shadow save
-        /// values.
-        /// </summary>
-        public Dictionary<string, TileGridDeltaContent> tileGridDeltas = new();
     }
 }

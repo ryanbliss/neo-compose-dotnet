@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 2,
+    "schemaVersion": 3,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -3205,6 +3205,5 @@
   "audioClipTemplates": {},
   "localizationConfig": null,
   "localizationStatuses": {},
-  "localizedTexts": {},
-  "tileGridContents": {}
+  "localizedTexts": {}
 }

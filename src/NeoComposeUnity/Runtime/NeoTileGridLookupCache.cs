@@ -9,270 +9,216 @@ using UnityEngine;
 
 namespace NeoCompose.Runtime
 {
+    /// <summary>
+    /// Per-grid, per-layer spatial index over the values-native tile grid
+    /// model. First access of a layer builds its index in one O(n) pass over
+    /// the layer's containment membership (no JSON parsing or cloning);
+    /// queries are O(1) dictionary hits. Invalidation is value-change-event
+    /// driven: every value id the build consulted (grid row, Children list,
+    /// link rows, containment list values, placement rows and their Cell/Tile
+    /// children, object rows, ...) is recorded as a dependency, and a write
+    /// to any of them — including the membership-change notification a
+    /// containerId-carrying row raises for its container — drops the layer
+    /// index for a lazy rebuild.
+    /// </summary>
     internal sealed class NeoTileGridLookupCache
     {
+        private static readonly IReadOnlyList<NeoTilePlacementRecord> EmptyTileRecords =
+            Array.Empty<NeoTilePlacementRecord>();
+        private static readonly IReadOnlyList<NeoObjectPlacementRecord> EmptyObjectRecords =
+            Array.Empty<NeoObjectPlacementRecord>();
+
         private readonly NeoReadOnlyTileGridPrimitive primitive;
         private readonly Dictionary<string, TileLayerIndex> tileLayers = new();
         private readonly Dictionary<string, ObjectLayerIndex> objectLayers = new();
-        private readonly Dictionary<string, IDisposable> tileLayerLinkSubscriptions = new();
 
         public NeoTileGridLookupCache(NeoReadOnlyTileGridPrimitive primitive)
         {
             this.primitive = primitive ?? throw new ArgumentNullException(nameof(primitive));
+            primitive.Client.OnWritableValueChanged += HandleWritableValueChanged;
         }
 
-        public NeoResolvedTileInstance? ResolveTile(
+        // ------------------------------------------------------------------
+        // Tile layer access.
+        // ------------------------------------------------------------------
+
+        public IReadOnlyList<NeoTilePlacementRecord> TileRecords(string layerId) =>
+            GetTileLayerIndex(layerId).Records;
+
+        public IReadOnlyDictionary<Vector2Int, List<NeoTilePlacementRecord>> TileCandidatesByCell(
+            string layerId) =>
+            GetTileLayerIndex(layerId).CandidatesByCell;
+
+        public IReadOnlyList<NeoTilePlacementRecord> TileCandidatesAt(
             string layerId,
-            Vector2Int cell,
-            string expectedTileFamilyTypeId)
+            Vector2Int cell)
         {
-            var index = GetTileLayerIndex(layerId, expectedTileFamilyTypeId);
-            if (!index.LoadedCells.Contains(cell))
-            {
-                RefreshTileCell(index, cell);
-            }
-            return index.TilesByCell.TryGetValue(cell, out var tile) ? tile : null;
+            return GetTileLayerIndex(layerId).CandidatesByCell.TryGetValue(cell, out var records)
+                ? records
+                : EmptyTileRecords;
         }
 
-        public IReadOnlyList<NeoResolvedObjectInstance> ResolveObjects(
+        // ------------------------------------------------------------------
+        // Object layer access.
+        // ------------------------------------------------------------------
+
+        public IReadOnlyList<NeoObjectPlacementRecord> ObjectRecords(string layerId) =>
+            GetObjectLayerIndex(layerId).Records;
+
+        public IReadOnlyList<NeoObjectPlacementRecord> ObjectCandidatesAt(
             string layerId,
-            Vector2Int cell,
-            string expectedObjectFamilyTypeId)
+            Vector2Int cell)
         {
-            var index = GetObjectLayerIndex(layerId, expectedObjectFamilyTypeId);
-            if (!index.LoadedCells.Contains(cell))
-            {
-                RefreshObjectCell(index, cell);
-            }
-            return index.ObjectsByCell.TryGetValue(cell, out var objects)
-                ? objects
-                : Array.Empty<NeoResolvedObjectInstance>();
+            return GetObjectLayerIndex(layerId).CandidatesByCell.TryGetValue(cell, out var records)
+                ? records
+                : EmptyObjectRecords;
         }
 
+        // ------------------------------------------------------------------
+        // Invalidation.
+        // ------------------------------------------------------------------
+
+        /// <summary>Grid-level change notifications (mutations, link renderer
+        /// projections) invalidate the named layers directly.</summary>
         public void Apply(NeoTileGridChangedArgs args)
         {
             foreach (var change in args.TileLayers)
             {
-                Apply(change);
+                tileLayers.Remove(change.LayerId);
             }
             foreach (var change in args.ObjectLayers)
             {
-                Apply(change);
+                objectLayers.Remove(change.LayerId);
             }
         }
 
-        private void Apply(NeoTileLayerChangedArgs change)
+        private void HandleWritableValueChanged(NeoValueOwnership ownership, string valueId)
         {
-            foreach (var index in tileLayers.Values)
+            InvalidateDependents(tileLayers, valueId);
+            InvalidateDependents(objectLayers, valueId);
+        }
+
+        private static void InvalidateDependents<TIndex>(
+            Dictionary<string, TIndex> indexes,
+            string valueId)
+            where TIndex : class, ILayerIndex
+        {
+            List<string>? stale = null;
+            foreach (var pair in indexes)
             {
-                if (index.LayerId != change.LayerId) continue;
-                foreach (var cell in change.ChangedCells)
+                if (!pair.Value.DependencyIds.Contains(valueId)) continue;
+                stale ??= new List<string>();
+                stale.Add(pair.Key);
+            }
+            if (stale is null) return;
+            foreach (var layerId in stale)
+            {
+                indexes.Remove(layerId);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Index construction.
+        // ------------------------------------------------------------------
+
+        private TileLayerIndex GetTileLayerIndex(string layerId)
+        {
+            if (tileLayers.TryGetValue(layerId, out var index)) return index;
+            var dependencyIds = new HashSet<string>();
+            var records = primitive.BuildTileLayerRecords(layerId, dependencyIds);
+            var byCell = new Dictionary<Vector2Int, List<NeoTilePlacementRecord>>();
+            foreach (var record in records)
+            {
+                if (!byCell.TryGetValue(record.Cell, out var cellRecords))
                 {
-                    if (!index.LoadedCells.Contains(cell)) continue;
-                    RefreshTileCell(index, cell);
+                    cellRecords = new List<NeoTilePlacementRecord>();
+                    byCell[record.Cell] = cellRecords;
                 }
+                cellRecords.Add(record);
             }
-        }
-
-        private void Apply(NeoObjectLayerChangedArgs change)
-        {
-            foreach (var index in objectLayers.Values)
+            foreach (var cellRecords in byCell.Values)
             {
-                if (index.LayerId != change.LayerId) continue;
-                foreach (var cell in change.ChangedCells)
-                {
-                    if (!index.LoadedCells.Contains(cell)) continue;
-                    RefreshObjectCell(index, cell);
-                }
+                if (cellRecords.Count < 2) continue;
+                // Loser→winner: the conflict tiebreak is (updatedAt desc,
+                // id asc), and readers take the LAST resolvable candidate.
+                cellRecords.Sort(CompareLoserToWinner);
             }
-        }
-
-        private void EnsureTileLayerLinkSubscriptions(TileLayerIndex index)
-        {
-            foreach (var dependency in primitive.GetAuthoredTileLayerLinkDependencies())
-            {
-                if (index.LayerId != dependency.TargetTileLayerId)
-                {
-                    continue;
-                }
-
-                EnsureTileLayerLinkSubscription(
-                    dependency.TargetTileLayerId,
-                    dependency.SourceValueId);
-            }
-        }
-
-        private void EnsureTileLayerLinkSubscription(
-            string layerId,
-            string sourceValueId)
-        {
-            if (string.IsNullOrEmpty(layerId) || string.IsNullOrEmpty(sourceValueId)) return;
-            string key = SourceLinkKey(layerId, sourceValueId);
-            if (tileLayerLinkSubscriptions.ContainsKey(key)) return;
-
-            var source = primitive.ResolveGeneratedCustomValue(sourceValueId);
-            if (source is null)
-            {
-                tileLayerLinkSubscriptions[key] = new NeoDisposableSubscription(() => {});
-                return;
-            }
-
-            tileLayerLinkSubscriptions[key] = source.WatchAnyChange((_, __, ___) =>
-                RefreshTileLayerLinkSource(layerId, sourceValueId));
-        }
-
-        private void RefreshTileLayerLinkSource(
-            string layerId,
-            string sourceValueId)
-        {
-            foreach (var index in tileLayers.Values)
-            {
-                if (index.LayerId != layerId) continue;
-                RefreshTileLayerLinkSource(index, sourceValueId);
-            }
-        }
-
-        private void RefreshTileLayerLinkSource(
-            TileLayerIndex index,
-            string sourceValueId)
-        {
-            var cells = new List<Vector2Int>();
-            foreach (var pair in index.TilesByCell)
-            {
-                if (pair.Value.SourceKind != NeoTileOutputSourceKind.TileLayerLink ||
-                    pair.Value.SourceTileLayerLinkId != sourceValueId)
-                {
-                    continue;
-                }
-                AddCell(cells, pair.Key);
-            }
-
-            foreach (var tile in primitive.GetTileLayerLinkTiles(
-                index.LayerId,
-                sourceValueId,
-                index.ExpectedTypeId))
-            {
-                if (index.LoadedCells.Contains(tile.Cell))
-                {
-                    AddCell(cells, tile.Cell);
-                }
-            }
-
-            foreach (var cell in cells)
-            {
-                RefreshTileCell(index, cell);
-            }
-        }
-
-        private void RefreshTileCell(TileLayerIndex index, Vector2Int cell)
-        {
-            index.LoadedCells.Add(cell);
-            var tile = primitive.ResolveTile(
-                index.LayerId,
-                cell,
-                index.ExpectedTypeId);
-            if (tile is null)
-            {
-                index.TilesByCell.Remove(cell);
-                return;
-            }
-
-            index.TilesByCell[cell] = tile;
-            if (tile.SourceKind == NeoTileOutputSourceKind.TileLayerLink &&
-                !string.IsNullOrEmpty(tile.SourceTileLayerLinkId))
-            {
-                EnsureTileLayerLinkSubscription(
-                    index.LayerId,
-                    tile.SourceTileLayerLinkId!);
-            }
-        }
-
-        private void RefreshObjectCell(ObjectLayerIndex index, Vector2Int cell)
-        {
-            index.LoadedCells.Add(cell);
-            var objects = primitive.ResolveObjectsAtCell(
-                index.LayerId,
-                cell,
-                index.ExpectedTypeId);
-            if (objects.Count == 0)
-            {
-                index.ObjectsByCell.Remove(cell);
-            }
-            else
-            {
-                index.ObjectsByCell[cell] = new List<NeoResolvedObjectInstance>(objects);
-            }
-        }
-
-        private static void AddCell(List<Vector2Int> cells, Vector2Int cell)
-        {
-            if (cells.Contains(cell)) return;
-            cells.Add(cell);
-        }
-
-        private TileLayerIndex GetTileLayerIndex(
-            string layerId,
-            string expectedTileFamilyTypeId)
-        {
-            string key = CacheKey(layerId, expectedTileFamilyTypeId);
-            if (tileLayers.TryGetValue(key, out var index))
-            {
-                return index;
-            }
-
-            index = new TileLayerIndex(layerId, expectedTileFamilyTypeId);
-            tileLayers[key] = index;
-            EnsureTileLayerLinkSubscriptions(index);
+            index = new TileLayerIndex(records, byCell, dependencyIds);
+            tileLayers[layerId] = index;
             return index;
         }
 
-        private ObjectLayerIndex GetObjectLayerIndex(
-            string layerId,
-            string expectedObjectFamilyTypeId)
+        private static int CompareLoserToWinner(
+            NeoTilePlacementRecord left,
+            NeoTilePlacementRecord right)
         {
-            string key = CacheKey(layerId, expectedObjectFamilyTypeId);
-            if (objectLayers.TryGetValue(key, out var index))
-            {
-                return index;
-            }
+            int updated = left.UpdatedAtMs.CompareTo(right.UpdatedAtMs);
+            if (updated != 0) return updated;
+            // Ties break id ASC for the winner; winner sits last, so sort
+            // descending by instance id.
+            return string.CompareOrdinal(right.InstanceId, left.InstanceId);
+        }
 
-            index = new ObjectLayerIndex(layerId, expectedObjectFamilyTypeId);
-            objectLayers[key] = index;
+        private ObjectLayerIndex GetObjectLayerIndex(string layerId)
+        {
+            if (objectLayers.TryGetValue(layerId, out var index)) return index;
+            var dependencyIds = new HashSet<string>();
+            var records = primitive.BuildObjectLayerRecords(layerId, dependencyIds);
+            var byCell = new Dictionary<Vector2Int, List<NeoObjectPlacementRecord>>();
+            foreach (var record in records)
+            {
+                foreach (var cell in record.Footprint)
+                {
+                    if (!byCell.TryGetValue(cell, out var cellRecords))
+                    {
+                        cellRecords = new List<NeoObjectPlacementRecord>();
+                        byCell[cell] = cellRecords;
+                    }
+                    cellRecords.Add(record);
+                }
+            }
+            index = new ObjectLayerIndex(records, byCell, dependencyIds);
+            objectLayers[layerId] = index;
             return index;
         }
 
-        private static string CacheKey(string layerId, string expectedTypeId) =>
-            $"{layerId}\n{expectedTypeId}";
-
-        private static string SourceLinkKey(string layerId, string sourceValueId) =>
-            $"{layerId}\n{sourceValueId}";
-
-        private sealed class TileLayerIndex
+        private interface ILayerIndex
         {
-            public TileLayerIndex(string layerId, string expectedTypeId)
-            {
-                LayerId = layerId;
-                ExpectedTypeId = expectedTypeId;
-            }
-
-            public string LayerId { get; }
-            public string ExpectedTypeId { get; }
-            public HashSet<Vector2Int> LoadedCells { get; } = new();
-            public Dictionary<Vector2Int, NeoResolvedTileInstance> TilesByCell { get; } = new();
+            HashSet<string> DependencyIds { get; }
         }
 
-        private sealed class ObjectLayerIndex
+        private sealed class TileLayerIndex : ILayerIndex
         {
-            public ObjectLayerIndex(string layerId, string expectedTypeId)
+            public TileLayerIndex(
+                List<NeoTilePlacementRecord> records,
+                Dictionary<Vector2Int, List<NeoTilePlacementRecord>> candidatesByCell,
+                HashSet<string> dependencyIds)
             {
-                LayerId = layerId;
-                ExpectedTypeId = expectedTypeId;
+                Records = records;
+                CandidatesByCell = candidatesByCell;
+                DependencyIds = dependencyIds;
             }
 
-            public string LayerId { get; }
-            public string ExpectedTypeId { get; }
-            public HashSet<Vector2Int> LoadedCells { get; } = new();
-            public Dictionary<Vector2Int, List<NeoResolvedObjectInstance>> ObjectsByCell { get; } = new();
+            public List<NeoTilePlacementRecord> Records { get; }
+            public Dictionary<Vector2Int, List<NeoTilePlacementRecord>> CandidatesByCell { get; }
+            public HashSet<string> DependencyIds { get; }
+        }
+
+        private sealed class ObjectLayerIndex : ILayerIndex
+        {
+            public ObjectLayerIndex(
+                List<NeoObjectPlacementRecord> records,
+                Dictionary<Vector2Int, List<NeoObjectPlacementRecord>> candidatesByCell,
+                HashSet<string> dependencyIds)
+            {
+                Records = records;
+                CandidatesByCell = candidatesByCell;
+                DependencyIds = dependencyIds;
+            }
+
+            public List<NeoObjectPlacementRecord> Records { get; }
+            public Dictionary<Vector2Int, List<NeoObjectPlacementRecord>> CandidatesByCell { get; }
+            public HashSet<string> DependencyIds { get; }
         }
     }
 }

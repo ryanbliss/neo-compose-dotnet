@@ -734,6 +734,102 @@ namespace NeoCompose.Runtime
             primitive.OnObjectLayerChanged(LayerId, handler);
     }
 
+    /// <summary>
+    /// One resolved tile placement: a TilePlacement custom value (record keys
+    /// "Cell" → Vector2Int row, "Tile" → single-select Lookup row) joined to
+    /// its tile layer link's unordered "Tiles" list via
+    /// <see cref="AttributeValue.containerId"/>, or a tile composed from an
+    /// object-carried tile layer link (stamp/prefab), projected to grid space.
+    /// </summary>
+    internal sealed class NeoTilePlacementRecord
+    {
+        public NeoTilePlacementRecord(
+            string instanceId,
+            string placementValueId,
+            Vector2Int cell,
+            string tileValueId,
+            int order,
+            string sourceTileLayerLinkId,
+            string? sourceObjectInstanceId,
+            double updatedAtMs,
+            string? cellValueId,
+            string? tileLookupValueId)
+        {
+            InstanceId = instanceId;
+            PlacementValueId = placementValueId;
+            Cell = cell;
+            TileValueId = tileValueId;
+            Order = order;
+            SourceTileLayerLinkId = sourceTileLayerLinkId;
+            SourceObjectInstanceId = sourceObjectInstanceId;
+            UpdatedAtMs = updatedAtMs;
+            CellValueId = cellValueId;
+            TileLookupValueId = tileLookupValueId;
+        }
+
+        public string InstanceId { get; }
+        public string PlacementValueId { get; }
+        public Vector2Int Cell { get; }
+        public string TileValueId { get; }
+        public int Order { get; }
+        public string SourceTileLayerLinkId { get; }
+        public string? SourceObjectInstanceId { get; }
+        public double UpdatedAtMs { get; }
+        public string? CellValueId { get; }
+        public string? TileLookupValueId { get; }
+        public bool IsObjectCarried => SourceObjectInstanceId is not null;
+    }
+
+    /// <summary>
+    /// One resolved placed object: an object value joined to its object layer
+    /// link's unordered "Objects" list via <see cref="AttributeValue.containerId"/>,
+    /// with its footprint expanded from the record's Position/Size.
+    /// </summary>
+    internal sealed class NeoObjectPlacementRecord
+    {
+        public NeoObjectPlacementRecord(
+            string instanceId,
+            Vector2Int cell,
+            IReadOnlyList<Vector2Int> footprint,
+            int order)
+        {
+            InstanceId = instanceId;
+            Cell = cell;
+            Footprint = footprint;
+            Order = order;
+        }
+
+        public string InstanceId { get; }
+        public Vector2Int Cell { get; }
+        public IReadOnlyList<Vector2Int> Footprint { get; }
+        public int Order { get; }
+    }
+
+    /// <summary>One grid-child layer link (TileLayerLink or ObjectLayerLink).</summary>
+    internal sealed class NeoGridLayerLinkModel
+    {
+        public NeoGridLayerLinkModel(
+            string linkValueId,
+            string linkTypeId,
+            string layerId,
+            string listValueId,
+            bool isTileLink)
+        {
+            LinkValueId = linkValueId;
+            LinkTypeId = linkTypeId;
+            LayerId = layerId;
+            ListValueId = listValueId;
+            IsTileLink = isTileLink;
+        }
+
+        public string LinkValueId { get; }
+        public string LinkTypeId { get; }
+        public string LayerId { get; }
+        /// <summary>The containment list VALUE id ("Tiles" / "Objects").</summary>
+        public string ListValueId { get; }
+        public bool IsTileLink { get; }
+    }
+
     public class NeoReadOnlyTileGridPrimitive
     {
         protected readonly NeoClient client;
@@ -746,22 +842,31 @@ namespace NeoCompose.Runtime
         private NeoTileGridLookupCache? lookupCache;
         private event Action<NeoTileGridChangedArgs>? Changed;
 
+        private static readonly string[] ChildrenKeyCandidates = { "Children", "tileLayerLinks" };
+        private static readonly string[] TileLayerKeyCandidates = { "TileLayer", "targetTileLayer", "targetLayer" };
+        private static readonly string[] TilesKeyCandidates = { "Tiles", "tileInstances" };
+        private static readonly string[] ObjectLayerKeyCandidates = { "ObjectLayer", "targetObjectLayer", "targetLayer" };
+        private static readonly string[] ObjectsKeyCandidates = { "Objects", "objectInstances" };
+        private static readonly string[] CellKeyCandidates = { "Cell", "Position" };
+        private static readonly string[] TileKeyCandidates = { "Tile", "tileValue", "tileValueId" };
+        private static readonly string[] LinkTilePositionKeyCandidates = { "Position", "offset", "Cell" };
+        private static readonly string[] OrderKeyCandidates = { "Order" };
+        private static readonly string[] PositionKeyCandidates = { "Position" };
+        private static readonly string[] SizeKeyCandidates = { "Size" };
+
         protected NeoReadOnlyTileGridPrimitive(
             NeoClient client,
             string gridValueId,
-            TileGridContent? content,
             IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>? readOnlyFactories = null,
             IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>? writableFactories = null)
         {
             this.client = client ?? throw new ArgumentNullException(nameof(client));
             GridValueId = gridValueId ?? throw new ArgumentNullException(nameof(gridValueId));
-            Content = content;
             this.readOnlyFactories = readOnlyFactories ?? EmptyReadOnlyFactories;
             this.writableFactories = writableFactories ?? EmptyWritableFactories;
         }
 
         public string GridValueId { get; }
-        public TileGridContent? Content { get; }
         public NeoTileGridRenderer? Renderer { get; internal set; }
         internal NeoClient Client => client;
 
@@ -879,14 +984,17 @@ namespace NeoCompose.Runtime
             IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory> writableFactories)
         {
             if (client is null) throw new ArgumentNullException(nameof(client));
-            client.tileGridContents.TryGetValue(gridValueId, out TileGridContent? content);
             return new NeoReadOnlyTileGridPrimitive(
                 client,
                 gridValueId,
-                content,
                 readOnlyFactories,
                 writableFactories);
         }
+
+        // -------------------------------------------------------------------
+        // Tile queries (values-backed spatial index; O(1) per cell once the
+        // per-layer index is built).
+        // -------------------------------------------------------------------
 
         public virtual TTile? GetTile<TTile>(
             string layerId,
@@ -906,53 +1014,21 @@ namespace NeoCompose.Runtime
             where TTile : class, INeoValueReference
         {
             var candidates = new List<NeoTileCandidate<TTile>>();
-            foreach (var region in ResolveLayerRegions(layerId, "tile"))
+            foreach (var record in LookupCache.TileCandidatesAt(layerId, cell))
             {
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (!TryReadCell(instance["position"], out Vector2Int position)) continue;
-                    if (position != cell) continue;
-                    string? instanceId = ReadString(instance["id"]);
-                    string? tileValueId = ReadString(instance["tileValueId"]);
-                    if (string.IsNullOrEmpty(instanceId) || string.IsNullOrEmpty(tileValueId)) continue;
-                    if (!TileInstanceSourceContainsInstance(instance, layerId, instanceId!)) continue;
-                    TTile? tile = ResolveGeneratedValue<TTile>(
-                        tileValueId!,
-                        expectedTileFamilyTypeId);
-                    if (tile is null) continue;
-                    ReadTileInstanceSource(
-                        instance,
-                        layerId,
-                        out NeoTileOutputSourceKind sourceKind,
-                        out string? sourceTileLayerLinkId);
-                    candidates.Add(new NeoTileCandidate<TTile>(
-                        instanceId!,
-                        cell,
-                        tile,
-                        ReadInt(instance["order"]) ?? 0,
-                        sourceKind,
-                        null,
-                        sourceTileLayerLinkId));
-                }
-
-                SortTileCandidates(candidates, ReadConflictOrder(region.Data));
+                TTile? tile = ResolveGeneratedValue<TTile>(
+                    record.TileValueId,
+                    expectedTileFamilyTypeId);
+                if (tile is null) continue;
+                candidates.Add(new NeoTileCandidate<TTile>(
+                    record.InstanceId,
+                    record.Cell,
+                    tile,
+                    record.Order,
+                    NeoTileOutputSourceKind.TileLayerLink,
+                    record.SourceObjectInstanceId,
+                    record.SourceTileLayerLinkId));
             }
-            var linkedCandidates = new List<NeoTileCandidate<TTile>>(
-                ResolveTileLayerLinkCandidates<TTile>(
-                    layerId,
-                    expectedTileFamilyTypeId,
-                    cell));
-            linkedCandidates.Sort((left, right) =>
-            {
-                int order = left.Order.CompareTo(right.Order);
-                return order != 0
-                    ? order
-                    : left.InstanceId.Value.CompareTo(right.InstanceId.Value);
-            });
-            candidates.AddRange(linkedCandidates);
             return candidates;
         }
 
@@ -975,77 +1051,11 @@ namespace NeoCompose.Runtime
             string layerId,
             string expectedTileFamilyTypeId = "")
         {
-            var byCell = new Dictionary<Vector2Int, List<NeoResolvedTileInstance>>();
-            foreach (var region in ResolveLayerRegions(layerId, "tile"))
-            {
-                var regionCandidates = new List<NeoResolvedTileInstance>();
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (!TryReadCell(instance["position"], out Vector2Int position)) continue;
-                    string? instanceId = ReadString(instance["id"]);
-                    string? tileValueId = ReadString(instance["tileValueId"]);
-                    if (string.IsNullOrEmpty(instanceId) || string.IsNullOrEmpty(tileValueId)) continue;
-                    if (!TileInstanceSourceContainsInstance(instance, layerId, instanceId!)) continue;
-                    var tile = ResolveGeneratedValue<NeoGeneratedCustomValue>(
-                        tileValueId!,
-                        expectedTileFamilyTypeId);
-                    if (tile is null) continue;
-                    ReadTileInstanceSource(
-                        instance,
-                        layerId,
-                        out NeoTileOutputSourceKind sourceKind,
-                        out string? sourceTileLayerLinkId);
-                    regionCandidates.Add(new NeoResolvedTileInstance(
-                        instanceId!,
-                        layerId,
-                        position,
-                        tile,
-                        ReadInt(instance["order"]) ?? 0,
-                        sourceKind,
-                        null,
-                        sourceTileLayerLinkId));
-                }
-                SortResolvedTiles(regionCandidates, ReadConflictOrder(region.Data));
-                foreach (var candidate in regionCandidates)
-                {
-                    if (!byCell.TryGetValue(candidate.Cell, out var candidates))
-                    {
-                        candidates = new List<NeoResolvedTileInstance>();
-                        byCell[candidate.Cell] = candidates;
-                    }
-                    candidates.Add(candidate);
-                }
-            }
-            var linkedTiles = new List<NeoResolvedTileInstance>(
-                ResolveTileLayerLinkTiles(
-                    layerId,
-                    expectedTileFamilyTypeId,
-                    null));
-            linkedTiles.Sort((left, right) =>
-            {
-                int order = left.Order.CompareTo(right.Order);
-                return order != 0
-                    ? order
-                    : left.InstanceId.Value.CompareTo(right.InstanceId.Value);
-            });
-            foreach (var candidate in linkedTiles)
-            {
-                if (!byCell.TryGetValue(candidate.Cell, out var candidates))
-                {
-                    candidates = new List<NeoResolvedTileInstance>();
-                    byCell[candidate.Cell] = candidates;
-                }
-                candidates.Add(candidate);
-            }
-
             var winners = new List<NeoResolvedTileInstance>();
-            foreach (var candidates in byCell.Values)
+            foreach (var cellCandidates in LookupCache.TileCandidatesByCell(layerId).Values)
             {
-                if (candidates.Count == 0) continue;
-                winners.Add(candidates[candidates.Count - 1]);
+                var winner = ResolveWinner(layerId, cellCandidates, expectedTileFamilyTypeId);
+                if (winner is not null) winners.Add(winner);
             }
             winners.Sort((left, right) =>
             {
@@ -1059,86 +1069,30 @@ namespace NeoCompose.Runtime
             string layerId,
             string expectedTileFamilyTypeId = "")
         {
-            var byCell = new Dictionary<Vector2Int, List<NeoResolvedTileInstance>>();
-            foreach (var region in ResolveLayerRegions(layerId, "tile"))
-            {
-                var regionCandidates = new List<NeoResolvedTileInstance>();
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (!TryReadCell(instance["position"], out Vector2Int position)) continue;
-                    string? instanceId = ReadString(instance["id"]);
-                    string? tileValueId = ReadString(instance["tileValueId"]);
-                    if (string.IsNullOrEmpty(instanceId) || string.IsNullOrEmpty(tileValueId)) continue;
-                    if (!TileInstanceSourceContainsInstance(instance, layerId, instanceId!)) continue;
-                    var tile = ResolveGeneratedValue<NeoGeneratedCustomValue>(
-                        tileValueId!,
-                        expectedTileFamilyTypeId);
-                    if (tile is null) continue;
-                    ReadTileInstanceSource(
-                        instance,
-                        layerId,
-                        out NeoTileOutputSourceKind sourceKind,
-                        out string? sourceTileLayerLinkId);
-                    regionCandidates.Add(new NeoResolvedTileInstance(
-                        instanceId!,
-                        layerId,
-                        position,
-                        tile,
-                        ReadInt(instance["order"]) ?? 0,
-                        sourceKind,
-                        null,
-                        sourceTileLayerLinkId));
-                }
-                SortResolvedTiles(regionCandidates, ReadConflictOrder(region.Data));
-                foreach (var candidate in regionCandidates)
-                {
-                    AddCandidate(byCell, candidate);
-                }
-            }
-
-            var linkedTiles = new List<NeoResolvedTileInstance>(
-                ResolveTileLayerLinkTiles(
-                    layerId,
-                    expectedTileFamilyTypeId,
-                    null));
-            linkedTiles.Sort((left, right) =>
-            {
-                int order = left.Order.CompareTo(right.Order);
-                return order != 0
-                    ? order
-                    : left.InstanceId.Value.CompareTo(right.InstanceId.Value);
-            });
-            foreach (var candidate in linkedTiles)
-            {
-                AddCandidate(byCell, candidate);
-            }
-
             var winners = new List<NeoResolvedTileInstance>();
             var sourceTiles = new Dictionary<string, List<NeoResolvedTileInstance>>();
             var candidateCounts = new Dictionary<Vector2Int, int>();
-            foreach (var pair in byCell)
+            foreach (var pair in LookupCache.TileCandidatesByCell(layerId))
             {
-                var candidates = pair.Value;
-                candidateCounts[pair.Key] = candidates.Count;
-                if (candidates.Count == 0) continue;
-                winners.Add(candidates[candidates.Count - 1]);
-                foreach (var candidate in candidates)
+                NeoResolvedTileInstance? winner = null;
+                int resolvableCount = 0;
+                foreach (var record in pair.Value)
                 {
-                    if (candidate.SourceKind != NeoTileOutputSourceKind.TileLayerLink ||
-                        string.IsNullOrEmpty(candidate.SourceTileLayerLinkId))
-                    {
-                        continue;
-                    }
-                    if (!sourceTiles.TryGetValue(candidate.SourceTileLayerLinkId!, out var tiles))
+                    var resolved = ResolveRecord(layerId, record, expectedTileFamilyTypeId);
+                    if (resolved is null) continue;
+                    resolvableCount += 1;
+                    winner = resolved;
+                    if (string.IsNullOrEmpty(resolved.SourceTileLayerLinkId)) continue;
+                    if (!sourceTiles.TryGetValue(resolved.SourceTileLayerLinkId!, out var tiles))
                     {
                         tiles = new List<NeoResolvedTileInstance>();
-                        sourceTiles[candidate.SourceTileLayerLinkId!] = tiles;
+                        sourceTiles[resolved.SourceTileLayerLinkId!] = tiles;
                     }
-                    tiles.Add(candidate);
+                    tiles.Add(resolved);
                 }
+                if (resolvableCount == 0) continue;
+                candidateCounts[pair.Key] = resolvableCount;
+                winners.Add(winner!);
             }
             winners.Sort((left, right) =>
             {
@@ -1158,75 +1112,15 @@ namespace NeoCompose.Runtime
                 candidateCounts);
         }
 
-        private static void AddCandidate(
-            Dictionary<Vector2Int, List<NeoResolvedTileInstance>> byCell,
-            NeoResolvedTileInstance candidate)
-        {
-            if (!byCell.TryGetValue(candidate.Cell, out var candidates))
-            {
-                candidates = new List<NeoResolvedTileInstance>();
-                byCell[candidate.Cell] = candidates;
-            }
-            candidates.Add(candidate);
-        }
-
         internal virtual NeoResolvedTileInstance? ResolveTile(
             string layerId,
             Vector2Int cell,
             string expectedTileFamilyTypeId = "")
         {
-            var candidates = new List<NeoResolvedTileInstance>();
-            foreach (var region in ResolveLayerRegions(layerId, "tile"))
-            {
-                var regionCandidates = new List<NeoResolvedTileInstance>();
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (!TryReadCell(instance["position"], out Vector2Int position)) continue;
-                    if (position != cell) continue;
-                    string? instanceId = ReadString(instance["id"]);
-                    string? tileValueId = ReadString(instance["tileValueId"]);
-                    if (string.IsNullOrEmpty(instanceId) || string.IsNullOrEmpty(tileValueId)) continue;
-                    if (!TileInstanceSourceContainsInstance(instance, layerId, instanceId!)) continue;
-                    var tile = ResolveGeneratedValue<NeoGeneratedCustomValue>(
-                        tileValueId!,
-                        expectedTileFamilyTypeId);
-                    if (tile is null) continue;
-                    ReadTileInstanceSource(
-                        instance,
-                        layerId,
-                        out NeoTileOutputSourceKind sourceKind,
-                        out string? sourceTileLayerLinkId);
-                    regionCandidates.Add(new NeoResolvedTileInstance(
-                        instanceId!,
-                        layerId,
-                        position,
-                        tile,
-                        ReadInt(instance["order"]) ?? 0,
-                        sourceKind,
-                        null,
-                        sourceTileLayerLinkId));
-                }
-                SortResolvedTiles(regionCandidates, ReadConflictOrder(region.Data));
-                candidates.AddRange(regionCandidates);
-            }
-
-            var linkedTiles = new List<NeoResolvedTileInstance>(
-                ResolveTileLayerLinkTiles(
-                    layerId,
-                    expectedTileFamilyTypeId,
-                    cell));
-            linkedTiles.Sort((left, right) =>
-            {
-                int order = left.Order.CompareTo(right.Order);
-                return order != 0
-                    ? order
-                    : left.InstanceId.Value.CompareTo(right.InstanceId.Value);
-            });
-            candidates.AddRange(linkedTiles);
-            return candidates.Count == 0 ? null : candidates[candidates.Count - 1];
+            return ResolveWinner(
+                layerId,
+                LookupCache.TileCandidatesAt(layerId, cell),
+                expectedTileFamilyTypeId);
         }
 
         internal NeoResolvedTileInstance? ResolveTileCached(
@@ -1234,7 +1128,42 @@ namespace NeoCompose.Runtime
             Vector2Int cell,
             string expectedTileFamilyTypeId = "")
         {
-            return LookupCache.ResolveTile(layerId, cell, expectedTileFamilyTypeId);
+            return ResolveTile(layerId, cell, expectedTileFamilyTypeId);
+        }
+
+        private NeoResolvedTileInstance? ResolveWinner(
+            string layerId,
+            IReadOnlyList<NeoTilePlacementRecord> cellCandidates,
+            string expectedTileFamilyTypeId)
+        {
+            // Candidates are stored loser→winner; the last resolvable record
+            // (conflict tiebreak: updatedAt desc, id asc) wins the cell.
+            for (int index = cellCandidates.Count - 1; index >= 0; index -= 1)
+            {
+                var resolved = ResolveRecord(layerId, cellCandidates[index], expectedTileFamilyTypeId);
+                if (resolved is not null) return resolved;
+            }
+            return null;
+        }
+
+        private NeoResolvedTileInstance? ResolveRecord(
+            string layerId,
+            NeoTilePlacementRecord record,
+            string expectedTileFamilyTypeId)
+        {
+            var tile = ResolveGeneratedValue<NeoGeneratedCustomValue>(
+                record.TileValueId,
+                expectedTileFamilyTypeId);
+            if (tile is null) return null;
+            return new NeoResolvedTileInstance(
+                record.InstanceId,
+                layerId,
+                record.Cell,
+                tile,
+                record.Order,
+                NeoTileOutputSourceKind.TileLayerLink,
+                record.SourceObjectInstanceId,
+                record.SourceTileLayerLinkId);
         }
 
         internal virtual IReadOnlyList<NeoResolvedTileInstance> GetTileLayerLinkTiles(
@@ -1244,49 +1173,13 @@ namespace NeoCompose.Runtime
         {
             var tiles = new List<NeoResolvedTileInstance>();
             if (string.IsNullOrEmpty(sourceTileLayerLinkId)) return tiles;
-
-            foreach (var region in ResolveLayerRegions(layerId, "tile"))
+            foreach (var record in LookupCache.TileRecords(layerId))
             {
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    ReadTileInstanceSource(
-                        instance,
-                        layerId,
-                        out NeoTileOutputSourceKind sourceKind,
-                        out string? sourceId);
-                    if (sourceKind != NeoTileOutputSourceKind.TileLayerLink ||
-                        sourceId != sourceTileLayerLinkId)
-                    {
-                        continue;
-                    }
-                    if (!TryReadCell(instance["position"], out Vector2Int position)) continue;
-                    string? instanceId = ReadString(instance["id"]);
-                    string? tileValueId = ReadString(instance["tileValueId"]);
-                    if (string.IsNullOrEmpty(instanceId) || string.IsNullOrEmpty(tileValueId)) continue;
-                    if (!TileInstanceSourceContainsInstance(instance, layerId, instanceId!)) continue;
-                    var tile = ResolveGeneratedValue<NeoGeneratedCustomValue>(
-                        tileValueId!,
-                        expectedTileFamilyTypeId);
-                    if (tile is null) continue;
-                    tiles.Add(new NeoResolvedTileInstance(
-                        instanceId!,
-                        layerId,
-                        position,
-                        tile,
-                        ReadInt(instance["order"]) ?? 0,
-                        sourceKind,
-                        null,
-                        sourceId));
-                }
+                if (record.SourceTileLayerLinkId != sourceTileLayerLinkId) continue;
+                var resolved = ResolveRecord(layerId, record, expectedTileFamilyTypeId);
+                if (resolved is null) continue;
+                tiles.Add(resolved);
             }
-
-            tiles.AddRange(ResolveTileLayerLinkTilesForSource(
-                layerId,
-                expectedTileFamilyTypeId,
-                sourceTileLayerLinkId));
             tiles.Sort((left, right) =>
             {
                 int cellY = left.Cell.y.CompareTo(right.Cell.y);
@@ -1301,6 +1194,10 @@ namespace NeoCompose.Runtime
             return tiles;
         }
 
+        // -------------------------------------------------------------------
+        // Object queries.
+        // -------------------------------------------------------------------
+
         public virtual TObject? GetObject<TObject>(
             string layerId,
             Vector2Int cell,
@@ -1309,25 +1206,15 @@ namespace NeoCompose.Runtime
         {
             TObject? best = null;
             int bestOrder = int.MinValue;
-            foreach (var region in ResolveLayerRegions(layerId, "object"))
+            foreach (var record in LookupCache.ObjectCandidatesAt(layerId, cell))
             {
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (!ObjectInstanceOccupiesCell(instance, cell)) continue;
-                    string? objectValueId = ReadString(instance["objectValueId"]);
-                    if (string.IsNullOrEmpty(objectValueId)) continue;
-                    TObject? obj = ResolveGeneratedValue<TObject>(
-                        objectValueId!,
-                        expectedObjectFamilyTypeId);
-                    if (obj is null) continue;
-                    int order = ReadInt(instance["order"]) ?? 0;
-                    if (best is not null && order < bestOrder) continue;
-                    best = obj;
-                    bestOrder = order;
-                }
+                TObject? obj = ResolveGeneratedValue<TObject>(
+                    record.InstanceId,
+                    expectedObjectFamilyTypeId);
+                if (obj is null) continue;
+                if (best is not null && record.Order < bestOrder) continue;
+                best = obj;
+                bestOrder = record.Order;
             }
             return best;
         }
@@ -1338,30 +1225,11 @@ namespace NeoCompose.Runtime
             string expectedObjectFamilyTypeId = "")
         {
             var objects = new List<NeoResolvedObjectInstance>();
-            foreach (var region in ResolveLayerRegions(layerId, "object"))
+            foreach (var record in LookupCache.ObjectCandidatesAt(layerId, cell))
             {
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (!ObjectInstanceOccupiesCell(instance, cell)) continue;
-                    if (!TryReadCell(instance["position"], out Vector2Int position)) continue;
-                    string? instanceId = ReadString(instance["id"]);
-                    string? objectValueId = ReadString(instance["objectValueId"]);
-                    if (string.IsNullOrEmpty(instanceId) || string.IsNullOrEmpty(objectValueId)) continue;
-                    var obj = ResolveGeneratedValue<NeoGeneratedCustomValue>(
-                        objectValueId!,
-                        expectedObjectFamilyTypeId);
-                    if (obj is null) continue;
-                    objects.Add(new NeoResolvedObjectInstance(
-                        instanceId!,
-                        layerId,
-                        position,
-                        ReadFootprint(instance, position),
-                        obj,
-                        ReadInt(instance["order"]) ?? 0));
-                }
+                var resolved = ResolveObjectRecord(layerId, record, expectedObjectFamilyTypeId);
+                if (resolved is null) continue;
+                objects.Add(resolved);
             }
             objects.Sort((left, right) =>
             {
@@ -1378,7 +1246,7 @@ namespace NeoCompose.Runtime
             Vector2Int cell,
             string expectedObjectFamilyTypeId = "")
         {
-            var objects = LookupCache.ResolveObjects(layerId, cell, expectedObjectFamilyTypeId);
+            var objects = ResolveObjectsAtCell(layerId, cell, expectedObjectFamilyTypeId);
             return objects.Count == 0 ? null : objects[objects.Count - 1];
         }
 
@@ -1387,7 +1255,7 @@ namespace NeoCompose.Runtime
             Vector2Int cell,
             string expectedObjectFamilyTypeId = "")
         {
-            return LookupCache.ResolveObjects(layerId, cell, expectedObjectFamilyTypeId);
+            return ResolveObjectsAtCell(layerId, cell, expectedObjectFamilyTypeId);
         }
 
         public virtual IReadOnlyList<NeoResolvedObjectInstance> GetObjects(
@@ -1395,29 +1263,11 @@ namespace NeoCompose.Runtime
             string expectedObjectFamilyTypeId = "")
         {
             var objects = new List<NeoResolvedObjectInstance>();
-            foreach (var region in ResolveLayerRegions(layerId, "object"))
+            foreach (var record in LookupCache.ObjectRecords(layerId))
             {
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (!TryReadCell(instance["position"], out Vector2Int position)) continue;
-                    string? instanceId = ReadString(instance["id"]);
-                    string? objectValueId = ReadString(instance["objectValueId"]);
-                    if (string.IsNullOrEmpty(instanceId) || string.IsNullOrEmpty(objectValueId)) continue;
-                    var obj = ResolveGeneratedValue<NeoGeneratedCustomValue>(
-                        objectValueId!,
-                        expectedObjectFamilyTypeId);
-                    if (obj is null) continue;
-                    objects.Add(new NeoResolvedObjectInstance(
-                        instanceId!,
-                        layerId,
-                        position,
-                        ReadFootprint(instance, position),
-                        obj,
-                        ReadInt(instance["order"]) ?? 0));
-                }
+                var resolved = ResolveObjectRecord(layerId, record, expectedObjectFamilyTypeId);
+                if (resolved is null) continue;
+                objects.Add(resolved);
             }
             objects.Sort((left, right) => left.Order.CompareTo(right.Order));
             return objects;
@@ -1428,218 +1278,83 @@ namespace NeoCompose.Runtime
             NeoObjectInstanceId instanceId,
             string expectedObjectFamilyTypeId = "")
         {
-            foreach (var region in ResolveLayerRegions(layerId, "object"))
+            foreach (var record in LookupCache.ObjectRecords(layerId))
             {
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (ReadString(instance["id"]) != instanceId.Value) continue;
-                    if (!TryReadCell(instance["position"], out Vector2Int position)) continue;
-                    string? objectValueId = ReadString(instance["objectValueId"]);
-                    if (string.IsNullOrEmpty(objectValueId)) return null;
-                    var obj = ResolveGeneratedValue<NeoGeneratedCustomValue>(
-                        objectValueId!,
-                        expectedObjectFamilyTypeId);
-                    if (obj is null) return null;
-                    return new NeoResolvedObjectInstance(
-                        instanceId.Value,
-                        layerId,
-                        position,
-                        ReadFootprint(instance, position),
-                        obj,
-                        ReadInt(instance["order"]) ?? 0);
-                }
+                if (record.InstanceId != instanceId.Value) continue;
+                return ResolveObjectRecord(layerId, record, expectedObjectFamilyTypeId);
             }
             return null;
         }
 
-        private IEnumerable<NeoTileCandidate<TTile>> ResolveTileLayerLinkCandidates<TTile>(
+        private NeoResolvedObjectInstance? ResolveObjectRecord(
             string layerId,
-            string expectedTileFamilyTypeId,
-            Vector2Int? onlyCell)
-            where TTile : class, INeoValueReference
+            NeoObjectPlacementRecord record,
+            string expectedObjectFamilyTypeId)
         {
-            if (Content?.tileLayerLinks is null) yield break;
-            foreach (var link in Content.tileLayerLinks)
-            {
-                if (link is null) continue;
-                if (link.targetTileLayerId != layerId) continue;
-                if (!TryResolveTileLayerLinkOrigin(link, out Vector2Int origin, out int sourceOrder))
-                {
-                    continue;
-                }
-                if (link.tiles is null) continue;
-                foreach (var tile in link.tiles)
-                {
-                    if (tile is null || string.IsNullOrEmpty(tile.tileValueId)) continue;
-                    if (!TileLayerLinkSourceContainsTile(link, tile)) continue;
-                    Vector2Int cell = origin + ToVector2Int(tile.position);
-                    if (onlyCell.HasValue && cell != onlyCell.Value) continue;
-                    string instanceId = BuildTileLayerLinkInstanceId(link, tile);
-                    if (IsTileLayerLinkOutputRemoved(layerId, cell, instanceId)) continue;
-                    TTile? resolvedTile = ResolveGeneratedValue<TTile>(
-                        tile.tileValueId,
-                        expectedTileFamilyTypeId);
-                    if (resolvedTile is null) continue;
-                    yield return new NeoTileCandidate<TTile>(
-                        instanceId,
-                        cell,
-                        resolvedTile,
-                        CombineTileLayerLinkOrder(sourceOrder, tile.order),
-                        NeoTileOutputSourceKind.TileLayerLink,
-                        link.objectInstanceId,
-                        ResolveTileLayerLinkSourceId(link));
-                }
-            }
+            var obj = ResolveGeneratedValue<NeoGeneratedCustomValue>(
+                record.InstanceId,
+                expectedObjectFamilyTypeId);
+            if (obj is null) return null;
+            return new NeoResolvedObjectInstance(
+                record.InstanceId,
+                layerId,
+                record.Cell,
+                record.Footprint,
+                obj,
+                record.Order);
         }
 
-        private IEnumerable<NeoResolvedTileInstance> ResolveTileLayerLinkTiles(
-            string layerId,
-            string expectedTileFamilyTypeId,
-            Vector2Int? onlyCell)
+        // -------------------------------------------------------------------
+        // Tile-layer-link dependencies (renderer live sync).
+        // -------------------------------------------------------------------
+
+        internal IReadOnlyList<NeoTileLayerLinkDependency> GetTileLayerLinkDependencies()
         {
-            if (Content?.tileLayerLinks is null) yield break;
-            foreach (var link in Content.tileLayerLinks)
+            var dependencies = new List<NeoTileLayerLinkDependency>();
+            var seen = new HashSet<string>();
+            foreach (var link in ResolveGridLinks(null))
             {
-                if (link is null) continue;
-                if (link.targetTileLayerId != layerId) continue;
-                if (!TryResolveTileLayerLinkOrigin(link, out Vector2Int origin, out int sourceOrder))
+                if (link.IsTileLink)
                 {
+                    AddTileLayerLinkDependency(dependencies, seen, link.LinkValueId, link.LayerId);
                     continue;
                 }
-                if (link.tiles is null) continue;
-                foreach (var tile in link.tiles)
+                foreach (var objectValueId in ResolveListEntryIds(link.ListValueId, null))
                 {
-                    if (tile is null || string.IsNullOrEmpty(tile.tileValueId)) continue;
-                    if (!TileLayerLinkSourceContainsTile(link, tile)) continue;
-                    Vector2Int cell = origin + ToVector2Int(tile.position);
-                    if (onlyCell.HasValue && cell != onlyCell.Value) continue;
-                    string instanceId = BuildTileLayerLinkInstanceId(link, tile);
-                    if (IsTileLayerLinkOutputRemoved(layerId, cell, instanceId)) continue;
-                    var resolvedTile = ResolveGeneratedValue<NeoGeneratedCustomValue>(
-                        tile.tileValueId,
-                        expectedTileFamilyTypeId);
-                    if (resolvedTile is null) continue;
-                    yield return new NeoResolvedTileInstance(
-                        instanceId,
-                        layerId,
-                        cell,
-                        resolvedTile,
-                        CombineTileLayerLinkOrder(sourceOrder, tile.order),
-                        NeoTileOutputSourceKind.TileLayerLink,
-                        link.objectInstanceId,
-                        ResolveTileLayerLinkSourceId(link));
-                }
-            }
-        }
-
-        private IEnumerable<NeoResolvedTileInstance> ResolveTileLayerLinkTilesForSource(
-            string layerId,
-            string expectedTileFamilyTypeId,
-            string sourceTileLayerLinkId)
-        {
-            if (Content?.tileLayerLinks is null) yield break;
-            foreach (var link in Content.tileLayerLinks)
-            {
-                if (link is null) continue;
-                if (link.targetTileLayerId != layerId) continue;
-                if (ResolveTileLayerLinkSourceId(link) != sourceTileLayerLinkId) continue;
-                if (!TryResolveTileLayerLinkOrigin(link, out Vector2Int origin, out int sourceOrder))
-                {
-                    continue;
-                }
-                if (link.tiles is null) continue;
-                foreach (var tile in link.tiles)
-                {
-                    if (tile is null || string.IsNullOrEmpty(tile.tileValueId)) continue;
-                    if (!TileLayerLinkSourceContainsTile(link, tile)) continue;
-                    Vector2Int cell = origin + ToVector2Int(tile.position);
-                    string instanceId = BuildTileLayerLinkInstanceId(link, tile);
-                    if (IsTileLayerLinkOutputRemoved(layerId, cell, instanceId)) continue;
-                    var resolvedTile = ResolveGeneratedValue<NeoGeneratedCustomValue>(
-                        tile.tileValueId,
-                        expectedTileFamilyTypeId);
-                    if (resolvedTile is null) continue;
-                    yield return new NeoResolvedTileInstance(
-                        instanceId,
-                        layerId,
-                        cell,
-                        resolvedTile,
-                        CombineTileLayerLinkOrder(sourceOrder, tile.order),
-                        NeoTileOutputSourceKind.TileLayerLink,
-                        link.objectInstanceId,
-                        sourceTileLayerLinkId);
-                }
-            }
-        }
-
-        protected bool TryResolveTileLayerLinkOrigin(
-            TileGridLayerLinkPayload link,
-            out Vector2Int origin,
-            out int order)
-        {
-            origin = ToVector2Int(link.origin);
-            order = link.order;
-            if (string.IsNullOrEmpty(link.objectLayerId) ||
-                string.IsNullOrEmpty(link.objectInstanceId))
-            {
-                return true;
-            }
-
-            foreach (var region in ResolveLayerRegions(link.objectLayerId, "object"))
-            {
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (ReadString(instance["id"]) != link.objectInstanceId) continue;
-                    if (TryReadCell(instance["position"], out Vector2Int currentOrigin))
+                    foreach (var carried in ResolveObjectCarriedLinks(objectValueId, null))
                     {
-                        origin = currentOrigin;
+                        AddTileLayerLinkDependency(
+                            dependencies,
+                            seen,
+                            carried.LinkValueId,
+                            carried.LayerId);
                     }
-                    order = ReadInt(instance["order"]) ?? order;
-                    return true;
                 }
             }
-            return false;
+            return dependencies;
         }
 
-        private bool IsTileLayerLinkOutputRemoved(
-            string layerId,
-            Vector2Int cell,
-            string instanceId)
+        internal IReadOnlyList<NeoTileLayerLinkDependency> GetAuthoredTileLayerLinkDependencies()
         {
-            BuildRegionRef(cell, out string regionKey, out _, out _);
-            return DeltaRemovesInstance(
-                    client.GetTileGridRegionDelta(
-                        NeoValueOwnership.Save,
-                        GridValueId,
-                        layerId,
-                        "tile",
-                        regionKey),
-                    instanceId)
-                || DeltaRemovesInstance(
-                    client.GetTileGridRegionDelta(
-                        NeoValueOwnership.Session,
-                        GridValueId,
-                        layerId,
-                        "tile",
-                        regionKey),
-                    instanceId);
+            return GetTileLayerLinkDependencies();
         }
 
-        private static bool DeltaRemovesInstance(
-            TileGridRegionDelta? delta,
-            string instanceId)
+        private static void AddTileLayerLinkDependency(
+            List<NeoTileLayerLinkDependency> dependencies,
+            HashSet<string> seen,
+            string sourceValueId,
+            string targetTileLayerId)
         {
-            if (delta?.delta is null) return false;
-            if (delta.delta.entries?.ContainsKey(instanceId) == true) return false;
-            if (delta.delta.restoredToAuthored?.Contains(instanceId) == true) return false;
-            return delta.delta.removedInstanceIds?.Contains(instanceId) == true;
+            string key = $"{sourceValueId}\n{targetTileLayerId}";
+            if (!seen.Add(key)) return;
+            dependencies.Add(new NeoTileLayerLinkDependency(
+                sourceValueId,
+                targetTileLayerId));
         }
+
+        // -------------------------------------------------------------------
+        // Generated-value resolution and type checks.
+        // -------------------------------------------------------------------
 
         protected TGenerated? ResolveGeneratedValue<TGenerated>(
             string valueId,
@@ -1666,110 +1381,6 @@ namespace NeoCompose.Runtime
             return resolved as NeoGeneratedCustomValue;
         }
 
-        internal IReadOnlyList<NeoTileLayerLinkDependency> GetTileLayerLinkDependencies()
-        {
-            if (Content is null)
-            {
-                return Array.Empty<NeoTileLayerLinkDependency>();
-            }
-
-            var dependencies = new List<NeoTileLayerLinkDependency>();
-            var seen = new HashSet<string>();
-            foreach (var region in Content.regions)
-            {
-                if (region.deleted ||
-                    region.layerKind != "tile" ||
-                    string.IsNullOrEmpty(region.layerId))
-                {
-                    continue;
-                }
-
-                var instances = ReadInstances(region.data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    ReadTileInstanceSource(
-                        instance,
-                        region.layerId,
-                        out NeoTileOutputSourceKind sourceKind,
-                        out string? sourceTileLayerLinkId);
-                    if (sourceKind != NeoTileOutputSourceKind.TileLayerLink ||
-                        string.IsNullOrEmpty(sourceTileLayerLinkId))
-                    {
-                        continue;
-                    }
-
-                    AddTileLayerLinkDependency(
-                        dependencies,
-                        seen,
-                        sourceTileLayerLinkId!,
-                        region.layerId);
-                }
-            }
-
-            if (Content.tileLayerLinks is null) return dependencies;
-
-            foreach (var link in Content.tileLayerLinks)
-            {
-                if (link is null) continue;
-                string? sourceId = ResolveTileLayerLinkSourceId(link);
-                if (string.IsNullOrEmpty(sourceId) ||
-                    string.IsNullOrEmpty(link.targetTileLayerId))
-                {
-                    continue;
-                }
-
-                AddTileLayerLinkDependency(
-                    dependencies,
-                    seen,
-                    sourceId!,
-                    link.targetTileLayerId);
-            }
-            return dependencies;
-        }
-
-        internal IReadOnlyList<NeoTileLayerLinkDependency> GetAuthoredTileLayerLinkDependencies()
-        {
-            if (Content?.tileLayerLinks is null)
-            {
-                return Array.Empty<NeoTileLayerLinkDependency>();
-            }
-
-            var dependencies = new List<NeoTileLayerLinkDependency>();
-            var seen = new HashSet<string>();
-            foreach (var link in Content.tileLayerLinks)
-            {
-                if (link is null) continue;
-                string? sourceId = ResolveTileLayerLinkSourceId(link);
-                if (string.IsNullOrEmpty(sourceId) ||
-                    string.IsNullOrEmpty(link.targetTileLayerId))
-                {
-                    continue;
-                }
-
-                AddTileLayerLinkDependency(
-                    dependencies,
-                    seen,
-                    sourceId!,
-                    link.targetTileLayerId);
-            }
-            return dependencies;
-        }
-
-        private static void AddTileLayerLinkDependency(
-            List<NeoTileLayerLinkDependency> dependencies,
-            HashSet<string> seen,
-            string sourceValueId,
-            string targetTileLayerId)
-        {
-            string key = $"{sourceValueId}\n{targetTileLayerId}";
-            if (!seen.Add(key)) return;
-            dependencies.Add(new NeoTileLayerLinkDependency(
-                sourceValueId,
-                targetTileLayerId));
-        }
-
         protected bool ValueExtendsType(string valueId, string expectedFamilyTypeId)
         {
             if (string.IsNullOrEmpty(expectedFamilyTypeId)) return true;
@@ -1793,429 +1404,547 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        protected readonly struct ResolvedTileGridRegion
-        {
-            public string RegionKey { get; }
-            public int RegionX { get; }
-            public int RegionY { get; }
-            public JToken? Data { get; }
+        // -------------------------------------------------------------------
+        // Values-native grid model resolution. Grid value → "Children"
+        // ordered list → layer link values; each link resolves its target
+        // layer (Lookup) and its containment list value ("Tiles"/"Objects").
+        // Every id consulted is added to `dependencyIds` so the lookup cache
+        // can invalidate on value-change events.
+        // -------------------------------------------------------------------
 
-            public ResolvedTileGridRegion(
-                string regionKey,
-                int regionX,
-                int regionY,
-                JToken? data)
+        internal IReadOnlyList<NeoGridLayerLinkModel> ResolveGridLinks(HashSet<string>? dependencyIds)
+        {
+            var links = new List<NeoGridLayerLinkModel>();
+            dependencyIds?.Add(GridValueId);
+            if (client.ResolveEffectiveRow(GridValueId) is not ObjectAttributeValue gridRow) return links;
+            if (gridRow.IsRemoved) return links;
+            if (string.IsNullOrEmpty(gridRow.typeId)) return links;
+            if (gridRow.value is null) return links;
+            string? childrenKey = FindSchemaKey(gridRow.typeId!, ChildrenKeyCandidates);
+            if (childrenKey is null) return links;
+            if (!gridRow.value.TryGetValue(childrenKey, out string childrenListId)) return links;
+
+            foreach (var linkValueId in ResolveListEntryIds(childrenListId, dependencyIds))
             {
-                RegionKey = regionKey;
-                RegionX = regionX;
-                RegionY = regionY;
-                Data = data;
+                dependencyIds?.Add(linkValueId);
+                if (client.ResolveEffectiveRow(linkValueId) is not ObjectAttributeValue linkRow) continue;
+                if (linkRow.IsRemoved) continue;
+                if (string.IsNullOrEmpty(linkRow.typeId)) continue;
+                if (linkRow.value is null) continue;
+                var link = ResolveLinkModel(linkValueId, linkRow, dependencyIds);
+                if (link is not null) links.Add(link);
             }
+            return links;
         }
 
-        protected IEnumerable<ResolvedTileGridRegion> ResolveLayerRegions(
-            string layerId,
-            string layerKind)
+        private NeoGridLayerLinkModel? ResolveLinkModel(
+            string linkValueId,
+            ObjectAttributeValue linkRow,
+            HashSet<string>? dependencyIds)
         {
-            var regionsByKey = new Dictionary<string, ResolvedTileGridRegion>();
-            if (Content is not null)
+            string typeId = linkRow.typeId!;
+            string? tileLayerKey = FindSchemaKey(typeId, TileLayerKeyCandidates);
+            string? tilesKey = FindSchemaKey(typeId, TilesKeyCandidates);
+            if (tileLayerKey is not null && tilesKey is not null
+                && linkRow.value!.TryGetValue(tileLayerKey, out string tileLayerLookupId)
+                && linkRow.value.TryGetValue(tilesKey, out string tilesListId))
             {
-                foreach (var region in Content.regions)
-                {
-                    if (!RegionMatches(region, layerId, layerKind)) continue;
-                    regionsByKey[region.regionKey] = ResolveRegionData(
-                        layerId,
-                        layerKind,
-                        region.regionKey,
-                        region.regionX,
-                        region.regionY,
-                        region.data);
-                }
+                string? layerId = ResolveLookupFirstId(tileLayerLookupId, dependencyIds);
+                if (layerId is null) return null;
+                dependencyIds?.Add(tilesListId);
+                return new NeoGridLayerLinkModel(linkValueId, typeId, layerId, tilesListId, isTileLink: true);
             }
 
-            AddDeltaOnlyRegions(
-                regionsByKey,
-                client.GetTileGridRegionDeltas(
-                    NeoValueOwnership.Save,
-                    GridValueId,
-                    layerId,
-                    layerKind),
-                layerId,
-                layerKind);
-            AddDeltaOnlyRegions(
-                regionsByKey,
-                client.GetTileGridRegionDeltas(
-                    NeoValueOwnership.Session,
-                    GridValueId,
-                    layerId,
-                    layerKind),
-                layerId,
-                layerKind);
-
-            foreach (var pair in regionsByKey)
+            string? objectLayerKey = FindSchemaKey(typeId, ObjectLayerKeyCandidates);
+            string? objectsKey = FindSchemaKey(typeId, ObjectsKeyCandidates);
+            if (objectLayerKey is not null && objectsKey is not null
+                && linkRow.value!.TryGetValue(objectLayerKey, out string objectLayerLookupId)
+                && linkRow.value.TryGetValue(objectsKey, out string objectsListId))
             {
-                yield return pair.Value;
-            }
-        }
-
-        private void AddDeltaOnlyRegions(
-            Dictionary<string, ResolvedTileGridRegion> regionsByKey,
-            IEnumerable<TileGridRegionDelta> deltas,
-            string layerId,
-            string layerKind)
-        {
-            foreach (var delta in deltas)
-            {
-                if (regionsByKey.ContainsKey(delta.regionKey)) continue;
-                regionsByKey[delta.regionKey] = ResolveRegionData(
-                    layerId,
-                    layerKind,
-                    delta.regionKey,
-                    delta.regionX,
-                    delta.regionY,
-                    null);
-            }
-        }
-
-        private ResolvedTileGridRegion ResolveRegionData(
-            string layerId,
-            string layerKind,
-            string regionKey,
-            int regionX,
-            int regionY,
-            JToken? authoredData)
-        {
-            JObject data = CloneRegionData(authoredData, layerKind, regionX, regionY);
-            ApplyDelta(
-                data,
-                client.GetTileGridRegionDelta(
-                    NeoValueOwnership.Save,
-                    GridValueId,
-                    layerId,
-                    layerKind,
-                    regionKey),
-                authoredData);
-            ApplyDelta(
-                data,
-                client.GetTileGridRegionDelta(
-                    NeoValueOwnership.Session,
-                    GridValueId,
-                    layerId,
-                    layerKind,
-                    regionKey),
-                authoredData);
-            return new ResolvedTileGridRegion(regionKey, regionX, regionY, data);
-        }
-
-        private static JObject CloneRegionData(
-            JToken? source,
-            string layerKind,
-            int regionX,
-            int regionY)
-        {
-            if (source is JObject obj)
-            {
-                return (JObject)obj.DeepClone();
-            }
-            return new JObject
-            {
-                ["kind"] = layerKind,
-                ["regionX"] = regionX,
-                ["regionY"] = regionY,
-                ["instances"] = new JArray(),
-            };
-        }
-
-        private static void ApplyDelta(
-            JObject data,
-            TileGridRegionDelta? regionDelta,
-            JToken? authoredData)
-        {
-            if (regionDelta?.delta is null) return;
-            JArray instances = EnsureInstances(data);
-            foreach (var id in regionDelta.delta.removedInstanceIds ?? EmptyStringList)
-            {
-                RemoveInstance(instances, id);
-            }
-            foreach (var pair in regionDelta.delta.entries ?? EmptyEntries)
-            {
-                RemoveInstance(instances, pair.Key);
-                instances.Add(pair.Value.DeepClone());
-            }
-            foreach (var id in regionDelta.delta.restoredToAuthored ?? EmptyStringList)
-            {
-                RemoveInstance(instances, id);
-                var authored = FindAuthoredInstance(authoredData, id);
-                if (authored is not null)
-                {
-                    instances.Add(authored.DeepClone());
-                }
-            }
-        }
-
-        private static readonly IReadOnlyList<string> EmptyStringList =
-            Array.Empty<string>();
-
-        private static readonly IReadOnlyDictionary<string, JToken> EmptyEntries =
-            new Dictionary<string, JToken>();
-
-        private static JArray EnsureInstances(JObject data)
-        {
-            if (data["instances"] is JArray instances) return instances;
-            instances = new JArray();
-            data["instances"] = instances;
-            return instances;
-        }
-
-        protected static JObject? FindAuthoredInstance(JToken? authoredData, string instanceId)
-        {
-            var instances = ReadInstances(authoredData);
-            if (instances is null) return null;
-            foreach (var rawInstance in instances)
-            {
-                if (rawInstance is not JObject instance) continue;
-                if (ReadString(instance["id"]) == instanceId) return instance;
+                string? layerId = ResolveLookupFirstId(objectLayerLookupId, dependencyIds);
+                if (layerId is null) return null;
+                dependencyIds?.Add(objectsListId);
+                return new NeoGridLayerLinkModel(linkValueId, typeId, layerId, objectsListId, isTileLink: false);
             }
             return null;
         }
 
-        protected static bool RemoveInstance(JArray instances, string instanceId)
+        /// <summary>
+        /// Entry value ids of a containment list resolved through the overlay
+        /// cascade: inline array entries first (ordered lists and legacy
+        /// factory rows), then the unordered membership join (rows carrying
+        /// this list value's id as their <see cref="AttributeValue.containerId"/>),
+        /// id-sorted. A null container value resolves to no entries.
+        /// </summary>
+        internal IReadOnlyList<string> ResolveListEntryIds(
+            string listValueId,
+            HashSet<string>? dependencyIds)
         {
-            for (int index = instances.Count - 1; index >= 0; index -= 1)
-            {
-                if (instances[index] is not JObject instance) continue;
-                if (ReadString(instance["id"]) != instanceId) continue;
-                instances.RemoveAt(index);
-                return true;
-            }
-            return false;
-        }
-
-        private static bool RegionMatches(
-            TileGridRegion region,
-            string layerId,
-            string layerKind)
-        {
-            return !region.deleted &&
-                region.layerId == layerId &&
-                region.layerKind == layerKind &&
-                region.data is not null;
-        }
-
-        protected static JArray? ReadInstances(JToken? data)
-        {
-            return data is JObject obj && obj["instances"] is JArray instances
-                ? instances
-                : null;
-        }
-
-        private static List<string> ReadConflictOrder(JToken? data)
-        {
+            dependencyIds?.Add(listValueId);
             var ids = new List<string>();
-            if (data is not JObject obj || obj["conflictOrder"] is not JArray order)
+            if (client.ResolveEffectiveRow(listValueId) is not ArrayAttributeValue listRow) return ids;
+            if (listRow.IsRemoved) return ids;
+            if (listRow.value is null) return ids;
+            var seen = new HashSet<string>();
+            foreach (var entryId in listRow.value)
             {
-                return ids;
+                if (string.IsNullOrEmpty(entryId)) continue;
+                if (!seen.Add(entryId)) continue;
+                var entryRow = client.ResolveEffectiveRow(entryId);
+                if (entryRow is null || entryRow.IsRemoved) continue;
+                ids.Add(entryId);
             }
-            foreach (var token in order)
+            foreach (var entryId in client.GetUnorderedListEntryIds(listValueId))
             {
-                string? id = ReadString(token);
-                if (!string.IsNullOrEmpty(id)) ids.Add(id!);
+                if (!seen.Add(entryId)) continue;
+                ids.Add(entryId);
             }
             return ids;
         }
 
-        private static void SortTileCandidates<TTile>(
-            List<NeoTileCandidate<TTile>> candidates,
-            List<string> conflictOrder)
-            where TTile : class, INeoValueReference
+        internal List<NeoTilePlacementRecord> BuildTileLayerRecords(
+            string layerId,
+            HashSet<string>? dependencyIds)
         {
-            var orderedIds = new Dictionary<string, int>();
-            for (int index = 0; index < conflictOrder.Count; index += 1)
+            var records = new List<NeoTilePlacementRecord>();
+            int order = 0;
+            var links = ResolveGridLinks(dependencyIds);
+            foreach (var link in links)
             {
-                orderedIds[conflictOrder[index]] = index;
-            }
-            candidates.Sort((left, right) =>
-            {
-                bool leftOrdered = orderedIds.TryGetValue(left.InstanceId.Value, out int leftIndex);
-                bool rightOrdered = orderedIds.TryGetValue(right.InstanceId.Value, out int rightIndex);
-                if (leftOrdered && rightOrdered) return leftIndex.CompareTo(rightIndex);
-                if (leftOrdered) return -1;
-                if (rightOrdered) return 1;
-                return left.Order.CompareTo(right.Order);
-            });
-        }
-
-        private static void SortResolvedTiles(
-            List<NeoResolvedTileInstance> candidates,
-            List<string> conflictOrder)
-        {
-            var orderedIds = new Dictionary<string, int>();
-            for (int index = 0; index < conflictOrder.Count; index += 1)
-            {
-                orderedIds[conflictOrder[index]] = index;
-            }
-            candidates.Sort((left, right) =>
-            {
-                bool leftOrdered = orderedIds.TryGetValue(left.InstanceId.Value, out int leftIndex);
-                bool rightOrdered = orderedIds.TryGetValue(right.InstanceId.Value, out int rightIndex);
-                if (leftOrdered && rightOrdered) return leftIndex.CompareTo(rightIndex);
-                if (leftOrdered) return -1;
-                if (rightOrdered) return 1;
-                return left.Order.CompareTo(right.Order);
-            });
-        }
-
-        protected static bool ObjectInstanceOccupiesCell(
-            JObject instance,
-            Vector2Int cell)
-        {
-            if (instance["footprint"] is JArray footprint && footprint.Count > 0)
-            {
-                foreach (var token in footprint)
+                if (!link.IsTileLink || link.LayerId != layerId) continue;
+                foreach (var placementId in ResolveListEntryIds(link.ListValueId, dependencyIds))
                 {
-                    if (TryReadCell(token, out Vector2Int footprintCell) &&
-                        footprintCell == cell)
-                    {
-                        return true;
-                    }
-                }
-                return false;
-            }
-            return TryReadCell(instance["position"], out Vector2Int position) &&
-                position == cell;
-        }
-
-        protected static IReadOnlyList<Vector2Int> ReadFootprint(
-            JObject instance,
-            Vector2Int fallbackCell)
-        {
-            var cells = new List<Vector2Int>();
-            if (instance["footprint"] is JArray footprint && footprint.Count > 0)
-            {
-                foreach (var token in footprint)
-                {
-                    if (TryReadCell(token, out Vector2Int footprintCell))
-                    {
-                        cells.Add(footprintCell);
-                    }
+                    var record = ResolvePlacementRecord(
+                        placementId,
+                        placementId,
+                        origin: Vector2Int.zero,
+                        order,
+                        link.LinkValueId,
+                        sourceObjectInstanceId: null,
+                        CellKeyCandidates,
+                        dependencyIds);
+                    if (record is null) continue;
+                    records.Add(record);
+                    order += 1;
                 }
             }
-            if (cells.Count == 0) cells.Add(fallbackCell);
+
+            // Object-carried tile layer links (stamps): each placed object's
+            // "Children" may host TileLayerLink values whose tiles project
+            // into this layer at the object's origin.
+            foreach (var link in links)
+            {
+                if (link.IsTileLink) continue;
+                int objectIndex = 0;
+                foreach (var objectValueId in ResolveListEntryIds(link.ListValueId, dependencyIds))
+                {
+                    AppendObjectCarriedTiles(
+                        layerId,
+                        objectValueId,
+                        objectIndex,
+                        records,
+                        dependencyIds);
+                    objectIndex += 1;
+                }
+            }
+            return records;
+        }
+
+        private void AppendObjectCarriedTiles(
+            string layerId,
+            string objectValueId,
+            int objectIndex,
+            List<NeoTilePlacementRecord> records,
+            HashSet<string>? dependencyIds)
+        {
+            dependencyIds?.Add(objectValueId);
+            if (client.ResolveEffectiveRow(objectValueId) is not ObjectAttributeValue objectRow) return;
+            if (objectRow.IsRemoved) return;
+            if (string.IsNullOrEmpty(objectRow.typeId)) return;
+            if (objectRow.value is null) return;
+            Vector2Int origin = ReadObjectOrigin(objectRow, dependencyIds);
+
+            int linkIndex = -1;
+            foreach (var carried in ResolveObjectCarriedLinks(objectValueId, dependencyIds))
+            {
+                linkIndex = carried.ChildIndex;
+                if (carried.LayerId != layerId) continue;
+                int sourceOrder = objectIndex * 1000 + linkIndex;
+                int tileIndex = 0;
+                foreach (var entryId in ResolveListEntryIds(carried.TilesListValueId, dependencyIds))
+                {
+                    var record = ResolveObjectCarriedTileRecord(
+                        objectValueId,
+                        carried.LinkValueId,
+                        entryId,
+                        origin,
+                        sourceOrder,
+                        tileIndex,
+                        dependencyIds);
+                    tileIndex += 1;
+                    if (record is null) continue;
+                    records.Add(record);
+                }
+            }
+        }
+
+        private readonly struct ObjectCarriedLink
+        {
+            public ObjectCarriedLink(string linkValueId, string layerId, string tilesListValueId, int childIndex)
+            {
+                LinkValueId = linkValueId;
+                LayerId = layerId;
+                TilesListValueId = tilesListValueId;
+                ChildIndex = childIndex;
+            }
+
+            public string LinkValueId { get; }
+            public string LayerId { get; }
+            public string TilesListValueId { get; }
+            public int ChildIndex { get; }
+        }
+
+        private IEnumerable<ObjectCarriedLink> ResolveObjectCarriedLinks(
+            string objectValueId,
+            HashSet<string>? dependencyIds)
+        {
+            dependencyIds?.Add(objectValueId);
+            if (client.ResolveEffectiveRow(objectValueId) is not ObjectAttributeValue objectRow) yield break;
+            if (objectRow.IsRemoved) yield break;
+            if (string.IsNullOrEmpty(objectRow.typeId)) yield break;
+            if (objectRow.value is null) yield break;
+            string? childrenKey = FindSchemaKey(objectRow.typeId!, ChildrenKeyCandidates);
+            if (childrenKey is null) yield break;
+            if (!objectRow.value.TryGetValue(childrenKey, out string childrenListId)) yield break;
+
+            int childIndex = -1;
+            foreach (var childValueId in ResolveListEntryIds(childrenListId, dependencyIds))
+            {
+                childIndex += 1;
+                dependencyIds?.Add(childValueId);
+                if (client.ResolveEffectiveRow(childValueId) is not ObjectAttributeValue childRow) continue;
+                if (childRow.IsRemoved) continue;
+                if (string.IsNullOrEmpty(childRow.typeId)) continue;
+                if (childRow.value is null) continue;
+                string? tileLayerKey = FindSchemaKey(childRow.typeId!, TileLayerKeyCandidates);
+                string? tilesKey = FindSchemaKey(childRow.typeId!, TilesKeyCandidates);
+                if (tileLayerKey is null || tilesKey is null) continue;
+                if (!childRow.value.TryGetValue(tileLayerKey, out string layerLookupId)) continue;
+                if (!childRow.value.TryGetValue(tilesKey, out string tilesListId)) continue;
+                string? targetLayerId = ResolveLookupFirstId(layerLookupId, dependencyIds);
+                if (targetLayerId is null) continue;
+                dependencyIds?.Add(tilesListId);
+                yield return new ObjectCarriedLink(childValueId, targetLayerId, tilesListId, childIndex);
+            }
+        }
+
+        private NeoTilePlacementRecord? ResolveObjectCarriedTileRecord(
+            string objectValueId,
+            string linkValueId,
+            string entryId,
+            Vector2Int origin,
+            int sourceOrder,
+            int tileIndex,
+            HashSet<string>? dependencyIds)
+        {
+            dependencyIds?.Add(entryId);
+            if (client.ResolveEffectiveRow(entryId) is not ObjectAttributeValue entryRow) return null;
+            if (entryRow.IsRemoved) return null;
+            // Parity with the retired export derivation: entries without a
+            // typeId are not composed.
+            if (string.IsNullOrEmpty(entryRow.typeId)) return null;
+
+            string instanceId = $"{objectValueId}:{linkValueId}:{entryId}";
+            string? tileKey = entryRow.value is null
+                ? null
+                : FindSchemaKey(entryRow.typeId!, TileKeyCandidates);
+            if (tileKey is not null && entryRow.value!.TryGetValue(tileKey, out string tileLookupId))
+            {
+                dependencyIds?.Add(tileLookupId);
+                string? tileValueId = ResolveLookupFirstId(tileLookupId, dependencyIds);
+                if (tileValueId is null) return null;
+                Vector2Int localCell = Vector2Int.zero;
+                string? cellValueId = null;
+                string? positionKey = FindSchemaKey(entryRow.typeId!, LinkTilePositionKeyCandidates);
+                if (positionKey is not null
+                    && entryRow.value.TryGetValue(positionKey, out string positionRowId))
+                {
+                    cellValueId = positionRowId;
+                    dependencyIds?.Add(positionRowId);
+                    localCell = ReadCellRow(positionRowId) ?? Vector2Int.zero;
+                }
+                int tileOrder = tileIndex;
+                string? orderKey = FindSchemaKey(entryRow.typeId!, OrderKeyCandidates);
+                if (orderKey is not null
+                    && entryRow.value.TryGetValue(orderKey, out string orderRowId))
+                {
+                    dependencyIds?.Add(orderRowId);
+                    if (client.ResolveEffectiveRow(orderRowId) is NumberAttributeValue orderRow
+                        && orderRow.value is not null)
+                    {
+                        tileOrder = (int)orderRow.value.Value;
+                    }
+                }
+                return new NeoTilePlacementRecord(
+                    instanceId,
+                    entryId,
+                    origin + localCell,
+                    tileValueId,
+                    CombineTileLayerLinkOrder(sourceOrder, tileOrder),
+                    linkValueId,
+                    objectValueId,
+                    entryRow.updatedAt.EpochMilliseconds,
+                    cellValueId,
+                    tileLookupId);
+            }
+
+            // The entry IS a tile value: it projects at the object's origin.
+            return new NeoTilePlacementRecord(
+                instanceId,
+                entryId,
+                origin,
+                entryId,
+                CombineTileLayerLinkOrder(sourceOrder, tileIndex),
+                linkValueId,
+                objectValueId,
+                entryRow.updatedAt.EpochMilliseconds,
+                cellValueId: null,
+                tileLookupValueId: null);
+        }
+
+        private NeoTilePlacementRecord? ResolvePlacementRecord(
+            string instanceId,
+            string placementValueId,
+            Vector2Int origin,
+            int order,
+            string sourceTileLayerLinkId,
+            string? sourceObjectInstanceId,
+            string[] cellKeyCandidates,
+            HashSet<string>? dependencyIds)
+        {
+            dependencyIds?.Add(placementValueId);
+            if (client.ResolveEffectiveRow(placementValueId) is not ObjectAttributeValue placementRow) return null;
+            if (placementRow.IsRemoved) return null;
+            if (string.IsNullOrEmpty(placementRow.typeId)) return null;
+            if (placementRow.value is null) return null;
+
+            string? cellKey = FindSchemaKey(placementRow.typeId!, cellKeyCandidates);
+            string? tileKey = FindSchemaKey(placementRow.typeId!, TileKeyCandidates);
+            if (cellKey is null || tileKey is null) return null;
+            if (!placementRow.value.TryGetValue(cellKey, out string cellValueId)) return null;
+            if (!placementRow.value.TryGetValue(tileKey, out string tileLookupValueId)) return null;
+            dependencyIds?.Add(cellValueId);
+            dependencyIds?.Add(tileLookupValueId);
+            Vector2Int? cell = ReadCellRow(cellValueId);
+            if (cell is null) return null;
+            string? tileValueId = ResolveLookupFirstId(tileLookupValueId, dependencyIds);
+            if (tileValueId is null) return null;
+
+            return new NeoTilePlacementRecord(
+                instanceId,
+                placementValueId,
+                origin + cell.Value,
+                tileValueId,
+                order,
+                sourceTileLayerLinkId,
+                sourceObjectInstanceId,
+                placementRow.updatedAt.EpochMilliseconds,
+                cellValueId,
+                tileLookupValueId);
+        }
+
+        internal List<NeoObjectPlacementRecord> BuildObjectLayerRecords(
+            string layerId,
+            HashSet<string>? dependencyIds)
+        {
+            var records = new List<NeoObjectPlacementRecord>();
+            int order = 0;
+            foreach (var link in ResolveGridLinks(dependencyIds))
+            {
+                if (link.IsTileLink || link.LayerId != layerId) continue;
+                foreach (var objectValueId in ResolveListEntryIds(link.ListValueId, dependencyIds))
+                {
+                    dependencyIds?.Add(objectValueId);
+                    if (client.ResolveEffectiveRow(objectValueId) is not ObjectAttributeValue objectRow) continue;
+                    if (objectRow.IsRemoved) continue;
+                    if (string.IsNullOrEmpty(objectRow.typeId)) continue;
+                    Vector2Int cell = ReadObjectOrigin(objectRow, dependencyIds);
+                    var footprint = ReadObjectFootprint(objectRow, cell, dependencyIds);
+                    records.Add(new NeoObjectPlacementRecord(
+                        objectValueId,
+                        cell,
+                        footprint,
+                        order));
+                    order += 1;
+                }
+            }
+            return records;
+        }
+
+        private Vector2Int ReadObjectOrigin(
+            ObjectAttributeValue objectRow,
+            HashSet<string>? dependencyIds)
+        {
+            if (objectRow.value is null) return Vector2Int.zero;
+            string? positionKey = FindSchemaKey(objectRow.typeId!, PositionKeyCandidates);
+            if (positionKey is null) return Vector2Int.zero;
+            if (!objectRow.value.TryGetValue(positionKey, out string positionRowId)) return Vector2Int.zero;
+            dependencyIds?.Add(positionRowId);
+            return ReadCellRow(positionRowId) ?? Vector2Int.zero;
+        }
+
+        private IReadOnlyList<Vector2Int> ReadObjectFootprint(
+            ObjectAttributeValue objectRow,
+            Vector2Int origin,
+            HashSet<string>? dependencyIds)
+        {
+            int width = 1;
+            int height = 1;
+            string? sizeKey = objectRow.value is null
+                ? null
+                : FindSchemaKey(objectRow.typeId!, SizeKeyCandidates);
+            if (sizeKey is not null && objectRow.value!.TryGetValue(sizeKey, out string sizeRowId))
+            {
+                dependencyIds?.Add(sizeRowId);
+                var size = ReadVectorRow(sizeRowId);
+                if (size is not null)
+                {
+                    width = Mathf.Max(1, (int)size.Value.x);
+                    height = Mathf.Max(1, (int)size.Value.y);
+                }
+            }
+            var cells = new List<Vector2Int>(width * height);
+            for (int y = 0; y < height; y += 1)
+            {
+                for (int x = 0; x < width; x += 1)
+                {
+                    cells.Add(new Vector2Int(origin.x + x, origin.y + y));
+                }
+            }
             return cells;
         }
 
-        protected static bool TryReadCell(JToken? token, out Vector2Int cell)
+        internal IReadOnlyList<string> ResolveTileLayerIds()
         {
-            cell = default;
-            if (token is not JObject obj) return false;
-            int? x = ReadInt(obj["x"]);
-            int? y = ReadInt(obj["y"]);
-            if (x is null || y is null) return false;
-            cell = new Vector2Int(x.Value, y.Value);
-            return true;
-        }
-
-        protected static string? ReadString(JToken? token)
-        {
-            return token?.Type == JTokenType.String ? token.Value<string>() : null;
-        }
-
-        protected static int? ReadInt(JToken? token)
-        {
-            if (token is null) return null;
-            if (token.Type != JTokenType.Integer) return null;
-            return token.Value<int>();
-        }
-
-        protected static Vector2Int ToVector2Int(TileGridCell? cell)
-        {
-            return cell is null
-                ? default
-                : new Vector2Int(cell.x, cell.y);
-        }
-
-        protected static string BuildTileLayerLinkInstanceId(
-            TileGridLayerLinkPayload link,
-            TileGridLayerLinkTile tile)
-        {
-            string objectInstanceId = string.IsNullOrEmpty(link.objectInstanceId)
-                ? "object"
-                : link.objectInstanceId;
-            string linkId = string.IsNullOrEmpty(link.id)
-                ? string.IsNullOrEmpty(link.tileLayerLinkValueId) ? "link" : link.tileLayerLinkValueId
-                : link.id;
-            string tileId = string.IsNullOrEmpty(tile.id) ? tile.tileValueId : tile.id;
-            return $"{objectInstanceId}:{linkId}:{tileId}";
-        }
-
-        protected static string? ResolveTileLayerLinkSourceId(TileGridLayerLinkPayload link)
-        {
-            return string.IsNullOrEmpty(link.tileLayerLinkValueId)
-                ? link.id
-                : link.tileLayerLinkValueId;
-        }
-
-        protected static void ReadTileInstanceSource(
-            JObject instance,
-            string layerId,
-            out NeoTileOutputSourceKind sourceKind,
-            out string? sourceTileLayerLinkId)
-        {
-            string? linkedSourceId = ReadString(instance["sourceTileLayerLinkId"]);
-            if (string.IsNullOrEmpty(linkedSourceId))
+            var ids = new List<string>();
+            foreach (var link in ResolveGridLinks(null))
             {
-                string? storedLayerLinkId = ReadString(instance["layerLinkId"]);
-                linkedSourceId = storedLayerLinkId == layerId ? null : storedLayerLinkId;
+                if (!link.IsTileLink) continue;
+                if (!ids.Contains(link.LayerId)) ids.Add(link.LayerId);
             }
+            return ids;
+        }
 
-            if (string.IsNullOrEmpty(linkedSourceId))
+        internal IReadOnlyList<string> ResolveObjectLayerIds()
+        {
+            var ids = new List<string>();
+            foreach (var link in ResolveGridLinks(null))
             {
-                sourceKind = NeoTileOutputSourceKind.Direct;
-                sourceTileLayerLinkId = null;
-                return;
+                if (link.IsTileLink) continue;
+                if (!ids.Contains(link.LayerId)) ids.Add(link.LayerId);
             }
-
-            sourceKind = NeoTileOutputSourceKind.TileLayerLink;
-            sourceTileLayerLinkId = linkedSourceId;
+            return ids;
         }
 
-        private bool TileInstanceSourceContainsInstance(
-            JObject instance,
-            string layerId,
-            string instanceId)
+        // -------------------------------------------------------------------
+        // Row-shape helpers.
+        // -------------------------------------------------------------------
+
+        /// <summary>First selected id of a Lookup row (single select), or the
+        /// referenced id itself when no row resolves at that id.</summary>
+        private string? ResolveLookupFirstId(string lookupValueId, HashSet<string>? dependencyIds)
         {
-            ReadTileInstanceSource(
-                instance,
-                layerId,
-                out NeoTileOutputSourceKind sourceKind,
-                out string? sourceTileLayerLinkId);
-            if (sourceKind != NeoTileOutputSourceKind.TileLayerLink) return true;
-            if (string.IsNullOrEmpty(sourceTileLayerLinkId)) return true;
-            if (!client.TryGetValue(sourceTileLayerLinkId!, out ObjectAttributeValue? sourceLink)) return true;
-            if (sourceLink.value is null) return true;
-            if (!sourceLink.value.TryGetValue("Tiles", out string tilesValueId)) return true;
-            if (!client.TryGetValue(tilesValueId, out ArrayAttributeValue? tiles)) return true;
-            if (tiles.value is null) return false;
-            return Array.IndexOf(tiles.value, instanceId) >= 0;
+            dependencyIds?.Add(lookupValueId);
+            var row = client.ResolveEffectiveRow(lookupValueId);
+            if (row is null) return lookupValueId;
+            if (row.IsRemoved) return null;
+            if (row is ArrayAttributeValue arrayRow)
+            {
+                if (arrayRow.value is null) return null;
+                foreach (var id in arrayRow.value)
+                {
+                    if (!string.IsNullOrEmpty(id)) return id;
+                }
+                return null;
+            }
+            if (row is StringAttributeValue stringRow) return stringRow.value;
+            return lookupValueId;
         }
 
-        private bool TileLayerLinkSourceContainsTile(
-            TileGridLayerLinkPayload link,
-            TileGridLayerLinkTile tile)
+        private Vector2Int? ReadCellRow(string valueId)
         {
-            string? sourceTileLayerLinkId = ResolveTileLayerLinkSourceId(link);
-            if (string.IsNullOrEmpty(sourceTileLayerLinkId)) return true;
-            if (!client.TryGetValue(sourceTileLayerLinkId!, out ObjectAttributeValue? sourceLink)) return true;
-            if (sourceLink.value is null) return true;
-            if (!sourceLink.value.TryGetValue("Tiles", out string tilesValueId)) return true;
-            if (!client.TryGetValue(tilesValueId, out ArrayAttributeValue? tiles)) return true;
-            if (tiles.value is null) return false;
+            var vector = ReadVectorRow(valueId);
+            if (vector is null) return null;
+            return new Vector2Int(
+                Mathf.RoundToInt(vector.Value.x),
+                Mathf.RoundToInt(vector.Value.y));
+        }
 
-            string tileId = string.IsNullOrEmpty(tile.id) ? tile.tileValueId : tile.id;
-            if (Array.IndexOf(tiles.value, tileId) >= 0) return true;
+        private Vector2? ReadVectorRow(string valueId)
+        {
+            switch (client.ResolveEffectiveRow(valueId))
+            {
+                case Vector2AttributeValue v2 when v2.value is not null:
+                    return new Vector2(v2.value.x, v2.value.y);
+                case Vector3AttributeValue v3 when v3.value is not null:
+                    return new Vector2(v3.value.x, v3.value.y);
+                default:
+                    return null;
+            }
+        }
 
-            string instanceId = BuildTileLayerLinkInstanceId(link, tile);
-            return Array.IndexOf(tiles.value, instanceId) >= 0;
+        /// <summary>Case-insensitive schema-key match over a type's merged
+        /// inheritance schema, first candidate wins.</summary>
+        protected string? FindSchemaKey(string typeId, string[] keyCandidates)
+        {
+            var merged = ResolveMergedSchemaEntries(typeId);
+            if (merged is null) return null;
+            foreach (var candidate in keyCandidates)
+            {
+                foreach (var entry in merged)
+                {
+                    if (string.Equals(entry.schemaKey, candidate, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return entry.schemaKey;
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>The attribute id backing a schema key on a type's merged
+        /// schema (first candidate match), or null.</summary>
+        protected string? FindSchemaAttributeId(string typeId, string[] keyCandidates)
+        {
+            var merged = ResolveMergedSchemaEntries(typeId);
+            if (merged is null) return null;
+            foreach (var candidate in keyCandidates)
+            {
+                foreach (var entry in merged)
+                {
+                    if (string.Equals(entry.schemaKey, candidate, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return entry.attributeId;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private IList<MergedSchemaEntry>? ResolveMergedSchemaEntries(string typeId)
+        {
+            if (!client.types.ContainsKey(typeId)) return null;
+            try
+            {
+                return CustomTypeInheritance.MergeSchemas(
+                    CustomTypeInheritance.ResolveChain(
+                        typeId,
+                        id => client.types.TryGetValue(id, out CustomType match) ? match : null));
+            }
+            catch (CircularInheritanceError)
+            {
+                return null;
+            }
         }
 
         protected static int CombineTileLayerLinkOrder(int sourceOrder, int tileOrder)
@@ -2224,30 +1953,6 @@ namespace NeoCompose.Runtime
             if (combined > int.MaxValue) return int.MaxValue;
             if (combined < int.MinValue) return int.MinValue;
             return (int)combined;
-        }
-
-        protected void BuildRegionRef(
-            Vector2Int cell,
-            out string regionKey,
-            out int regionX,
-            out int regionY)
-        {
-            int regionSize = Content?.manifest?.regionSize ?? 32;
-            if (regionSize <= 0) regionSize = 32;
-            regionX = FloorDiv(cell.x, regionSize);
-            regionY = FloorDiv(cell.y, regionSize);
-            regionKey = $"{regionX},{regionY}";
-        }
-
-        private static int FloorDiv(int value, int divisor)
-        {
-            int result = value / divisor;
-            int remainder = value % divisor;
-            if (remainder != 0 && ((remainder < 0) != (divisor < 0)))
-            {
-                result -= 1;
-            }
-            return result;
         }
     }
 
@@ -2258,11 +1963,10 @@ namespace NeoCompose.Runtime
         private NeoTileGridPrimitive(
             NeoClient client,
             string gridValueId,
-            TileGridContent? content,
             IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>? readOnlyFactories = null,
             IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>? writableFactories = null,
             NeoValueOwnership writeOwnership = NeoValueOwnership.Save)
-            : base(client, gridValueId, content, readOnlyFactories, writableFactories)
+            : base(client, gridValueId, readOnlyFactories, writableFactories)
         {
             this.writeOwnership = writeOwnership;
         }
@@ -2330,15 +2034,20 @@ namespace NeoCompose.Runtime
             NeoValueOwnership writeOwnership)
         {
             if (client is null) throw new ArgumentNullException(nameof(client));
-            client.tileGridContents.TryGetValue(gridValueId, out TileGridContent? content);
             return new NeoTileGridPrimitive(
                 client,
                 gridValueId,
-                content,
                 readOnlyFactories,
                 writableFactories,
                 writeOwnership);
         }
+
+        // -------------------------------------------------------------------
+        // Mutations — plain value writes against the containment model:
+        // placements are rows in the requested ownership carrying the layer
+        // link's list value id as their containerId; removal is a tombstone
+        // (authored members) or a row drop (overlay-created members).
+        // -------------------------------------------------------------------
 
         public NeoPlacementResult TrySetTile(
             string layerId,
@@ -2358,19 +2067,50 @@ namespace NeoCompose.Runtime
                 return error!;
             }
 
-            BuildRegionRef(cell, out string regionKey, out int regionX, out int regionY);
-            int order = 0;
-            string instanceId = Guid.NewGuid().ToString();
-            if (TryFindTileInstanceAt(layerId, cell, out var existing))
+            NeoTilePlacementRecord? existing = null;
+            foreach (var candidate in LookupCache.TileCandidatesAt(layerId, cell))
             {
-                instanceId = existing.InstanceId;
-                order = ReadInt(existing.Instance["order"]) ?? 0;
-            }
-            else
-            {
-                order = NextOrder(layerId, "tile", regionKey);
+                if (candidate.IsObjectCarried) continue;
+                existing = candidate;
             }
 
+            if (existing is not null)
+            {
+                Lifecycle?.BeforeSetTile(new NeoTileSetContext(
+                    this,
+                    layerId,
+                    cell,
+                    existing.InstanceId,
+                    generatedTile!,
+                    tileValueId!,
+                    tileTypeId,
+                    BuildTileInstanceJson(existing)));
+                var writeError = WritePlacementTileLookup(existing, tileValueId!);
+                if (writeError is not null) return writeError;
+                NotifyTileLayerChanged(
+                    layerId,
+                    Array.Empty<Vector2Int>(),
+                    new[] { cell },
+                    NeoTileGridChangeSourceKind.Direct,
+                    existing.InstanceId);
+                return NeoPlacementResult.Success();
+            }
+
+            NeoGridLayerLinkModel? targetLink = null;
+            foreach (var link in ResolveGridLinks(null))
+            {
+                if (!link.IsTileLink || link.LayerId != layerId) continue;
+                targetLink = link;
+                break;
+            }
+            if (targetLink is null)
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-layer-link-missing",
+                    $"Grid '{GridValueId}' has no tile layer link targeting layer '{layerId}'; cannot place a tile.");
+            }
+
+            string instanceId = Guid.NewGuid().ToString();
             Lifecycle?.BeforeSetTile(new NeoTileSetContext(
                 this,
                 layerId,
@@ -2379,25 +2119,10 @@ namespace NeoCompose.Runtime
                 generatedTile!,
                 tileValueId!,
                 tileTypeId,
-                existing.Instance));
+                null));
 
-            var entry = new JObject
-            {
-                ["id"] = instanceId,
-                ["tileValueId"] = tileValueId,
-                ["tileTypeId"] = StringOrNull(tileTypeId),
-                ["position"] = CellToken(cell),
-                ["layerLinkId"] = layerId,
-                ["order"] = order,
-            };
-            WriteDeltaEntry(
-                layerId,
-                "tile",
-                regionKey,
-                regionX,
-                regionY,
-                instanceId,
-                entry);
+            var createError = CreatePlacementRows(targetLink, instanceId, cell, tileValueId!);
+            if (createError is not null) return createError;
             NotifyTileLayerChanged(
                 layerId,
                 Array.Empty<Vector2Int>(),
@@ -2423,41 +2148,29 @@ namespace NeoCompose.Runtime
             {
                 return error!;
             }
-            if (!TryFindInstanceById("tile", instanceId.Value, out var located))
+            if (!TryFindTileRecord(instanceId.Value, out var record, out string layerId))
             {
                 return NeoPlacementResult.Error(
                     "tile-grid-instance-missing",
                     $"Tile instance '{instanceId.Value}' was not found in grid '{GridValueId}'.");
             }
 
-            Vector2Int cell = TryReadCell(located.Instance["position"], out Vector2Int locatedCell)
-                ? locatedCell
-                : default;
             Lifecycle?.BeforeConvertTile(new NeoTileConvertContext(
                 this,
-                located.LayerId,
-                cell,
+                layerId,
+                record.Cell,
                 instanceId.Value,
                 generatedTarget!,
                 targetValueId!,
                 targetTypeId,
-                located.Instance));
+                BuildTileInstanceJson(record)));
 
-            var entry = (JObject)located.Instance.DeepClone();
-            entry["tileValueId"] = targetValueId;
-            entry["tileTypeId"] = StringOrNull(targetTypeId);
-            WriteDeltaEntry(
-                located.LayerId,
-                "tile",
-                located.RegionKey,
-                located.RegionX,
-                located.RegionY,
-                instanceId.Value,
-                entry);
+            var writeError = WritePlacementTileLookup(record, targetValueId!);
+            if (writeError is not null) return writeError;
             NotifyTileLayerChanged(
-                located.LayerId,
+                layerId,
                 Array.Empty<Vector2Int>(),
-                new[] { cell },
+                new[] { record.Cell },
                 NeoTileGridChangeSourceKind.Direct,
                 instanceId.Value);
             return NeoPlacementResult.Success();
@@ -2465,32 +2178,36 @@ namespace NeoCompose.Runtime
 
         public NeoPlacementResult TryResetTile(NeoTileInstanceId instanceId)
         {
-            if (!TryFindInstanceById("tile", instanceId.Value, out var located))
+            if (!TryFindTileRecord(instanceId.Value, out var record, out string layerId))
             {
                 return NeoPlacementResult.Error(
                     "tile-grid-instance-missing",
                     $"Tile instance '{instanceId.Value}' was not found in grid '{GridValueId}'.");
             }
-            Vector2Int cell = TryReadCell(located.Instance["position"], out Vector2Int locatedCell)
-                ? locatedCell
-                : default;
             Lifecycle?.BeforeResetTile(new NeoTileResetContext(
                 this,
-                located.LayerId,
-                cell,
+                layerId,
+                record.Cell,
                 instanceId.Value,
-                located.Instance));
-            ResetDelta(
-                located.LayerId,
-                "tile",
-                located.RegionKey,
-                located.RegionX,
-                located.RegionY,
-                instanceId.Value);
+                BuildTileInstanceJson(record)));
+
+            // Restore authored: drop the write-ownership overlay rows (and any
+            // tombstones) for the placement subtree so the authored rows —
+            // when they exist — resurface. A runtime-created placement has no
+            // authored rows to fall back to, so a reset removes it entirely.
+            client.RemoveWritableShadow(writeOwnership, record.PlacementValueId);
+            if (record.CellValueId is not null)
+            {
+                client.RemoveWritableShadow(writeOwnership, record.CellValueId);
+            }
+            if (record.TileLookupValueId is not null)
+            {
+                client.RemoveWritableShadow(writeOwnership, record.TileLookupValueId);
+            }
             NotifyTileLayerChanged(
-                located.LayerId,
+                layerId,
                 Array.Empty<Vector2Int>(),
-                new[] { cell },
+                new[] { record.Cell },
                 NeoTileGridChangeSourceKind.Direct,
                 instanceId.Value);
             return NeoPlacementResult.Success();
@@ -2498,32 +2215,23 @@ namespace NeoCompose.Runtime
 
         public NeoPlacementResult TryRemoveTile(NeoTileInstanceId instanceId)
         {
-            if (!TryFindInstanceById("tile", instanceId.Value, out var located) &&
-                !TryFindTileLayerLinkInstanceById(instanceId.Value, out located))
+            if (!TryFindTileRecord(instanceId.Value, out var record, out string layerId))
             {
                 return NeoPlacementResult.Error(
                     "tile-grid-instance-missing",
                     $"Tile instance '{instanceId.Value}' was not found in grid '{GridValueId}'.");
             }
-            Vector2Int cell = TryReadCell(located.Instance["position"], out Vector2Int locatedCell)
-                ? locatedCell
-                : default;
             Lifecycle?.BeforeRemoveTile(new NeoTileRemoveContext(
                 this,
-                located.LayerId,
-                cell,
+                layerId,
+                record.Cell,
                 instanceId.Value,
-                located.Instance));
-            RemoveInstanceDelta(
-                located.LayerId,
-                "tile",
-                located.RegionKey,
-                located.RegionX,
-                located.RegionY,
-                instanceId.Value);
+                BuildTileInstanceJson(record)));
+
+            RemoveMemberRow(record.PlacementValueId);
             NotifyTileLayerChanged(
-                located.LayerId,
-                new[] { cell },
+                layerId,
+                new[] { record.Cell },
                 Array.Empty<Vector2Int>(),
                 NeoTileGridChangeSourceKind.Direct,
                 instanceId.Value);
@@ -2547,14 +2255,34 @@ namespace NeoCompose.Runtime
             {
                 return error!;
             }
-            if (TryFindObjectInstanceAt(layerId, cell, out var occupied))
+            var occupants = LookupCache.ObjectCandidatesAt(layerId, cell);
+            if (occupants.Count > 0)
             {
                 return NeoPlacementResult.Error(
                     "tile-grid-object-cell-occupied",
-                    $"Object layer '{layerId}' already has object instance '{occupied.InstanceId}' at cell ({cell.x}, {cell.y}).");
+                    $"Object layer '{layerId}' already has object instance '{occupants[occupants.Count - 1].InstanceId}' at cell ({cell.x}, {cell.y}).");
             }
 
-            BuildRegionRef(cell, out string regionKey, out int regionX, out int regionY);
+            NeoGridLayerLinkModel? targetLink = null;
+            foreach (var link in ResolveGridLinks(null))
+            {
+                if (link.IsTileLink || link.LayerId != layerId) continue;
+                targetLink = link;
+                break;
+            }
+            if (targetLink is null)
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-layer-link-missing",
+                    $"Grid '{GridValueId}' has no object layer link targeting layer '{layerId}'; cannot spawn an object.");
+            }
+            if (string.IsNullOrEmpty(objectTypeId))
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-object-missing-type",
+                    $"Object value '{objectValueId}' has no typeId; cannot spawn an instance of it.");
+            }
+
             string instanceId = Guid.NewGuid().ToString();
             Lifecycle?.BeforeSpawnObject(new NeoObjectSpawnContext(
                 this,
@@ -2564,23 +2292,9 @@ namespace NeoCompose.Runtime
                 generatedObject!,
                 objectValueId!,
                 objectTypeId));
-            var entry = new JObject
-            {
-                ["id"] = instanceId,
-                ["objectValueId"] = objectValueId,
-                ["objectTypeId"] = StringOrNull(objectTypeId),
-                ["position"] = CellToken(cell),
-                ["objectLayerId"] = layerId,
-                ["order"] = NextOrder(layerId, "object", regionKey),
-            };
-            WriteDeltaEntry(
-                layerId,
-                "object",
-                regionKey,
-                regionX,
-                regionY,
-                instanceId,
-                entry);
+
+            var createError = CreateObjectRows(targetLink, instanceId, cell, objectTypeId!);
+            if (createError is not null) return createError;
             NotifyObjectLayerChanged(
                 layerId,
                 Array.Empty<NeoObjectInstanceId>(),
@@ -2593,33 +2307,25 @@ namespace NeoCompose.Runtime
 
         public NeoPlacementResult TryDespawnObject(NeoObjectInstanceId instanceId)
         {
-            if (!TryFindInstanceById("object", instanceId.Value, out var located))
+            if (!TryFindObjectRecord(instanceId.Value, out var record, out string layerId))
             {
                 return NeoPlacementResult.Error(
                     "tile-grid-instance-missing",
                     $"Object instance '{instanceId.Value}' was not found in grid '{GridValueId}'.");
             }
-            Vector2Int cell = TryReadCell(located.Instance["position"], out Vector2Int locatedCell)
-                ? locatedCell
-                : default;
             Lifecycle?.BeforeDespawnObject(new NeoObjectDespawnContext(
                 this,
-                located.LayerId,
-                cell,
+                layerId,
+                record.Cell,
                 instanceId.Value,
-                located.Instance));
-            RemoveInstanceDelta(
-                located.LayerId,
-                "object",
-                located.RegionKey,
-                located.RegionX,
-                located.RegionY,
-                instanceId.Value);
+                BuildObjectInstanceJson(record, layerId)));
+
+            RemoveMemberRow(record.InstanceId);
             NotifyObjectLayerChanged(
-                located.LayerId,
+                layerId,
                 new[] { instanceId },
                 Array.Empty<NeoObjectInstanceId>(),
-                ReadFootprint(located.Instance, cell),
+                record.Footprint,
                 NeoTileGridChangeSourceKind.Direct,
                 instanceId.Value);
             return NeoPlacementResult.Success();
@@ -2641,74 +2347,317 @@ namespace NeoCompose.Runtime
             {
                 return error!;
             }
-            if (!TryFindInstanceById("object", instanceId.Value, out var located))
+            if (!TryFindObjectRecord(instanceId.Value, out var record, out string layerId))
             {
                 return NeoPlacementResult.Error(
                     "tile-grid-instance-missing",
                     $"Object instance '{instanceId.Value}' was not found in grid '{GridValueId}'.");
             }
+            if (string.IsNullOrEmpty(variantTypeId))
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-object-missing-type",
+                    $"Variant value '{variantValueId}' has no typeId; cannot swap instance '{instanceId.Value}' to it.");
+            }
 
-            Vector2Int cell = TryReadCell(located.Instance["position"], out Vector2Int locatedCell)
-                ? locatedCell
-                : default;
             Lifecycle?.BeforeSwapObjectVariant(new NeoObjectVariantSwapContext(
                 this,
-                located.LayerId,
-                cell,
+                layerId,
+                record.Cell,
                 instanceId.Value,
                 generatedVariant!,
                 variantValueId!,
                 variantTypeId,
-                located.Instance));
+                BuildObjectInstanceJson(record, layerId)));
 
-            var entry = (JObject)located.Instance.DeepClone();
-            entry["objectValueId"] = variantValueId;
-            entry["objectTypeId"] = StringOrNull(variantTypeId);
-            WriteDeltaEntry(
-                located.LayerId,
-                "object",
-                located.RegionKey,
-                located.RegionX,
-                located.RegionY,
-                instanceId.Value,
-                entry);
+            if (!client.TryGetOverlaidValue(
+                    writeOwnership, record.InstanceId, out ObjectAttributeValue? objectRow))
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-instance-row-missing",
+                    $"Object instance row '{record.InstanceId}' could not be resolved for a variant swap.");
+            }
+            var shadow = (ObjectAttributeValue)client.CloneRowForWrite(objectRow);
+            shadow.typeId = variantTypeId;
+            shadow.updatedAt = NeoTimestamp.Now();
+            client.SetWritableValue(writeOwnership, shadow);
             NotifyObjectLayerChanged(
-                located.LayerId,
+                layerId,
                 Array.Empty<NeoObjectInstanceId>(),
                 new[] { instanceId },
-                ReadFootprint(located.Instance, cell),
+                record.Footprint,
                 NeoTileGridChangeSourceKind.Direct,
                 instanceId.Value);
             return NeoPlacementResult.Success();
         }
 
-        private readonly struct LocatedInstance
-        {
-            public string LayerId { get; }
-            public string LayerKind { get; }
-            public string RegionKey { get; }
-            public int RegionX { get; }
-            public int RegionY { get; }
-            public string InstanceId { get; }
-            public JObject Instance { get; }
+        // -------------------------------------------------------------------
+        // Mutation plumbing.
+        // -------------------------------------------------------------------
 
-            public LocatedInstance(
-                string layerId,
-                string layerKind,
-                string regionKey,
-                int regionX,
-                int regionY,
-                string instanceId,
-                JObject instance)
+        private bool TryFindTileRecord(
+            string instanceId,
+            out NeoTilePlacementRecord? record,
+            out string layerId)
+        {
+            foreach (var candidateLayerId in ResolveTileLayerIds())
             {
-                LayerId = layerId;
-                LayerKind = layerKind;
-                RegionKey = regionKey;
-                RegionX = regionX;
-                RegionY = regionY;
-                InstanceId = instanceId;
-                Instance = instance;
+                foreach (var candidate in LookupCache.TileRecords(candidateLayerId))
+                {
+                    if (candidate.InstanceId != instanceId) continue;
+                    record = candidate;
+                    layerId = candidateLayerId;
+                    return true;
+                }
             }
+            record = null;
+            layerId = "";
+            return false;
+        }
+
+        private bool TryFindObjectRecord(
+            string instanceId,
+            out NeoObjectPlacementRecord? record,
+            out string layerId)
+        {
+            foreach (var candidateLayerId in ResolveObjectLayerIds())
+            {
+                foreach (var candidate in LookupCache.ObjectRecords(candidateLayerId))
+                {
+                    if (candidate.InstanceId != instanceId) continue;
+                    record = candidate;
+                    layerId = candidateLayerId;
+                    return true;
+                }
+            }
+            record = null;
+            layerId = "";
+            return false;
+        }
+
+        private NeoPlacementResult? CreatePlacementRows(
+            NeoGridLayerLinkModel link,
+            string placementValueId,
+            Vector2Int cell,
+            string tileValueId)
+        {
+            string? tilesAttributeId = FindSchemaAttributeId(link.LinkTypeId, TilesKeyCandidatesForWrite);
+            if (tilesAttributeId is null)
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-link-tiles-attribute-missing",
+                    $"Tile layer link type '{link.LinkTypeId}' has no 'Tiles' schema attribute; cannot create a placement.");
+            }
+            if (!client.attributes.TryGetValue(tilesAttributeId, out Json.Attribute tilesAttribute)
+                || tilesAttribute is not ListAttribute tilesList)
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-link-tiles-attribute-invalid",
+                    $"Attribute '{tilesAttributeId}' backing the link's Tiles list is not a List attribute.");
+            }
+            if (!client.attributes.TryGetValue(tilesList.entryAttributeId, out Json.Attribute entryAttribute)
+                || entryAttribute is not CustomAttribute entryCustom
+                || string.IsNullOrEmpty(entryCustom.customTypeId))
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-placement-entry-attribute-invalid",
+                    $"Entry attribute '{tilesList.entryAttributeId}' of the link's Tiles list does not declare a placement custom type.");
+            }
+            string placementTypeId = entryCustom.customTypeId;
+            string? cellKey = FindSchemaKey(placementTypeId, CellKeyCandidatesForWrite);
+            string? tileKey = FindSchemaKey(placementTypeId, TileKeyCandidatesForWrite);
+            if (cellKey is null)
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-placement-cell-key-missing",
+                    $"Placement type '{placementTypeId}' has no 'Cell' schema key.");
+            }
+            if (tileKey is null)
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-placement-tile-key-missing",
+                    $"Placement type '{placementTypeId}' has no 'Tile' schema key.");
+            }
+
+            var now = NeoTimestamp.Now();
+            var cellRow = new Vector2AttributeValue
+            {
+                id = Guid.NewGuid().ToString(),
+                createdAt = now,
+                updatedAt = now,
+                value = new NeoVector2Value { x = cell.x, y = cell.y },
+            };
+            var tileRow = new ArrayAttributeValue
+            {
+                id = Guid.NewGuid().ToString(),
+                createdAt = now,
+                updatedAt = now,
+                value = new[] { tileValueId },
+            };
+            var placementRow = new ObjectAttributeValue
+            {
+                id = placementValueId,
+                createdAt = now,
+                updatedAt = now,
+                typeId = placementTypeId,
+                containerId = link.ListValueId,
+                value = new Dictionary<string, string>
+                {
+                    [cellKey] = cellRow.id,
+                    [tileKey] = tileRow.id,
+                },
+            };
+            client.SetWritableValue(writeOwnership, cellRow);
+            client.SetWritableValue(writeOwnership, tileRow);
+            client.SetWritableValue(writeOwnership, placementRow);
+            return null;
+        }
+
+        private NeoPlacementResult? CreateObjectRows(
+            NeoGridLayerLinkModel link,
+            string objectRowId,
+            Vector2Int cell,
+            string objectTypeId)
+        {
+            string? positionKey = FindSchemaKey(objectTypeId, PositionKeyCandidatesForWrite);
+            if (positionKey is null)
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-object-position-key-missing",
+                    $"Object type '{objectTypeId}' has no 'Position' schema key; cannot spawn it at a cell.");
+            }
+            string? sizeKey = FindSchemaKey(objectTypeId, SizeKeyCandidatesForWrite);
+
+            var now = NeoTimestamp.Now();
+            var record = new Dictionary<string, string>();
+            var positionRow = new Vector3AttributeValue
+            {
+                id = Guid.NewGuid().ToString(),
+                createdAt = now,
+                updatedAt = now,
+                value = new NeoVector3Value { x = cell.x, y = cell.y, z = 0 },
+            };
+            record[positionKey] = positionRow.id;
+            Vector3AttributeValue? sizeRow = null;
+            if (sizeKey is not null)
+            {
+                sizeRow = new Vector3AttributeValue
+                {
+                    id = Guid.NewGuid().ToString(),
+                    createdAt = now,
+                    updatedAt = now,
+                    value = new NeoVector3Value { x = 1, y = 1, z = 0 },
+                };
+                record[sizeKey] = sizeRow.id;
+            }
+            var objectRow = new ObjectAttributeValue
+            {
+                id = objectRowId,
+                createdAt = now,
+                updatedAt = now,
+                typeId = objectTypeId,
+                containerId = link.ListValueId,
+                value = record,
+            };
+            client.SetWritableValue(writeOwnership, positionRow);
+            if (sizeRow is not null) client.SetWritableValue(writeOwnership, sizeRow);
+            client.SetWritableValue(writeOwnership, objectRow);
+            return null;
+        }
+
+        /// <summary>Edits a placement's single-select "Tile" lookup row in the
+        /// write ownership (clone-on-write at the stable id).</summary>
+        private NeoPlacementResult? WritePlacementTileLookup(
+            NeoTilePlacementRecord record,
+            string tileValueId)
+        {
+            if (record.TileLookupValueId is null)
+            {
+                return NeoPlacementResult.Error(
+                    "tile-grid-placement-tile-lookup-missing",
+                    $"Tile instance '{record.InstanceId}' has no backing Tile lookup row to edit.");
+            }
+            var now = NeoTimestamp.Now();
+            ArrayAttributeValue next;
+            if (client.TryGetOverlaidValue(
+                    writeOwnership, record.TileLookupValueId, out ArrayAttributeValue? existing))
+            {
+                next = (ArrayAttributeValue)client.CloneRowForWrite(existing);
+            }
+            else
+            {
+                next = new ArrayAttributeValue
+                {
+                    id = record.TileLookupValueId,
+                    createdAt = now,
+                };
+            }
+            next.value = new[] { tileValueId };
+            next.updatedAt = now;
+            client.SetWritableValue(writeOwnership, next);
+            return null;
+        }
+
+        /// <summary>
+        /// Removes a containment member row per the overlay rules: an
+        /// authored member (or a member living in a lower overlay than the
+        /// write ownership) gets a removal tombstone in the write ownership;
+        /// a member created in the write ownership itself is dropped along
+        /// with its owned descendants.
+        /// </summary>
+        private void RemoveMemberRow(string memberValueId)
+        {
+            if (client.values.ContainsKey(memberValueId))
+            {
+                client.WriteRemovalTombstone(writeOwnership, memberValueId);
+                return;
+            }
+            if (client.TryGetWritableValue(writeOwnership, memberValueId, out AttributeValue? _))
+            {
+                client.RemoveWritableValueAndDescendants(writeOwnership, memberValueId);
+                return;
+            }
+            // The row lives in a lower overlay (e.g. session removal of a
+            // save-created member): shadow it with a tombstone.
+            client.WriteRemovalTombstone(writeOwnership, memberValueId);
+        }
+
+        private JObject BuildTileInstanceJson(NeoTilePlacementRecord record)
+        {
+            string? tileTypeId = client.ResolveEffectiveRow(record.TileValueId) is ObjectAttributeValue tileRow
+                ? tileRow.typeId
+                : null;
+            return new JObject
+            {
+                ["id"] = record.InstanceId,
+                ["tileValueId"] = record.TileValueId,
+                ["tileTypeId"] = tileTypeId is null ? JValue.CreateNull() : new JValue(tileTypeId),
+                ["position"] = new JObject { ["x"] = record.Cell.x, ["y"] = record.Cell.y },
+                ["layerLinkId"] = record.SourceTileLayerLinkId,
+                ["order"] = record.Order,
+            };
+        }
+
+        private JObject BuildObjectInstanceJson(NeoObjectPlacementRecord record, string layerId)
+        {
+            string? objectTypeId = client.ResolveEffectiveRow(record.InstanceId) is ObjectAttributeValue objectRow
+                ? objectRow.typeId
+                : null;
+            var footprint = new JArray();
+            foreach (var cell in record.Footprint)
+            {
+                footprint.Add(new JObject { ["x"] = cell.x, ["y"] = cell.y });
+            }
+            return new JObject
+            {
+                ["id"] = record.InstanceId,
+                ["objectValueId"] = record.InstanceId,
+                ["objectTypeId"] = objectTypeId is null ? JValue.CreateNull() : new JValue(objectTypeId),
+                ["position"] = new JObject { ["x"] = record.Cell.x, ["y"] = record.Cell.y },
+                ["footprint"] = footprint,
+                ["objectLayerId"] = layerId,
+                ["order"] = record.Order,
+            };
         }
 
         private bool TryValidateGeneratedValue(
@@ -2756,291 +2705,13 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        private bool TryFindTileInstanceAt(
-            string layerId,
-            Vector2Int cell,
-            out LocatedInstance located)
-        {
-            located = default;
-            foreach (var region in ResolveLayerRegions(layerId, "tile"))
-            {
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (!TryReadCell(instance["position"], out Vector2Int position)) continue;
-                    if (position != cell) continue;
-                    string? id = ReadString(instance["id"]);
-                    if (string.IsNullOrEmpty(id)) continue;
-                    located = new LocatedInstance(
-                        layerId,
-                        "tile",
-                        region.RegionKey,
-                        region.RegionX,
-                        region.RegionY,
-                        id!,
-                        instance);
-                }
-            }
-            return located.Instance is not null;
-        }
-
-        private bool TryFindTileLayerLinkInstanceById(
-            string instanceId,
-            out LocatedInstance located)
-        {
-            located = default;
-            if (Content?.tileLayerLinks is null) return false;
-            foreach (var link in Content.tileLayerLinks)
-            {
-                if (link is null ||
-                    string.IsNullOrEmpty(link.targetTileLayerId) ||
-                    !TryResolveTileLayerLinkOrigin(link, out Vector2Int origin, out int sourceOrder))
-                {
-                    continue;
-                }
-
-                if (link.tiles is null) continue;
-                foreach (var tile in link.tiles)
-                {
-                    if (tile is null || string.IsNullOrEmpty(tile.tileValueId)) continue;
-                    string linkedInstanceId = BuildTileLayerLinkInstanceId(link, tile);
-                    if (linkedInstanceId != instanceId) continue;
-
-                    Vector2Int cell = origin + ToVector2Int(tile.position);
-                    BuildRegionRef(cell, out string regionKey, out int regionX, out int regionY);
-                    var instance = new JObject
-                    {
-                        ["id"] = linkedInstanceId,
-                        ["tileValueId"] = tile.tileValueId,
-                        ["tileTypeId"] = StringOrNull(tile.tileTypeId),
-                        ["position"] = CellToken(cell),
-                        ["layerLinkId"] = link.targetTileLayerId,
-                        ["sourceTileLayerLinkId"] = StringOrNull(ResolveTileLayerLinkSourceId(link)),
-                        ["order"] = CombineTileLayerLinkOrder(sourceOrder, tile.order),
-                    };
-                    located = new LocatedInstance(
-                        link.targetTileLayerId,
-                        "tile",
-                        regionKey,
-                        regionX,
-                        regionY,
-                        linkedInstanceId,
-                        instance);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool TryFindObjectInstanceAt(
-            string layerId,
-            Vector2Int cell,
-            out LocatedInstance located)
-        {
-            located = default;
-            foreach (var region in ResolveLayerRegions(layerId, "object"))
-            {
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    if (!ObjectInstanceOccupiesCell(instance, cell)) continue;
-                    string? id = ReadString(instance["id"]);
-                    if (string.IsNullOrEmpty(id)) continue;
-                    located = new LocatedInstance(
-                        layerId,
-                        "object",
-                        region.RegionKey,
-                        region.RegionX,
-                        region.RegionY,
-                        id!,
-                        instance);
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private bool TryFindInstanceById(
-            string layerKind,
-            string instanceId,
-            out LocatedInstance located)
-        {
-            located = default;
-            foreach (var layerId in LayerIdsForKind(layerKind))
-            {
-                foreach (var region in ResolveLayerRegions(layerId, layerKind))
-                {
-                    var instances = ReadInstances(region.Data);
-                    if (instances is null) continue;
-                    foreach (var rawInstance in instances)
-                    {
-                        if (rawInstance is not JObject instance) continue;
-                        if (ReadString(instance["id"]) != instanceId) continue;
-                        located = new LocatedInstance(
-                            layerId,
-                            layerKind,
-                            region.RegionKey,
-                            region.RegionX,
-                            region.RegionY,
-                            instanceId,
-                            instance);
-                        return true;
-                    }
-                }
-            }
-            return false;
-        }
-
-        private IEnumerable<string> LayerIdsForKind(string layerKind)
-        {
-            var ids = new HashSet<string>();
-            if (Content is not null)
-            {
-                foreach (var region in Content.regions)
-                {
-                    if (region.layerKind != layerKind) continue;
-                    if (!ids.Add(region.layerId)) continue;
-                    yield return region.layerId;
-                }
-            }
-            foreach (var id in client.GetTileGridDeltaLayerIds(
-                         NeoValueOwnership.Save,
-                         GridValueId,
-                         layerKind))
-            {
-                if (!ids.Add(id)) continue;
-                yield return id;
-            }
-            foreach (var id in client.GetTileGridDeltaLayerIds(
-                         NeoValueOwnership.Session,
-                         GridValueId,
-                         layerKind))
-            {
-                if (!ids.Add(id)) continue;
-                yield return id;
-            }
-        }
-
-        private int NextOrder(string layerId, string layerKind, string regionKey)
-        {
-            int max = -1;
-            foreach (var region in ResolveLayerRegions(layerId, layerKind))
-            {
-                if (region.RegionKey != regionKey) continue;
-                var instances = ReadInstances(region.Data);
-                if (instances is null) continue;
-                foreach (var rawInstance in instances)
-                {
-                    if (rawInstance is not JObject instance) continue;
-                    int order = ReadInt(instance["order"]) ?? 0;
-                    if (order > max) max = order;
-                }
-            }
-            return max + 1;
-        }
-
-        private void WriteDeltaEntry(
-            string layerId,
-            string layerKind,
-            string regionKey,
-            int regionX,
-            int regionY,
-            string instanceId,
-            JObject entry)
-        {
-            var delta = EnsureDelta(layerId, layerKind, regionKey, regionX, regionY);
-            delta.delta.entries[instanceId] = entry;
-            RemoveId(delta.delta.removedInstanceIds, instanceId);
-            RemoveId(delta.delta.restoredToAuthored, instanceId);
-            Touch(delta);
-        }
-
-        private void ResetDelta(
-            string layerId,
-            string layerKind,
-            string regionKey,
-            int regionX,
-            int regionY,
-            string instanceId)
-        {
-            var delta = EnsureDelta(layerId, layerKind, regionKey, regionX, regionY);
-            delta.delta.entries.Remove(instanceId);
-            RemoveId(delta.delta.removedInstanceIds, instanceId);
-            RemoveId(delta.delta.restoredToAuthored, instanceId);
-            Touch(delta);
-        }
-
-        private void RemoveInstanceDelta(
-            string layerId,
-            string layerKind,
-            string regionKey,
-            int regionX,
-            int regionY,
-            string instanceId)
-        {
-            var delta = EnsureDelta(layerId, layerKind, regionKey, regionX, regionY);
-            delta.delta.entries.Remove(instanceId);
-            RemoveId(delta.delta.restoredToAuthored, instanceId);
-            if (!delta.delta.removedInstanceIds.Contains(instanceId))
-            {
-                delta.delta.removedInstanceIds.Add(instanceId);
-            }
-            Touch(delta);
-        }
-
-        private TileGridRegionDelta EnsureDelta(
-            string layerId,
-            string layerKind,
-            string regionKey,
-            int regionX,
-            int regionY)
-        {
-            var delta = client.EnsureTileGridRegionDelta(
-                writeOwnership,
-                GridValueId,
-                layerId,
-                layerKind,
-                regionKey,
-                regionX,
-                regionY);
-            delta.delta ??= new TileGridRegionDeltaPayload();
-            delta.delta.entries ??= new Dictionary<string, JToken>();
-            delta.delta.removedInstanceIds ??= new List<string>();
-            delta.delta.restoredToAuthored ??= new List<string>();
-            return delta;
-        }
-
-        private void Touch(TileGridRegionDelta delta)
-        {
-            delta.contentHash = Guid.NewGuid().ToString("N");
-            client.TouchTileGridDelta(writeOwnership, GridValueId);
-        }
-
-        private static JObject CellToken(Vector2Int cell)
-        {
-            return new JObject
-            {
-                ["x"] = cell.x,
-                ["y"] = cell.y,
-            };
-        }
-
-        private static JToken StringOrNull(string? value)
-        {
-            return value is null ? JValue.CreateNull() : new JValue(value);
-        }
-
-        private static void RemoveId(List<string> ids, string id)
-        {
-            for (int index = ids.Count - 1; index >= 0; index -= 1)
-            {
-                if (ids[index] != id) continue;
-                ids.RemoveAt(index);
-            }
-        }
+        // Write paths need the same candidate lists the (protected) read
+        // model uses; re-declared privately because the base's arrays are
+        // private to it.
+        private static readonly string[] TilesKeyCandidatesForWrite = { "Tiles", "tileInstances" };
+        private static readonly string[] CellKeyCandidatesForWrite = { "Cell", "Position" };
+        private static readonly string[] TileKeyCandidatesForWrite = { "Tile", "tileValue", "tileValueId" };
+        private static readonly string[] PositionKeyCandidatesForWrite = { "Position" };
+        private static readonly string[] SizeKeyCandidatesForWrite = { "Size" };
     }
 }

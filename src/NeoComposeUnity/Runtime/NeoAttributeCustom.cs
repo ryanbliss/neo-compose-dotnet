@@ -565,6 +565,17 @@ namespace NeoCompose.Runtime
             }
             bool recordWritable = ownership != NeoValueOwnership.Asset;
 
+            // Unordered lists never store membership in the array: a
+            // whole-list assignment translates to Clear + Add-each, and
+            // assigning null clears the members then sets the discriminator
+            // to null (spec §1.6/§3.8).
+            if (childAttribute is ListAttribute childListAttribute
+                && client.IsUnorderedList(childListAttribute))
+            {
+                SetSerializedUnorderedList(key, setValue, childOwnership, recordWritable, nowIso);
+                return;
+            }
+
             if (value?.value is not null
                 && value.value.TryGetValue(key, out string existingValueId)
                 && client.TryGetValue(childOwnership, existingValueId, out AttributeValue? existing))
@@ -650,6 +661,49 @@ namespace NeoCompose.Runtime
             value = keyedRecord;
 
             ReinitializeChildren();
+            NotifyChildChanged(key);
+        }
+
+        private void SetSerializedUnorderedList(
+            string key,
+            NeoValueWritePayload? setValue,
+            NeoValueOwnership childOwnership,
+            bool recordWritable,
+            string nowIso)
+        {
+            bool hasBoundRow = value?.value is not null
+                && value.value.TryGetValue(key, out string existingListValueId)
+                && client.TryGetValue(childOwnership, existingListValueId, out AttributeValue? _);
+            if (!hasBoundRow)
+            {
+                if (!recordWritable)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Cannot write '{key}' on static Custom '{attribute.id}': the unordered list has no authored value to shadow, and a static record cannot gain new keys at runtime. Author a value for '{key}' in the web editor.");
+                }
+                // Mint the discriminator row (present, empty) and link it.
+                var listRow = new ArrayAttributeValue
+                {
+                    id = System.Guid.NewGuid().ToString(),
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = System.Array.Empty<string>(),
+                };
+                client.SetWritableValue(childOwnership, listRow);
+                ObjectAttributeValue record = EnsureWritableObject(nowIso);
+                record.value![key] = listRow.id;
+                record.updatedAt = nowIso;
+                client.SetWritableValue(ownership, record);
+                value = record;
+                ReinitializeChildren();
+            }
+
+            if (Get<NeoAttribute>(key) is not NeoAttributeListWritable listNode)
+            {
+                throw new System.InvalidOperationException(
+                    $"Unordered list '{key}' on Custom '{attribute.id}' did not resolve a writable list node; the record's ownership does not permit list writes.");
+            }
+            listNode.AssignSerialized(setValue);
             NotifyChildChanged(key);
         }
 

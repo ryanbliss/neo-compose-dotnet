@@ -340,7 +340,10 @@ namespace HelloWorld.Assets.Tests
 
             Assert.DoesNotThrow(() => Assert.IsTrue(blocked.ClearPath()));
             Assert.AreEqual(0, blocked.Tiles.Count);
-            StringAssert.Contains("\"value\":[]", client.SerializeSaveData());
+            // Clearing an unordered containment list persists as removal
+            // tombstones at the authored member ids (membership by join; the
+            // container's discriminator row is never rewritten).
+            StringAssert.Contains("\"mark\":\"removed\"", client.SerializeSaveData());
         }
 
         [Test]

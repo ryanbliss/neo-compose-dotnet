@@ -502,7 +502,18 @@ namespace NeoCompose.Runtime
                 return Array.Empty<string>();
             }
 
-            return listRow.value;
+            // Inline array ids (ordered lists, legacy factory rows) plus the
+            // unordered membership join (rows whose containerId is the list
+            // value id); the array is only the null-vs-present discriminator
+            // for unordered lists.
+            var ids = new List<string>(listRow.value);
+            var seen = new HashSet<string>(ids);
+            foreach (var joinedId in client.GetUnorderedListEntryIds(listValueId))
+            {
+                if (!seen.Add(joinedId)) continue;
+                ids.Add(joinedId);
+            }
+            return ids;
         }
 
         private static Vector2Int ReadRowOrigin(NeoClient client, ObjectAttributeValue linkRow)
