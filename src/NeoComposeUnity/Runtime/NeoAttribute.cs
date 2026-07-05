@@ -73,8 +73,11 @@ namespace NeoCompose.Runtime
             this.ownership = ownership;
             // Storage partitions (spec §6): binding a node to a world grid's
             // value id IS content access — lazily merge the grid's
-            // `world:<valueId>` partition before subclasses resolve the row
-            // (two dictionary probes when no such partition exists).
+            // `world:<gridTypeId>` placement partition before subclasses
+            // resolve the row. The bound row (the grid root, in main) yields
+            // the type id the key is derived from; a no-op for non-grid value
+            // ids (their type id keys no shipped partition) and for deep
+            // placement ids that resolve no row until their partition loads.
             string? boundValueId = overrideValueId ?? attribute.valueId;
             if (boundValueId is not null)
             {

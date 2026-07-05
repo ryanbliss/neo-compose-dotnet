@@ -3345,29 +3345,26 @@ namespace HelloWorld.Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        public BlockedPath(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, TileLayer, Tiles, Position, Size), false, NeoValueOwnership.Session)
+        public BlockedPath(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            if (TileLayer is not null)
+            var TileLayerValueId = Guid.NewGuid().ToString();
+            value["TileLayer"] = TileLayerValueId;
+            valueRows.Add(new ArrayAttributeValue
             {
-                var TileLayerValueId = Guid.NewGuid().ToString();
-                value["TileLayer"] = TileLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TileLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = TileLayer.HasValue ? new[] { TileLayer.Value.valueId } : null,
-                });
-            }
+                id = TileLayerValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { TileLayer.valueId },
+            });
             if (Tiles is not null)
             {
                 var TilesValueId = Guid.NewGuid().ToString();
@@ -11876,29 +11873,26 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoTileLayerLink(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, TileLayer, Tiles, Position, Size), false, NeoValueOwnership.Session)
+        public NeoTileLayerLink(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection? TileLayer = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            if (TileLayer is not null)
+            var TileLayerValueId = Guid.NewGuid().ToString();
+            value["TileLayer"] = TileLayerValueId;
+            valueRows.Add(new ArrayAttributeValue
             {
-                var TileLayerValueId = Guid.NewGuid().ToString();
-                value["TileLayer"] = TileLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TileLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = TileLayer.HasValue ? new[] { TileLayer.Value.valueId } : null,
-                });
-            }
+                id = TileLayerValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { TileLayer.valueId },
+            });
             if (Tiles is not null)
             {
                 var TilesValueId = Guid.NewGuid().ToString();
@@ -12477,26 +12471,29 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoObjectLayerLink(NeoLookupSelection ObjectLayer, string Name, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(ObjectLayer, Name, Objects, Position, Size), false, NeoValueOwnership.Session)
+        public NeoObjectLayerLink(string Name, NeoLookupSelection? ObjectLayer = null, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ObjectLayer, Objects, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection ObjectLayer, string Name, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection? ObjectLayer = null, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            var ObjectLayerValueId = Guid.NewGuid().ToString();
-            value["ObjectLayer"] = ObjectLayerValueId;
-            valueRows.Add(new ArrayAttributeValue
+            if (ObjectLayer is not null)
             {
-                id = ObjectLayerValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new[] { ObjectLayer.valueId },
-            });
+                var ObjectLayerValueId = Guid.NewGuid().ToString();
+                value["ObjectLayer"] = ObjectLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ObjectLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ObjectLayer.HasValue ? new[] { ObjectLayer.Value.valueId } : null,
+                });
+            }
             if (Objects is not null)
             {
                 var ObjectsValueId = Guid.NewGuid().ToString();

@@ -18,8 +18,10 @@ namespace NeoCompose.Tests
     /// Storage partitions (specs/list-attribute-and-tilegrid-scaling.md §6):
     /// project.json ships non-main value rows under
     /// <c>valuePartitions[mapKey]</c>, lazily parsed; a world grid's
-    /// <c>world:&lt;gridValueId&gt;</c> partition auto-loads on grid content
-    /// access; overlay writes inherit the partition stamp; commits split the
+    /// <c>world:&lt;gridTypeId&gt;</c> placement partition auto-loads on grid
+    /// content access (the grid root + light metadata stay in main, so the
+    /// type id the key derives from is resolvable before the placement subtree
+    /// loads); overlay writes inherit the partition stamp; commits split the
     /// overlay by partition.
     /// </summary>
     public class NeoValuePartitionTests
@@ -28,7 +30,7 @@ namespace NeoCompose.Tests
         private const string TileTypeId = "tile-type";
         private const string TileInstanceTypeId = "tile-instance-type";
         private const string TileLayerLinkTypeId = "tile-layer-link-type";
-        private const string WorldPartitionKey = "world:town-grid";
+        private const string WorldPartitionKey = "world:" + GridTypeId;
         private const string TilesListValueId = "background-link-tiles";
 
         // ------------------------------------------------------------------
@@ -41,7 +43,11 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
 
             CollectionAssert.IsEmpty(client.LoadedValuePartitions);
-            Assert.IsFalse(client.values.ContainsKey("town-grid"));
+            // The grid root lives in main — enumerable/nameable without the
+            // placement partition loaded.
+            Assert.IsTrue(client.values.ContainsKey("town-grid"));
+            // The Children placement subtree is not merged yet.
+            Assert.IsFalse(client.values.ContainsKey("town-grid-children"));
             Assert.IsFalse(client.values.ContainsKey("floor-1"));
             // Membership joins of not-loaded rows resolve to nothing — same
             // as before the level existed. No throw on lookup.
@@ -58,7 +64,8 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.IsValuePartitionLoaded(WorldPartitionKey));
             CollectionAssert.AreEquivalent(
                 new[] { WorldPartitionKey }, client.LoadedValuePartitions);
-            Assert.IsTrue(client.values.ContainsKey("town-grid"));
+            // The Children placement subtree merged in from the partition.
+            Assert.IsTrue(client.values.ContainsKey("town-grid-children"));
             Assert.IsTrue(client.values.ContainsKey("floor-1"));
             Assert.AreEqual(WorldPartitionKey, client.values["floor-1"].mapKey);
             CollectionAssert.AreEqual(
@@ -141,10 +148,12 @@ namespace NeoCompose.Tests
             client.UnloadValuePartition(WorldPartitionKey);
 
             CollectionAssert.IsEmpty(client.LoadedValuePartitions);
-            Assert.IsFalse(client.values.ContainsKey("town-grid"));
+            Assert.IsFalse(client.values.ContainsKey("town-grid-children"));
             Assert.IsFalse(client.values.ContainsKey("floor-1"));
             CollectionAssert.IsEmpty(client.GetUnorderedListEntryIds(TilesListValueId));
-            // Main-partition rows are untouched.
+            // Main-partition rows are untouched: the grid root (nameable
+            // without the placement subtree) and the referenced tile asset.
+            Assert.IsTrue(client.values.ContainsKey("town-grid"));
             Assert.IsTrue(client.values.ContainsKey("floor-tile"));
         }
 
@@ -353,12 +362,14 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// A grid whose whole owned subtree ships in
-        /// <c>valuePartitions["world:town-grid"]</c>: grid row → Children
-        /// list → tile layer link → unordered Tiles list ← one placement
-        /// (Cell + Tile lookup). The tile asset the placement references
-        /// stays in the main partition (lookup targets are references, not
-        /// owned rows).
+        /// A grid whose <c>Children</c> placement subtree ships in
+        /// <c>valuePartitions["world:grid-type"]</c> (keyed on the grid's
+        /// concrete type id): Children list → tile layer link → unordered
+        /// Tiles list ← one placement (Cell + Tile lookup). The grid root row
+        /// itself lives in the MAIN partition (unstamped), so its type id — the
+        /// partition key — is resolvable before the placement subtree loads.
+        /// The tile asset the placement references also stays in the main
+        /// partition (lookup targets are references, not owned rows).
         /// </summary>
         private static ProjectData BuildPartitionedProjectData()
         {
@@ -411,10 +422,6 @@ namespace NeoCompose.Tests
 
             var partition = new JObject
             {
-                ["town-grid"] = PartitionRow(
-                    "town-grid",
-                    GridTypeId,
-                    new JObject { ["Children"] = "town-grid-children" }),
                 ["town-grid-children"] = PartitionRow(
                     "town-grid-children", null, new JArray("background-link")),
                 ["background-link"] = PartitionRow(
@@ -522,6 +529,19 @@ namespace NeoCompose.Tests
                     ["root-assets-value"] = ObjectValue("root-assets-value", rootType.id),
                     ["root-save-value"] = ObjectValue("root-save-value", rootType.id),
                     ["root-session-value"] = ObjectValue("root-session-value", rootType.id),
+                    // The grid ROOT + its light metadata live in the main
+                    // partition (unstamped): only the Children placement subtree
+                    // is partitioned, and the partition key derives from this
+                    // row's typeId.
+                    ["town-grid"] = new ObjectAttributeValue
+                    {
+                        id = "town-grid",
+                        typeId = GridTypeId,
+                        value = new Dictionary<string, string>
+                        {
+                            ["Children"] = "town-grid-children",
+                        },
+                    },
                     ["floor-tile"] = ObjectValue("floor-tile", TileTypeId),
                 },
                 valuePartitions = new Dictionary<string, JToken>

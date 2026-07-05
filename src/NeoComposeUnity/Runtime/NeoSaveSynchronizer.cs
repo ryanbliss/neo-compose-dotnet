@@ -1053,10 +1053,41 @@ namespace NeoCompose.Runtime
                 return;
             }
 
+            // A server-side rejection (the mutation round-tripped and the Convex
+            // function returned an error) is permanent for the current payload,
+            // not a transient transport hiccup: recomposing the same delta fails
+            // again every flush. Surface it as an error so it is not lost in the
+            // warning stream; the staged changes still compose forward and keep
+            // retrying (a fix — new authored heads, a payload change — may make a
+            // later flush succeed).
+            if (IsServerRejection(exception))
+            {
+                Debug.LogError(
+                    $"[NeoCompose] Live flush for save \"{CustomId}\" was rejected by the server; " +
+                    $"the staged changes compose into the next flush and keep retrying, but this " +
+                    $"payload will be rejected again until the underlying cause is resolved. " +
+                    $"{exception.GetType().Name}: {exception.Message}");
+                ReArmLiveFlush();
+                return;
+            }
+
             Debug.LogWarning(
                 $"[NeoCompose] Live flush for save \"{CustomId}\" failed; the staged changes " +
                 $"compose into the next flush. {exception.GetType().Name}: {exception.Message}");
             ReArmLiveFlush();
+        }
+
+        /// <summary>A live-flush failure is a server-side rejection — the mutation
+        /// reached the server and its function returned an error — rather than a
+        /// transient transport failure when it surfaces the Convex client's
+        /// server-error envelope (<c>"&lt;Op&gt; '&lt;fn&gt;' failed: …"</c>,
+        /// produced by the response parser for a <c>status:"error"</c> response).
+        /// Client-side transport and not-connected guards throw other message
+        /// shapes, so a non-match conservatively stays a warning.</summary>
+        private static bool IsServerRejection(Exception exception)
+        {
+            if (exception is not InvalidOperationException) return false;
+            return exception.Message.Contains("' failed:", StringComparison.Ordinal);
         }
 
         private bool IsTerminalLiveFlushFailure(Exception exception)

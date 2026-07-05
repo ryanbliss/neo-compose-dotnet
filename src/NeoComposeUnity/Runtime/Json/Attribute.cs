@@ -60,7 +60,7 @@ namespace NeoCompose.Runtime.Json
         /// (specs/list-attribute-and-tilegrid-scaling.md §6): values created
         /// under this attribute are stamped with this partition key
         /// (<see cref="AttributeValue.mapKey"/>), e.g.
-        /// <c>world:&lt;gridValueId&gt;</c>. Informational on the C# side —
+        /// <c>world:&lt;gridTypeId&gt;</c>. Informational on the C# side —
         /// the web app resolves and stamps partitions at creation; the
         /// runtime only reads the stamps already on value rows.
         /// </summary>

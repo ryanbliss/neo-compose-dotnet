@@ -13,6 +13,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace NeoCompose.Tests
 {
@@ -559,6 +560,45 @@ namespace NeoCompose.Tests
 
             Assert.That(realtime.livePatches, Has.Count.EqualTo(1),
                 "provider cancellation during shutdown is terminal for this live session");
+        }
+
+        [Test]
+        public async Task ServerRejection_LogsAnErrorAndKeepsRetrying()
+        {
+            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            await ForkEstablishedAsync(sync, realtime, scheduler);
+            var errors = new List<Exception>();
+            sync.OnCommitError += errors.Add;
+
+            // The Convex client's response parser surfaces a server function
+            // rejection as this envelope; unlike a disposed/canceled provider it
+            // is not terminal, so the session must keep retrying (and, because the
+            // payload is the problem, surface an error rather than a warning).
+            realtime.livePatchThrows = new InvalidOperationException(
+                "Mutation 'gameSaves:patchLiveSnapshot' failed: [Request ID: abc] Server Error");
+            LogAssert.Expect(
+                LogType.Error,
+                new System.Text.RegularExpressions.Regex(
+                    "Live flush for save \"save-1\" was rejected by the server"));
+
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                replaceSnapshot: false);
+            scheduler.Advance(0.5);
+
+            Assert.That(errors, Has.Count.EqualTo(1), "OnCommitError still fires");
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1), "first attempt reached the server");
+
+            // Not terminal: the re-armed staged delta retries on the next window.
+            // Once the underlying cause clears, a later flush succeeds.
+            realtime.livePatchThrows = null;
+            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
+                "snap-live", "hash-2", new NeoTimestamp(42)));
+            scheduler.Advance(10);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(2),
+                "server rejection is not terminal; the staged delta retries and then succeeds");
+            Assert.That(sync.ActiveSave!.snapshotHash, Is.EqualTo("hash-2"));
         }
 
         /// <summary>

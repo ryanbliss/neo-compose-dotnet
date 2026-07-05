@@ -58,7 +58,7 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// Storage partitions (specs/list-attribute-and-tilegrid-scaling.md
         /// §6): every non-main partition of the export, keyed by partition
-        /// key (<c>mapKey</c>, e.g. <c>world:&lt;gridValueId&gt;</c>) with the
+        /// key (<c>mapKey</c>, e.g. <c>world:&lt;gridTypeId&gt;</c>) with the
         /// partition's value rows keyed by value id. Kept as raw
         /// <see cref="JToken"/>s so parsing project.json does NOT materialize
         /// partition rows — a partition's rows are deserialized into typed

@@ -865,8 +865,9 @@ namespace NeoCompose.Runtime
             this.readOnlyFactories = readOnlyFactories ?? EmptyReadOnlyFactories;
             this.writableFactories = writableFactories ?? EmptyWritableFactories;
             // Storage partitions (spec §6): resolving a grid primitive IS the
-            // content-access path — lazily merge the grid's `world:<id>`
-            // partition (no-op for grids authored in the main partition).
+            // content-access path — lazily merge the grid's
+            // `world:<gridTypeId>` placement partition (no-op for grids
+            // authored in the main partition).
             client.EnsureWorldPartitionLoaded(gridValueId);
         }
 

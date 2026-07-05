@@ -1551,9 +1551,18 @@ namespace NeoCompose.Runtime
         // ships under `project.json`'s `valuePartitions[mapKey]` and stays
         // raw JSON until loaded. Loading materializes the partition's rows
         // into the ONE authored dictionary (in-memory stays a single map per
-        // ownership); unloading removes exactly those rows again. World
-        // grids use `world:<gridValueId>` and are auto-loaded by the tile
-        // grid primitive's content resolution path.
+        // ownership); unloading removes exactly those rows again.
+        //
+        // A world grid keys its partition on its CONCRETE grid type id —
+        // `world:<gridTypeId>` — and the partition covers ONLY the grid's
+        // `Children` placement subtree. The grid root row and its light
+        // metadata (CellSize, PixelsPerUnit, DisplayName, and the palette
+        // reference lookups Tiles/TileLayers/Objects/ObjectLayers) stay in
+        // the main partition, so worlds are enumerable and nameable without
+        // loading heavy placement content. Two grid instances of the same
+        // concrete leaf type co-load one partition — still correct, value
+        // rows carry unique ids. The partition is auto-loaded lazily by the
+        // tile grid primitive's content-resolution path.
         //
         // Partition subtrees are asset content by contract (Save/Session
         // storage overrides force the "main" partition on the web side), so
@@ -1583,21 +1592,28 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Auto-load hook for the tile grid resolution path: loads the grid's
-        /// <c>world:&lt;gridValueId&gt;</c> partition when the export ships one
-        /// and it isn't loaded yet. No-op for grids whose content is authored
-        /// in the main partition, so the public GetTile/etc. surface works
-        /// unchanged either way.
+        /// <c>world:&lt;gridTypeId&gt;</c> placement partition when the export
+        /// ships one and it isn't loaded yet. The grid root row lives in the
+        /// main partition, so its concrete type id — the partition key — is
+        /// resolvable before the placement subtree loads. No-op when the bound
+        /// value id resolves no row yet (a deep placement node binding before
+        /// its own partition is merged), carries no type id, or names a grid
+        /// whose content is authored in the main partition, so the public
+        /// GetTile/etc. surface works unchanged either way.
         /// </summary>
         internal void EnsureWorldPartitionLoaded(string gridValueId)
         {
-            string mapKey = MakeWorldPartitionKey(gridValueId);
+            string? gridTypeId = ResolveEffectiveRow(gridValueId)?.typeId;
+            if (string.IsNullOrEmpty(gridTypeId)) return;
+            string mapKey = MakeWorldPartitionKey(gridTypeId!);
             if (loadedPartitionRowIds.ContainsKey(mapKey)) return;
             if (!HasValuePartition(mapKey)) return;
             LoadValuePartition(mapKey);
         }
 
-        /// <summary>The partition key a world grid's subtree is stamped with.</summary>
-        public static string MakeWorldPartitionKey(string gridValueId) => $"world:{gridValueId}";
+        /// <summary>The partition key a world grid's placement subtree is
+        /// stamped with — derived from the grid's concrete type id.</summary>
+        public static string MakeWorldPartitionKey(string gridTypeId) => $"world:{gridTypeId}";
 
         /// <summary>
         /// Materializes the partition's raw rows into typed

@@ -466,8 +466,9 @@ namespace NeoCompose.Runtime.Json
         /// Storage partition stamp (specs/list-attribute-and-tilegrid-scaling.md
         /// §6): the partition this row is serialized/loaded/committed with.
         /// Absent (<c>null</c>) means the "main" partition. Stamped at creation
-        /// and immutable thereafter; world grids stamp their whole subtree with
-        /// <c>world:&lt;gridValueId&gt;</c>. Purely a lifecycle/serialization
+        /// and immutable thereafter; world grids stamp their <c>Children</c>
+        /// placement subtree with <c>world:&lt;gridTypeId&gt;</c> (the grid root
+        /// and its light metadata stay in main). Purely a lifecycle/serialization
         /// concern — the in-memory value graph stays one dictionary per
         /// ownership regardless of partition.
         /// </summary>
