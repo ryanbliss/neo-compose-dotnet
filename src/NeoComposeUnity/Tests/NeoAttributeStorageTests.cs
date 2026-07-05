@@ -121,35 +121,43 @@ namespace NeoCompose.Tests
             var data = BuildStorageProjectData();
             data.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 3,
+                schemaVersion = 4,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(data));
-            StringAssert.Contains("schema version 3", error!.Message);
+            StringAssert.Contains("schema version 4", error!.Message);
+            StringAssert.Contains("newer", error.Message);
         }
 
         [Test]
-        public void ExportSchemaVersion_CurrentAndLegacyAreAccepted()
+        public void ExportSchemaVersion_OlderThanValuesNativeTileGridThrows()
         {
-            var current = BuildStorageProjectData();
-            current.metadata = new ProjectExportMetadata
+            var legacy = BuildStorageProjectData();
+            legacy.metadata = new ProjectExportMetadata
             {
                 schemaVersion = 2,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
-            Assert.DoesNotThrow(() => NeoTestSaveStack.ClientFromSchema(current));
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(legacy));
+            StringAssert.Contains("schema version 2", error!.Message);
+            StringAssert.Contains("Re-export", error.Message);
+        }
 
-            var legacy = BuildStorageProjectData();
-            legacy.metadata = new ProjectExportMetadata
+        [Test]
+        public void ExportSchemaVersion_CurrentIsAccepted()
+        {
+            var current = BuildStorageProjectData();
+            current.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 1,
+                schemaVersion = 3,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
-            Assert.DoesNotThrow(() => NeoTestSaveStack.ClientFromSchema(legacy));
+            Assert.DoesNotThrow(() => NeoTestSaveStack.ClientFromSchema(current));
         }
 
         private static NeoClient LoadStorageClient()

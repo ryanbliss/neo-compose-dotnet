@@ -270,15 +270,16 @@ namespace NeoCompose.Tests
                 null,
                 NeoValueOwnership.Save);
 
-            var generatedSaved = new Derived(app.Client, derivedNode);
+            var generatedSaved = Derived.CreateWritable(app.Client, derivedNode);
             generatedSaved.Name = "Ancestor Name";
             generatedSaved.Health = 33;
 
-            var generated = new ReadOnlyDerived(app.Client, derivedNode);
-            ReadOnlyBase asBase = generated;
+            IReadOnlyBase asBase = generatedSaved;
 
             Assert.AreEqual("Ancestor Name", asBase.Name);
-            Assert.AreEqual(33, generated.Health);
+            Assert.AreEqual(33, generatedSaved.Health);
+            Assert.IsTrue(asBase.TryWritable(out Derived writableDerived));
+            Assert.AreSame(generatedSaved, writableDerived);
         }
 
         [Test]
@@ -292,7 +293,7 @@ namespace NeoCompose.Tests
                 null,
                 NeoValueOwnership.Save);
 
-            var generated = new Derived(app.Client, derivedNode);
+            var generated = Derived.CreateWritable(app.Client, derivedNode);
 
             generated.Name = "Saved Name";
             generated.Health = 44;
@@ -311,7 +312,7 @@ namespace NeoCompose.Tests
                 app.Client,
                 derivedAttr,
                 null);
-            var generated = new Derived(app.Client, derivedNode);
+            var generated = Derived.CreateWritable(app.Client, derivedNode);
             int changes = 0;
             generated.OnChanged(Derived.Fields.Name, (_, _) => changes++);
 
@@ -320,7 +321,7 @@ namespace NeoCompose.Tests
 
             int beforeDispose = changes;
             generated.Dispose();
-            var generatedSaved = new Derived(app.Client, derivedNode);
+            var generatedSaved = Derived.CreateWritable(app.Client, derivedNode);
             generatedSaved.Name = "After Dispose";
             Assert.AreEqual(beforeDispose, changes);
         }
@@ -334,7 +335,7 @@ namespace NeoCompose.Tests
                 app.Client,
                 derivedAttr,
                 null);
-            var generated = new Derived(app.Client, derivedNode);
+            var generated = Derived.CreateWritable(app.Client, derivedNode);
             string? observed = null;
             int changes = 0;
             using var subscription = generated.OnChanged(Derived.Fields.Name, (value, _) =>
@@ -364,7 +365,7 @@ namespace NeoCompose.Tests
                 derivedAttr,
                 null,
                 NeoValueOwnership.Save);
-            var generated = new Derived(app.Client, derivedNode);
+            var generated = Derived.CreateWritable(app.Client, derivedNode);
 
             generated.Name = "text-hero-name";
             var nameNode = derivedNode.Get<NeoAttributeStringWritable>("Name");
@@ -392,7 +393,7 @@ namespace NeoCompose.Tests
                 app.Client,
                 derivedAttr,
                 null);
-            var generated = new Derived(app.Client, derivedNode);
+            var generated = Derived.CreateWritable(app.Client, derivedNode);
             NeoChangedArgs<Derived.Fields>? observed = null;
             using var subscription = generated.OnChanged(args => observed = args);
 
@@ -445,7 +446,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            var assetHero = (ReadOnlyHero)app.ResolveDialogueValue("v-dict")!;
+            var assetHero = (Hero)app.ResolveDialogueValue("v-dict")!;
             Vector3 authoredPosition = assetHero.Position;
             Vector3 pathEntry = assetHero.Path[0];
 
@@ -481,7 +482,7 @@ namespace NeoCompose.Tests
         public void GeneratedVectorFunction_UsesUnityNativeSignature()
         {
             var app = LoadGeneratedClient(out _);
-            var hero = (ReadOnlyHero)app.ResolveDialogueValue("v-dict")!;
+            var hero = (Hero)app.ResolveDialogueValue("v-dict")!;
             hero.FunctionHandler = new VectorFunctionHandler();
 
             var moved = hero.MoveTo(new Vector3(1, 2, 3), new Vector2Int(4, 5));
@@ -548,15 +549,202 @@ namespace NeoCompose.Tests
 
             var assetResolved = app.ResolveDialogueValue("v-dict");
 
-            Assert.IsInstanceOf<ReadOnlyHero>(assetResolved);
-            Assert.IsNotInstanceOf<Hero>(assetResolved);
-            Assert.AreEqual("v-dict", ((ReadOnlyHero)assetResolved!).valueId);
+            Assert.IsInstanceOf<Hero>(assetResolved);
+            var assetHero = (Hero)assetResolved!;
+            Assert.IsTrue(assetHero.IsReadOnly);
+            Assert.IsFalse(assetHero.TryWritable(out Hero assetWritable));
+            Assert.IsNull(assetWritable);
+            Assert.AreEqual("v-dict", assetHero.valueId);
 
             var savedHero = new Hero(Name: "Saved Hero", Health: 9);
             var savedResolved = app.ResolveDialogueValue(savedHero.valueId!);
 
             Assert.IsInstanceOf<Hero>(savedResolved);
-            Assert.AreEqual("Saved Hero", ((Hero)savedResolved!).Name);
+            var writableHero = (Hero)savedResolved!;
+            Assert.IsFalse(writableHero.IsReadOnly);
+            Assert.IsTrue(writableHero.TryWritable(out Hero resolvedWritable));
+            Assert.AreSame(writableHero, resolvedWritable);
+            Assert.AreEqual("Saved Hero", writableHero.Name);
+        }
+
+        [Test]
+        public void GeneratedCustomValues_ExposeReadOnlyStateAndGuardWrites()
+        {
+            var app = LoadGeneratedClient(out _);
+
+            Assert.IsTrue(app.Assets.IsReadOnly);
+            Assert.IsInstanceOf<Root>(app.Assets);
+            var assetRoot = (Root)app.Assets;
+            Assert.IsTrue(assetRoot.IsReadOnly);
+            Assert.IsFalse(assetRoot.TryWritable(out Root assetWritable));
+            Assert.IsNull(assetWritable);
+            Assert.IsFalse(app.Assets.TryWritable(out Root assetWritableFromInterface));
+            Assert.IsNull(assetWritableFromInterface);
+
+            var scoreBefore = assetRoot.Score;
+            var setterError = Assert.Throws<System.InvalidOperationException>(() =>
+                assetRoot.Score = scoreBefore + 1);
+            StringAssert.Contains("Root.Score", setterError!.Message);
+
+            Assert.DoesNotThrow(() => Assert.GreaterOrEqual(assetRoot.Heroes.Count, 0));
+            var collectionError = Assert.Throws<System.InvalidOperationException>(() =>
+                assetRoot.Heroes.Clear());
+            StringAssert.Contains("Root.Heroes", collectionError!.Message);
+
+            Assert.IsFalse(app.Save.IsReadOnly);
+            Assert.IsTrue(app.Save.TryWritable(out Root writableRoot));
+            Assert.AreSame(app.Save, writableRoot);
+
+            app.Save.Score = scoreBefore + 1;
+            Assert.AreEqual(scoreBefore + 1, app.Save.Score);
+            Assert.DoesNotThrow(() => app.Save.Heroes.Clear());
+        }
+
+        [Test]
+        public void GeneratedInheritedStorage_SaveBackedConcreteDescendantMutatesInheritedListFromAssetPath()
+        {
+            var app = LoadGeneratedClient(out _);
+            var assetRoot = (Root)app.Assets;
+
+            Assert.IsInstanceOf<SampleBlockedPath>(assetRoot.SampleLayerGroup);
+            var blocked = (SampleBlockedPath)assetRoot.SampleLayerGroup;
+
+            Assert.IsFalse(blocked.IsReadOnly);
+            Assert.AreEqual(1, blocked.Tiles.Count);
+
+            blocked.Tiles.Clear();
+
+            Assert.AreEqual(0, blocked.Tiles.Count);
+            StringAssert.Contains(
+                "v-sample-tiles",
+                app.SerializeSaveData(),
+                "clearing the asset-authored inherited list should shadow the list row into the save store");
+        }
+
+        [Test]
+        public void GeneratedInheritedStorage_AttachingConstructedListEntriesRetargetsHeldReferencesToSave()
+        {
+            var app = LoadGeneratedClient(out _);
+            var assetRoot = (Root)app.Assets;
+            var blocked = (SampleBlockedPath)assetRoot.SampleLayerGroup!;
+
+            var tile = new SampleTileInstance(Value: 121212);
+            blocked.Tiles.Add(tile);
+            tile.Value = 343434;
+
+            Assert.AreSame(tile, blocked.Tiles[blocked.Tiles.Count - 1]);
+            Assert.AreEqual(343434, tile.Value);
+            Assert.AreEqual(343434, blocked.Tiles[blocked.Tiles.Count - 1].Value);
+
+            var saveData = app.SerializeSaveData();
+            StringAssert.Contains(
+                "343434",
+                saveData,
+                "the constructed list entry should write through the save-owned list path after attachment");
+            StringAssert.DoesNotContain(
+                "121212",
+                saveData,
+                "the initial session-only list entry value should not remain as a stale save row after the held reference is mutated");
+        }
+
+        [Test]
+        public void GeneratedInheritedStorage_PropagatesThroughExplicitSaveSessionAndStaticChildren()
+        {
+            var app = LoadGeneratedClient(out _);
+            var assetRoot = (Root)app.Assets;
+            var storageA = assetRoot.StorageInherit;
+
+            Assert.IsTrue(storageA.IsReadOnly);
+            var assetError = Assert.Throws<System.InvalidOperationException>(() =>
+                storageA.Value = 111111);
+            StringAssert.Contains("StorageA.Value", assetError!.Message);
+
+            var storageC = storageA.SaveChild.InheritChild;
+            Assert.IsFalse(storageC.IsReadOnly);
+            storageC.Value = 333333;
+            Assert.AreEqual(333333, storageC.Value);
+            StringAssert.Contains(
+                "333333",
+                app.SerializeSaveData(),
+                "the inherit child under the explicit Save segment should write to the save overlay");
+
+            var storageE = storageC.SessionChild.InheritChild;
+            Assert.IsFalse(storageE.IsReadOnly);
+            storageE.Value = 555555;
+            Assert.AreEqual(555555, storageE.Value);
+            StringAssert.DoesNotContain(
+                "555555",
+                app.SerializeSaveData(),
+                "the inherit child under the explicit Session segment should stay out of serialized save data");
+
+            Assert.IsInstanceOf<StorageF>(storageE.StaticChild);
+            var storageF = (StorageF)storageE.StaticChild;
+            Assert.IsInstanceOf<StorageG>(storageF.InheritChild);
+            var storageG = (StorageG)storageF.InheritChild;
+
+            Assert.IsTrue(storageG.IsReadOnly);
+            Assert.IsFalse(storageG.TryWritable(out StorageG writableG));
+            Assert.IsNull(writableG);
+            var valueProperty = typeof(StorageG).GetProperty(nameof(StorageG.Value));
+            Assert.IsNotNull(valueProperty);
+            Assert.IsNull(
+                valueProperty!.SetMethod,
+                "the inherit child under the explicit Static segment should expose no public setter");
+            Assert.Throws<System.ArgumentException>(() =>
+                valueProperty.SetValue(storageG, 777777));
+        }
+
+        [Test]
+        public void GeneratedInheritedStorage_AttachingConstructedValuesRetargetsHeldReferencesToSave()
+        {
+            var app = LoadGeneratedClient(out _);
+            var saveRoot = (Root)app.Save;
+
+            var storageA = new StorageA();
+            saveRoot.StorageInherit = storageA;
+            storageA.Value = 818181;
+
+            var storageB = new StorageB();
+            storageA.SaveChild = storageB;
+
+            var storageC = new StorageC(Value: 101010);
+            storageB.InheritChild = storageC;
+            storageC.Value = 202020;
+
+            Assert.AreSame(storageA, saveRoot.StorageInherit);
+            Assert.AreSame(storageB, storageA.SaveChild);
+            Assert.AreSame(storageC, storageB.InheritChild);
+            var attachedA = saveRoot.StorageInherit!;
+            Assert.AreEqual(818181, attachedA.Value);
+            Assert.AreEqual(202020, attachedA.SaveChild!.InheritChild!.Value);
+
+            var saveData = app.SerializeSaveData();
+            StringAssert.Contains(
+                "818181",
+                saveData,
+                "the constructed parent should write through the save-owned reference it was attached to");
+            StringAssert.Contains(
+                "202020",
+                saveData,
+                "the constructed inherit child should move from session to the save path after attachment");
+            StringAssert.DoesNotContain(
+                "101010",
+                saveData,
+                "the initial session-only value should not remain as a stale save row after the held reference is mutated");
+        }
+
+        [Test]
+        public void GeneratedDialogueMemoryStore_FirstWritePersistsThroughFind()
+        {
+            var app = LoadGeneratedClient(out _);
+
+            var created = app.Save.NeoMemory.GetOrCreateDialogueMemory("direct-dialogue");
+            created.VisitCount += 1;
+
+            var found = app.Save.NeoMemory.FindDialogueMemory("direct-dialogue");
+            Assert.IsNotNull(found);
+            Assert.AreEqual(1, found!.VisitCount);
+            StringAssert.Contains("direct-dialogue", app.SerializeSaveData());
         }
 
         [Test]
@@ -581,9 +769,9 @@ namespace NeoCompose.Tests
             Assert.IsTrue(app.Dialogues.Standard.TryTrigger(out NeoDialogue dialogue));
 
             Assert.AreEqual("dialogue-linked-hero", dialogue.Id);
-            Assert.IsInstanceOf<ReadOnlyHero>(dialogue.Primary);
+            Assert.IsInstanceOf<Hero>(dialogue.Primary);
             Assert.IsTrue(dialogue.LinkedValues.TryGetValue("v-dict", out object? linked));
-            Assert.IsInstanceOf<ReadOnlyHero>(linked);
+            Assert.IsInstanceOf<Hero>(linked);
 
             NeoDialogueTextNode? shown = null;
             dialogue.OnShow += node => shown = node;
@@ -591,9 +779,9 @@ namespace NeoCompose.Tests
             dialogue.Start();
 
             Assert.IsNotNull(shown);
-            Assert.IsInstanceOf<ReadOnlyHero>(shown!.Primary);
+            Assert.IsInstanceOf<Hero>(shown!.Primary);
             Assert.IsTrue(shown.LinkedValues.TryGetValue("v-dict", out object? textLinked));
-            Assert.IsInstanceOf<ReadOnlyHero>(textLinked);
+            Assert.IsInstanceOf<Hero>(textLinked);
             Assert.AreEqual(1, shown.Options.Count);
 
             shown.Options[0].Select();

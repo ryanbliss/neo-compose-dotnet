@@ -215,10 +215,11 @@ namespace NeoCompose.Convex
             if (disposed) return;
             disposed = true;
             TearDownSocket();
+            SetState(NeoRealtimeConnectionState.Disconnected);
         }
 
         /// <summary>True when connected; the synchronizer's transport check.</summary>
-        public bool CanCommit => State == NeoRealtimeConnectionState.Connected;
+        public bool CanCommit => !disposed && State == NeoRealtimeConnectionState.Connected;
 
         public IDisposable SubscribeSaveList(
             string? targetReleaseChannelId, Action<NeoSaveFileList> onChanged)

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 namespace NeoCompose.Runtime
 {
@@ -19,6 +20,8 @@ namespace NeoCompose.Runtime
     {
         [SerializeField]
         private List<NeoAssetDatabaseEntry> files = new();
+        [SerializeField]
+        private List<NeoAssetDatabaseTileEntry> tileAssets = new();
 
         /// <summary>
         /// Loads the default synchronized asset database from Resources.
@@ -34,6 +37,11 @@ namespace NeoCompose.Runtime
         /// Read-only entries keyed by Neo Compose file id.
         /// </summary>
         public IReadOnlyList<NeoAssetDatabaseEntry> Files => files;
+
+        /// <summary>
+        /// Read-only generated Tile/RuleTile assets keyed by Neo tile value id.
+        /// </summary>
+        public IReadOnlyList<NeoAssetDatabaseTileEntry> TileAssets => tileAssets;
 
         /// <summary>
         /// Returns the imported asset path for <paramref name="fileId"/>,
@@ -68,6 +76,15 @@ namespace NeoCompose.Runtime
         public AudioClip? TryGetAudioClip(string fileId)
         {
             return TryGetEntry(fileId)?.AudioClip;
+        }
+
+        /// <summary>
+        /// Resolves an editor-generated Tile or RuleTile asset by Neo tile value id.
+        /// Runtime renderers use this before falling back to transient tile creation.
+        /// </summary>
+        public TileBase? TryGetTileBase(string tileValueId)
+        {
+            return TryGetTileEntry(tileValueId)?.TileBase;
         }
 
         /// <summary>
@@ -144,6 +161,21 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Returns the generated Tile/RuleTile entry for <paramref name="tileValueId"/>,
+        /// or <c>null</c> when editor sync has not produced one yet.
+        /// </summary>
+        public NeoAssetDatabaseTileEntry? TryGetTileEntry(string tileValueId)
+        {
+            if (string.IsNullOrWhiteSpace(tileValueId)) return null;
+            foreach (var entry in tileAssets)
+            {
+                if (entry.TileValueId == tileValueId) return entry;
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Upserts a file mapping after the editor has downloaded and
         /// imported the matching Unity asset.
         /// </summary>
@@ -191,6 +223,46 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Upserts a generated Tile/RuleTile asset mapping after editor sync has
+        /// created or refreshed the deterministic Unity asset.
+        /// </summary>
+        public void SetTileAsset(
+            string tileValueId,
+            string? tileTypeId,
+            string assetPath,
+            string contentHash,
+            TileBase tileBase)
+        {
+            if (string.IsNullOrWhiteSpace(tileValueId))
+            {
+                throw new ArgumentException("Tile value id cannot be empty.", nameof(tileValueId));
+            }
+
+            if (string.IsNullOrWhiteSpace(assetPath))
+            {
+                throw new ArgumentException("Asset path cannot be empty.", nameof(assetPath));
+            }
+
+            if (tileBase == null)
+            {
+                throw new ArgumentNullException(nameof(tileBase));
+            }
+
+            var entry = TryGetTileEntry(tileValueId);
+            if (entry == null)
+            {
+                entry = new NeoAssetDatabaseTileEntry();
+                tileAssets.Add(entry);
+            }
+
+            entry.TileValueId = tileValueId;
+            entry.TileTypeId = tileTypeId ?? "";
+            entry.AssetPath = assetPath;
+            entry.ContentHash = contentHash;
+            entry.TileBase = tileBase;
+        }
+
+        /// <summary>
         /// Returns stale file mappings whose ids are no longer present in the
         /// latest Neo Compose export.
         /// </summary>
@@ -206,11 +278,34 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
+        /// Returns generated tile asset mappings whose tile value ids are no
+        /// longer referenced by the latest Neo Compose export.
+        /// </summary>
+        public NeoAssetDatabaseTileEntry[] FindMissingTileAssets(ISet<string> tileValueIds)
+        {
+            var missing = new List<NeoAssetDatabaseTileEntry>();
+            foreach (var entry in tileAssets)
+            {
+                if (!tileValueIds.Contains(entry.TileValueId)) missing.Add(entry);
+            }
+
+            return missing.ToArray();
+        }
+
+        /// <summary>
         /// Removes a synchronized file mapping.
         /// </summary>
         public void RemoveFile(string fileId)
         {
             files.RemoveAll(entry => entry.FileId == fileId);
+        }
+
+        /// <summary>
+        /// Removes a generated Tile/RuleTile asset mapping.
+        /// </summary>
+        public void RemoveTileAsset(string tileValueId)
+        {
+            tileAssets.RemoveAll(entry => entry.TileValueId == tileValueId);
         }
     }
 
@@ -318,6 +413,59 @@ namespace NeoCompose.Runtime
         {
             get => audioClip;
             set => audioClip = value;
+        }
+    }
+
+    /// <summary>
+    /// Serialized mapping for an editor-generated Tile/RuleTile asset.
+    /// </summary>
+    [Serializable]
+    public sealed class NeoAssetDatabaseTileEntry
+    {
+        [SerializeField]
+        private string tileValueId = "";
+        [SerializeField]
+        private string tileTypeId = "";
+        [SerializeField]
+        private string assetPath = "";
+        [SerializeField]
+        private string contentHash = "";
+        [SerializeField]
+        private TileBase? tileBase;
+
+        /// <summary>Neo Compose tile value id.</summary>
+        public string TileValueId
+        {
+            get => tileValueId;
+            set => tileValueId = value;
+        }
+
+        /// <summary>Neo Compose tile custom type id.</summary>
+        public string TileTypeId
+        {
+            get => tileTypeId;
+            set => tileTypeId = value;
+        }
+
+        /// <summary>Project-relative generated Unity asset path.</summary>
+        public string AssetPath
+        {
+            get => assetPath;
+            set => assetPath = value;
+        }
+
+        /// <summary>Stable sync hash used to detect stale generated tile assets.</summary>
+        public string ContentHash
+        {
+            get => contentHash;
+            set => contentHash = value;
+        }
+
+        /// <summary>Generated Unity Tile or RuleTile asset.</summary>
+        public TileBase? TileBase
+        {
+            get => tileBase;
+            set => tileBase = value;
         }
     }
 }

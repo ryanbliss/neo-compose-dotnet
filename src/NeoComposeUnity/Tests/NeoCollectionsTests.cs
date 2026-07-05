@@ -70,6 +70,44 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoList_Clear_ClearsBackingArrayOnceAndFiresOneBulkChange()
+        {
+            var client = LoadClient(out _);
+            var tagsAttr = RequireAttribute<ListAttribute>(client, "attr-tags");
+            var tagsNode = (NeoAttributeListWritable)NeoAttribute.CreateWritable(client, tagsAttr, null);
+            var tags = new NeoList<string>(
+                client,
+                tagsNode,
+                (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
+                NeoGeneratedTypesSupport.Value);
+
+            tags.Add("first");
+            tags.Add("second");
+            var removedIds = new[]
+            {
+                tagsNode[0].value!.id,
+                tagsNode[1].value!.id,
+            };
+            var changed = 0;
+            NeoListChangedArgs? observed = null;
+            using var tagsSubscription = tags.OnChanged((_, args, __) =>
+            {
+                changed += 1;
+                observed = args;
+            });
+
+            tags.Clear();
+
+            Assert.AreEqual(0, tags.Count);
+            Assert.AreEqual(1, changed);
+            Assert.IsNotNull(observed);
+            Assert.AreEqual(NeoListChangeKind.Clear, observed!.Kind);
+            CollectionAssert.AreEqual(removedIds, observed.RemovedValueIds);
+            Assert.AreEqual(0, observed.AddedValueIds.Count);
+            Assert.AreEqual(0, observed.ReplacedValueIds.Count);
+        }
+
+        [Test]
         public void NeoDictionary_SetRemove_TracksUnderlyingSavedDictionary()
         {
             var client = LoadClient(out _);

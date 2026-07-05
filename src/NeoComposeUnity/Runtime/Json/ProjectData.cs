@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.Json
 {
@@ -41,6 +42,11 @@ namespace NeoCompose.Runtime.Json
     ///   "values":     { "&lt;id&gt;": { ... } }
     /// }
     /// </code>
+    ///
+    /// Tile grid content is NOT a separate payload: painted tiles and placed
+    /// objects live in <see cref="values"/> as ordinary attribute values
+    /// (TilePlacement custom values joined to their layer link's unordered
+    /// "Tiles" list via <see cref="AttributeValue.containerId"/>).
     /// </summary>
     public class ProjectData
     {
@@ -48,6 +54,19 @@ namespace NeoCompose.Runtime.Json
         public Project project = null!;
         public Dictionary<string, Attribute> attributes = null!;
         public Dictionary<string, AttributeValue> values = null!;
+
+        /// <summary>
+        /// Storage partitions (specs/list-attribute-and-tilegrid-scaling.md
+        /// §6): every non-main partition of the export, keyed by partition
+        /// key (<c>mapKey</c>, e.g. <c>world:&lt;gridTypeId&gt;</c>) with the
+        /// partition's value rows keyed by value id. Kept as raw
+        /// <see cref="JToken"/>s so parsing project.json does NOT materialize
+        /// partition rows — a partition's rows are deserialized into typed
+        /// <see cref="AttributeValue"/>s only when
+        /// <c>NeoClient.LoadValuePartition</c> loads it. Null on exports
+        /// predating partitions (equivalent to "no partitions").
+        /// </summary>
+        public Dictionary<string, JToken>? valuePartitions;
         public Dictionary<string, CustomType> types = null!;
         public Dictionary<string, Enum> enums = null!;
         public Dictionary<string, ProjectFile> files = new();
@@ -57,5 +76,14 @@ namespace NeoCompose.Runtime.Json
         public Dictionary<string, DialogueGroup> dialogueGroups = new();
         public Dictionary<string, PriorityGroup> priorityGroups = new();
         public ProjectLocalizationExport? localization;
+
+        /// <summary>
+        /// Legacy-export detector ONLY. Exports at schema version 3+ never
+        /// carry a <c>tileGridContents</c> payload (tile data lives in
+        /// <see cref="values"/>); this field exists so a parsed legacy export
+        /// can be rejected loudly at load time instead of silently dropping
+        /// its derived region payloads. Never read for content.
+        /// </summary>
+        public JObject? tileGridContents;
     }
 }

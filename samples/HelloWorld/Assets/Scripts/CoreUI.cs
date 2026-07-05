@@ -22,6 +22,7 @@ namespace HelloWorld.Assets.Scripts
         private Text saveLabel;
         private Text questText;
         private Text title;
+        private Button landingButton;
         private Text bitsText;
         private Text travelMeta;
         private Text inventoryButtonLabel;
@@ -30,7 +31,7 @@ namespace HelloWorld.Assets.Scripts
         private RectTransform inventoryOverlay;
         private RectTransform inventoryList;
         private SystemMapUI systemMap;
-        private IReadOnlyList<ReadOnlyItem> lastInventory = Array.Empty<ReadOnlyItem>();
+        private IReadOnlyList<IReadOnlyItem> lastInventory = Array.Empty<IReadOnlyItem>();
         private int seenItemCount;
         private bool inventoryOpen;
         private readonly List<Image> stormSegments = new();
@@ -42,25 +43,28 @@ namespace HelloWorld.Assets.Scripts
             string questHint,
             int storm,
             bool knowsStormExact,
-            ReadOnlyAnimationInfo shipAnimation,
-            ReadOnlyAnimationInfo flareAnimation,
+            IReadOnlyAnimationInfo shipAnimation,
+            IReadOnlyAnimationInfo flareAnimation,
             Sprite sunSprite,
             AudioClip thrustSfx,
             Func<string, Sprite> parentPlanetSprite,
-            ReadOnlyOutpost currentOutpost,
-            IReadOnlyList<ReadOnlyOutpost> outposts,
+            IReadOnlyOutpost currentOutpost,
+            IReadOnlyList<IReadOnlyOutpost> outposts,
             int bits,
-            IReadOnlyList<ReadOnlyItem> inventory,
-            Func<ReadOnlyOutpost, bool> hasNewContent,
-            Action<ReadOnlyOutpost> onVisitOutpost,
+            IReadOnlyList<IReadOnlyItem> inventory,
+            Func<IReadOnlyOutpost, bool> hasNewContent,
+            Action<IReadOnlyOutpost> onVisitOutpost,
+            bool canOpenLandingScene,
+            Action onOpenLandingScene,
             Action onSave,
             Action onReset,
             Action onMenu
         )
         {
-            EnsureBuilt(onSave, onReset, onMenu);
+            EnsureBuilt(onOpenLandingScene, onSave, onReset, onMenu);
 
             title.text = $"{text}\n<size=18><color=#A3B3CC>Currently visiting {currentOutpost.FullDisplayText}</color></size>";
+            if (landingButton != null) landingButton.interactable = canOpenLandingScene;
             lastInventory = inventory;
             if (inventoryOpen)
             {
@@ -238,7 +242,12 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        private void EnsureBuilt(Action onSave, Action onReset, Action onMenu)
+        public void SetVisible(bool visible)
+        {
+            if (root != null) root.SetActive(visible);
+        }
+
+        private void EnsureBuilt(Action onOpenLandingScene, Action onSave, Action onReset, Action onMenu)
         {
             if (root != null) return;
 
@@ -260,7 +269,7 @@ namespace HelloWorld.Assets.Scripts
             scaler.matchWidthOrHeight = 0.5f;
 
             var panel = CreatePanel(root.transform);
-            BuildHeader(panel.transform, onSave, onReset, onMenu);
+            BuildHeader(panel.transform, onOpenLandingScene, onSave, onReset, onMenu);
             BuildContent(panel.transform);
         }
 
@@ -285,7 +294,7 @@ namespace HelloWorld.Assets.Scripts
             return panel;
         }
 
-        private void BuildHeader(Transform parent, Action onSave, Action onReset, Action onMenu)
+        private void BuildHeader(Transform parent, Action onOpenLandingScene, Action onSave, Action onReset, Action onMenu)
         {
             var row = SampleUI.CreateRect(parent, "Header");
             row.gameObject.AddComponent<LayoutElement>().preferredHeight = 86f;
@@ -316,12 +325,13 @@ namespace HelloWorld.Assets.Scripts
             actionLayout.childForceExpandHeight = false;
             actionLayout.childForceExpandWidth = false;
             var actionLayoutElement = actions.gameObject.AddComponent<LayoutElement>();
-            actionLayoutElement.preferredWidth = 470f;
+            actionLayoutElement.preferredWidth = 570f;
             actionLayoutElement.preferredHeight = 34f;
 
             var inventoryButton = SampleUI.CreateButton(actions, "Cargo", 130f, 34f, false, ToggleInventory);
             inventoryButtonLabel = inventoryButton.GetComponentInChildren<Text>();
             BuildInventoryBadge(inventoryButton.transform);
+            landingButton = SampleUI.CreateButton(actions, "Land", 86f, 34f, false, onOpenLandingScene);
             SampleUI.CreateButton(actions, "Menu", 96f, 34f, false, onMenu);
             saveButton = SampleUI.CreateButton(actions, "Save", 96f, 34f, false, onSave);
             saveLabel = saveButton.GetComponentInChildren<Text>();
@@ -463,7 +473,7 @@ namespace HelloWorld.Assets.Scripts
             return card;
         }
 
-        private void RebuildInventory(IReadOnlyList<ReadOnlyItem> inventory)
+        private void RebuildInventory(IReadOnlyList<IReadOnlyItem> inventory)
         {
             for (var i = inventoryList.childCount - 1; i >= 0; i--)
             {
@@ -483,7 +493,7 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        private static void CreateInventoryRow(Transform parent, ReadOnlyItem item)
+        private static void CreateInventoryRow(Transform parent, IReadOnlyItem item)
         {
             var row = SampleUI.CreateRect(parent, item.Name);
             row.gameObject.AddComponent<LayoutElement>().preferredHeight = 34f;

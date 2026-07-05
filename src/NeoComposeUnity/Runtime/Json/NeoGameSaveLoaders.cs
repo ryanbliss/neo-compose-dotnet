@@ -19,7 +19,17 @@ namespace NeoCompose.Runtime.Json
     public static class NeoSaveJson
     {
         public static readonly JsonSerializerSettings ContentSettings =
-            new JsonSerializerSettings { DateParseHandling = DateParseHandling.None };
+            CreateContentSettings();
+
+        private static JsonSerializerSettings CreateContentSettings()
+        {
+            var settings = new JsonSerializerSettings
+            {
+                DateParseHandling = DateParseHandling.None,
+            };
+            settings.Converters.Add(new TolerantIntegerConverter());
+            return settings;
+        }
     }
 
     /// <summary>

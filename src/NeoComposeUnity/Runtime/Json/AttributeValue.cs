@@ -452,6 +452,30 @@ namespace NeoCompose.Runtime.Json
         public NeoTimestamp updatedAt { get; set; }
 
         /// <summary>
+        /// Set iff this row is an entry of an <b>unordered</b> List value
+        /// (<see cref="ListAttribute.listKind"/> == "unordered"): the list
+        /// VALUE id the row belongs to. Stamped at creation and immutable
+        /// thereafter — membership of an unordered list is the set of live
+        /// rows carrying its id here; the list value itself stores only the
+        /// null-vs-present discriminator (<c>null</c> or <c>[]</c>).
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? containerId { get; set; }
+
+        /// <summary>
+        /// Storage partition stamp (specs/list-attribute-and-tilegrid-scaling.md
+        /// §6): the partition this row is serialized/loaded/committed with.
+        /// Absent (<c>null</c>) means the "main" partition. Stamped at creation
+        /// and immutable thereafter; world grids stamp their <c>Children</c>
+        /// placement subtree with <c>world:&lt;gridTypeId&gt;</c> (the grid root
+        /// and its light metadata stay in main). Purely a lifecycle/serialization
+        /// concern — the in-memory value graph stays one dictionary per
+        /// ownership regardless of partition.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public string? mapKey { get; set; }
+
+        /// <summary>
         /// Save-overlay tombstone marker. When set to
         /// <see cref="NeoValueMarks.Removed"/>, this row represents an
         /// <b>explicitly removed/emptied</b> optional value and resolves as

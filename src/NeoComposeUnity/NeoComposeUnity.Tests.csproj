@@ -33,8 +33,20 @@
       <HintPath>$(UnityManagedDir)/UnityEngine.AudioModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.GridModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.GridModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
       <HintPath>$(UnityManagedDir)/UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TilemapModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.TilemapModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.Physics2DModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.Physics2DModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEditor.CoreModule">
@@ -47,6 +59,10 @@
     </Reference>
     <Reference Include="UnityEditor.TestRunner">
       <HintPath>$(UnityTestRunnerDir)/UnityEditor.TestRunner.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.2D.Tilemap.Extras" Condition="Exists('$(UnityTestRunnerDir)/Unity.2D.Tilemap.Extras.dll')">
+      <HintPath>$(UnityTestRunnerDir)/Unity.2D.Tilemap.Extras.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

@@ -241,12 +241,14 @@ namespace NeoCompose.Convex.Tests
         {
             var provider = CreateProvider();
             await provider.ConnectAsync();
+            Assert.That(provider.CanCommit, Is.True);
 
             socket.PushState(ConnectionState.Reconnecting);
             provider.Dispose();
             dispatcher.Flush();
 
-            Assert.That(provider.State, Is.EqualTo(NeoRealtimeConnectionState.Connected));
+            Assert.That(provider.State, Is.EqualTo(NeoRealtimeConnectionState.Disconnected));
+            Assert.That(provider.CanCommit, Is.False);
             Assert.That(socket.Disposed, Is.True);
         }
     }

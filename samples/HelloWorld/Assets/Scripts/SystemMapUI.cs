@@ -76,16 +76,16 @@ namespace HelloWorld.Assets.Scripts
         private static readonly Color CalmSpace = new(0.03f, 0.04f, 0.09f, 0.96f);
 
         public void Render(
-            IReadOnlyList<ReadOnlyOutpost> outposts,
-            ReadOnlyOutpost currentOutpost,
+            IReadOnlyList<IReadOnlyOutpost> outposts,
+            IReadOnlyOutpost currentOutpost,
             int storm,
-            ReadOnlyAnimationInfo shipAnimation,
-            ReadOnlyAnimationInfo flareAnimation,
+            IReadOnlyAnimationInfo shipAnimation,
+            IReadOnlyAnimationInfo flareAnimation,
             Sprite sunSprite,
             AudioClip thrustSfx,
             Func<string, Sprite> parentPlanetSprite,
-            Func<ReadOnlyOutpost, bool> hasNewContent,
-            Action<ReadOnlyOutpost> onVisitOutpost)
+            Func<IReadOnlyOutpost, bool> hasNewContent,
+            Action<IReadOnlyOutpost> onVisitOutpost)
         {
             // Animations & art are authored data (AnimationInfo records and
             // sprite values) — driven from the schema, never hand-rolled.
@@ -141,7 +141,7 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        private Button CreatePlanetMarker(ReadOnlyOutpost outpost)
+        private Button CreatePlanetMarker(IReadOnlyOutpost outpost)
         {
             var rect = SampleUI.CreateRect(map, $"Planet {outpost.FullDisplayText}");
             rect.anchorMin = rect.anchorMax = new Vector2(0.5f, 0.5f);
@@ -197,7 +197,7 @@ namespace HelloWorld.Assets.Scripts
         /// the same world) circle their shared planet point.
         /// </summary>
         private static Dictionary<string, OrbitSpec> BuildOrbits(
-            IReadOnlyList<ReadOnlyOutpost> outposts,
+            IReadOnlyList<IReadOnlyOutpost> outposts,
             out Dictionary<string, OrbitSpec> parentOrbits)
         {
             var orbits = new Dictionary<string, OrbitSpec>();
@@ -244,7 +244,7 @@ namespace HelloWorld.Assets.Scripts
         /// (Assets.Art.JupiterSprite / SaturnSprite).
         /// </summary>
         private void SyncParentMarkers(
-            IReadOnlyList<ReadOnlyOutpost> outposts,
+            IReadOnlyList<IReadOnlyOutpost> outposts,
             Dictionary<string, OrbitSpec> parentOrbits,
             Func<string, Sprite> parentPlanetSprite)
         {
@@ -275,7 +275,7 @@ namespace HelloWorld.Assets.Scripts
             }
         }
 
-        private static Sprite TryImage(ReadOnlyOutpost outpost)
+        private static Sprite TryImage(IReadOnlyOutpost outpost)
         {
             try { return outpost.Image; }
             catch (Exception) { return null; }
@@ -302,8 +302,8 @@ namespace HelloWorld.Assets.Scripts
             private Image sun;
             private Image flare;
             private Image background;
-            private ReadOnlyAnimationInfo shipAnimation;
-            private ReadOnlyAnimationInfo flareAnimation;
+            private IReadOnlyAnimationInfo shipAnimation;
+            private IReadOnlyAnimationInfo flareAnimation;
             private Dictionary<string, OrbitSpec> orbits;
             private Dictionary<string, Button> markers;
             private Dictionary<string, OrbitSpec> parentOrbits;
@@ -333,8 +333,8 @@ namespace HelloWorld.Assets.Scripts
             }
 
             public void SetAnimations(
-                ReadOnlyAnimationInfo shipInfo,
-                ReadOnlyAnimationInfo flareInfo)
+                IReadOnlyAnimationInfo shipInfo,
+                IReadOnlyAnimationInfo flareInfo)
             {
                 shipAnimation = shipInfo;
                 flareAnimation = flareInfo;

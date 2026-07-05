@@ -107,12 +107,46 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(export.files);
             Assert.IsNotNull(export.textureTemplates);
             Assert.IsNotNull(export.audioClipTemplates);
+            Assert.IsNull(export.tileGridContents);
             Assert.AreEqual(0, export.dialogues.Count);
             Assert.AreEqual(0, export.dialogueGroups.Count);
             Assert.AreEqual(0, export.priorityGroups.Count);
             Assert.AreEqual(0, export.files.Count);
             Assert.AreEqual(0, export.textureTemplates.Count);
             Assert.AreEqual(0, export.audioClipTemplates.Count);
+        }
+
+        [Test]
+        public void LegacyTileGridContents_ParseIntoTheGuardTokenForLoudRejection()
+        {
+            // Exports at schema version 3+ never carry tileGridContents; the
+            // field survives only as a legacy detector so NeoClient can throw
+            // a pinpointed error instead of silently dropping tile data.
+            var json = @"
+{
+  ""project"": {
+    ""_id"": ""project-a"",
+    ""id"": ""project-a"",
+    ""name"": ""Legacy Export"",
+    ""rootAssetsAttributeId"": ""assets-root"",
+    ""rootSaveFileAttributeId"": ""save-root"",
+    ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+    ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+  },
+  ""attributes"": {},
+  ""values"": {},
+  ""types"": {},
+  ""enums"": {},
+  ""tileGridContents"": {
+    ""town-grid"": { ""schemaVersion"": 1, ""regions"": [] }
+  }
+}";
+
+            var export = Deserialize(json);
+
+            Assert.IsNotNull(export.tileGridContents);
+            Assert.AreEqual(1, export.tileGridContents!.Count);
+            Assert.IsNotNull(export.tileGridContents["town-grid"]);
         }
 
         [Test]

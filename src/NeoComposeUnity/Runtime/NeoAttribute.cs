@@ -71,6 +71,18 @@ namespace NeoCompose.Runtime
             this.attribute = attribute;
             this.overrideValueId = overrideValueId;
             this.ownership = ownership;
+            // Storage partitions (spec §6): binding a node to a world grid's
+            // value id IS content access — lazily merge the grid's
+            // `world:<gridTypeId>` placement partition before subclasses
+            // resolve the row. The bound row (the grid root, in main) yields
+            // the type id the key is derived from; a no-op for non-grid value
+            // ids (their type id keys no shipped partition) and for deep
+            // placement ids that resolve no row until their partition loads.
+            string? boundValueId = overrideValueId ?? attribute.valueId;
+            if (boundValueId is not null)
+            {
+                client.EnsureWorldPartitionLoaded(boundValueId);
+            }
         }
 
         /// <summary>
@@ -342,8 +354,17 @@ namespace NeoCompose.Runtime
         {
             get
             {
-                if (valueId is null) return null;
-                if (!client.TryGetOverlaidValue(ownership, valueId, out TValue? match)) return null;
+                var resolvedValueId = valueId;
+                if (resolvedValueId is null)
+                {
+                    return AttributeValueFactory.CreateFromDefault(
+                        attribute,
+                        $"__neo_default:{attribute.id}",
+                        attribute.createdAt,
+                        attribute.updatedAt) as TValue;
+                }
+
+                if (!client.TryGetOverlaidValue(ownership, resolvedValueId, out TValue? match)) return null;
                 return match;
             }
         }
@@ -507,6 +528,7 @@ namespace NeoCompose.Runtime
             }
             client.SetWritableValue(ownership, newRow);
             value = newRow;
+            boundValueId = newRow.id;
             if (parent is not null)
             {
                 parent.BindChildValueId(this, newRow.id);
@@ -514,7 +536,6 @@ namespace NeoCompose.Runtime
             }
             // Parentless root with no authored default — remember the minted
             // id on the node so its own resolution chain finds it.
-            boundValueId = newRow.id;
         }
 
         /// <summary>

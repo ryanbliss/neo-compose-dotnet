@@ -141,7 +141,10 @@ namespace NeoCompose.Runtime
                 // No unlinked-values warning: transient factory values mid-action
                 // are normal between explicit saves, and the auto-commit cadence
                 // would turn the hint into spam.
-                await CommitCoreAsync(replaceSnapshot: false, warnUnlinked: false);
+                await CommitCoreAsync(
+                    replaceSnapshot: false,
+                    warnUnlinked: false,
+                    flushLiveImmediately: false);
             }
             catch (System.Exception exception)
             {
@@ -245,6 +248,8 @@ namespace NeoCompose.Runtime
             this.loader = loader ?? throw new System.ArgumentNullException(nameof(loader));
             this.data = loader.Schema;
             ValidateExportSchemaVersion(data.metadata);
+            ValidateNoLegacyTileGridContents(data);
+            AdoptStampedMainValueRows();
             SaveOptions = saveOptions ?? new NeoSaveOptions();
             this.assetDatabase = assetDatabase;
             Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
@@ -254,6 +259,7 @@ namespace NeoCompose.Runtime
             ValidateFunctionAttributes();
             LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
+            BuildMembershipIndex();
             BuildAuthoredOwnershipMap();
             InitializeSaveDefaults();
             InitializeSessionDefaults();
@@ -427,18 +433,45 @@ namespace NeoCompose.Runtime
             NeoValueOwnership inherited,
             HashSet<string> visited)
         {
-            if (!visited.Add(valueId)) return;
             NeoValueOwnership effective =
                 (attribute is null ? null : DeclaredOwnership(attribute)) ?? inherited;
+            if (!data.values.TryGetValue(valueId, out AttributeValue row)) return;
+            if (row is ObjectAttributeValue { typeId: not null } obj
+                && TryResolveCustomTypeAllowedOwnership(obj.typeId, out NeoValueOwnership typeOwnership))
+            {
+                effective = typeOwnership;
+            }
+            string visitKey = $"{effective}:{attribute?.id ?? ""}:{valueId}";
+            if (!visited.Add(visitKey)) return;
             if (effective != NeoValueOwnership.Asset)
             {
                 authoredOwnership[valueId] = effective;
             }
-            if (!data.values.TryGetValue(valueId, out AttributeValue row)) return;
             foreach (var child in EnumerateOwnedChildLinks(row, attribute))
             {
                 WalkAuthoredOwnership(child.valueId, child.attribute, effective, visited);
             }
+        }
+
+        private bool TryResolveCustomTypeAllowedOwnership(
+            string typeId,
+            out NeoValueOwnership ownership)
+        {
+            string? cursor = typeId;
+            for (int hops = 0; cursor is not null && hops < 16; hops++)
+            {
+                if (!data.types.TryGetValue(cursor, out CustomType type)) break;
+                NeoValueOwnership? declared = NeoAttributeStorageResolution.ToOwnership(
+                    NeoAttributeStorageResolution.Parse(type.allowedStorage));
+                if (declared is not null)
+                {
+                    ownership = declared.Value;
+                    return true;
+                }
+                cursor = type.extendsTypeId;
+            }
+            ownership = NeoValueOwnership.Asset;
+            return false;
         }
 
         /// <summary>
@@ -470,15 +503,84 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            // Metadata is optional (test fixtures, hand-built exports) and
-            // schema version 1 predates the storage model (attributes simply
-            // have no `storage` field — every value reads as Inherit, which
-            // reproduces the legacy positional semantics). Anything newer
-            // than 2 is from a future web build this SDK does not understand.
+            // Metadata is optional (test fixtures, hand-built exports). Schema
+            // version 3 is the values-native tile grid contract: exports no
+            // longer carry derived `tileGridContents` regions and containment
+            // lists are unordered (membership by `containerId`). Older exports
+            // are structurally incompatible and must be re-exported.
             if (metadata is null) return;
-            if (metadata.schemaVersion <= 2) return;
+            if (metadata.schemaVersion < 3)
+            {
+                throw new System.InvalidOperationException(
+                    $"Project export schema version {metadata.schemaVersion} predates the values-native tile grid (this SDK requires 3). Re-export the project from the current web app.");
+            }
+            if (metadata.schemaVersion > 3)
+            {
+                throw new System.InvalidOperationException(
+                    $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (3). Update the NeoCompose SDK.");
+            }
+        }
+
+        /// <summary>
+        /// Guard + adoption for partition-stamped rows found in the main
+        /// values map at construction (spec §6). Guard choice: a stamp whose
+        /// partition the export does NOT ship is REJECTED LOUDLY (a
+        /// hand-edited or miswritten export — main-partition rows are never
+        /// stamped). A stamp whose partition DOES ship is adopted as
+        /// already-loaded: <see cref="ProjectData"/> is shared across clients
+        /// (one <c>NeoProjectStore</c> schema, many saves), so a sibling
+        /// client's <see cref="LoadValuePartition"/> legitimately leaves the
+        /// partition's rows merged in — re-rejecting or re-loading them would
+        /// double-load. The stamp stays on the row either way.
+        /// </summary>
+        private static void ValidateNoLegacyTileGridContents(ProjectData data)
+        {
+            // Defense in depth beside the schema-version gate: a hand-built or
+            // version-stripped export still may not smuggle legacy derived
+            // regions past the values-native contract.
+            if (data.tileGridContents is null) return;
+            if (data.tileGridContents.Count == 0) return;
             throw new System.InvalidOperationException(
-                $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (2). Update the NeoCompose SDK.");
+                "Project export contains a non-empty 'tileGridContents' payload, which predates the values-native tile grid. Re-export the project from the current web app; tile data now ships exclusively in 'values'.");
+        }
+
+        private void AdoptStampedMainValueRows()
+        {
+            // A freshly parsed export's `values` map carries no `mapKey` stamps
+            // (partition rows ship under `valuePartitions`). But this ctor also
+            // runs against a ProjectData whose partitions were already merged
+            // into `values` by an earlier client's LoadValuePartition (the same
+            // schema object reused across reconstructions) — those rows ARE
+            // stamped and ARE legitimately loaded. Distinguish the two:
+            //   - stamped AND present in valuePartitions[mapKey] => already
+            //     loaded, adopt it into the loaded-partition tracking.
+            //   - stamped but NOT backed by its partition => corrupt export,
+            //     reject loudly (a main row must not claim a partition it does
+            //     not belong to).
+            foreach (var pair in data.values)
+            {
+                string? mapKey = pair.Value?.mapKey;
+                if (string.IsNullOrEmpty(mapKey)) continue;
+                if (!PartitionShipsRow(mapKey!, pair.Key))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Value '{pair.Key}' in the main 'values' map is stamped with partition '{mapKey}', but no such row ships under 'valuePartitions[\"{mapKey}\"]'. Partition rows must ship in their partition; re-export the project from the current web app.");
+                }
+                if (!loadedPartitionRowIds.TryGetValue(mapKey!, out var rowIds))
+                {
+                    rowIds = new HashSet<string>();
+                    loadedPartitionRowIds[mapKey!] = rowIds;
+                }
+                rowIds.Add(pair.Key);
+            }
+        }
+
+        private bool PartitionShipsRow(string mapKey, string rowId)
+        {
+            if (data.valuePartitions is null) return false;
+            if (!data.valuePartitions.TryGetValue(mapKey, out var token)) return false;
+            return token is Newtonsoft.Json.Linq.JObject partition
+                && partition[rowId] is not null;
         }
 
         internal bool TryGetValueOwnership(string id, out NeoValueOwnership ownership)
@@ -672,9 +774,15 @@ namespace NeoCompose.Runtime
         {
             if (ownership == NeoValueOwnership.Asset) return false;
             var store = GetWritableStore(ownership);
+            TryResolveContainerIdForValueId(id, out string? memberContainerId);
             if (!store.values.Remove(id)) return false;
+            IndexStoreRemove(ownership, id);
             TouchWritableStoreUpdatedAt(ownership);
             OnWritableValueChanged?.Invoke(ownership, id);
+            if (memberContainerId is not null)
+            {
+                RaiseContainerChanged(ownership, memberContainerId);
+            }
             if (ownership == NeoValueOwnership.Save)
             {
                 RaiseSaveValueChanged(id);
@@ -686,9 +794,12 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             TAttributeValue value) where TAttributeValue : AttributeValue
         {
+            StampMapKeyForWrite(ownership, value);
             GetWritableStore(ownership).values[value.id] = value;
+            IndexStoreWrite(ownership, value);
             TouchWritableStoreUpdatedAt(ownership);
             OnWritableValueChanged?.Invoke(ownership, value.id);
+            NotifyContainerMembershipChanged(ownership, value.id);
             if (ownership == NeoValueOwnership.Save)
             {
                 RaiseSaveValueChanged(value.id);
@@ -699,7 +810,9 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             TAttributeValue value) where TAttributeValue : AttributeValue
         {
+            StampMapKeyForWrite(ownership, value);
             GetWritableStore(ownership).values[value.id] = value;
+            IndexStoreWrite(ownership, value);
             TouchWritableStoreUpdatedAt(ownership);
         }
 
@@ -733,10 +846,19 @@ namespace NeoCompose.Runtime
             NeoValueOwnership targetOwnership,
             string sourceValueId)
         {
+            return ImportValueReference(targetOwnership, sourceValueId, out _);
+        }
+
+        internal string ImportValueReference(
+            NeoValueOwnership targetOwnership,
+            string sourceValueId,
+            out bool sourceMoved)
+        {
             if (targetOwnership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException("Cannot import a writable value into asset ownership.");
             }
+            sourceMoved = false;
             if (!TryGetValueOwnership(sourceValueId, out NeoValueOwnership sourceOwnership))
             {
                 return sourceValueId;
@@ -757,6 +879,7 @@ namespace NeoCompose.Runtime
                     TryInferAttributeForValueId(sourceValueId, out Attribute? sourceAttribute)
                         ? sourceAttribute
                         : null);
+                sourceMoved = true;
                 return sourceValueId;
             }
             return CloneValueGraphToOwnership(
@@ -781,6 +904,7 @@ namespace NeoCompose.Runtime
             if (!sourceStore.values.TryGetValue(valueId, out AttributeValue? row)) return;
 
             targetStore.values[valueId] = row;
+            IndexStoreWrite(targetOwnership, row);
             foreach (var child in EnumerateOwnedChildLinks(row, sourceAttribute))
             {
                 PromoteValueGraph(
@@ -791,6 +915,7 @@ namespace NeoCompose.Runtime
                     child.attribute);
             }
             sourceStore.values.Remove(valueId);
+            IndexStoreRemove(sourceOwnership, valueId);
             OnWritableValueChanged?.Invoke(sourceOwnership, valueId);
             OnWritableValueChanged?.Invoke(targetOwnership, valueId);
             if (targetOwnership == NeoValueOwnership.Save) RaiseSaveValueChanged(valueId);
@@ -899,9 +1024,11 @@ namespace NeoCompose.Runtime
                     : null;
             }
 
-            string? customTypeId = sourceAttribute is CustomAttribute custom
-                ? custom.customTypeId
-                : (row as ObjectAttributeValue)?.typeId;
+            string? customTypeId = (row as ObjectAttributeValue)?.typeId;
+            if (string.IsNullOrEmpty(customTypeId) && sourceAttribute is CustomAttribute custom)
+            {
+                customTypeId = custom.customTypeId;
+            }
             if (string.IsNullOrEmpty(customTypeId)) return null;
             if (!TryResolveMergedSchemaAttribute(customTypeId!, key, out Attribute? childAttribute))
             {
@@ -1149,6 +1276,12 @@ namespace NeoCompose.Runtime
             clone.createdAt = row.createdAt;
             clone.updatedAt = row.updatedAt;
             clone.typeId = row.typeId;
+            // containerId is immutable membership identity: a clone-on-write
+            // shadow of a member row stays a member of the same container.
+            clone.containerId = row.containerId;
+            // mapKey is immutable partition identity: a shadow of a
+            // partition-stamped row stays in the same storage partition.
+            clone.mapKey = row.mapKey;
             return clone;
         }
 
@@ -1203,10 +1336,16 @@ namespace NeoCompose.Runtime
                     }
                     break;
             }
+            TryResolveContainerIdForValueId(valueId, out string? memberContainerId);
             if (store.values.Remove(valueId))
             {
+                IndexStoreRemove(ownership, valueId);
                 TouchWritableStoreUpdatedAt(ownership);
                 OnWritableValueChanged?.Invoke(ownership, valueId);
+                if (memberContainerId is not null)
+                {
+                    RaiseContainerChanged(ownership, memberContainerId);
+                }
                 if (ownership == NeoValueOwnership.Save)
                 {
                     RaiseSaveValueChanged(valueId);
@@ -1256,10 +1395,16 @@ namespace NeoCompose.Runtime
                     }
                     break;
             }
+            TryResolveContainerIdForValueId(valueId, out string? memberContainerId);
             if (store.values.Remove(valueId))
             {
+                IndexStoreRemove(ownership, valueId);
                 TouchWritableStoreUpdatedAt(ownership);
                 OnWritableValueChanged?.Invoke(ownership, valueId);
+                if (memberContainerId is not null)
+                {
+                    RaiseContainerChanged(ownership, memberContainerId);
+                }
                 if (ownership == NeoValueOwnership.Save)
                 {
                     RaiseSaveValueChanged(valueId);
@@ -1296,6 +1441,521 @@ namespace NeoCompose.Runtime
                 _ => throw new System.InvalidOperationException(
                     $"Ownership '{ownership}' does not have a writable store."),
             };
+        }
+
+        // -----------------------------------------------------------------
+        // Unordered-list membership index (specs/list-attribute-and-tilegrid
+        // -scaling.md §1.2/§3.3). Membership of an unordered list value is
+        // the set of live rows whose `containerId` names it. The index is
+        // layered like the value overlay: authored rows (data.values) plus
+        // per-store overlay rows join; an overlay tombstone
+        // (`mark: "removed"`) at a member id subtracts that member.
+        // Built in one pass at load and maintained incrementally by the
+        // store write/remove chokepoints below.
+        // -----------------------------------------------------------------
+
+        private readonly Dictionary<string, HashSet<string>> authoredEntriesByContainer = new();
+        private readonly Dictionary<string, string> authoredContainerByRow = new();
+        private readonly Dictionary<string, HashSet<string>> saveEntriesByContainer = new();
+        private readonly Dictionary<string, string> saveContainerByRow = new();
+        private readonly Dictionary<string, HashSet<string>> sessionEntriesByContainer = new();
+        private readonly Dictionary<string, string> sessionContainerByRow = new();
+
+        private void BuildMembershipIndex()
+        {
+            authoredEntriesByContainer.Clear();
+            authoredContainerByRow.Clear();
+            foreach (var row in data.values.Values)
+            {
+                if (string.IsNullOrEmpty(row.containerId)) continue;
+                AddMembership(
+                    authoredEntriesByContainer, authoredContainerByRow, row.id, row.containerId!);
+            }
+            RebuildStoreMembership(NeoValueOwnership.Save);
+            RebuildStoreMembership(NeoValueOwnership.Session);
+        }
+
+        private void RebuildStoreMembership(NeoValueOwnership ownership)
+        {
+            var (byContainer, byRow) = MembershipMaps(ownership);
+            byContainer.Clear();
+            byRow.Clear();
+            foreach (var row in GetWritableStore(ownership).values.Values)
+            {
+                if (string.IsNullOrEmpty(row.containerId)) continue;
+                AddMembership(byContainer, byRow, row.id, row.containerId!);
+            }
+        }
+
+        private (Dictionary<string, HashSet<string>> byContainer, Dictionary<string, string> byRow)
+            MembershipMaps(NeoValueOwnership ownership)
+        {
+            return ownership switch
+            {
+                NeoValueOwnership.Save => (saveEntriesByContainer, saveContainerByRow),
+                NeoValueOwnership.Session => (sessionEntriesByContainer, sessionContainerByRow),
+                _ => throw new System.InvalidOperationException(
+                    $"Ownership '{ownership}' does not have a membership index."),
+            };
+        }
+
+        private static void AddMembership(
+            Dictionary<string, HashSet<string>> byContainer,
+            Dictionary<string, string> byRow,
+            string rowId,
+            string containerId)
+        {
+            if (!byContainer.TryGetValue(containerId, out var members))
+            {
+                members = new HashSet<string>();
+                byContainer[containerId] = members;
+            }
+            members.Add(rowId);
+            byRow[rowId] = containerId;
+        }
+
+        /// <summary>Index maintenance chokepoint for a store write at <c>value.id</c>.</summary>
+        private void IndexStoreWrite(NeoValueOwnership ownership, AttributeValue value)
+        {
+            var (byContainer, byRow) = MembershipMaps(ownership);
+            if (byRow.TryGetValue(value.id, out string previousContainerId)
+                && previousContainerId != value.containerId)
+            {
+                if (byContainer.TryGetValue(previousContainerId, out var previousMembers))
+                {
+                    previousMembers.Remove(value.id);
+                }
+                byRow.Remove(value.id);
+            }
+            if (!string.IsNullOrEmpty(value.containerId))
+            {
+                AddMembership(byContainer, byRow, value.id, value.containerId!);
+            }
+        }
+
+        /// <summary>Index maintenance chokepoint for a store removal at <paramref name="id"/>.</summary>
+        private void IndexStoreRemove(NeoValueOwnership ownership, string id)
+        {
+            var (byContainer, byRow) = MembershipMaps(ownership);
+            if (!byRow.TryGetValue(id, out string containerId)) return;
+            if (byContainer.TryGetValue(containerId, out var members))
+            {
+                members.Remove(id);
+            }
+            byRow.Remove(id);
+        }
+
+        // -----------------------------------------------------------------
+        // Storage partitions (specs/list-attribute-and-tilegrid-scaling.md
+        // §6). A partition is a named subset of the authored values map that
+        // ships under `project.json`'s `valuePartitions[mapKey]` and stays
+        // raw JSON until loaded. Loading materializes the partition's rows
+        // into the ONE authored dictionary (in-memory stays a single map per
+        // ownership); unloading removes exactly those rows again.
+        //
+        // A world grid keys its partition on its CONCRETE grid type id —
+        // `world:<gridTypeId>` — and the partition covers ONLY the grid's
+        // `Children` placement subtree. The grid root row and its light
+        // metadata (CellSize, PixelsPerUnit, DisplayName, and the palette
+        // reference lookups Tiles/TileLayers/Objects/ObjectLayers) stay in
+        // the main partition, so worlds are enumerable and nameable without
+        // loading heavy placement content. Two grid instances of the same
+        // concrete leaf type co-load one partition — still correct, value
+        // rows carry unique ids. The partition is auto-loaded lazily by the
+        // tile grid primitive's content-resolution path.
+        //
+        // Partition subtrees are asset content by contract (Save/Session
+        // storage overrides force the "main" partition on the web side), so
+        // load/unload never touches the authored-ownership overlay map.
+        // -----------------------------------------------------------------
+
+        private readonly Dictionary<string, HashSet<string>> loadedPartitionRowIds = new();
+
+        /// <summary>Partition keys currently merged into the authored values map.</summary>
+        public IReadOnlyCollection<string> LoadedValuePartitions => loadedPartitionRowIds.Keys;
+
+        /// <summary>
+        /// Raised after a partition's rows are merged into (load) or removed
+        /// from (unload) the authored values map. Derived indexes over
+        /// authored content (tile grid lookup caches) key on this to drop and
+        /// lazily rebuild.
+        /// </summary>
+        internal event System.Action<string>? OnValuePartitionChanged;
+
+        /// <summary>True when the partition's rows are currently loaded.</summary>
+        public bool IsValuePartitionLoaded(string mapKey) =>
+            loadedPartitionRowIds.ContainsKey(mapKey);
+
+        /// <summary>True when the export ships a partition under <paramref name="mapKey"/>.</summary>
+        internal bool HasValuePartition(string mapKey) =>
+            data.valuePartitions is not null && data.valuePartitions.ContainsKey(mapKey);
+
+        /// <summary>
+        /// Auto-load hook for the tile grid resolution path: loads the grid's
+        /// <c>world:&lt;gridTypeId&gt;</c> placement partition when the export
+        /// ships one and it isn't loaded yet. The grid root row lives in the
+        /// main partition, so its concrete type id — the partition key — is
+        /// resolvable before the placement subtree loads. No-op when the bound
+        /// value id resolves no row yet (a deep placement node binding before
+        /// its own partition is merged), carries no type id, or names a grid
+        /// whose content is authored in the main partition, so the public
+        /// GetTile/etc. surface works unchanged either way.
+        /// </summary>
+        internal void EnsureWorldPartitionLoaded(string gridValueId)
+        {
+            string? gridTypeId = ResolveEffectiveRow(gridValueId)?.typeId;
+            if (string.IsNullOrEmpty(gridTypeId)) return;
+            string mapKey = MakeWorldPartitionKey(gridTypeId!);
+            if (loadedPartitionRowIds.ContainsKey(mapKey)) return;
+            if (!HasValuePartition(mapKey)) return;
+            LoadValuePartition(mapKey);
+        }
+
+        /// <summary>The partition key a world grid's placement subtree is
+        /// stamped with — derived from the grid's concrete type id.</summary>
+        public static string MakeWorldPartitionKey(string gridTypeId) => $"world:{gridTypeId}";
+
+        /// <summary>
+        /// Materializes the partition's raw rows into typed
+        /// <see cref="AttributeValue"/>s and merges them into the authored
+        /// values map, updating the membership index incrementally and
+        /// invalidating derived indexes. Idempotent — loading a loaded
+        /// partition is a no-op. Throws when the export has no such
+        /// partition (listing the available keys).
+        /// </summary>
+        public void LoadValuePartition(string mapKey)
+        {
+            EnsureNotDisposed();
+            if (string.IsNullOrEmpty(mapKey))
+            {
+                throw new System.ArgumentException(
+                    "Partition mapKey cannot be null or empty.", nameof(mapKey));
+            }
+            if (loadedPartitionRowIds.ContainsKey(mapKey)) return;
+            if (data.valuePartitions is null
+                || !data.valuePartitions.TryGetValue(mapKey, out Newtonsoft.Json.Linq.JToken token))
+            {
+                throw new System.ArgumentOutOfRangeException(
+                    nameof(mapKey),
+                    $"Project export has no value partition '{mapKey}'. Available partitions: [{string.Join(", ", AvailableValuePartitionKeys())}].");
+            }
+            if (token is not Newtonsoft.Json.Linq.JObject partitionObject)
+            {
+                throw new System.InvalidOperationException(
+                    $"Value partition '{mapKey}' is not a JSON object of value rows (got {token.Type}).");
+            }
+
+            var rows = partitionObject.ToObject<Dictionary<string, AttributeValue>>();
+            if (rows is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"Value partition '{mapKey}' could not be deserialized into value rows.");
+            }
+
+            var rowIds = new HashSet<string>();
+            foreach (var pair in rows)
+            {
+                AttributeValue row = pair.Value;
+                if (row.id != pair.Key)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Value partition '{mapKey}' row keyed '{pair.Key}' carries mismatched id '{row.id}'.");
+                }
+                if (data.values.ContainsKey(row.id))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Value partition '{mapKey}' row '{row.id}' collides with a value id already loaded in another partition or the main values map.");
+                }
+                if (!string.IsNullOrEmpty(row.mapKey) && row.mapKey != mapKey)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Value partition '{mapKey}' row '{row.id}' is stamped with a different partition '{row.mapKey}'.");
+                }
+                // Partition residency is the stamp's source of truth —
+                // self-heal a missing per-row stamp.
+                row.mapKey = mapKey;
+                data.values[row.id] = row;
+                rowIds.Add(row.id);
+                if (!string.IsNullOrEmpty(row.containerId))
+                {
+                    AddMembership(
+                        authoredEntriesByContainer, authoredContainerByRow, row.id, row.containerId!);
+                }
+            }
+            loadedPartitionRowIds[mapKey] = rowIds;
+            OnValuePartitionChanged?.Invoke(mapKey);
+        }
+
+        /// <summary>
+        /// Removes a loaded partition's authored rows and the derived
+        /// index entries / attribute wrappers touching them. Throws when the
+        /// partition isn't loaded, and when a save/session overlay still
+        /// shadows a row in the partition — unloading with pending overlay
+        /// writes is a caller bug (commit or discard them first).
+        /// </summary>
+        public void UnloadValuePartition(string mapKey)
+        {
+            EnsureNotDisposed();
+            if (!loadedPartitionRowIds.TryGetValue(mapKey, out HashSet<string> rowIds))
+            {
+                throw new System.InvalidOperationException(
+                    $"Value partition '{mapKey}' is not loaded. Loaded partitions: [{string.Join(", ", loadedPartitionRowIds.Keys)}].");
+            }
+            ThrowIfOverlayShadowsPartition(NeoValueOwnership.Save, mapKey, rowIds);
+            ThrowIfOverlayShadowsPartition(NeoValueOwnership.Session, mapKey, rowIds);
+            DisposeWrappersTouchingRows(rowIds);
+            foreach (var rowId in rowIds)
+            {
+                if (authoredContainerByRow.TryGetValue(rowId, out string containerId))
+                {
+                    if (authoredEntriesByContainer.TryGetValue(containerId, out var members))
+                    {
+                        members.Remove(rowId);
+                    }
+                    authoredContainerByRow.Remove(rowId);
+                }
+                data.values.Remove(rowId);
+            }
+            loadedPartitionRowIds.Remove(mapKey);
+            OnValuePartitionChanged?.Invoke(mapKey);
+        }
+
+        private IEnumerable<string> AvailableValuePartitionKeys()
+        {
+            if (data.valuePartitions is null) yield break;
+            foreach (var key in data.valuePartitions.Keys) yield return key;
+        }
+
+        private void ThrowIfOverlayShadowsPartition(
+            NeoValueOwnership ownership,
+            string mapKey,
+            HashSet<string> rowIds)
+        {
+            foreach (var pair in GetWritableStore(ownership).values)
+            {
+                bool inPartition = rowIds.Contains(pair.Key) || pair.Value.mapKey == mapKey;
+                if (!inPartition) continue;
+                throw new System.InvalidOperationException(
+                    $"Cannot unload value partition '{mapKey}': the {ownership} overlay still shadows row '{pair.Key}' in that partition. Commit or discard the overlay writes before unloading.");
+            }
+        }
+
+        /// <summary>
+        /// Disposes every registered <see cref="NeoAttribute"/> wrapper (and
+        /// generated custom value) bound to one of the partition rows being
+        /// unloaded, so no live wrapper keeps referencing a removed row.
+        /// </summary>
+        private void DisposeWrappersTouchingRows(HashSet<string> rowIds)
+        {
+            var staleNodes = new List<NeoAttribute>();
+            foreach (var node in nodesInternal.Values)
+            {
+                bool touches =
+                    (node.value is not null && rowIds.Contains(node.value.id))
+                    || (node.overrideValueId is not null && rowIds.Contains(node.overrideValueId));
+                if (touches) staleNodes.Add(node);
+            }
+            var staleGenerated = new List<NeoGeneratedCustomValue>();
+            foreach (var generated in generatedValuesInternal.Values)
+            {
+                if (generated.valueId is not null && rowIds.Contains(generated.valueId))
+                {
+                    staleGenerated.Add(generated);
+                }
+            }
+            foreach (var generated in staleGenerated)
+            {
+                generated.Dispose();
+            }
+            foreach (var node in staleNodes)
+            {
+                node.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Partition-stamp inheritance chokepoint for overlay writes (spec
+        /// §6): a row written without a stamp inherits, in order, the stamp
+        /// of the row it shadows (authored, or the save row beneath a session
+        /// write), then its containment container's effective stamp (created
+        /// member rows live in their container's partition). Rows that
+        /// resolve no stamp are main-partition and stay unstamped.
+        /// </summary>
+        private void StampMapKeyForWrite(NeoValueOwnership ownership, AttributeValue value)
+        {
+            if (!string.IsNullOrEmpty(value.mapKey)) return;
+            if (data.values.TryGetValue(value.id, out AttributeValue authored))
+            {
+                value.mapKey = authored.mapKey;
+                return;
+            }
+            if (ownership == NeoValueOwnership.Session
+                && saveData.values.TryGetValue(value.id, out AttributeValue saveRow)
+                && !string.IsNullOrEmpty(saveRow.mapKey))
+            {
+                value.mapKey = saveRow.mapKey;
+                return;
+            }
+            if (string.IsNullOrEmpty(value.containerId)) return;
+            value.mapKey = ResolveEffectiveRow(value.containerId!)?.mapKey;
+        }
+
+        /// <summary>
+        /// Resolves the container the row at <paramref name="valueId"/>
+        /// belongs to (its stamped <see cref="AttributeValue.containerId"/>),
+        /// looking across all layers — including through overlay tombstones,
+        /// which carry no containerId themselves but subtract an authored or
+        /// lower-layer member.
+        /// </summary>
+        internal bool TryResolveContainerIdForValueId(
+            string valueId,
+            [NotNullWhen(true)] out string? containerId)
+        {
+            if (sessionContainerByRow.TryGetValue(valueId, out string sessionContainer))
+            {
+                containerId = sessionContainer;
+                return true;
+            }
+            if (saveContainerByRow.TryGetValue(valueId, out string saveContainer))
+            {
+                containerId = saveContainer;
+                return true;
+            }
+            if (authoredContainerByRow.TryGetValue(valueId, out string authoredContainer))
+            {
+                containerId = authoredContainer;
+                return true;
+            }
+            containerId = null;
+            return false;
+        }
+
+        /// <summary>
+        /// Live member ids of the unordered list value at
+        /// <paramref name="containerValueId"/>, id-sorted (ordinal) for
+        /// deterministic enumeration. Respects the overlay cascade AND the
+        /// null-vs-present discriminator: the container value resolves
+        /// through the overlay (session → save → authored); a missing,
+        /// tombstoned, or <c>null</c>-valued container yields no members.
+        /// </summary>
+        internal IReadOnlyCollection<string> GetUnorderedListEntryIds(string containerValueId)
+        {
+            var containerRow = ResolveEffectiveRow(containerValueId);
+            if (containerRow is null) return System.Array.Empty<string>();
+            if (containerRow.IsRemoved) return System.Array.Empty<string>();
+            if (containerRow is not ArrayAttributeValue arrayRow) return System.Array.Empty<string>();
+            if (arrayRow.value is null) return System.Array.Empty<string>();
+
+            var members = new List<string>();
+            var seen = new HashSet<string>();
+            CollectLiveMembers(authoredEntriesByContainer, containerValueId, seen, members);
+            CollectLiveMembers(saveEntriesByContainer, containerValueId, seen, members);
+            CollectLiveMembers(sessionEntriesByContainer, containerValueId, seen, members);
+            members.Sort(System.StringComparer.Ordinal);
+            return members;
+        }
+
+        private void CollectLiveMembers(
+            Dictionary<string, HashSet<string>> byContainer,
+            string containerValueId,
+            HashSet<string> seen,
+            List<string> members)
+        {
+            if (!byContainer.TryGetValue(containerValueId, out var candidates)) return;
+            foreach (var memberId in candidates)
+            {
+                if (!seen.Add(memberId)) continue;
+                var effective = ResolveEffectiveRow(memberId);
+                if (effective is null) continue;
+                if (effective.IsRemoved) continue;
+                members.Add(memberId);
+            }
+        }
+
+        /// <summary>Raw overlay resolution (session → save → authored) WITHOUT
+        /// tombstone fallthrough — a tombstone row is returned as-is so callers
+        /// can distinguish "explicitly removed" from "absent".</summary>
+        internal AttributeValue? ResolveEffectiveRow(string valueId)
+        {
+            if (sessionData.values.TryGetValue(valueId, out AttributeValue sessionRow)) return sessionRow;
+            if (saveData.values.TryGetValue(valueId, out AttributeValue saveRow)) return saveRow;
+            if (data.values.TryGetValue(valueId, out AttributeValue authoredRow)) return authoredRow;
+            return null;
+        }
+
+        /// <summary>
+        /// Notifies subscribers bound to a member row's CONTAINER that its
+        /// membership changed (a member row was added, replaced, tombstoned,
+        /// or dropped). Unordered containment never writes the container row
+        /// itself, so this is the coarse invalidation signal container-bound
+        /// consumers (spatial indexes, link renderers) key on.
+        /// </summary>
+        private void NotifyContainerMembershipChanged(
+            NeoValueOwnership ownership,
+            string memberValueId)
+        {
+            if (!TryResolveContainerIdForValueId(memberValueId, out string? containerId)) return;
+            RaiseContainerChanged(ownership, containerId!);
+        }
+
+        // Bulk membership operations (Clear, whole-list assignment) suspend
+        // per-member container notifications and flush one coalesced
+        // notification per container when the scope disposes, so container
+        // subscribers observe a single membership change per bulk edit.
+        private int containerNotificationSuspensions;
+        private readonly List<(NeoValueOwnership ownership, string containerId)>
+            pendingContainerNotifications = new();
+
+        internal System.IDisposable SuspendContainerNotifications()
+        {
+            containerNotificationSuspensions += 1;
+            return new NeoDisposableAction(FlushContainerNotifications);
+        }
+
+        private void FlushContainerNotifications()
+        {
+            containerNotificationSuspensions -= 1;
+            if (containerNotificationSuspensions > 0) return;
+            if (pendingContainerNotifications.Count == 0) return;
+            var pending = new List<(NeoValueOwnership, string)>(pendingContainerNotifications);
+            pendingContainerNotifications.Clear();
+            foreach (var (ownership, containerId) in pending)
+            {
+                OnWritableValueChanged?.Invoke(ownership, containerId);
+            }
+        }
+
+        private void RaiseContainerChanged(NeoValueOwnership ownership, string containerId)
+        {
+            if (containerNotificationSuspensions > 0)
+            {
+                if (!pendingContainerNotifications.Contains((ownership, containerId)))
+                {
+                    pendingContainerNotifications.Add((ownership, containerId));
+                }
+                return;
+            }
+            OnWritableValueChanged?.Invoke(ownership, containerId);
+        }
+
+        /// <summary>
+        /// Resolves whether <paramref name="attribute"/> declares the
+        /// unordered list kind, walking the <see cref="Attribute.extendsAttributeId"/>
+        /// override chain like other inherited attribute fields.
+        /// </summary>
+        internal bool IsUnorderedList(ListAttribute attribute)
+        {
+            Attribute? cursor = attribute;
+            for (int hops = 0; cursor is not null && hops < 16; hops++)
+            {
+                if (cursor is ListAttribute list && !string.IsNullOrEmpty(list.listKind))
+                {
+                    return list.listKind == NeoListKinds.Unordered;
+                }
+                if (cursor.extendsAttributeId is null) return false;
+                data.attributes.TryGetValue(cursor.extendsAttributeId, out cursor);
+            }
+            return false;
         }
 
         internal bool TryResolveLookupCollectionValueId(
@@ -1462,6 +2122,19 @@ namespace NeoCompose.Runtime
             TGenerated generated = create();
             generatedValuesInternal[key] = generated;
             return generated;
+        }
+
+        internal void RegisterGeneratedCustomValue(
+            NeoGeneratedCustomValue generated,
+            NeoAttributeCustom node)
+        {
+            string key = MakeNodeKey(node.attribute.id, node.overrideValueId, node.ownership);
+            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedCustomValue existing)
+                && !ReferenceEquals(existing, generated))
+            {
+                existing.Dispose();
+            }
+            generatedValuesInternal[key] = generated;
         }
 
         internal void UnregisterGeneratedCustomValue(NeoGeneratedCustomValue generated, NeoAttributeCustom node)
@@ -1912,9 +2585,15 @@ namespace NeoCompose.Runtime
         }
 
         public Awaitable CommitAsync(bool replaceSnapshot = false) =>
-            CommitCoreAsync(replaceSnapshot, warnUnlinked: true);
+            CommitCoreAsync(
+                replaceSnapshot,
+                warnUnlinked: true,
+                flushLiveImmediately: true);
 
-        private async Awaitable CommitCoreAsync(bool replaceSnapshot, bool warnUnlinked)
+        private async Awaitable CommitCoreAsync(
+            bool replaceSnapshot,
+            bool warnUnlinked,
+            bool flushLiveImmediately)
         {
             if (warnUnlinked)
             {
@@ -1930,7 +2609,17 @@ namespace NeoCompose.Runtime
             var savedAt = NeoTimestamp.Now();
             saveData.updatedAt = savedAt;
             CaptureSaveDiagnostics(savedAt);
-            await loader.CommitSaveContentAsync(SerializeSaveData(), replaceSnapshot);
+            var content = SerializeSaveData();
+            if (flushLiveImmediately && loader is NeoSaveSynchronizer synchronizer)
+            {
+                await synchronizer.CommitSaveContentAsync(
+                    content,
+                    replaceSnapshot,
+                    flushLiveImmediately: true);
+                return;
+            }
+
+            await loader.CommitSaveContentAsync(content, replaceSnapshot);
         }
 
         public int RunGarbageCollector()
@@ -1974,7 +2663,104 @@ namespace NeoCompose.Runtime
             {
                 MarkReachableValue(ownership, rootAttribute.valueId, reachable);
             }
+            foreach (var pair in authoredOwnership)
+            {
+                if (pair.Value == ownership)
+                {
+                    MarkReachableValue(ownership, pair.Key, reachable);
+                }
+            }
+            foreach (var row in data.values.Values)
+            {
+                if (row is ObjectAttributeValue { typeId: not null } obj
+                    && TryResolveCustomTypeAllowedOwnership(obj.typeId, out NeoValueOwnership typeOwnership)
+                    && typeOwnership == ownership)
+                {
+                    MarkReachableValue(ownership, row.id, reachable);
+                }
+            }
+            // Storage partitions: overlay rows stamped into a partition that
+            // is NOT currently loaded cannot be judged — their containment
+            // container (and the rest of the authored subtree anchoring them)
+            // is not in memory. Keep them; reachability re-applies normally
+            // once the partition loads.
+            var store = GetWritableStore(ownership);
+            foreach (var row in store.values.Values)
+            {
+                if (string.IsNullOrEmpty(row.mapKey)) continue;
+                if (loadedPartitionRowIds.ContainsKey(row.mapKey!)) continue;
+                reachable.Add(row.id);
+            }
+            ExpandContainmentReachability(ownership, reachable);
             return reachable;
+        }
+
+        /// <summary>
+        /// Containment is a reachability edge (spec §1.6): a member row of an
+        /// unordered list is reachable iff its container row is reachable AND
+        /// the container's resolved value is <c>[]</c> (present). Removal
+        /// tombstones at member ids are reachable whenever their container is
+        /// — they are the durable record that an authored member was removed
+        /// and must survive GC. Live member rows behind a null container are
+        /// anomalies per the cascade rule and stay collectable. Runs to a
+        /// fixpoint because members may themselves own containers.
+        /// </summary>
+        private void ExpandContainmentReachability(
+            NeoValueOwnership ownership,
+            HashSet<string> reachable)
+        {
+            var store = GetWritableStore(ownership);
+            var (storeByContainer, _) = MembershipMaps(ownership);
+            bool grew = true;
+            while (grew)
+            {
+                grew = false;
+                var containerIds = new HashSet<string>(authoredEntriesByContainer.Keys);
+                containerIds.UnionWith(storeByContainer.Keys);
+                foreach (var containerId in containerIds)
+                {
+                    if (!reachable.Contains(containerId)) continue;
+                    bool containerPresent =
+                        TryGetOverlaidValue(ownership, containerId, out ArrayAttributeValue? containerRow)
+                        && containerRow.value is not null;
+
+                    foreach (var memberId in EnumerateContainerMemberIds(storeByContainer, containerId))
+                    {
+                        bool isTombstone =
+                            store.values.TryGetValue(memberId, out AttributeValue overlayRow)
+                            && overlayRow.IsRemoved;
+                        if (isTombstone)
+                        {
+                            if (reachable.Add(memberId)) grew = true;
+                            continue;
+                        }
+                        if (!containerPresent) continue;
+                        if (reachable.Contains(memberId)) continue;
+                        MarkReachableValue(ownership, memberId, reachable);
+                        grew = true;
+                    }
+                }
+            }
+        }
+
+        private IEnumerable<string> EnumerateContainerMemberIds(
+            Dictionary<string, HashSet<string>> storeByContainer,
+            string containerId)
+        {
+            if (authoredEntriesByContainer.TryGetValue(containerId, out var authoredMembers))
+            {
+                foreach (var id in authoredMembers) yield return id;
+            }
+            if (storeByContainer.TryGetValue(containerId, out var storeMembers))
+            {
+                foreach (var id in storeMembers)
+                {
+                    if (authoredMembers is null || !authoredMembers.Contains(id))
+                    {
+                        yield return id;
+                    }
+                }
+            }
         }
 
         private void MarkReachableValue(
@@ -1995,6 +2781,9 @@ namespace NeoCompose.Runtime
                 : null;
             foreach (var child in EnumerateOwnedChildLinks(val, sourceAttribute))
             {
+                NeoValueOwnership childOwnership =
+                    (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
+                if (childOwnership != ownership) continue;
                 MarkReachableValue(ownership, child.valueId, reachable, child.attribute);
             }
         }
@@ -2189,6 +2978,7 @@ namespace NeoCompose.Runtime
             // `DeserializeSaveData` returns null on empty/whitespace without throwing,
             // so a null/empty resolution still needs the default-build fallback.
             saveData = parsed ?? BuildDefaultSaveData();
+            saveData.values ??= new();
         }
     }
 }

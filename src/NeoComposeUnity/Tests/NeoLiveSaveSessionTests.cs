@@ -9,9 +9,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace NeoCompose.Tests
 {
@@ -60,14 +62,17 @@ namespace NeoCompose.Tests
         private const string LiveChannel = NeoSaveTestSupport.TargetChannel;
 
         private static string LiveSaveContent(
-            string values, string snapshotId = "snap-1", string snapshotHash = "hash-1")
+            string values,
+            string snapshotId = "snap-1",
+            string snapshotHash = "hash-1")
         {
             return "{\"name\":\"Live Save\",\"projectId\":\"project-1\"," +
                 "\"customId\":\"save-1\",\"releaseChannelId\":\"" + LiveChannel + "\"," +
                 "\"serverId\":\"server-save-1\",\"snapshotId\":\"" + snapshotId + "\"," +
                 "\"snapshotHash\":\"" + snapshotHash + "\",\"synchronizedAt\":3," +
                 "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
-                "\"values\":" + values + ",\"createdAt\":1,\"updatedAt\":2}";
+                "\"values\":" + values +
+                ",\"createdAt\":1,\"updatedAt\":2}";
         }
 
         private static RemoteGameSave RemoteWithValues(
@@ -146,6 +151,32 @@ namespace NeoCompose.Tests
             Assert.That(api.commits, Is.Empty, "no classic REST commit");
             Assert.That(realtime.commits, Is.Empty, "no classic realtime commit");
             Assert.That(realtime.forks, Is.Empty, "the fork waits for the debounce");
+        }
+
+        [Test]
+        public async Task ExplicitCommit_FlushesLiveSnapshotBeforeReturning()
+        {
+            var (_, sync, api, local, realtime, _) = await LiveSessionAsync();
+            var commits = new List<LocalGameSave>();
+            sync.OnCommitSuccess += commits.Add;
+
+            realtime.forkResults.Enqueue(NeoCommitResult.Committed(
+                RemoteWithValues("snap-live", "hash-live", "{\"a\":1}", "session-x")));
+
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent("{\"a\":1}"),
+                replaceSnapshot: false,
+                flushLiveImmediately: true);
+
+            Assert.That(realtime.forks, Has.Count.EqualTo(1),
+                "explicit save must not wait for the live flush debounce");
+            Assert.That(
+                realtime.forks[0].patch.entries,
+                Is.Not.Empty,
+                "the immediate flush carries the staged save-value write");
+            Assert.That(commits, Has.Count.EqualTo(1), "local commit still succeeds");
+            Assert.That(await local.LoadSaveAsync("save-1"), Does.Contain("\"a\":1"));
+            Assert.That(api.commits, Is.Empty, "still no classic REST commit");
         }
 
         [Test]
@@ -480,6 +511,94 @@ namespace NeoCompose.Tests
             Assert.That(
                 realtime.livePatches[0].patch.entries.Keys,
                 Is.EquivalentTo(new[] { "a" }));
+        }
+
+        [Test]
+        public async Task DisposedProviderFailure_StopsLiveFlushRetries()
+        {
+            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            await ForkEstablishedAsync(sync, realtime, scheduler);
+            var errors = new List<Exception>();
+            sync.OnCommitError += errors.Add;
+
+            realtime.livePatchThrows =
+                new ObjectDisposedException("ConvexRealtimeProvider");
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                replaceSnapshot: false);
+
+            scheduler.Advance(0.5);
+            Assert.That(errors, Has.Count.EqualTo(1));
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+
+            scheduler.Advance(10);
+            realtime.SetState(NeoRealtimeConnectionState.Connected);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1),
+                "provider disposal is terminal for this live session; it must not retry forever");
+        }
+
+        [Test]
+        public async Task CanceledProviderFailure_StopsLiveFlushRetries()
+        {
+            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            await ForkEstablishedAsync(sync, realtime, scheduler);
+            var errors = new List<Exception>();
+            sync.OnCommitError += errors.Add;
+
+            realtime.livePatchThrows = new TaskCanceledException("The operation was canceled.");
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                replaceSnapshot: false);
+
+            scheduler.Advance(0.5);
+            Assert.That(errors, Has.Count.EqualTo(1));
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1));
+
+            scheduler.Advance(10);
+            realtime.SetState(NeoRealtimeConnectionState.Connected);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1),
+                "provider cancellation during shutdown is terminal for this live session");
+        }
+
+        [Test]
+        public async Task ServerRejection_LogsAnErrorAndKeepsRetrying()
+        {
+            var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
+            await ForkEstablishedAsync(sync, realtime, scheduler);
+            var errors = new List<Exception>();
+            sync.OnCommitError += errors.Add;
+
+            // The Convex client's response parser surfaces a server function
+            // rejection as this envelope; unlike a disposed/canceled provider it
+            // is not terminal, so the session must keep retrying (and, because the
+            // payload is the problem, surface an error rather than a warning).
+            realtime.livePatchThrows = new InvalidOperationException(
+                "Mutation 'gameSaves:patchLiveSnapshot' failed: [Request ID: abc] Server Error");
+            LogAssert.Expect(
+                LogType.Error,
+                new System.Text.RegularExpressions.Regex(
+                    "Live flush for save \"save-1\" was rejected by the server"));
+
+            await sync.CommitSaveContentAsync(
+                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                replaceSnapshot: false);
+            scheduler.Advance(0.5);
+
+            Assert.That(errors, Has.Count.EqualTo(1), "OnCommitError still fires");
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(1), "first attempt reached the server");
+
+            // Not terminal: the re-armed staged delta retries on the next window.
+            // Once the underlying cause clears, a later flush succeeds.
+            realtime.livePatchThrows = null;
+            realtime.livePatchResults.Enqueue(NeoLivePatchResult.Patched(
+                "snap-live", "hash-2", new NeoTimestamp(42)));
+            scheduler.Advance(10);
+
+            Assert.That(realtime.livePatches, Has.Count.EqualTo(2),
+                "server rejection is not terminal; the staged delta retries and then succeeds");
+            Assert.That(sync.ActiveSave!.snapshotHash, Is.EqualTo("hash-2"));
         }
 
         /// <summary>

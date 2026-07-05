@@ -16,7 +16,7 @@ namespace NeoCompose.Runtime.Json
     /// tombstones are just entries — kept opaque as raw JSON tokens, the same
     /// trust level as <see cref="NeoSaveValues"/>. <see cref="restoredToAuthored"/>
     /// deletes the overlay key entirely so the value falls back to the authored
-    /// default. The server rejects a key present in both collections.
+    /// default. The server rejects a key present in both value collections.
     /// </summary>
     public sealed class NeoSavePatch
     {
@@ -25,7 +25,8 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>True when the patch changes nothing (the server rejects these).</summary>
         [JsonIgnore]
-        public bool IsEmpty => entries.Count == 0 && restoredToAuthored.Count == 0;
+        public bool IsEmpty =>
+            entries.Count == 0 && restoredToAuthored.Count == 0;
     }
 
     /// <summary>

@@ -57,6 +57,9 @@ namespace NeoCompose.Runtime
         private LocalGameSave? stagedLive;
 
         private bool liveFlushLoopRunning;
+        private bool liveFlushOperationRunning;
+        private readonly List<AwaitableCompletionSource> liveFlushWaiters =
+            new List<AwaitableCompletionSource>();
         private bool liveTornDown;
         private double liveLastStagedAt;
         private double liveFirstDirtyAt = -1;
@@ -204,7 +207,13 @@ namespace NeoCompose.Runtime
             }
         }
 
-        public async Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot)
+        public Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot) =>
+            CommitSaveContentAsync(content, replaceSnapshot, flushLiveImmediately: false);
+
+        internal async Awaitable CommitSaveContentAsync(
+            string content,
+            bool replaceSnapshot,
+            bool flushLiveImmediately)
         {
             if (string.IsNullOrWhiteSpace(content))
             {
@@ -217,7 +226,7 @@ namespace NeoCompose.Runtime
             // the live snapshot IS the in-place target.
             if (LiveModeEnabled)
             {
-                await StageLiveCommitAsync(content);
+                await StageLiveCommitAsync(content, flushLiveImmediately);
                 return;
             }
 
@@ -320,6 +329,11 @@ namespace NeoCompose.Runtime
             }
             catch (Exception ex)
             {
+                if (createAsLiveSessionId != null && IsTerminalLiveFlushFailure(ex))
+                {
+                    throw;
+                }
+
                 OnCommitError?.Invoke(ex);
                 if (core.RequireCloudCommit) throw;
                 // Best-effort: the local commit stands, but a cloud failure that
@@ -597,7 +611,9 @@ namespace NeoCompose.Runtime
         /// depends on the network), surface success, and mark the session dirty
         /// so the throttled flush pipeline picks the change up.
         /// </summary>
-        private async Awaitable StageLiveCommitAsync(string content)
+        private async Awaitable StageLiveCommitAsync(
+            string content,
+            bool flushImmediately = false)
         {
             State = NeoSaveSynchronizerState.Committing;
             try
@@ -628,7 +644,14 @@ namespace NeoCompose.Runtime
 
                 liveLastStagedAt = LiveClock();
                 if (liveFirstDirtyAt < 0) liveFirstDirtyAt = liveLastStagedAt;
-                KickLiveFlushLoop();
+                if (flushImmediately)
+                {
+                    await FlushLiveNowAsync();
+                }
+                else
+                {
+                    KickLiveFlushLoop();
+                }
             }
             catch (Exception)
             {
@@ -689,7 +712,47 @@ namespace NeoCompose.Runtime
                     return;
                 }
 
+                await FlushLiveOnceSerializedAsync(realtime);
+            }
+        }
+
+        private async Awaitable FlushLiveNowAsync()
+        {
+            if (liveTornDown || liveFirstDirtyAt < 0) return;
+
+            var realtime = core.RealtimeProvider;
+            if (realtime == null || !realtime.CanCommit)
+            {
+                KickLiveFlushLoop();
+                return;
+            }
+
+            await FlushLiveOnceSerializedAsync(realtime);
+        }
+
+        private async Awaitable FlushLiveOnceSerializedAsync(INeoRealtimeProvider realtime)
+        {
+            while (liveFlushOperationRunning)
+            {
+                var waiter = new AwaitableCompletionSource();
+                liveFlushWaiters.Add(waiter);
+                await waiter.Awaitable;
+            }
+
+            liveFlushOperationRunning = true;
+            try
+            {
                 await FlushLiveOnceAsync(realtime);
+            }
+            finally
+            {
+                liveFlushOperationRunning = false;
+                var waiters = liveFlushWaiters.ToArray();
+                liveFlushWaiters.Clear();
+                foreach (var waiter in waiters)
+                {
+                    waiter.TrySetResult();
+                }
             }
         }
 
@@ -977,10 +1040,77 @@ namespace NeoCompose.Runtime
         private void HandleLiveFlushFailure(Exception exception)
         {
             OnCommitError?.Invoke(exception);
+            if (IsTerminalLiveFlushFailure(exception))
+            {
+                StopLiveFlushRetries();
+                if (exception is OperationCanceledException) return;
+
+                Debug.LogWarning(
+                    $"[NeoCompose] Live flush for save \"{CustomId}\" stopped because the " +
+                    $"realtime provider is no longer available. The staged change is in the " +
+                    $"local store and reconciles on the next load. " +
+                    $"{exception.GetType().Name}: {exception.Message}");
+                return;
+            }
+
+            // A server-side rejection (the mutation round-tripped and the Convex
+            // function returned an error) is permanent for the current payload,
+            // not a transient transport hiccup: recomposing the same delta fails
+            // again every flush. Surface it as an error so it is not lost in the
+            // warning stream; the staged changes still compose forward and keep
+            // retrying (a fix — new authored heads, a payload change — may make a
+            // later flush succeed).
+            if (IsServerRejection(exception))
+            {
+                Debug.LogError(
+                    $"[NeoCompose] Live flush for save \"{CustomId}\" was rejected by the server; " +
+                    $"the staged changes compose into the next flush and keep retrying, but this " +
+                    $"payload will be rejected again until the underlying cause is resolved. " +
+                    $"{exception.GetType().Name}: {exception.Message}");
+                ReArmLiveFlush();
+                return;
+            }
+
             Debug.LogWarning(
                 $"[NeoCompose] Live flush for save \"{CustomId}\" failed; the staged changes " +
                 $"compose into the next flush. {exception.GetType().Name}: {exception.Message}");
             ReArmLiveFlush();
+        }
+
+        /// <summary>A live-flush failure is a server-side rejection — the mutation
+        /// reached the server and its function returned an error — rather than a
+        /// transient transport failure when it surfaces the Convex client's
+        /// server-error envelope (<c>"&lt;Op&gt; '&lt;fn&gt;' failed: …"</c>,
+        /// produced by the response parser for a <c>status:"error"</c> response).
+        /// Client-side transport and not-connected guards throw other message
+        /// shapes, so a non-match conservatively stays a warning.</summary>
+        private static bool IsServerRejection(Exception exception)
+        {
+            if (exception is not InvalidOperationException) return false;
+            return exception.Message.Contains("' failed:", StringComparison.Ordinal);
+        }
+
+        private bool IsTerminalLiveFlushFailure(Exception exception)
+        {
+            if (liveTornDown) return true;
+            if (exception is ObjectDisposedException) return true;
+            if (exception is OperationCanceledException) return true;
+            return false;
+        }
+
+        private void StopLiveFlushRetries()
+        {
+            liveTornDown = true;
+            liveFirstDirtyAt = -1;
+            var realtime = core.RealtimeProvider;
+            if (liveConnectionHook != null && realtime != null)
+            {
+                realtime.OnConnectionStateChanged -= liveConnectionHook;
+                liveConnectionHook = null;
+            }
+
+            realtimeHeadSubscription?.Dispose();
+            realtimeHeadSubscription = null;
         }
 
         private void ReArmLiveFlush()
@@ -1067,7 +1197,6 @@ namespace NeoCompose.Runtime
                 foreach (var pair in dirty.entries) merged[pair.Key] = pair.Value;
                 foreach (var key in dirty.restoredToAuthored) merged.Remove(key);
             }
-
             liveBaseline = (JObject)remoteValues.DeepClone();
             current.values = new NeoSaveValues(merged);
             current.snapshotId = remote.snapshotId;
@@ -1121,8 +1250,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        /// <summary>Per-key diff: entries for added/changed keys, restores for
-        /// keys the staged map no longer carries.</summary>
+        /// <summary>Per-key diff for the sparse values overlay.</summary>
         private static NeoSavePatch BuildLivePatch(JObject baseline, JObject staged)
         {
             var patch = new NeoSavePatch();
@@ -1169,24 +1297,29 @@ namespace NeoCompose.Runtime
         /// when the transport is still up.</summary>
         public void Dispose()
         {
-            if (!liveTornDown && liveFirstDirtyAt >= 0 && LiveModeEnabled)
-            {
-                var realtime = core.RealtimeProvider;
-                if (realtime != null && realtime.CanCommit)
-                {
-                    KickTeardownFlush(realtime);
-                }
-            }
+            if (liveTornDown) return;
+
+            var realtime = core.RealtimeProvider;
+            bool shouldFlush =
+                liveFirstDirtyAt >= 0
+                && LiveModeEnabled
+                && realtime != null
+                && realtime.CanCommit;
 
             liveTornDown = true;
-            if (liveConnectionHook != null && core.RealtimeProvider != null)
+            if (liveConnectionHook != null && realtime != null)
             {
-                core.RealtimeProvider.OnConnectionStateChanged -= liveConnectionHook;
+                realtime.OnConnectionStateChanged -= liveConnectionHook;
                 liveConnectionHook = null;
             }
 
             realtimeHeadSubscription?.Dispose();
             realtimeHeadSubscription = null;
+
+            if (shouldFlush)
+            {
+                KickTeardownFlush(realtime!);
+            }
         }
 
         /// <summary><c>async void</c> on purpose: Dispose cannot await, and the
@@ -1195,7 +1328,7 @@ namespace NeoCompose.Runtime
         {
             try
             {
-                await FlushLiveOnceAsync(realtime);
+                await FlushLiveOnceSerializedAsync(realtime);
             }
             catch (Exception exception)
             {
@@ -1276,13 +1409,21 @@ namespace NeoCompose.Runtime
         private NeoSaveCommitRequest BuildCommitRequest(
             LocalGameSave local, string? baseSnapshotId, string? createAsLiveSessionId = null)
         {
+            // Storage partitions (§6): the locally-staged overlay is merged
+            // (all partitions in one map — the durable local shape); the
+            // commit wire splits by each row's mapKey stamp so the server
+            // stores one snapshot doc per dirty partition. Overlays with no
+            // stamped rows pass through untouched (partitions == null keeps
+            // the pre-partition commit shape).
+            var (mainValues, partitions) = NeoSaveValuePartitions.Split(local.values);
             return new NeoSaveCommitRequest
             {
                 customId = string.IsNullOrEmpty(local.customId) ? CustomId : local.customId,
                 name = local.name,
                 version = local.version,
                 targetReleaseChannelId = core.TargetReleaseChannelId,
-                values = local.values,
+                values = mainValues,
+                valuePartitions = partitions,
                 platforms = local.platforms,
                 systems = local.systems,
                 inputDevices = local.inputDevices,

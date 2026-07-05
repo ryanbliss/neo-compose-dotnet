@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace NeoCompose.Runtime.Json
 {
@@ -40,6 +41,18 @@ namespace NeoCompose.Runtime.Json
         /// access. See <see cref="NeoSaveValues"/>.
         /// </summary>
         public NeoSaveValues values = NeoSaveValues.Empty;
+
+        /// <summary>
+        /// Storage-partition presentation of the overlay
+        /// (specs/list-attribute-and-tilegrid-scaling.md §6): the same rows as
+        /// <see cref="values"/> split by their <c>mapKey</c> stamp, keyed by
+        /// partition key. <see cref="values"/> remains the MERGED overlay (all
+        /// partitions — backward compatible) and is what the SDK loads from;
+        /// this sibling is informational on read and null on wires that
+        /// predate partitions.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, NeoSaveValues>? valuePartitions;
 
         /// <summary>Platforms that wrote this save, or null when diagnostics are off.</summary>
         public List<GameRuntimePlatform>? platforms;
@@ -175,6 +188,7 @@ namespace NeoCompose.Runtime.Json
                 projectId = remote.projectId,
                 version = remote.version,
                 values = remote.values,
+                valuePartitions = remote.valuePartitions,
                 platforms = remote.platforms,
                 systems = remote.systems,
                 inputDevices = remote.inputDevices,

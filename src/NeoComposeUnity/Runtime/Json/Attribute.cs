@@ -55,6 +55,16 @@ namespace NeoCompose.Runtime.Json
         /// fields.
         /// </summary>
         public string? storage;
+        /// <summary>
+        /// Storage-partition declaration
+        /// (specs/list-attribute-and-tilegrid-scaling.md §6): values created
+        /// under this attribute are stamped with this partition key
+        /// (<see cref="AttributeValue.mapKey"/>), e.g.
+        /// <c>world:&lt;gridTypeId&gt;</c>. Informational on the C# side —
+        /// the web app resolves and stamps partitions at creation; the
+        /// runtime only reads the stamps already on value rows.
+        /// </summary>
+        public string? storageMap;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
     }
@@ -136,6 +146,25 @@ namespace NeoCompose.Runtime.Json
     public class ListAttribute : Attribute<string[]?>
     {
         public string entryAttributeId = null!;
+
+        /// <summary>
+        /// List kind (mirrors TS-side <c>TListKind</c>): "ordered"
+        /// (or absent — today's behavior: entries stored inline as a
+        /// <c>string[]</c> of entry value ids, array order is the list
+        /// order) or "unordered" (the stored value is ONLY the
+        /// null-vs-present discriminator — <c>null</c> or <c>[]</c>;
+        /// membership resolves by join over
+        /// <see cref="AttributeValue.containerId"/>). Immutable after
+        /// creation.
+        /// </summary>
+        public string? listKind;
+    }
+
+    /// <summary>Well-known values for <see cref="ListAttribute.listKind"/>.</summary>
+    public static class NeoListKinds
+    {
+        public const string Ordered = "ordered";
+        public const string Unordered = "unordered";
     }
 
     /// <summary>Mirror of TS-side <c>TAttributeCustom</c>.</summary>

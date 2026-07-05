@@ -11,8 +11,10 @@ using System.Reflection;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Tilemaps;
 
 namespace NeoCompose.Unity.Editor
 {
@@ -25,6 +27,8 @@ namespace NeoCompose.Unity.Editor
         private const string AssetDatabasePathKey = "NeoCompose.PostSynchronize.AssetDatabasePath";
         private const string NamespaceKey = "NeoCompose.PostSynchronize.Namespace";
         private const string AttemptsKey = "NeoCompose.PostSynchronize.Attempts";
+        private const string GeneratedTileAssetDirectory = "Assets/Neo/Generated/Tiles";
+        private const string GeneratedRuleTileAssetDirectory = "Assets/Neo/Generated/RuleTiles";
         private const int MaxAttempts = 20;
 
         static NeoComposePostSynchronizeProcessor()
@@ -137,6 +141,12 @@ namespace NeoCompose.Unity.Editor
                     "ResolveDialogueValue");
 
             var synchronized = new HashSet<string>();
+            SynchronizeGeneratedTileAssets(
+                projectData,
+                assetDatabasePath,
+                project,
+                resolveMethod);
+
             foreach (string valueId in EnumerateProjectValueIds(projectData))
             {
                 object? resolved = resolveMethod.Invoke(project, new object[] { valueId });
@@ -154,6 +164,203 @@ namespace NeoCompose.Unity.Editor
                 "OnDidSynchronize",
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             method?.Invoke(custom, Array.Empty<object>());
+        }
+
+        private static void SynchronizeGeneratedTileAssets(
+            ProjectData projectData,
+            string assetDatabasePath,
+            IDisposable project,
+            MethodInfo resolveMethod)
+        {
+            if (string.IsNullOrWhiteSpace(assetDatabasePath)) return;
+            var assetDatabase = AssetDatabase.LoadAssetAtPath<NeoAssetDatabase>(assetDatabasePath);
+            if (assetDatabase == null) return;
+
+            var tileValueIds = new HashSet<string>(EnumerateReferencedTileValueIds(projectData));
+            foreach (var stale in assetDatabase.FindMissingTileAssets(tileValueIds))
+            {
+                DeleteGeneratedTileAsset(stale.AssetPath);
+                assetDatabase.RemoveTileAsset(stale.TileValueId);
+            }
+
+            foreach (string tileValueId in tileValueIds.OrderBy(id => id, StringComparer.Ordinal))
+            {
+                object? resolved = resolveMethod.Invoke(project, new object[] { tileValueId });
+                if (resolved is not NeoGeneratedCustomValue custom) continue;
+                var generatedTile = NeoTileAssetFactory.CreateTransientTileBase(custom);
+                if (generatedTile == null) continue;
+
+                string assetPath = GeneratedTileAssetPath(tileValueId, generatedTile);
+                var existingEntry = assetDatabase.TryGetTileEntry(tileValueId);
+                if (existingEntry != null &&
+                    !string.IsNullOrWhiteSpace(existingEntry.AssetPath) &&
+                    existingEntry.AssetPath != assetPath)
+                {
+                    DeleteGeneratedTileAsset(existingEntry.AssetPath);
+                }
+                DeleteAlternateGeneratedTileAsset(tileValueId, assetPath);
+
+                TileBase persistedTile = PersistGeneratedTileAsset(assetPath, generatedTile);
+                assetDatabase.SetTileAsset(
+                    tileValueId,
+                    custom.typeId,
+                    assetPath,
+                    GeneratedTileContentHash(projectData, tileValueId, custom),
+                    persistedTile);
+            }
+
+            EditorUtility.SetDirty(assetDatabase);
+            AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// Tile asset value ids referenced by tile placements. Placements are
+        /// containment members (rows carrying a containerId) whose record has
+        /// a "Tile" single-select Lookup — the values-native shape that
+        /// replaced the derived tileGridContents regions.
+        /// </summary>
+        private static IEnumerable<string> EnumerateReferencedTileValueIds(ProjectData projectData)
+        {
+            var seen = new HashSet<string>();
+            foreach (var row in projectData.values.Values)
+            {
+                if (row is not ObjectAttributeValue placement) continue;
+                if (string.IsNullOrEmpty(placement.containerId)) continue;
+                if (string.IsNullOrEmpty(placement.typeId)) continue;
+                if (placement.value == null) continue;
+                string? tileKey = FindTileSchemaKey(projectData, placement.typeId!);
+                if (tileKey == null) continue;
+                if (!placement.value.TryGetValue(tileKey, out string tileLookupId)) continue;
+                if (!projectData.values.TryGetValue(tileLookupId, out AttributeValue lookupRow)) continue;
+                if (lookupRow is not ArrayAttributeValue lookupArray || lookupArray.value == null) continue;
+                foreach (var tileValueId in lookupArray.value)
+                {
+                    if (string.IsNullOrWhiteSpace(tileValueId)) continue;
+                    if (seen.Add(tileValueId)) yield return tileValueId;
+                }
+            }
+        }
+
+        private static readonly string[] TileSchemaKeyCandidates = { "Tile", "tileValue", "tileValueId" };
+
+        private static string? FindTileSchemaKey(ProjectData projectData, string typeId)
+        {
+            if (!projectData.types.TryGetValue(typeId, out CustomType type) || type == null) return null;
+            IList<MergedSchemaEntry> merged;
+            try
+            {
+                merged = CustomTypeInheritance.MergeSchemas(
+                    CustomTypeInheritance.ResolveChain(
+                        typeId,
+                        id => projectData.types.TryGetValue(id, out CustomType match) ? match : null));
+            }
+            catch (CircularInheritanceError)
+            {
+                return null;
+            }
+            foreach (var candidate in TileSchemaKeyCandidates)
+            {
+                foreach (var entry in merged)
+                {
+                    if (string.Equals(entry.schemaKey, candidate, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return entry.schemaKey;
+                    }
+                }
+            }
+            return null;
+        }
+
+        private static string GeneratedTileAssetPath(string tileValueId, TileBase tileBase)
+        {
+            string fileName = $"{SanitizeAssetFileName(tileValueId)}.asset";
+            return tileBase is NeoRuleTile
+                ? $"{GeneratedRuleTileAssetDirectory}/{fileName}"
+                : $"{GeneratedTileAssetDirectory}/{fileName}";
+        }
+
+        private static void DeleteAlternateGeneratedTileAsset(string tileValueId, string keepPath)
+        {
+            string fileName = $"{SanitizeAssetFileName(tileValueId)}.asset";
+            foreach (var path in new[]
+            {
+                $"{GeneratedTileAssetDirectory}/{fileName}",
+                $"{GeneratedRuleTileAssetDirectory}/{fileName}",
+            })
+            {
+                if (path != keepPath) DeleteGeneratedTileAsset(path);
+            }
+        }
+
+        private static TileBase PersistGeneratedTileAsset(string assetPath, TileBase generatedTile)
+        {
+            EnsureAssetDirectory(assetPath);
+            var existing = AssetDatabase.LoadAssetAtPath<TileBase>(assetPath);
+            if (existing == null || existing.GetType() != generatedTile.GetType())
+            {
+                DeleteGeneratedTileAsset(assetPath);
+                AssetDatabase.CreateAsset(generatedTile, assetPath);
+                return generatedTile;
+            }
+
+            EditorUtility.CopySerialized(generatedTile, existing);
+            existing.name = generatedTile.name;
+            EditorUtility.SetDirty(existing);
+            UnityEngine.Object.DestroyImmediate(generatedTile);
+            return existing;
+        }
+
+        private static void DeleteGeneratedTileAsset(string assetPath)
+        {
+            if (string.IsNullOrWhiteSpace(assetPath)) return;
+            if (AssetDatabase.LoadAssetAtPath<TileBase>(assetPath) != null)
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        private static void EnsureAssetDirectory(string assetPath)
+        {
+            var directory = Path.GetDirectoryName(assetPath);
+            if (string.IsNullOrWhiteSpace(directory)) return;
+            var normalized = directory.Replace('\\', '/');
+            if (AssetDatabase.IsValidFolder(normalized)) return;
+
+            var segments = normalized.Split('/');
+            var current = segments[0];
+            for (var index = 1; index < segments.Length; index++)
+            {
+                var next = $"{current}/{segments[index]}";
+                if (!AssetDatabase.IsValidFolder(next))
+                {
+                    AssetDatabase.CreateFolder(current, segments[index]);
+                }
+                current = next;
+            }
+        }
+
+        private static string GeneratedTileContentHash(
+            ProjectData projectData,
+            string tileValueId,
+            NeoGeneratedCustomValue custom)
+        {
+            string updatedAt = projectData.values.TryGetValue(tileValueId, out var row)
+                ? row.updatedAt.ToString()
+                : "";
+            string tileKind = NeoTileAssetFactory.TryResolveSmartTile(custom, out _)
+                ? "rule"
+                : "tile";
+            return $"{custom.typeId ?? ""}:{updatedAt}:{tileKind}";
+        }
+
+        private static string SanitizeAssetFileName(string value)
+        {
+            var invalid = Path.GetInvalidFileNameChars();
+            var chars = value
+                .Select(ch => invalid.Contains(ch) || ch == '/' || ch == '\\' ? '_' : ch)
+                .ToArray();
+            var sanitized = new string(chars).Trim();
+            return string.IsNullOrWhiteSpace(sanitized) ? "neo-tile" : sanitized;
         }
 
         private static IDisposable LoadGeneratedProject(

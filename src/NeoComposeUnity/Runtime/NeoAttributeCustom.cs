@@ -114,18 +114,21 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Writable view over the same record (same attribute / value id /
-        /// ownership). Generated ReadOnly classes use this for members with
-        /// an explicit Save/Session storage stamp
-        /// (specs/attribute-storage.md §8.3): the view's
-        /// <see cref="SetSerializedValue"/> routes the stamped leaf's write
-        /// into the leaf's own writable store, while unstamped keys keep
-        /// throwing the static-storage error.
+        /// Writable view over the same record (same attribute / value id)
+        /// in the requested inherited ownership context. Generated values
+        /// use this to let inherited child members resolve storage from the
+        /// concrete owner while explicit child storage stamps still win.
         /// </summary>
-        internal NeoAttributeCustomWritable AsWritableView()
+        internal NeoAttributeCustomWritable AsWritableView(
+            NeoValueOwnership? inheritedOwnership = null)
         {
-            if (this is NeoAttributeCustomWritable writable) return writable;
-            var view = new NeoAttributeCustomWritable(client, attribute, overrideValueId, ownership)
+            NeoValueOwnership viewOwnership = inheritedOwnership ?? ownership;
+            if (this is NeoAttributeCustomWritable writable
+                && writable.ownership == viewOwnership)
+            {
+                return writable;
+            }
+            var view = new NeoAttributeCustomWritable(client, attribute, overrideValueId, viewOwnership)
             {
                 parent = parent,
             };
@@ -261,7 +264,8 @@ namespace NeoCompose.Runtime
                         : null;
                 if (previousChildren.TryGetValue(entry.schemaKey, out NeoAttribute? existing)
                     && existing.attribute.id == childAttribute.id
-                    && existing.overrideValueId == childValueId)
+                    && (existing.overrideValueId == childValueId
+                        || existing.value?.id == childValueId))
                 {
                     childAttributes[entry.schemaKey] = existing;
                     previousChildren.Remove(entry.schemaKey);
@@ -311,11 +315,21 @@ namespace NeoCompose.Runtime
 
         private CustomType ResolveCustomType()
         {
-            if (!client.TryGetType(attribute.customTypeId, out CustomType? match))
+            string customTypeId = attribute.customTypeId;
+            if (!string.IsNullOrEmpty(value?.typeId))
+            {
+                customTypeId = value!.typeId!;
+            }
+            else if (!string.IsNullOrEmpty(attribute.defaultValue?.typeId))
+            {
+                customTypeId = attribute.defaultValue!.typeId!;
+            }
+
+            if (!client.TryGetType(customTypeId, out CustomType? match))
             {
                 throw new System.ArgumentOutOfRangeException(
                     nameof(attribute.customTypeId),
-                    $"No custom type for {nameof(attribute)}.{nameof(attribute.customTypeId)} {attribute.customTypeId}");
+                    $"No custom type for {nameof(attribute)}.{nameof(attribute.customTypeId)} {customTypeId}");
             }
             return match;
         }
@@ -393,6 +407,7 @@ namespace NeoCompose.Runtime
             // by a stable id instead of mint-binding mid-mutation.
             if (TryGet(key, out TNeoAttribute? existing) && existing.value is not null)
             {
+                existing.parent = this;
                 return existing;
             }
 
@@ -416,13 +431,16 @@ namespace NeoCompose.Runtime
                     $"Attribute '{key}' is not a collection attribute."),
             };
             SetSerializedValue(key, initialValue);
-            return Get<TNeoAttribute>(key);
+            var created = Get<TNeoAttribute>(key);
+            created.parent = this;
+            return created;
         }
 
         public NeoAttributeLookupWritable GetOrCreateLookup(string key)
         {
             if (TryGet(key, out NeoAttributeLookupWritable? existing) && existing.value is not null)
             {
+                existing.parent = this;
                 return existing;
             }
 
@@ -444,7 +462,9 @@ namespace NeoCompose.Runtime
             }
 
             SetSerializedValue(key, NeoValueWritePayload.FromValue(System.Array.Empty<string>()));
-            return Get<NeoAttributeLookupWritable>(key);
+            var created = Get<NeoAttributeLookupWritable>(key);
+            created.parent = this;
+            return created;
         }
 
         public NeoAttributeStringWritable GetOrCreateString(
@@ -545,6 +565,17 @@ namespace NeoCompose.Runtime
             }
             bool recordWritable = ownership != NeoValueOwnership.Asset;
 
+            // Unordered lists never store membership in the array: a
+            // whole-list assignment translates to Clear + Add-each, and
+            // assigning null clears the members then sets the discriminator
+            // to null (spec §1.6/§3.8).
+            if (childAttribute is ListAttribute childListAttribute
+                && client.IsUnorderedList(childListAttribute))
+            {
+                SetSerializedUnorderedList(key, setValue, childOwnership, recordWritable, nowIso);
+                return;
+            }
+
             if (value?.value is not null
                 && value.value.TryGetValue(key, out string existingValueId)
                 && client.TryGetValue(childOwnership, existingValueId, out AttributeValue? existing))
@@ -556,14 +587,21 @@ namespace NeoCompose.Runtime
                         throw new System.InvalidOperationException(
                             $"Cannot rebind '{key}' on static Custom '{attribute.id}': a static record's value map is authored data. Only the stamped leaf's own value may be written.");
                     }
-                    string importedValueId = client.ImportValueReference(ownership, setValue.valueId!);
+                    string importedValueId = client.ImportValueReference(
+                        childOwnership,
+                        setValue.valueId!,
+                        out bool sourceMoved);
                     ObjectAttributeValue record = EnsureWritableObject(nowIso);
                     record.value![key] = importedValueId;
                     record.updatedAt = nowIso;
                     client.SetWritableValue(ownership, record);
                     value = record;
-                    client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, existingValueId);
+                    client.RemoveWritableValueAndDescendantsIfUnlinked(childOwnership, existingValueId);
                     ReinitializeChildren();
+                    if (sourceMoved)
+                    {
+                        setValue.RetargetMovedReference(client, childAttribute, importedValueId, childOwnership);
+                    }
                     NotifyChildChanged(key);
                     return;
                 }
@@ -598,7 +636,14 @@ namespace NeoCompose.Runtime
             string newValueId;
             if (setValue?.isValueReference == true)
             {
-                newValueId = client.ImportValueReference(ownership, setValue.valueId!);
+                newValueId = client.ImportValueReference(
+                    childOwnership,
+                    setValue.valueId!,
+                    out bool sourceMoved);
+                if (sourceMoved)
+                {
+                    setValue.RetargetMovedReference(client, childAttribute, newValueId, childOwnership);
+                }
             }
             else
             {
@@ -616,6 +661,49 @@ namespace NeoCompose.Runtime
             value = keyedRecord;
 
             ReinitializeChildren();
+            NotifyChildChanged(key);
+        }
+
+        private void SetSerializedUnorderedList(
+            string key,
+            NeoValueWritePayload? setValue,
+            NeoValueOwnership childOwnership,
+            bool recordWritable,
+            string nowIso)
+        {
+            bool hasBoundRow = value?.value is not null
+                && value.value.TryGetValue(key, out string existingListValueId)
+                && client.TryGetValue(childOwnership, existingListValueId, out AttributeValue? _);
+            if (!hasBoundRow)
+            {
+                if (!recordWritable)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Cannot write '{key}' on static Custom '{attribute.id}': the unordered list has no authored value to shadow, and a static record cannot gain new keys at runtime. Author a value for '{key}' in the web editor.");
+                }
+                // Mint the discriminator row (present, empty) and link it.
+                var listRow = new ArrayAttributeValue
+                {
+                    id = System.Guid.NewGuid().ToString(),
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = System.Array.Empty<string>(),
+                };
+                client.SetWritableValue(childOwnership, listRow);
+                ObjectAttributeValue record = EnsureWritableObject(nowIso);
+                record.value![key] = listRow.id;
+                record.updatedAt = nowIso;
+                client.SetWritableValue(ownership, record);
+                value = record;
+                ReinitializeChildren();
+            }
+
+            if (Get<NeoAttribute>(key) is not NeoAttributeListWritable listNode)
+            {
+                throw new System.InvalidOperationException(
+                    $"Unordered list '{key}' on Custom '{attribute.id}' did not resolve a writable list node; the record's ownership does not permit list writes.");
+            }
+            listNode.AssignSerialized(setValue);
             NotifyChildChanged(key);
         }
 

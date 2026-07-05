@@ -115,6 +115,127 @@ namespace NeoCompose.Runtime
             return created;
         }
 
+        public static AttributeValue? CreateFromDefault(
+            Attribute attribute,
+            string id,
+            NeoTimestamp createdAt,
+            NeoTimestamp updatedAt)
+        {
+            return attribute switch
+            {
+                NullAttribute attr => attr.defaultValue is null ? null : new NullAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = attr.defaultValue.value,
+                    typeId = attr.defaultValue.typeId,
+                },
+                BoolAttribute attr => attr.defaultValue is null ? null : new BoolAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = attr.defaultValue.value,
+                    typeId = attr.defaultValue.typeId,
+                },
+                IntAttribute attr => attr.defaultValue is null ? null : new NumberAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = attr.defaultValue.value,
+                    typeId = attr.defaultValue.typeId,
+                },
+                FloatAttribute attr => attr.defaultValue is null ? null : new NumberAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = attr.defaultValue.value,
+                    typeId = attr.defaultValue.typeId,
+                },
+                StringAttribute attr => attr.defaultValue is null ? null : new StringAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = attr.defaultValue.value,
+                    neoLocalizationMode = (attr.defaultValue as StringAttributeValueBase)?.neoLocalizationMode,
+                    typeId = attr.defaultValue.typeId,
+                },
+                DictionaryAttribute attr => attr.defaultValue is null ? null : new ObjectAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneDictionary(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                CustomAttribute attr => attr.defaultValue is null ? null : new ObjectAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneDictionary(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                ListAttribute attr => attr.defaultValue is null ? null : new ArrayAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneArray(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                EnumAttribute attr => attr.defaultValue is null ? null : new ArrayAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneArray(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                LookupAttribute attr => attr.defaultValue is null ? null : new ArrayAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneArray(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                NSGetterAttribute attr => attr.defaultValue is null ? null : new NullAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = attr.defaultValue.value,
+                    typeId = attr.defaultValue.typeId,
+                },
+                FunctionAttribute attr => attr.defaultValue is null ? null : new NullAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = attr.defaultValue.value,
+                    typeId = attr.defaultValue.typeId,
+                },
+                SpriteAttribute attr => attr.defaultValue is null ? null : new SpriteAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneSpriteValue(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                AudioAttribute attr => attr.defaultValue is null ? null : new FileAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneFileValue(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                Vector2Attribute attr => attr.defaultValue is null ? null : new Vector2AttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneVector2Value(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                Vector2IntAttribute attr => attr.defaultValue is null ? null : new Vector2AttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneVector2Value(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                Vector3Attribute attr => attr.defaultValue is null ? null : new Vector3AttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneVector3Value(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                Vector3IntAttribute attr => attr.defaultValue is null ? null : new Vector3AttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneVector3Value(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                _ => null,
+            };
+        }
+
         private static TExpected Cast<TExpected>(object? payload, Attribute attribute)
         {
             // Allow null when TExpected admits it (Nullable<T> for value
@@ -144,6 +265,54 @@ namespace NeoCompose.Runtime
                 $"Cannot set {attribute.GetType().Name} {attribute.id} from " +
                 $"{payload.GetType().Name}; expected {typeof(TExpected).Name}",
                 nameof(payload));
+        }
+
+        private static string[]? CloneArray(string[]? source)
+        {
+            if (source is null) return null;
+            var clone = new string[source.Length];
+            System.Array.Copy(source, clone, source.Length);
+            return clone;
+        }
+
+        private static Dictionary<string, string>? CloneDictionary(
+            Dictionary<string, string>? source)
+        {
+            return source is null
+                ? null
+                : new Dictionary<string, string>(source);
+        }
+
+        private static FileValue? CloneFileValue(FileValue? source)
+        {
+            return source is null
+                ? null
+                : new FileValue { fileId = source.fileId };
+        }
+
+        private static SpriteValue? CloneSpriteValue(SpriteValue? source)
+        {
+            return source is null
+                ? null
+                : new SpriteValue
+                {
+                    fileId = source.fileId,
+                    sliceIndex = source.sliceIndex,
+                };
+        }
+
+        private static NeoVector2Value? CloneVector2Value(NeoVector2Value? source)
+        {
+            return source is null
+                ? null
+                : new NeoVector2Value { x = source.x, y = source.y };
+        }
+
+        private static NeoVector3Value? CloneVector3Value(NeoVector3Value? source)
+        {
+            return source is null
+                ? null
+                : new NeoVector3Value { x = source.x, y = source.y, z = source.z };
         }
 
         private static NeoVector2Value? Vector2Payload(object? payload, Attribute attribute)

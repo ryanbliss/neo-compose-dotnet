@@ -2,6 +2,7 @@
     "name": "NeoCompose.Unity",
     "rootNamespace": "NeoCompose",
     "references": [
+        "Unity.2D.Tilemap.Extras",
         "Unity.Localization"
     ],
     "includePlatforms": [],

@@ -8,11 +8,11 @@ using UnityEngine.UI;
 using UnityEditor;
 #endif
 
-# nullable enable
+#nullable enable
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
-    public partial class ReadOnlyOutpost
+    public partial class Outpost
     {
         protected override void LazyInitialize()
         {
@@ -31,7 +31,7 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IOutpostAnimationPlayer
     {
         void PlaySpeakerAnimation(
-            ReadOnlyAnimationInfo animation,
+            IReadOnlyAnimationInfo animation,
             NeoDeferredFunction<bool> deferred);
 
         /// <summary>Presents an authored relic sprite on the next dialogue node.</summary>
@@ -42,16 +42,16 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         public static IOutpostAnimationPlayer? AnimationPlayer { get; set; }
 
-        private readonly ReadOnlyOutpost Outpost;
+        private readonly Outpost Outpost;
 
-        public OutpostFunctionHandler(ReadOnlyOutpost Outpost)
+        public OutpostFunctionHandler(Outpost Outpost)
         {
             this.Outpost = Outpost;
         }
 
         public void PlayAnimation(NeoDeferredFunction<bool> deferred)
         {
-            ReadOnlyAnimationInfo? animation = Outpost.AnimatedImage;
+            IReadOnlyAnimationInfo? animation = Outpost.AnimatedImage;
             if (animation is null || AnimationPlayer is null || !Application.isPlaying)
             {
                 deferred.Complete(false);
@@ -85,6 +85,31 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
+    public partial class BlockedPath
+    {
+        protected override void LazyInitialize()
+        {
+            base.LazyInitialize();
+            FunctionHandler ??= new BlockedPathFunctionHandler(this);
+        }
+    }
+
+    internal sealed class BlockedPathFunctionHandler : IBlockedPathFunctionHandler
+    {
+        private readonly BlockedPath blockedPath;
+
+        public BlockedPathFunctionHandler(BlockedPath blockedPath)
+        {
+            this.blockedPath = blockedPath;
+        }
+
+        public bool ClearPath()
+        {
+            blockedPath.Tiles.Clear();
+            return true;
+        }
+    }
+
     internal static class NeoAnimationClipResources
     {
         public const string AssetDirectory = "Assets/Resources/Neo/Animations";
@@ -106,9 +131,42 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static string ResourcePath(string name) => $"{ResourceDirectory}/{AssetName(name)}";
     }
 
+    internal static class OldConsoleLandingPresentation
+    {
+        public static ConsoleObjectColliderShape ObjectCollider(object obj)
+        {
+            if (obj is ExitPromptObject)
+            {
+                return new ConsoleObjectColliderShape(
+                    new Vector2(2f, 1f),
+                    new Vector2(0.5f, 0f),
+                    isTrigger: true);
+            }
+
+            return new ConsoleObjectColliderShape(
+                Vector2.one,
+                Vector2.zero,
+                isTrigger: true);
+        }
+    }
+
+    public sealed class ConsoleObjectColliderShape
+    {
+        public ConsoleObjectColliderShape(Vector2 size, Vector2 offset, bool isTrigger)
+        {
+            Size = size;
+            Offset = offset;
+            IsTrigger = isTrigger;
+        }
+
+        public Vector2 Size { get; }
+        public Vector2 Offset { get; }
+        public bool IsTrigger { get; }
+    }
+
 #if UNITY_EDITOR
     // Example showing how you can hook into asset synchronization for things like creating AnimationClip assets from a list of Sprites
-    public partial class ReadOnlyAnimationInfo
+    public partial class AnimationInfo
     {
         public override void OnDidSynchronize()
         {
@@ -130,7 +188,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             AnimationClip clip = AssetDatabase.LoadAssetAtPath<AnimationClip>(assetPath);
             bool isNewAsset = false;
-            
+
             if (clip == null)
             {
                 clip = new AnimationClip();
@@ -143,9 +201,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             clip.name = NeoAnimationClipResources.AssetName(Name);
             clip.frameRate = fps;
-            
+
             // 1. Force the clip to be modern (Mecanim/Playables)
-            clip.legacy = false; 
+            clip.legacy = false;
 
             // 2. Configure Modern Looping / Wrap settings
             var settings = AnimationUtility.GetAnimationClipSettings(clip);
@@ -187,7 +245,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 EditorUtility.SetDirty(clip);
             }
-            
+
             AssetDatabase.SaveAssets();
             AssetDatabase.ImportAsset(assetPath);
         }

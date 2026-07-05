@@ -1,6 +1,7 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,6 +10,8 @@ using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using NUnit.Framework;
 using UnityEngine;
+using UnityEngine.Tilemaps;
+using UnityEngine.TestTools;
 
 namespace HelloWorld.Assets.Tests
 {
@@ -155,6 +158,161 @@ namespace HelloWorld.Assets.Tests
             Assert.IsNull(erased, "only the Loop ending wipes the save");
         }
 
+        [UnityTest]
+        public IEnumerator OldConsoleLanding_EasterEggOpensGenerated2DWorldScene()
+        {
+            var gameplay = Spawn(LoadedStore().CreateNew());
+
+            Assert.IsFalse(gameplay.OldConsoleLandingOpen);
+
+            gameplay.OpenOldConsoleLanding();
+
+            Assert.IsTrue(gameplay.OldConsoleLandingOpen);
+            NeoTileGridRenderer renderer = null;
+            for (int frame = 0; frame < 120; frame += 1)
+            {
+                renderer = Object.FindFirstObjectByType<NeoTileGridRenderer>();
+                if (renderer != null
+                    && renderer.GetComponentsInChildren<Tilemap>().Length >= 2)
+                {
+                    break;
+                }
+                yield return null;
+            }
+
+            Assert.IsNotNull(renderer);
+            var tilemaps = renderer.GetComponentsInChildren<Tilemap>();
+            Assert.AreEqual(2, tilemaps.Length);
+            var backgroundTilemap = tilemaps.Single(tilemap =>
+                tilemap.gameObject.name == "Tile Layer - Background");
+            Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(1, 1, 0)));
+            Assert.IsNotNull(backgroundTilemap.GetTile(new Vector3Int(2, 2, 0)));
+
+            var objectLayer = renderer.transform.Find("Object Layer - Objects");
+            Assert.IsNotNull(
+                objectLayer,
+                "The landing scene should render the generated object layer.");
+            Assert.AreEqual(
+                3,
+                objectLayer!.childCount,
+                "The spawn marker is a lifecycle-vetoed authoring marker, not a rendered object.");
+            Assert.IsNull(
+                objectLayer.Find("Object - old-console-object:player-spawn"),
+                "ShouldRenderObject should keep the player spawn marker out of the scene.");
+            var playerSpriteRenderer = renderer.transform.Find("Player")?.GetComponent<SpriteRenderer>();
+            Assert.IsNotNull(
+                playerSpriteRenderer,
+                "The landing UI should present the player at the authored spawn.");
+            Assert.IsNotNull(
+                playerSpriteRenderer!.sprite,
+                "The player should use the spawn marker's authored sprite (or the fallback).");
+
+            gameplay.CloseOldConsoleLanding();
+
+            Assert.IsFalse(gameplay.OldConsoleLandingOpen);
+        }
+
+        [UnityTest]
+        public IEnumerator OldConsoleLanding_BarrierClearUpdatesGameplayCacheFromTileDelta()
+        {
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            var neo = GameplayNeo(gameplay);
+            LandingSceneGameplay landing = null;
+
+            try
+            {
+                landing = LandingSceneGameplay.Open(neo, new TestLandingHost());
+
+                yield return WaitForLandingSceneLoad(landing);
+
+                var content = neo.Assets.Worlds.OldConsoleLanding.Content;
+                var blocked = neo.Assets.Worlds.OldConsoleLanding.GetChild<BlockedPath>();
+                Assert.IsNotNull(blocked);
+
+                // The link's own grid-space query matches what it projects
+                // onto the Collisions layer.
+                var blockerCells = blocked!.GetTiles()
+                    .Select(tile => tile.Cell)
+                    .ToArray();
+                Assert.Greater(blockerCells.Length, 0);
+                foreach (var cell in blockerCells)
+                {
+                    Assert.AreEqual(
+                        blocked.valueId,
+                        content.Collisions.GetTile(cell)?.SourceTileLayerLinkId);
+                }
+
+                SetLandingPlayerCell(
+                    landing,
+                    FindWalkableNeighbor(content, blockerCells));
+                InvokeLandingUpdatePrompt(landing);
+                StringAssert.Contains("vault seal", landing.PromptText);
+
+                blocked.Tiles.Clear();
+                yield return null;
+
+                Assert.IsFalse(
+                    landing.PromptText.Contains("vault seal"),
+                    "Clearing the model tiles should update the gameplay barrier cache through the collision delta.");
+                foreach (var cell in blockerCells)
+                {
+                    Assert.IsNull(content.Collisions.GetTile(cell));
+                    Assert.IsNull(blocked.GetTile(cell));
+                }
+            }
+            finally
+            {
+                if (landing != null) Object.DestroyImmediate(landing.gameObject);
+            }
+        }
+
+        [UnityTest]
+        public IEnumerator OldConsoleLanding_InteractWithBootGlyphDoesNotLoopTileLookup()
+        {
+            var gameplay = Spawn(LoadedStore().CreateNew());
+            var neo = GameplayNeo(gameplay);
+            LandingSceneGameplay landing = null;
+            var triggered = false;
+
+            try
+            {
+                landing = LandingSceneGameplay.Open(neo, new TestLandingHost
+                {
+                    OnTriggerDialogue = (_, onFinish) =>
+                    {
+                        triggered = true;
+                        for (int tick = 0; tick < 8; tick += 1)
+                        {
+                            neo.Save.Quest.FlareClock += 1;
+                        }
+                        onFinish?.Invoke();
+                        return true;
+                    },
+                });
+
+                yield return WaitForLandingSceneLoad(landing);
+
+                var content = neo.Assets.Worlds.OldConsoleLanding.Content;
+                var bootGlyphCell = content.Background.GetTiles()
+                    .First(tile => tile.Info is BootGlyphTile)
+                    .Cell;
+                SetLandingPlayerCell(landing, bootGlyphCell);
+                InvokeLandingUpdatePrompt(landing);
+                StringAssert.Contains("boot glyph", landing.PromptText);
+
+                InvokeLandingInteract(landing);
+                yield return null;
+
+                Assert.IsTrue(triggered);
+                Assert.IsInstanceOf<BootGlyphTile>(
+                    content.Background.GetTile(bootGlyphCell)?.Info);
+            }
+            finally
+            {
+                if (landing != null) Object.DestroyImmediate(landing.gameObject);
+            }
+        }
+
         private static int QuestClock(HelloWorldGameplay gameplay)
         {
             return GameplayNeo(gameplay).Save.Quest.FlareClock;
@@ -220,6 +378,87 @@ namespace HelloWorld.Assets.Tests
                 "neo",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             return (HelloWorldNeo)field.GetValue(gameplay);
+        }
+
+        private sealed class TestLandingHost : ILandingSceneHost
+        {
+            public System.Func<string, System.Action, bool> OnTriggerDialogue { get; set; } =
+                (_, __) => false;
+
+            public bool DialogueIsOpen => false;
+
+            public void CloseLandingScene()
+            {
+            }
+
+            public async Awaitable SaveProgressAsync()
+            {
+                await Awaitable.NextFrameAsync();
+            }
+
+            public bool TryTriggerDialogue(string dialogueId, System.Action onFinish)
+            {
+                return OnTriggerDialogue(dialogueId, onFinish);
+            }
+        }
+
+        private static IEnumerator WaitForLandingSceneLoad(LandingSceneGameplay landing)
+        {
+            for (var frame = 0; frame < 120; frame += 1)
+            {
+                if (landing.StatusText.StartsWith("WASD moves."))
+                {
+                    yield break;
+                }
+
+                yield return null;
+            }
+
+            Assert.Fail("Landing scene did not finish loading.");
+        }
+
+        private static Vector2Int FindWalkableNeighbor(
+            ReadOnlyOldConsoleLandingGridContent content,
+            IReadOnlyCollection<Vector2Int> targetCells)
+        {
+            var collisionCells = new HashSet<Vector2Int>(
+                content.Collisions.GetTiles().Select(tile => tile.Cell));
+
+            foreach (var cell in content.Background.GetTiles().Select(tile => tile.Cell))
+            {
+                if (collisionCells.Contains(cell)) continue;
+                if (targetCells.Any(target => Mathf.Abs(target.x - cell.x) + Mathf.Abs(target.y - cell.y) <= 1))
+                {
+                    return cell;
+                }
+            }
+
+            Assert.Fail("No walkable cell was adjacent to the blocked path.");
+            return default;
+        }
+
+        private static void SetLandingPlayerCell(LandingSceneGameplay landing, Vector2Int cell)
+        {
+            var setter = typeof(LandingSceneGameplay)
+                .GetProperty(nameof(LandingSceneGameplay.PlayerCell))
+                .GetSetMethod(nonPublic: true);
+            setter.Invoke(landing, new object[] { cell });
+        }
+
+        private static void InvokeLandingUpdatePrompt(LandingSceneGameplay landing)
+        {
+            var method = typeof(LandingSceneGameplay).GetMethod(
+                "UpdatePrompt",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            method.Invoke(landing, null);
+        }
+
+        private static void InvokeLandingInteract(LandingSceneGameplay landing)
+        {
+            var method = typeof(LandingSceneGameplay).GetMethod(
+                "Interact",
+                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            method.Invoke(landing, null);
         }
 
         [Test]
@@ -426,13 +665,13 @@ namespace HelloWorld.Assets.Tests
             return neo.Save.Inventory.Any(item => item.Name == itemName);
         }
 
-        private static ReadOnlyOutpost OutpostByName(HelloWorldGameplay gameplay, string name)
+        private static IReadOnlyOutpost OutpostByName(HelloWorldGameplay gameplay, string name)
         {
             return gameplay.Outposts.First(o => o.Name == name);
         }
 
         /// <summary>Walks a Visits-group dialogue start to finish, failing on any action error.</summary>
-        private static void WalkVisit(HelloWorldNeo neo, ReadOnlyOutpost outpost, bool preferFirstOption)
+        private static void WalkVisit(HelloWorldNeo neo, IReadOnlyOutpost outpost, bool preferFirstOption)
         {
             // The real flow: intros run on the first landing; visit dialogues
             // unlock on RETURN trips.
@@ -486,7 +725,7 @@ namespace HelloWorld.Assets.Tests
             dialogue.Dispose();
         }
 
-        private static void WalkIntro(HelloWorldNeo neo, ReadOnlyOutpost outpost)
+        private static void WalkIntro(HelloWorldNeo neo, IReadOnlyOutpost outpost)
         {
             Assert.IsTrue(
                 neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue dialogue),

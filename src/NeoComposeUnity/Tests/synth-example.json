@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 2,
+    "schemaVersion": 3,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -789,6 +789,193 @@
         ]
       }
     },
+    "attr-sample-tile-value": {
+      "id": "attr-sample-tile-value",
+      "name": "Value",
+      "type": 2,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "attr-sample-tile-entry": {
+      "id": "attr-sample-tile-entry",
+      "name": "Sample Tile",
+      "type": 7,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-sample-tile-instance"
+    },
+    "attr-sample-tiles": {
+      "id": "attr-sample-tiles",
+      "name": "Tiles",
+      "type": 6,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryAttributeId": "attr-sample-tile-entry"
+    },
+    "attr-sample-layer-group": {
+      "id": "attr-sample-layer-group",
+      "name": "SampleLayerGroup",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-sample-layer-group-base",
+      "valueId": "v-sample-blocked-path"
+    },
+    "attr-storage-a-value": {
+      "id": "attr-storage-a-value",
+      "name": "Value",
+      "type": 2,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "valueId": "v-storage-a-value",
+      "defaultValue": {
+        "value": 10
+      }
+    },
+    "attr-storage-c-value": {
+      "id": "attr-storage-c-value",
+      "name": "Value",
+      "type": 2,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "valueId": "v-storage-c-value",
+      "defaultValue": {
+        "value": 30
+      }
+    },
+    "attr-storage-e-value": {
+      "id": "attr-storage-e-value",
+      "name": "Value",
+      "type": 2,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "valueId": "v-storage-e-value",
+      "defaultValue": {
+        "value": 50
+      }
+    },
+    "attr-storage-g-value": {
+      "id": "attr-storage-g-value",
+      "name": "Value",
+      "type": 2,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "valueId": "v-storage-g-value",
+      "defaultValue": {
+        "value": 70
+      }
+    },
+    "attr-storage-f-inherit-child": {
+      "id": "attr-storage-f-inherit-child",
+      "name": "InheritChild",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-storage-g",
+      "valueId": "v-storage-g"
+    },
+    "attr-storage-e-static-child": {
+      "id": "attr-storage-e-static-child",
+      "name": "StaticChild",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-storage-f",
+      "storage": "static",
+      "valueId": "v-storage-f"
+    },
+    "attr-storage-d-inherit-child": {
+      "id": "attr-storage-d-inherit-child",
+      "name": "InheritChild",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-storage-e",
+      "valueId": "v-storage-e"
+    },
+    "attr-storage-c-session-child": {
+      "id": "attr-storage-c-session-child",
+      "name": "SessionChild",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-storage-d",
+      "storage": "session",
+      "valueId": "v-storage-d"
+    },
+    "attr-storage-b-inherit-child": {
+      "id": "attr-storage-b-inherit-child",
+      "name": "InheritChild",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-storage-c",
+      "valueId": "v-storage-c"
+    },
+    "attr-storage-a-save-child": {
+      "id": "attr-storage-a-save-child",
+      "name": "SaveChild",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-storage-b",
+      "storage": "save",
+      "valueId": "v-storage-b"
+    },
+    "attr-storage-a": {
+      "id": "attr-storage-a",
+      "name": "StorageInherit",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-storage-a",
+      "valueId": "v-storage-a"
+    },
     "attr-base": {
       "id": "attr-base",
       "name": "BaseRecord",
@@ -1006,7 +1193,143 @@
         "Heroes": "attr-heroes",
         "Manifest": "attr-manifest",
         "Score": "attr-root-score",
-        "NeoMemory": "attr-neo-memory"
+        "NeoMemory": "attr-neo-memory",
+        "SampleLayerGroup": "attr-sample-layer-group",
+        "StorageInherit": "attr-storage-a"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-sample-tile-instance": {
+      "id": "type-sample-tile-instance",
+      "name": "SampleTileInstance",
+      "schema": {
+        "Value": "attr-sample-tile-value"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-sample-layer-group-base": {
+      "id": "type-sample-layer-group-base",
+      "name": "SampleLayerGroupBase",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-sample-tile-layer-link": {
+      "id": "type-sample-tile-layer-link",
+      "name": "SampleTileLayerLink",
+      "schema": {
+        "Tiles": "attr-sample-tiles"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": true,
+      "extendsTypeId": "type-sample-layer-group-base",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-sample-blocked-path": {
+      "id": "type-sample-blocked-path",
+      "name": "SampleBlockedPath",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-sample-tile-layer-link",
+      "allowedStorage": "save",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-storage-a": {
+      "id": "type-storage-a",
+      "name": "StorageA",
+      "schema": {
+        "Value": "attr-storage-a-value",
+        "SaveChild": "attr-storage-a-save-child"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-storage-b": {
+      "id": "type-storage-b",
+      "name": "StorageB",
+      "schema": {
+        "InheritChild": "attr-storage-b-inherit-child"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-storage-c": {
+      "id": "type-storage-c",
+      "name": "StorageC",
+      "schema": {
+        "Value": "attr-storage-c-value",
+        "SessionChild": "attr-storage-c-session-child"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-storage-d": {
+      "id": "type-storage-d",
+      "name": "StorageD",
+      "schema": {
+        "InheritChild": "attr-storage-d-inherit-child"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-storage-e": {
+      "id": "type-storage-e",
+      "name": "StorageE",
+      "schema": {
+        "Value": "attr-storage-e-value",
+        "StaticChild": "attr-storage-e-static-child"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-storage-f": {
+      "id": "type-storage-f",
+      "name": "StorageF",
+      "schema": {
+        "InheritChild": "attr-storage-f-inherit-child"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-storage-g": {
+      "id": "type-storage-g",
+      "name": "StorageG",
+      "schema": {
+        "Value": "attr-storage-g-value"
       },
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
@@ -1221,6 +1544,143 @@
       "createdAt": 0,
       "updatedAt": 0,
       "typeId": "type-root"
+    },
+    "v-sample-tile-value": {
+      "id": "v-sample-tile-value",
+      "projectId": "p-1",
+      "value": 7,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-sample-tile-instance": {
+      "id": "v-sample-tile-instance",
+      "projectId": "p-1",
+      "value": {
+        "Value": "v-sample-tile-value"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "typeId": "type-sample-tile-instance"
+    },
+    "v-sample-tiles": {
+      "id": "v-sample-tiles",
+      "projectId": "p-1",
+      "value": [
+        "v-sample-tile-instance"
+      ],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-sample-blocked-path": {
+      "id": "v-sample-blocked-path",
+      "projectId": "p-1",
+      "value": {
+        "Tiles": "v-sample-tiles"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "typeId": "type-sample-blocked-path"
+    },
+    "v-storage-a-value": {
+      "id": "v-storage-a-value",
+      "projectId": "p-1",
+      "value": 10,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-storage-c-value": {
+      "id": "v-storage-c-value",
+      "projectId": "p-1",
+      "value": 30,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-storage-e-value": {
+      "id": "v-storage-e-value",
+      "projectId": "p-1",
+      "value": 50,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-storage-g-value": {
+      "id": "v-storage-g-value",
+      "projectId": "p-1",
+      "value": 70,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-storage-a": {
+      "id": "v-storage-a",
+      "projectId": "p-1",
+      "value": {
+        "Value": "v-storage-a-value",
+        "SaveChild": "v-storage-b"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "typeId": "type-storage-a"
+    },
+    "v-storage-b": {
+      "id": "v-storage-b",
+      "projectId": "p-1",
+      "value": {
+        "InheritChild": "v-storage-c"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "typeId": "type-storage-b"
+    },
+    "v-storage-c": {
+      "id": "v-storage-c",
+      "projectId": "p-1",
+      "value": {
+        "Value": "v-storage-c-value",
+        "SessionChild": "v-storage-d"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "typeId": "type-storage-c"
+    },
+    "v-storage-d": {
+      "id": "v-storage-d",
+      "projectId": "p-1",
+      "value": {
+        "InheritChild": "v-storage-e"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "typeId": "type-storage-d"
+    },
+    "v-storage-e": {
+      "id": "v-storage-e",
+      "projectId": "p-1",
+      "value": {
+        "Value": "v-storage-e-value",
+        "StaticChild": "v-storage-f"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "typeId": "type-storage-e"
+    },
+    "v-storage-f": {
+      "id": "v-storage-f",
+      "projectId": "p-1",
+      "value": {
+        "InheritChild": "v-storage-g"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "typeId": "type-storage-f"
+    },
+    "v-storage-g": {
+      "id": "v-storage-g",
+      "projectId": "p-1",
+      "value": {
+        "Value": "v-storage-g-value"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "typeId": "type-storage-g"
     }
   },
   "dialogues": {

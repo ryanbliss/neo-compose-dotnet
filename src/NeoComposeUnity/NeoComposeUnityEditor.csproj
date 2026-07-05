@@ -5,6 +5,7 @@
     <RootNamespace>NeoCompose.Unity.Editor</RootNamespace>
     <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
     <UnityEditorDir Condition="'$(UnityEditorDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed</UnityEditorDir>
+    <NeoComposeUnityPackageAssembliesDir Condition="'$(NeoComposeUnityPackageAssembliesDir)' == ''">$(MSBuildThisFileDirectory)../../samples/HelloWorld/Library/ScriptAssemblies</NeoComposeUnityPackageAssembliesDir>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +35,10 @@
       <HintPath>$(UnityManagedDir)/UnityEngine.IMGUIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="UnityEngine.TilemapModule">
+      <HintPath>$(UnityManagedDir)/UnityEngine.TilemapModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <!-- GUIStyle alignment (TextAnchor) on the editor window's status rows. -->
     <Reference Include="UnityEngine.TextRenderingModule">
       <HintPath>$(UnityManagedDir)/UnityEngine.TextRenderingModule.dll</HintPath>
@@ -45,6 +50,10 @@
     </Reference>
     <Reference Include="UnityEditor.CoreModule">
       <HintPath>$(UnityManagedDir)/UnityEditor.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.2D.Tilemap.Extras" Condition="Exists('$(NeoComposeUnityPackageAssembliesDir)/Unity.2D.Tilemap.Extras.dll')">
+      <HintPath>$(NeoComposeUnityPackageAssembliesDir)/Unity.2D.Tilemap.Extras.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>

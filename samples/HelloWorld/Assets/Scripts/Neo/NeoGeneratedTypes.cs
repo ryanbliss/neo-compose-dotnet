@@ -21,7 +21,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public NeoAttributeCustomWritable SaveRoot => Client.SaveRoot;
         public NeoAttributeCustomWritable SessionRoot => Client.SessionRoot;
         public NeoLocalization Localization => Client.Localization;
-        public ReadOnlyAssets Assets { get; }
+        public IReadOnlyAssets Assets { get; }
         public Save Save { get; }
         public Session Session { get; }
         public NeoDialogues Dialogues { get; }
@@ -29,52 +29,108 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> DialogueReadOnlyValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
             {
-                ["11177bd5-0678-4bff-86b8-46718ff1827b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAnimationInfo.Create(client, node),
-                ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyComputedText.Create(client, node),
-                ["44d6324f-6507-4420-a919-3496681c3b21"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAudio.Create(client, node),
-                ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoDialogueMemory.Create(client, node),
-                ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyOutpost.Create(client, node),
-                ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoTextNodeMemory.Create(client, node),
-                ["60c25a92-cb01-46f7-b5cf-c9d950586116"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyItem.Create(client, node),
-                ["63b261c9-46f2-4d37-84e9-06f16af04e58"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlySession.Create(client, node),
-                ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoMemory.Create(client, node),
-                ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyLookupContainer.Create(client, node),
-                ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyPlanetVisit.Create(client, node),
-                ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyOutpostSaveData.Create(client, node),
-                ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyLookupEntry.Create(client, node),
-                ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlySaturnOutpost.Create(client, node),
-                ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlySave.Create(client, node),
-                ["9a6019b6-680f-4300-8cea-bde6fce47fc1"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyArt.Create(client, node),
-                ["a50efb7e-58f6-4342-906e-0b01f98b15af"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyJupiterOutpost.Create(client, node),
-                ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyNeoChoiceLog.Create(client, node),
-                ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyQuestState.Create(client, node),
-                ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ReadOnlyAssets.Create(client, node),
+                ["07db44f3-8cc5-4164-aace-098ca68460f4"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.BootGlyphTile.Create(client, node),
+                ["11177bd5-0678-4bff-86b8-46718ff1827b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, node),
+                ["22a62498-61f8-4b6f-8d4c-bc05743a5c2e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Worlds.Create(client, node),
+                ["27874300-3e78-4d1c-802b-caf34d25d1ab"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RecoveryCacheObject.Create(client, node),
+                ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.Create(client, node),
+                ["38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, node),
+                ["3ab13327-ccaa-4dbe-8ec7-24b9592ddf15"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTileInstance.Create(client, node),
+                ["44d6324f-6507-4420-a919-3496681c3b21"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Audio.Create(client, node),
+                ["47a1f7dd-b16d-4f04-96f8-6c0199d18c7b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.BlockedPath.Create(client, node),
+                ["48bcbba5-57c0-40fd-8df8-35f4e7ce73f2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.VoidTile.Create(client, node),
+                ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.Create(client, node),
+                ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, node),
+                ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, node),
+                ["5c65b156-e83a-41c5-bef0-ee375798bdc2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject.Create(client, node),
+                ["60c25a92-cb01-46f7-b5cf-c9d950586116"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, node),
+                ["628e0cce-5472-4bec-addd-71230b8e64a6"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, node),
+                ["63b261c9-46f2-4d37-84e9-06f16af04e58"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Session.Create(client, node),
+                ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.Create(client, node),
+                ["720c1361-de9e-4c12-b90e-bb6ac9e1ce8b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SealBarrierTile.Create(client, node),
+                ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupContainer.Create(client, node),
+                ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.Create(client, node),
+                ["7cb1b706-95d2-4465-8e75-c82a6b7d8830"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.Create(client, node),
+                ["7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlayerSpawnObject.Create(client, node),
+                ["7ed188f9-484b-4692-840d-436acf1635aa"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, node),
+                ["89b38b34-c040-4e69-8707-487f1484a056"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, node),
+                ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.Create(client, node),
+                ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.Create(client, node),
+                ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SaturnOutpost.Create(client, node),
+                ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Save.Create(client, node),
+                ["9a6019b6-680f-4300-8cea-bde6fce47fc1"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Art.Create(client, node),
+                ["a50efb7e-58f6-4342-906e-0b01f98b15af"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.JupiterOutpost.Create(client, node),
+                ["a8305a31-7f6c-4ff5-8a9f-5871ef451093"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.HullPlatingTile.Create(client, node),
+                ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.Create(client, node),
+                ["b44d80a9-7760-4919-8844-0cb71d08b788"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create(client, node),
+                ["b737f725-5a4a-4d33-8bc5-c6953dbeff77"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ConsoleObjectLayer.Create(client, node),
+                ["bda4cf72-c8da-4be0-8148-024d0fc2d826"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.GlassFloorTile.Create(client, node),
+                ["cacf06dd-db1d-4f48-99c7-f3cea5a6961f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.VaultPlaqueObject.Create(client, node),
+                ["d500e920-87d9-4804-affa-1bd8fc5e91ae"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, node),
+                ["d931c907-19cd-4f3d-b04a-e6f1945fb216"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile.Create(client, node),
+                ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.QuestState.Create(client, node),
+                ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.Create(client, node),
+                ["e78cfcd2-78ae-4656-9f04-6429bb0efe20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayerLink.Create(client, node),
+                ["f1b08825-2ad0-4666-acf1-3df7ffbda64e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayerLink.Create(client, node),
+                ["fb219343-34db-4e82-baf0-09df9a2b5210"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, node),
+                ["fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ConsoleTileLayer.Create(client, node),
             };
+
+        internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> NeoReadOnlyValueFactories =>
+            DialogueReadOnlyValueFactories;
 
         private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory> DialogueWritableValueFactories =
             new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>
             {
+                ["07db44f3-8cc5-4164-aace-098ca68460f4"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.BootGlyphTile.CreateWritable(client, node),
                 ["11177bd5-0678-4bff-86b8-46718ff1827b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.CreateWritable(client, node),
+                ["22a62498-61f8-4b6f-8d4c-bc05743a5c2e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Worlds.CreateWritable(client, node),
+                ["27874300-3e78-4d1c-802b-caf34d25d1ab"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RecoveryCacheObject.CreateWritable(client, node),
                 ["2ab1bc07-da0b-47fc-b77b-54cc511575bb"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ComputedText.CreateWritable(client, node),
+                ["38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, node),
+                ["3ab13327-ccaa-4dbe-8ec7-24b9592ddf15"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTileInstance.CreateWritable(client, node),
                 ["44d6324f-6507-4420-a919-3496681c3b21"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Audio.CreateWritable(client, node),
+                ["47a1f7dd-b16d-4f04-96f8-6c0199d18c7b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.BlockedPath.CreateWritable(client, node),
+                ["48bcbba5-57c0-40fd-8df8-35f4e7ce73f2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.VoidTile.CreateWritable(client, node),
                 ["48f37cd8-69d2-4cd3-ae44-7cfed7912415"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, node),
                 ["4c196697-4e08-4aeb-823f-322b353071ac"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Outpost.CreateWritable(client, node),
                 ["4cdf4a5b-b299-4253-854b-d25c0a4c7c20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, node),
+                ["5c65b156-e83a-41c5-bef0-ee375798bdc2"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ExitPromptObject.CreateWritable(client, node),
                 ["60c25a92-cb01-46f7-b5cf-c9d950586116"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Item.CreateWritable(client, node),
+                ["628e0cce-5472-4bec-addd-71230b8e64a6"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.CreateWritable(client, node),
                 ["63b261c9-46f2-4d37-84e9-06f16af04e58"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Session.CreateWritable(client, node),
                 ["6c6f3bb8-30a0-4132-b0d4-cce75943aedd"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(client, node),
+                ["720c1361-de9e-4c12-b90e-bb6ac9e1ce8b"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SealBarrierTile.CreateWritable(client, node),
                 ["77558d64-4fcc-46ac-8351-893093ee0002"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupContainer.CreateWritable(client, node),
                 ["7755a905-f2a1-4e5d-8b60-78cbdd2b2042"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, node),
+                ["7cb1b706-95d2-4465-8e75-c82a6b7d8830"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSpriteObject.CreateWritable(client, node),
+                ["7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.PlayerSpawnObject.CreateWritable(client, node),
+                ["7ed188f9-484b-4692-840d-436acf1635aa"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoCollider.CreateWritable(client, node),
+                ["89b38b34-c040-4e69-8707-487f1484a056"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.CreateWritable(client, node),
                 ["8ccfe860-309f-428b-b74c-76a873bdea8a"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.CreateWritable(client, node),
                 ["9296e4be-bd27-44e3-9823-77fbeaa60665"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.CreateWritable(client, node),
                 ["96818dab-90e5-4ab9-8f69-cce66e39e370"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.SaturnOutpost.CreateWritable(client, node),
                 ["96e8284d-ae43-4e91-919d-86c25ce098e0"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Save.CreateWritable(client, node),
                 ["9a6019b6-680f-4300-8cea-bde6fce47fc1"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Art.CreateWritable(client, node),
                 ["a50efb7e-58f6-4342-906e-0b01f98b15af"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.JupiterOutpost.CreateWritable(client, node),
+                ["a8305a31-7f6c-4ff5-8a9f-5871ef451093"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.HullPlatingTile.CreateWritable(client, node),
                 ["af5795d0-e019-4776-8b7c-d0206f90d59f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, node),
+                ["b44d80a9-7760-4919-8844-0cb71d08b788"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.CreateWritable(client, node),
+                ["b737f725-5a4a-4d33-8bc5-c6953dbeff77"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ConsoleObjectLayer.CreateWritable(client, node),
+                ["bda4cf72-c8da-4be0-8148-024d0fc2d826"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.GlassFloorTile.CreateWritable(client, node),
+                ["cacf06dd-db1d-4f48-99c7-f3cea5a6961f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.VaultPlaqueObject.CreateWritable(client, node),
+                ["d500e920-87d9-4804-affa-1bd8fc5e91ae"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.CreateWritable(client, node),
+                ["d931c907-19cd-4f3d-b04a-e6f1945fb216"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.RedNovaWarningTile.CreateWritable(client, node),
                 ["daf72c99-ad09-47d6-a863-f1ab31acf750"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(client, node),
                 ["dd0bbe5a-47ef-4164-9421-caea07f6f56f"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.Assets.CreateWritable(client, node),
+                ["e78cfcd2-78ae-4656-9f04-6429bb0efe20"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayerLink.CreateWritable(client, node),
+                ["f1b08825-2ad0-4666-acf1-3df7ffbda64e"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayerLink.CreateWritable(client, node),
+                ["fb219343-34db-4e82-baf0-09df9a2b5210"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.CreateWritable(client, node),
+                ["fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba"] = (client, node) => global::HelloWorld.Assets.Scripts.Neo.ConsoleTileLayer.CreateWritable(client, node),
             };
+
+        internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory> NeoWritableValueFactories =>
+            DialogueWritableValueFactories;
 
         internal object? ResolveDialogueValue(string valueId) =>
             NeoGeneratedTypesSupport.ResolveCustomValue(
@@ -86,9 +142,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
+                ["0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd"] = (client, receiver, args) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<BlockedPath>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "ClearPath",
+                    "0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd");
+                return target.ClearPath();
+                },
                 ["e549555b-9276-48d8-be33-156972520d31"] = (client, receiver, args) =>
                 {
-                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ReadOnlyOutpost>(
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<Outpost>(
                     client,
                     receiver,
                     DialogueReadOnlyValueFactories,
@@ -100,7 +167,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 },
                 ["736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1"] = (client, receiver, args) =>
                 {
-                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ReadOnlyOutpost>(
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<Outpost>(
                     client,
                     receiver,
                     DialogueReadOnlyValueFactories,
@@ -116,7 +183,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 ["cab850e3-cf8c-42b3-a70b-f0066089e6fb"] = (client, receiver, args, deferred) =>
                 {
-                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ReadOnlyOutpost>(
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<Outpost>(
                     client,
                     receiver,
                     DialogueReadOnlyValueFactories,
@@ -139,9 +206,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             Client.RegisterNativeFunctionInvokers(NativeFunctionInvokers);
             Client.RegisterDeferredNativeFunctionInvokers(DeferredNativeFunctionInvokers);
             Instance = this;
-            Assets = new ReadOnlyAssets(client, client.assets);
-            Save = new Save(client, client.save);
-            Session = new Session(client, client.session);
+            Assets = new Assets(client, client.assets, true, NeoValueOwnership.Asset);
+            Save = new Save(client, client.save, false, client.save.ownership);
+            Session = new Session(client, client.session, false, client.session.ownership);
             Dialogues = new NeoDialogues(this, dialogueOptions);
         }
 
@@ -192,31 +259,31 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
-    public sealed class IntroductionsDialogues : NeoLookupDialogueGroup<ReadOnlyOutpost>
+    public sealed class IntroductionsDialogues : NeoLookupDialogueGroup<IReadOnlyOutpost>
     {
         internal IntroductionsDialogues(NeoDialogues root, string groupId)
             : base(root, groupId)
         {
         }
 
-        public bool TryTrigger(ReadOnlyOutpost value, out NeoDialogue dialogue) =>
+        public bool TryTrigger(IReadOnlyOutpost value, out NeoDialogue dialogue) =>
             TryTriggerLookup(value, out dialogue);
 
-        public bool TryTrigger(ReadOnlyOutpost value, out NeoDialogueTriggerResult result) =>
+        public bool TryTrigger(IReadOnlyOutpost value, out NeoDialogueTriggerResult result) =>
             TryTriggerLookup(value, out result);
     }
 
-    public sealed class VisitsDialogues : NeoLookupDialogueGroup<ReadOnlyOutpost>
+    public sealed class VisitsDialogues : NeoLookupDialogueGroup<IReadOnlyOutpost>
     {
         internal VisitsDialogues(NeoDialogues root, string groupId)
             : base(root, groupId)
         {
         }
 
-        public bool TryTrigger(ReadOnlyOutpost value, out NeoDialogue dialogue) =>
+        public bool TryTrigger(IReadOnlyOutpost value, out NeoDialogue dialogue) =>
             TryTriggerLookup(value, out dialogue);
 
-        public bool TryTrigger(ReadOnlyOutpost value, out NeoDialogueTriggerResult result) =>
+        public bool TryTrigger(IReadOnlyOutpost value, out NeoDialogueTriggerResult result) =>
             TryTriggerLookup(value, out result);
     }
 
@@ -224,10 +291,11 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         public INeoDialogueMemory GetOrCreateDialogueMemory(string dialogueId)
         {
-            if (DialogueMemories.TryGetValue(dialogueId, out var memory)) return memory;
+            var memories = DialogueMemories;
+            if (memories.TryGetValue(dialogueId, out var memory)) return memory;
             memory = new NeoDialogueMemory(VisitCount: 0);
-            DialogueMemories[dialogueId] = memory;
-            return DialogueMemories[dialogueId];
+            memories[dialogueId] = memory;
+            return memories[dialogueId];
         }
 
         public INeoDialogueMemory? FindDialogueMemory(string dialogueId)
@@ -240,10 +308,11 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         public INeoTextNodeMemory GetOrCreateTextNodeMemory(string textNodeId)
         {
-            if (TextNodeMemories.TryGetValue(textNodeId, out var memory)) return memory;
+            var memories = TextNodeMemories;
+            if (memories.TryGetValue(textNodeId, out var memory)) return memory;
             memory = new NeoTextNodeMemory(VisitCount: 0);
-            TextNodeMemories[textNodeId] = memory;
-            return TextNodeMemories[textNodeId];
+            memories[textNodeId] = memory;
+            return memories[textNodeId];
         }
 
         public INeoTextNodeMemory? FindTextNodeMemory(string textNodeId)
@@ -291,6 +360,74 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
+    public sealed class NeoSmartTileOutput : IEquatable<NeoSmartTileOutput>
+    {
+        private static readonly Dictionary<string, NeoSmartTileOutput> values = new Dictionary<string, NeoSmartTileOutput>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileOutput(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileOutput Animation = FromOptionId("Animation");
+        public static readonly NeoSmartTileOutput Random = FromOptionId("Random");
+        public static readonly NeoSmartTileOutput Single = FromOptionId("Single");
+
+        public static NeoSmartTileOutput FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileOutput(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileOutput>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "Animation" => true,
+                "Random" => true,
+                "Single" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "Animation" => "d6191a4c-6b7b-4e86-a1ed-adbb43f2752c",
+                "Random" => "37e58009-597f-4075-8f84-793a5e63cb44",
+                "Single" => "35370b82-4269-4fdf-b768-c268edbab60e",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileOutput value) => value.optionId;
+        public static implicit operator NeoSmartTileOutput(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileOutput? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileOutput);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileOutput? left, NeoSmartTileOutput? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileOutput? left, NeoSmartTileOutput? right) => !(left == right);
+    }
     public sealed class Planet : IEquatable<Planet>
     {
         private static readonly Dictionary<string, Planet> values = new Dictionary<string, Planet>();
@@ -376,6 +513,74 @@ namespace HelloWorld.Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
         public static bool operator ==(Planet? left, Planet? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(Planet? left, Planet? right) => !(left == right);
+    }
+    public sealed class NeoSmartTileCollider : IEquatable<NeoSmartTileCollider>
+    {
+        private static readonly Dictionary<string, NeoSmartTileCollider> values = new Dictionary<string, NeoSmartTileCollider>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileCollider(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileCollider Grid = FromOptionId("Grid");
+        public static readonly NeoSmartTileCollider None = FromOptionId("None");
+        public static readonly NeoSmartTileCollider Sprite = FromOptionId("Sprite");
+
+        public static NeoSmartTileCollider FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileCollider(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileCollider>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "Grid" => true,
+                "None" => true,
+                "Sprite" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "Grid" => "0465f25d-046c-404a-b642-0bc9a52ca208",
+                "None" => "63c4fc38-4be9-4fdb-925c-5b7d3942fa21",
+                "Sprite" => "9c77cfbc-049e-44c9-8dae-144ad8758c1b",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileCollider value) => value.optionId;
+        public static implicit operator NeoSmartTileCollider(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileCollider? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileCollider);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileCollider? left, NeoSmartTileCollider? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileCollider? left, NeoSmartTileCollider? right) => !(left == right);
     }
     public sealed class SaturnMoon : IEquatable<SaturnMoon>
     {
@@ -590,6 +795,77 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(QuestStage? left, QuestStage? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(QuestStage? left, QuestStage? right) => !(left == right);
     }
+    public sealed class NeoSmartTileCondition : IEquatable<NeoSmartTileCondition>
+    {
+        private static readonly Dictionary<string, NeoSmartTileCondition> values = new Dictionary<string, NeoSmartTileCondition>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileCondition(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileCondition InheritsFromType = FromOptionId("InheritsFromType");
+        public static readonly NeoSmartTileCondition NotInheritsFromType = FromOptionId("NotInheritsFromType");
+        public static readonly NeoSmartTileCondition NotThis = FromOptionId("NotThis");
+        public static readonly NeoSmartTileCondition This = FromOptionId("This");
+
+        public static NeoSmartTileCondition FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileCondition(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileCondition>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "InheritsFromType" => true,
+                "NotInheritsFromType" => true,
+                "NotThis" => true,
+                "This" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "InheritsFromType" => "ce735446-bbb5-4f10-ab06-5f43e7be9ff0",
+                "NotInheritsFromType" => "d305c446-c6f3-4f07-83d4-8388d6695a4c",
+                "NotThis" => "7dcfeadc-d448-478d-82ae-33ebbdd62c7a",
+                "This" => "7a6d716c-1c9f-45c5-8f15-29d87beb162b",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileCondition value) => value.optionId;
+        public static implicit operator NeoSmartTileCondition(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileCondition? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileCondition);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileCondition? left, NeoSmartTileCondition? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileCondition? left, NeoSmartTileCondition? right) => !(left == right);
+    }
     public sealed class WorldEnding : IEquatable<WorldEnding>
     {
         private static readonly Dictionary<string, WorldEnding> values = new Dictionary<string, WorldEnding>();
@@ -664,72 +940,194 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(WorldEnding? left, WorldEnding? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(WorldEnding? left, WorldEnding? right) => !(left == right);
     }
-
-    public partial class ReadOnlyAnimationInfo : NeoGeneratedCustomValue
+    public sealed class NeoSmartTileTransform : IEquatable<NeoSmartTileTransform>
     {
-        internal ReadOnlyAnimationInfo(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "11177bd5-0678-4bff-86b8-46718ff1827b")
+        private static readonly Dictionary<string, NeoSmartTileTransform> values = new Dictionary<string, NeoSmartTileTransform>();
+        public string optionId { get; }
+        public string Text => TextForOptionId(optionId);
+        public string TextId => TextIdForOptionId(optionId);
+
+        private NeoSmartTileTransform(string optionId)
+        {
+            this.optionId = optionId;
+        }
+
+        public static readonly NeoSmartTileTransform Fixed = FromOptionId("Fixed");
+        public static readonly NeoSmartTileTransform MirrorX = FromOptionId("MirrorX");
+        public static readonly NeoSmartTileTransform MirrorXY = FromOptionId("MirrorXY");
+        public static readonly NeoSmartTileTransform MirrorY = FromOptionId("MirrorY");
+        public static readonly NeoSmartTileTransform Rotated = FromOptionId("Rotated");
+        public static readonly NeoSmartTileTransform RotatedMirror = FromOptionId("RotatedMirror");
+
+        public static NeoSmartTileTransform FromOptionId(string optionId)
+        {
+            if (values.TryGetValue(optionId, out var known)) return known;
+            var created = new NeoSmartTileTransform(optionId);
+            values[optionId] = created;
+            return created;
+        }
+
+        public static string[] ToOptionIds(IEnumerable<NeoSmartTileTransform>? options)
+        {
+            if (options is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var option in options) ids.Add(option.optionId);
+            return ids.ToArray();
+        }
+
+        public static bool IsKnown(string id)
+        {
+            return id switch
+            {
+                "Fixed" => true,
+                "MirrorX" => true,
+                "MirrorXY" => true,
+                "MirrorY" => true,
+                "Rotated" => true,
+                "RotatedMirror" => true,
+                _ => false,
+            };
+        }
+
+        public static string TextIdForOptionId(string optionId)
+        {
+            return optionId switch
+            {
+                "Fixed" => "8e21d44a-8cc4-4bca-aea4-419c3ec1b1da",
+                "MirrorX" => "b586d36f-35f7-4482-9cf7-8740d247f93f",
+                "MirrorXY" => "f6057c5a-d772-4043-a327-b785a8776379",
+                "MirrorY" => "7a8a6e8e-2775-4ba9-995a-4edf8b988bf6",
+                "Rotated" => "678e286f-3f0a-4fe4-8ae2-0fcebccec0c3",
+                "RotatedMirror" => "a9d35370-fe60-40b4-afae-f8269c8aa55b",
+                _ => optionId,
+            };
+        }
+
+        public static string TextForOptionId(string optionId, NeoClient? client = null)
+        {
+            return (client ?? HelloWorldNeo.RequireInstance().Client).Localization.ResolveText(TextIdForOptionId(optionId));
+        }
+
+        public static implicit operator string(NeoSmartTileTransform value) => value.optionId;
+        public static implicit operator NeoSmartTileTransform(string optionId) => FromOptionId(optionId);
+        public override string ToString() => optionId;
+        public bool Equals(NeoSmartTileTransform? other) => other is not null && optionId == other.optionId;
+        public override bool Equals(object? obj) => Equals(obj as NeoSmartTileTransform);
+        public override int GetHashCode() => optionId.GetHashCode();
+        public static bool operator ==(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
+        public static bool operator !=(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => !(left == right);
+    }
+
+    public interface IReadOnlyConsoleObject : IReadOnlyNeoObject
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ConsoleObject writable);
+
+        new string Name { get; }
+    }
+
+    public abstract partial class ConsoleObject : NeoObject, IReadOnlyConsoleObject
+    {
+        internal ConsoleObject(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlyAnimationInfo Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ConsoleObject Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ConsoleObject>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyAnimationInfo(client, node),
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, true, NeoValueOwnership.Asset),
+                    "5c65b156-e83a-41c5-bef0-ee375798bdc2" => new ExitPromptObject(client, node, true, NeoValueOwnership.Asset),
+                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, true, NeoValueOwnership.Asset),
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ConsoleObject' without a concrete client type id."),
                 };
             });
         }
 
-        public int FPS
+        internal new static ConsoleObject CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ConsoleObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, false, node.ownership),
+                    "5c65b156-e83a-41c5-bef0-ee375798bdc2" => new ExitPromptObject(client, node, false, node.ownership),
+                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, false, node.ownership),
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ConsoleObject' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ConsoleObject writable)
+        {
+            return TryWritable<ConsoleObject>(out writable);
+        }
+
+        public new string Name
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("FPS")) ?? throw new InvalidOperationException("Required int 'FPS' has no value.");
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
-        }
-
-        public NeoReadOnlyList<Sprite> Frames
-        {
-            get
+            set
             {
-                return new NeoReadOnlyList<Sprite>(client, node.Get<NeoAttributeList>("Frames"), (client, child) => ((NeoAttributeSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite 'List' has no synchronized asset."));
+                ThrowIfReadOnly("ConsoleObject.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
-        public string Name
-        {
-            get
-            {
-                return node.Get<NeoAttributeString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-        }
-
-        public sealed class Fields
+        public new sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<int> FPS = new("FPS");
-
-            public static readonly NeoField<NeoReadOnlyList<Sprite>> Frames = new("Frames");
-
             public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<IReadOnlyNeoObjectLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObjectLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.FPS] = () => null,
-                [Fields.Frames] = () => null,
-                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+                [Fields.Name] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.PlacementTiles] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.Collider] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -743,13 +1141,18 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.FPS] = () => FPS,
-                [Fields.Frames] = () => Frames,
                 [Fields.Name] = () => Name,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Children] = () => Children,
+                [Fields.Collider] = () => Collider,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -758,19 +1161,292 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyBootGlyphTile : IReadOnlyConsoleTile
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out BootGlyphTile writable);
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers { get; }
+
+        new IReadOnlyNeoTileLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        new Sprite Sprite { get; }
     }
 
-    public partial class AnimationInfo : ReadOnlyAnimationInfo
+    public partial class BootGlyphTile : ConsoleTile, IReadOnlyBootGlyphTile
     {
-        internal AnimationInfo(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal BootGlyphTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
+        public BootGlyphTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                });
+            }
+            if (DefaultLayer is not null)
+            {
+                var DefaultLayerValueId = Guid.NewGuid().ToString();
+                value["DefaultLayer"] = DefaultLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (Sprite is not null)
+            {
+                var SpriteValueId = Guid.NewGuid().ToString();
+                value["Sprite"] = SpriteValueId;
+                valueRows.Add(new SpriteAttributeValue
+                {
+                    id = SpriteValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
+                });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "07db44f3-8cc5-4164-aace-098ca68460f4", value, valueRows);
+        }
+
+        internal new static BootGlyphTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<BootGlyphTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new BootGlyphTile(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static BootGlyphTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<BootGlyphTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new BootGlyphTile(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out BootGlyphTile writable)
+        {
+            return TryWritable<BootGlyphTile>(out writable);
+        }
+
+        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
+        {
+            get
+            {
+                return new NeoLookupSet<IReadOnlyNeoTileLayer>(client, writableNode.Get<NeoAttributeLookupWritable>("CompatibleLayers"), () => writableNode.GetOrCreateLookup("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child), () => ThrowIfReadOnly("BootGlyphTile.CompatibleLayers"), () => IsReadOnly);
+            }
+            set
+            {
+                ThrowIfReadOnly("BootGlyphTile.CompatibleLayers");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "CompatibleLayers", NeoGeneratedTypesSupport.Value(ids.ToArray()));
+            }
+        }
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> IReadOnlyBootGlyphTile.CompatibleLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new IReadOnlyNeoTileLayer DefaultLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("BootGlyphTile.DefaultLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("BootGlyphTile.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new Sprite Sprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("Sprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+            }
+            set
+            {
+                ThrowIfReadOnly("BootGlyphTile.Sprite");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyAnimationInfo : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out AnimationInfo writable);
+
+        int FPS { get; }
+
+        NeoReadOnlyList<Sprite> Frames { get; }
+
+        string Name { get; }
+    }
+
+    public partial class AnimationInfo : NeoGeneratedCustomValue, IReadOnlyAnimationInfo
+    {
+        internal AnimationInfo(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "11177bd5-0678-4bff-86b8-46718ff1827b", isReadOnly, inheritedStorageOwnership)
+        {
+        }
 
         public AnimationInfo(IEnumerable<Sprite> Frames, int? FPS = null, string? Name = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Frames, FPS, Name))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Frames, FPS, Name), false, NeoValueOwnership.Session)
         {
         }
 
@@ -830,51 +1506,65 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "11177bd5-0678-4bff-86b8-46718ff1827b", value, valueRows);
         }
 
-        internal static AnimationInfo CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static AnimationInfo Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<AnimationInfo>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new AnimationInfo(client, node),
+                    _ => new AnimationInfo(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new int FPS
+        internal static AnimationInfo CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<AnimationInfo>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new AnimationInfo(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out AnimationInfo writable)
+        {
+            return TryWritable<AnimationInfo>(out writable);
+        }
+
+        public int FPS
         {
             get
             {
                 return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("FPS")) ?? throw new InvalidOperationException("Required int 'FPS' has no value.");
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "FPS", NeoGeneratedTypesSupport.Value(value));
-            }
         }
 
-        public new NeoList<Sprite> Frames
+        public NeoReadOnlyList<Sprite> Frames
         {
             get
             {
-                return new NeoList<Sprite>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Frames"), (client, child) => ((NeoAttributeSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite 'List' has no synchronized asset."), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, item)));
+                return new NeoReadOnlyList<Sprite>(client, node.Get<NeoAttributeList>("Frames"), (client, child) => ((NeoAttributeSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite 'List' has no synchronized asset."));
             }
         }
 
-        public new string Name
+        public string Name
         {
             get
             {
                 return node.Get<NeoAttributeString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
-            set
-            {
-                writableNode.SetStringLiteral("Name", value);
-            }
         }
 
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -895,7 +1585,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -915,6 +1605,328 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoTile : INeoValueReference, INeoSmartTileSource
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoTile writable);
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers { get; }
+
+        IReadOnlyNeoTileLayer DefaultLayer { get; }
+
+        string Name { get; }
+
+        new IReadOnlyNeoSmartTile? SmartTile { get; }
+
+        Sprite Sprite { get; }
+    }
+
+    public abstract partial class NeoTile : NeoGeneratedCustomValue, IReadOnlyNeoTile, INeoSmartTileSource
+    {
+        internal NeoTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "1968a188-8220-4d1a-99b2-f1d0cea0c802", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static NeoTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "07db44f3-8cc5-4164-aace-098ca68460f4" => new BootGlyphTile(client, node, true, NeoValueOwnership.Asset),
+                    "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2" => new VoidTile(client, node, true, NeoValueOwnership.Asset),
+                    "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b" => new SealBarrierTile(client, node, true, NeoValueOwnership.Asset),
+                    "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(client, node, true, NeoValueOwnership.Asset),
+                    "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(client, node, true, NeoValueOwnership.Asset),
+                    "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTile' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static NeoTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "07db44f3-8cc5-4164-aace-098ca68460f4" => new BootGlyphTile(client, node, false, node.ownership),
+                    "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2" => new VoidTile(client, node, false, node.ownership),
+                    "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b" => new SealBarrierTile(client, node, false, node.ownership),
+                    "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(client, node, false, node.ownership),
+                    "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(client, node, false, node.ownership),
+                    "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTile' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoTile writable)
+        {
+            return TryWritable<NeoTile>(out writable);
+        }
+
+        INeoSmartTile? INeoSmartTileSource.SmartTile => SmartTile;
+
+        public NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public IReadOnlyNeoTileLayer DefaultLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+        }
+
+        public string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+        }
+
+        public IReadOnlyNeoSmartTile? SmartTile
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("SmartTile");
+                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
+            }
+        }
+
+        public Sprite Sprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("Sprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.SmartTile] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.SmartTile] = () => SmartTile,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyConsoleTile : IReadOnlyNeoTile
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ConsoleTile writable);
+
+        new string Name { get; }
+    }
+
+    public abstract partial class ConsoleTile : NeoTile, IReadOnlyConsoleTile
+    {
+        internal ConsoleTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal new static ConsoleTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ConsoleTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "07db44f3-8cc5-4164-aace-098ca68460f4" => new BootGlyphTile(client, node, true, NeoValueOwnership.Asset),
+                    "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2" => new VoidTile(client, node, true, NeoValueOwnership.Asset),
+                    "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b" => new SealBarrierTile(client, node, true, NeoValueOwnership.Asset),
+                    "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(client, node, true, NeoValueOwnership.Asset),
+                    "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(client, node, true, NeoValueOwnership.Asset),
+                    "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ConsoleTile' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal new static ConsoleTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ConsoleTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "07db44f3-8cc5-4164-aace-098ca68460f4" => new BootGlyphTile(client, node, false, node.ownership),
+                    "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2" => new VoidTile(client, node, false, node.ownership),
+                    "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b" => new SealBarrierTile(client, node, false, node.ownership),
+                    "a8305a31-7f6c-4ff5-8a9f-5871ef451093" => new HullPlatingTile(client, node, false, node.ownership),
+                    "bda4cf72-c8da-4be0-8148-024d0fc2d826" => new GlassFloorTile(client, node, false, node.ownership),
+                    "d931c907-19cd-4f3d-b04a-e6f1945fb216" => new RedNovaWarningTile(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ConsoleTile' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ConsoleTile writable)
+        {
+            return TryWritable<ConsoleTile>(out writable);
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("ConsoleTile.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.SmartTile] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.SmartTile] = () => SmartTile,
+            };
+        }
+
         public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
@@ -930,23 +1942,557 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyComputedText : NeoGeneratedCustomValue
+    public interface IReadOnlyWorlds : INeoValueReference
     {
-        internal ReadOnlyComputedText(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "2ab1bc07-da0b-47fc-b77b-54cc511575bb")
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out Worlds writable);
+
+        IReadOnlyOldConsoleLandingGrid OldConsoleLanding { get; }
+    }
+
+    public partial class Worlds : NeoGeneratedCustomValue, IReadOnlyWorlds
+    {
+        internal Worlds(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "22a62498-61f8-4b6f-8d4c-bc05743a5c2e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlyComputedText Create(NeoClient client, NeoAttributeCustom node)
+        public Worlds(OldConsoleLandingGrid OldConsoleLanding)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(OldConsoleLanding), false, NeoValueOwnership.Session)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(OldConsoleLandingGrid OldConsoleLanding)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            value["OldConsoleLanding"] = NeoGeneratedTypesSupport.LookupSelectionId(OldConsoleLanding.valueId);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "22a62498-61f8-4b6f-8d4c-bc05743a5c2e", value, valueRows);
+        }
+
+        internal static Worlds Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Worlds>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyComputedText(client, node),
+                    _ => new Worlds(client, node, true, NeoValueOwnership.Asset),
                 };
             });
+        }
+
+        internal static Worlds CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Worlds>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Worlds(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out Worlds writable)
+        {
+            return TryWritable<Worlds>(out writable);
+        }
+
+        public IReadOnlyOldConsoleLandingGrid OldConsoleLanding
+        {
+            get
+            {
+                return global::HelloWorld.Assets.Scripts.Neo.OldConsoleLandingGrid.Create(client, node.Get<NeoAttributeCustom>("OldConsoleLanding"));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<OldConsoleLandingGrid> OldConsoleLanding = new("OldConsoleLanding");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.OldConsoleLanding] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.OldConsoleLanding] = () => OldConsoleLanding,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyRecoveryCacheObject : IReadOnlyConsoleObject
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out RecoveryCacheObject writable);
+
+        new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers { get; }
+
+        new IReadOnlyNeoObjectLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+    }
+
+    public partial class RecoveryCacheObject : ConsoleObject, IReadOnlyRecoveryCacheObject
+    {
+        internal RecoveryCacheObject(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public RecoveryCacheObject(string? Name = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, DefaultLayer, CompatibleLayers, PlacementTiles, Children, Collider, Position, Size), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (DefaultLayer is not null)
+            {
+                var DefaultLayerValueId = Guid.NewGuid().ToString();
+                value["DefaultLayer"] = DefaultLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                });
+            }
+            if (PlacementTiles is not null)
+            {
+                var PlacementTilesValueId = Guid.NewGuid().ToString();
+                value["PlacementTiles"] = PlacementTilesValueId;
+                var PlacementTilesIds = new List<string>();
+                foreach (var entry in PlacementTiles)
+                {
+                    PlacementTilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = PlacementTilesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = PlacementTilesIds.ToArray(),
+                });
+            }
+            if (Children is not null)
+            {
+                var ChildrenValueId = Guid.NewGuid().ToString();
+                value["Children"] = ChildrenValueId;
+                var ChildrenIds = new List<string>();
+                foreach (var entry in Children)
+                {
+                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ChildrenValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ChildrenIds.ToArray(),
+                });
+            }
+            if (Collider is not null)
+            {
+                value["Collider"] = NeoGeneratedTypesSupport.LookupSelectionId(Collider.valueId);
+            }
+            if (Position is not null)
+            {
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            if (Size is not null)
+            {
+                var SizeValueId = Guid.NewGuid().ToString();
+                value["Size"] = SizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = SizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "27874300-3e78-4d1c-802b-caf34d25d1ab", value, valueRows);
+        }
+
+        internal new static RecoveryCacheObject Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<RecoveryCacheObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new RecoveryCacheObject(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static RecoveryCacheObject CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<RecoveryCacheObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new RecoveryCacheObject(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out RecoveryCacheObject writable)
+        {
+            return TryWritable<RecoveryCacheObject>(out writable);
+        }
+
+        public new NeoList<NeoObjectBase> Children
+        {
+            get
+            {
+                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoAttributeListWritable>("Children"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Children"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("RecoveryCacheObject.Children"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyRecoveryCacheObject.Children
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoAttributeList>("Children"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
+        {
+            get
+            {
+                return new NeoLookupSet<IReadOnlyNeoObjectLayer>(client, writableNode.Get<NeoAttributeLookupWritable>("CompatibleLayers"), () => writableNode.GetOrCreateLookup("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child), () => ThrowIfReadOnly("RecoveryCacheObject.CompatibleLayers"), () => IsReadOnly);
+            }
+            set
+            {
+                ThrowIfReadOnly("RecoveryCacheObject.CompatibleLayers");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "CompatibleLayers", NeoGeneratedTypesSupport.Value(ids.ToArray()));
+            }
+        }
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> IReadOnlyRecoveryCacheObject.CompatibleLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new IReadOnlyNeoObjectLayer DefaultLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("RecoveryCacheObject.DefaultLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("RecoveryCacheObject.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new NeoList<NeoObjectPlacementTile> PlacementTiles
+        {
+            get
+            {
+                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoAttributeListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("PlacementTiles"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("RecoveryCacheObject.PlacementTiles"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyRecoveryCacheObject.PlacementTiles
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoAttributeList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<IReadOnlyNeoObjectLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObjectLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.PlacementTiles] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.Collider] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Children] = () => Children,
+                [Fields.Collider] = () => Collider,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyComputedText : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ComputedText writable);
+
+        string baseText { get; }
+
+        string fullText { get; }
+
+        string? optionalSuffix { get; }
+    }
+
+    public partial class ComputedText : NeoGeneratedCustomValue, IReadOnlyComputedText
+    {
+        internal ComputedText(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public ComputedText(string? baseText = null, string? optionalSuffix = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(baseText, optionalSuffix), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? baseText = null, string? optionalSuffix = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (baseText is not null)
+            {
+                var baseTextValueId = Guid.NewGuid().ToString();
+                value["baseText"] = baseTextValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = baseTextValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = baseText,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (optionalSuffix is not null)
+            {
+                var optionalSuffixValueId = Guid.NewGuid().ToString();
+                value["optionalSuffix"] = optionalSuffixValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = optionalSuffixValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = optionalSuffix,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", value, valueRows);
+        }
+
+        internal static ComputedText Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ComputedText>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ComputedText(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static ComputedText CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ComputedText>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ComputedText(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ComputedText writable)
+        {
+            return TryWritable<ComputedText>(out writable);
         }
 
         public string baseText
@@ -1025,125 +2571,127 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoWorlds : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoWorlds writable);
+
+        NeoReadOnlyList<IReadOnlyNeoObjectLayer> ObjectLayers { get; }
+
+        NeoReadOnlyList<IReadOnlyNeoObject> Objects { get; }
+
+        NeoReadOnlyList<IReadOnlyNeoTileLayer> TileLayers { get; }
+
+        NeoReadOnlyList<IReadOnlyNeoTile> Tiles { get; }
     }
 
-    public partial class ComputedText : ReadOnlyComputedText
+    public abstract partial class NeoWorlds : NeoGeneratedCustomValue, IReadOnlyNeoWorlds
     {
-        internal ComputedText(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal NeoWorlds(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "3415d063-b5b9-4cfb-a77d-ba6ebb5890e2", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
-        public ComputedText(string? baseText = null, string? optionalSuffix = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(baseText, optionalSuffix))
+        internal static NeoWorlds Create(NeoClient client, NeoAttributeCustom node)
         {
-        }
-
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? baseText = null, string? optionalSuffix = null)
-        {
-            var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (baseText is not null)
-            {
-                var baseTextValueId = Guid.NewGuid().ToString();
-                value["baseText"] = baseTextValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = baseTextValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = baseText,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (optionalSuffix is not null)
-            {
-                var optionalSuffixValueId = Guid.NewGuid().ToString();
-                value["optionalSuffix"] = optionalSuffixValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = optionalSuffixValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = optionalSuffix,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", value, valueRows);
-        }
-
-        internal static ComputedText CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoWorlds>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ComputedText(client, node),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoWorlds' without a concrete client type id."),
                 };
             });
         }
 
-        public new string baseText
+        internal static NeoWorlds CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoWorlds>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoWorlds' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoWorlds writable)
+        {
+            return TryWritable<NeoWorlds>(out writable);
+        }
+
+        public NeoReadOnlyList<IReadOnlyNeoObjectLayer> ObjectLayers
         {
             get
             {
-                return node.Get<NeoAttributeString>("baseText").Text ?? throw new InvalidOperationException("Required string 'baseText' has no value.");
-            }
-            set
-            {
-                writableNode.SetStringLiteral("baseText", value);
+                return new NeoReadOnlyList<IReadOnlyNeoObjectLayer>(client, node.Get<NeoAttributeList>("ObjectLayers"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child));
             }
         }
 
-        public new string fullText
+        public NeoReadOnlyList<IReadOnlyNeoObject> Objects
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("fullText").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return (string)result.value!;
+                return new NeoReadOnlyList<IReadOnlyNeoObject>(client, node.Get<NeoAttributeList>("Objects"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObject.Create(client, (NeoAttributeCustom)child));
             }
         }
 
-        public new string? optionalSuffix
+        public NeoReadOnlyList<IReadOnlyNeoTileLayer> TileLayers
         {
             get
             {
-                return node.Get<NeoAttributeString>("optionalSuffix").Text;
-            }
-            set
-            {
-                writableNode.SetStringLiteral("optionalSuffix", value);
+                return new NeoReadOnlyList<IReadOnlyNeoTileLayer>(client, node.Get<NeoAttributeList>("TileLayers"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child));
             }
         }
 
-        public new sealed class Fields
+        public NeoReadOnlyList<IReadOnlyNeoTile> Tiles
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoTile>(client, node.Get<NeoAttributeList>("Tiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<string> baseText = new("baseText");
+            public static readonly NeoField<NeoList<NeoTile>> Tiles = new("Tiles");
 
-            public static readonly NeoField<string> fullText = new("fullText");
+            public static readonly NeoField<NeoList<NeoTileLayer>> TileLayers = new("TileLayers");
 
-            public static readonly NeoField<string?> optionalSuffix = new("optionalSuffix");
+            public static readonly NeoField<NeoList<NeoObject>> Objects = new("Objects");
+
+            public static readonly NeoField<NeoList<NeoObjectLayer>> ObjectLayers = new("ObjectLayers");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.baseText] = () => node.Get<NeoAttributeString>("baseText").TextId,
-                [Fields.fullText] = () => null,
-                [Fields.optionalSuffix] = () => node.Get<NeoAttributeString>("optionalSuffix").TextId,
+                [Fields.Tiles] = () => null,
+                [Fields.TileLayers] = () => null,
+                [Fields.Objects] = () => null,
+                [Fields.ObjectLayers] = () => null,
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1157,13 +2705,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.baseText] = () => baseText,
-                [Fields.fullText] = () => fullText,
-                [Fields.optionalSuffix] = () => optionalSuffix,
+                [Fields.Tiles] = () => Tiles,
+                [Fields.TileLayers] = () => TileLayers,
+                [Fields.Objects] = () => Objects,
+                [Fields.ObjectLayers] = () => ObjectLayers,
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1178,23 +2727,458 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyAudio : NeoGeneratedCustomValue
+    public interface IReadOnlyNeoObjectPlacementTile : INeoValueReference
     {
-        internal ReadOnlyAudio(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "44d6324f-6507-4420-a919-3496681c3b21")
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoObjectPlacementTile writable);
+
+        NeoReadOnlyVector2Int Cell { get; }
+    }
+
+    public partial class NeoObjectPlacementTile : NeoGeneratedCustomValue, IReadOnlyNeoObjectPlacementTile
+    {
+        internal NeoObjectPlacementTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlyAudio Create(NeoClient client, NeoAttributeCustom node)
+        public NeoObjectPlacementTile(NeoVector2Int? Cell = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Cell), false, NeoValueOwnership.Session)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2Int? Cell = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Cell is not null)
+            {
+                var CellValueId = Guid.NewGuid().ToString();
+                value["Cell"] = CellValueId;
+                valueRows.Add(new Vector2AttributeValue
+                {
+                    id = CellValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector2IntValue(Cell.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6", value, valueRows);
+        }
+
+        internal static NeoObjectPlacementTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObjectPlacementTile>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyAudio(client, node),
+                    _ => new NeoObjectPlacementTile(client, node, true, NeoValueOwnership.Asset),
                 };
             });
+        }
+
+        internal static NeoObjectPlacementTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObjectPlacementTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoObjectPlacementTile(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoObjectPlacementTile writable)
+        {
+            return TryWritable<NeoObjectPlacementTile>(out writable);
+        }
+
+        public NeoReadOnlyVector2Int Cell
+        {
+            get
+            {
+                return new NeoReadOnlyVector2Int(node.Get<NeoAttributeVector2Int>("Cell"));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Cell] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Cell] = () => Cell,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoTileInstance : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoTileInstance writable);
+
+        NeoReadOnlyVector2Int Cell { get; }
+
+        IReadOnlyNeoTile Tile { get; }
+    }
+
+    public partial class NeoTileInstance : NeoGeneratedCustomValue, IReadOnlyNeoTileInstance
+    {
+        internal NeoTileInstance(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoTileInstance(NeoVector2Int? Cell = null, NeoLookupSelection? Tile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Cell, Tile), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2Int? Cell = null, NeoLookupSelection? Tile = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Cell is not null)
+            {
+                var CellValueId = Guid.NewGuid().ToString();
+                value["Cell"] = CellValueId;
+                valueRows.Add(new Vector2AttributeValue
+                {
+                    id = CellValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector2IntValue(Cell.Value),
+                });
+            }
+            if (Tile is not null)
+            {
+                var TileValueId = Guid.NewGuid().ToString();
+                value["Tile"] = TileValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TileValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Tile.HasValue ? new[] { Tile.Value.valueId } : null,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15", value, valueRows);
+        }
+
+        internal static NeoTileInstance Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTileInstance>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoTileInstance(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static NeoTileInstance CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTileInstance>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoTileInstance(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoTileInstance writable)
+        {
+            return TryWritable<NeoTileInstance>(out writable);
+        }
+
+        public NeoVector2Int Cell
+        {
+            get
+            {
+                return new NeoVector2Int(writableNode.Get<NeoAttributeVector2IntWritable>("Cell"));
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoTileInstance.Cell");
+                NeoGeneratedTypesSupport.SetVector2Int(writableNode, "Cell", value.Value);
+            }
+        }
+
+        NeoReadOnlyVector2Int IReadOnlyNeoTileInstance.Cell
+        {
+            get
+            {
+                return new NeoReadOnlyVector2Int(node.Get<NeoAttributeVector2Int>("Cell"));
+            }
+        }
+
+        public IReadOnlyNeoTile Tile
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("Tile").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoTileInstance.Tile");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Tile", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<IReadOnlyNeoTile> Tile = new("Tile");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Cell] = () => null,
+                [Fields.Tile] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Cell] = () => Cell,
+                [Fields.Tile] = () => Tile,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyAudio : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out Audio writable);
+
+        AudioClip BitsGainSfx { get; }
+
+        AudioClip BitsSpendSfx { get; }
+
+        AudioClip DialogCloseSfx { get; }
+
+        AudioClip DialogNextSfx { get; }
+
+        AudioClip DialogOpenSfx { get; }
+
+        AudioClip ItemGetSfx { get; }
+
+        AudioClip RocketThrustSfx { get; }
+    }
+
+    public partial class Audio : NeoGeneratedCustomValue, IReadOnlyAudio
+    {
+        internal Audio(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "44d6324f-6507-4420-a919-3496681c3b21", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public Audio(AudioClip BitsGainSfx, AudioClip BitsSpendSfx, AudioClip DialogCloseSfx, AudioClip DialogNextSfx, AudioClip DialogOpenSfx, AudioClip ItemGetSfx, AudioClip RocketThrustSfx)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(BitsGainSfx, BitsSpendSfx, DialogCloseSfx, DialogNextSfx, DialogOpenSfx, ItemGetSfx, RocketThrustSfx), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(AudioClip BitsGainSfx, AudioClip BitsSpendSfx, AudioClip DialogCloseSfx, AudioClip DialogNextSfx, AudioClip DialogOpenSfx, AudioClip ItemGetSfx, AudioClip RocketThrustSfx)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var BitsGainSfxValueId = Guid.NewGuid().ToString();
+            value["BitsGainSfx"] = BitsGainSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = BitsGainSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, BitsGainSfx),
+            });
+            var BitsSpendSfxValueId = Guid.NewGuid().ToString();
+            value["BitsSpendSfx"] = BitsSpendSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = BitsSpendSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, BitsSpendSfx),
+            });
+            var DialogCloseSfxValueId = Guid.NewGuid().ToString();
+            value["DialogCloseSfx"] = DialogCloseSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = DialogCloseSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, DialogCloseSfx),
+            });
+            var DialogNextSfxValueId = Guid.NewGuid().ToString();
+            value["DialogNextSfx"] = DialogNextSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = DialogNextSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, DialogNextSfx),
+            });
+            var DialogOpenSfxValueId = Guid.NewGuid().ToString();
+            value["DialogOpenSfx"] = DialogOpenSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = DialogOpenSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, DialogOpenSfx),
+            });
+            var ItemGetSfxValueId = Guid.NewGuid().ToString();
+            value["ItemGetSfx"] = ItemGetSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = ItemGetSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, ItemGetSfx),
+            });
+            var RocketThrustSfxValueId = Guid.NewGuid().ToString();
+            value["RocketThrustSfx"] = RocketThrustSfxValueId;
+            valueRows.Add(new FileAttributeValue
+            {
+                id = RocketThrustSfxValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.AudioValue(client, RocketThrustSfx),
+            });
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "44d6324f-6507-4420-a919-3496681c3b21", value, valueRows);
+        }
+
+        internal static Audio Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Audio>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Audio(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static Audio CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Audio>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Audio(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out Audio writable)
+        {
+            return TryWritable<Audio>(out writable);
         }
 
         public AudioClip BitsGainSfx
@@ -1326,227 +3310,185 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IBlockedPathFunctionHandler
+    {
+        bool ClearPath();
     }
 
-    public partial class Audio : ReadOnlyAudio
+    public interface IReadOnlyBlockedPath : IReadOnlyNeoTileLayerLink
     {
-        internal Audio(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out BlockedPath writable);
+
+        bool ClearPath();
+    }
+
+    public partial class BlockedPath : NeoTileLayerLink, IReadOnlyBlockedPath
+    {
+        internal BlockedPath(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
+        public IBlockedPathFunctionHandler? FunctionHandler
+        {
+            get => FunctionHandlerObject as IBlockedPathFunctionHandler;
+            set => FunctionHandlerObject = value;
+        }
 
-        public Audio(AudioClip BitsGainSfx, AudioClip BitsSpendSfx, AudioClip DialogCloseSfx, AudioClip DialogNextSfx, AudioClip DialogOpenSfx, AudioClip ItemGetSfx, AudioClip RocketThrustSfx)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(BitsGainSfx, BitsSpendSfx, DialogCloseSfx, DialogNextSfx, DialogOpenSfx, ItemGetSfx, RocketThrustSfx))
+        public BlockedPath(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(AudioClip BitsGainSfx, AudioClip BitsSpendSfx, AudioClip DialogCloseSfx, AudioClip DialogNextSfx, AudioClip DialogOpenSfx, AudioClip ItemGetSfx, AudioClip RocketThrustSfx)
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            var BitsGainSfxValueId = Guid.NewGuid().ToString();
-            value["BitsGainSfx"] = BitsGainSfxValueId;
-            valueRows.Add(new FileAttributeValue
+            var TileLayerValueId = Guid.NewGuid().ToString();
+            value["TileLayer"] = TileLayerValueId;
+            valueRows.Add(new ArrayAttributeValue
             {
-                id = BitsGainSfxValueId,
+                id = TileLayerValueId,
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, BitsGainSfx),
+                value = new[] { TileLayer.valueId },
             });
-            var BitsSpendSfxValueId = Guid.NewGuid().ToString();
-            value["BitsSpendSfx"] = BitsSpendSfxValueId;
-            valueRows.Add(new FileAttributeValue
+            if (Tiles is not null)
             {
-                id = BitsSpendSfxValueId,
+                var TilesValueId = Guid.NewGuid().ToString();
+                value["Tiles"] = TilesValueId;
+                var TilesIds = new List<string>();
+                foreach (var entry in Tiles)
+                {
+                    TilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TilesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = TilesIds.ToArray(),
+                });
+            }
+            var NameValueId = Guid.NewGuid().ToString();
+            value["Name"] = NameValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = NameValueId,
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, BitsSpendSfx),
+                value = Name,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
             });
-            var DialogCloseSfxValueId = Guid.NewGuid().ToString();
-            value["DialogCloseSfx"] = DialogCloseSfxValueId;
-            valueRows.Add(new FileAttributeValue
+            if (Position is not null)
             {
-                id = DialogCloseSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, DialogCloseSfx),
-            });
-            var DialogNextSfxValueId = Guid.NewGuid().ToString();
-            value["DialogNextSfx"] = DialogNextSfxValueId;
-            valueRows.Add(new FileAttributeValue
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            if (Size is not null)
             {
-                id = DialogNextSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, DialogNextSfx),
-            });
-            var DialogOpenSfxValueId = Guid.NewGuid().ToString();
-            value["DialogOpenSfx"] = DialogOpenSfxValueId;
-            valueRows.Add(new FileAttributeValue
-            {
-                id = DialogOpenSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, DialogOpenSfx),
-            });
-            var ItemGetSfxValueId = Guid.NewGuid().ToString();
-            value["ItemGetSfx"] = ItemGetSfxValueId;
-            valueRows.Add(new FileAttributeValue
-            {
-                id = ItemGetSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, ItemGetSfx),
-            });
-            var RocketThrustSfxValueId = Guid.NewGuid().ToString();
-            value["RocketThrustSfx"] = RocketThrustSfxValueId;
-            valueRows.Add(new FileAttributeValue
-            {
-                id = RocketThrustSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, RocketThrustSfx),
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "44d6324f-6507-4420-a919-3496681c3b21", value, valueRows);
+                var SizeValueId = Guid.NewGuid().ToString();
+                value["Size"] = SizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = SizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b", value, valueRows);
         }
 
-        internal static Audio CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static BlockedPath Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<BlockedPath>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new Audio(client, node),
+                    _ => new BlockedPath(client, node, false, NeoValueOwnership.Save),
                 };
             });
         }
 
-        public new AudioClip BitsGainSfx
+        internal new static BlockedPath CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
-            get
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<BlockedPath>(client, node, () =>
             {
-                var resolved = node.Get<NeoAttributeAudio>("BitsGainSfx").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required AudioClip 'BitsGainSfx' has no synchronized asset.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "BitsGainSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
-            }
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new BlockedPath(client, node, false, node.ownership),
+                };
+            });
         }
 
-        public new AudioClip BitsSpendSfx
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
         {
-            get
-            {
-                var resolved = node.Get<NeoAttributeAudio>("BitsSpendSfx").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required AudioClip 'BitsSpendSfx' has no synchronized asset.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "BitsSpendSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
-            }
+            return base.TryWritable(out writable);
         }
 
-        public new AudioClip DialogCloseSfx
+        public bool TryWritable(out BlockedPath writable)
         {
-            get
-            {
-                var resolved = node.Get<NeoAttributeAudio>("DialogCloseSfx").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required AudioClip 'DialogCloseSfx' has no synchronized asset.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "DialogCloseSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
-            }
+            return TryWritable<BlockedPath>(out writable);
         }
 
-        public new AudioClip DialogNextSfx
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeAudio>("DialogNextSfx").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required AudioClip 'DialogNextSfx' has no synchronized asset.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "DialogNextSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
-            }
-        }
 
-        public new AudioClip DialogOpenSfx
+        public bool ClearPath()
         {
-            get
+            if (FunctionHandler is null)
             {
-                var resolved = node.Get<NeoAttributeAudio>("DialogOpenSfx").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required AudioClip 'DialogOpenSfx' has no synchronized asset.");
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'ClearPath' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "DialogOpenSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
-            }
-        }
-
-        public new AudioClip ItemGetSfx
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeAudio>("ItemGetSfx").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required AudioClip 'ItemGetSfx' has no synchronized asset.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "ItemGetSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
-            }
-        }
-
-        public new AudioClip RocketThrustSfx
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeAudio>("RocketThrustSfx").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required AudioClip 'RocketThrustSfx' has no synchronized asset.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "RocketThrustSfx", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.AudioValue(client, value)));
-            }
+            return FunctionHandler.ClearPath();
         }
 
         public new sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<AudioClip> BitsGainSfx = new("BitsGainSfx");
+            public static readonly NeoField<IReadOnlyNeoTileLayer> TileLayer = new("TileLayer");
 
-            public static readonly NeoField<AudioClip> BitsSpendSfx = new("BitsSpendSfx");
+            public static readonly NeoField<NeoList<NeoTileInstance>> Tiles = new("Tiles");
 
-            public static readonly NeoField<AudioClip> DialogCloseSfx = new("DialogCloseSfx");
+            public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<AudioClip> DialogNextSfx = new("DialogNextSfx");
+            public static readonly NeoField<NeoVector3> Position = new("Position");
 
-            public static readonly NeoField<AudioClip> DialogOpenSfx = new("DialogOpenSfx");
-
-            public static readonly NeoField<AudioClip> ItemGetSfx = new("ItemGetSfx");
-
-            public static readonly NeoField<AudioClip> RocketThrustSfx = new("RocketThrustSfx");
+            public static readonly NeoField<NeoVector3> Size = new("Size");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.BitsGainSfx] = () => null,
-                [Fields.BitsSpendSfx] = () => null,
-                [Fields.DialogCloseSfx] = () => null,
-                [Fields.DialogNextSfx] = () => null,
-                [Fields.DialogOpenSfx] = () => null,
-                [Fields.ItemGetSfx] = () => null,
-                [Fields.RocketThrustSfx] = () => null,
+                [Fields.TileLayer] = () => null,
+                [Fields.Tiles] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
             };
         }
 
@@ -1564,13 +3506,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.BitsGainSfx] = () => BitsGainSfx,
-                [Fields.BitsSpendSfx] = () => BitsSpendSfx,
-                [Fields.DialogCloseSfx] = () => DialogCloseSfx,
-                [Fields.DialogNextSfx] = () => DialogNextSfx,
-                [Fields.DialogOpenSfx] = () => DialogOpenSfx,
-                [Fields.ItemGetSfx] = () => ItemGetSfx,
-                [Fields.RocketThrustSfx] = () => RocketThrustSfx,
+                [Fields.TileLayer] = () => TileLayer,
+                [Fields.Tiles] = () => Tiles,
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
             };
         }
 
@@ -1589,84 +3529,226 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyNeoDialogueMemory : NeoGeneratedCustomValue
+    public interface IReadOnlyVoidTile : IReadOnlyConsoleTile
     {
-        internal ReadOnlyNeoDialogueMemory(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "48f37cd8-69d2-4cd3-ae44-7cfed7912415")
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out VoidTile writable);
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers { get; }
+
+        new IReadOnlyNeoTileLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        new Sprite Sprite { get; }
+    }
+
+    public partial class VoidTile : ConsoleTile, IReadOnlyVoidTile
+    {
+        internal VoidTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlyNeoDialogueMemory Create(NeoClient client, NeoAttributeCustom node)
+        public VoidTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                });
+            }
+            if (DefaultLayer is not null)
+            {
+                var DefaultLayerValueId = Guid.NewGuid().ToString();
+                value["DefaultLayer"] = DefaultLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (Sprite is not null)
+            {
+                var SpriteValueId = Guid.NewGuid().ToString();
+                value["Sprite"] = SpriteValueId;
+                valueRows.Add(new SpriteAttributeValue
+                {
+                    id = SpriteValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
+                });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", value, valueRows);
+        }
+
+        internal new static VoidTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<VoidTile>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyNeoDialogueMemory(client, node),
+                    _ => new VoidTile(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public bool HasVisited
+        internal new static VoidTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<VoidTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new VoidTile(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out VoidTile writable)
+        {
+            return TryWritable<VoidTile>(out writable);
+        }
+
+        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return (bool)result.value!;
+                return new NeoLookupSet<IReadOnlyNeoTileLayer>(client, writableNode.Get<NeoAttributeLookupWritable>("CompatibleLayers"), () => writableNode.GetOrCreateLookup("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child), () => ThrowIfReadOnly("VoidTile.CompatibleLayers"), () => IsReadOnly);
+            }
+            set
+            {
+                ThrowIfReadOnly("VoidTile.CompatibleLayers");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "CompatibleLayers", NeoGeneratedTypesSupport.Value(ids.ToArray()));
             }
         }
 
-        public string? LastVisitedAt
+        NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> IReadOnlyVoidTile.CompatibleLayers
         {
             get
             {
-                return node.Get<NeoAttributeString>("LastVisitedAt").Text;
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child));
             }
         }
 
-        public NeoReadOnlyDictionary<ReadOnlyNeoTextNodeMemory> TextNodeMemories
+        public new IReadOnlyNeoTileLayer DefaultLayer
         {
             get
             {
-                return new NeoReadOnlyDictionary<ReadOnlyNeoTextNodeMemory>(client, node.Get<NeoAttributeDictionary>("TextNodeMemories"), (client, child) => ReadOnlyNeoTextNodeMemory.Create(client, (NeoAttributeCustom)child));
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("VoidTile.DefaultLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
             }
         }
 
-        public int VisitCount
+        public new string Name
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("VoidTile.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
-        public sealed class Fields
+        public new Sprite Sprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("Sprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+            }
+            set
+            {
+                ThrowIfReadOnly("VoidTile.Sprite");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<bool> HasVisited = new("HasVisited");
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
 
-            public static readonly NeoField<string?> LastVisitedAt = new("LastVisitedAt");
+            public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
 
-            public static readonly NeoField<NeoReadOnlyDictionary<ReadOnlyNeoTextNodeMemory>> TextNodeMemories = new("TextNodeMemories");
+            public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<int> VisitCount = new("VisitCount");
+            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.HasVisited] = () => null,
-                [Fields.LastVisitedAt] = () => node.Get<NeoAttributeString>("LastVisitedAt").TextId,
-                [Fields.TextNodeMemories] = () => null,
-                [Fields.VisitCount] = () => null,
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1680,14 +3762,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.HasVisited] = () => HasVisited,
-                [Fields.LastVisitedAt] = () => LastVisitedAt,
-                [Fields.TextNodeMemories] = () => TextNodeMemories,
-                [Fields.VisitCount] = () => VisitCount,
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1696,19 +3779,38 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoDialogueMemory : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoDialogueMemory writable);
+
+        bool HasVisited { get; }
+
+        string? LastVisitedAt { get; }
+
+        NeoDictionary<NeoTextNodeMemory> TextNodeMemories { get; }
+
+        int VisitCount { get; }
     }
 
-    public partial class NeoDialogueMemory : ReadOnlyNeoDialogueMemory
+    public partial class NeoDialogueMemory : NeoGeneratedCustomValue, IReadOnlyNeoDialogueMemory
     {
-        internal NeoDialogueMemory(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal NeoDialogueMemory(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "48f37cd8-69d2-4cd3-ae44-7cfed7912415", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
         public NeoDialogueMemory(string? LastVisitedAt = null, IDictionary<string, NeoTextNodeMemory>? TextNodeMemories = null, int? VisitCount = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(LastVisitedAt, TextNodeMemories, VisitCount))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(LastVisitedAt, TextNodeMemories, VisitCount), false, NeoValueOwnership.Session)
         {
         }
 
@@ -1763,19 +3865,41 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "48f37cd8-69d2-4cd3-ae44-7cfed7912415", value, valueRows);
         }
 
-        internal static NeoDialogueMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static NeoDialogueMemory Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoDialogueMemory>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new NeoDialogueMemory(client, node),
+                    _ => new NeoDialogueMemory(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new bool HasVisited
+        internal static NeoDialogueMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoDialogueMemory>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoDialogueMemory(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoDialogueMemory writable)
+        {
+            return TryWritable<NeoDialogueMemory>(out writable);
+        }
+
+        public bool HasVisited
         {
             get
             {
@@ -1785,7 +3909,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string? LastVisitedAt
+        public string? LastVisitedAt
         {
             get
             {
@@ -1797,15 +3921,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoDictionary<NeoTextNodeMemory> TextNodeMemories
+        public NeoDictionary<NeoTextNodeMemory> TextNodeMemories
         {
             get
             {
-                return new NeoDictionary<NeoTextNodeMemory>(client, writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("TextNodeMemories"), (client, child) => NeoTextNodeMemory.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoDictionary<NeoTextNodeMemory>(client, writableNode.Get<NeoAttributeDictionaryWritable>("TextNodeMemories"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("TextNodeMemories"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
-        public new int VisitCount
+        public int VisitCount
         {
             get
             {
@@ -1817,7 +3941,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -1841,7 +3965,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1862,7 +3986,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -1884,10 +4008,39 @@ namespace HelloWorld.Assets.Scripts.Neo
         bool ShowRelic();
     }
 
-    public partial class ReadOnlyOutpost : NeoGeneratedCustomValue
+    public interface IReadOnlyOutpost : INeoValueReference
     {
-        internal ReadOnlyOutpost(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "4c196697-4e08-4aeb-823f-322b353071ac")
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out Outpost writable);
+
+        IReadOnlyAnimationInfo? AnimatedImage { get; }
+
+        string DebugLog(string text);
+
+        string FullDisplayText { get; }
+
+        Sprite Image { get; }
+
+        string Name { get; }
+
+        Planet Planet { get; }
+
+        void PlayAnimation();
+
+        OutpostSaveData Save { get; }
+
+        OutpostSaveData? SaveUnsafe { get; }
+
+        bool ShowRelic();
+    }
+
+    public partial class Outpost : NeoGeneratedCustomValue, IReadOnlyOutpost
+    {
+        internal Outpost(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "4c196697-4e08-4aeb-823f-322b353071ac", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -1897,191 +4050,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        internal static ReadOnlyOutpost Create(NeoClient client, NeoAttributeCustom node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
-            {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
-                {
-                    "96818dab-90e5-4ab9-8f69-cce66e39e370" => new ReadOnlySaturnOutpost(client, node),
-                    "a50efb7e-58f6-4342-906e-0b01f98b15af" => new ReadOnlyJupiterOutpost(client, node),
-                    _ => new ReadOnlyOutpost(client, node),
-                };
-            });
-        }
-
-        public ReadOnlyAnimationInfo? AnimatedImage
-        {
-            get
-            {
-                var child = node.Get<NeoAttributeCustom>("AnimatedImage");
-                return child.value is null ? null : ReadOnlyAnimationInfo.Create(client, child);
-            }
-        }
-
-        public string DebugLog(string text)
-        {
-            if (FunctionHandler is null)
-            {
-                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
-                throw new NeoFunctionHandlerMissingException(
-                    $"Cannot invoke Function 'DebugLog' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
-            }
-            return FunctionHandler.DebugLog(text);
-        }
-
-        public string FullDisplayText
-        {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return (string)result.value!;
-            }
-        }
-
-        public Sprite Image
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("Image").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Image' has no synchronized asset.");
-            }
-        }
-
-        public string Name
-        {
-            get
-            {
-                return node.Get<NeoAttributeString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-        }
-
-        public Planet Planet
-        {
-            get
-            {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Planet"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
-            }
-        }
-
-        public void PlayAnimation()
-        {
-            client.InvokeDeferredNativeFunction("cab850e3-cf8c-42b3-a70b-f0066089e6fb", this, new object?[] { });
-        }
-
-        public OutpostSaveData Save
-        {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateWritable);
-            }
-        }
-
-        public OutpostSaveData? SaveUnsafe
-        {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
-            }
-        }
-
-        public bool ShowRelic()
-        {
-            if (FunctionHandler is null)
-            {
-                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
-                throw new NeoFunctionHandlerMissingException(
-                    $"Cannot invoke Function 'ShowRelic' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
-            }
-            return FunctionHandler.ShowRelic();
-        }
-
-        public sealed class Fields
-        {
-            private Fields() {}
-
-            public static readonly NeoField<ReadOnlyAnimationInfo?> AnimatedImage = new("AnimatedImage");
-
-            public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
-
-            public static readonly NeoField<Sprite> Image = new("Image");
-
-            public static readonly NeoField<string> Name = new("Name");
-
-            public static readonly NeoField<Planet> Planet = new("Planet");
-
-            public static readonly NeoField<OutpostSaveData> Save = new("Save");
-
-            public static readonly NeoField<OutpostSaveData?> SaveUnsafe = new("SaveUnsafe");
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
-        {
-            return new Dictionary<INeoField, Func<string?>>
-            {
-                [Fields.AnimatedImage] = () => null,
-                [Fields.FullDisplayText] = () => null,
-                [Fields.Image] = () => null,
-                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
-                [Fields.Planet] = () => null,
-                [Fields.Save] = () => null,
-                [Fields.SaveUnsafe] = () => null,
-            };
-        }
-
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
-        {
-            var readers = LocalizedTextIdReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return reader();
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
-        {
-            return new Dictionary<INeoField, Func<object?>>
-            {
-                [Fields.AnimatedImage] = () => AnimatedImage,
-                [Fields.FullDisplayText] = () => FullDisplayText,
-                [Fields.Image] = () => Image,
-                [Fields.Name] = () => Name,
-                [Fields.Planet] = () => Planet,
-                [Fields.Save] = () => Save,
-                [Fields.SaveUnsafe] = () => SaveUnsafe,
-            };
-        }
-
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
-        {
-            var readers = ChangedFieldReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return WatchField(field, handler, reader);
-        }
-    }
-
-    public partial class Outpost : ReadOnlyOutpost
-    {
-        internal Outpost(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
-        {
-        }
-
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
         public Outpost(Sprite Image, string Name, Planet Planet, AnimationInfo? AnimatedImage = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Image, Name, Planet, AnimatedImage))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Image, Name, Planet, AnimatedImage), false, NeoValueOwnership.Session)
         {
         }
 
@@ -2126,40 +4096,55 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "4c196697-4e08-4aeb-823f-322b353071ac", value, valueRows);
         }
 
-        internal static Outpost CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static Outpost Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Outpost>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(client, node),
-                    "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(client, node),
-                    _ => new Outpost(client, node),
+                    "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(client, node, true, NeoValueOwnership.Asset),
+                    "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(client, node, true, NeoValueOwnership.Asset),
+                    _ => new Outpost(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new AnimationInfo? AnimatedImage
+        internal static Outpost CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Outpost>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "96818dab-90e5-4ab9-8f69-cce66e39e370" => new SaturnOutpost(client, node, false, node.ownership),
+                    "a50efb7e-58f6-4342-906e-0b01f98b15af" => new JupiterOutpost(client, node, false, node.ownership),
+                    _ => new Outpost(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out Outpost writable)
+        {
+            return TryWritable<Outpost>(out writable);
+        }
+
+        public IReadOnlyAnimationInfo? AnimatedImage
         {
             get
             {
-                var child = node.Get<NeoAttributeCustomWritable>("AnimatedImage");
-                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
-            }
-            set
-            {
-                if (value is null)
-                {
-                    writableNode.Unset("AnimatedImage");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "AnimatedImage", NeoGeneratedTypesSupport.ValueReference(value));
+                var child = node.Get<NeoAttributeCustom>("AnimatedImage");
+                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
             }
         }
 
 
-        public new string FullDisplayText
+        public string FullDisplayText
         {
             get
             {
@@ -2169,46 +4154,34 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Sprite Image
+        public Sprite Image
         {
             get
             {
                 var resolved = node.Get<NeoAttributeSprite>("Image").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'Image' has no synchronized asset.");
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
         }
 
-        public new string Name
+        public string Name
         {
             get
             {
                 return node.Get<NeoAttributeString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
-            set
-            {
-                writableNode.SetStringLiteral("Name", value);
-            }
         }
 
-        public new Planet Planet
+        public Planet Planet
         {
             get
             {
                 var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Planet"));
                 return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
-            }
         }
 
 
-        public new OutpostSaveData Save
+        public OutpostSaveData Save
         {
             get
             {
@@ -2218,7 +4191,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new OutpostSaveData? SaveUnsafe
+        public OutpostSaveData? SaveUnsafe
         {
             get
             {
@@ -2229,7 +4202,34 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
 
-        public new sealed class Fields
+        public string DebugLog(string text)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'DebugLog' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.DebugLog(text);
+        }
+
+        public void PlayAnimation()
+        {
+            client.InvokeDeferredNativeFunction("cab850e3-cf8c-42b3-a70b-f0066089e6fb", this, new object?[] { });
+        }
+
+        public bool ShowRelic()
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'ShowRelic' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.ShowRelic();
+        }
+
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -2262,7 +4262,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2286,6 +4286,230 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoObject : IReadOnlyNeoObjectBase
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoObject writable);
+
+        TChild? GetChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        bool TryGetChild<TChild>(out TChild child, string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        TChild GetRequiredChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedCustomValue;
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
+
+        IReadOnlyNeoCollider? Collider { get; }
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers { get; }
+
+        IReadOnlyNeoObjectLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+    }
+
+    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject
+    {
+        internal NeoObject(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal new static NeoObject Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, true, NeoValueOwnership.Asset),
+                    "5c65b156-e83a-41c5-bef0-ee375798bdc2" => new ExitPromptObject(client, node, true, NeoValueOwnership.Asset),
+                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, true, NeoValueOwnership.Asset),
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal new static NeoObject CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, false, node.ownership),
+                    "5c65b156-e83a-41c5-bef0-ee375798bdc2" => new ExitPromptObject(client, node, false, node.ownership),
+                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, false, node.ownership),
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoObject writable)
+        {
+            return TryWritable<NeoObject>(out writable);
+        }
+
+        public TChild? GetChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.TryGetGeneratedChild(((IReadOnlyNeoObject)this).Children, name, out TChild child) ? child : null;
+        }
+
+        public bool TryGetChild<TChild>(out TChild child, string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.TryGetGeneratedChild(((IReadOnlyNeoObject)this).Children, name, out child);
+        }
+
+        public TChild GetRequiredChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.GetRequiredGeneratedChild<TChild>(this, ((IReadOnlyNeoObject)this).Children, name);
+        }
+
+        public IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.GetGeneratedChildren<TChild>(((IReadOnlyNeoObject)this).Children);
+        }
+
+        public NeoReadOnlyList<IReadOnlyNeoObjectBase> Children
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoAttributeList>("Children"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public IReadOnlyNeoCollider? Collider
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("Collider");
+                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
+            }
+        }
+
+        public NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public IReadOnlyNeoObjectLayer DefaultLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+        }
+
+        public NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoAttributeList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<IReadOnlyNeoObjectLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObjectLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.DefaultLayer] = () => null,
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.PlacementTiles] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.Collider] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.Name] = () => Name,
+                [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Children] = () => Children,
+                [Fields.Collider] = () => Collider,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+            };
+        }
+
         public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
@@ -2301,138 +4525,34 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyNeoTextNodeMemory : NeoGeneratedCustomValue
+    public interface IReadOnlyNeoTextNodeMemory : INeoValueReference
     {
-        internal ReadOnlyNeoTextNodeMemory(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "4cdf4a5b-b299-4253-854b-d25c0a4c7c20")
-        {
-        }
+        bool IsReadOnly { get; }
 
-        internal static ReadOnlyNeoTextNodeMemory Create(NeoClient client, NeoAttributeCustom node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
-            {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
-                {
-                    _ => new ReadOnlyNeoTextNodeMemory(client, node),
-                };
-            });
-        }
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
-        public NeoReadOnlyList<ReadOnlyNeoChoiceLog> ChoiceHistory
-        {
-            get
-            {
-                return new NeoReadOnlyList<ReadOnlyNeoChoiceLog>(client, node.Get<NeoAttributeList>("ChoiceHistory"), (client, child) => ReadOnlyNeoChoiceLog.Create(client, (NeoAttributeCustom)child));
-            }
-        }
+        bool TryWritable(out NeoTextNodeMemory writable);
 
-        public bool HasVisited
-        {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return (bool)result.value!;
-            }
-        }
+        NeoList<NeoChoiceLog> ChoiceHistory { get; }
 
-        public string? LastVisitedAt
-        {
-            get
-            {
-                return node.Get<NeoAttributeString>("LastVisitedAt").Text;
-            }
-        }
+        bool HasVisited { get; }
 
-        public string? MostRecentChoiceId
-        {
-            get
-            {
-                return node.Get<NeoAttributeString>("MostRecentChoiceId").value?.value;
-            }
-        }
+        string? LastVisitedAt { get; }
 
-        public int VisitCount
-        {
-            get
-            {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
-            }
-        }
+        string? MostRecentChoiceId { get; }
 
-        public sealed class Fields
-        {
-            private Fields() {}
-
-            public static readonly NeoField<NeoReadOnlyList<ReadOnlyNeoChoiceLog>> ChoiceHistory = new("ChoiceHistory");
-
-            public static readonly NeoField<bool> HasVisited = new("HasVisited");
-
-            public static readonly NeoField<string?> LastVisitedAt = new("LastVisitedAt");
-
-            public static readonly NeoField<string?> MostRecentChoiceId = new("MostRecentChoiceId");
-
-            public static readonly NeoField<int> VisitCount = new("VisitCount");
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
-        {
-            return new Dictionary<INeoField, Func<string?>>
-            {
-                [Fields.ChoiceHistory] = () => null,
-                [Fields.HasVisited] = () => null,
-                [Fields.LastVisitedAt] = () => node.Get<NeoAttributeString>("LastVisitedAt").TextId,
-                [Fields.MostRecentChoiceId] = () => null,
-                [Fields.VisitCount] = () => null,
-            };
-        }
-
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
-        {
-            var readers = LocalizedTextIdReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return reader();
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
-        {
-            return new Dictionary<INeoField, Func<object?>>
-            {
-                [Fields.ChoiceHistory] = () => ChoiceHistory,
-                [Fields.HasVisited] = () => HasVisited,
-                [Fields.LastVisitedAt] = () => LastVisitedAt,
-                [Fields.MostRecentChoiceId] = () => MostRecentChoiceId,
-                [Fields.VisitCount] = () => VisitCount,
-            };
-        }
-
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
-        {
-            var readers = ChangedFieldReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return WatchField(field, handler, reader);
-        }
+        int VisitCount { get; }
     }
 
-    public partial class NeoTextNodeMemory : ReadOnlyNeoTextNodeMemory
+    public partial class NeoTextNodeMemory : NeoGeneratedCustomValue, IReadOnlyNeoTextNodeMemory
     {
-        internal NeoTextNodeMemory(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal NeoTextNodeMemory(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "4cdf4a5b-b299-4253-854b-d25c0a4c7c20", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
         public NeoTextNodeMemory(IEnumerable<NeoChoiceLog>? ChoiceHistory = null, string? LastVisitedAt = null, string? MostRecentChoiceId = null, int? VisitCount = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(ChoiceHistory, LastVisitedAt, MostRecentChoiceId, VisitCount))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(ChoiceHistory, LastVisitedAt, MostRecentChoiceId, VisitCount), false, NeoValueOwnership.Session)
         {
         }
 
@@ -2500,27 +4620,49 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "4cdf4a5b-b299-4253-854b-d25c0a4c7c20", value, valueRows);
         }
 
-        internal static NeoTextNodeMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static NeoTextNodeMemory Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTextNodeMemory>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new NeoTextNodeMemory(client, node),
+                    _ => new NeoTextNodeMemory(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new NeoList<NeoChoiceLog> ChoiceHistory
+        internal static NeoTextNodeMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTextNodeMemory>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoTextNodeMemory(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoTextNodeMemory writable)
+        {
+            return TryWritable<NeoTextNodeMemory>(out writable);
+        }
+
+        public NeoList<NeoChoiceLog> ChoiceHistory
         {
             get
             {
-                return new NeoList<NeoChoiceLog>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("ChoiceHistory"), (client, child) => NeoChoiceLog.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoList<NeoChoiceLog>(client, writableNode.Get<NeoAttributeListWritable>("ChoiceHistory"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("ChoiceHistory"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
-        public new bool HasVisited
+        public bool HasVisited
         {
             get
             {
@@ -2530,7 +4672,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string? LastVisitedAt
+        public string? LastVisitedAt
         {
             get
             {
@@ -2542,7 +4684,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string? MostRecentChoiceId
+        public string? MostRecentChoiceId
         {
             get
             {
@@ -2554,7 +4696,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new int VisitCount
+        public int VisitCount
         {
             get
             {
@@ -2566,7 +4708,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -2593,7 +4735,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -2615,6 +4757,363 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyExitPromptObject : IReadOnlyConsoleObject
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ExitPromptObject writable);
+
+        new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers { get; }
+
+        new IReadOnlyNeoObjectLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+
+        new NeoReadOnlyVector3 Size { get; }
+    }
+
+    public partial class ExitPromptObject : ConsoleObject, IReadOnlyExitPromptObject
+    {
+        internal ExitPromptObject(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public ExitPromptObject(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Children, Size, PlacementTiles, Collider, Position), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                });
+            }
+            if (DefaultLayer is not null)
+            {
+                var DefaultLayerValueId = Guid.NewGuid().ToString();
+                value["DefaultLayer"] = DefaultLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (Children is not null)
+            {
+                var ChildrenValueId = Guid.NewGuid().ToString();
+                value["Children"] = ChildrenValueId;
+                var ChildrenIds = new List<string>();
+                foreach (var entry in Children)
+                {
+                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ChildrenValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ChildrenIds.ToArray(),
+                });
+            }
+            if (Size is not null)
+            {
+                var SizeValueId = Guid.NewGuid().ToString();
+                value["Size"] = SizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = SizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            if (PlacementTiles is not null)
+            {
+                var PlacementTilesValueId = Guid.NewGuid().ToString();
+                value["PlacementTiles"] = PlacementTilesValueId;
+                var PlacementTilesIds = new List<string>();
+                foreach (var entry in PlacementTiles)
+                {
+                    PlacementTilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = PlacementTilesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = PlacementTilesIds.ToArray(),
+                });
+            }
+            if (Collider is not null)
+            {
+                value["Collider"] = NeoGeneratedTypesSupport.LookupSelectionId(Collider.valueId);
+            }
+            if (Position is not null)
+            {
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "5c65b156-e83a-41c5-bef0-ee375798bdc2", value, valueRows);
+        }
+
+        internal new static ExitPromptObject Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ExitPromptObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ExitPromptObject(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static ExitPromptObject CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ExitPromptObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ExitPromptObject(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ExitPromptObject writable)
+        {
+            return TryWritable<ExitPromptObject>(out writable);
+        }
+
+        public new NeoList<NeoObjectBase> Children
+        {
+            get
+            {
+                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoAttributeListWritable>("Children"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Children"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("ExitPromptObject.Children"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyExitPromptObject.Children
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoAttributeList>("Children"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
+        {
+            get
+            {
+                return new NeoLookupSet<IReadOnlyNeoObjectLayer>(client, writableNode.Get<NeoAttributeLookupWritable>("CompatibleLayers"), () => writableNode.GetOrCreateLookup("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child), () => ThrowIfReadOnly("ExitPromptObject.CompatibleLayers"), () => IsReadOnly);
+            }
+            set
+            {
+                ThrowIfReadOnly("ExitPromptObject.CompatibleLayers");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "CompatibleLayers", NeoGeneratedTypesSupport.Value(ids.ToArray()));
+            }
+        }
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> IReadOnlyExitPromptObject.CompatibleLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new IReadOnlyNeoObjectLayer DefaultLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("ExitPromptObject.DefaultLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("ExitPromptObject.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new NeoList<NeoObjectPlacementTile> PlacementTiles
+        {
+            get
+            {
+                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoAttributeListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("PlacementTiles"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("ExitPromptObject.PlacementTiles"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyExitPromptObject.PlacementTiles
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoAttributeList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new NeoVector3 Size
+        {
+            get
+            {
+                return new NeoVector3(writableNode.Get<NeoAttributeVector3Writable>("Size"));
+            }
+            set
+            {
+                ThrowIfReadOnly("ExitPromptObject.Size");
+                NeoGeneratedTypesSupport.SetVector3(writableNode, "Size", value.Value);
+            }
+        }
+
+        NeoReadOnlyVector3 IReadOnlyExitPromptObject.Size
+        {
+            get
+            {
+                return new NeoReadOnlyVector3(node.Get<NeoAttributeVector3>("Size"));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObjectLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<IReadOnlyNeoObjectLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.Size] = () => null,
+                [Fields.PlacementTiles] = () => null,
+                [Fields.Collider] = () => null,
+                [Fields.Position] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.Name] = () => Name,
+                [Fields.Children] = () => Children,
+                [Fields.Size] = () => Size,
+                [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Collider] = () => Collider,
+                [Fields.Position] = () => Position,
+            };
+        }
+
         public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
@@ -2630,23 +5129,111 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyItem : NeoGeneratedCustomValue
+    public interface IReadOnlyItem : INeoValueReference
     {
-        internal ReadOnlyItem(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "60c25a92-cb01-46f7-b5cf-c9d950586116")
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out Item writable);
+
+        string Name { get; }
+
+        int Value { get; }
+
+        double? Weight { get; }
+    }
+
+    public partial class Item : NeoGeneratedCustomValue, IReadOnlyItem
+    {
+        internal Item(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "60c25a92-cb01-46f7-b5cf-c9d950586116", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlyItem Create(NeoClient client, NeoAttributeCustom node)
+        public Item(string? Name = null, int? Value = null, double? Weight = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Value, Weight), false, NeoValueOwnership.Session)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Value = null, double? Weight = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (Value is not null)
+            {
+                var ValueValueId = Guid.NewGuid().ToString();
+                value["Value"] = ValueValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = ValueValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Value.HasValue ? Value.Value : (double?)null,
+                });
+            }
+            if (Weight is not null)
+            {
+                var WeightValueId = Guid.NewGuid().ToString();
+                value["Weight"] = WeightValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = WeightValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Weight,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "60c25a92-cb01-46f7-b5cf-c9d950586116", value, valueRows);
+        }
+
+        internal static Item Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Item>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyItem(client, node),
+                    _ => new Item(client, node, true, NeoValueOwnership.Asset),
                 };
             });
+        }
+
+        internal static Item CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Item>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Item(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out Item writable)
+        {
+            return TryWritable<Item>(out writable);
         }
 
         public string Name
@@ -2723,196 +5310,145 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
-    }
-
-    public partial class Item : ReadOnlyItem
-    {
-        internal Item(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
-        {
-        }
-
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
-        public Item(string? Name = null, int? Value = null, double? Weight = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Value, Weight))
-        {
-        }
-
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Value = null, double? Weight = null)
-        {
-            var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Value is not null)
-            {
-                var ValueValueId = Guid.NewGuid().ToString();
-                value["Value"] = ValueValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = ValueValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Value.HasValue ? Value.Value : (double?)null,
-                });
-            }
-            if (Weight is not null)
-            {
-                var WeightValueId = Guid.NewGuid().ToString();
-                value["Weight"] = WeightValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = WeightValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Weight,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "60c25a92-cb01-46f7-b5cf-c9d950586116", value, valueRows);
-        }
-
-        internal static Item CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
-            {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
-                {
-                    _ => new Item(client, node),
-                };
-            });
-        }
-
-        public new string Name
-        {
-            get
-            {
-                return node.Get<NeoAttributeString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-            set
-            {
-                writableNode.SetStringLiteral("Name", value);
-            }
-        }
-
-        public new int Value
-        {
-            get
-            {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Value")) ?? throw new InvalidOperationException("Required int 'Value' has no value.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Value", NeoGeneratedTypesSupport.Value(value));
-            }
-        }
-
-        public new double? Weight
-        {
-            get
-            {
-                return node.Get<NeoAttributeFloat>("Weight").value?.value;
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Weight", NeoGeneratedTypesSupport.Value(value.HasValue ? (float?)((float)value.Value) : null));
-            }
-        }
-
-        public new sealed class Fields
-        {
-            private Fields() {}
-
-            public static readonly NeoField<string> Name = new("Name");
-
-            public static readonly NeoField<int> Value = new("Value");
-
-            public static readonly NeoField<double?> Weight = new("Weight");
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
-        {
-            return new Dictionary<INeoField, Func<string?>>
-            {
-                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
-                [Fields.Value] = () => null,
-                [Fields.Weight] = () => null,
-            };
-        }
-
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
-        {
-            var readers = LocalizedTextIdReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return reader();
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
-        {
-            return new Dictionary<INeoField, Func<object?>>
-            {
-                [Fields.Name] = () => Name,
-                [Fields.Value] = () => Value,
-                [Fields.Weight] = () => Weight,
-            };
-        }
-
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
-        {
-            var readers = ChangedFieldReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return WatchField(field, handler, reader);
-        }
 
         public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
         {
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlySession : NeoGeneratedCustomValue
+    public interface IReadOnlyNeoSmartTileNeighbor : INeoValueReference, INeoSmartTileNeighbor
     {
-        internal ReadOnlySession(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "63b261c9-46f2-4d37-84e9-06f16af04e58")
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSmartTileNeighbor writable);
+
+        new NeoReadOnlyVector2Int Cell { get; }
+
+        new NeoSmartTileCondition Condition { get; }
+
+        IReadOnlyNeoTile? Tile { get; }
+    }
+
+    public partial class NeoSmartTileNeighbor : NeoGeneratedCustomValue, IReadOnlyNeoSmartTileNeighbor, INeoSmartTileNeighbor
+    {
+        internal NeoSmartTileNeighbor(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "628e0cce-5472-4bec-addd-71230b8e64a6", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlySession Create(NeoClient client, NeoAttributeCustom node)
+        public NeoSmartTileNeighbor(NeoVector2Int? Cell = null, NeoSmartTileCondition? Condition = null, NeoLookupSelection? Tile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Cell, Condition, Tile), false, NeoValueOwnership.Session)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2Int? Cell = null, NeoSmartTileCondition? Condition = null, NeoLookupSelection? Tile = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Cell is not null)
+            {
+                var CellValueId = Guid.NewGuid().ToString();
+                value["Cell"] = CellValueId;
+                valueRows.Add(new Vector2AttributeValue
+                {
+                    id = CellValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector2IntValue(Cell.Value),
+                });
+            }
+            if (Condition is not null)
+            {
+                var ConditionValueId = Guid.NewGuid().ToString();
+                value["Condition"] = ConditionValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ConditionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Condition is null ? null : new[] { Condition.optionId },
+                });
+            }
+            if (Tile is not null)
+            {
+                var TileValueId = Guid.NewGuid().ToString();
+                value["Tile"] = TileValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TileValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Tile.HasValue ? new[] { Tile.Value.valueId } : null,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "628e0cce-5472-4bec-addd-71230b8e64a6", value, valueRows);
+        }
+
+        internal static NeoSmartTileNeighbor Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTileNeighbor>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlySession(client, node),
+                    _ => new NeoSmartTileNeighbor(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public NeoReadOnlyVector3 Position
+        internal static NeoSmartTileNeighbor CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTileNeighbor>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTileNeighbor(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSmartTileNeighbor writable)
+        {
+            return TryWritable<NeoSmartTileNeighbor>(out writable);
+        }
+
+        Vector2Int INeoSmartTileNeighbor.Cell => Cell.Value;
+        string INeoSmartTileNeighbor.Condition => Condition.optionId;
+        string? INeoSmartTileNeighbor.TileValueId => Tile?.valueId;
+
+        public NeoReadOnlyVector2Int Cell
         {
             get
             {
-                return new NeoReadOnlyVector3(node.Get<NeoAttributeVector3>("Position"));
+                return new NeoReadOnlyVector2Int(node.Get<NeoAttributeVector2Int>("Cell"));
+            }
+        }
+
+        public NeoSmartTileCondition Condition
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Condition"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Condition' has no selected option.") : NeoSmartTileCondition.FromOptionId(selected);
+            }
+        }
+
+        public IReadOnlyNeoTile? Tile
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("Tile").GetSelected();
+                return selected.Count == 0 ? null : global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoAttributeCustom)selected[0]);
             }
         }
 
@@ -2920,14 +5456,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<NeoReadOnlyVector3> Position = new("Position");
+            public static readonly NeoField<NeoVector2Int> Cell = new("Cell");
+
+            public static readonly NeoField<NeoSmartTileCondition> Condition = new("Condition");
+
+            public static readonly NeoField<IReadOnlyNeoTile?> Tile = new("Tile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Position] = () => null,
+                [Fields.Cell] = () => null,
+                [Fields.Condition] = () => null,
+                [Fields.Tile] = () => null,
             };
         }
 
@@ -2945,7 +5487,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Position] = () => Position,
+                [Fields.Cell] = () => Cell,
+                [Fields.Condition] = () => Condition,
+                [Fields.Tile] = () => Tile,
             };
         }
 
@@ -2958,19 +5502,32 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlySession : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out Session writable);
+
+        NeoVector3 Position { get; }
     }
 
-    public partial class Session : ReadOnlySession
+    public partial class Session : NeoGeneratedCustomValue, IReadOnlySession
     {
-        internal Session(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal Session(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "63b261c9-46f2-4d37-84e9-06f16af04e58", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
         public Session(NeoVector3? Position = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Position))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Position), false, NeoValueOwnership.Session)
         {
         }
 
@@ -2995,23 +5552,45 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "63b261c9-46f2-4d37-84e9-06f16af04e58", value, valueRows);
         }
 
-        internal static Session CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static Session Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Session>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new Session(client, node),
+                    _ => new Session(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new NeoVector3 Position
+        internal static Session CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Session>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Session(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out Session writable)
+        {
+            return TryWritable<Session>(out writable);
+        }
+
+        public NeoVector3 Position
         {
             get
             {
-                return new NeoVector3(node.Get<NeoAttributeVector3>("Position"));
+                return new NeoVector3(writableNode.Get<NeoAttributeVector3Writable>("Position"));
             }
             set
             {
@@ -3019,7 +5598,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -3031,81 +5610,6 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.Position] = () => null,
-            };
-        }
-
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
-        {
-            var readers = LocalizedTextIdReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return reader();
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
-        {
-            return new Dictionary<INeoField, Func<object?>>
-            {
-                [Fields.Position] = () => Position,
-            };
-        }
-
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
-        {
-            var readers = ChangedFieldReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return WatchField(field, handler, reader);
-        }
-
-        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
-        {
-            return WatchChanges(ChangedFieldReaders(), handler);
-        }
-    }
-    public partial class ReadOnlyNeoMemory : NeoGeneratedCustomValue
-    {
-        internal ReadOnlyNeoMemory(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "6c6f3bb8-30a0-4132-b0d4-cce75943aedd")
-        {
-        }
-
-        internal static ReadOnlyNeoMemory Create(NeoClient client, NeoAttributeCustom node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
-            {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
-                {
-                    _ => new ReadOnlyNeoMemory(client, node),
-                };
-            });
-        }
-
-        public NeoReadOnlyDictionary<ReadOnlyNeoDialogueMemory> DialogueMemories
-        {
-            get
-            {
-                return new NeoReadOnlyDictionary<ReadOnlyNeoDialogueMemory>(client, node.Get<NeoAttributeDictionary>("DialogueMemories"), (client, child) => ReadOnlyNeoDialogueMemory.Create(client, (NeoAttributeCustom)child));
-            }
-        }
-
-        public sealed class Fields
-        {
-            private Fields() {}
-
-            public static readonly NeoField<NeoReadOnlyDictionary<ReadOnlyNeoDialogueMemory>> DialogueMemories = new("DialogueMemories");
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
-        {
-            return new Dictionary<INeoField, Func<string?>>
-            {
-                [Fields.DialogueMemories] = () => null,
             };
         }
 
@@ -3123,7 +5627,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.DialogueMemories] = () => DialogueMemories,
+                [Fields.Position] = () => Position,
             };
         }
 
@@ -3136,19 +5640,32 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoMemory : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoMemory writable);
+
+        NeoDictionary<NeoDialogueMemory> DialogueMemories { get; }
     }
 
-    public partial class NeoMemory : ReadOnlyNeoMemory
+    public partial class NeoMemory : NeoGeneratedCustomValue, IReadOnlyNeoMemory
     {
-        internal NeoMemory(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal NeoMemory(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "6c6f3bb8-30a0-4132-b0d4-cce75943aedd", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
         public NeoMemory(IDictionary<string, NeoDialogueMemory>? DialogueMemories = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DialogueMemories))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DialogueMemories), false, NeoValueOwnership.Session)
         {
         }
 
@@ -3178,27 +5695,49 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "6c6f3bb8-30a0-4132-b0d4-cce75943aedd", value, valueRows);
         }
 
-        internal static NeoMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static NeoMemory Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoMemory>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new NeoMemory(client, node),
+                    _ => new NeoMemory(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new NeoDictionary<NeoDialogueMemory> DialogueMemories
+        internal static NeoMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoMemory>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoMemory(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoMemory writable)
+        {
+            return TryWritable<NeoMemory>(out writable);
+        }
+
+        public NeoDictionary<NeoDialogueMemory> DialogueMemories
         {
             get
             {
-                return new NeoDictionary<NeoDialogueMemory>(client, writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("DialogueMemories"), (client, child) => NeoDialogueMemory.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoDictionary<NeoDialogueMemory>(client, writableNode.Get<NeoAttributeDictionaryWritable>("DialogueMemories"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("DialogueMemories"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -3210,6 +5749,116 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.DialogueMemories] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.DialogueMemories] = () => DialogueMemories,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoLayerGroupBase : IReadOnlyNeoObjectBase
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoLayerGroupBase writable);
+    }
+
+    public abstract partial class NeoLayerGroupBase : NeoObjectBase, IReadOnlyNeoLayerGroupBase
+    {
+        internal NeoLayerGroupBase(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal new static NeoLayerGroupBase Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoLayerGroupBase>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, NeoValueOwnership.Save),
+                    "e78cfcd2-78ae-4656-9f04-6429bb0efe20" => new NeoTileLayerLink(client, node, true, NeoValueOwnership.Asset),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new NeoObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoLayerGroupBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal new static NeoLayerGroupBase CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoLayerGroupBase>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, node.ownership),
+                    "e78cfcd2-78ae-4656-9f04-6429bb0efe20" => new NeoTileLayerLink(client, node, false, node.ownership),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new NeoObjectLayerLink(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoLayerGroupBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoLayerGroupBase writable)
+        {
+            return TryWritable<NeoLayerGroupBase>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
             };
         }
 
@@ -3227,7 +5876,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.DialogueMemories] = () => DialogueMemories,
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
             };
         }
 
@@ -3246,61 +5897,226 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyLookupContainer : NeoGeneratedCustomValue
+    public interface IReadOnlySealBarrierTile : IReadOnlyConsoleTile
     {
-        internal ReadOnlyLookupContainer(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "77558d64-4fcc-46ac-8351-893093ee0002")
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out SealBarrierTile writable);
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers { get; }
+
+        new IReadOnlyNeoTileLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        new Sprite Sprite { get; }
+    }
+
+    public partial class SealBarrierTile : ConsoleTile, IReadOnlySealBarrierTile
+    {
+        internal SealBarrierTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlyLookupContainer Create(NeoClient client, NeoAttributeCustom node)
+        public SealBarrierTile(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Sprite, DefaultLayer, CompatibleLayers, SmartTile), false, NeoValueOwnership.Session)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (Sprite is not null)
+            {
+                var SpriteValueId = Guid.NewGuid().ToString();
+                value["Sprite"] = SpriteValueId;
+                valueRows.Add(new SpriteAttributeValue
+                {
+                    id = SpriteValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
+                });
+            }
+            if (DefaultLayer is not null)
+            {
+                var DefaultLayerValueId = Guid.NewGuid().ToString();
+                value["DefaultLayer"] = DefaultLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", value, valueRows);
+        }
+
+        internal new static SealBarrierTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SealBarrierTile>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyLookupContainer(client, node),
+                    _ => new SealBarrierTile(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public ReadOnlyLookupEntry Lookup
+        internal new static SealBarrierTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SealBarrierTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new SealBarrierTile(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out SealBarrierTile writable)
+        {
+            return TryWritable<SealBarrierTile>(out writable);
+        }
+
+        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
-                var selected = node.Get<NeoAttributeLookup>("Lookup").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : ReadOnlyLookupEntry.Create(client, (NeoAttributeCustom)selected[0]);
+                return new NeoLookupSet<IReadOnlyNeoTileLayer>(client, writableNode.Get<NeoAttributeLookupWritable>("CompatibleLayers"), () => writableNode.GetOrCreateLookup("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child), () => ThrowIfReadOnly("SealBarrierTile.CompatibleLayers"), () => IsReadOnly);
+            }
+            set
+            {
+                ThrowIfReadOnly("SealBarrierTile.CompatibleLayers");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "CompatibleLayers", NeoGeneratedTypesSupport.Value(ids.ToArray()));
             }
         }
 
-        public NeoReadOnlyDictionary<ReadOnlyLookupEntry> LookupList
+        NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> IReadOnlySealBarrierTile.CompatibleLayers
         {
             get
             {
-                return new NeoReadOnlyDictionary<ReadOnlyLookupEntry>(client, node.Get<NeoAttributeDictionary>("LookupList"), (client, child) => ReadOnlyLookupEntry.Create(client, (NeoAttributeCustom)child));
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child));
             }
         }
 
-        public sealed class Fields
+        public new IReadOnlyNeoTileLayer DefaultLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("SealBarrierTile.DefaultLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("SealBarrierTile.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new Sprite Sprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("Sprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+            }
+            set
+            {
+                ThrowIfReadOnly("SealBarrierTile.Sprite");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<ReadOnlyLookupEntry> Lookup = new("Lookup");
+            public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<NeoReadOnlyDictionary<ReadOnlyLookupEntry>> LookupList = new("LookupList");
+            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Lookup] = () => null,
-                [Fields.LookupList] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3314,12 +6130,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Lookup] = () => Lookup,
-                [Fields.LookupList] = () => LookupList,
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3328,19 +6147,34 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyLookupContainer : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out LookupContainer writable);
+
+        IReadOnlyLookupEntry Lookup { get; }
+
+        NeoReadOnlyDictionary<IReadOnlyLookupEntry> LookupList { get; }
     }
 
-    public partial class LookupContainer : ReadOnlyLookupContainer
+    public partial class LookupContainer : NeoGeneratedCustomValue, IReadOnlyLookupContainer
     {
-        internal LookupContainer(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal LookupContainer(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "77558d64-4fcc-46ac-8351-893093ee0002", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
         public LookupContainer(NeoLookupSelection? Lookup = null, IDictionary<string, LookupEntry>? LookupList = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Lookup, LookupList))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Lookup, LookupList), false, NeoValueOwnership.Session)
         {
         }
 
@@ -3382,44 +6216,62 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "77558d64-4fcc-46ac-8351-893093ee0002", value, valueRows);
         }
 
-        internal static LookupContainer CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static LookupContainer Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<LookupContainer>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new LookupContainer(client, node),
+                    _ => new LookupContainer(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new ReadOnlyLookupEntry Lookup
+        internal static LookupContainer CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<LookupContainer>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new LookupContainer(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out LookupContainer writable)
+        {
+            return TryWritable<LookupContainer>(out writable);
+        }
+
+        public IReadOnlyLookupEntry Lookup
         {
             get
             {
                 var selected = node.Get<NeoAttributeLookup>("Lookup").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : ReadOnlyLookupEntry.Create(client, (NeoAttributeCustom)selected[0]);
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Lookup", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.LookupEntry.Create(client, (NeoAttributeCustom)selected[0]);
             }
         }
 
-        public new NeoDictionary<LookupEntry> LookupList
+        public NeoReadOnlyDictionary<IReadOnlyLookupEntry> LookupList
         {
             get
             {
-                return new NeoDictionary<LookupEntry>(client, writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("LookupList"), (client, child) => LookupEntry.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoReadOnlyDictionary<IReadOnlyLookupEntry>(client, node.Get<NeoAttributeDictionary>("LookupList"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.LookupEntry.Create(client, (NeoAttributeCustom)child));
             }
         }
 
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<ReadOnlyLookupEntry> Lookup = new("Lookup");
+            public static readonly NeoField<IReadOnlyLookupEntry> Lookup = new("Lookup");
 
             public static readonly NeoField<NeoDictionary<LookupEntry>> LookupList = new("LookupList");
         }
@@ -3433,7 +6285,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3452,7 +6304,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3467,101 +6319,28 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyPlanetVisit : NeoGeneratedCustomValue
+    public interface IReadOnlyPlanetVisit : INeoValueReference
     {
-        internal ReadOnlyPlanetVisit(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042")
-        {
-        }
+        bool IsReadOnly { get; }
 
-        internal static ReadOnlyPlanetVisit Create(NeoClient client, NeoAttributeCustom node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
-            {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
-                {
-                    _ => new ReadOnlyPlanetVisit(client, node),
-                };
-            });
-        }
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
-        public int DateUnix
-        {
-            get
-            {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("DateUnix")) ?? throw new InvalidOperationException("Required int 'DateUnix' has no value.");
-            }
-        }
+        bool TryWritable(out PlanetVisit writable);
 
-        public Planet World
-        {
-            get
-            {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("World"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : Planet.FromOptionId(selected);
-            }
-        }
+        int DateUnix { get; }
 
-        public sealed class Fields
-        {
-            private Fields() {}
-
-            public static readonly NeoField<int> DateUnix = new("DateUnix");
-
-            public static readonly NeoField<Planet> World = new("World");
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
-        {
-            return new Dictionary<INeoField, Func<string?>>
-            {
-                [Fields.DateUnix] = () => null,
-                [Fields.World] = () => null,
-            };
-        }
-
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
-        {
-            var readers = LocalizedTextIdReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return reader();
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
-        {
-            return new Dictionary<INeoField, Func<object?>>
-            {
-                [Fields.DateUnix] = () => DateUnix,
-                [Fields.World] = () => World,
-            };
-        }
-
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
-        {
-            var readers = ChangedFieldReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return WatchField(field, handler, reader);
-        }
+        Planet World { get; }
     }
 
-    public partial class PlanetVisit : ReadOnlyPlanetVisit
+    public partial class PlanetVisit : NeoGeneratedCustomValue, IReadOnlyPlanetVisit
     {
-        internal PlanetVisit(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal PlanetVisit(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
         public PlanetVisit(Planet World, int DateUnix)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(World, DateUnix))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(World, DateUnix), false, NeoValueOwnership.Session)
         {
         }
 
@@ -3592,19 +6371,53 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", value, valueRows);
         }
 
-        internal static PlanetVisit CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static PlanetVisit Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<PlanetVisit>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new PlanetVisit(client, node),
+                    _ => new PlanetVisit(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new Planet World
+        internal static PlanetVisit CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<PlanetVisit>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new PlanetVisit(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out PlanetVisit writable)
+        {
+            return TryWritable<PlanetVisit>(out writable);
+        }
+
+        public int DateUnix
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("DateUnix")) ?? throw new InvalidOperationException("Required int 'DateUnix' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DateUnix", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public Planet World
         {
             get
             {
@@ -3617,19 +6430,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new int DateUnix
-        {
-            get
-            {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("DateUnix")) ?? throw new InvalidOperationException("Required int 'DateUnix' has no value.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "DateUnix", NeoGeneratedTypesSupport.Value(value));
-            }
-        }
-
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -3647,7 +6448,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3666,6 +6467,207 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObjectBase
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSpriteObject writable);
+
+        new string Name { get; }
+
+        Sprite Sprite { get; }
+    }
+
+    public partial class NeoSpriteObject : NeoObjectBase, IReadOnlyNeoSpriteObject
+    {
+        internal NeoSpriteObject(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoSpriteObject(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Sprite, Name, Position, Size), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            var SpriteValueId = Guid.NewGuid().ToString();
+            value["Sprite"] = SpriteValueId;
+            valueRows.Add(new SpriteAttributeValue
+            {
+                id = SpriteValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
+            });
+            if (Position is not null)
+            {
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            if (Size is not null)
+            {
+                var SizeValueId = Guid.NewGuid().ToString();
+                value["Size"] = SizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = SizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7cb1b706-95d2-4465-8e75-c82a6b7d8830", value, valueRows);
+        }
+
+        internal new static NeoSpriteObject Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSpriteObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSpriteObject(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoSpriteObject CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSpriteObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSpriteObject(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSpriteObject writable)
+        {
+            return TryWritable<NeoSpriteObject>(out writable);
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public Sprite Sprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("Sprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoSpriteObject.Sprite");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+            };
+        }
+
         public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
@@ -3681,56 +6683,468 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyOutpostSaveData : NeoGeneratedCustomValue
+    public interface IReadOnlyPlayerSpawnObject : IReadOnlyConsoleObject
     {
-        internal ReadOnlyOutpostSaveData(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "8ccfe860-309f-428b-b74c-76a873bdea8a")
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out PlayerSpawnObject writable);
+
+        new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers { get; }
+
+        new IReadOnlyNeoObjectLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+    }
+
+    public partial class PlayerSpawnObject : ConsoleObject, IReadOnlyPlayerSpawnObject
+    {
+        internal PlayerSpawnObject(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlyOutpostSaveData Create(NeoClient client, NeoAttributeCustom node)
+        public PlayerSpawnObject(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Children, PlacementTiles, Collider, Position, Size), false, NeoValueOwnership.Session)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                });
+            }
+            if (DefaultLayer is not null)
+            {
+                var DefaultLayerValueId = Guid.NewGuid().ToString();
+                value["DefaultLayer"] = DefaultLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (Children is not null)
+            {
+                var ChildrenValueId = Guid.NewGuid().ToString();
+                value["Children"] = ChildrenValueId;
+                var ChildrenIds = new List<string>();
+                foreach (var entry in Children)
+                {
+                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ChildrenValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ChildrenIds.ToArray(),
+                });
+            }
+            if (PlacementTiles is not null)
+            {
+                var PlacementTilesValueId = Guid.NewGuid().ToString();
+                value["PlacementTiles"] = PlacementTilesValueId;
+                var PlacementTilesIds = new List<string>();
+                foreach (var entry in PlacementTiles)
+                {
+                    PlacementTilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = PlacementTilesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = PlacementTilesIds.ToArray(),
+                });
+            }
+            if (Collider is not null)
+            {
+                value["Collider"] = NeoGeneratedTypesSupport.LookupSelectionId(Collider.valueId);
+            }
+            if (Position is not null)
+            {
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            if (Size is not null)
+            {
+                var SizeValueId = Guid.NewGuid().ToString();
+                value["Size"] = SizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = SizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f", value, valueRows);
+        }
+
+        internal new static PlayerSpawnObject Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<PlayerSpawnObject>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyOutpostSaveData(client, node),
+                    _ => new PlayerSpawnObject(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public int Reputation
+        internal new static PlayerSpawnObject CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<PlayerSpawnObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new PlayerSpawnObject(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out PlayerSpawnObject writable)
+        {
+            return TryWritable<PlayerSpawnObject>(out writable);
+        }
+
+        public new NeoList<NeoObjectBase> Children
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Reputation")) ?? throw new InvalidOperationException("Required int 'Reputation' has no value.");
+                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoAttributeListWritable>("Children"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Children"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("PlayerSpawnObject.Children"), () => IsReadOnly);
             }
         }
 
-        public bool Unlocked
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyPlayerSpawnObject.Children
         {
             get
             {
-                return node.Get<NeoAttributeBool>("Unlocked").value?.value ?? throw new InvalidOperationException("Required bool 'Unlocked' has no value.");
+                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoAttributeList>("Children"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child));
             }
         }
 
-        public int VisitCount
+        public new NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
+                return new NeoLookupSet<IReadOnlyNeoObjectLayer>(client, writableNode.Get<NeoAttributeLookupWritable>("CompatibleLayers"), () => writableNode.GetOrCreateLookup("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child), () => ThrowIfReadOnly("PlayerSpawnObject.CompatibleLayers"), () => IsReadOnly);
+            }
+            set
+            {
+                ThrowIfReadOnly("PlayerSpawnObject.CompatibleLayers");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "CompatibleLayers", NeoGeneratedTypesSupport.Value(ids.ToArray()));
             }
         }
 
-        public bool Visited
+        NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> IReadOnlyPlayerSpawnObject.CompatibleLayers
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return (bool)result.value!;
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new IReadOnlyNeoObjectLayer DefaultLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("PlayerSpawnObject.DefaultLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("PlayerSpawnObject.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new NeoList<NeoObjectPlacementTile> PlacementTiles
+        {
+            get
+            {
+                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoAttributeListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("PlacementTiles"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("PlayerSpawnObject.PlacementTiles"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyPlayerSpawnObject.PlacementTiles
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoAttributeList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObjectLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<IReadOnlyNeoObjectLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
+            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.PlacementTiles] = () => null,
+                [Fields.Collider] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.Name] = () => Name,
+                [Fields.Children] = () => Children,
+                [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Collider] = () => Collider,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoCollider : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoCollider writable);
+
+        bool? isTrigger { get; }
+
+        NeoReadOnlyVector2? offset { get; }
+
+        NeoReadOnlyVector2 size { get; }
+    }
+
+    public partial class NeoCollider : NeoGeneratedCustomValue, IReadOnlyNeoCollider
+    {
+        internal NeoCollider(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "7ed188f9-484b-4692-840d-436acf1635aa", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoCollider(NeoVector2? size = null, NeoVector2? offset = null, bool? isTrigger = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(size, offset, isTrigger), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2? size = null, NeoVector2? offset = null, bool? isTrigger = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (size is not null)
+            {
+                var sizeValueId = Guid.NewGuid().ToString();
+                value["size"] = sizeValueId;
+                valueRows.Add(new Vector2AttributeValue
+                {
+                    id = sizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector2Value(size.Value),
+                });
+            }
+            if (offset is not null)
+            {
+                var offsetValueId = Guid.NewGuid().ToString();
+                value["offset"] = offsetValueId;
+                valueRows.Add(new Vector2AttributeValue
+                {
+                    id = offsetValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector2Value(offset.Value),
+                });
+            }
+            if (isTrigger is not null)
+            {
+                var isTriggerValueId = Guid.NewGuid().ToString();
+                value["isTrigger"] = isTriggerValueId;
+                valueRows.Add(new BoolAttributeValue
+                {
+                    id = isTriggerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = isTrigger,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7ed188f9-484b-4692-840d-436acf1635aa", value, valueRows);
+        }
+
+        internal static NeoCollider Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoCollider>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoCollider(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static NeoCollider CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoCollider>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoCollider(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoCollider writable)
+        {
+            return TryWritable<NeoCollider>(out writable);
+        }
+
+        public bool? isTrigger
+        {
+            get
+            {
+                return node.Get<NeoAttributeBool>("isTrigger").value?.value;
+            }
+        }
+
+        public NeoReadOnlyVector2? offset
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeVector2>("offset");
+                return child.value is null ? null : new NeoReadOnlyVector2(child);
+            }
+        }
+
+        public NeoReadOnlyVector2 size
+        {
+            get
+            {
+                return new NeoReadOnlyVector2(node.Get<NeoAttributeVector2>("size"));
             }
         }
 
@@ -3738,23 +7152,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<int> Reputation = new("Reputation");
+            public static readonly NeoField<NeoVector2> size = new("size");
 
-            public static readonly NeoField<bool> Unlocked = new("Unlocked");
+            public static readonly NeoField<NeoVector2?> offset = new("offset");
 
-            public static readonly NeoField<int> VisitCount = new("VisitCount");
-
-            public static readonly NeoField<bool> Visited = new("Visited");
+            public static readonly NeoField<bool?> isTrigger = new("isTrigger");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Reputation] = () => null,
-                [Fields.Unlocked] = () => null,
-                [Fields.VisitCount] = () => null,
-                [Fields.Visited] = () => null,
+                [Fields.size] = () => null,
+                [Fields.offset] = () => null,
+                [Fields.isTrigger] = () => null,
             };
         }
 
@@ -3772,10 +7183,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Reputation] = () => Reputation,
-                [Fields.Unlocked] = () => Unlocked,
-                [Fields.VisitCount] = () => VisitCount,
-                [Fields.Visited] = () => Visited,
+                [Fields.size] = () => size,
+                [Fields.offset] = () => offset,
+                [Fields.isTrigger] = () => isTrigger,
             };
         }
 
@@ -3788,19 +7198,207 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoSmartTile : INeoValueReference, INeoSmartTile
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSmartTile writable);
+
+        new NeoSmartTileCollider DefaultCollider { get; }
+
+        new NeoReadOnlyList<IReadOnlyNeoSmartTileRule> Rules { get; }
     }
 
-    public partial class OutpostSaveData : ReadOnlyOutpostSaveData
+    public partial class NeoSmartTile : NeoGeneratedCustomValue, IReadOnlyNeoSmartTile, INeoSmartTile
     {
-        internal OutpostSaveData(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal NeoSmartTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "89b38b34-c040-4e69-8707-487f1484a056", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
+        public NeoSmartTile(NeoSmartTileCollider? DefaultCollider = null, IEnumerable<NeoSmartTileRule>? Rules = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DefaultCollider, Rules), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoSmartTileCollider? DefaultCollider = null, IEnumerable<NeoSmartTileRule>? Rules = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (DefaultCollider is not null)
+            {
+                var DefaultColliderValueId = Guid.NewGuid().ToString();
+                value["DefaultCollider"] = DefaultColliderValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultColliderValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultCollider is null ? null : new[] { DefaultCollider.optionId },
+                });
+            }
+            if (Rules is not null)
+            {
+                var RulesValueId = Guid.NewGuid().ToString();
+                value["Rules"] = RulesValueId;
+                var RulesIds = new List<string>();
+                foreach (var entry in Rules)
+                {
+                    RulesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = RulesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = RulesIds.ToArray(),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "89b38b34-c040-4e69-8707-487f1484a056", value, valueRows);
+        }
+
+        internal static NeoSmartTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTile(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static NeoSmartTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTile(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSmartTile writable)
+        {
+            return TryWritable<NeoSmartTile>(out writable);
+        }
+
+        string INeoSmartTile.DefaultCollider => DefaultCollider.optionId;
+        IReadOnlyList<INeoSmartTileRule> INeoSmartTile.Rules => Rules;
+
+        public NeoSmartTileCollider DefaultCollider
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("DefaultCollider"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'DefaultCollider' has no selected option.") : NeoSmartTileCollider.FromOptionId(selected);
+            }
+        }
+
+        public NeoReadOnlyList<IReadOnlyNeoSmartTileRule> Rules
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoSmartTileRule>(client, node.Get<NeoAttributeList>("Rules"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileRule.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoSmartTileCollider> DefaultCollider = new("DefaultCollider");
+
+            public static readonly NeoField<NeoList<NeoSmartTileRule>> Rules = new("Rules");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.DefaultCollider] = () => null,
+                [Fields.Rules] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.DefaultCollider] = () => DefaultCollider,
+                [Fields.Rules] = () => Rules,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyOutpostSaveData : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out OutpostSaveData writable);
+
+        int Reputation { get; }
+
+        bool Unlocked { get; }
+
+        int VisitCount { get; }
+
+        bool Visited { get; }
+    }
+
+    public partial class OutpostSaveData : NeoGeneratedCustomValue, IReadOnlyOutpostSaveData
+    {
+        internal OutpostSaveData(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "8ccfe860-309f-428b-b74c-76a873bdea8a", isReadOnly, inheritedStorageOwnership)
+        {
+        }
 
         public OutpostSaveData(bool? Unlocked = null, int? VisitCount = null, int? Reputation = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Unlocked, VisitCount, Reputation))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Unlocked, VisitCount, Reputation), false, NeoValueOwnership.Session)
         {
         }
 
@@ -3849,53 +7447,41 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "8ccfe860-309f-428b-b74c-76a873bdea8a", value, valueRows);
         }
 
-        internal static OutpostSaveData CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static OutpostSaveData Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<OutpostSaveData>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new OutpostSaveData(client, node),
+                    _ => new OutpostSaveData(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new bool Unlocked
+        internal static OutpostSaveData CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
-            get
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<OutpostSaveData>(client, node, () =>
             {
-                return node.Get<NeoAttributeBool>("Unlocked").value?.value ?? throw new InvalidOperationException("Required bool 'Unlocked' has no value.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Unlocked", NeoGeneratedTypesSupport.Value(value));
-            }
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new OutpostSaveData(client, node, false, node.ownership),
+                };
+            });
         }
 
-        public new bool Visited
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
         {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return (bool)result.value!;
-            }
+            return base.TryWritable(out writable);
         }
 
-        public new int VisitCount
+        public bool TryWritable(out OutpostSaveData writable)
         {
-            get
-            {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "VisitCount", NeoGeneratedTypesSupport.Value(value));
-            }
+            return TryWritable<OutpostSaveData>(out writable);
         }
 
-        public new int Reputation
+        public int Reputation
         {
             get
             {
@@ -3907,7 +7493,41 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new sealed class Fields
+        public bool Unlocked
+        {
+            get
+            {
+                return node.Get<NeoAttributeBool>("Unlocked").value?.value ?? throw new InvalidOperationException("Required bool 'Unlocked' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Unlocked", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public int VisitCount
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetValue(writableNode, "VisitCount", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public bool Visited
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                return (bool)result.value!;
+            }
+        }
+
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -3931,7 +7551,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3952,7 +7572,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -3967,23 +7587,83 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyLookupEntry : NeoGeneratedCustomValue
+    public interface IReadOnlyLookupEntry : INeoValueReference
     {
-        internal ReadOnlyLookupEntry(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "9296e4be-bd27-44e3-9823-77fbeaa60665")
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out LookupEntry writable);
+
+        string Name { get; }
+    }
+
+    public partial class LookupEntry : NeoGeneratedCustomValue, IReadOnlyLookupEntry
+    {
+        internal LookupEntry(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "9296e4be-bd27-44e3-9823-77fbeaa60665", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlyLookupEntry Create(NeoClient client, NeoAttributeCustom node)
+        public LookupEntry(string? Name = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name), false, NeoValueOwnership.Session)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "9296e4be-bd27-44e3-9823-77fbeaa60665", value, valueRows);
+        }
+
+        internal static LookupEntry Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<LookupEntry>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyLookupEntry(client, node),
+                    _ => new LookupEntry(client, node, true, NeoValueOwnership.Asset),
                 };
             });
+        }
+
+        internal static LookupEntry CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<LookupEntry>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new LookupEntry(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out LookupEntry writable)
+        {
+            return TryWritable<LookupEntry>(out writable);
         }
 
         public string Name
@@ -4036,224 +7716,36 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
-    }
-
-    public partial class LookupEntry : ReadOnlyLookupEntry
-    {
-        internal LookupEntry(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
-        {
-        }
-
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
-        public LookupEntry(string? Name = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name))
-        {
-        }
-
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null)
-        {
-            var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "9296e4be-bd27-44e3-9823-77fbeaa60665", value, valueRows);
-        }
-
-        internal static LookupEntry CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
-            {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
-                {
-                    _ => new LookupEntry(client, node),
-                };
-            });
-        }
-
-        public new string Name
-        {
-            get
-            {
-                return node.Get<NeoAttributeString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-            set
-            {
-                writableNode.SetStringLiteral("Name", value);
-            }
-        }
-
-        public new sealed class Fields
-        {
-            private Fields() {}
-
-            public static readonly NeoField<string> Name = new("Name");
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
-        {
-            return new Dictionary<INeoField, Func<string?>>
-            {
-                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
-            };
-        }
-
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
-        {
-            var readers = LocalizedTextIdReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return reader();
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
-        {
-            return new Dictionary<INeoField, Func<object?>>
-            {
-                [Fields.Name] = () => Name,
-            };
-        }
-
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
-        {
-            var readers = ChangedFieldReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return WatchField(field, handler, reader);
-        }
 
         public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
         {
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlySaturnOutpost : ReadOnlyOutpost
+    public interface IReadOnlySaturnOutpost : IReadOnlyOutpost
     {
-        internal ReadOnlySaturnOutpost(NeoClient client, NeoAttributeCustom node)
-            : base(client, node)
-        {
-        }
+        new bool IsReadOnly { get; }
 
-        internal new static ReadOnlySaturnOutpost Create(NeoClient client, NeoAttributeCustom node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
-            {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
-                {
-                    _ => new ReadOnlySaturnOutpost(client, node),
-                };
-            });
-        }
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
-        public new string FullDisplayText
-        {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return (string)result.value!;
-            }
-        }
+        bool TryWritable(out SaturnOutpost writable);
 
-        public SaturnMoon Moon
-        {
-            get
-            {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Moon"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : SaturnMoon.FromOptionId(selected);
-            }
-        }
+        new string FullDisplayText { get; }
 
-        public new Planet Planet
-        {
-            get
-            {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Planet"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
-            }
-        }
+        SaturnMoon Moon { get; }
 
-        public new sealed class Fields
-        {
-            private Fields() {}
-
-            public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
-
-            public static readonly NeoField<SaturnMoon> Moon = new("Moon");
-
-            public static readonly NeoField<Planet> Planet = new("Planet");
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
-        {
-            return new Dictionary<INeoField, Func<string?>>
-            {
-                [Fields.FullDisplayText] = () => null,
-                [Fields.Moon] = () => null,
-                [Fields.Planet] = () => null,
-            };
-        }
-
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
-        {
-            var readers = LocalizedTextIdReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return reader();
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
-        {
-            return new Dictionary<INeoField, Func<object?>>
-            {
-                [Fields.FullDisplayText] = () => FullDisplayText,
-                [Fields.Moon] = () => Moon,
-                [Fields.Planet] = () => Planet,
-            };
-        }
-
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
-        {
-            var readers = ChangedFieldReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return WatchField(field, handler, reader);
-        }
+        new Planet Planet { get; }
     }
 
-    public partial class SaturnOutpost : Outpost
+    public partial class SaturnOutpost : Outpost, IReadOnlySaturnOutpost
     {
-        internal SaturnOutpost(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal SaturnOutpost(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public SaturnOutpost(Sprite Image, string Name, SaturnMoon Moon, AnimationInfo? AnimatedImage = null, Planet? Planet = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Image, Name, Moon, AnimatedImage, Planet))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Image, Name, Moon, AnimatedImage, Planet), false, NeoValueOwnership.Session)
         {
         }
 
@@ -4310,36 +7802,39 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "96818dab-90e5-4ab9-8f69-cce66e39e370", value, valueRows);
         }
 
-        internal new static SaturnOutpost CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static SaturnOutpost Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SaturnOutpost>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new SaturnOutpost(client, node),
+                    _ => new SaturnOutpost(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new AnimationInfo? AnimatedImage
+        internal new static SaturnOutpost CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
-            get
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SaturnOutpost>(client, node, () =>
             {
-                var child = node.Get<NeoAttributeCustomWritable>("AnimatedImage");
-                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
-            }
-            set
-            {
-                if (value is null)
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
                 {
-                    writableNode.Unset("AnimatedImage");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "AnimatedImage", NeoGeneratedTypesSupport.ValueReference(value));
-            }
+                    _ => new SaturnOutpost(client, node, false, node.ownership),
+                };
+            });
         }
 
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out SaturnOutpost writable)
+        {
+            return TryWritable<SaturnOutpost>(out writable);
+        }
 
         public new string FullDisplayText
         {
@@ -4351,28 +7846,17 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Sprite Image
+        public SaturnMoon Moon
         {
             get
             {
-                var resolved = node.Get<NeoAttributeSprite>("Image").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'Image' has no synchronized asset.");
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Moon"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : SaturnMoon.FromOptionId(selected);
             }
             set
             {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
-        }
-
-        public new string Name
-        {
-            get
-            {
-                return node.Get<NeoAttributeString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
-            }
-            set
-            {
-                writableNode.SetStringLiteral("Name", value);
+                ThrowIfReadOnly("SaturnOutpost.Moon");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Moon", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -4385,42 +7869,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
+                ThrowIfReadOnly("SaturnOutpost.Planet");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
-            }
-        }
-
-
-        public new OutpostSaveData Save
-        {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateWritable);
-            }
-        }
-
-        public new OutpostSaveData? SaveUnsafe
-        {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
-            }
-        }
-
-
-        public SaturnMoon Moon
-        {
-            get
-            {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Moon"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : SaturnMoon.FromOptionId(selected);
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Moon", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -4500,186 +7950,42 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlySave : NeoGeneratedCustomValue
+    public interface IReadOnlySave : INeoValueReference
     {
-        internal ReadOnlySave(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "96e8284d-ae43-4e91-919d-86c25ce098e0")
-        {
-        }
+        bool IsReadOnly { get; }
 
-        internal static ReadOnlySave Create(NeoClient client, NeoAttributeCustom node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
-            {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
-                {
-                    _ => new ReadOnlySave(client, node),
-                };
-            });
-        }
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
-        public int Bits
-        {
-            get
-            {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Bits")) ?? throw new InvalidOperationException("Required int 'Bits' has no value.");
-            }
-        }
+        bool TryWritable(out Save writable);
 
-        public bool Dead
-        {
-            get
-            {
-                return node.Get<NeoAttributeBool>("Dead").value?.value ?? throw new InvalidOperationException("Required bool 'Dead' has no value.");
-            }
-        }
+        int Bits { get; }
 
-        public NeoReadOnlyLookupSet<ReadOnlyItem> Inventory
-        {
-            get
-            {
-                return new NeoReadOnlyLookupSet<ReadOnlyItem>(client, node.Get<NeoAttributeLookup>("Inventory"), child => ReadOnlyItem.Create(client, (NeoAttributeCustom)child));
-            }
-        }
+        bool Dead { get; }
 
-        public ReadOnlyOutpost Location
-        {
-            get
-            {
-                var selected = node.Get<NeoAttributeLookup>("Location").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : ReadOnlyOutpost.Create(client, (NeoAttributeCustom)selected[0]);
-            }
-        }
+        NeoLookupSet<IReadOnlyItem> Inventory { get; }
 
-        public ReadOnlyNeoMemory NeoMemory
-        {
-            get
-            {
-                return ReadOnlyNeoMemory.Create(client, node.Get<NeoAttributeCustom>("NeoMemory"));
-            }
-        }
+        IReadOnlyOutpost Location { get; }
 
-        public NeoReadOnlyDictionary<ReadOnlyOutpostSaveData?> OutpostSaveMap
-        {
-            get
-            {
-                return new NeoReadOnlyDictionary<ReadOnlyOutpostSaveData?>(client, node.Get<NeoAttributeDictionary>("OutpostSaveMap"), (client, child) => ((NeoAttributeCustom)child).value is null ? null : ReadOnlyOutpostSaveData.Create(client, (NeoAttributeCustom)child));
-            }
-        }
+        NeoMemory NeoMemory { get; }
 
-        public ReadOnlyQuestState Quest
-        {
-            get
-            {
-                return ReadOnlyQuestState.Create(client, node.Get<NeoAttributeCustom>("Quest"));
-            }
-        }
+        NeoDictionary<OutpostSaveData?> OutpostSaveMap { get; }
 
-        public NeoReadOnlyList<ReadOnlyPlanetVisit> Visited
-        {
-            get
-            {
-                return new NeoReadOnlyList<ReadOnlyPlanetVisit>(client, node.Get<NeoAttributeList>("Visited"), (client, child) => ReadOnlyPlanetVisit.Create(client, (NeoAttributeCustom)child));
-            }
-        }
+        QuestState Quest { get; }
 
-        public Planet World
-        {
-            get
-            {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("World"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'World' has no selected option.") : Planet.FromOptionId(selected);
-            }
-        }
+        NeoList<PlanetVisit> Visited { get; }
 
-        public sealed class Fields
-        {
-            private Fields() {}
-
-            public static readonly NeoField<int> Bits = new("Bits");
-
-            public static readonly NeoField<bool> Dead = new("Dead");
-
-            public static readonly NeoField<NeoReadOnlyLookupSet<ReadOnlyItem>> Inventory = new("Inventory");
-
-            public static readonly NeoField<ReadOnlyOutpost> Location = new("Location");
-
-            public static readonly NeoField<ReadOnlyNeoMemory> NeoMemory = new("NeoMemory");
-
-            public static readonly NeoField<NeoReadOnlyDictionary<ReadOnlyOutpostSaveData?>> OutpostSaveMap = new("OutpostSaveMap");
-
-            public static readonly NeoField<ReadOnlyQuestState> Quest = new("Quest");
-
-            public static readonly NeoField<NeoReadOnlyList<ReadOnlyPlanetVisit>> Visited = new("Visited");
-
-            public static readonly NeoField<Planet> World = new("World");
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
-        {
-            return new Dictionary<INeoField, Func<string?>>
-            {
-                [Fields.Bits] = () => null,
-                [Fields.Dead] = () => null,
-                [Fields.Inventory] = () => null,
-                [Fields.Location] = () => null,
-                [Fields.NeoMemory] = () => null,
-                [Fields.OutpostSaveMap] = () => null,
-                [Fields.Quest] = () => null,
-                [Fields.Visited] = () => null,
-                [Fields.World] = () => null,
-            };
-        }
-
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
-        {
-            var readers = LocalizedTextIdReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return reader();
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
-        {
-            return new Dictionary<INeoField, Func<object?>>
-            {
-                [Fields.Bits] = () => Bits,
-                [Fields.Dead] = () => Dead,
-                [Fields.Inventory] = () => Inventory,
-                [Fields.Location] = () => Location,
-                [Fields.NeoMemory] = () => NeoMemory,
-                [Fields.OutpostSaveMap] = () => OutpostSaveMap,
-                [Fields.Quest] = () => Quest,
-                [Fields.Visited] = () => Visited,
-                [Fields.World] = () => World,
-            };
-        }
-
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
-        {
-            var readers = ChangedFieldReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return WatchField(field, handler, reader);
-        }
+        Planet World { get; }
     }
 
-    public partial class Save : ReadOnlySave
+    public partial class Save : NeoGeneratedCustomValue, IReadOnlySave
     {
-        internal Save(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal Save(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "96e8284d-ae43-4e91-919d-86c25ce098e0", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
         public Save(int? Bits = null, bool? Dead = null, IEnumerable<NeoLookupSelection>? Inventory = null, NeoLookupSelection? Location = null, NeoMemory? NeoMemory = null, IDictionary<string, OutpostSaveData?>? OutpostSaveMap = null, QuestState? Quest = null, IEnumerable<PlanetVisit>? Visited = null, Planet? World = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Bits, Dead, Inventory, Location, NeoMemory, OutpostSaveMap, Quest, Visited, World))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Bits, Dead, Inventory, Location, NeoMemory, OutpostSaveMap, Quest, Visited, World), false, NeoValueOwnership.Session)
         {
         }
 
@@ -4810,19 +8116,41 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows);
         }
 
-        internal static Save CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static Save Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Save>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new Save(client, node),
+                    _ => new Save(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new int Bits
+        internal static Save CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Save>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Save(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out Save writable)
+        {
+            return TryWritable<Save>(out writable);
+        }
+
+        public int Bits
         {
             get
             {
@@ -4834,7 +8162,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new bool Dead
+        public bool Dead
         {
             get
             {
@@ -4846,11 +8174,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoLookupSet<ReadOnlyItem> Inventory
+        public NeoLookupSet<IReadOnlyItem> Inventory
         {
             get
             {
-                return new NeoLookupSet<ReadOnlyItem>(client, writableNode.GetOrCreateLookup("Inventory"), child => ReadOnlyItem.Create(client, (NeoAttributeCustom)child));
+                return new NeoLookupSet<IReadOnlyItem>(client, writableNode.Get<NeoAttributeLookupWritable>("Inventory"), () => writableNode.GetOrCreateLookup("Inventory"), child => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, (NeoAttributeCustom)child));
             }
             set
             {
@@ -4863,12 +8191,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new ReadOnlyOutpost Location
+        public IReadOnlyOutpost Location
         {
             get
             {
                 var selected = node.Get<NeoAttributeLookup>("Location").GetSelected();
-                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : ReadOnlyOutpost.Create(client, (NeoAttributeCustom)selected[0]);
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoAttributeCustom)selected[0]);
             }
             set
             {
@@ -4876,11 +8204,11 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoMemory NeoMemory
+        public NeoMemory NeoMemory
         {
             get
             {
-                return NeoMemory.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("NeoMemory"));
+                return global::HelloWorld.Assets.Scripts.Neo.NeoMemory.CreateWritable(client, writableNode.Get<NeoAttributeCustomWritable>("NeoMemory"));
             }
             set
             {
@@ -4888,19 +8216,19 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoDictionary<OutpostSaveData?> OutpostSaveMap
+        public NeoDictionary<OutpostSaveData?> OutpostSaveMap
         {
             get
             {
-                return new NeoDictionary<OutpostSaveData?>(client, writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("OutpostSaveMap"), (client, child) => ((NeoAttributeCustom)child).value is null ? null : OutpostSaveData.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoDictionary<OutpostSaveData?>(client, writableNode.Get<NeoAttributeDictionaryWritable>("OutpostSaveMap"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("OutpostSaveMap"), (client, child) => ((NeoAttributeCustom)child).value is null ? null : global::HelloWorld.Assets.Scripts.Neo.OutpostSaveData.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
-        public new QuestState Quest
+        public QuestState Quest
         {
             get
             {
-                return QuestState.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("Quest"));
+                return global::HelloWorld.Assets.Scripts.Neo.QuestState.CreateWritable(client, writableNode.Get<NeoAttributeCustomWritable>("Quest"));
             }
             set
             {
@@ -4908,15 +8236,15 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoList<PlanetVisit> Visited
+        public NeoList<PlanetVisit> Visited
         {
             get
             {
-                return new NeoList<PlanetVisit>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Visited"), (client, child) => PlanetVisit.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoList<PlanetVisit>(client, writableNode.Get<NeoAttributeListWritable>("Visited"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Visited"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.PlanetVisit.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
             }
         }
 
-        public new Planet World
+        public Planet World
         {
             get
             {
@@ -4929,7 +8257,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -4937,9 +8265,9 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<bool> Dead = new("Dead");
 
-            public static readonly NeoField<NeoLookupSet<ReadOnlyItem>> Inventory = new("Inventory");
+            public static readonly NeoField<NeoLookupSet<IReadOnlyItem>> Inventory = new("Inventory");
 
-            public static readonly NeoField<ReadOnlyOutpost> Location = new("Location");
+            public static readonly NeoField<IReadOnlyOutpost> Location = new("Location");
 
             public static readonly NeoField<NeoMemory> NeoMemory = new("NeoMemory");
 
@@ -4968,7 +8296,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -4994,7 +8322,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5009,193 +8337,42 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyArt : NeoGeneratedCustomValue
+    public interface IReadOnlyArt : INeoValueReference
     {
-        internal ReadOnlyArt(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "9a6019b6-680f-4300-8cea-bde6fce47fc1")
-        {
-        }
+        bool IsReadOnly { get; }
 
-        internal static ReadOnlyArt Create(NeoClient client, NeoAttributeCustom node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
-            {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
-                {
-                    _ => new ReadOnlyArt(client, node),
-                };
-            });
-        }
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
-        public Sprite FirstWorldIconSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("FirstWorldIconSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'FirstWorldIconSprite' has no synchronized asset.");
-            }
-        }
+        bool TryWritable(out Art writable);
 
-        public ReadOnlyAnimationInfo? FlareAnimation
-        {
-            get
-            {
-                var child = node.Get<NeoAttributeCustom>("FlareAnimation");
-                return child.value is null ? null : ReadOnlyAnimationInfo.Create(client, child);
-            }
-        }
+        Sprite FirstWorldIconSprite { get; }
 
-        public Sprite FlareStaticSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("FlareStaticSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'FlareStaticSprite' has no synchronized asset.");
-            }
-        }
+        IReadOnlyAnimationInfo? FlareAnimation { get; }
 
-        public Sprite JupiterSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("JupiterSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'JupiterSprite' has no synchronized asset.");
-            }
-        }
+        Sprite FlareStaticSprite { get; }
 
-        public Sprite SaturnSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("SaturnSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'SaturnSprite' has no synchronized asset.");
-            }
-        }
+        Sprite JupiterSprite { get; }
 
-        public ReadOnlyAnimationInfo? ShipAnimation
-        {
-            get
-            {
-                var child = node.Get<NeoAttributeCustom>("ShipAnimation");
-                return child.value is null ? null : ReadOnlyAnimationInfo.Create(client, child);
-            }
-        }
+        Sprite SaturnSprite { get; }
 
-        public Sprite ShipSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("ShipSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'ShipSprite' has no synchronized asset.");
-            }
-        }
+        IReadOnlyAnimationInfo? ShipAnimation { get; }
 
-        public Sprite SunSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("SunSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'SunSprite' has no synchronized asset.");
-            }
-        }
+        Sprite ShipSprite { get; }
 
-        public Sprite VaultPlaqueSprite
-        {
-            get
-            {
-                var resolved = node.Get<NeoAttributeSprite>("VaultPlaqueSprite").Resolve();
-                return resolved ?? throw new InvalidOperationException("Required Sprite 'VaultPlaqueSprite' has no synchronized asset.");
-            }
-        }
+        Sprite SunSprite { get; }
 
-        public sealed class Fields
-        {
-            private Fields() {}
-
-            public static readonly NeoField<Sprite> FirstWorldIconSprite = new("FirstWorldIconSprite");
-
-            public static readonly NeoField<ReadOnlyAnimationInfo?> FlareAnimation = new("FlareAnimation");
-
-            public static readonly NeoField<Sprite> FlareStaticSprite = new("FlareStaticSprite");
-
-            public static readonly NeoField<Sprite> JupiterSprite = new("JupiterSprite");
-
-            public static readonly NeoField<Sprite> SaturnSprite = new("SaturnSprite");
-
-            public static readonly NeoField<ReadOnlyAnimationInfo?> ShipAnimation = new("ShipAnimation");
-
-            public static readonly NeoField<Sprite> ShipSprite = new("ShipSprite");
-
-            public static readonly NeoField<Sprite> SunSprite = new("SunSprite");
-
-            public static readonly NeoField<Sprite> VaultPlaqueSprite = new("VaultPlaqueSprite");
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
-        {
-            return new Dictionary<INeoField, Func<string?>>
-            {
-                [Fields.FirstWorldIconSprite] = () => null,
-                [Fields.FlareAnimation] = () => null,
-                [Fields.FlareStaticSprite] = () => null,
-                [Fields.JupiterSprite] = () => null,
-                [Fields.SaturnSprite] = () => null,
-                [Fields.ShipAnimation] = () => null,
-                [Fields.ShipSprite] = () => null,
-                [Fields.SunSprite] = () => null,
-                [Fields.VaultPlaqueSprite] = () => null,
-            };
-        }
-
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
-        {
-            var readers = LocalizedTextIdReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return reader();
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
-        {
-            return new Dictionary<INeoField, Func<object?>>
-            {
-                [Fields.FirstWorldIconSprite] = () => FirstWorldIconSprite,
-                [Fields.FlareAnimation] = () => FlareAnimation,
-                [Fields.FlareStaticSprite] = () => FlareStaticSprite,
-                [Fields.JupiterSprite] = () => JupiterSprite,
-                [Fields.SaturnSprite] = () => SaturnSprite,
-                [Fields.ShipAnimation] = () => ShipAnimation,
-                [Fields.ShipSprite] = () => ShipSprite,
-                [Fields.SunSprite] = () => SunSprite,
-                [Fields.VaultPlaqueSprite] = () => VaultPlaqueSprite,
-            };
-        }
-
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
-        {
-            var readers = ChangedFieldReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return WatchField(field, handler, reader);
-        }
+        Sprite VaultPlaqueSprite { get; }
     }
 
-    public partial class Art : ReadOnlyArt
+    public partial class Art : NeoGeneratedCustomValue, IReadOnlyArt
     {
-        internal Art(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal Art(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "9a6019b6-680f-4300-8cea-bde6fce47fc1", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
         public Art(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite JupiterSprite, Sprite SaturnSprite, Sprite ShipSprite, Sprite SunSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, JupiterSprite, SaturnSprite, ShipSprite, SunSprite, VaultPlaqueSprite, FlareAnimation, ShipAnimation))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(FirstWorldIconSprite, FlareStaticSprite, JupiterSprite, SaturnSprite, ShipSprite, SunSprite, VaultPlaqueSprite, FlareAnimation, ShipAnimation), false, NeoValueOwnership.Session)
         {
         }
 
@@ -5279,146 +8456,122 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "9a6019b6-680f-4300-8cea-bde6fce47fc1", value, valueRows);
         }
 
-        internal static Art CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static Art Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Art>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new Art(client, node),
+                    _ => new Art(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new Sprite FirstWorldIconSprite
+        internal static Art CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Art>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Art(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out Art writable)
+        {
+            return TryWritable<Art>(out writable);
+        }
+
+        public Sprite FirstWorldIconSprite
         {
             get
             {
                 var resolved = node.Get<NeoAttributeSprite>("FirstWorldIconSprite").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'FirstWorldIconSprite' has no synchronized asset.");
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "FirstWorldIconSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
         }
 
-        public new AnimationInfo? FlareAnimation
+        public IReadOnlyAnimationInfo? FlareAnimation
         {
             get
             {
-                var child = node.Get<NeoAttributeCustomWritable>("FlareAnimation");
-                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
-            }
-            set
-            {
-                if (value is null)
-                {
-                    writableNode.Unset("FlareAnimation");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "FlareAnimation", NeoGeneratedTypesSupport.ValueReference(value));
+                var child = node.Get<NeoAttributeCustom>("FlareAnimation");
+                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
             }
         }
 
-        public new Sprite FlareStaticSprite
+        public Sprite FlareStaticSprite
         {
             get
             {
                 var resolved = node.Get<NeoAttributeSprite>("FlareStaticSprite").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'FlareStaticSprite' has no synchronized asset.");
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "FlareStaticSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
         }
 
-        public new Sprite JupiterSprite
+        public Sprite JupiterSprite
         {
             get
             {
                 var resolved = node.Get<NeoAttributeSprite>("JupiterSprite").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'JupiterSprite' has no synchronized asset.");
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "JupiterSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
         }
 
-        public new Sprite SaturnSprite
+        public Sprite SaturnSprite
         {
             get
             {
                 var resolved = node.Get<NeoAttributeSprite>("SaturnSprite").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'SaturnSprite' has no synchronized asset.");
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "SaturnSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
         }
 
-        public new AnimationInfo? ShipAnimation
+        public IReadOnlyAnimationInfo? ShipAnimation
         {
             get
             {
-                var child = node.Get<NeoAttributeCustomWritable>("ShipAnimation");
-                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
-            }
-            set
-            {
-                if (value is null)
-                {
-                    writableNode.Unset("ShipAnimation");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "ShipAnimation", NeoGeneratedTypesSupport.ValueReference(value));
+                var child = node.Get<NeoAttributeCustom>("ShipAnimation");
+                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
             }
         }
 
-        public new Sprite ShipSprite
+        public Sprite ShipSprite
         {
             get
             {
                 var resolved = node.Get<NeoAttributeSprite>("ShipSprite").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'ShipSprite' has no synchronized asset.");
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "ShipSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
         }
 
-        public new Sprite SunSprite
+        public Sprite SunSprite
         {
             get
             {
                 var resolved = node.Get<NeoAttributeSprite>("SunSprite").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'SunSprite' has no synchronized asset.");
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "SunSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
         }
 
-        public new Sprite VaultPlaqueSprite
+        public Sprite VaultPlaqueSprite
         {
             get
             {
                 var resolved = node.Get<NeoAttributeSprite>("VaultPlaqueSprite").Resolve();
                 return resolved ?? throw new InvalidOperationException("Required Sprite 'VaultPlaqueSprite' has no synchronized asset.");
             }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "VaultPlaqueSprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
-            }
         }
 
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -5457,7 +8610,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5483,7 +8636,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5498,86 +8651,111 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyJupiterOutpost : ReadOnlyOutpost
+    public interface IReadOnlyNeoTileLayer : INeoValueReference
     {
-        internal ReadOnlyJupiterOutpost(NeoClient client, NeoAttributeCustom node)
-            : base(client, node)
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoTileLayer writable);
+
+        string Name { get; }
+
+        IReadOnlyNeoSortingLayer SortingLayer { get; }
+
+        int SortingOrder { get; }
+    }
+
+    public abstract partial class NeoTileLayer : NeoGeneratedCustomValue, IReadOnlyNeoTileLayer
+    {
+        internal NeoTileLayer(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "a3e4a1df-f487-44bc-bf90-2edc4a88f1ad", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal new static ReadOnlyJupiterOutpost Create(NeoClient client, NeoAttributeCustom node)
+        internal static NeoTileLayer Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTileLayer>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyJupiterOutpost(client, node),
+                    "fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba" => new ConsoleTileLayer(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileLayer' without a concrete client type id."),
                 };
             });
         }
 
-        public new string FullDisplayText
+        internal static NeoTileLayer CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTileLayer>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba" => new ConsoleTileLayer(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileLayer' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoTileLayer writable)
+        {
+            return TryWritable<NeoTileLayer>(out writable);
+        }
+
+        public string Name
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return (string)result.value!;
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
         }
 
-        public new Sprite? Image
+        public IReadOnlyNeoSortingLayer SortingLayer
         {
             get
             {
-                return node.Get<NeoAttributeSprite>("Image").Resolve();
+                var selected = node.Get<NeoAttributeLookup>("SortingLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoAttributeCustom)selected[0]);
             }
         }
 
-        public JupiterMoon Moon
+        public int SortingOrder
         {
             get
             {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Moon"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : JupiterMoon.FromOptionId(selected);
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("SortingOrder")) ?? throw new InvalidOperationException("Required int 'SortingOrder' has no value.");
             }
         }
 
-        public new Planet Planet
-        {
-            get
-            {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Planet"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Planet' has no selected option.") : Planet.FromOptionId(selected);
-            }
-        }
-
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<string> FullDisplayText = new("FullDisplayText");
+            public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<Sprite?> Image = new("Image");
+            public static readonly NeoField<IReadOnlyNeoSortingLayer> SortingLayer = new("SortingLayer");
 
-            public static readonly NeoField<JupiterMoon> Moon = new("Moon");
-
-            public static readonly NeoField<Planet> Planet = new("Planet");
+            public static readonly NeoField<int> SortingOrder = new("SortingOrder");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.FullDisplayText] = () => null,
-                [Fields.Image] = () => null,
-                [Fields.Moon] = () => null,
-                [Fields.Planet] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.SortingLayer] = () => null,
+                [Fields.SortingOrder] = () => null,
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5591,14 +8769,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.FullDisplayText] = () => FullDisplayText,
-                [Fields.Image] = () => Image,
-                [Fields.Moon] = () => Moon,
-                [Fields.Planet] = () => Planet,
+                [Fields.Name] = () => Name,
+                [Fields.SortingLayer] = () => SortingLayer,
+                [Fields.SortingOrder] = () => SortingOrder,
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5607,17 +8784,38 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyJupiterOutpost : IReadOnlyOutpost
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out JupiterOutpost writable);
+
+        new string FullDisplayText { get; }
+
+        new Sprite? Image { get; }
+
+        JupiterMoon Moon { get; }
+
+        new Planet Planet { get; }
     }
 
-    public partial class JupiterOutpost : Outpost
+    public partial class JupiterOutpost : Outpost, IReadOnlyJupiterOutpost
     {
-        internal JupiterOutpost(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal JupiterOutpost(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
         public JupiterOutpost(string Name, JupiterMoon Moon, AnimationInfo? AnimatedImage = null, Sprite? Image = null, Planet? Planet = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, AnimatedImage, Image, Planet))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Moon, AnimatedImage, Image, Planet), false, NeoValueOwnership.Session)
         {
         }
 
@@ -5677,36 +8875,39 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "a50efb7e-58f6-4342-906e-0b01f98b15af", value, valueRows);
         }
 
-        internal new static JupiterOutpost CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static JupiterOutpost Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<JupiterOutpost>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new JupiterOutpost(client, node),
+                    _ => new JupiterOutpost(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new AnimationInfo? AnimatedImage
+        internal new static JupiterOutpost CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
         {
-            get
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<JupiterOutpost>(client, node, () =>
             {
-                var child = node.Get<NeoAttributeCustomWritable>("AnimatedImage");
-                return child.value is null ? null : AnimationInfo.CreateWritable(client, child);
-            }
-            set
-            {
-                if (value is null)
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
                 {
-                    writableNode.Unset("AnimatedImage");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetValue(writableNode, "AnimatedImage", NeoGeneratedTypesSupport.ValueReference(value));
-            }
+                    _ => new JupiterOutpost(client, node, false, node.ownership),
+                };
+            });
         }
 
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out JupiterOutpost writable)
+        {
+            return TryWritable<JupiterOutpost>(out writable);
+        }
 
         public new string FullDisplayText
         {
@@ -5726,19 +8927,22 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
+                ThrowIfReadOnly("JupiterOutpost.Image");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Image", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value, "66504747-cbd5-4026-9d4c-89a0644f8192", "Image")));
             }
         }
 
-        public new string Name
+        public JupiterMoon Moon
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").Text ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Moon"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : JupiterMoon.FromOptionId(selected);
             }
             set
             {
-                writableNode.SetStringLiteral("Name", value);
+                ThrowIfReadOnly("JupiterOutpost.Moon");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Moon", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -5751,42 +8955,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
+                ThrowIfReadOnly("JupiterOutpost.Planet");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Planet", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
-            }
-        }
-
-
-        public new OutpostSaveData Save
-        {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateWritable);
-            }
-        }
-
-        public new OutpostSaveData? SaveUnsafe
-        {
-            get
-            {
-                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
-            }
-        }
-
-
-        public JupiterMoon Moon
-        {
-            get
-            {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Moon"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Moon' has no selected option.") : JupiterMoon.FromOptionId(selected);
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Moon", NeoGeneratedTypesSupport.Value(new[] { value.optionId }));
             }
         }
 
@@ -5866,49 +9036,226 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyNeoChoiceLog : NeoGeneratedCustomValue
+    public interface IReadOnlyHullPlatingTile : IReadOnlyConsoleTile
     {
-        internal ReadOnlyNeoChoiceLog(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "af5795d0-e019-4776-8b7c-d0206f90d59f")
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out HullPlatingTile writable);
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers { get; }
+
+        new IReadOnlyNeoTileLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        new Sprite Sprite { get; }
+    }
+
+    public partial class HullPlatingTile : ConsoleTile, IReadOnlyHullPlatingTile
+    {
+        internal HullPlatingTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlyNeoChoiceLog Create(NeoClient client, NeoAttributeCustom node)
+        public HullPlatingTile(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, Sprite, DefaultLayer, CompatibleLayers, SmartTile), false, NeoValueOwnership.Session)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (Sprite is not null)
+            {
+                var SpriteValueId = Guid.NewGuid().ToString();
+                value["Sprite"] = SpriteValueId;
+                valueRows.Add(new SpriteAttributeValue
+                {
+                    id = SpriteValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
+                });
+            }
+            if (DefaultLayer is not null)
+            {
+                var DefaultLayerValueId = Guid.NewGuid().ToString();
+                value["DefaultLayer"] = DefaultLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "a8305a31-7f6c-4ff5-8a9f-5871ef451093", value, valueRows);
+        }
+
+        internal new static HullPlatingTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<HullPlatingTile>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyNeoChoiceLog(client, node),
+                    _ => new HullPlatingTile(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public string ChoiceId
+        internal new static HullPlatingTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<HullPlatingTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new HullPlatingTile(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out HullPlatingTile writable)
+        {
+            return TryWritable<HullPlatingTile>(out writable);
+        }
+
+        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
-                return node.Get<NeoAttributeString>("ChoiceId").value?.value ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
+                return new NeoLookupSet<IReadOnlyNeoTileLayer>(client, writableNode.Get<NeoAttributeLookupWritable>("CompatibleLayers"), () => writableNode.GetOrCreateLookup("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child), () => ThrowIfReadOnly("HullPlatingTile.CompatibleLayers"), () => IsReadOnly);
+            }
+            set
+            {
+                ThrowIfReadOnly("HullPlatingTile.CompatibleLayers");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "CompatibleLayers", NeoGeneratedTypesSupport.Value(ids.ToArray()));
             }
         }
 
-        public sealed class Fields
+        NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> IReadOnlyHullPlatingTile.CompatibleLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new IReadOnlyNeoTileLayer DefaultLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("HullPlatingTile.DefaultLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("HullPlatingTile.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new Sprite Sprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("Sprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+            }
+            set
+            {
+                ThrowIfReadOnly("HullPlatingTile.Sprite");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new sealed class Fields
         {
             private Fields() {}
 
-            public static readonly NeoField<string> ChoiceId = new("ChoiceId");
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.ChoiceId] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.SmartTile] = () => null,
             };
         }
 
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5922,11 +9269,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.ChoiceId] = () => ChoiceId,
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.SmartTile] = () => SmartTile,
             };
         }
 
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -5935,19 +9286,32 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoChoiceLog : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoChoiceLog writable);
+
+        string ChoiceId { get; }
     }
 
-    public partial class NeoChoiceLog : ReadOnlyNeoChoiceLog
+    public partial class NeoChoiceLog : NeoGeneratedCustomValue, IReadOnlyNeoChoiceLog
     {
-        internal NeoChoiceLog(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal NeoChoiceLog(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "af5795d0-e019-4776-8b7c-d0206f90d59f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
         public NeoChoiceLog(string? ChoiceId = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(ChoiceId))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(ChoiceId), false, NeoValueOwnership.Session)
         {
         }
 
@@ -5973,19 +9337,41 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "af5795d0-e019-4776-8b7c-d0206f90d59f", value, valueRows);
         }
 
-        internal static NeoChoiceLog CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static NeoChoiceLog Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoChoiceLog>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new NeoChoiceLog(client, node),
+                    _ => new NeoChoiceLog(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new string ChoiceId
+        internal static NeoChoiceLog CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoChoiceLog>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoChoiceLog(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoChoiceLog writable)
+        {
+            return TryWritable<NeoChoiceLog>(out writable);
+        }
+
+        public string ChoiceId
         {
             get
             {
@@ -5997,7 +9383,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -6009,6 +9395,289 @@ namespace HelloWorld.Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.ChoiceId] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.ChoiceId] = () => ChoiceId,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyOldConsoleLandingGrid : IReadOnlyNeoTileGrid
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out OldConsoleLandingGrid writable);
+
+        ReadOnlyOldConsoleLandingGridContent Content { get; }
+
+        string DisplayName { get; }
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> ObjectLayers { get; }
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> TileLayers { get; }
+    }
+
+    public partial class OldConsoleLandingGrid : NeoTileGrid, IReadOnlyOldConsoleLandingGrid
+    {
+        internal OldConsoleLandingGrid(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public OldConsoleLandingGrid(string DisplayName, IEnumerable<NeoLookupSelection>? ObjectLayers = null, IEnumerable<NeoLookupSelection>? TileLayers = null, NeoVector3? CellSize = null, int? PixelsPerUnit = null, IEnumerable<NeoLookupSelection>? Tiles = null, IEnumerable<NeoLookupSelection>? Objects = null, IEnumerable<NeoLayerGroupBase>? Children = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DisplayName, ObjectLayers, TileLayers, CellSize, PixelsPerUnit, Tiles, Objects, Children), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string DisplayName, IEnumerable<NeoLookupSelection>? ObjectLayers = null, IEnumerable<NeoLookupSelection>? TileLayers = null, NeoVector3? CellSize = null, int? PixelsPerUnit = null, IEnumerable<NeoLookupSelection>? Tiles = null, IEnumerable<NeoLookupSelection>? Objects = null, IEnumerable<NeoLayerGroupBase>? Children = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var DisplayNameValueId = Guid.NewGuid().ToString();
+            value["DisplayName"] = DisplayNameValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = DisplayNameValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = DisplayName,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
+            });
+            if (ObjectLayers is not null)
+            {
+                var ObjectLayersValueId = Guid.NewGuid().ToString();
+                value["ObjectLayers"] = ObjectLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ObjectLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(ObjectLayers),
+                });
+            }
+            if (TileLayers is not null)
+            {
+                var TileLayersValueId = Guid.NewGuid().ToString();
+                value["TileLayers"] = TileLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TileLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(TileLayers),
+                });
+            }
+            if (CellSize is not null)
+            {
+                var CellSizeValueId = Guid.NewGuid().ToString();
+                value["CellSize"] = CellSizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = CellSizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(CellSize.Value),
+                });
+            }
+            if (PixelsPerUnit is not null)
+            {
+                var PixelsPerUnitValueId = Guid.NewGuid().ToString();
+                value["PixelsPerUnit"] = PixelsPerUnitValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = PixelsPerUnitValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = PixelsPerUnit.HasValue ? PixelsPerUnit.Value : (double?)null,
+                });
+            }
+            if (Tiles is not null)
+            {
+                var TilesValueId = Guid.NewGuid().ToString();
+                value["Tiles"] = TilesValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TilesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(Tiles),
+                });
+            }
+            if (Objects is not null)
+            {
+                var ObjectsValueId = Guid.NewGuid().ToString();
+                value["Objects"] = ObjectsValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ObjectsValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(Objects),
+                });
+            }
+            if (Children is not null)
+            {
+                var ChildrenValueId = Guid.NewGuid().ToString();
+                value["Children"] = ChildrenValueId;
+                var ChildrenIds = new List<string>();
+                foreach (var entry in Children)
+                {
+                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ChildrenValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ChildrenIds.ToArray(),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "b44d80a9-7760-4919-8844-0cb71d08b788", value, valueRows);
+        }
+
+        internal new static OldConsoleLandingGrid Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<OldConsoleLandingGrid>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new OldConsoleLandingGrid(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static OldConsoleLandingGrid CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<OldConsoleLandingGrid>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new OldConsoleLandingGrid(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out OldConsoleLandingGrid writable)
+        {
+            return TryWritable<OldConsoleLandingGrid>(out writable);
+        }
+
+        public OldConsoleLandingGridContent Content
+        {
+            get
+            {
+                ThrowIfReadOnly("OldConsoleLandingGrid.Content");
+                if (valueId is null) throw new InvalidOperationException("TileGrid value has no backing value id.");
+                return OldConsoleLandingGridContent.Resolve(client, valueId);
+            }
+        }
+
+        ReadOnlyOldConsoleLandingGridContent IReadOnlyOldConsoleLandingGrid.Content
+        {
+            get
+            {
+                if (valueId is null) throw new InvalidOperationException("TileGrid value has no backing value id.");
+                return ReadOnlyOldConsoleLandingGridContent.Resolve(client, valueId);
+            }
+        }
+
+        public string DisplayName
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("DisplayName").value?.value ?? throw new InvalidOperationException("Required string 'DisplayName' has no value.");
+            }
+        }
+
+        public new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> ObjectLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer>(client, node.Get<NeoAttributeLookup>("ObjectLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> TileLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer>(client, node.Get<NeoAttributeLookup>("TileLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> DisplayName = new("DisplayName");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObjectLayer>> ObjectLayers = new("ObjectLayers");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> TileLayers = new("TileLayers");
+
+            public static readonly NeoField<NeoVector3> CellSize = new("CellSize");
+
+            public static readonly NeoField<int> PixelsPerUnit = new("PixelsPerUnit");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTile>> Tiles = new("Tiles");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObject>> Objects = new("Objects");
+
+            public static readonly NeoField<NeoList<NeoLayerGroupBase>> Children = new("Children");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.DisplayName] = () => null,
+                [Fields.ObjectLayers] = () => null,
+                [Fields.TileLayers] = () => null,
+                [Fields.CellSize] = () => null,
+                [Fields.PixelsPerUnit] = () => null,
+                [Fields.Tiles] = () => null,
+                [Fields.Objects] = () => null,
+                [Fields.Children] = () => null,
             };
         }
 
@@ -6026,7 +9695,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.ChoiceId] = () => ChoiceId,
+                [Fields.DisplayName] = () => DisplayName,
+                [Fields.ObjectLayers] = () => ObjectLayers,
+                [Fields.TileLayers] = () => TileLayers,
+                [Fields.CellSize] = () => CellSize,
+                [Fields.PixelsPerUnit] = () => PixelsPerUnit,
+                [Fields.Tiles] = () => Tiles,
+                [Fields.Objects] = () => Objects,
+                [Fields.Children] = () => Children,
             };
         }
 
@@ -6045,90 +9721,528 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyQuestState : NeoGeneratedCustomValue
+    public interface IReadOnlyConsoleObjectLayer : IReadOnlyNeoObjectLayer
     {
-        internal ReadOnlyQuestState(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "daf72c99-ad09-47d6-a863-f1ab31acf750")
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ConsoleObjectLayer writable);
+
+        string DisplayName { get; }
+    }
+
+    public partial class ConsoleObjectLayer : NeoObjectLayer, IReadOnlyConsoleObjectLayer
+    {
+        internal ConsoleObjectLayer(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static ReadOnlyQuestState Create(NeoClient client, NeoAttributeCustom node)
+        public ConsoleObjectLayer(string DisplayName, string? Name = null, NeoLookupSelection? SortingLayer = null, int? SortingOrder = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DisplayName, Name, SortingLayer, SortingOrder), false, NeoValueOwnership.Session)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string DisplayName, string? Name = null, NeoLookupSelection? SortingLayer = null, int? SortingOrder = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (SortingLayer is not null)
+            {
+                var SortingLayerValueId = Guid.NewGuid().ToString();
+                value["SortingLayer"] = SortingLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = SortingLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = SortingLayer.HasValue ? new[] { SortingLayer.Value.valueId } : null,
+                });
+            }
+            if (SortingOrder is not null)
+            {
+                var SortingOrderValueId = Guid.NewGuid().ToString();
+                value["SortingOrder"] = SortingOrderValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = SortingOrderValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = SortingOrder.HasValue ? SortingOrder.Value : (double?)null,
+                });
+            }
+            var DisplayNameValueId = Guid.NewGuid().ToString();
+            value["DisplayName"] = DisplayNameValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = DisplayNameValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = DisplayName,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
+            });
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "b737f725-5a4a-4d33-8bc5-c6953dbeff77", value, valueRows);
+        }
+
+        internal new static ConsoleObjectLayer Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ConsoleObjectLayer>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new ReadOnlyQuestState(client, node),
+                    _ => new ConsoleObjectLayer(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public WorldEnding Ending
+        internal new static ConsoleObjectLayer CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ConsoleObjectLayer>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ConsoleObjectLayer(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ConsoleObjectLayer writable)
+        {
+            return TryWritable<ConsoleObjectLayer>(out writable);
+        }
+
+        public string DisplayName
         {
             get
             {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Ending"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Ending' has no selected option.") : WorldEnding.FromOptionId(selected);
+                return node.Get<NeoAttributeString>("DisplayName").value?.value ?? throw new InvalidOperationException("Required string 'DisplayName' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("ConsoleObjectLayer.DisplayName");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DisplayName", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
-        public bool EvidenceArchive
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<IReadOnlyNeoSortingLayer> SortingLayer = new("SortingLayer");
+
+            public static readonly NeoField<int> SortingOrder = new("SortingOrder");
+
+            public static readonly NeoField<string> DisplayName = new("DisplayName");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => null,
+                [Fields.SortingLayer] = () => null,
+                [Fields.SortingOrder] = () => null,
+                [Fields.DisplayName] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.SortingLayer] = () => SortingLayer,
+                [Fields.SortingOrder] = () => SortingOrder,
+                [Fields.DisplayName] = () => DisplayName,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyGlassFloorTile : IReadOnlyConsoleTile
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out GlassFloorTile writable);
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers { get; }
+
+        new IReadOnlyNeoTileLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        new Sprite Sprite { get; }
+    }
+
+    public partial class GlassFloorTile : ConsoleTile, IReadOnlyGlassFloorTile
+    {
+        internal GlassFloorTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public GlassFloorTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                });
+            }
+            if (DefaultLayer is not null)
+            {
+                var DefaultLayerValueId = Guid.NewGuid().ToString();
+                value["DefaultLayer"] = DefaultLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (Sprite is not null)
+            {
+                var SpriteValueId = Guid.NewGuid().ToString();
+                value["Sprite"] = SpriteValueId;
+                valueRows.Add(new SpriteAttributeValue
+                {
+                    id = SpriteValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
+                });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "bda4cf72-c8da-4be0-8148-024d0fc2d826", value, valueRows);
+        }
+
+        internal new static GlassFloorTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GlassFloorTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GlassFloorTile(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static GlassFloorTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GlassFloorTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GlassFloorTile(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out GlassFloorTile writable)
+        {
+            return TryWritable<GlassFloorTile>(out writable);
+        }
+
+        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
-                return node.Get<NeoAttributeBool>("EvidenceArchive").value?.value ?? throw new InvalidOperationException("Required bool 'EvidenceArchive' has no value.");
+                return new NeoLookupSet<IReadOnlyNeoTileLayer>(client, writableNode.Get<NeoAttributeLookupWritable>("CompatibleLayers"), () => writableNode.GetOrCreateLookup("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child), () => ThrowIfReadOnly("GlassFloorTile.CompatibleLayers"), () => IsReadOnly);
+            }
+            set
+            {
+                ThrowIfReadOnly("GlassFloorTile.CompatibleLayers");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "CompatibleLayers", NeoGeneratedTypesSupport.Value(ids.ToArray()));
             }
         }
 
-        public bool EvidenceFaith
+        NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> IReadOnlyGlassFloorTile.CompatibleLayers
         {
             get
             {
-                return node.Get<NeoAttributeBool>("EvidenceFaith").value?.value ?? throw new InvalidOperationException("Required bool 'EvidenceFaith' has no value.");
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child));
             }
         }
 
-        public bool EvidenceLedger
+        public new IReadOnlyNeoTileLayer DefaultLayer
         {
             get
             {
-                return node.Get<NeoAttributeBool>("EvidenceLedger").value?.value ?? throw new InvalidOperationException("Required bool 'EvidenceLedger' has no value.");
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("GlassFloorTile.DefaultLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
             }
         }
 
-        public int FlareClock
+        public new string Name
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("FlareClock")) ?? throw new InvalidOperationException("Required int 'FlareClock' has no value.");
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("GlassFloorTile.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
-        public string NextHint
+        public new Sprite Sprite
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("NextHint").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return (string)result.value!;
+                var resolved = node.Get<NeoAttributeSprite>("Sprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+            }
+            set
+            {
+                ThrowIfReadOnly("GlassFloorTile.Sprite");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
             }
         }
 
-        public int Reruns
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoObjectLayer : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoObjectLayer writable);
+
+        string Name { get; }
+
+        IReadOnlyNeoSortingLayer SortingLayer { get; }
+
+        int SortingOrder { get; }
+    }
+
+    public abstract partial class NeoObjectLayer : NeoGeneratedCustomValue, IReadOnlyNeoObjectLayer
+    {
+        internal NeoObjectLayer(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "c1dc3dd7-397a-4f8f-acbf-b928cc66076d", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static NeoObjectLayer Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObjectLayer>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "b737f725-5a4a-4d33-8bc5-c6953dbeff77" => new ConsoleObjectLayer(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectLayer' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static NeoObjectLayer CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObjectLayer>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "b737f725-5a4a-4d33-8bc5-c6953dbeff77" => new ConsoleObjectLayer(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectLayer' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoObjectLayer writable)
+        {
+            return TryWritable<NeoObjectLayer>(out writable);
+        }
+
+        public string Name
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Reruns")) ?? throw new InvalidOperationException("Required int 'Reruns' has no value.");
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
             }
         }
 
-        public QuestStage Stage
+        public IReadOnlyNeoSortingLayer SortingLayer
         {
             get
             {
-                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Stage"));
-                return selected is null ? throw new InvalidOperationException("Required enum 'Stage' has no selected option.") : QuestStage.FromOptionId(selected);
+                var selected = node.Get<NeoAttributeLookup>("SortingLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+        }
+
+        public int SortingOrder
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("SortingOrder")) ?? throw new InvalidOperationException("Required int 'SortingOrder' has no value.");
             }
         }
 
@@ -6136,35 +10250,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<WorldEnding> Ending = new("Ending");
+            public static readonly NeoField<string> Name = new("Name");
 
-            public static readonly NeoField<bool> EvidenceArchive = new("EvidenceArchive");
+            public static readonly NeoField<IReadOnlyNeoSortingLayer> SortingLayer = new("SortingLayer");
 
-            public static readonly NeoField<bool> EvidenceFaith = new("EvidenceFaith");
-
-            public static readonly NeoField<bool> EvidenceLedger = new("EvidenceLedger");
-
-            public static readonly NeoField<int> FlareClock = new("FlareClock");
-
-            public static readonly NeoField<string> NextHint = new("NextHint");
-
-            public static readonly NeoField<int> Reruns = new("Reruns");
-
-            public static readonly NeoField<QuestStage> Stage = new("Stage");
+            public static readonly NeoField<int> SortingOrder = new("SortingOrder");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Ending] = () => null,
-                [Fields.EvidenceArchive] = () => null,
-                [Fields.EvidenceFaith] = () => null,
-                [Fields.EvidenceLedger] = () => null,
-                [Fields.FlareClock] = () => null,
-                [Fields.NextHint] = () => null,
-                [Fields.Reruns] = () => null,
-                [Fields.Stage] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.SortingLayer] = () => null,
+                [Fields.SortingOrder] = () => null,
             };
         }
 
@@ -6182,14 +10281,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Ending] = () => Ending,
-                [Fields.EvidenceArchive] = () => EvidenceArchive,
-                [Fields.EvidenceFaith] = () => EvidenceFaith,
-                [Fields.EvidenceLedger] = () => EvidenceLedger,
-                [Fields.FlareClock] = () => FlareClock,
-                [Fields.NextHint] = () => NextHint,
-                [Fields.Reruns] = () => Reruns,
-                [Fields.Stage] = () => Stage,
+                [Fields.Name] = () => Name,
+                [Fields.SortingLayer] = () => SortingLayer,
+                [Fields.SortingOrder] = () => SortingOrder,
             };
         }
 
@@ -6202,19 +10296,955 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             return WatchField(field, handler, reader);
         }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyVaultPlaqueObject : IReadOnlyConsoleObject
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out VaultPlaqueObject writable);
+
+        new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers { get; }
+
+        new IReadOnlyNeoObjectLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
     }
 
-    public partial class QuestState : ReadOnlyQuestState
+    public partial class VaultPlaqueObject : ConsoleObject, IReadOnlyVaultPlaqueObject
     {
-        internal QuestState(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal VaultPlaqueObject(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
+        public VaultPlaqueObject(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Children, PlacementTiles, Collider, Position, Size), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                });
+            }
+            if (DefaultLayer is not null)
+            {
+                var DefaultLayerValueId = Guid.NewGuid().ToString();
+                value["DefaultLayer"] = DefaultLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (Children is not null)
+            {
+                var ChildrenValueId = Guid.NewGuid().ToString();
+                value["Children"] = ChildrenValueId;
+                var ChildrenIds = new List<string>();
+                foreach (var entry in Children)
+                {
+                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ChildrenValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ChildrenIds.ToArray(),
+                });
+            }
+            if (PlacementTiles is not null)
+            {
+                var PlacementTilesValueId = Guid.NewGuid().ToString();
+                value["PlacementTiles"] = PlacementTilesValueId;
+                var PlacementTilesIds = new List<string>();
+                foreach (var entry in PlacementTiles)
+                {
+                    PlacementTilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = PlacementTilesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = PlacementTilesIds.ToArray(),
+                });
+            }
+            if (Collider is not null)
+            {
+                value["Collider"] = NeoGeneratedTypesSupport.LookupSelectionId(Collider.valueId);
+            }
+            if (Position is not null)
+            {
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            if (Size is not null)
+            {
+                var SizeValueId = Guid.NewGuid().ToString();
+                value["Size"] = SizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = SizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "cacf06dd-db1d-4f48-99c7-f3cea5a6961f", value, valueRows);
+        }
+
+        internal new static VaultPlaqueObject Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<VaultPlaqueObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new VaultPlaqueObject(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static VaultPlaqueObject CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<VaultPlaqueObject>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new VaultPlaqueObject(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out VaultPlaqueObject writable)
+        {
+            return TryWritable<VaultPlaqueObject>(out writable);
+        }
+
+        public new NeoList<NeoObjectBase> Children
+        {
+            get
+            {
+                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoAttributeListWritable>("Children"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Children"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("VaultPlaqueObject.Children"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyVaultPlaqueObject.Children
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoAttributeList>("Children"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
+        {
+            get
+            {
+                return new NeoLookupSet<IReadOnlyNeoObjectLayer>(client, writableNode.Get<NeoAttributeLookupWritable>("CompatibleLayers"), () => writableNode.GetOrCreateLookup("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child), () => ThrowIfReadOnly("VaultPlaqueObject.CompatibleLayers"), () => IsReadOnly);
+            }
+            set
+            {
+                ThrowIfReadOnly("VaultPlaqueObject.CompatibleLayers");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "CompatibleLayers", NeoGeneratedTypesSupport.Value(ids.ToArray()));
+            }
+        }
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> IReadOnlyVaultPlaqueObject.CompatibleLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new IReadOnlyNeoObjectLayer DefaultLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("VaultPlaqueObject.DefaultLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("VaultPlaqueObject.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new NeoList<NeoObjectPlacementTile> PlacementTiles
+        {
+            get
+            {
+                return new NeoList<NeoObjectPlacementTile>(client, writableNode.Get<NeoAttributeListWritable>("PlacementTiles"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("PlacementTiles"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("VaultPlaqueObject.PlacementTiles"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> IReadOnlyVaultPlaqueObject.PlacementTiles
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoAttributeList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObjectLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<IReadOnlyNeoObjectLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+
+            public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
+
+            public static readonly NeoField<NeoCollider?> Collider = new("Collider");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Children] = () => null,
+                [Fields.PlacementTiles] = () => null,
+                [Fields.Collider] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.Name] = () => Name,
+                [Fields.Children] = () => Children,
+                [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.Collider] = () => Collider,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoSmartTileRule : INeoValueReference, INeoSmartTileRule
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSmartTileRule writable);
+
+        new NeoSmartTileCollider Collider { get; }
+
+        new double MaxAnimationSpeed { get; }
+
+        new double MinAnimationSpeed { get; }
+
+        new NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor> Neighbors { get; }
+
+        new NeoSmartTileOutput Output { get; }
+
+        new NeoSmartTileTransform RuleTransform { get; }
+
+        new NeoReadOnlyList<Sprite> Sprites { get; }
+    }
+
+    public partial class NeoSmartTileRule : NeoGeneratedCustomValue, IReadOnlyNeoSmartTileRule, INeoSmartTileRule
+    {
+        internal NeoSmartTileRule(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "d500e920-87d9-4804-affa-1bd8fc5e91ae", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoSmartTileRule(IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, IEnumerable<Sprite>? Sprites = null, NeoSmartTileOutput? Output = null, NeoSmartTileCollider? Collider = null, double? MinAnimationSpeed = null, double? MaxAnimationSpeed = null, NeoSmartTileTransform? RuleTransform = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Neighbors, Sprites, Output, Collider, MinAnimationSpeed, MaxAnimationSpeed, RuleTransform), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, IEnumerable<Sprite>? Sprites = null, NeoSmartTileOutput? Output = null, NeoSmartTileCollider? Collider = null, double? MinAnimationSpeed = null, double? MaxAnimationSpeed = null, NeoSmartTileTransform? RuleTransform = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Neighbors is not null)
+            {
+                var NeighborsValueId = Guid.NewGuid().ToString();
+                value["Neighbors"] = NeighborsValueId;
+                var NeighborsIds = new List<string>();
+                foreach (var entry in Neighbors)
+                {
+                    NeighborsIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = NeighborsValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeighborsIds.ToArray(),
+                });
+            }
+            if (Sprites is not null)
+            {
+                var SpritesValueId = Guid.NewGuid().ToString();
+                value["Sprites"] = SpritesValueId;
+                var SpritesIds = new List<string>();
+                foreach (var entry in Sprites)
+                {
+                    var entryValueId = Guid.NewGuid().ToString();
+                    SpritesIds.Add(entryValueId);
+                    valueRows.Add(new SpriteAttributeValue
+                    {
+                        id = entryValueId,
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = NeoGeneratedTypesSupport.SpriteValue(client, entry),
+                    });
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = SpritesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = SpritesIds.ToArray(),
+                });
+            }
+            if (Output is not null)
+            {
+                var OutputValueId = Guid.NewGuid().ToString();
+                value["Output"] = OutputValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = OutputValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Output is null ? null : new[] { Output.optionId },
+                });
+            }
+            if (Collider is not null)
+            {
+                var ColliderValueId = Guid.NewGuid().ToString();
+                value["Collider"] = ColliderValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ColliderValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Collider is null ? null : new[] { Collider.optionId },
+                });
+            }
+            if (MinAnimationSpeed is not null)
+            {
+                var MinAnimationSpeedValueId = Guid.NewGuid().ToString();
+                value["MinAnimationSpeed"] = MinAnimationSpeedValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = MinAnimationSpeedValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = MinAnimationSpeed,
+                });
+            }
+            if (MaxAnimationSpeed is not null)
+            {
+                var MaxAnimationSpeedValueId = Guid.NewGuid().ToString();
+                value["MaxAnimationSpeed"] = MaxAnimationSpeedValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = MaxAnimationSpeedValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = MaxAnimationSpeed,
+                });
+            }
+            if (RuleTransform is not null)
+            {
+                var RuleTransformValueId = Guid.NewGuid().ToString();
+                value["RuleTransform"] = RuleTransformValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = RuleTransformValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = RuleTransform is null ? null : new[] { RuleTransform.optionId },
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "d500e920-87d9-4804-affa-1bd8fc5e91ae", value, valueRows);
+        }
+
+        internal static NeoSmartTileRule Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTileRule>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTileRule(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static NeoSmartTileRule CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSmartTileRule>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSmartTileRule(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSmartTileRule writable)
+        {
+            return TryWritable<NeoSmartTileRule>(out writable);
+        }
+
+        IReadOnlyList<INeoSmartTileNeighbor> INeoSmartTileRule.Neighbors => Neighbors;
+        IReadOnlyList<Sprite> INeoSmartTileRule.Sprites => Sprites;
+        string INeoSmartTileRule.Output => Output.optionId;
+        string INeoSmartTileRule.Collider => Collider.optionId;
+        string INeoSmartTileRule.RuleTransform => RuleTransform.optionId;
+        double INeoSmartTileRule.MinAnimationSpeed => MinAnimationSpeed;
+        double INeoSmartTileRule.MaxAnimationSpeed => MaxAnimationSpeed;
+
+        public NeoSmartTileCollider Collider
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Collider"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Collider' has no selected option.") : NeoSmartTileCollider.FromOptionId(selected);
+            }
+        }
+
+        public double MaxAnimationSpeed
+        {
+            get
+            {
+                return node.Get<NeoAttributeFloat>("MaxAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MaxAnimationSpeed' has no value.");
+            }
+        }
+
+        public double MinAnimationSpeed
+        {
+            get
+            {
+                return node.Get<NeoAttributeFloat>("MinAnimationSpeed").value?.value ?? throw new InvalidOperationException("Required float 'MinAnimationSpeed' has no value.");
+            }
+        }
+
+        public NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor> Neighbors
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor>(client, node.Get<NeoAttributeList>("Neighbors"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSmartTileNeighbor.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public NeoSmartTileOutput Output
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("Output"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'Output' has no selected option.") : NeoSmartTileOutput.FromOptionId(selected);
+            }
+        }
+
+        public NeoSmartTileTransform RuleTransform
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeEnum>("RuleTransform"));
+                return selected is null ? throw new InvalidOperationException("Required enum 'RuleTransform' has no selected option.") : NeoSmartTileTransform.FromOptionId(selected);
+            }
+        }
+
+        public NeoReadOnlyList<Sprite> Sprites
+        {
+            get
+            {
+                return new NeoReadOnlyList<Sprite>(client, node.Get<NeoAttributeList>("Sprites"), (client, child) => ((NeoAttributeSprite)child).Resolve() ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset."));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoList<NeoSmartTileNeighbor>> Neighbors = new("Neighbors");
+
+            public static readonly NeoField<NeoList<Sprite>> Sprites = new("Sprites");
+
+            public static readonly NeoField<NeoSmartTileOutput> Output = new("Output");
+
+            public static readonly NeoField<NeoSmartTileCollider> Collider = new("Collider");
+
+            public static readonly NeoField<double> MinAnimationSpeed = new("MinAnimationSpeed");
+
+            public static readonly NeoField<double> MaxAnimationSpeed = new("MaxAnimationSpeed");
+
+            public static readonly NeoField<NeoSmartTileTransform> RuleTransform = new("RuleTransform");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Neighbors] = () => null,
+                [Fields.Sprites] = () => null,
+                [Fields.Output] = () => null,
+                [Fields.Collider] = () => null,
+                [Fields.MinAnimationSpeed] = () => null,
+                [Fields.MaxAnimationSpeed] = () => null,
+                [Fields.RuleTransform] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Neighbors] = () => Neighbors,
+                [Fields.Sprites] = () => Sprites,
+                [Fields.Output] = () => Output,
+                [Fields.Collider] = () => Collider,
+                [Fields.MinAnimationSpeed] = () => MinAnimationSpeed,
+                [Fields.MaxAnimationSpeed] = () => MaxAnimationSpeed,
+                [Fields.RuleTransform] = () => RuleTransform,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyRedNovaWarningTile : IReadOnlyConsoleTile
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out RedNovaWarningTile writable);
+
+        new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers { get; }
+
+        new IReadOnlyNeoTileLayer DefaultLayer { get; }
+
+        new string Name { get; }
+
+        new Sprite Sprite { get; }
+    }
+
+    public partial class RedNovaWarningTile : ConsoleTile, IReadOnlyRedNovaWarningTile
+    {
+        internal RedNovaWarningTile(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public RedNovaWarningTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                });
+            }
+            if (DefaultLayer is not null)
+            {
+                var DefaultLayerValueId = Guid.NewGuid().ToString();
+                value["DefaultLayer"] = DefaultLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = DefaultLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (Sprite is not null)
+            {
+                var SpriteValueId = Guid.NewGuid().ToString();
+                value["Sprite"] = SpriteValueId;
+                valueRows.Add(new SpriteAttributeValue
+                {
+                    id = SpriteValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
+                });
+            }
+            if (SmartTile is not null)
+            {
+                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "d931c907-19cd-4f3d-b04a-e6f1945fb216", value, valueRows);
+        }
+
+        internal new static RedNovaWarningTile Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<RedNovaWarningTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new RedNovaWarningTile(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static RedNovaWarningTile CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<RedNovaWarningTile>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new RedNovaWarningTile(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out RedNovaWarningTile writable)
+        {
+            return TryWritable<RedNovaWarningTile>(out writable);
+        }
+
+        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
+        {
+            get
+            {
+                return new NeoLookupSet<IReadOnlyNeoTileLayer>(client, writableNode.Get<NeoAttributeLookupWritable>("CompatibleLayers"), () => writableNode.GetOrCreateLookup("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child), () => ThrowIfReadOnly("RedNovaWarningTile.CompatibleLayers"), () => IsReadOnly);
+            }
+            set
+            {
+                ThrowIfReadOnly("RedNovaWarningTile.CompatibleLayers");
+                var ids = new List<string>();
+                if (value is not null)
+                {
+                    foreach (var selected in value) ids.Add(NeoGeneratedTypesSupport.LookupSelectionId(selected.valueId));
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "CompatibleLayers", NeoGeneratedTypesSupport.Value(ids.ToArray()));
+            }
+        }
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> IReadOnlyRedNovaWarningTile.CompatibleLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer>(client, node.Get<NeoAttributeLookup>("CompatibleLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new IReadOnlyNeoTileLayer DefaultLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("DefaultLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("RedNovaWarningTile.DefaultLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DefaultLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public new string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("RedNovaWarningTile.Name");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Name", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new Sprite Sprite
+        {
+            get
+            {
+                var resolved = node.Get<NeoAttributeSprite>("Sprite").Resolve();
+                return resolved ?? throw new InvalidOperationException("Required Sprite 'Sprite' has no synchronized asset.");
+            }
+            set
+            {
+                ThrowIfReadOnly("RedNovaWarningTile.Sprite");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Sprite", NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.SpriteValue(client, value)));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> CompatibleLayers = new("CompatibleLayers");
+
+            public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<Sprite> Sprite = new("Sprite");
+
+            public static readonly NeoField<NeoSmartTile?> SmartTile = new("SmartTile");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Sprite] = () => null,
+                [Fields.SmartTile] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.Name] = () => Name,
+                [Fields.Sprite] = () => Sprite,
+                [Fields.SmartTile] = () => SmartTile,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyQuestState : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out QuestState writable);
+
+        WorldEnding Ending { get; }
+
+        bool EvidenceArchive { get; }
+
+        bool EvidenceFaith { get; }
+
+        bool EvidenceLedger { get; }
+
+        int FlareClock { get; }
+
+        string NextHint { get; }
+
+        int Reruns { get; }
+
+        QuestStage Stage { get; }
+    }
+
+    public partial class QuestState : NeoGeneratedCustomValue, IReadOnlyQuestState
+    {
+        internal QuestState(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "daf72c99-ad09-47d6-a863-f1ab31acf750", isReadOnly, inheritedStorageOwnership)
+        {
+        }
 
         public QuestState(WorldEnding? Ending = null, bool? EvidenceArchive = null, bool? EvidenceFaith = null, bool? EvidenceLedger = null, int? FlareClock = null, int? Reruns = null, QuestStage? Stage = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Ending, EvidenceArchive, EvidenceFaith, EvidenceLedger, FlareClock, Reruns, Stage))
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Ending, EvidenceArchive, EvidenceFaith, EvidenceLedger, FlareClock, Reruns, Stage), false, NeoValueOwnership.Session)
         {
         }
 
@@ -6311,19 +11341,41 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "daf72c99-ad09-47d6-a863-f1ab31acf750", value, valueRows);
         }
 
-        internal static QuestState CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static QuestState Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<QuestState>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new QuestState(client, node),
+                    _ => new QuestState(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new WorldEnding Ending
+        internal static QuestState CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<QuestState>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new QuestState(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out QuestState writable)
+        {
+            return TryWritable<QuestState>(out writable);
+        }
+
+        public WorldEnding Ending
         {
             get
             {
@@ -6336,7 +11388,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new bool EvidenceArchive
+        public bool EvidenceArchive
         {
             get
             {
@@ -6348,7 +11400,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new bool EvidenceFaith
+        public bool EvidenceFaith
         {
             get
             {
@@ -6360,7 +11412,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new bool EvidenceLedger
+        public bool EvidenceLedger
         {
             get
             {
@@ -6372,7 +11424,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new int FlareClock
+        public int FlareClock
         {
             get
             {
@@ -6384,7 +11436,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string NextHint
+        public string NextHint
         {
             get
             {
@@ -6394,7 +11446,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new int Reruns
+        public int Reruns
         {
             get
             {
@@ -6406,7 +11458,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new QuestStage Stage
+        public QuestStage Stage
         {
             get
             {
@@ -6419,7 +11471,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new sealed class Fields
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -6455,7 +11507,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -6480,7 +11532,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             };
         }
 
-        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
         {
             var readers = ChangedFieldReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -6495,152 +11547,46 @@ namespace HelloWorld.Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public partial class ReadOnlyAssets : NeoGeneratedCustomValue
+    public interface IReadOnlyAssets : INeoValueReference
     {
-        internal ReadOnlyAssets(NeoClient client, NeoAttributeCustom node)
-            : base(client, node, "dd0bbe5a-47ef-4164-9421-caea07f6f56f")
-        {
-        }
+        bool IsReadOnly { get; }
 
-        internal static ReadOnlyAssets Create(NeoClient client, NeoAttributeCustom node)
-        {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
-            {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
-                {
-                    _ => new ReadOnlyAssets(client, node),
-                };
-            });
-        }
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
-        public ReadOnlyArt Art
-        {
-            get
-            {
-                return ReadOnlyArt.Create(client, node.Get<NeoAttributeCustom>("Art"));
-            }
-        }
+        bool TryWritable(out Assets writable);
 
-        public ReadOnlyAudio Audio
-        {
-            get
-            {
-                return ReadOnlyAudio.Create(client, node.Get<NeoAttributeCustom>("Audio"));
-            }
-        }
+        IReadOnlyArt Art { get; }
 
-        public ReadOnlyComputedText Computed
-        {
-            get
-            {
-                return ReadOnlyComputedText.Create(client, node.Get<NeoAttributeCustom>("Computed"));
-            }
-        }
+        IReadOnlyAudio Audio { get; }
 
-        public NeoReadOnlyList<ReadOnlyItem> Items
-        {
-            get
-            {
-                return new NeoReadOnlyList<ReadOnlyItem>(client, node.Get<NeoAttributeList>("Items"), (client, child) => ReadOnlyItem.Create(client, (NeoAttributeCustom)child));
-            }
-        }
+        IReadOnlyComputedText Computed { get; }
 
-        public ReadOnlyLookupContainer LookupContainer
-        {
-            get
-            {
-                return ReadOnlyLookupContainer.Create(client, node.Get<NeoAttributeCustom>("LookupContainer"));
-            }
-        }
+        NeoReadOnlyList<IReadOnlyItem> Items { get; }
 
-        public NeoReadOnlyList<ReadOnlyOutpost> Outposts
-        {
-            get
-            {
-                return new NeoReadOnlyList<ReadOnlyOutpost>(client, node.Get<NeoAttributeList>("Outposts"), (client, child) => ReadOnlyOutpost.Create(client, (NeoAttributeCustom)child));
-            }
-        }
+        IReadOnlyLookupContainer LookupContainer { get; }
 
-        public sealed class Fields
-        {
-            private Fields() {}
+        IReadOnlyNeoWorlds NeoWorlds { get; }
 
-            public static readonly NeoField<ReadOnlyArt> Art = new("Art");
+        NeoReadOnlyList<IReadOnlyOutpost> Outposts { get; }
 
-            public static readonly NeoField<ReadOnlyAudio> Audio = new("Audio");
+        NeoReadOnlyList<IReadOnlyNeoSortingLayer> SortingLayers { get; }
 
-            public static readonly NeoField<ReadOnlyComputedText> Computed = new("Computed");
-
-            public static readonly NeoField<NeoReadOnlyList<ReadOnlyItem>> Items = new("Items");
-
-            public static readonly NeoField<ReadOnlyLookupContainer> LookupContainer = new("LookupContainer");
-
-            public static readonly NeoField<NeoReadOnlyList<ReadOnlyOutpost>> Outposts = new("Outposts");
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
-        {
-            return new Dictionary<INeoField, Func<string?>>
-            {
-                [Fields.Art] = () => null,
-                [Fields.Audio] = () => null,
-                [Fields.Computed] = () => null,
-                [Fields.Items] = () => null,
-                [Fields.LookupContainer] = () => null,
-                [Fields.Outposts] = () => null,
-            };
-        }
-
-        public string? GetLocalizedTextId<T>(NeoField<T> field)
-        {
-            var readers = LocalizedTextIdReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return reader();
-        }
-
-        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
-        {
-            return new Dictionary<INeoField, Func<object?>>
-            {
-                [Fields.Art] = () => Art,
-                [Fields.Audio] = () => Audio,
-                [Fields.Computed] = () => Computed,
-                [Fields.Items] = () => Items,
-                [Fields.LookupContainer] = () => LookupContainer,
-                [Fields.Outposts] = () => Outposts,
-            };
-        }
-
-        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
-        {
-            var readers = ChangedFieldReaders();
-            if (!readers.TryGetValue(field, out var reader))
-            {
-                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
-            }
-            return WatchField(field, handler, reader);
-        }
+        IReadOnlyWorlds Worlds { get; }
     }
 
-    public partial class Assets : ReadOnlyAssets
+    public partial class Assets : NeoGeneratedCustomValue, IReadOnlyAssets
     {
-        internal Assets(NeoClient client, NeoAttributeCustomWritable node)
-            : base(client, node)
+        internal Assets(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        protected NeoAttributeCustomWritable writableNode => (NeoAttributeCustomWritable)node;
-
-        public Assets(Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Art, Audio, Computed, Items, LookupContainer, Outposts))
+        public Assets(Worlds Worlds, Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, IEnumerable<NeoSortingLayer>? SortingLayers = null, NeoWorlds? NeoWorlds = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Worlds, Art, Audio, Computed, Items, LookupContainer, Outposts, SortingLayers, NeoWorlds), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(Worlds Worlds, Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, IEnumerable<Outpost>? Outposts = null, IEnumerable<NeoSortingLayer>? SortingLayers = null, NeoWorlds? NeoWorlds = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -6696,86 +11642,138 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = OutpostsIds.ToArray(),
                 });
             }
+            value["Worlds"] = NeoGeneratedTypesSupport.LookupSelectionId(Worlds.valueId);
+            if (SortingLayers is not null)
+            {
+                var SortingLayersValueId = Guid.NewGuid().ToString();
+                value["SortingLayers"] = SortingLayersValueId;
+                var SortingLayersIds = new List<string>();
+                foreach (var entry in SortingLayers)
+                {
+                    SortingLayersIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = SortingLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = SortingLayersIds.ToArray(),
+                });
+            }
+            if (NeoWorlds is not null)
+            {
+                value["NeoWorlds"] = NeoGeneratedTypesSupport.LookupSelectionId(NeoWorlds.valueId);
+            }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows);
         }
 
-        internal static Assets CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static Assets Create(NeoClient client, NeoAttributeCustom node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Assets>(client, node, () =>
             {
                 var clientTypeId = node.value?.typeId;
                 return clientTypeId switch
                 {
-                    _ => new Assets(client, node),
+                    _ => new Assets(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        public new Art Art
+        internal static Assets CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Assets>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new Assets(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out Assets writable)
+        {
+            return TryWritable<Assets>(out writable);
+        }
+
+        public IReadOnlyArt Art
         {
             get
             {
-                return Art.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("Art"));
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Art", NeoGeneratedTypesSupport.ValueReference(value));
+                return global::HelloWorld.Assets.Scripts.Neo.Art.Create(client, node.Get<NeoAttributeCustom>("Art"));
             }
         }
 
-        public new Audio Audio
+        public IReadOnlyAudio Audio
         {
             get
             {
-                return Audio.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("Audio"));
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Audio", NeoGeneratedTypesSupport.ValueReference(value));
+                return global::HelloWorld.Assets.Scripts.Neo.Audio.Create(client, node.Get<NeoAttributeCustom>("Audio"));
             }
         }
 
-        public new ComputedText Computed
+        public IReadOnlyComputedText Computed
         {
             get
             {
-                return ComputedText.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("Computed"));
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "Computed", NeoGeneratedTypesSupport.ValueReference(value));
+                return global::HelloWorld.Assets.Scripts.Neo.ComputedText.Create(client, node.Get<NeoAttributeCustom>("Computed"));
             }
         }
 
-        public new NeoList<Item> Items
+        public NeoReadOnlyList<IReadOnlyItem> Items
         {
             get
             {
-                return new NeoList<Item>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Items"), (client, child) => Item.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return new NeoReadOnlyList<IReadOnlyItem>(client, node.Get<NeoAttributeList>("Items"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.Item.Create(client, (NeoAttributeCustom)child));
             }
         }
 
-        public new LookupContainer LookupContainer
+        public IReadOnlyLookupContainer LookupContainer
         {
             get
             {
-                return LookupContainer.CreateWritable(client, node.Get<NeoAttributeCustomWritable>("LookupContainer"));
-            }
-            set
-            {
-                NeoGeneratedTypesSupport.SetValue(writableNode, "LookupContainer", NeoGeneratedTypesSupport.ValueReference(value));
+                return global::HelloWorld.Assets.Scripts.Neo.LookupContainer.Create(client, node.Get<NeoAttributeCustom>("LookupContainer"));
             }
         }
 
-        public new NeoList<Outpost> Outposts
+        public IReadOnlyNeoWorlds NeoWorlds
         {
             get
             {
-                return new NeoList<Outpost>(client, writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Outposts"), (client, child) => Outpost.CreateWritable(client, (NeoAttributeCustomWritable)child), item => NeoGeneratedTypesSupport.ValueReference(item));
+                return global::HelloWorld.Assets.Scripts.Neo.NeoWorlds.Create(client, node.Get<NeoAttributeCustom>("NeoWorlds"));
             }
         }
 
-        public new sealed class Fields
+        public NeoReadOnlyList<IReadOnlyOutpost> Outposts
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyOutpost>(client, node.Get<NeoAttributeList>("Outposts"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.Outpost.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public NeoReadOnlyList<IReadOnlyNeoSortingLayer> SortingLayers
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoSortingLayer>(client, node.Get<NeoAttributeList>("SortingLayers"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoSortingLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public IReadOnlyWorlds Worlds
+        {
+            get
+            {
+                return global::HelloWorld.Assets.Scripts.Neo.Worlds.Create(client, node.Get<NeoAttributeCustom>("Worlds"));
+            }
+        }
+
+        public sealed class Fields
         {
             private Fields() {}
 
@@ -6790,6 +11788,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<LookupContainer> LookupContainer = new("LookupContainer");
 
             public static readonly NeoField<NeoList<Outpost>> Outposts = new("Outposts");
+
+            public static readonly NeoField<Worlds> Worlds = new("Worlds");
+
+            public static readonly NeoField<NeoList<NeoSortingLayer>> SortingLayers = new("SortingLayers");
+
+            public static readonly NeoField<NeoWorlds> NeoWorlds = new("NeoWorlds");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -6802,10 +11806,13 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Items] = () => null,
                 [Fields.LookupContainer] = () => null,
                 [Fields.Outposts] = () => null,
+                [Fields.Worlds] = () => null,
+                [Fields.SortingLayers] = () => null,
+                [Fields.NeoWorlds] = () => null,
             };
         }
 
-        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
         {
             var readers = LocalizedTextIdReaders();
             if (!readers.TryGetValue(field, out var reader))
@@ -6825,6 +11832,233 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Items] = () => Items,
                 [Fields.LookupContainer] = () => LookupContainer,
                 [Fields.Outposts] = () => Outposts,
+                [Fields.Worlds] = () => Worlds,
+                [Fields.SortingLayers] = () => SortingLayers,
+                [Fields.NeoWorlds] = () => NeoWorlds,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoTileLayerLink : IReadOnlyNeoLayerGroupBase, INeoTileLayerLinkValue
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoTileLayerLink writable);
+
+        IReadOnlyNeoTileLayer TileLayer { get; }
+
+        NeoReadOnlyList<IReadOnlyNeoTileInstance> Tiles { get; }
+    }
+
+    public partial class NeoTileLayerLink : NeoLayerGroupBase, IReadOnlyNeoTileLayerLink, INeoTileLayerLinkValue
+    {
+        internal NeoTileLayerLink(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoTileLayerLink(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var TileLayerValueId = Guid.NewGuid().ToString();
+            value["TileLayer"] = TileLayerValueId;
+            valueRows.Add(new ArrayAttributeValue
+            {
+                id = TileLayerValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = new[] { TileLayer.valueId },
+            });
+            if (Tiles is not null)
+            {
+                var TilesValueId = Guid.NewGuid().ToString();
+                value["Tiles"] = TilesValueId;
+                var TilesIds = new List<string>();
+                foreach (var entry in Tiles)
+                {
+                    TilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = TilesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = TilesIds.ToArray(),
+                });
+            }
+            var NameValueId = Guid.NewGuid().ToString();
+            value["Name"] = NameValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = NameValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Name,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
+            });
+            if (Position is not null)
+            {
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            if (Size is not null)
+            {
+                var SizeValueId = Guid.NewGuid().ToString();
+                value["Size"] = SizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = SizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "e78cfcd2-78ae-4656-9f04-6429bb0efe20", value, valueRows);
+        }
+
+        internal new static NeoTileLayerLink Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTileLayerLink>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, NeoValueOwnership.Save),
+                    _ => new NeoTileLayerLink(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoTileLayerLink CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTileLayerLink>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, node.ownership),
+                    _ => new NeoTileLayerLink(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoTileLayerLink writable)
+        {
+            return TryWritable<NeoTileLayerLink>(out writable);
+        }
+
+        public IReadOnlyNeoTileLayer TileLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("TileLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoTileLayerLink.TileLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "TileLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public NeoList<NeoTileInstance> Tiles
+        {
+            get
+            {
+                return new NeoList<NeoTileInstance>(client, writableNode.Get<NeoAttributeListWritable>("Tiles"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Tiles"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoTileInstance.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoTileInstance.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoTileLayerLink.Tiles"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoTileInstance> IReadOnlyNeoTileLayerLink.Tiles
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoTileInstance>(client, node.Get<NeoAttributeList>("Tiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoTileInstance.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<IReadOnlyNeoTileLayer> TileLayer = new("TileLayer");
+
+            public static readonly NeoField<NeoList<NeoTileInstance>> Tiles = new("Tiles");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.TileLayer] = () => null,
+                [Fields.Tiles] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.TileLayer] = () => TileLayer,
+                [Fields.Tiles] = () => Tiles,
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
             };
         }
 
@@ -6842,5 +12076,1124 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return WatchChanges(ChangedFieldReaders(), handler);
         }
+    }
+    public interface IReadOnlyNeoTileGrid : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoTileGrid writable);
+
+        TChild? GetChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        bool TryGetChild<TChild>(out TChild child, string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        TChild GetRequiredChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue;
+
+        IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedCustomValue;
+
+        NeoReadOnlyVector3 CellSize { get; }
+
+        NeoReadOnlyList<IReadOnlyNeoLayerGroupBase> Children { get; }
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> ObjectLayers { get; }
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoObject> Objects { get; }
+
+        int PixelsPerUnit { get; }
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> TileLayers { get; }
+
+        NeoReadOnlyLookupSet<IReadOnlyNeoTile> Tiles { get; }
+    }
+
+    public abstract partial class NeoTileGrid : NeoGeneratedCustomValue, IReadOnlyNeoTileGrid
+    {
+        internal NeoTileGrid(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "e93a83cb-9bc2-46fe-9c85-d70465a89da8", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static NeoTileGrid Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTileGrid>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "b44d80a9-7760-4919-8844-0cb71d08b788" => new OldConsoleLandingGrid(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileGrid' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static NeoTileGrid CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTileGrid>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "b44d80a9-7760-4919-8844-0cb71d08b788" => new OldConsoleLandingGrid(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileGrid' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoTileGrid writable)
+        {
+            return TryWritable<NeoTileGrid>(out writable);
+        }
+
+        public TChild? GetChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.TryGetGeneratedChild(((IReadOnlyNeoTileGrid)this).Children, name, out TChild child) ? child : null;
+        }
+
+        public bool TryGetChild<TChild>(out TChild child, string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.TryGetGeneratedChild(((IReadOnlyNeoTileGrid)this).Children, name, out child);
+        }
+
+        public TChild GetRequiredChild<TChild>(string? name = null) where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.GetRequiredGeneratedChild<TChild>(this, ((IReadOnlyNeoTileGrid)this).Children, name);
+        }
+
+        public IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedCustomValue
+        {
+            return NeoGeneratedTypesSupport.GetGeneratedChildren<TChild>(((IReadOnlyNeoTileGrid)this).Children);
+        }
+
+        public NeoReadOnlyVector3 CellSize
+        {
+            get
+            {
+                return new NeoReadOnlyVector3(node.Get<NeoAttributeVector3>("CellSize"));
+            }
+        }
+
+        public NeoReadOnlyList<IReadOnlyNeoLayerGroupBase> Children
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoLayerGroupBase>(client, node.Get<NeoAttributeList>("Children"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoLayerGroupBase.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> ObjectLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer>(client, node.Get<NeoAttributeLookup>("ObjectLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public NeoReadOnlyLookupSet<IReadOnlyNeoObject> Objects
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoObject>(client, node.Get<NeoAttributeLookup>("Objects"), child => global::HelloWorld.Assets.Scripts.Neo.NeoObject.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public int PixelsPerUnit
+        {
+            get
+            {
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("PixelsPerUnit")) ?? throw new InvalidOperationException("Required int 'PixelsPerUnit' has no value.");
+            }
+        }
+
+        public NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> TileLayers
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer>(client, node.Get<NeoAttributeLookup>("TileLayers"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTileLayer.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public NeoReadOnlyLookupSet<IReadOnlyNeoTile> Tiles
+        {
+            get
+            {
+                return new NeoReadOnlyLookupSet<IReadOnlyNeoTile>(client, node.Get<NeoAttributeLookup>("Tiles"), child => global::HelloWorld.Assets.Scripts.Neo.NeoTile.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<NeoVector3> CellSize = new("CellSize");
+
+            public static readonly NeoField<int> PixelsPerUnit = new("PixelsPerUnit");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTile>> Tiles = new("Tiles");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoTileLayer>> TileLayers = new("TileLayers");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObject>> Objects = new("Objects");
+
+            public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObjectLayer>> ObjectLayers = new("ObjectLayers");
+
+            public static readonly NeoField<NeoList<NeoLayerGroupBase>> Children = new("Children");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.CellSize] = () => null,
+                [Fields.PixelsPerUnit] = () => null,
+                [Fields.Tiles] = () => null,
+                [Fields.TileLayers] = () => null,
+                [Fields.Objects] = () => null,
+                [Fields.ObjectLayers] = () => null,
+                [Fields.Children] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.CellSize] = () => CellSize,
+                [Fields.PixelsPerUnit] = () => PixelsPerUnit,
+                [Fields.Tiles] = () => Tiles,
+                [Fields.TileLayers] = () => TileLayers,
+                [Fields.Objects] = () => Objects,
+                [Fields.ObjectLayers] = () => ObjectLayers,
+                [Fields.Children] = () => Children,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoObjectBase : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoObjectBase writable);
+
+        string Name { get; }
+
+        NeoReadOnlyVector3 Position { get; }
+
+        NeoReadOnlyVector3 Size { get; }
+    }
+
+    public abstract partial class NeoObjectBase : NeoGeneratedCustomValue, IReadOnlyNeoObjectBase
+    {
+        internal NeoObjectBase(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static NeoObjectBase Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObjectBase>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, true, NeoValueOwnership.Asset),
+                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, NeoValueOwnership.Save),
+                    "5c65b156-e83a-41c5-bef0-ee375798bdc2" => new ExitPromptObject(client, node, true, NeoValueOwnership.Asset),
+                    "7cb1b706-95d2-4465-8e75-c82a6b7d8830" => new NeoSpriteObject(client, node, true, NeoValueOwnership.Asset),
+                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, true, NeoValueOwnership.Asset),
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, true, NeoValueOwnership.Asset),
+                    "e78cfcd2-78ae-4656-9f04-6429bb0efe20" => new NeoTileLayerLink(client, node, true, NeoValueOwnership.Asset),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new NeoObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static NeoObjectBase CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObjectBase>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "27874300-3e78-4d1c-802b-caf34d25d1ab" => new RecoveryCacheObject(client, node, false, node.ownership),
+                    "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b" => new BlockedPath(client, node, false, node.ownership),
+                    "5c65b156-e83a-41c5-bef0-ee375798bdc2" => new ExitPromptObject(client, node, false, node.ownership),
+                    "7cb1b706-95d2-4465-8e75-c82a6b7d8830" => new NeoSpriteObject(client, node, false, node.ownership),
+                    "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f" => new PlayerSpawnObject(client, node, false, node.ownership),
+                    "cacf06dd-db1d-4f48-99c7-f3cea5a6961f" => new VaultPlaqueObject(client, node, false, node.ownership),
+                    "e78cfcd2-78ae-4656-9f04-6429bb0efe20" => new NeoTileLayerLink(client, node, false, node.ownership),
+                    "f1b08825-2ad0-4666-acf1-3df7ffbda64e" => new NeoObjectLayerLink(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoObjectBase writable)
+        {
+            return TryWritable<NeoObjectBase>(out writable);
+        }
+
+        public string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+        }
+
+        public NeoReadOnlyVector3 Position
+        {
+            get
+            {
+                return new NeoReadOnlyVector3(node.Get<NeoAttributeVector3>("Position"));
+            }
+        }
+
+        public NeoReadOnlyVector3 Size
+        {
+            get
+            {
+                return new NeoReadOnlyVector3(node.Get<NeoAttributeVector3>("Size"));
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoObjectLayerLink : IReadOnlyNeoLayerGroupBase, INeoObjectLayerLinkValue
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoObjectLayerLink writable);
+
+        IReadOnlyNeoObjectLayer ObjectLayer { get; }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> Objects { get; }
+    }
+
+    public partial class NeoObjectLayerLink : NeoLayerGroupBase, IReadOnlyNeoObjectLayerLink, INeoObjectLayerLinkValue
+    {
+        internal NeoObjectLayerLink(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoObjectLayerLink(string Name, NeoLookupSelection? ObjectLayer = null, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, ObjectLayer, Objects, Position, Size), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection? ObjectLayer = null, IEnumerable<NeoObjectBase>? Objects = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (ObjectLayer is not null)
+            {
+                var ObjectLayerValueId = Guid.NewGuid().ToString();
+                value["ObjectLayer"] = ObjectLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ObjectLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ObjectLayer.HasValue ? new[] { ObjectLayer.Value.valueId } : null,
+                });
+            }
+            if (Objects is not null)
+            {
+                var ObjectsValueId = Guid.NewGuid().ToString();
+                value["Objects"] = ObjectsValueId;
+                var ObjectsIds = new List<string>();
+                foreach (var entry in Objects)
+                {
+                    ObjectsIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ObjectsValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ObjectsIds.ToArray(),
+                });
+            }
+            var NameValueId = Guid.NewGuid().ToString();
+            value["Name"] = NameValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = NameValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Name,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
+            });
+            if (Position is not null)
+            {
+                var PositionValueId = Guid.NewGuid().ToString();
+                value["Position"] = PositionValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = PositionValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
+                });
+            }
+            if (Size is not null)
+            {
+                var SizeValueId = Guid.NewGuid().ToString();
+                value["Size"] = SizeValueId;
+                valueRows.Add(new Vector3AttributeValue
+                {
+                    id = SizeValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "f1b08825-2ad0-4666-acf1-3df7ffbda64e", value, valueRows);
+        }
+
+        internal new static NeoObjectLayerLink Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObjectLayerLink>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoObjectLayerLink(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static NeoObjectLayerLink CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoObjectLayerLink>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoObjectLayerLink(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoObjectLayerLink writable)
+        {
+            return TryWritable<NeoObjectLayerLink>(out writable);
+        }
+
+        public IReadOnlyNeoObjectLayer ObjectLayer
+        {
+            get
+            {
+                var selected = node.Get<NeoAttributeLookup>("ObjectLayer").GetSelected();
+                return selected.Count == 0 ? throw new InvalidOperationException("Required lookup has no selected value.") : global::HelloWorld.Assets.Scripts.Neo.NeoObjectLayer.Create(client, (NeoAttributeCustom)selected[0]);
+            }
+            set
+            {
+                ThrowIfReadOnly("NeoObjectLayerLink.ObjectLayer");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "ObjectLayer", NeoGeneratedTypesSupport.Value(new[] { NeoGeneratedTypesSupport.LookupSelectionId(value.valueId) }));
+            }
+        }
+
+        public NeoList<NeoObjectBase> Objects
+        {
+            get
+            {
+                return new NeoList<NeoObjectBase>(client, writableNode.Get<NeoAttributeListWritable>("Objects"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Objects"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.CreateWritable(client, writableChild) : global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoObjectLayerLink.Objects"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoObjectBase> IReadOnlyNeoObjectLayerLink.Objects
+        {
+            get
+            {
+                return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoAttributeList>("Objects"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<IReadOnlyNeoObjectLayer> ObjectLayer = new("ObjectLayer");
+
+            public static readonly NeoField<NeoList<NeoObjectBase>> Objects = new("Objects");
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoVector3> Position = new("Position");
+
+            public static readonly NeoField<NeoVector3> Size = new("Size");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.ObjectLayer] = () => null,
+                [Fields.Objects] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.Position] = () => null,
+                [Fields.Size] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.ObjectLayer] = () => ObjectLayer,
+                [Fields.Objects] = () => Objects,
+                [Fields.Name] = () => Name,
+                [Fields.Position] = () => Position,
+                [Fields.Size] = () => Size,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyNeoSortingLayer : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out NeoSortingLayer writable);
+
+        string Name { get; }
+    }
+
+    public partial class NeoSortingLayer : NeoGeneratedCustomValue, IReadOnlyNeoSortingLayer
+    {
+        internal NeoSortingLayer(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "fb219343-34db-4e82-baf0-09df9a2b5210", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public NeoSortingLayer(string? Name = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "fb219343-34db-4e82-baf0-09df9a2b5210", value, valueRows);
+        }
+
+        internal static NeoSortingLayer Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSortingLayer>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSortingLayer(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal static NeoSortingLayer CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoSortingLayer>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new NeoSortingLayer(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out NeoSortingLayer writable)
+        {
+            return TryWritable<NeoSortingLayer>(out writable);
+        }
+
+        public string Name
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Name").value?.value ?? throw new InvalidOperationException("Required string 'Name' has no value.");
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyConsoleTileLayer : IReadOnlyNeoTileLayer
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ConsoleTileLayer writable);
+
+        string DisplayName { get; }
+    }
+
+    public partial class ConsoleTileLayer : NeoTileLayer, IReadOnlyConsoleTileLayer
+    {
+        internal ConsoleTileLayer(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public ConsoleTileLayer(string DisplayName, string? Name = null, NeoLookupSelection? SortingLayer = null, int? SortingOrder = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(DisplayName, Name, SortingLayer, SortingOrder), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string DisplayName, string? Name = null, NeoLookupSelection? SortingLayer = null, int? SortingOrder = null)
+        {
+            var client = HelloWorldNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Name is not null)
+            {
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = NameValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (SortingLayer is not null)
+            {
+                var SortingLayerValueId = Guid.NewGuid().ToString();
+                value["SortingLayer"] = SortingLayerValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = SortingLayerValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = SortingLayer.HasValue ? new[] { SortingLayer.Value.valueId } : null,
+                });
+            }
+            if (SortingOrder is not null)
+            {
+                var SortingOrderValueId = Guid.NewGuid().ToString();
+                value["SortingOrder"] = SortingOrderValueId;
+                valueRows.Add(new NumberAttributeValue
+                {
+                    id = SortingOrderValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = SortingOrder.HasValue ? SortingOrder.Value : (double?)null,
+                });
+            }
+            var DisplayNameValueId = Guid.NewGuid().ToString();
+            value["DisplayName"] = DisplayNameValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = DisplayNameValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = DisplayName,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
+            });
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba", value, valueRows);
+        }
+
+        internal new static ConsoleTileLayer Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ConsoleTileLayer>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ConsoleTileLayer(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static ConsoleTileLayer CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ConsoleTileLayer>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ConsoleTileLayer(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ConsoleTileLayer writable)
+        {
+            return TryWritable<ConsoleTileLayer>(out writable);
+        }
+
+        public string DisplayName
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("DisplayName").value?.value ?? throw new InvalidOperationException("Required string 'DisplayName' has no value.");
+            }
+            set
+            {
+                ThrowIfReadOnly("ConsoleTileLayer.DisplayName");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "DisplayName", NeoGeneratedTypesSupport.Value(value));
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<IReadOnlyNeoSortingLayer> SortingLayer = new("SortingLayer");
+
+            public static readonly NeoField<int> SortingOrder = new("SortingOrder");
+
+            public static readonly NeoField<string> DisplayName = new("DisplayName");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Name] = () => null,
+                [Fields.SortingLayer] = () => null,
+                [Fields.SortingOrder] = () => null,
+                [Fields.DisplayName] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Name] = () => Name,
+                [Fields.SortingLayer] = () => SortingLayer,
+                [Fields.SortingOrder] = () => SortingOrder,
+                [Fields.DisplayName] = () => DisplayName,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+
+    public partial class ReadOnlyOldConsoleLandingGridBackgroundTileLayer : ReadOnlyNeoGeneratedTileLayer<IReadOnlyConsoleTile>
+    {
+        internal ReadOnlyOldConsoleLandingGridBackgroundTileLayer(NeoReadOnlyTileGridPrimitive primitive)
+            : base(primitive, "8f96912d-5bbb-428c-84eb-8932ef588121", "Background", "1c859b34-ff59-40f8-a763-cd0f04dc96c0", "Default", 0)
+        {
+        }
+    }
+
+    public partial class OldConsoleLandingGridBackgroundTileLayer : ReadOnlyOldConsoleLandingGridBackgroundTileLayer
+    {
+        internal OldConsoleLandingGridBackgroundTileLayer(NeoTileGridPrimitive primitive)
+            : base(primitive)
+        {
+        }
+
+        public NeoPlacementResult TrySetTile(Vector2Int cell, IReadOnlyConsoleTile tile)
+        {
+            return ((NeoTileGridPrimitive)primitive).TrySetTile(LayerId, cell, tile, "1c859b34-ff59-40f8-a763-cd0f04dc96c0");
+        }
+
+        public NeoPlacementResult TryConvertTile(NeoTileInstanceId instanceId, IReadOnlyConsoleTile target)
+        {
+            return ((NeoTileGridPrimitive)primitive).TryConvertTile(instanceId, target, "1c859b34-ff59-40f8-a763-cd0f04dc96c0");
+        }
+
+        public NeoPlacementResult TryResetTile(NeoTileInstanceId instanceId)
+        {
+            return ((NeoTileGridPrimitive)primitive).TryResetTile(instanceId);
+        }
+
+        public NeoPlacementResult TryRemoveTile(NeoTileInstanceId instanceId)
+        {
+            return ((NeoTileGridPrimitive)primitive).TryRemoveTile(instanceId);
+        }
+    }
+
+    public partial class ReadOnlyOldConsoleLandingGridCollisionsTileLayer : ReadOnlyNeoGeneratedTileLayer<IReadOnlyConsoleTile>
+    {
+        internal ReadOnlyOldConsoleLandingGridCollisionsTileLayer(NeoReadOnlyTileGridPrimitive primitive)
+            : base(primitive, "8f96912d-5bbb-428c-84eb-8932ef588122", "Collisions", "1c859b34-ff59-40f8-a763-cd0f04dc96c0", "Default", 1)
+        {
+        }
+    }
+
+    public partial class OldConsoleLandingGridCollisionsTileLayer : ReadOnlyOldConsoleLandingGridCollisionsTileLayer
+    {
+        internal OldConsoleLandingGridCollisionsTileLayer(NeoTileGridPrimitive primitive)
+            : base(primitive)
+        {
+        }
+
+        public NeoPlacementResult TrySetTile(Vector2Int cell, IReadOnlyConsoleTile tile)
+        {
+            return ((NeoTileGridPrimitive)primitive).TrySetTile(LayerId, cell, tile, "1c859b34-ff59-40f8-a763-cd0f04dc96c0");
+        }
+
+        public NeoPlacementResult TryConvertTile(NeoTileInstanceId instanceId, IReadOnlyConsoleTile target)
+        {
+            return ((NeoTileGridPrimitive)primitive).TryConvertTile(instanceId, target, "1c859b34-ff59-40f8-a763-cd0f04dc96c0");
+        }
+
+        public NeoPlacementResult TryResetTile(NeoTileInstanceId instanceId)
+        {
+            return ((NeoTileGridPrimitive)primitive).TryResetTile(instanceId);
+        }
+
+        public NeoPlacementResult TryRemoveTile(NeoTileInstanceId instanceId)
+        {
+            return ((NeoTileGridPrimitive)primitive).TryRemoveTile(instanceId);
+        }
+    }
+
+    public partial class ReadOnlyOldConsoleLandingGridObjectsObjectLayer : ReadOnlyNeoGeneratedObjectLayer<IReadOnlyConsoleObject>
+    {
+        internal ReadOnlyOldConsoleLandingGridObjectsObjectLayer(NeoReadOnlyTileGridPrimitive primitive)
+            : base(primitive, "8f96912d-5bbb-428c-84eb-8932ef588123", "Objects", "060620d4-9f8b-417a-ba43-d6f010fc6edc", "Default", 5)
+        {
+        }
+    }
+
+    public partial class OldConsoleLandingGridObjectsObjectLayer : ReadOnlyOldConsoleLandingGridObjectsObjectLayer
+    {
+        internal OldConsoleLandingGridObjectsObjectLayer(NeoTileGridPrimitive primitive)
+            : base(primitive)
+        {
+        }
+
+        public NeoPlacementResult TrySpawn(Vector2Int cell, IReadOnlyConsoleObject obj)
+        {
+            return ((NeoTileGridPrimitive)primitive).TrySpawnObject(LayerId, cell, obj, "060620d4-9f8b-417a-ba43-d6f010fc6edc");
+        }
+
+        public NeoPlacementResult TrySwapVariant(NeoObjectInstanceId instanceId, IReadOnlyConsoleObject variant)
+        {
+            return ((NeoTileGridPrimitive)primitive).TrySwapVariant(instanceId, variant, "060620d4-9f8b-417a-ba43-d6f010fc6edc");
+        }
+
+        public NeoPlacementResult TryDespawn(NeoObjectInstanceId instanceId)
+        {
+            return ((NeoTileGridPrimitive)primitive).TryDespawnObject(instanceId);
+        }
+    }
+
+    public partial class ReadOnlyOldConsoleLandingGridContent : INeoTileGridContent
+    {
+        protected ReadOnlyOldConsoleLandingGridContent(NeoReadOnlyTileGridPrimitive primitive, ReadOnlyOldConsoleLandingGridBackgroundTileLayer background, ReadOnlyOldConsoleLandingGridCollisionsTileLayer collisions, ReadOnlyOldConsoleLandingGridObjectsObjectLayer objects)
+        {
+            Primitive = primitive;
+            Background = background;
+            Collisions = collisions;
+            Objects = objects;
+            TileLayersInOrder = new ReadOnlyNeoTileLayerRuntime[] { Background, Collisions };
+            ObjectLayersInOrder = new ReadOnlyNeoObjectLayerRuntime[] { Objects };
+        }
+
+        private ReadOnlyOldConsoleLandingGridContent(NeoReadOnlyTileGridPrimitive primitive)
+            : this(primitive, new ReadOnlyOldConsoleLandingGridBackgroundTileLayer(primitive), new ReadOnlyOldConsoleLandingGridCollisionsTileLayer(primitive), new ReadOnlyOldConsoleLandingGridObjectsObjectLayer(primitive))
+        {
+        }
+
+        public static ReadOnlyOldConsoleLandingGridContent Resolve(NeoClient client, string gridValueId)
+        {
+            return new ReadOnlyOldConsoleLandingGridContent(NeoReadOnlyTileGridPrimitive.Resolve(client, gridValueId, HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories));
+        }
+
+        public NeoReadOnlyTileGridPrimitive Primitive { get; }
+
+        public ReadOnlyOldConsoleLandingGridBackgroundTileLayer Background { get; }
+        public ReadOnlyOldConsoleLandingGridCollisionsTileLayer Collisions { get; }
+        public ReadOnlyOldConsoleLandingGridObjectsObjectLayer Objects { get; }
+
+        public NeoTileGridRenderer? Renderer => Primitive.Renderer;
+
+        public IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler)
+        {
+            return Primitive.OnChanged(handler);
+        }
+
+        public IReadOnlyList<ReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
+        public IReadOnlyList<ReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
+    }
+
+    public partial class OldConsoleLandingGridContent : ReadOnlyOldConsoleLandingGridContent, INeoWritableTileGridContent
+    {
+        private OldConsoleLandingGridContent(NeoTileGridPrimitive primitive)
+            : base(primitive, new OldConsoleLandingGridBackgroundTileLayer(primitive), new OldConsoleLandingGridCollisionsTileLayer(primitive), new OldConsoleLandingGridObjectsObjectLayer(primitive))
+        {
+            Primitive = primitive;
+            Background = (OldConsoleLandingGridBackgroundTileLayer)base.Background;
+            Collisions = (OldConsoleLandingGridCollisionsTileLayer)base.Collisions;
+            Objects = (OldConsoleLandingGridObjectsObjectLayer)base.Objects;
+        }
+
+        public new static OldConsoleLandingGridContent Resolve(NeoClient client, string gridValueId)
+        {
+            return ResolveForSave(client, gridValueId);
+        }
+
+        public static OldConsoleLandingGridContent ResolveForSave(NeoClient client, string gridValueId)
+        {
+            return new OldConsoleLandingGridContent(NeoTileGridPrimitive.ResolveForSave(client, gridValueId, HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories));
+        }
+
+        public static OldConsoleLandingGridContent ResolveForSave(NeoClient client, string gridValueId, NeoTileGridLifecycle lifecycle)
+        {
+            var primitive = NeoTileGridPrimitive.ResolveForSave(client, gridValueId, HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
+            primitive.Lifecycle = lifecycle;
+            return new OldConsoleLandingGridContent(primitive);
+        }
+
+        public static OldConsoleLandingGridContent ResolveForSession(NeoClient client, string gridValueId)
+        {
+            return new OldConsoleLandingGridContent(NeoTileGridPrimitive.ResolveForSession(client, gridValueId, HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories));
+        }
+
+        public static OldConsoleLandingGridContent ResolveForSession(NeoClient client, string gridValueId, NeoTileGridLifecycle lifecycle)
+        {
+            var primitive = NeoTileGridPrimitive.ResolveForSession(client, gridValueId, HelloWorldNeo.NeoReadOnlyValueFactories, HelloWorldNeo.NeoWritableValueFactories);
+            primitive.Lifecycle = lifecycle;
+            return new OldConsoleLandingGridContent(primitive);
+        }
+
+        public new NeoTileGridPrimitive Primitive { get; }
+
+        NeoReadOnlyTileGridPrimitive INeoTileGridContent.Primitive => Primitive;
+
+        public new OldConsoleLandingGridBackgroundTileLayer Background { get; }
+        public new OldConsoleLandingGridCollisionsTileLayer Collisions { get; }
+        public new OldConsoleLandingGridObjectsObjectLayer Objects { get; }
+
+        public new NeoTileGridRenderer? Renderer => Primitive.Renderer;
+
+        public new IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler)
+        {
+            return Primitive.OnChanged(handler);
+        }
+
     }
 }

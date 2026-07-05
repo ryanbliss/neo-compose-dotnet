@@ -4,6 +4,7 @@
     "references": [
         "NeoCompose.Unity",
         "NeoCompose.Unity.Editor",
+        "Unity.2D.Tilemap.Extras",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner"
     ],
