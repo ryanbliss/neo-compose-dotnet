@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 0}
-  m_Name: Neo Smart Tile
+  m_Name: 8f96912d-5bbb-428c-84eb-8932ef588144
   m_EditorClassIdentifier: NeoCompose.Unity:NeoCompose.Runtime:NeoRuleTile
   m_DefaultSprite: {fileID: -1127104401, guid: 3471c950347304c259bd19a7ed0ebce3, type: 3}
   m_DefaultGameObject: {fileID: 0}
