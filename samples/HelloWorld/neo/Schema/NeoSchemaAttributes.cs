@@ -115,6 +115,15 @@ namespace NeoCompose.Schema
     }
 
     [AttributeUsage(AttributeTargets.Property)]
+    public sealed class NeoDialogueLookupAttribute : NeoSchemaMemberAttribute
+    {
+        // Optional dialogue-group scope (null = any dialogue). Multiselect is
+        // encoded by the property type (IReadOnlyList vs scalar), like NeoLookup.
+        public string? DialogueGroupId { get; set; }
+        public NeoDialogueLookupAttribute(string? id = null) : base(id) { }
+    }
+
+    [AttributeUsage(AttributeTargets.Property)]
     public sealed class NeoGetterAttribute : NeoSchemaMemberAttribute
     {
         public string? Code { get; set; }
@@ -176,4 +185,5 @@ namespace NeoCompose.Schema
     public sealed class NeoAudioValue { }
     public sealed class NeoFunctionValue { }
     public sealed class NeoLookupRef { }
+    public sealed class NeoDialogueLookupRef { }
 }

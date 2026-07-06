@@ -1175,6 +1175,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out BootGlyphTile writable);
 
+        NeoDialogueReference BootGlyphAttuned { get; }
+
         new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers { get; }
 
         new IReadOnlyNeoTileLayer DefaultLayer { get; }
@@ -1191,12 +1193,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public BootGlyphTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
+        public BootGlyphTile(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, NeoDialogueReference? BootGlyphAttuned = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, BootGlyphAttuned, Name, Sprite, SmartTile), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, NeoDialogueReference? BootGlyphAttuned = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -1224,6 +1226,18 @@ namespace HelloWorld.Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (BootGlyphAttuned is not null)
+            {
+                var BootGlyphAttunedValueId = Guid.NewGuid().ToString();
+                value["BootGlyphAttuned"] = BootGlyphAttunedValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = BootGlyphAttunedValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = BootGlyphAttuned is null ? null : new[] { BootGlyphAttuned.Id },
                 });
             }
             if (Name is not null)
@@ -1290,6 +1304,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         public bool TryWritable(out BootGlyphTile writable)
         {
             return TryWritable<BootGlyphTile>(out writable);
+        }
+
+        public NeoDialogueReference BootGlyphAttuned
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeDialogueLookup>("BootGlyphAttuned"));
+                return selected is null ? throw new InvalidOperationException("Required dialogue lookup has no selected value.") : new NeoDialogueReference(client, selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("BootGlyphTile.BootGlyphAttuned");
+                writableNode.GetOrCreateDialogueLookup("BootGlyphAttuned").Set(new[] { value.Id });
+            }
         }
 
         public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
@@ -1367,6 +1395,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<IReadOnlyNeoTileLayer> DefaultLayer = new("DefaultLayer");
 
+            public static readonly NeoField<NeoDialogueReference> BootGlyphAttuned = new("BootGlyphAttuned");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<Sprite> Sprite = new("Sprite");
@@ -1380,6 +1410,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.CompatibleLayers] = () => null,
                 [Fields.DefaultLayer] = () => null,
+                [Fields.BootGlyphAttuned] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Sprite] = () => null,
                 [Fields.SmartTile] = () => null,
@@ -1402,6 +1433,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.CompatibleLayers] = () => CompatibleLayers,
                 [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.BootGlyphAttuned] = () => BootGlyphAttuned,
                 [Fields.Name] = () => Name,
                 [Fields.Sprite] = () => Sprite,
                 [Fields.SmartTile] = () => SmartTile,
@@ -2082,6 +2114,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         new string Name { get; }
 
         new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+
+        NeoDialogueReference RecoveryCache { get; }
     }
 
     public partial class RecoveryCacheObject : ConsoleObject, IReadOnlyRecoveryCacheObject
@@ -2091,12 +2125,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public RecoveryCacheObject(string? Name = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, DefaultLayer, CompatibleLayers, PlacementTiles, Children, Collider, Position, Size), false, NeoValueOwnership.Session)
+        public RecoveryCacheObject(string? Name = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? RecoveryCache = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, DefaultLayer, CompatibleLayers, PlacementTiles, Children, Collider, Position, Size, RecoveryCache), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? RecoveryCache = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -2199,6 +2233,18 @@ namespace HelloWorld.Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
+                });
+            }
+            if (RecoveryCache is not null)
+            {
+                var RecoveryCacheValueId = Guid.NewGuid().ToString();
+                value["RecoveryCache"] = RecoveryCacheValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = RecoveryCacheValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = RecoveryCache is null ? null : new[] { RecoveryCache.Id },
                 });
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "27874300-3e78-4d1c-802b-caf34d25d1ab", value, valueRows);
@@ -2323,6 +2369,20 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public NeoDialogueReference RecoveryCache
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeDialogueLookup>("RecoveryCache"));
+                return selected is null ? throw new InvalidOperationException("Required dialogue lookup has no selected value.") : new NeoDialogueReference(client, selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("RecoveryCacheObject.RecoveryCache");
+                writableNode.GetOrCreateDialogueLookup("RecoveryCache").Set(new[] { value.Id });
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -2342,6 +2402,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<NeoDialogueReference> RecoveryCache = new("RecoveryCache");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -2356,6 +2418,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.RecoveryCache] = () => null,
             };
         }
 
@@ -2381,6 +2444,7 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Collider] = () => Collider,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.RecoveryCache] = () => RecoveryCache,
             };
         }
 
@@ -3329,6 +3393,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         bool TryWritable(out BlockedPath writable);
 
+        NeoDialogueReference BootGlyphSealLocked { get; }
+
+        NeoDialogueReference BootGlyphSealReady { get; }
+
         bool ClearPath();
     }
 
@@ -3345,12 +3413,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        public BlockedPath(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size), false, NeoValueOwnership.Session)
+        public BlockedPath(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(TileLayer, Name, Tiles, Position, Size, BootGlyphSealLocked, BootGlyphSealReady), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection TileLayer, string Name, IEnumerable<NeoTileInstance>? Tiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -3416,6 +3484,30 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
                 });
             }
+            if (BootGlyphSealLocked is not null)
+            {
+                var BootGlyphSealLockedValueId = Guid.NewGuid().ToString();
+                value["BootGlyphSealLocked"] = BootGlyphSealLockedValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = BootGlyphSealLockedValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = BootGlyphSealLocked is null ? null : new[] { BootGlyphSealLocked.Id },
+                });
+            }
+            if (BootGlyphSealReady is not null)
+            {
+                var BootGlyphSealReadyValueId = Guid.NewGuid().ToString();
+                value["BootGlyphSealReady"] = BootGlyphSealReadyValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = BootGlyphSealReadyValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = BootGlyphSealReady is null ? null : new[] { BootGlyphSealReady.Id },
+                });
+            }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b", value, valueRows);
         }
 
@@ -3453,6 +3545,34 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<BlockedPath>(out writable);
         }
 
+        public NeoDialogueReference BootGlyphSealLocked
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeDialogueLookup>("BootGlyphSealLocked"));
+                return selected is null ? throw new InvalidOperationException("Required dialogue lookup has no selected value.") : new NeoDialogueReference(client, selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("BlockedPath.BootGlyphSealLocked");
+                writableNode.GetOrCreateDialogueLookup("BootGlyphSealLocked").Set(new[] { value.Id });
+            }
+        }
+
+        public NeoDialogueReference BootGlyphSealReady
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeDialogueLookup>("BootGlyphSealReady"));
+                return selected is null ? throw new InvalidOperationException("Required dialogue lookup has no selected value.") : new NeoDialogueReference(client, selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("BlockedPath.BootGlyphSealReady");
+                writableNode.GetOrCreateDialogueLookup("BootGlyphSealReady").Set(new[] { value.Id });
+            }
+        }
+
 
         public bool ClearPath()
         {
@@ -3478,6 +3598,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
+
+            public static readonly NeoField<NeoDialogueReference> BootGlyphSealLocked = new("BootGlyphSealLocked");
+
+            public static readonly NeoField<NeoDialogueReference> BootGlyphSealReady = new("BootGlyphSealReady");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -3489,6 +3613,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
+                [Fields.BootGlyphSealLocked] = () => null,
+                [Fields.BootGlyphSealReady] = () => null,
             };
         }
 
@@ -3511,6 +3637,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.Name] = () => Name,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
+                [Fields.BootGlyphSealLocked] = () => BootGlyphSealLocked,
+                [Fields.BootGlyphSealReady] = () => BootGlyphSealReady,
             };
         }
 
@@ -4786,6 +4914,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new IReadOnlyNeoObjectLayer DefaultLayer { get; }
 
+        NeoDialogueReference ExitPromptQuiet { get; }
+
+        NeoDialogueReference ExitPromptRelay { get; }
+
         new string Name { get; }
 
         new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
@@ -4800,12 +4932,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public ExitPromptObject(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Children, Size, PlacementTiles, Collider, Position), false, NeoValueOwnership.Session)
+        public ExitPromptObject(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, ExitPromptRelay, ExitPromptQuiet, Name, Children, Size, PlacementTiles, Collider, Position), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -4833,6 +4965,30 @@ namespace HelloWorld.Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
+                });
+            }
+            if (ExitPromptRelay is not null)
+            {
+                var ExitPromptRelayValueId = Guid.NewGuid().ToString();
+                value["ExitPromptRelay"] = ExitPromptRelayValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ExitPromptRelayValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ExitPromptRelay is null ? null : new[] { ExitPromptRelay.Id },
+                });
+            }
+            if (ExitPromptQuiet is not null)
+            {
+                var ExitPromptQuietValueId = Guid.NewGuid().ToString();
+                value["ExitPromptQuiet"] = ExitPromptQuietValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ExitPromptQuietValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ExitPromptQuiet is null ? null : new[] { ExitPromptQuiet.Id },
                 });
             }
             if (Name is not null)
@@ -5003,6 +5159,34 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public NeoDialogueReference ExitPromptQuiet
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeDialogueLookup>("ExitPromptQuiet"));
+                return selected is null ? throw new InvalidOperationException("Required dialogue lookup has no selected value.") : new NeoDialogueReference(client, selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("ExitPromptObject.ExitPromptQuiet");
+                writableNode.GetOrCreateDialogueLookup("ExitPromptQuiet").Set(new[] { value.Id });
+            }
+        }
+
+        public NeoDialogueReference ExitPromptRelay
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeDialogueLookup>("ExitPromptRelay"));
+                return selected is null ? throw new InvalidOperationException("Required dialogue lookup has no selected value.") : new NeoDialogueReference(client, selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("ExitPromptObject.ExitPromptRelay");
+                writableNode.GetOrCreateDialogueLookup("ExitPromptRelay").Set(new[] { value.Id });
+            }
+        }
+
         public new string Name
         {
             get
@@ -5061,6 +5245,10 @@ namespace HelloWorld.Assets.Scripts.Neo
 
             public static readonly NeoField<IReadOnlyNeoObjectLayer> DefaultLayer = new("DefaultLayer");
 
+            public static readonly NeoField<NeoDialogueReference> ExitPromptRelay = new("ExitPromptRelay");
+
+            public static readonly NeoField<NeoDialogueReference> ExitPromptQuiet = new("ExitPromptQuiet");
+
             public static readonly NeoField<string> Name = new("Name");
 
             public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
@@ -5080,6 +5268,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.CompatibleLayers] = () => null,
                 [Fields.DefaultLayer] = () => null,
+                [Fields.ExitPromptRelay] = () => null,
+                [Fields.ExitPromptQuiet] = () => null,
                 [Fields.Name] = () => null,
                 [Fields.Children] = () => null,
                 [Fields.Size] = () => null,
@@ -5105,6 +5295,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             {
                 [Fields.CompatibleLayers] = () => CompatibleLayers,
                 [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.ExitPromptRelay] = () => ExitPromptRelay,
+                [Fields.ExitPromptQuiet] = () => ExitPromptQuiet,
                 [Fields.Name] = () => Name,
                 [Fields.Children] = () => Children,
                 [Fields.Size] = () => Size,
@@ -10319,6 +10511,10 @@ namespace HelloWorld.Assets.Scripts.Neo
         new string Name { get; }
 
         new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+
+        NeoDialogueReference VaultPlaqueLocked { get; }
+
+        NeoDialogueReference VaultPlaqueReward { get; }
     }
 
     public partial class VaultPlaqueObject : ConsoleObject, IReadOnlyVaultPlaqueObject
@@ -10328,12 +10524,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public VaultPlaqueObject(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, Children, PlacementTiles, Collider, Position, Size), false, NeoValueOwnership.Session)
+        public VaultPlaqueObject(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(CompatibleLayers, DefaultLayer, Name, VaultPlaqueLocked, VaultPlaqueReward, Children, PlacementTiles, Collider, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -10374,6 +10570,30 @@ namespace HelloWorld.Assets.Scripts.Neo
                     updatedAt = nowIso,
                     value = Name,
                     neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            if (VaultPlaqueLocked is not null)
+            {
+                var VaultPlaqueLockedValueId = Guid.NewGuid().ToString();
+                value["VaultPlaqueLocked"] = VaultPlaqueLockedValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = VaultPlaqueLockedValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = VaultPlaqueLocked is null ? null : new[] { VaultPlaqueLocked.Id },
+                });
+            }
+            if (VaultPlaqueReward is not null)
+            {
+                var VaultPlaqueRewardValueId = Guid.NewGuid().ToString();
+                value["VaultPlaqueReward"] = VaultPlaqueRewardValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = VaultPlaqueRewardValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = VaultPlaqueReward is null ? null : new[] { VaultPlaqueReward.Id },
                 });
             }
             if (Children is not null)
@@ -10560,6 +10780,34 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public NeoDialogueReference VaultPlaqueLocked
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeDialogueLookup>("VaultPlaqueLocked"));
+                return selected is null ? throw new InvalidOperationException("Required dialogue lookup has no selected value.") : new NeoDialogueReference(client, selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("VaultPlaqueObject.VaultPlaqueLocked");
+                writableNode.GetOrCreateDialogueLookup("VaultPlaqueLocked").Set(new[] { value.Id });
+            }
+        }
+
+        public NeoDialogueReference VaultPlaqueReward
+        {
+            get
+            {
+                var selected = NeoGeneratedTypesSupport.ReadSingleSelected(node.Get<NeoAttributeDialogueLookup>("VaultPlaqueReward"));
+                return selected is null ? throw new InvalidOperationException("Required dialogue lookup has no selected value.") : new NeoDialogueReference(client, selected);
+            }
+            set
+            {
+                ThrowIfReadOnly("VaultPlaqueObject.VaultPlaqueReward");
+                writableNode.GetOrCreateDialogueLookup("VaultPlaqueReward").Set(new[] { value.Id });
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -10569,6 +10817,10 @@ namespace HelloWorld.Assets.Scripts.Neo
             public static readonly NeoField<IReadOnlyNeoObjectLayer> DefaultLayer = new("DefaultLayer");
 
             public static readonly NeoField<string> Name = new("Name");
+
+            public static readonly NeoField<NeoDialogueReference> VaultPlaqueLocked = new("VaultPlaqueLocked");
+
+            public static readonly NeoField<NeoDialogueReference> VaultPlaqueReward = new("VaultPlaqueReward");
 
             public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
@@ -10588,6 +10840,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.CompatibleLayers] = () => null,
                 [Fields.DefaultLayer] = () => null,
                 [Fields.Name] = () => null,
+                [Fields.VaultPlaqueLocked] = () => null,
+                [Fields.VaultPlaqueReward] = () => null,
                 [Fields.Children] = () => null,
                 [Fields.PlacementTiles] = () => null,
                 [Fields.Collider] = () => null,
@@ -10613,6 +10867,8 @@ namespace HelloWorld.Assets.Scripts.Neo
                 [Fields.CompatibleLayers] = () => CompatibleLayers,
                 [Fields.DefaultLayer] = () => DefaultLayer,
                 [Fields.Name] = () => Name,
+                [Fields.VaultPlaqueLocked] = () => VaultPlaqueLocked,
+                [Fields.VaultPlaqueReward] = () => VaultPlaqueReward,
                 [Fields.Children] = () => Children,
                 [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Collider] = () => Collider,

@@ -43,6 +43,30 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void NeoDialogueReference_Bound_TryTrigger_ReturnsDialogue()
+        {
+            var client = CreateClient();
+            // Constructing the dialogues API registers it with the client, so a
+            // client-bound reference can reach the trigger machinery.
+            _ = new TestDialogues(client);
+
+            var reference = new NeoDialogueReference(client, "dialogue-direct");
+
+            Assert.IsTrue(reference.TryTrigger(out NeoDialogue dialogue));
+            Assert.AreEqual("dialogue-direct", dialogue.Id);
+        }
+
+        [Test]
+        public void NeoDialogueReference_Unbound_TryTrigger_Throws()
+        {
+            // The id-only ctor produces an unbound reference (for assignment).
+            var reference = new NeoDialogueReference("dialogue-direct");
+
+            Assert.Throws<InvalidOperationException>(
+                () => reference.TryTrigger(out NeoDialogue _));
+        }
+
+        [Test]
         public void TryTrigger_LocalizesDialogueDescription()
         {
             var client = CreateClientWithLocalization(

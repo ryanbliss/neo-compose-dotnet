@@ -1339,6 +1339,12 @@ namespace NeoCompose.Runtime
             return selected.Length > 0 ? selected[0] : null;
         }
 
+        public static string? ReadSingleSelected(NeoAttributeDialogueLookup attribute)
+        {
+            var selected = attribute.Selected();
+            return selected.Length > 0 ? selected[0] : null;
+        }
+
         public static TEnum? ReadEnumSingle<TEnum>(
             string[] optionIds,
             Func<string, TEnum> create)
@@ -1554,6 +1560,7 @@ namespace NeoCompose.Runtime
         public static string? ValueId(object? value)
         {
             if (value is NeoLookupSelection selection) return selection.valueId;
+            if (value is NeoDialogueReference dialogueReference) return dialogueReference.Id;
             return value is INeoValueReference reference
                 ? reference.valueId
                 : null;
@@ -1592,6 +1599,19 @@ namespace NeoCompose.Runtime
                     "Generated value is not bound to a lookup-selectable value id.");
             }
             return valueId;
+        }
+
+        /// <summary>
+        /// Flattens a set of <see cref="NeoDialogueReference"/>s to their stored
+        /// <c>dialogueId</c>s for serialization (multiselect DialogueLookup).
+        /// </summary>
+        public static string[] DialogueReferenceIds(
+            IEnumerable<NeoDialogueReference>? references)
+        {
+            if (references is null) return Array.Empty<string>();
+            var ids = new List<string>();
+            foreach (var reference in references) ids.Add(reference.Id);
+            return ids.ToArray();
         }
     }
 }

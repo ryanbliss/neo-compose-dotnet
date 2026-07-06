@@ -17,6 +17,12 @@ public sealed class VaultPlaqueObject : ConsoleObject
     [NeoString("9bcfd9a8-ef4a-4a89-b6d4-446c9baf01d7", ExtendsId = "3b02422f-1ef2-4a50-8386-155d5001082b", Localizable = false, DefaultJson = @"{""value"":""Vault Plaque""}")]
     public string Name { get; init; }
 
+    [NeoDialogueLookup("502c9308-974b-446d-935b-c22adde5a9d2", DefaultJson = @"{""value"":[""da73bce9-0d39-4c27-bb09-32b538f97f61""]}")]
+    public NeoDialogueLookupRef VaultPlaqueLocked { get; init; }
+
+    [NeoDialogueLookup("d4a33b58-95a5-4874-8236-05ec38df8f82", DefaultJson = @"{""value"":[""bbda459e-c77e-4084-9047-22b1dfbb0bff""]}")]
+    public NeoDialogueLookupRef VaultPlaqueReward { get; init; }
+
     [NeoList("c481dc1e-b5fd-4352-a76b-536cc3e17f71", ExtendsId = "bb5d2cf1-a0dd-4eba-a62e-0e1bf0177071", Locked = true, EntryChainJson = @"[{""customTypeId"":""ec21a2ec-cb95-4e10-9c7d-5ba7e4cdea88"",""defaultValue"":{""value"":{}},""id"":""b3280478-f039-47a2-aa18-918175818bcb"",""locked"":true,""name"":""Child"",""required"":true,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""},""type"":7}]", DefaultJson = @"{""value"":[""522f0109-97d2-4ac1-ad7c-70357d278035""]}")]
     public IReadOnlyList<NeoObjectBase> Children { get; init; }
 

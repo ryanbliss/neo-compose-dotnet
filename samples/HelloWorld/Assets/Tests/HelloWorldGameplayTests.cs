@@ -382,7 +382,7 @@ namespace HelloWorld.Assets.Tests
 
         private sealed class TestLandingHost : ILandingSceneHost
         {
-            public System.Func<string, System.Action, bool> OnTriggerDialogue { get; set; } =
+            public System.Func<NeoDialogueReference, System.Action, bool> OnTriggerDialogue { get; set; } =
                 (_, __) => false;
 
             public bool DialogueIsOpen => false;
@@ -396,9 +396,9 @@ namespace HelloWorld.Assets.Tests
                 await Awaitable.NextFrameAsync();
             }
 
-            public bool TryTriggerDialogue(string dialogueId, System.Action onFinish)
+            public bool TryTriggerDialogue(NeoDialogueReference reference, System.Action onFinish)
             {
-                return OnTriggerDialogue(dialogueId, onFinish);
+                return OnTriggerDialogue(reference, onFinish);
             }
         }
 

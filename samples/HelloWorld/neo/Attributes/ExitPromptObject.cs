@@ -14,6 +14,12 @@ public sealed class ExitPromptObject : ConsoleObject
     [NeoLookup("ff033c90-8bd5-4c57-929c-0af97005b9d3", ExtendsId = "cf6e9aa2-dd4b-4673-a83b-5a15e617eb9a", CollectionId = "7fb51db7-60c7-4064-bcde-6938acea4fe8", CollectionValueId = "aa467eba-bc17-4cc6-933d-4c539caba2ad", DefaultJson = @"{""value"":[""8f96912d-5bbb-428c-84eb-8932ef588123""]}")]
     public NeoLookupRef DefaultLayer { get; init; }
 
+    [NeoDialogueLookup("5676cb8a-be0f-4f1b-adc6-7241c09f8cf5", DefaultJson = @"{""value"":[""d5a8097d-f02b-41c7-8356-9442a4a29412""]}")]
+    public NeoDialogueLookupRef ExitPromptRelay { get; init; }
+
+    [NeoDialogueLookup("663d7511-cfc3-427c-8431-90cfc87a9813", DefaultJson = @"{""value"":[""7a6bcb67-d42a-4eb8-9934-0263d506e85c""]}")]
+    public NeoDialogueLookupRef ExitPromptQuiet { get; init; }
+
     [NeoString("14ec578e-0aa7-4d12-8d02-47463e03a1f3", ExtendsId = "3b02422f-1ef2-4a50-8386-155d5001082b", Localizable = false, DefaultJson = @"{""value"":""Exit Prompt""}")]
     public string Name { get; init; }
 

@@ -36,6 +36,10 @@ namespace NeoCompose.Runtime
             logger = this.options.ResolveLogger();
             this.memoryStore = memoryStore;
             this.valueResolver = valueResolver;
+            // Self-register so runtime values (e.g. NeoDialogueReference) can
+            // reach the trigger API through the client without a compile-time
+            // dependency on the generated NeoDialogues.
+            client.RegisterDialoguesApi(this);
         }
 
         public virtual bool TryTrigger(string dialogueId, out NeoDialogue dialogue)

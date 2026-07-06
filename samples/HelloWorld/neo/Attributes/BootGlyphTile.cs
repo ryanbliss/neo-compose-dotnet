@@ -14,6 +14,9 @@ public sealed class BootGlyphTile : ConsoleTile
     [NeoLookup("0cea4b79-8614-4753-a319-858a749fd2b3", ExtendsId = "376b91a0-62b1-4642-a0f0-d0df5322838c", CollectionId = "5161fb81-7254-4e41-b153-25138b8e9e74", CollectionValueId = "0893eb05-41c5-40cb-a9d6-8397982519d4", DefaultJson = @"{""value"":[""8f96912d-5bbb-428c-84eb-8932ef588121""]}")]
     public NeoLookupRef DefaultLayer { get; init; }
 
+    [NeoDialogueLookup("e2a98ca7-1317-4743-9be1-19cd5ec47bf1", DefaultJson = @"{""value"":[""12729fbc-56a7-4d8f-b04a-ac039604dfe9""]}")]
+    public NeoDialogueLookupRef BootGlyphAttuned { get; init; }
+
     [NeoString("f703feff-bc27-46d5-a9b9-d29df959342a", ExtendsId = "3b02422f-1ef2-4a50-8386-155d5001082b", Localizable = false, DefaultJson = @"{""value"":""Boot Glyph""}")]
     public string Name { get; init; }
 

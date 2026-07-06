@@ -196,6 +196,20 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// Mirror of TS-side <c>TAttributeDialogueLookup</c>. The stored value is a
+    /// <c>string[]</c> of <c>dialogueId</c>s (like Lookup), but the candidates
+    /// are the project's manually-triggerable dialogues rather than a
+    /// collection's entries. <see cref="dialogueGroupId"/> optionally scopes the
+    /// selectable dialogues to a single (Standard) dialogue group; <c>null</c>
+    /// means any manually-triggerable dialogue.
+    /// </summary>
+    public class DialogueLookupAttribute : Attribute<string[]?>
+    {
+        public bool multiselect;
+        public string? dialogueGroupId;
+    }
+
+    /// <summary>
     /// Mirror of TS-side <c>TAttributeNSGetter</c>. The stored value is
     /// always null (the runtime computes it via <c>getter</c>), so
     /// <c>TValue</c> is <c>object?</c>. <see cref="code"/> is
@@ -359,6 +373,7 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Custom: return typeof(CustomAttribute);
                 case AttributeType.Enum: return typeof(EnumAttribute);
                 case AttributeType.Lookup: return typeof(LookupAttribute);
+                case AttributeType.DialogueLookup: return typeof(DialogueLookupAttribute);
                 case AttributeType.NSGetter: return typeof(NSGetterAttribute);
                 case AttributeType.Sprite: return typeof(SpriteAttribute);
                 case AttributeType.Audio: return typeof(AudioAttribute);
