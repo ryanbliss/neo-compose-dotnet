@@ -467,6 +467,37 @@ namespace NeoCompose.Runtime
             return created;
         }
 
+        public NeoAttributeDialogueLookupWritable GetOrCreateDialogueLookup(string key)
+        {
+            if (TryGet(key, out NeoAttributeDialogueLookupWritable? existing) && existing.value is not null)
+            {
+                existing.parent = this;
+                return existing;
+            }
+
+            string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
+            if (schemaKeyedAttributeId is null)
+            {
+                throw new System.Collections.Generic.KeyNotFoundException(
+                    $"Merged schema for type {type.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
+            }
+            if (!client.TryGetAttribute(schemaKeyedAttributeId, out Attribute? childAttribute))
+            {
+                throw new System.Exception(
+                    $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
+            }
+            if (childAttribute is not DialogueLookupAttribute)
+            {
+                throw new System.InvalidOperationException(
+                    $"Attribute '{key}' is not a dialogue lookup attribute.");
+            }
+
+            SetSerializedValue(key, NeoValueWritePayload.FromValue(System.Array.Empty<string>()));
+            var created = Get<NeoAttributeDialogueLookupWritable>(key);
+            created.parent = this;
+            return created;
+        }
+
         public NeoAttributeStringWritable GetOrCreateString(
             string key,
             string? initialValue = null)

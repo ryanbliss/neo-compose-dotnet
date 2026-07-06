@@ -18,7 +18,7 @@ namespace HelloWorld.Assets.Scripts
         bool DialogueIsOpen { get; }
         void CloseLandingScene();
         Awaitable SaveProgressAsync();
-        bool TryTriggerDialogue(string dialogueId, Action onFinish);
+        bool TryTriggerDialogue(NeoDialogueReference dialogueReference, Action onFinish);
     }
 
     /// <summary>
@@ -41,6 +41,10 @@ namespace HelloWorld.Assets.Scripts
         private IDisposable collisionSubscription;
         private bool barrierWasActive;
         private bool loading;
+        // Dialogue ids resolved once at load for the HasVisited flags, whose
+        // owning tile/object isn't necessarily within the player's reach.
+        private string bootGlyphAttunedId = "";
+        private string recoveryCacheDialogueId = "";
         // Resolved once: each Grid.Content access resolves a fresh content
         // instance with its own primitive, and change events only flow through
         // the instance the renderer live-syncs — so render, queries, and
@@ -79,13 +83,17 @@ namespace HelloWorld.Assets.Scripts
         public string StatusText { get; private set; } = string.Empty;
 
         private bool GlyphAttuned =>
-            neo.Dialogues.HasVisited(LandingDialogueIds.BootGlyphAttuned);
+            bootGlyphAttunedId.Length > 0 &&
+            neo.Dialogues.HasVisited(bootGlyphAttunedId);
 
+        // The seal dialogues live on the barrier link (`blockedPath`), which is
+        // already resolved — read the reference off it directly.
         private bool RewardClaimed =>
-            neo.Dialogues.HasVisited(LandingDialogueIds.BootGlyphSealReady);
+            neo.Dialogues.HasVisited(blockedPath.BootGlyphSealReady.Id);
 
         private bool CacheClaimed =>
-            neo.Dialogues.HasVisited(LandingDialogueIds.RecoveryCache);
+            recoveryCacheDialogueId.Length > 0 &&
+            neo.Dialogues.HasVisited(recoveryCacheDialogueId);
 
         private void Update()
         {
@@ -142,6 +150,15 @@ namespace HelloWorld.Assets.Scripts
             // the args say which source caused each one.
             collisionSubscription = content.Collisions.OnChanged(OnCollisionsChanged);
             PlayerCell = content.Objects.GetObjects<PlayerSpawnObject>().First().Cell;
+            // Resolve the flag dialogues once (their owners aren't under the
+            // player): the boot-glyph tile and the recovery cache carry their
+            // DialogueLookup references as generated NeoDialogueReferences.
+            bootGlyphAttunedId =
+                content.Background.GetTiles<BootGlyphTile>().FirstOrDefault()?.Info
+                    ?.BootGlyphAttuned.Id ?? "";
+            recoveryCacheDialogueId =
+                content.Objects.GetObjects<RecoveryCacheObject>().FirstOrDefault()?.Info
+                    ?.RecoveryCache.Id ?? "";
             UpdatePrompt();
             StatusText = "WASD moves. E talks to whatever the old console is whispering through.";
             ui.MovePlayerTo(PlayerCell);
@@ -192,26 +209,26 @@ namespace HelloWorld.Assets.Scripts
                 if (!GlyphAttuned)
                 {
                     TriggerLandingDialogue(
-                        LandingDialogueIds.BootGlyphSealLocked,
+                        blockedPath.BootGlyphSealLocked,
                         () => StatusText = "The seal wants a boot trace. Find the glowing glyph in the south chamber and press E beside it."
                     );
                     return;
                 }
 
-                TriggerLandingDialogue(LandingDialogueIds.BootGlyphSealReady, UpdatePrompt);
+                TriggerLandingDialogue(blockedPath.BootGlyphSealReady, UpdatePrompt);
                 return;
             }
 
-            if (!GlyphAttuned && NearBootGlyph())
+            if (!GlyphAttuned && NearBootGlyph() is BootGlyphTile glyph)
             {
                 TriggerLandingDialogue(
-                    LandingDialogueIds.BootGlyphAttuned,
+                    glyph.BootGlyphAttuned,
                     () => StatusText = "Boot trace captured. Take it to the vault seal — or let the ship's console relay it."
                 );
                 return;
             }
 
-            if (NearObject<RecoveryCacheObject>())
+            if (NearObject<RecoveryCacheObject>() is RecoveryCacheObject cache)
             {
                 if (CacheClaimed)
                 {
@@ -219,37 +236,34 @@ namespace HelloWorld.Assets.Scripts
                     return;
                 }
 
-                TriggerLandingDialogue(
-                    LandingDialogueIds.RecoveryCache,
-                    () => ClaimCacheRewardAsync()
-                );
+                TriggerLandingDialogue(cache.RecoveryCache, () => ClaimCacheRewardAsync());
                 return;
             }
 
-            if (NearObject<ExitPromptObject>())
+            if (NearObject<ExitPromptObject>() is ExitPromptObject exitPrompt)
             {
                 var barrierClosed = IsBarrierActive();
                 TriggerLandingDialogue(
                     barrierClosed && GlyphAttuned
-                        ? LandingDialogueIds.ExitPromptRelay
-                        : LandingDialogueIds.ExitPromptQuiet,
+                        ? exitPrompt.ExitPromptRelay
+                        : exitPrompt.ExitPromptQuiet,
                     UpdatePrompt
                 );
                 return;
             }
 
-            if (NearObject<VaultPlaqueObject>())
+            if (NearObject<VaultPlaqueObject>() is VaultPlaqueObject plaque)
             {
                 if (IsBarrierActive() && GlyphAttuned)
                 {
-                    TriggerLandingDialogue(LandingDialogueIds.BootGlyphSealReady, UpdatePrompt);
+                    TriggerLandingDialogue(blockedPath.BootGlyphSealReady, UpdatePrompt);
                     return;
                 }
 
                 TriggerLandingDialogue(
                     IsBarrierActive()
-                        ? LandingDialogueIds.VaultPlaqueLocked
-                        : LandingDialogueIds.VaultPlaqueReward,
+                        ? plaque.VaultPlaqueLocked
+                        : plaque.VaultPlaqueReward,
                     () =>
                     {
                         StatusText = IsBarrierActive()
@@ -305,13 +319,13 @@ namespace HelloWorld.Assets.Scripts
         private bool NearBarrier() =>
             blockedPath.GetTile(PlayerCell, WithinReachPattern) is not null;
 
-        private bool NearBootGlyph() =>
-            content.Background.GetTile<BootGlyphTile>(PlayerCell, WithinReachPattern) is not null;
+        private BootGlyphTile NearBootGlyph() =>
+            content.Background.GetTile<BootGlyphTile>(PlayerCell, WithinReachPattern)?.Info;
 
-        private bool NearObject<T>()
+        private T NearObject<T>()
             where T : class, INeoValueReference
         {
-            return content.Objects.GetObject<T>(PlayerCell, WithinReachPattern) is not null;
+            return content.Objects.GetObject<T>(PlayerCell, WithinReachPattern)?.Info;
         }
 
         private void UpdatePrompt()
@@ -324,13 +338,13 @@ namespace HelloWorld.Assets.Scripts
                 return;
             }
 
-            if (NearBootGlyph() && !GlyphAttuned)
+            if (NearBootGlyph() is not null && !GlyphAttuned)
             {
                 PromptText = "E Read boot glyph";
                 return;
             }
 
-            if (NearObject<ExitPromptObject>())
+            if (NearObject<ExitPromptObject>() is not null)
             {
                 PromptText = IsBarrierActive()
                     ? "E Ask launch console"
@@ -338,13 +352,13 @@ namespace HelloWorld.Assets.Scripts
                 return;
             }
 
-            if (NearObject<RecoveryCacheObject>())
+            if (NearObject<RecoveryCacheObject>() is not null)
             {
                 PromptText = CacheClaimed ? "E Cache (claimed)" : "E Open recovery cache";
                 return;
             }
 
-            if (NearObject<VaultPlaqueObject>())
+            if (NearObject<VaultPlaqueObject>() is not null)
             {
                 PromptText = RewardClaimed ? "E Read plaque again" : "E Inspect reward plaque";
                 return;
@@ -353,27 +367,19 @@ namespace HelloWorld.Assets.Scripts
             PromptText = "WASD Move  •  E Interact";
         }
 
-        private void TriggerLandingDialogue(string dialogueId, Action onFinish)
+        // Takes the resolved DialogueLookup reference off an interactable and
+        // triggers it by id through the host. The dialogue ids are no longer
+        // hardcoded here — they live on the objects/tiles as DialogueLookup
+        // attributes and arrive as generated NeoDialogueReferences.
+        private void TriggerLandingDialogue(NeoDialogueReference reference, Action onFinish)
         {
-            if (host.TryTriggerDialogue(dialogueId, onFinish))
+            if (host.TryTriggerDialogue(reference, onFinish))
             {
                 return;
             }
 
-            Debug.LogWarning($"Neo Compose: landing dialogue '{dialogueId}' could not be triggered.");
+            Debug.LogWarning($"Neo Compose: landing dialogue '{reference.Id}' could not be triggered.");
             StatusText = "That Neo dialogue flow is missing from the sample export.";
-        }
-
-        private static class LandingDialogueIds
-        {
-            public const string BootGlyphSealLocked = "2a49e84a-ab1f-4468-a9a3-f29796cbf086";
-            public const string BootGlyphSealReady = "d755935f-4c3a-4d43-8c40-4ba3f7d28063";
-            public const string BootGlyphAttuned = "12729fbc-56a7-4d8f-b04a-ac039604dfe9";
-            public const string ExitPromptRelay = "d5a8097d-f02b-41c7-8356-9442a4a29412";
-            public const string ExitPromptQuiet = "7a6bcb67-d42a-4eb8-9934-0263d506e85c";
-            public const string VaultPlaqueLocked = "da73bce9-0d39-4c27-bb09-32b538f97f61";
-            public const string VaultPlaqueReward = "bbda459e-c77e-4084-9047-22b1dfbb0bff";
-            public const string RecoveryCache = "cb0ac79c-f3b4-4c96-b968-8c4173c1f712";
         }
     }
 }

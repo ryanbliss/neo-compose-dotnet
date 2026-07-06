@@ -14,9 +14,12 @@ public abstract class NeoTile
     [NeoSprite("cbd6db9a-f473-44b5-b913-7cdc06452f35", Locked = true, ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
     public NeoSpriteValue Sprite { get; init; }
 
-    [NeoLookup("376b91a0-62b1-4642-a0f0-d0df5322838c", Locked = true, CollectionId = "5161fb81-7254-4e41-b153-25138b8e9e74", CollectionValueId = "0893eb05-41c5-40cb-a9d6-8397982519d4", DefaultJson = @"{""value"":[""8f96912d-5bbb-428c-84eb-8932ef588121""]}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
+    [NeoLookup("376b91a0-62b1-4642-a0f0-d0df5322838c", Locked = true, CollectionId = "5161fb81-7254-4e41-b153-25138b8e9e74", DefaultJson = @"null", ExtraJson = @"{""collectionValueId"":null,""listKind"":null,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
     public NeoLookupRef DefaultLayer { get; init; }
 
-    [NeoLookup("68221f3d-e17e-40c0-a5a1-34ca571b5cd7", Locked = true, CollectionId = "5161fb81-7254-4e41-b153-25138b8e9e74", CollectionValueId = "0893eb05-41c5-40cb-a9d6-8397982519d4", DefaultJson = @"{""value"":null}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
+    [NeoLookup("68221f3d-e17e-40c0-a5a1-34ca571b5cd7", Locked = true, CollectionId = "5161fb81-7254-4e41-b153-25138b8e9e74", DefaultJson = @"{""value"":null}", ExtraJson = @"{""collectionValueId"":null,""listKind"":null,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
     public IReadOnlyList<NeoLookupRef>? CompatibleLayers { get; init; }
+
+    [NeoObject("96cda8f5-3100-45b5-adcb-0552d21504dd", Locked = true, DefaultJson = @"{""value"":null}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
+    public NeoSmartTile? SmartTile { get; init; }
 }

@@ -201,8 +201,8 @@ namespace HelloWorld.Assets.Scripts
 
         Awaitable ILandingSceneHost.SaveProgressAsync() => SaveWithIndicatorAsync();
 
-        bool ILandingSceneHost.TryTriggerDialogue(string dialogueId, Action onFinish) =>
-            TriggerLandingDialogue(dialogueId, onFinish);
+        bool ILandingSceneHost.TryTriggerDialogue(NeoDialogueReference dialogueReference, Action onFinish) =>
+            TriggerLandingDialogue(dialogueReference, onFinish);
 
         public void CloseOldConsoleLanding()
         {
@@ -237,10 +237,10 @@ namespace HelloWorld.Assets.Scripts
             dialogue.Start();
         }
 
-        private bool TriggerLandingDialogue(string dialogueId, Action onFinish)
+        private bool TriggerLandingDialogue(NeoDialogueReference reference, Action onFinish)
         {
             ClearDialogue();
-            if (!neo.Dialogues.TryTrigger(dialogueId, out NeoDialogue dialogue))
+            if (!reference.TryTrigger(out NeoDialogue dialogue))
             {
                 return false;
             }

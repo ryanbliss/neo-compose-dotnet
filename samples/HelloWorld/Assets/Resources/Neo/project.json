@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "1c4cb258eb92331dedd64d541fe2ccbcfbcd539f622d319b9159fa4e4c3a788b",
-        "codegenContractHash": "4e8d2f03275a8b0b6347c960f5df2adba735549c687a07235b0c1806d1ccfa40",
-        "runtimeDataContractHash": "c43f6cd9eeadf1c7693e6a6ec773479b7d578443d2100dcf3a250b6899f9d2b1"
+        "projectDocumentContentHash": "9afaf16275111a07164ce8e962acd2fe2a2ce81968e1ee6dec7824b9ac44980e",
+        "codegenContractHash": "080ebf6c33a46d3161b6772f0fddf80f69b3ffdc9d7ec5d5e7bc5d242de65787",
+        "runtimeDataContractHash": "8ca4a7037c7e09db7c6b327d4045a4cd587914abee51a980ddff9018e02af6dd"
     },
     "localization": {
         "schemaVersion": 1,
@@ -440,6 +440,23 @@
             "required": true,
             "type": 8,
             "updatedAt": 1777857748919
+        },
+        "0659d085-0267-4d6e-8e18-b726f393f740": {
+            "createdAt": 1783293573229,
+            "defaultValue": {
+                "value": [
+                    "d755935f-4c3a-4d43-8c40-4ba3f7d28063"
+                ]
+            },
+            "dialogueGroupId": null,
+            "id": "0659d085-0267-4d6e-8e18-b726f393f740",
+            "locked": false,
+            "multiselect": false,
+            "name": "BootGlyphSealReady",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 18,
+            "updatedAt": 1783293573229
         },
         "0794a73f-60b2-4ce0-b191-83d0829fe7bb": {
             "createdAt": 1781246186689,
@@ -3320,6 +3337,23 @@
             "type": 2,
             "updatedAt": 1781855034923
         },
+        "47466be3-368c-4ac1-8c0e-7a825af6b538": {
+            "createdAt": 1783293573229,
+            "defaultValue": {
+                "value": [
+                    "cb0ac79c-f3b4-4c96-b968-8c4173c1f712"
+                ]
+            },
+            "dialogueGroupId": null,
+            "id": "47466be3-368c-4ac1-8c0e-7a825af6b538",
+            "locked": false,
+            "multiselect": false,
+            "name": "RecoveryCache",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 18,
+            "updatedAt": 1783293573229
+        },
         "477a7320-35e3-42f6-b03e-ff4a23b4f18a": {
             "createdAt": 1781759873079,
             "entryAttributeId": "4bc2ef98-930e-483f-90fa-c3716346b4d7",
@@ -3640,6 +3674,23 @@
             "type": 9,
             "updatedAt": 1781993040926
         },
+        "502c9308-974b-446d-935b-c22adde5a9d2": {
+            "createdAt": 1783293573229,
+            "defaultValue": {
+                "value": [
+                    "da73bce9-0d39-4c27-bb09-32b538f97f61"
+                ]
+            },
+            "dialogueGroupId": null,
+            "id": "502c9308-974b-446d-935b-c22adde5a9d2",
+            "locked": false,
+            "multiselect": false,
+            "name": "VaultPlaqueLocked",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 18,
+            "updatedAt": 1783293573229
+        },
         "504778e6-972f-4b04-8d64-ec038ff2414f": {
             "createdAt": 1778021393339,
             "defaultValue": {
@@ -3889,6 +3940,23 @@
             "type": 9,
             "updatedAt": 1782955041503
         },
+        "5676cb8a-be0f-4f1b-adc6-7241c09f8cf5": {
+            "createdAt": 1783293573229,
+            "defaultValue": {
+                "value": [
+                    "d5a8097d-f02b-41c7-8356-9442a4a29412"
+                ]
+            },
+            "dialogueGroupId": null,
+            "id": "5676cb8a-be0f-4f1b-adc6-7241c09f8cf5",
+            "locked": false,
+            "multiselect": false,
+            "name": "ExitPromptRelay",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 18,
+            "updatedAt": 1783293573229
+        },
         "56831afd-18d8-418d-9bcf-c76c770592c4": {
             "createdAt": 1781983596740,
             "defaultValue": {
@@ -4100,6 +4168,23 @@
             "type": 7,
             "updatedAt": 1777767446642,
             "valueId": "77561c95-0c3f-4291-a79b-7e5562d8ee30"
+        },
+        "663d7511-cfc3-427c-8431-90cfc87a9813": {
+            "createdAt": 1783293573229,
+            "defaultValue": {
+                "value": [
+                    "7a6bcb67-d42a-4eb8-9934-0263d506e85c"
+                ]
+            },
+            "dialogueGroupId": null,
+            "id": "663d7511-cfc3-427c-8431-90cfc87a9813",
+            "locked": false,
+            "multiselect": false,
+            "name": "ExitPromptQuiet",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 18,
+            "updatedAt": 1783293573229
         },
         "66e49f29-58cb-4ac7-b128-93febd0f0fb1": {
             "createdAt": 1778274529518,
@@ -6108,6 +6193,23 @@
             "type": 12,
             "updatedAt": 1781255546299
         },
+        "d4a33b58-95a5-4874-8236-05ec38df8f82": {
+            "createdAt": 1783293573229,
+            "defaultValue": {
+                "value": [
+                    "bbda459e-c77e-4084-9047-22b1dfbb0bff"
+                ]
+            },
+            "dialogueGroupId": null,
+            "id": "d4a33b58-95a5-4874-8236-05ec38df8f82",
+            "locked": false,
+            "multiselect": false,
+            "name": "VaultPlaqueReward",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 18,
+            "updatedAt": 1783293573229
+        },
         "d56d641e-4f15-4da6-8c1f-114016c9166d": {
             "createdAt": 1777767008066,
             "extendsAttributeId": null,
@@ -6314,6 +6416,23 @@
             "type": 11,
             "updatedAt": 1781263318274
         },
+        "e0316e12-b70d-4d4a-9c16-1861ce394849": {
+            "createdAt": 1783293573229,
+            "defaultValue": {
+                "value": [
+                    "2a49e84a-ab1f-4468-a9a3-f29796cbf086"
+                ]
+            },
+            "dialogueGroupId": null,
+            "id": "e0316e12-b70d-4d4a-9c16-1861ce394849",
+            "locked": false,
+            "multiselect": false,
+            "name": "BootGlyphSealLocked",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 18,
+            "updatedAt": 1783293573229
+        },
         "e0e00d1b-0ee3-4102-9d83-34b3038c573f": {
             "collectionAttributeId": "5161fb81-7254-4e41-b153-25138b8e9e74",
             "collectionValueId": "0893eb05-41c5-40cb-a9d6-8397982519d4",
@@ -6367,6 +6486,23 @@
             "required": true,
             "type": 12,
             "updatedAt": 1781255546299
+        },
+        "e2a98ca7-1317-4743-9be1-19cd5ec47bf1": {
+            "createdAt": 1783293573229,
+            "defaultValue": {
+                "value": [
+                    "12729fbc-56a7-4d8f-b04a-ac039604dfe9"
+                ]
+            },
+            "dialogueGroupId": null,
+            "id": "e2a98ca7-1317-4743-9be1-19cd5ec47bf1",
+            "locked": false,
+            "multiselect": false,
+            "name": "BootGlyphAttuned",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "required": true,
+            "type": 18,
+            "updatedAt": 1783293573229
         },
         "e37c6500-370f-44a5-b78d-b4f68a22ae5e": {
             "collectionAttributeId": "7fb51db7-60c7-4064-bcde-6938acea4fe8",
@@ -7322,6 +7458,7 @@
             "name": "BootGlyphTile",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
+                "BootGlyphAttuned": "e2a98ca7-1317-4743-9be1-19cd5ec47bf1",
                 "CompatibleLayers": "6f734d02-4752-4697-9995-1bfa748e0938",
                 "DefaultLayer": "0cea4b79-8614-4753-a319-858a749fd2b3",
                 "Name": "f703feff-bc27-46d5-a9b9-d29df959342a",
@@ -7330,10 +7467,11 @@
             "schemaKeyOrder": [
                 "CompatibleLayers",
                 "DefaultLayer",
+                "BootGlyphAttuned",
                 "Name",
                 "Sprite"
             ],
-            "updatedAt": 1782070355339
+            "updatedAt": 1783293573229
         },
         "11177bd5-0678-4bff-86b8-46718ff1827b": {
             "createdAt": 1779225029597,
@@ -7429,9 +7567,10 @@
                 "CompatibleLayers": "16778506-5859-42ac-a233-da915bc170d6",
                 "DefaultLayer": "e37c6500-370f-44a5-b78d-b4f68a22ae5e",
                 "Name": "345b54f2-eb9c-4cd9-8c5f-cee868c9602d",
-                "PlacementTiles": "d8e9ad0e-157f-4709-96a7-8775efa3dd11"
+                "PlacementTiles": "d8e9ad0e-157f-4709-96a7-8775efa3dd11",
+                "RecoveryCache": "47466be3-368c-4ac1-8c0e-7a825af6b538"
             },
-            "updatedAt": 1782957267819
+            "updatedAt": 1783293573229
         },
         "2ab1bc07-da0b-47fc-b77b-54cc511575bb": {
             "createdAt": 1777766651579,
@@ -7556,10 +7695,12 @@
             "name": "BlockedPath",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "schema": {
+                "BootGlyphSealLocked": "e0316e12-b70d-4d4a-9c16-1861ce394849",
+                "BootGlyphSealReady": "0659d085-0267-4d6e-8e18-b726f393f740",
                 "ClearPath": "0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd"
             },
             "system": null,
-            "updatedAt": 1782708997676
+            "updatedAt": 1783293573229
         },
         "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2": {
             "createdAt": 1781759873079,
@@ -7700,6 +7841,8 @@
                 "Children": "de93c887-ea29-49bd-bfea-a6255b8b9a54",
                 "CompatibleLayers": "f05dfa96-f35a-440c-832d-b4462cb2f30a",
                 "DefaultLayer": "ff033c90-8bd5-4c57-929c-0af97005b9d3",
+                "ExitPromptQuiet": "663d7511-cfc3-427c-8431-90cfc87a9813",
+                "ExitPromptRelay": "5676cb8a-be0f-4f1b-adc6-7241c09f8cf5",
                 "Name": "14ec578e-0aa7-4d12-8d02-47463e03a1f3",
                 "PlacementTiles": "571a0e0b-b36c-45f3-ae9a-5fde39045c11",
                 "Size": "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b"
@@ -7707,12 +7850,14 @@
             "schemaKeyOrder": [
                 "CompatibleLayers",
                 "DefaultLayer",
+                "ExitPromptRelay",
+                "ExitPromptQuiet",
                 "Name",
                 "Children",
                 "Size",
                 "PlacementTiles"
             ],
-            "updatedAt": 1782071674504
+            "updatedAt": 1783293573229
         },
         "60c25a92-cb01-46f7-b5cf-c9d950586116": {
             "createdAt": 1778274514976,
@@ -8244,16 +8389,20 @@
                 "CompatibleLayers": "b98218ae-934e-4359-a9cd-4ca82433dc51",
                 "DefaultLayer": "71bca16c-04c7-46ad-884b-002a1914bee8",
                 "Name": "9bcfd9a8-ef4a-4a89-b6d4-446c9baf01d7",
-                "PlacementTiles": "430fca56-b45a-4896-9ab2-795a3faf57f6"
+                "PlacementTiles": "430fca56-b45a-4896-9ab2-795a3faf57f6",
+                "VaultPlaqueLocked": "502c9308-974b-446d-935b-c22adde5a9d2",
+                "VaultPlaqueReward": "d4a33b58-95a5-4874-8236-05ec38df8f82"
             },
             "schemaKeyOrder": [
                 "CompatibleLayers",
                 "DefaultLayer",
                 "Name",
+                "VaultPlaqueLocked",
+                "VaultPlaqueReward",
                 "Children",
                 "PlacementTiles"
             ],
-            "updatedAt": 1782071674504
+            "updatedAt": 1783293573229
         },
         "d500e920-87d9-4804-affa-1bd8fc5e91ae": {
             "createdAt": 1782971224672,
@@ -25110,8 +25259,10 @@
                 "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
                 "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "typeId": "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b",
-                "updatedAt": 1783203695443,
+                "updatedAt": 1783297309885,
                 "value": {
+                    "BootGlyphSealLocked": "a3b8f384-2822-4cbe-810d-729507be4c9e",
+                    "BootGlyphSealReady": "de74c973-f241-4fe9-b6ed-e4d428137c4b",
                     "Name": "d26fafdc-2dcc-4208-aa58-0912971694c6",
                     "Position": "2dc2b6f2-dd8a-49ed-ac19-0bced6d94068",
                     "Size": "b150f442-8bfa-49e9-96c9-aa5ae17160b5",
@@ -33302,6 +33453,17 @@
                     "y": -8
                 }
             },
+            "a3b8f384-2822-4cbe-810d-729507be4c9e": {
+                "createdAt": 1783297300154,
+                "id": "a3b8f384-2822-4cbe-810d-729507be4c9e",
+                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                "typeId": null,
+                "updatedAt": 1783297300154,
+                "value": [
+                    "2a49e84a-ab1f-4468-a9a3-f29796cbf086"
+                ]
+            },
             "a3e2b063-3a06-4cb8-9216-f700917b9761": {
                 "createdAt": 1782952217267,
                 "id": "a3e2b063-3a06-4cb8-9216-f700917b9761",
@@ -36550,6 +36712,17 @@
                     "8f96912d-5bbb-428c-84eb-8932ef588141"
                 ]
             },
+            "c6f9c70c-0664-4089-96d5-c5b49d79395b": {
+                "createdAt": 1783296613271,
+                "id": "c6f9c70c-0664-4089-96d5-c5b49d79395b",
+                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                "typeId": null,
+                "updatedAt": 1783296613271,
+                "value": [
+                    "7a6bcb67-d42a-4eb8-9934-0263d506e85c"
+                ]
+            },
             "c71bcff1-46b8-4116-babd-398e51045023": {
                 "containerId": "1a60291c-5123-4090-a4eb-2ba55e9a4ace",
                 "createdAt": 1782952229512,
@@ -38612,6 +38785,17 @@
                     "8f96912d-5bbb-428c-84eb-8932ef588141"
                 ]
             },
+            "de74c973-f241-4fe9-b6ed-e4d428137c4b": {
+                "createdAt": 1783297309885,
+                "id": "de74c973-f241-4fe9-b6ed-e4d428137c4b",
+                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                "typeId": null,
+                "updatedAt": 1783297309885,
+                "value": [
+                    "d755935f-4c3a-4d43-8c40-4ba3f7d28063"
+                ]
+            },
             "de74dc22-38ee-4ee2-a8d6-f942a25d5888": {
                 "createdAt": 1782952217267,
                 "id": "de74dc22-38ee-4ee2-a8d6-f942a25d5888",
@@ -38752,12 +38936,14 @@
                 "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
                 "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "typeId": "5c65b156-e83a-41c5-bef0-ee375798bdc2",
-                "updatedAt": 1783204862342,
+                "updatedAt": 1783296613271,
                 "value": {
                     "Children": "36eac912-3dcc-4dd3-9362-cf44edf987f1",
                     "Collider": "f2a53954-c19c-4a6c-83c5-4c48dd415beb",
                     "CompatibleLayers": "cb8a4f29-b25f-48db-834e-0ca9efb05725",
                     "DefaultLayer": "48814a86-7a12-41dc-8d86-2fca64523598",
+                    "ExitPromptQuiet": "c6f9c70c-0664-4089-96d5-c5b49d79395b",
+                    "ExitPromptRelay": "ff5bb683-2ff7-4bb9-a05a-5eda1764a0c7",
                     "Name": "ad998424-0354-464b-88ed-6dcc77494564",
                     "PlacementTiles": "057ce3a7-2208-4d6c-903e-8d7b425991d8",
                     "Position": "fb6c7f78-1078-4818-a048-7752ea18f8dd",
@@ -39857,8 +40043,10 @@
                 "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
                 "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "typeId": null,
-                "updatedAt": 1783203738206,
-                "value": null
+                "updatedAt": 1783296655269,
+                "value": [
+                    "8f96912d-5bbb-428c-84eb-8932ef588123"
+                ]
             },
             "ea956c1c-c0d4-4cd5-a8be-04a30d6ae070": {
                 "createdAt": 1782952202186,
@@ -41561,6 +41749,17 @@
                     "Cell": "d5c7c5d5-7677-4c13-9202-6f35feae0938",
                     "Tile": "59b5695e-1a45-4aea-b04b-fd27849ec200"
                 }
+            },
+            "ff5bb683-2ff7-4bb9-a05a-5eda1764a0c7": {
+                "createdAt": 1783296605658,
+                "id": "ff5bb683-2ff7-4bb9-a05a-5eda1764a0c7",
+                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
+                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+                "typeId": null,
+                "updatedAt": 1783296605658,
+                "value": [
+                    "d5a8097d-f02b-41c7-8356-9442a4a29412"
+                ]
             },
             "ff6ed703-3c15-4bd2-bd5e-2ad7c13e7ed7": {
                 "containerId": "1a60291c-5123-4090-a4eb-2ba55e9a4ace",

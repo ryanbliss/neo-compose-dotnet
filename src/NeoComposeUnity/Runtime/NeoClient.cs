@@ -85,6 +85,19 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, Enum> enums => data.enums;
         internal IReadOnlyDictionary<string, Dialogue> dialogues => data.dialogues;
         internal IReadOnlyDictionary<string, DialogueGroup> dialogueGroups => data.dialogueGroups;
+
+        /// <summary>
+        /// The dialogues API (the generated <c>NeoDialogues</c>), registered by
+        /// <see cref="NeoDialoguesBase"/> at construction. Lets runtime values
+        /// such as <see cref="NeoDialogueReference"/> trigger dialogues without a
+        /// compile-time dependency on the generated client.
+        /// </summary>
+        internal NeoDialoguesBase? DialoguesApi { get; private set; }
+
+        internal void RegisterDialoguesApi(NeoDialoguesBase api)
+        {
+            DialoguesApi = api;
+        }
         internal IReadOnlyDictionary<string, PriorityGroup> priorityGroups => data.priorityGroups;
         internal IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
         internal IReadOnlyDictionary<string, AttributeValue> sessionValues => sessionData.values;

@@ -538,4 +538,120 @@ namespace NeoCompose.Runtime
 
         public bool Remove(string valueId) => RequireWritableNode().Remove(valueId);
     }
+
+    /// <summary>
+    /// Read-only set of <see cref="NeoDialogueReference"/>s backing a multiselect
+    /// DialogueLookup. Unlike <see cref="NeoReadOnlyLookupSet{T}"/> it is
+    /// non-generic and resolves the stored <c>dialogueId</c>s directly (no
+    /// collection <c>GetSelected()</c> walk). See spec §5.3.
+    /// </summary>
+    public class NeoReadOnlyDialogueReferenceSet : IReadOnlyCollection<NeoDialogueReference>
+    {
+        protected readonly NeoClient client;
+        protected NeoAttributeDialogueLookup node;
+
+        public NeoReadOnlyDialogueReferenceSet(NeoClient client, NeoAttributeDialogueLookup node)
+        {
+            this.client = client;
+            this.node = node;
+        }
+
+        /// <summary>
+        /// Subscribes to any change to this set's selection. Mirrors the
+        /// generated field subscription shape; dispose to stop listening.
+        /// </summary>
+        public IDisposable OnChanged(Action<NeoReadOnlyDialogueReferenceSet, NeoChangeSource> handler)
+        {
+            return NeoCollectionSubscription.Watch(node, client, this, handler);
+        }
+
+        public int Count => node.Selected().Length;
+
+        public IReadOnlyList<string> Ids => node.Selected();
+
+        public bool Contains(string dialogueId)
+        {
+            foreach (var id in node.Selected())
+            {
+                if (id == dialogueId) return true;
+            }
+            return false;
+        }
+
+        public bool Contains(NeoDialogueReference item) =>
+            item is not null && Contains(item.Id);
+
+        public IEnumerator<NeoDialogueReference> GetEnumerator()
+        {
+            foreach (var id in node.Selected())
+            {
+                yield return new NeoDialogueReference(client, id);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    public class NeoDialogueReferenceSet
+        : NeoReadOnlyDialogueReferenceSet, ICollection<NeoDialogueReference>
+    {
+        private readonly Func<NeoAttributeDialogueLookupWritable> getWritableNode;
+        private readonly Action? beforeWrite;
+        private readonly Func<bool>? isReadOnly;
+
+        public NeoDialogueReferenceSet(
+            NeoClient client,
+            NeoAttributeDialogueLookupWritable node)
+            : this(client, node, () => node)
+        {
+        }
+
+        public NeoDialogueReferenceSet(
+            NeoClient client,
+            NeoAttributeDialogueLookup node,
+            Func<NeoAttributeDialogueLookupWritable> getWritableNode,
+            Action? beforeWrite = null,
+            Func<bool>? isReadOnly = null)
+            : base(client, node)
+        {
+            this.getWritableNode = getWritableNode ?? throw new ArgumentNullException(nameof(getWritableNode));
+            this.beforeWrite = beforeWrite;
+            this.isReadOnly = isReadOnly;
+        }
+
+        private NeoAttributeDialogueLookupWritable RequireWritableNode()
+        {
+            beforeWrite?.Invoke();
+            var writableNode = getWritableNode();
+            node = writableNode;
+            return writableNode;
+        }
+
+        public bool IsReadOnly => isReadOnly?.Invoke() ?? false;
+
+        public void Add(NeoDialogueReference item)
+        {
+            if (item is null) throw new ArgumentNullException(nameof(item));
+            // The writable node enforces the dialogueGroupId scope.
+            RequireWritableNode().Add(item.Id);
+        }
+
+        public bool Add(string dialogueId) => RequireWritableNode().Add(dialogueId);
+
+        public void Clear() => RequireWritableNode().Clear();
+
+        public void CopyTo(NeoDialogueReference[] array, int arrayIndex)
+        {
+            if (array is null) throw new ArgumentNullException(nameof(array));
+            foreach (var item in this)
+            {
+                array[arrayIndex++] = item;
+            }
+        }
+
+        public bool Remove(NeoDialogueReference item) =>
+            item is not null && RequireWritableNode().Remove(item.Id);
+
+        public bool Remove(string dialogueId) => RequireWritableNode().Remove(dialogueId);
+    }
 }

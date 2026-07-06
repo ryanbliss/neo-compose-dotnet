@@ -29,6 +29,7 @@ namespace NeoCompose.Runtime.Json
         Vector2Int = 15,
         Vector3 = 16,
         Vector3Int = 17,
+        DialogueLookup = 18,
         Unknown = -1,
         Void = -2,
     }

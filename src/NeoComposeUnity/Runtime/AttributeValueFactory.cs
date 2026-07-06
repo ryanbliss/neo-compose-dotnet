@@ -68,7 +68,7 @@ namespace NeoCompose.Runtime
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = Cast<Dictionary<string, string>?>(rawPayload, attribute),
                 },
-                ListAttribute or EnumAttribute or LookupAttribute => new ArrayAttributeValue
+                ListAttribute or EnumAttribute or LookupAttribute or DialogueLookupAttribute => new ArrayAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = Cast<string[]?>(rawPayload, attribute),
@@ -179,6 +179,12 @@ namespace NeoCompose.Runtime
                     typeId = attr.defaultValue.typeId,
                 },
                 LookupAttribute attr => attr.defaultValue is null ? null : new ArrayAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneArray(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
+                DialogueLookupAttribute attr => attr.defaultValue is null ? null : new ArrayAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = CloneArray(attr.defaultValue.value),
