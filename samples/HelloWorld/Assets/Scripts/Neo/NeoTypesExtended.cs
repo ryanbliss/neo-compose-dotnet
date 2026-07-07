@@ -12,6 +12,18 @@ using UnityEditor;
 
 namespace HelloWorld.Assets.Scripts.Neo
 {
+    public partial class PlayerSpawnObject
+    {
+        protected override void OnObjectSpawned(NeoObjectBehaviour behaviour)
+        {
+            base.OnObjectSpawned(behaviour);
+            var body = behaviour.gameObject.AddComponent<Rigidbody2D>();
+            body.bodyType = RigidbodyType2D.Dynamic;
+            body.gravityScale = 0f;
+            body.constraints = RigidbodyConstraints2D.FreezeRotation;
+        }
+    }
+
     public partial class Outpost
     {
         protected override void LazyInitialize()

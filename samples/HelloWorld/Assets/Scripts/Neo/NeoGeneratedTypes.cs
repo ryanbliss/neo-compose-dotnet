@@ -4496,7 +4496,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
     }
 
-    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject
+    public abstract partial class NeoObject : NeoObjectBase, IReadOnlyNeoObject, INeoObjectSpawnHooks
     {
         internal NeoObject(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -4563,6 +4563,29 @@ namespace HelloWorld.Assets.Scripts.Neo
         public IReadOnlyList<TChild> GetChildren<TChild>() where TChild : NeoGeneratedCustomValue
         {
             return NeoGeneratedTypesSupport.GetGeneratedChildren<TChild>(((IReadOnlyNeoObject)this).Children);
+        }
+
+        void INeoObjectSpawnHooks.OnObjectSpawned(NeoObjectBehaviour behaviour) => OnObjectSpawned(behaviour);
+
+        void INeoObjectSpawnHooks.OnObjectDespawned(NeoObjectBehaviour behaviour) => OnObjectDespawned(behaviour);
+
+        /// <summary>
+        /// Renderer spawn hook — override in a partial class to attach Unity
+        /// components (e.g. Rigidbody2D) to the instance's fully-built root
+        /// GameObject. See <see cref="INeoObjectSpawnHooks"/> for timing and
+        /// respawn semantics.
+        /// </summary>
+        protected virtual void OnObjectSpawned(NeoObjectBehaviour behaviour)
+        {
+        }
+
+        /// <summary>
+        /// Renderer despawn hook — override in a partial class to release
+        /// per-GameObject state before the instance's root GameObject is
+        /// destroyed.
+        /// </summary>
+        protected virtual void OnObjectDespawned(NeoObjectBehaviour behaviour)
+        {
         }
 
         public NeoReadOnlyList<IReadOnlyNeoObjectBase> Children

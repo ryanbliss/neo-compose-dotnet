@@ -806,6 +806,13 @@ namespace NeoCompose.Runtime
             }
 
             objectRootsByInstanceId.Remove(instanceId);
+            // Explicit despawn notification while the root is still intact;
+            // NeoObjectBehaviour.OnDestroy is only the fallback for destroy
+            // paths that bypass the renderer.
+            if (root.TryGetComponent(out NeoObjectBehaviour behaviour))
+            {
+                behaviour.NotifyDespawned();
+            }
             DestroyCompositionRoot(root);
         }
 
@@ -1041,6 +1048,21 @@ namespace NeoCompose.Runtime
         }
 
         private GameObject SpawnObject(
+            Transform parent,
+            ReadOnlyNeoObjectLayerRuntime layer,
+            NeoResolvedObjectInstance instance,
+            int layerFallbackSortingOrder)
+        {
+            var go = BuildObjectRoot(parent, layer, instance, layerFallbackSortingOrder);
+            // Attached last so the spawn hook observes a fully-built root
+            // (composition children, authored collider, sprite fallback) —
+            // e.g. an added Rigidbody2D composes with the BoxCollider2D.
+            var behaviour = go.AddComponent<NeoObjectBehaviour>();
+            behaviour.Initialize(this, layer, instance);
+            return go;
+        }
+
+        private GameObject BuildObjectRoot(
             Transform parent,
             ReadOnlyNeoObjectLayerRuntime layer,
             NeoResolvedObjectInstance instance,

@@ -196,10 +196,13 @@ namespace HelloWorld.Assets.Tests
                 4,
                 objectLayer!.childCount,
                 "The player spawn renders as an ordinary SDK object alongside the other placements.");
-            var playerRoot = objectLayer.Find("Object - old-console-object:player-spawn");
-            Assert.IsNotNull(
-                playerRoot,
+            Assert.IsTrue(
+                renderer.TryGetObjectRoot<PlayerSpawnObject>(out var playerRoot, out _),
                 "The SDK renders the player spawn object under the object layer; gameplay moves it by writing its Session-storage Position.");
+            Assert.AreEqual(
+                objectLayer,
+                playerRoot.transform.parent,
+                "The player spawn renders under the generated object layer.");
             var playerSpriteRenderer = playerRoot!.GetComponentInChildren<SpriteRenderer>();
             Assert.IsNotNull(
                 playerSpriteRenderer,
