@@ -141,6 +141,90 @@ namespace NeoCompose.Tests
             Assert.GreaterOrEqual(changed, 3);
         }
 
+        // Builds a Save-owned writable inventory dictionary whose entries come
+        // ONLY from the authored default (`attr-inventory` = { sword, shield })
+        // with no bound value row yet. Save ownership routes writes to the save
+        // store so persistence is observable via SerializeSaveData. Regression
+        // surface for the clone-on-write seed: the first mutation must clone the
+        // default map, not start empty.
+        private static NeoDictionary<string> LoadDefaultOnlyInventory(NeoClient client)
+        {
+            var inventoryAttr = RequireAttribute<DictionaryAttribute>(client, "attr-inventory");
+            var inventoryNode = (NeoAttributeDictionaryWritable)NeoAttribute.CreateWritable(
+                client,
+                inventoryAttr,
+                null,
+                NeoValueOwnership.Save);
+            return new NeoDictionary<string>(
+                client,
+                inventoryNode,
+                (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
+                NeoGeneratedTypesSupport.Value);
+        }
+
+        [Test]
+        public void NeoDictionary_RemoveFirstOnDefaultOnly_DropsKeyWithoutThrowing()
+        {
+            var client = LoadClient(out _);
+            var inventory = LoadDefaultOnlyInventory(client);
+
+            // Remove is the FIRST mutation: nothing is bound, so the visible
+            // keys come purely from the default. Previously `EnsureWritableObject`
+            // minted an empty map and `Remove` threw KeyNotFoundException indexing
+            // a key it could see but the fresh map lacked.
+            Assert.DoesNotThrow(() => inventory.Remove("sword"));
+            Assert.IsFalse(inventory.ContainsKey("sword"));
+            // The sibling default entry survives the clone-on-write.
+            Assert.IsTrue(inventory.ContainsKey("shield"));
+            Assert.AreEqual(1, inventory.Count);
+        }
+
+        [Test]
+        public void NeoDictionary_ClearFirstOnDefaultOnly_EmptiesWithoutThrowing()
+        {
+            var client = LoadClient(out _);
+            var inventory = LoadDefaultOnlyInventory(client);
+
+            // Clear loops Remove over the visible (default) keys as the first
+            // mutation — same seed bug, hit once per key.
+            Assert.DoesNotThrow(() => inventory.Clear());
+            Assert.AreEqual(0, inventory.Count);
+            Assert.IsFalse(inventory.ContainsKey("sword"));
+            Assert.IsFalse(inventory.ContainsKey("shield"));
+        }
+
+        [Test]
+        public void NeoDictionary_SetNewKeyFirstOnDefaultOnly_PreservesDefaultSiblings()
+        {
+            var client = LoadClient(out _);
+            var inventory = LoadDefaultOnlyInventory(client);
+
+            // Adding a brand-new key as the first mutation must not wipe the
+            // authored default entries — a fresh empty seed used to silently
+            // drop them (only the new key survived).
+            inventory["potion"] = "Elixir";
+
+            Assert.AreEqual("Elixir", inventory["potion"]);
+            Assert.IsTrue(inventory.ContainsKey("sword"));
+            Assert.IsTrue(inventory.ContainsKey("shield"));
+            Assert.AreEqual(3, inventory.Count);
+        }
+
+        [Test]
+        public void NeoDictionary_RemoveFirstOnDefaultOnly_PersistsThroughSerialize()
+        {
+            var client = LoadClient(out _);
+            var inventory = LoadDefaultOnlyInventory(client);
+
+            inventory.Remove("sword");
+
+            // The clone-on-write parent row is persisted with the surviving
+            // sibling only — the serialized save must not carry the removed key.
+            string saved = client.SerializeSaveData();
+            StringAssert.Contains("shield", saved);
+            StringAssert.DoesNotContain("sword", saved);
+        }
+
         [Test]
         public void NeoLookupSet_AddRemoveClear_TracksUniqueLookupSelections()
         {

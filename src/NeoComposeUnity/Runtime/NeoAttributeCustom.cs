@@ -768,12 +768,20 @@ namespace NeoCompose.Runtime
                 writable.value ??= new Dictionary<string, string>();
                 return writable;
             }
+            // Seed the freshly minted clone-on-write row from the currently-
+            // effective record (the authored default's schema-key entries),
+            // NOT an empty map — otherwise Remove/Unset on a default-only
+            // record would index a key the caller can see but the fresh row
+            // lacks (throwing KeyNotFoundException), and overwriting one key
+            // would silently drop the sibling default fields.
             ObjectAttributeValue record = new()
             {
                 id = System.Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = new Dictionary<string, string>(),
+                value = value?.value is null
+                    ? new Dictionary<string, string>()
+                    : new Dictionary<string, string>(value.value),
             };
             BindNewValue(record);
             return record;
