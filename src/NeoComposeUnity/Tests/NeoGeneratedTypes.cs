@@ -331,6 +331,8 @@ namespace Assets.Scripts.Neo
         NeoReadOnlyList<NeoReadOnlyVector3> Path { get; }
 
         Vector3 MoveTo(Vector3 destination, Vector2Int? cell);
+
+        NeoReadOnlyDictionary<Element, string?> ElementAffinity { get; }
     }
 
     public partial class Hero : NeoGeneratedCustomValue, IReadOnlyHero
@@ -346,12 +348,12 @@ namespace Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        public Hero(string? Name = null, int? Health = null, NeoVector3? Position = null, NeoVector3Int? GridCell = null, IEnumerable<NeoVector3>? Path = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Health, Position, GridCell, Path), false, NeoValueOwnership.Session)
+        public Hero(string? Name = null, int? Health = null, NeoVector3? Position = null, NeoVector3Int? GridCell = null, IEnumerable<NeoVector3>? Path = null, IDictionary<string, string?>? ElementAffinity = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Name, Health, Position, GridCell, Path, ElementAffinity), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Health = null, NeoVector3? Position = null, NeoVector3Int? GridCell = null, IEnumerable<NeoVector3>? Path = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Health = null, NeoVector3? Position = null, NeoVector3Int? GridCell = null, IEnumerable<NeoVector3>? Path = null, IDictionary<string, string?>? ElementAffinity = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -429,6 +431,32 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = PathIds.ToArray(),
+                });
+            }
+            if (ElementAffinity is not null)
+            {
+                var ElementAffinityValueId = Guid.NewGuid().ToString();
+                value["ElementAffinity"] = ElementAffinityValueId;
+                var ElementAffinityIds = new Dictionary<string, string>();
+                foreach (var pair in ElementAffinity)
+                {
+                    var entryValueId = Guid.NewGuid().ToString();
+                    ElementAffinityIds[pair.Key] = entryValueId;
+                    valueRows.Add(new StringAttributeValue
+                    {
+                        id = entryValueId,
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = pair.Value,
+                        neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                    });
+                }
+                valueRows.Add(new ObjectAttributeValue
+                {
+                    id = ElementAffinityValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ElementAffinityIds,
                 });
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-hero", value, valueRows);
@@ -555,6 +583,22 @@ namespace Assets.Scripts.Neo
         }
 
 
+        public NeoDictionary<Element, string?> ElementAffinity
+        {
+            get
+            {
+                return new NeoDictionary<Element, string?>(client, writableNode.Get<NeoAttributeDictionaryWritable>("ElementAffinity"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("ElementAffinity"), (client, child) => ((NeoAttributeString)child).Text, item => NeoGeneratedTypesSupport.Value(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Hero.ElementAffinity"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyDictionary<Element, string?> IReadOnlyHero.ElementAffinity
+        {
+            get
+            {
+                return new NeoReadOnlyDictionary<Element, string?>(client, node.Get<NeoAttributeDictionary>("ElementAffinity"), (client, child) => ((NeoAttributeString)child).Text, Element.FromOptionId, key => key.optionId);
+            }
+        }
+
         public Vector3 MoveTo(Vector3 destination, Vector2Int? cell)
         {
             if (FunctionHandler is null)
@@ -579,6 +623,8 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<NeoVector3Int?> GridCell = new("GridCell");
 
             public static readonly NeoField<NeoList<NeoVector3>> Path = new("Path");
+
+            public static readonly NeoField<NeoDictionary<Element, string?>> ElementAffinity = new("ElementAffinity");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -590,6 +636,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Position] = () => null,
                 [Fields.GridCell] = () => null,
                 [Fields.Path] = () => null,
+                [Fields.ElementAffinity] = () => null,
             };
         }
 
@@ -612,6 +659,7 @@ namespace Assets.Scripts.Neo
                 [Fields.Position] = () => Position,
                 [Fields.GridCell] = () => GridCell,
                 [Fields.Path] = () => Path,
+                [Fields.ElementAffinity] = () => ElementAffinity,
             };
         }
 
@@ -649,6 +697,12 @@ namespace Assets.Scripts.Neo
         IReadOnlySampleLayerGroupBase? SampleLayerGroup { get; }
 
         IReadOnlyStorageA? StorageInherit { get; }
+
+        NeoReadOnlyDictionary<Element, int?> ElementStats { get; }
+
+        NeoReadOnlyDictionary<Element, int?> ElementMultipliers { get; }
+
+        NeoReadOnlyDictionary<Element, IReadOnlyHero> ElementChampions { get; }
     }
 
     public partial class Root : NeoGeneratedCustomValue, IReadOnlyRoot
@@ -658,12 +712,12 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public Root(IEnumerable<Hero?>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Score, NeoMemory, SampleLayerGroup, StorageInherit), false, NeoValueOwnership.Session)
+        public Root(IEnumerable<Hero?>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, int?>? ElementMultipliers = null, IDictionary<string, Hero>? ElementChampions = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementMultipliers, ElementChampions), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, int?>? ElementMultipliers = null, IDictionary<string, Hero>? ElementChampions = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -725,6 +779,73 @@ namespace Assets.Scripts.Neo
             if (StorageInherit is not null)
             {
                 value["StorageInherit"] = NeoGeneratedTypesSupport.LookupSelectionId(StorageInherit.valueId);
+            }
+            if (ElementStats is not null)
+            {
+                var ElementStatsValueId = Guid.NewGuid().ToString();
+                value["ElementStats"] = ElementStatsValueId;
+                var ElementStatsIds = new Dictionary<string, string>();
+                foreach (var pair in ElementStats)
+                {
+                    var entryValueId = Guid.NewGuid().ToString();
+                    ElementStatsIds[pair.Key] = entryValueId;
+                    valueRows.Add(new NumberAttributeValue
+                    {
+                        id = entryValueId,
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = pair.Value,
+                    });
+                }
+                valueRows.Add(new ObjectAttributeValue
+                {
+                    id = ElementStatsValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ElementStatsIds,
+                });
+            }
+            if (ElementMultipliers is not null)
+            {
+                var ElementMultipliersValueId = Guid.NewGuid().ToString();
+                value["ElementMultipliers"] = ElementMultipliersValueId;
+                var ElementMultipliersIds = new Dictionary<string, string>();
+                foreach (var pair in ElementMultipliers)
+                {
+                    var entryValueId = Guid.NewGuid().ToString();
+                    ElementMultipliersIds[pair.Key] = entryValueId;
+                    valueRows.Add(new NumberAttributeValue
+                    {
+                        id = entryValueId,
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = pair.Value,
+                    });
+                }
+                valueRows.Add(new ObjectAttributeValue
+                {
+                    id = ElementMultipliersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ElementMultipliersIds,
+                });
+            }
+            if (ElementChampions is not null)
+            {
+                var ElementChampionsValueId = Guid.NewGuid().ToString();
+                value["ElementChampions"] = ElementChampionsValueId;
+                var ElementChampionsIds = new Dictionary<string, string>();
+                foreach (var pair in ElementChampions)
+                {
+                    ElementChampionsIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(pair.Value.valueId);
+                }
+                valueRows.Add(new ObjectAttributeValue
+                {
+                    id = ElementChampionsValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ElementChampionsIds,
+                });
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-root", value, valueRows);
         }
@@ -839,12 +960,12 @@ namespace Assets.Scripts.Neo
                 if (IsReadOnly)
                 {
                     var child = node.Get<NeoAttributeCustom>("SampleLayerGroup");
-                    return child.value is null ? null : global::Assets.Scripts.Neo.SampleLayerGroupBase.Create(client, child);
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.SampleLayerGroupBase.Create(client, child);
                 }
                 else
                 {
                     var child = writableNode.Get<NeoAttributeCustomWritable>("SampleLayerGroup");
-                    return child.value is null ? null : global::Assets.Scripts.Neo.SampleLayerGroupBase.CreateWritable(client, child);
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.SampleLayerGroupBase.CreateWritable(client, child);
                 }
             }
             set
@@ -864,7 +985,7 @@ namespace Assets.Scripts.Neo
             get
             {
                 var child = node.Get<NeoAttributeCustom>("SampleLayerGroup");
-                return child.value is null ? null : global::Assets.Scripts.Neo.SampleLayerGroupBase.Create(client, child);
+                return child.value?.value is null ? null : global::Assets.Scripts.Neo.SampleLayerGroupBase.Create(client, child);
             }
         }
 
@@ -875,12 +996,12 @@ namespace Assets.Scripts.Neo
                 if (IsReadOnly)
                 {
                     var child = node.Get<NeoAttributeCustom>("StorageInherit");
-                    return child.value is null ? null : global::Assets.Scripts.Neo.StorageA.Create(client, child);
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageA.Create(client, child);
                 }
                 else
                 {
                     var child = writableNode.Get<NeoAttributeCustomWritable>("StorageInherit");
-                    return child.value is null ? null : global::Assets.Scripts.Neo.StorageA.CreateWritable(client, child);
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageA.CreateWritable(client, child);
                 }
             }
             set
@@ -900,7 +1021,47 @@ namespace Assets.Scripts.Neo
             get
             {
                 var child = node.Get<NeoAttributeCustom>("StorageInherit");
-                return child.value is null ? null : global::Assets.Scripts.Neo.StorageA.Create(client, child);
+                return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageA.Create(client, child);
+            }
+        }
+
+        public NeoDictionary<Element, int?> ElementStats
+        {
+            get
+            {
+                return new NeoDictionary<Element, int?>(client, writableNode.Get<NeoAttributeDictionaryWritable>("ElementStats"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("ElementStats"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoAttributeInt)child), item => NeoGeneratedTypesSupport.Value(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Root.ElementStats"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyDictionary<Element, int?> IReadOnlyRoot.ElementStats
+        {
+            get
+            {
+                return new NeoReadOnlyDictionary<Element, int?>(client, node.Get<NeoAttributeDictionary>("ElementStats"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoAttributeInt)child), Element.FromOptionId, key => key.optionId);
+            }
+        }
+
+        public NeoReadOnlyDictionary<Element, int?> ElementMultipliers
+        {
+            get
+            {
+                return new NeoReadOnlyDictionary<Element, int?>(client, node.Get<NeoAttributeDictionary>("ElementMultipliers"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoAttributeInt)child), Element.FromOptionId, key => key.optionId);
+            }
+        }
+
+        public NeoDictionary<Element, Hero> ElementChampions
+        {
+            get
+            {
+                return new NeoDictionary<Element, Hero>(client, writableNode.Get<NeoAttributeDictionaryWritable>("ElementChampions"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("ElementChampions"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Root.ElementChampions"), () => IsReadOnly);
+            }
+        }
+
+        NeoReadOnlyDictionary<Element, IReadOnlyHero> IReadOnlyRoot.ElementChampions
+        {
+            get
+            {
+                return new NeoReadOnlyDictionary<Element, IReadOnlyHero>(client, node.Get<NeoAttributeDictionary>("ElementChampions"), (client, child) => global::Assets.Scripts.Neo.Hero.Create(client, (NeoAttributeCustom)child), Element.FromOptionId, key => key.optionId);
             }
         }
 
@@ -919,6 +1080,12 @@ namespace Assets.Scripts.Neo
             public static readonly NeoField<SampleLayerGroupBase?> SampleLayerGroup = new("SampleLayerGroup");
 
             public static readonly NeoField<StorageA?> StorageInherit = new("StorageInherit");
+
+            public static readonly NeoField<NeoDictionary<Element, int?>> ElementStats = new("ElementStats");
+
+            public static readonly NeoField<NeoDictionary<Element, int?>> ElementMultipliers = new("ElementMultipliers");
+
+            public static readonly NeoField<NeoDictionary<Element, Hero>> ElementChampions = new("ElementChampions");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
@@ -931,6 +1098,9 @@ namespace Assets.Scripts.Neo
                 [Fields.NeoMemory] = () => null,
                 [Fields.SampleLayerGroup] = () => null,
                 [Fields.StorageInherit] = () => null,
+                [Fields.ElementStats] = () => null,
+                [Fields.ElementMultipliers] = () => null,
+                [Fields.ElementChampions] = () => null,
             };
         }
 
@@ -954,6 +1124,9 @@ namespace Assets.Scripts.Neo
                 [Fields.NeoMemory] = () => NeoMemory,
                 [Fields.SampleLayerGroup] = () => SampleLayerGroup,
                 [Fields.StorageInherit] = () => StorageInherit,
+                [Fields.ElementStats] = () => ElementStats,
+                [Fields.ElementMultipliers] = () => ElementMultipliers,
+                [Fields.ElementChampions] = () => ElementChampions,
             };
         }
 
@@ -1556,7 +1729,7 @@ namespace Assets.Scripts.Neo
             get
             {
                 var child = writableNode.Get<NeoAttributeCustomWritable>("SaveChild");
-                return child.value is null ? null : global::Assets.Scripts.Neo.StorageB.CreateWritable(client, child);
+                return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageB.CreateWritable(client, child);
             }
             set
             {
@@ -1696,7 +1869,7 @@ namespace Assets.Scripts.Neo
             get
             {
                 var child = writableNode.Get<NeoAttributeCustomWritable>("InheritChild");
-                return child.value is null ? null : global::Assets.Scripts.Neo.StorageC.CreateWritable(client, child);
+                return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageC.CreateWritable(client, child);
             }
             set
             {
@@ -1858,7 +2031,7 @@ namespace Assets.Scripts.Neo
             get
             {
                 var child = writableNode.Get<NeoAttributeCustomWritable>("SessionChild");
-                return child.value is null ? null : global::Assets.Scripts.Neo.StorageD.CreateWritable(client, child);
+                return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageD.CreateWritable(client, child);
             }
             set
             {
@@ -1998,7 +2171,7 @@ namespace Assets.Scripts.Neo
             get
             {
                 var child = writableNode.Get<NeoAttributeCustomWritable>("InheritChild");
-                return child.value is null ? null : global::Assets.Scripts.Neo.StorageE.CreateWritable(client, child);
+                return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageE.CreateWritable(client, child);
             }
             set
             {
@@ -2160,7 +2333,7 @@ namespace Assets.Scripts.Neo
             get
             {
                 var child = node.Get<NeoAttributeCustom>("StaticChild");
-                return child.value is null ? null : global::Assets.Scripts.Neo.StorageF.Create(client, child);
+                return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageF.Create(client, child);
             }
         }
 
@@ -2291,7 +2464,7 @@ namespace Assets.Scripts.Neo
             get
             {
                 var child = node.Get<NeoAttributeCustom>("InheritChild");
-                return child.value is null ? null : global::Assets.Scripts.Neo.StorageG.Create(client, child);
+                return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageG.Create(client, child);
             }
         }
 

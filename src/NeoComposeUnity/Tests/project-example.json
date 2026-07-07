@@ -2387,6 +2387,444 @@
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-30T23:05:05.314Z",
       "updatedAt": "2026-04-30T23:05:05.314Z"
+    },
+    "attr-elem-damage-entry": {
+      "_id": "attr-elem-damage-entry",
+      "name": "Element Damage Entry",
+      "locked": false,
+      "required": true,
+      "defaultValue": {
+        "value": 0
+      },
+      "valueId": "v-elem-damage-entry-default",
+      "type": 2,
+      "id": "attr-elem-damage-entry",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
+    },
+    "attr-elem-damage": {
+      "_id": "attr-elem-damage",
+      "name": "ElementDamage",
+      "locked": false,
+      "required": true,
+      "defaultValue": {
+        "value": {}
+      },
+      "entryAttributeId": "attr-elem-damage-entry",
+      "keyKind": "enum",
+      "keyEnumId": "enum-element",
+      "valueId": "v-elem-damage-default",
+      "type": 5,
+      "id": "attr-elem-damage",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
+    },
+    "attr-elem-stats-entry": {
+      "_id": "attr-elem-stats-entry",
+      "name": "Element Stat Entry",
+      "locked": false,
+      "required": true,
+      "defaultValue": {
+        "value": 0
+      },
+      "valueId": "v-elem-stats-entry-default",
+      "type": 2,
+      "id": "attr-elem-stats-entry",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
+    },
+    "attr-elem-stats": {
+      "_id": "attr-elem-stats",
+      "name": "ElementStats",
+      "locked": false,
+      "required": true,
+      "defaultValue": {
+        "value": {}
+      },
+      "entryAttributeId": "attr-elem-stats-entry",
+      "keyKind": "enum",
+      "keyEnumId": "enum-element",
+      "valueId": "v-elem-stats-default",
+      "type": 5,
+      "id": "attr-elem-stats",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
+    },
+    "attr-selected-element": {
+      "_id": "attr-selected-element",
+      "name": "SelectedElement",
+      "locked": false,
+      "required": true,
+      "defaultValue": {
+        "value": [
+          "water"
+        ]
+      },
+      "enumId": "enum-element",
+      "multiselect": false,
+      "valueId": "v-selected-element-default",
+      "type": 8,
+      "id": "attr-selected-element",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
+    },
+    "attr-elem-bonus-entry": {
+      "_id": "attr-elem-bonus-entry",
+      "name": "Element Bonus Entry",
+      "locked": false,
+      "required": true,
+      "defaultValue": {
+        "value": 0
+      },
+      "valueId": "v-elem-bonus-entry-default",
+      "type": 2,
+      "id": "attr-elem-bonus-entry",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
+    },
+    "attr-elem-bonus": {
+      "_id": "attr-elem-bonus",
+      "name": "ElementBonus",
+      "locked": false,
+      "required": true,
+      "defaultValue": {
+        "value": {}
+      },
+      "entryAttributeId": "attr-elem-bonus-entry",
+      "keyKind": "enum",
+      "keyEnumId": "enum-element",
+      "valueId": "v-elem-bonus-default",
+      "type": 5,
+      "id": "attr-elem-bonus",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
+    },
+    "attr-elem-champion-entry": {
+      "_id": "attr-elem-champion-entry",
+      "name": "Element Champion",
+      "locked": false,
+      "required": true,
+      "defaultValue": {
+        "value": {}
+      },
+      "customTypeId": "3d29df51-e11b-47c5-a139-d93e6315f2bb",
+      "valueId": "v-elem-champion-entry-default",
+      "type": 7,
+      "id": "attr-elem-champion-entry",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
+    },
+    "attr-elem-champions": {
+      "_id": "attr-elem-champions",
+      "name": "ElementChampions",
+      "locked": false,
+      "required": true,
+      "defaultValue": {
+        "value": {}
+      },
+      "entryAttributeId": "attr-elem-champion-entry",
+      "keyKind": "enum",
+      "keyEnumId": "enum-element",
+      "valueId": "v-elem-champions-default",
+      "type": 5,
+      "id": "attr-elem-champions",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
+    },
+    "attr-elem-fire-damage-get": {
+      "_id": "attr-elem-fire-damage-get",
+      "name": "FireDamageGet",
+      "locked": false,
+      "required": false,
+      "type": 10,
+      "code": "\treturn this.ElementDamage[Element.fire] + root.Save.ElementStats[Element.fire];",
+      "returnTypeInfo": {
+        "type": 2,
+        "required": true
+      },
+      "getter": {
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "typeId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "typeId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "operation",
+              "operation": {
+                "type": "arithmetic",
+                "arithmetic": {
+                  "type": "+",
+                  "pointers": [
+                    {
+                      "type": "keyOf",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "variable",
+                              "variableId": "__this__"
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "ElementDamage"
+                              }
+                            }
+                          }
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "fire"
+                          }
+                        }
+                      }
+                    },
+                    {
+                      "type": "keyOf",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "keyOf",
+                          "keyOf": {
+                            "pointer": {
+                              "type": "keyOf",
+                              "keyOf": {
+                                "pointer": {
+                                  "type": "variable",
+                                  "variableId": "__root__"
+                                },
+                                "key": {
+                                  "type": "value",
+                                  "value": {
+                                    "typeInfo": {
+                                      "type": 3,
+                                      "required": true
+                                    },
+                                    "value": "Save"
+                                  }
+                                }
+                              }
+                            },
+                            "key": {
+                              "type": "value",
+                              "value": {
+                                "typeInfo": {
+                                  "type": 3,
+                                  "required": true
+                                },
+                                "value": "ElementStats"
+                              }
+                            }
+                          }
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "fire"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "id": "attr-elem-fire-damage-get",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
+    },
+    "attr-elem-selected-damage-get": {
+      "_id": "attr-elem-selected-damage-get",
+      "name": "SelectedDamageGet",
+      "locked": false,
+      "required": false,
+      "type": 10,
+      "code": "\treturn this.ElementDamage[this.SelectedElement];",
+      "returnTypeInfo": {
+        "type": 2,
+        "required": true
+      },
+      "getter": {
+        "parameters": [
+          {
+            "id": "__this__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+                },
+                "value": null
+              }
+            }
+          },
+          {
+            "id": "__root__",
+            "typeInfo": {
+              "type": 7,
+              "required": true,
+              "typeId": "__root__"
+            },
+            "pointer": {
+              "type": "value",
+              "value": {
+                "typeInfo": {
+                  "type": 7,
+                  "required": true,
+                  "typeId": "__root__"
+                },
+                "value": null
+              }
+            }
+          }
+        ],
+        "instructions": [
+          {
+            "type": "return",
+            "pointer": {
+              "type": "keyOf",
+              "keyOf": {
+                "pointer": {
+                  "type": "keyOf",
+                  "keyOf": {
+                    "pointer": {
+                      "type": "variable",
+                      "variableId": "__this__"
+                    },
+                    "key": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 3,
+                          "required": true
+                        },
+                        "value": "ElementDamage"
+                      }
+                    }
+                  }
+                },
+                "key": {
+                  "type": "keyOf",
+                  "keyOf": {
+                    "pointer": {
+                      "type": "keyOf",
+                      "keyOf": {
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__this__"
+                        },
+                        "key": {
+                          "type": "value",
+                          "value": {
+                            "typeInfo": {
+                              "type": 3,
+                              "required": true
+                            },
+                            "value": "SelectedElement"
+                          }
+                        }
+                      }
+                    },
+                    "key": {
+                      "type": "value",
+                      "value": {
+                        "typeInfo": {
+                          "type": 2,
+                          "required": true
+                        },
+                        "value": 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "typeInfo": {
+          "type": 2,
+          "required": true
+        }
+      },
+      "id": "attr-elem-selected-damage-get",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
     }
   },
   "enums": {
@@ -2455,6 +2893,25 @@
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-28T23:45:24.409Z",
       "updatedAt": "2026-04-28T23:45:24.409Z"
+    },
+    "enum-element": {
+      "_id": "enum-element",
+      "id": "enum-element",
+      "name": "Element",
+      "options": {
+        "fire": {
+          "text": "Fire"
+        },
+        "water": {
+          "text": "Water"
+        },
+        "earth": {
+          "text": "Earth"
+        }
+      },
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z"
     }
   },
   "types": {
@@ -2476,7 +2933,12 @@
         "ListGet": "9bc07de0-fd37-4469-81dc-10d04d00a52b",
         "ItemGet": "6f36eba5-353f-48f4-871c-42a6cd72bcd8",
         "ComboGet": "42f3f813-b0e5-4561-a96b-a7216e3ccef0",
-        "ItemGetOptional": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b"
+        "ItemGetOptional": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
+        "ElementDamage": "attr-elem-damage",
+        "SelectedElement": "attr-selected-element",
+        "ElementChampions": "attr-elem-champions",
+        "FireDamageGet": "attr-elem-fire-damage-get",
+        "SelectedDamageGet": "attr-elem-selected-damage-get"
       },
       "extendsTypeId": null,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -2490,7 +2952,8 @@
       "id": "eef03495-48c4-4760-8b4c-dc41b6d9e589",
       "name": "Save",
       "schema": {
-        "GameTime": "f8da8237-148c-4173-b907-21b7b70bf7f9"
+        "GameTime": "f8da8237-148c-4173-b907-21b7b70bf7f9",
+        "ElementStats": "attr-elem-stats"
       },
       "extendsTypeId": null,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -2632,7 +3095,8 @@
       "name": "GameTime",
       "schema": {
         "Day": "f66f7114-3a49-47cb-a1dc-621f0f641c0e",
-        "Season": "4f178bca-5b13-4e8f-b650-e92af7ef6177"
+        "Season": "4f178bca-5b13-4e8f-b650-e92af7ef6177",
+        "ElementBonus": "attr-elem-bonus"
       },
       "extendsTypeId": null,
       "isAbstract": false,
@@ -2655,7 +3119,10 @@
         "NPCs": "d248d3cc-ef02-4307-8cea-63bf431bb433",
         "ItemLookup": "75fb01eb-d375-4ba1-8e99-fb01f590f9f6",
         "DictionaryCustomLookup": "3c5c21ca-baae-4d83-9884-af4ce64a6a75",
-        "DeletePending": "74491606-2ac3-4781-8f70-f1e037a7c899"
+        "DeletePending": "74491606-2ac3-4781-8f70-f1e037a7c899",
+        "ElementDamage": "v-elem-damage",
+        "SelectedElement": "v-selected-element",
+        "ElementChampions": "v-elem-champions"
       },
       "createdAt": "2026-04-22T04:37:20.781Z",
       "updatedAt": "2026-04-30T00:49:58.000Z",
@@ -2665,7 +3132,8 @@
       "_id": "69e8508119f7c06f14880284",
       "id": "50455a56-c450-47d9-8a51-13a5146dfda6",
       "value": {
-        "GameTime": "312b84b6-6ec2-43c8-88ca-46d99fc4467a"
+        "GameTime": "312b84b6-6ec2-43c8-88ca-46d99fc4467a",
+        "ElementStats": "v-elem-stats"
       },
       "createdAt": "2026-04-22T04:37:21.050Z",
       "updatedAt": "2026-04-28T23:43:49.187Z",
@@ -3721,7 +4189,8 @@
       "id": "312b84b6-6ec2-43c8-88ca-46d99fc4467a",
       "value": {
         "Day": "25a7a939-163e-458d-9211-45e74046788d",
-        "Season": "8af4a8d8-0360-4639-b5bf-e11f18609d75"
+        "Season": "8af4a8d8-0360-4639-b5bf-e11f18609d75",
+        "ElementBonus": "v-elem-bonus"
       },
       "typeId": null,
       "createdAt": "2026-04-28T23:43:49.080Z",
@@ -4165,6 +4634,284 @@
       "typeId": null,
       "createdAt": "2026-04-30T23:05:21.303Z",
       "updatedAt": "2026-04-30T23:05:21.303Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-damage-entry-default": {
+      "_id": "v-elem-damage-entry-default",
+      "id": "v-elem-damage-entry-default",
+      "value": 0,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-damage-default": {
+      "_id": "v-elem-damage-default",
+      "id": "v-elem-damage-default",
+      "value": {},
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-stats-entry-default": {
+      "_id": "v-elem-stats-entry-default",
+      "id": "v-elem-stats-entry-default",
+      "value": 0,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-stats-default": {
+      "_id": "v-elem-stats-default",
+      "id": "v-elem-stats-default",
+      "value": {},
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-selected-element-default": {
+      "_id": "v-selected-element-default",
+      "id": "v-selected-element-default",
+      "value": [
+        "water"
+      ],
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-bonus-entry-default": {
+      "_id": "v-elem-bonus-entry-default",
+      "id": "v-elem-bonus-entry-default",
+      "value": 0,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-bonus-default": {
+      "_id": "v-elem-bonus-default",
+      "id": "v-elem-bonus-default",
+      "value": {},
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champion-entry-default": {
+      "_id": "v-elem-champion-entry-default",
+      "id": "v-elem-champion-entry-default",
+      "value": {},
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champions-default": {
+      "_id": "v-elem-champions-default",
+      "id": "v-elem-champions-default",
+      "value": {},
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-damage": {
+      "_id": "v-elem-damage",
+      "id": "v-elem-damage",
+      "value": {
+        "fire": "v-elem-damage-fire",
+        "water": "v-elem-damage-water",
+        "storm": "v-elem-damage-storm"
+      },
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-damage-fire": {
+      "_id": "v-elem-damage-fire",
+      "id": "v-elem-damage-fire",
+      "value": 30,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-damage-water": {
+      "_id": "v-elem-damage-water",
+      "id": "v-elem-damage-water",
+      "value": 20,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-damage-storm": {
+      "_id": "v-elem-damage-storm",
+      "id": "v-elem-damage-storm",
+      "value": 99,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-stats": {
+      "_id": "v-elem-stats",
+      "id": "v-elem-stats",
+      "value": {
+        "fire": "v-elem-stats-fire"
+      },
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-stats-fire": {
+      "_id": "v-elem-stats-fire",
+      "id": "v-elem-stats-fire",
+      "value": 12,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-selected-element": {
+      "_id": "v-selected-element",
+      "id": "v-selected-element",
+      "value": [
+        "water"
+      ],
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-bonus": {
+      "_id": "v-elem-bonus",
+      "id": "v-elem-bonus",
+      "value": {
+        "earth": "v-elem-bonus-earth"
+      },
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-bonus-earth": {
+      "_id": "v-elem-bonus-earth",
+      "id": "v-elem-bonus-earth",
+      "value": 5,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champions": {
+      "_id": "v-elem-champions",
+      "id": "v-elem-champions",
+      "value": {
+        "earth": "v-elem-champion-earth"
+      },
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champion-earth": {
+      "_id": "v-elem-champion-earth",
+      "id": "v-elem-champion-earth",
+      "value": {
+        "Name": "v-elem-champion-name",
+        "Age": "v-elem-champion-age",
+        "CanRomance": "v-elem-champion-canromance",
+        "Extra": "v-elem-champion-extra",
+        "Birthday": "v-elem-champion-birthday",
+        "SomeNPCList": "v-elem-champion-npclist"
+      },
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champion-name": {
+      "_id": "v-elem-champion-name",
+      "id": "v-elem-champion-name",
+      "value": "Terra",
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champion-age": {
+      "_id": "v-elem-champion-age",
+      "id": "v-elem-champion-age",
+      "value": 21,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champion-canromance": {
+      "_id": "v-elem-champion-canromance",
+      "id": "v-elem-champion-canromance",
+      "value": false,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champion-extra": {
+      "_id": "v-elem-champion-extra",
+      "id": "v-elem-champion-extra",
+      "value": "",
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champion-birthday": {
+      "_id": "v-elem-champion-birthday",
+      "id": "v-elem-champion-birthday",
+      "value": {
+        "Day": "v-elem-champion-bday-day",
+        "Season": "v-elem-champion-bday-season"
+      },
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champion-bday-day": {
+      "_id": "v-elem-champion-bday-day",
+      "id": "v-elem-champion-bday-day",
+      "value": 2,
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champion-bday-season": {
+      "_id": "v-elem-champion-bday-season",
+      "id": "v-elem-champion-bday-season",
+      "value": [
+        "Spring"
+      ],
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
+      "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
+    },
+    "v-elem-champion-npclist": {
+      "_id": "v-elem-champion-npclist",
+      "id": "v-elem-champion-npclist",
+      "value": [],
+      "typeId": null,
+      "createdAt": "2026-07-07T00:00:00.000Z",
+      "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
     }
   }
