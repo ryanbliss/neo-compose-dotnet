@@ -563,6 +563,7 @@ namespace NeoCompose.Runtime
                 Vector2IntAttribute => new PrimitiveTypeInfo { type = AttributeType.Vector2Int, required = attribute.required },
                 Vector3Attribute => new PrimitiveTypeInfo { type = AttributeType.Vector3, required = attribute.required },
                 Vector3IntAttribute => new PrimitiveTypeInfo { type = AttributeType.Vector3Int, required = attribute.required },
+                ColorAttribute => new PrimitiveTypeInfo { type = AttributeType.Color, required = attribute.required },
                 CustomAttribute custom => new CustomTypeInfo
                 {
                     type = AttributeType.Custom,
@@ -602,6 +603,8 @@ namespace NeoCompose.Runtime
                     return new Vector3Attribute { id = id, type = AttributeType.Vector3 };
                 case AttributeType.Vector3Int:
                     return new Vector3IntAttribute { id = id, type = AttributeType.Vector3Int };
+                case AttributeType.Color:
+                    return new ColorAttribute { id = id, type = AttributeType.Color };
                 case AttributeType.Custom:
                     return new CustomAttribute
                     {
@@ -688,6 +691,7 @@ namespace NeoCompose.Runtime
                 ObjectAttributeValue o => o.value,
                 Vector2AttributeValue v => v.value,
                 Vector3AttributeValue v => v.value,
+                ColorAttributeValue c => c.value,
                 NullAttributeValue => null,
                 _ => null,
             };

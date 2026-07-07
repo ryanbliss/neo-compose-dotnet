@@ -3064,7 +3064,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             set
             {
                 ThrowIfReadOnly("NeoTileInstance.Cell");
-                NeoGeneratedTypesSupport.SetVector2Int(writableNode, "Cell", value.Value);
+                NeoGeneratedTypesSupport.SetVector2Int(writableNode, "Cell", value);
             }
         }
 
@@ -5286,7 +5286,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             set
             {
                 ThrowIfReadOnly("ExitPromptObject.Size");
-                NeoGeneratedTypesSupport.SetVector3(writableNode, "Size", value.Value);
+                NeoGeneratedTypesSupport.SetVector3(writableNode, "Size", value);
             }
         }
 
@@ -5847,7 +5847,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value.Value);
+                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value);
             }
         }
 
@@ -7242,7 +7242,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
             set
             {
-                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value.Value);
+                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value);
             }
         }
 

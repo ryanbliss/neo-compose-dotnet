@@ -460,15 +460,18 @@ namespace NeoCompose.Tests
                 GridCell: new NeoVector3Int(1, 2, 3),
                 Path: new[] { new NeoVector3(3, 4, 5) });
 
-            hero.Position.x = 10;
+            // Assignment convention (specs/color-attribute.md §6): wrappers
+            // expose no component setters; a per-component update is a
+            // whole-value reassignment through the generated setter.
+            hero.Position = new Vector3(10, hero.Position.y, hero.Position.z);
             Assert.AreEqual(10f, hero.Position.x);
 
             hero.Position = new Vector3(11, 12, 13);
             Vector3 replaced = hero.Position;
             Assert.AreEqual(new Vector3(11, 12, 13), replaced);
 
-            hero.GridCell!.z = 99;
-            Assert.AreEqual(99, hero.GridCell.z);
+            hero.GridCell = new Vector3Int(hero.GridCell!.x, hero.GridCell.y, 99);
+            Assert.AreEqual(99, hero.GridCell!.z);
 
             hero.GridCell = null;
             Assert.IsNull(hero.GridCell);

@@ -1293,6 +1293,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return IsVector3Value(value, requireIntegers: false);
                 case AttributeType.Vector3Int:
                     return IsVector3Value(value, requireIntegers: true);
+                case AttributeType.Color:
+                    return IsColorValue(value);
                 case AttributeType.List: return value is object?[];
                 case AttributeType.Dictionary:
                     return value is IDictionary<string, object?>;
@@ -1428,6 +1430,7 @@ namespace NeoCompose.Runtime.NeoScript
                     },
                 Vector2AttributeValue v => v.value,
                 Vector3AttributeValue v => v.value,
+                ColorAttributeValue c => c.value,
                 NullAttributeValue _ => null,
                 _ => null,
             };
@@ -1704,6 +1707,30 @@ namespace NeoCompose.Runtime.NeoScript
             return false;
         }
 
+        private static bool IsColorValue(object? value)
+        {
+            if (value is Color) return true;
+            if (value is NeoReadOnlyColor) return true;
+            if (value is NeoColorValue) return true;
+            if (value is IDictionary<string, object?> dict && dict.Count == 4)
+            {
+                return TryAsDouble(dict.TryGetValue("r", out var r) ? r : null, out double rv)
+                    && TryAsDouble(dict.TryGetValue("g", out var g) ? g : null, out double gv)
+                    && TryAsDouble(dict.TryGetValue("b", out var b) ? b : null, out double bv)
+                    && TryAsDouble(dict.TryGetValue("a", out var a) ? a : null, out double av)
+                    && IsColorComponent(rv)
+                    && IsColorComponent(gv)
+                    && IsColorComponent(bv)
+                    && IsColorComponent(av);
+            }
+            return false;
+        }
+
+        private static bool IsColorComponent(double value)
+        {
+            return value >= 0 && value <= 1;
+        }
+
         private static bool IsInteger(double value)
         {
             return System.Math.Truncate(value) == value;
@@ -1893,6 +1920,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case AttributeType.Vector2Int: return "Vector2Int";
                 case AttributeType.Vector3: return "Vector3";
                 case AttributeType.Vector3Int: return "Vector3Int";
+                case AttributeType.Color: return "Color";
                 case AttributeType.Custom:
                 {
                     string typeId = (t as CustomTypeInfo)?.typeId ?? "";

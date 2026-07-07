@@ -232,6 +232,16 @@ namespace NeoCompose.Runtime
         public void Set(Vector3Int? newValue) => SetRaw(newValue);
     }
 
+    /// <summary>
+    /// Read-only Vector2 wrapper. Assignment convention
+    /// (specs/color-attribute.md §6, decisions 5–6): <see cref="Value"/> is
+    /// get-only across the whole wrapper family — writes flow exclusively
+    /// through generated property setters calling
+    /// <see cref="NeoGeneratedTypesSupport.SetVector2(NeoAttributeCustomWritable, string, NeoReadOnlyVector2)"/>,
+    /// so read-only misuse is a compile error. Equality is value-based:
+    /// property getters mint fresh wrapper instances, so reference equality
+    /// would always be false.
+    /// </summary>
     public class NeoReadOnlyVector2
     {
         protected readonly NeoAttributeVector2? attributeNode;
@@ -257,8 +267,46 @@ namespace NeoCompose.Runtime
             : NeoVectorValues.ReadVector2(attributeNode);
 
         public static implicit operator Vector2(NeoReadOnlyVector2 value) => value.Value;
+
+        public static bool operator ==(NeoReadOnlyVector2? left, NeoReadOnlyVector2? right)
+        {
+            if (left is null) return right is null;
+            if (right is null) return false;
+            return left.Value == right.Value;
+        }
+
+        public static bool operator !=(NeoReadOnlyVector2? left, NeoReadOnlyVector2? right)
+            => !(left == right);
+
+        public static bool operator ==(NeoReadOnlyVector2? left, Vector2 right)
+            => left is not null && left.Value == right;
+
+        public static bool operator !=(NeoReadOnlyVector2? left, Vector2 right)
+            => !(left == right);
+
+        public static bool operator ==(Vector2 left, NeoReadOnlyVector2? right)
+            => right is not null && right.Value == left;
+
+        public static bool operator !=(Vector2 left, NeoReadOnlyVector2? right)
+            => !(left == right);
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is NeoReadOnlyVector2 wrapper) return Value == wrapper.Value;
+            if (obj is Vector2 native) return Value == native;
+            return false;
+        }
+
+        public override int GetHashCode() => Value.GetHashCode();
     }
 
+    /// <summary>
+    /// Writable-context Vector2 wrapper. Adds no mutation API over
+    /// <see cref="NeoReadOnlyVector2"/> — only the native→wrapper implicit
+    /// conversion so <c>obj.Position = new Vector2(…);</c> produces a
+    /// detached instance whose value the generated setter writes through
+    /// the node (value-copy semantics, never a live link).
+    /// </summary>
     public class NeoVector2 : NeoReadOnlyVector2
     {
         public NeoVector2(Vector2 value)
@@ -270,50 +318,13 @@ namespace NeoCompose.Runtime
         public NeoVector2(NeoAttributeVector2 attribute)
             : base(attribute) { }
 
-        public new float x
-        {
-            get => Value.x;
-            set
-            {
-                var next = Value;
-                next.x = value;
-                Value = next;
-            }
-        }
-
-        public new float y
-        {
-            get => Value.y;
-            set
-            {
-                var next = Value;
-                next.y = value;
-                Value = next;
-            }
-        }
-
-        public new Vector2 Value
-        {
-            get => base.Value;
-            set
-            {
-                if (attributeNode is null)
-                {
-                    detachedValue = value;
-                    return;
-                }
-                if (attributeNode is NeoAttributeVector2Writable writable)
-                {
-                    writable.Set(value);
-                    return;
-                }
-                throw new System.InvalidOperationException("Cannot mutate a read-only Vector2 attribute.");
-            }
-        }
-
         public static implicit operator NeoVector2(Vector2 value) => new NeoVector2(value);
     }
 
+    /// <summary>
+    /// Read-only Vector2Int wrapper — assignment convention and value-based
+    /// equality; see <see cref="NeoReadOnlyVector2"/>.
+    /// </summary>
     public class NeoReadOnlyVector2Int
     {
         protected readonly NeoAttributeVector2Int? attributeNode;
@@ -339,8 +350,43 @@ namespace NeoCompose.Runtime
             : NeoVectorValues.ReadVector2Int(attributeNode);
 
         public static implicit operator Vector2Int(NeoReadOnlyVector2Int value) => value.Value;
+
+        public static bool operator ==(NeoReadOnlyVector2Int? left, NeoReadOnlyVector2Int? right)
+        {
+            if (left is null) return right is null;
+            if (right is null) return false;
+            return left.Value == right.Value;
+        }
+
+        public static bool operator !=(NeoReadOnlyVector2Int? left, NeoReadOnlyVector2Int? right)
+            => !(left == right);
+
+        public static bool operator ==(NeoReadOnlyVector2Int? left, Vector2Int right)
+            => left is not null && left.Value == right;
+
+        public static bool operator !=(NeoReadOnlyVector2Int? left, Vector2Int right)
+            => !(left == right);
+
+        public static bool operator ==(Vector2Int left, NeoReadOnlyVector2Int? right)
+            => right is not null && right.Value == left;
+
+        public static bool operator !=(Vector2Int left, NeoReadOnlyVector2Int? right)
+            => !(left == right);
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is NeoReadOnlyVector2Int wrapper) return Value == wrapper.Value;
+            if (obj is Vector2Int native) return Value == native;
+            return false;
+        }
+
+        public override int GetHashCode() => Value.GetHashCode();
     }
 
+    /// <summary>
+    /// Writable-context Vector2Int wrapper — no mutation API; see
+    /// <see cref="NeoVector2"/>.
+    /// </summary>
     public class NeoVector2Int : NeoReadOnlyVector2Int
     {
         public NeoVector2Int(Vector2Int value)
@@ -352,50 +398,13 @@ namespace NeoCompose.Runtime
         public NeoVector2Int(NeoAttributeVector2Int attribute)
             : base(attribute) { }
 
-        public new int x
-        {
-            get => Value.x;
-            set
-            {
-                var next = Value;
-                next.x = value;
-                Value = next;
-            }
-        }
-
-        public new int y
-        {
-            get => Value.y;
-            set
-            {
-                var next = Value;
-                next.y = value;
-                Value = next;
-            }
-        }
-
-        public new Vector2Int Value
-        {
-            get => base.Value;
-            set
-            {
-                if (attributeNode is null)
-                {
-                    detachedValue = value;
-                    return;
-                }
-                if (attributeNode is NeoAttributeVector2IntWritable writable)
-                {
-                    writable.Set(value);
-                    return;
-                }
-                throw new System.InvalidOperationException("Cannot mutate a read-only Vector2Int attribute.");
-            }
-        }
-
         public static implicit operator NeoVector2Int(Vector2Int value) => new NeoVector2Int(value);
     }
 
+    /// <summary>
+    /// Read-only Vector3 wrapper — assignment convention and value-based
+    /// equality; see <see cref="NeoReadOnlyVector2"/>.
+    /// </summary>
     public class NeoReadOnlyVector3
     {
         protected readonly NeoAttributeVector3? attributeNode;
@@ -422,8 +431,43 @@ namespace NeoCompose.Runtime
             : NeoVectorValues.ReadVector3(attributeNode);
 
         public static implicit operator Vector3(NeoReadOnlyVector3 value) => value.Value;
+
+        public static bool operator ==(NeoReadOnlyVector3? left, NeoReadOnlyVector3? right)
+        {
+            if (left is null) return right is null;
+            if (right is null) return false;
+            return left.Value == right.Value;
+        }
+
+        public static bool operator !=(NeoReadOnlyVector3? left, NeoReadOnlyVector3? right)
+            => !(left == right);
+
+        public static bool operator ==(NeoReadOnlyVector3? left, Vector3 right)
+            => left is not null && left.Value == right;
+
+        public static bool operator !=(NeoReadOnlyVector3? left, Vector3 right)
+            => !(left == right);
+
+        public static bool operator ==(Vector3 left, NeoReadOnlyVector3? right)
+            => right is not null && right.Value == left;
+
+        public static bool operator !=(Vector3 left, NeoReadOnlyVector3? right)
+            => !(left == right);
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is NeoReadOnlyVector3 wrapper) return Value == wrapper.Value;
+            if (obj is Vector3 native) return Value == native;
+            return false;
+        }
+
+        public override int GetHashCode() => Value.GetHashCode();
     }
 
+    /// <summary>
+    /// Writable-context Vector3 wrapper — no mutation API; see
+    /// <see cref="NeoVector2"/>.
+    /// </summary>
     public class NeoVector3 : NeoReadOnlyVector3
     {
         public NeoVector3(Vector3 value)
@@ -435,61 +479,13 @@ namespace NeoCompose.Runtime
         public NeoVector3(NeoAttributeVector3 attribute)
             : base(attribute) { }
 
-        public new float x
-        {
-            get => Value.x;
-            set
-            {
-                var next = Value;
-                next.x = value;
-                Value = next;
-            }
-        }
-
-        public new float y
-        {
-            get => Value.y;
-            set
-            {
-                var next = Value;
-                next.y = value;
-                Value = next;
-            }
-        }
-
-        public new float z
-        {
-            get => Value.z;
-            set
-            {
-                var next = Value;
-                next.z = value;
-                Value = next;
-            }
-        }
-
-        public new Vector3 Value
-        {
-            get => base.Value;
-            set
-            {
-                if (attributeNode is null)
-                {
-                    detachedValue = value;
-                    return;
-                }
-                if (attributeNode is NeoAttributeVector3Writable writable)
-                {
-                    writable.Set(value);
-                    return;
-                }
-                throw new System.InvalidOperationException("Cannot mutate a read-only Vector3 attribute.");
-            }
-        }
-
         public static implicit operator NeoVector3(Vector3 value) => new NeoVector3(value);
     }
 
+    /// <summary>
+    /// Read-only Vector3Int wrapper — assignment convention and value-based
+    /// equality; see <see cref="NeoReadOnlyVector2"/>.
+    /// </summary>
     public class NeoReadOnlyVector3Int
     {
         protected readonly NeoAttributeVector3Int? attributeNode;
@@ -516,8 +512,43 @@ namespace NeoCompose.Runtime
             : NeoVectorValues.ReadVector3Int(attributeNode);
 
         public static implicit operator Vector3Int(NeoReadOnlyVector3Int value) => value.Value;
+
+        public static bool operator ==(NeoReadOnlyVector3Int? left, NeoReadOnlyVector3Int? right)
+        {
+            if (left is null) return right is null;
+            if (right is null) return false;
+            return left.Value == right.Value;
+        }
+
+        public static bool operator !=(NeoReadOnlyVector3Int? left, NeoReadOnlyVector3Int? right)
+            => !(left == right);
+
+        public static bool operator ==(NeoReadOnlyVector3Int? left, Vector3Int right)
+            => left is not null && left.Value == right;
+
+        public static bool operator !=(NeoReadOnlyVector3Int? left, Vector3Int right)
+            => !(left == right);
+
+        public static bool operator ==(Vector3Int left, NeoReadOnlyVector3Int? right)
+            => right is not null && right.Value == left;
+
+        public static bool operator !=(Vector3Int left, NeoReadOnlyVector3Int? right)
+            => !(left == right);
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is NeoReadOnlyVector3Int wrapper) return Value == wrapper.Value;
+            if (obj is Vector3Int native) return Value == native;
+            return false;
+        }
+
+        public override int GetHashCode() => Value.GetHashCode();
     }
 
+    /// <summary>
+    /// Writable-context Vector3Int wrapper — no mutation API; see
+    /// <see cref="NeoVector2"/>.
+    /// </summary>
     public class NeoVector3Int : NeoReadOnlyVector3Int
     {
         public NeoVector3Int(Vector3Int value)
@@ -528,58 +559,6 @@ namespace NeoCompose.Runtime
 
         public NeoVector3Int(NeoAttributeVector3Int attribute)
             : base(attribute) { }
-
-        public new int x
-        {
-            get => Value.x;
-            set
-            {
-                var next = Value;
-                next.x = value;
-                Value = next;
-            }
-        }
-
-        public new int y
-        {
-            get => Value.y;
-            set
-            {
-                var next = Value;
-                next.y = value;
-                Value = next;
-            }
-        }
-
-        public new int z
-        {
-            get => Value.z;
-            set
-            {
-                var next = Value;
-                next.z = value;
-                Value = next;
-            }
-        }
-
-        public new Vector3Int Value
-        {
-            get => base.Value;
-            set
-            {
-                if (attributeNode is null)
-                {
-                    detachedValue = value;
-                    return;
-                }
-                if (attributeNode is NeoAttributeVector3IntWritable writable)
-                {
-                    writable.Set(value);
-                    return;
-                }
-                throw new System.InvalidOperationException("Cannot mutate a read-only Vector3Int attribute.");
-            }
-        }
 
         public static implicit operator NeoVector3Int(Vector3Int value) => new NeoVector3Int(value);
     }

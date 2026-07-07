@@ -1282,6 +1282,18 @@ namespace NeoCompose.Runtime
                             z = v.value.z,
                         },
                 },
+                ColorAttributeValue c => new ColorAttributeValue
+                {
+                    value = c.value == null
+                        ? null
+                        : new NeoColorValue
+                        {
+                            r = c.value.r,
+                            g = c.value.g,
+                            b = c.value.b,
+                            a = c.value.a,
+                        },
+                },
                 _ => throw new System.InvalidOperationException(
                     $"Unsupported save value row type '{row.GetType().Name}'."),
             };
@@ -2291,6 +2303,15 @@ namespace NeoCompose.Runtime
                         vector,
                         v => NeoVectorValues.FromVector3Int(v));
                 }
+                case AttributeType.Color:
+                {
+                    Color? color = NeoGeneratedTypesSupport.ReadColorValue(value);
+                    return NormalizeVectorResult(
+                        returnTypeInfo,
+                        value,
+                        color,
+                        c => NeoColorValues.FromColor(c));
+                }
                 default:
                     return value;
             }
@@ -2331,6 +2352,7 @@ namespace NeoCompose.Runtime
                 AttributeType.Vector2Int => new NeoDeferredFunction<Vector2Int>(attribute.id, attribute.name, complete, fail),
                 AttributeType.Vector3 => new NeoDeferredFunction<Vector3>(attribute.id, attribute.name, complete, fail),
                 AttributeType.Vector3Int => new NeoDeferredFunction<Vector3Int>(attribute.id, attribute.name, complete, fail),
+                AttributeType.Color => new NeoDeferredFunction<Color>(attribute.id, attribute.name, complete, fail),
                 _ => new NeoDeferredFunction<object?>(attribute.id, attribute.name, complete, fail),
             };
         }

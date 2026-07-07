@@ -179,11 +179,28 @@ namespace NeoCompose.Runtime.Json
         public float z { get; set; }
     }
 
+    /// <summary>
+    /// RGBA color payload — four floats, each a finite number in
+    /// <c>[0, 1]</c>. Maps 1:1 onto <c>UnityEngine.Color</c> with no
+    /// scaling (specs/color-attribute.md decision 1).
+    /// </summary>
+    [JsonConverter(typeof(NeoColorValueConverter))]
+    public class NeoColorValue
+    {
+        public float r { get; set; }
+        public float g { get; set; }
+        public float b { get; set; }
+        public float a { get; set; }
+    }
+
     /// <summary>Carrier for Vector2 / Vector2Int defaults.</summary>
     public class Vector2AttributeValueBase : AttributeValueBase<NeoVector2Value?> { }
 
     /// <summary>Carrier for Vector3 / Vector3Int defaults.</summary>
     public class Vector3AttributeValueBase : AttributeValueBase<NeoVector3Value?> { }
+
+    /// <summary>Carrier for Color defaults.</summary>
+    public class ColorAttributeValueBase : AttributeValueBase<NeoColorValue?> { }
 
     public class NeoVector2ValueConverter : JsonConverter
     {
@@ -320,6 +337,108 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// Strict read converter for <see cref="NeoColorValue"/> (mirrors
+    /// <see cref="NeoVector2ValueConverter"/>): the wire value must be an
+    /// object with <b>exactly</b> the keys <c>r</c>/<c>g</c>/<c>b</c>/<c>a</c>,
+    /// each a finite number in <c>[0, 1]</c>. Each failure throws its own
+    /// distinct message. Read-only — default serialization handles writes.
+    /// </summary>
+    public class NeoColorValueConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(NeoColorValue);
+        }
+
+        public override bool CanWrite => false;
+
+        public override object ReadJson(
+            JsonReader reader,
+            Type objectType,
+            object? existingValue,
+            JsonSerializer serializer)
+        {
+            var obj = JObject.Load(reader);
+            if (obj.Count != 4)
+            {
+                throw new JsonSerializationException(
+                    "Color value must have exactly the numeric fields 'r', 'g', 'b', and 'a'.");
+            }
+            return new NeoColorValue
+            {
+                r = ReadColorComponent(obj, "r"),
+                g = ReadColorComponent(obj, "g"),
+                b = ReadColorComponent(obj, "b"),
+                a = ReadColorComponent(obj, "a"),
+            };
+        }
+
+        public override void WriteJson(
+            JsonWriter writer,
+            object? value,
+            JsonSerializer serializer)
+        {
+            throw new NotImplementedException(
+                "NeoColorValueConverter is read-only; default serialization handles writes.");
+        }
+
+        internal static bool LooksLikeColorValue(JToken token)
+        {
+            if (token.Type != JTokenType.Object) return false;
+            var obj = (JObject)token;
+            return obj.Count == 4
+                && IsColorComponent(obj["r"])
+                && IsColorComponent(obj["g"])
+                && IsColorComponent(obj["b"])
+                && IsColorComponent(obj["a"]);
+        }
+
+        internal static float ReadColorComponent(JObject obj, string key)
+        {
+            var token = obj[key];
+            if (token is null)
+            {
+                throw new JsonSerializationException(
+                    $"Color value is missing '{key}'.");
+            }
+            if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
+            {
+                throw new JsonSerializationException(
+                    $"Color component '{key}' must be a number.");
+            }
+            var value = token.Value<float>();
+            if (float.IsNaN(value) || float.IsInfinity(value))
+            {
+                throw new JsonSerializationException(
+                    $"Color component '{key}' must be a finite number.");
+            }
+            if (value < 0f)
+            {
+                throw new JsonSerializationException(
+                    $"Color component '{key}' must not be less than 0.");
+            }
+            if (value > 1f)
+            {
+                throw new JsonSerializationException(
+                    $"Color component '{key}' must not be greater than 1.");
+            }
+            return value;
+        }
+
+        private static bool IsColorComponent(JToken? token)
+        {
+            if (token == null) return false;
+            if (token.Type != JTokenType.Integer && token.Type != JTokenType.Float)
+            {
+                return false;
+            }
+            var value = token.Value<float>();
+            if (float.IsNaN(value) || float.IsInfinity(value)) return false;
+            return value >= 0f && value <= 1f;
+        }
+    }
+
+    /// <summary>
     /// Two-mode dispatch converter for <see cref="AttributeValueBase"/>.
     ///
     /// <para><b>Context-aware (TValue) dispatch</b> when the field is
@@ -411,6 +530,7 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Object:
                     if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3AttributeValueBase);
                     if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2AttributeValueBase);
+                    if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorAttributeValueBase);
                     if (LooksLikeSpriteValue(token)) return typeof(SpriteAttributeValueBase);
                     if (LooksLikeFileValue(token)) return typeof(FileAttributeValueBase);
                     return typeof(ObjectAttributeValueBase);
@@ -548,6 +668,9 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Stored value for a Vector3 / Vector3Int attribute.</summary>
     public class Vector3AttributeValue : AttributeValue<NeoVector3Value?> { }
 
+    /// <summary>Stored value for a Color attribute.</summary>
+    public class ColorAttributeValue : AttributeValue<NeoColorValue?> { }
+
     /// <summary>
     /// Two-mode dispatch converter for <see cref="AttributeValue"/>.
     /// Same dual logic as <see cref="AttributeValueBaseConverter"/>,
@@ -613,6 +736,7 @@ namespace NeoCompose.Runtime.Json
                 case JTokenType.Object:
                     if (NeoVector3ValueConverter.LooksLikeVector3Value(token)) return typeof(Vector3AttributeValue);
                     if (NeoVector2ValueConverter.LooksLikeVector2Value(token)) return typeof(Vector2AttributeValue);
+                    if (NeoColorValueConverter.LooksLikeColorValue(token)) return typeof(ColorAttributeValue);
                     if (LooksLikeSpriteValue(token)) return typeof(SpriteAttributeValue);
                     if (LooksLikeFileValue(token)) return typeof(FileAttributeValue);
                     return typeof(ObjectAttributeValue);
