@@ -262,7 +262,18 @@ namespace NeoCompose.Runtime.NeoScript
                 ["__context__"] = ctx.contextValue,
             };
             var result = EvalInstructions(getter.instructions, scope, ctx);
-            if (result.kind == InstructionResultKind.Return) return result.value;
+            if (result.kind == InstructionResultKind.Return)
+            {
+                // `return intExpr;` on a Decimal-typed getter type-checks via
+                // exact int widening; the runtime number becomes a canonical
+                // decimal string here (mirrors the TS evaluator's return seam).
+                if (getter.typeInfo.type == AttributeType.Decimal
+                    && IsRuntimeNumber(result.value))
+                {
+                    return CoerceDecimalOperand(result.value, "return");
+                }
+                return result.value;
+            }
             throw new NSGetterRuntimeError("Function ended without a return statement");
         }
 
@@ -323,6 +334,14 @@ namespace NeoCompose.Runtime.NeoScript
                     case VariableInstruction varInstr:
                     {
                         var v = EvalPointer(varInstr.variable.pointer, scope, ctx);
+                        // `decimal x = intExpr;` type-checks via exact int
+                        // widening; the runtime number becomes a canonical
+                        // decimal string at the seam (TS evaluator parity).
+                        if (varInstr.variable.typeInfo.type == AttributeType.Decimal
+                            && IsRuntimeNumber(v))
+                        {
+                            v = CoerceDecimalOperand(v, "variable initialization");
+                        }
                         scope[varInstr.variable.id] = v;
                         break;
                     }
@@ -373,8 +392,17 @@ namespace NeoCompose.Runtime.NeoScript
                             throw new NSGetterRuntimeError(
                                 "Getters cannot assign to attributes; assignment targets must be local variables.");
                         }
-                        scope[variablePointer.variableId] =
-                            EvalPointer(assign.pointer, scope, ctx);
+                        var assigned = EvalPointer(assign.pointer, scope, ctx);
+                        // `decimalVar = intExpr` type-checks via exact int
+                        // widening; coerce before storing (TS evaluator's
+                        // assign seam — it fires before the local-variable
+                        // branch and the write push alike).
+                        if (assign.target.typeInfo.type == AttributeType.Decimal
+                            && IsRuntimeNumber(assigned))
+                        {
+                            assigned = CoerceDecimalOperand(assigned, "assignment");
+                        }
+                        scope[variablePointer.variableId] = assigned;
                         break;
                     }
                     default:
@@ -782,7 +810,7 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         operands[i] = EvalPointer(info.pointers[i], scope, ctx);
                     }
-                    return ApplyArithmetic(info.type, operands);
+                    return ApplyArithmetic(info.type, operands, info.isDecimal == true);
                 }
                 case BooleanOperation boolOp:
                     return EvalBooleanExpression(boolOp.expression, scope, ctx);
@@ -792,11 +820,18 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
-        private static object? ApplyArithmetic(string op, object?[] operands)
+        private static object? ApplyArithmetic(string op, object?[] operands, bool isDecimal)
         {
             if (operands.Length == 0)
             {
                 throw new NSGetterRuntimeError("Arithmetic operation with no operands");
+            }
+            // Decimal-stamped operations route to exact math BEFORE the
+            // string dispatch below — decimal runtime values are canonical
+            // strings, and without this branch `+` would concatenate them.
+            if (isDecimal)
+            {
+                return ApplyDecimalArithmetic(op, operands);
             }
             // String concat for `+` over all-strings.
             if (op == ArithmeticOpKind.Addition)
@@ -874,6 +909,115 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        // ---------------------------------------------------------------
+        // Decimal support (specs/decimal-attribute.md decision 7 / §6.4).
+        // Decimal values travel through the evaluator as canonical decimal
+        // strings; all math routes through NeoDecimalMath (the BigInteger
+        // core shared with the web's decimal-math.ts via the parity
+        // fixture) — native System.Decimal arithmetic is never used here.
+        // ---------------------------------------------------------------
+
+        /// <summary>
+        /// True when <paramref name="value"/> is a runtime number — the C#
+        /// analog of the TS evaluator's <c>typeof value === "number"</c>
+        /// guard at the Int→Decimal widening seams.
+        /// </summary>
+        private static bool IsRuntimeNumber(object? value)
+        {
+            return value is double or float or int or long or short;
+        }
+
+        /// <summary>
+        /// Coerces a decimal-stamped operand to a canonical decimal string
+        /// (mirror of the TS evaluator's <c>coerceDecimalOperand</c>).
+        /// Integer numbers widen exactly (`int` operands in mixed
+        /// expressions); strings must already be canonical (they always are
+        /// when produced by decimal-typed pointers or ops). Internal so
+        /// <see cref="NeoDialogueActionEvaluator"/> reuses the identical
+        /// seam for EditAttribute assignment.
+        /// </summary>
+        internal static string CoerceDecimalOperand(object? value, string context)
+        {
+            if (value is string text)
+            {
+                if (NeoDecimalValues.GetViolation(text) != NeoDecimalValues.Violation.None)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Decimal {context} operand is not a canonical decimal string: \"{text}\"");
+                }
+                return text;
+            }
+            if (TryAsDouble(value, out double number))
+            {
+                if (double.IsNaN(number))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Decimal {context} operand is NaN; convert explicitly with ToDecimal(digits).");
+                }
+                if (double.IsInfinity(number))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Decimal {context} operand is not finite; convert explicitly with ToDecimal(digits).");
+                }
+                if (number != System.Math.Truncate(number))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Decimal {context} operand {number.ToString(CultureInfo.InvariantCulture)} is not an integer; convert explicitly with ToDecimal(digits).");
+                }
+                if (System.Math.Abs(number) > 9007199254740991d)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Decimal {context} operand {number.ToString(CultureInfo.InvariantCulture)} exceeds the exactly-representable integer range; convert explicitly with ToDecimal(digits).");
+                }
+                return ((long)number).ToString(CultureInfo.InvariantCulture);
+            }
+            throw new NSGetterRuntimeError(
+                $"Decimal {context} operand is not numeric: {ReceiverTypeName(value)}");
+        }
+
+        private static string ApplyDecimalArithmetic(string op, object?[] operands)
+        {
+            var decimals = new string[operands.Length];
+            for (int i = 0; i < operands.Length; i++)
+            {
+                decimals[i] = CoerceDecimalOperand(operands[i], "arithmetic");
+            }
+            try
+            {
+                switch (op)
+                {
+                    case ArithmeticOpKind.Addition:
+                    {
+                        string acc = decimals[0];
+                        for (int i = 1; i < decimals.Length; i++) acc = NeoDecimalMath.Add(acc, decimals[i]);
+                        return acc;
+                    }
+                    case ArithmeticOpKind.Subtraction:
+                    {
+                        string acc = decimals[0];
+                        for (int i = 1; i < decimals.Length; i++) acc = NeoDecimalMath.Subtract(acc, decimals[i]);
+                        return acc;
+                    }
+                    case ArithmeticOpKind.Multiplication:
+                    {
+                        string acc = decimals[0];
+                        for (int i = 1; i < decimals.Length; i++) acc = NeoDecimalMath.Multiply(acc, decimals[i]);
+                        return acc;
+                    }
+                    default:
+                        // Unreachable for `/` and `%`: the compiler rejects
+                        // them on decimals (specs/decimal-attribute.md
+                        // decision 7).
+                        throw new NSGetterRuntimeError(
+                            $"Decimal '{op}' is not supported at runtime.");
+                }
+            }
+            catch (DecimalOverflowException error)
+            {
+                throw new NSGetterRuntimeError(error.Message);
+            }
+        }
+
         private static bool EvalBooleanExpression(
             BooleanExpression expression,
             Dictionary<string, object?> scope,
@@ -899,6 +1043,41 @@ namespace NeoCompose.Runtime.NeoScript
         {
             var a = EvalPointer(condition.operand1, scope, ctx);
             var b = EvalPointer(condition.operand2, scope, ctx);
+            // Decimal-stamped comparisons are exact and scale-blind
+            // ("1.10" == "1.1"). Null operands (optional decimals) keep the
+            // JsEqual null semantics for equality; ordering against null is
+            // a runtime error (TS evaluator parity).
+            if (condition.isDecimal == true)
+            {
+                bool aIsNull = a is null;
+                bool bIsNull = b is null;
+                if (aIsNull || bIsNull)
+                {
+                    switch (condition.type)
+                    {
+                        case OperatorKind.EqualTo: return aIsNull && bIsNull;
+                        case OperatorKind.DoesNotEqual: return !(aIsNull && bIsNull);
+                        default:
+                            throw new NSGetterRuntimeError(
+                                "Decimal ordering comparison received a null operand.");
+                    }
+                }
+                int comparison = NeoDecimalMath.Compare(
+                    CoerceDecimalOperand(a, "comparison"),
+                    CoerceDecimalOperand(b, "comparison"));
+                switch (condition.type)
+                {
+                    case OperatorKind.EqualTo: return comparison == 0;
+                    case OperatorKind.DoesNotEqual: return comparison != 0;
+                    case OperatorKind.GreaterThan: return comparison > 0;
+                    case OperatorKind.GreaterThanOrEqualTo: return comparison >= 0;
+                    case OperatorKind.LessThan: return comparison < 0;
+                    case OperatorKind.LessThanOrEqualTo: return comparison <= 0;
+                    default:
+                        throw new NSGetterRuntimeError(
+                            $"Unknown comparison operator '{condition.type}'");
+                }
+            }
             switch (condition.type)
             {
                 case OperatorKind.EqualTo: return JsEqual(a, b);
@@ -939,6 +1118,10 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case VectorConstructorFunction vcf:
                     return EvalVectorConstructor(vcf.info, scope, ctx);
+                case DecimalOpFunction dof:
+                    return EvalDecimalOp(dof.info, scope, ctx);
+                case StringOpFunction sof:
+                    return EvalStringOp(sof.info, scope, ctx);
                 case CountFunction cf:
                 {
                     var c = EvalPointer(cf.info.collectionPointer, scope, ctx);
@@ -1122,6 +1305,161 @@ namespace NeoCompose.Runtime.NeoScript
             }
         }
 
+        /// <summary>
+        /// Evaluates a <c>decimalOp</c> builtin
+        /// (<c>Round</c>/<c>Divide</c>/<c>ToFloat</c>/<c>ToDecimal</c> —
+        /// specs/decimal-attribute.md decision 7), mirroring the TS
+        /// evaluator's <c>NSFunctionType.decimalOp</c> case. All decimal
+        /// math flows through <see cref="NeoDecimalMath"/>; its distinct
+        /// failure exceptions map onto <see cref="NSGetterRuntimeError"/>
+        /// with their messages preserved.
+        /// </summary>
+        private static object? EvalDecimalOp(
+            FunctionDecimalOpInfo info,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            var receiverRaw = EvalPointer(info.receiverPointer, scope, ctx);
+            if (receiverRaw is null)
+            {
+                throw new NSGetterRuntimeError($"Decimal {info.op} receiver is null.");
+            }
+            try
+            {
+                switch (info.op)
+                {
+                    case DecimalOpKind.Round:
+                        return NeoDecimalMath.Round(
+                            CoerceDecimalOperand(receiverRaw, "Round"),
+                            EvalDecimalOpDigits(info, scope, ctx));
+                    case DecimalOpKind.Divide:
+                    {
+                        if (info.argPointer is null)
+                        {
+                            throw new NSGetterRuntimeError(
+                                "Decimal Divide is missing its divisor pointer.");
+                        }
+                        var divisorRaw = EvalPointer(info.argPointer, scope, ctx);
+                        if (divisorRaw is null)
+                        {
+                            throw new NSGetterRuntimeError("Decimal Divide divisor is null.");
+                        }
+                        return NeoDecimalMath.Divide(
+                            CoerceDecimalOperand(receiverRaw, "Divide"),
+                            CoerceDecimalOperand(divisorRaw, "Divide"),
+                            EvalDecimalOpDigits(info, scope, ctx));
+                    }
+                    case DecimalOpKind.ToFloat:
+                        return NeoDecimalMath.ToFloat(
+                            CoerceDecimalOperand(receiverRaw, "ToFloat"));
+                    case DecimalOpKind.ToDecimal:
+                    {
+                        if (!TryAsDouble(receiverRaw, out double floatValue))
+                        {
+                            throw new NSGetterRuntimeError(
+                                $"ToDecimal receiver must be a float; got {ReceiverTypeName(receiverRaw)}.");
+                        }
+                        return NeoDecimalMath.FromFloat(
+                            floatValue,
+                            EvalDecimalOpDigits(info, scope, ctx));
+                    }
+                    default:
+                        throw new NSGetterRuntimeError($"Unknown decimal op '{info.op}'.");
+                }
+            }
+            catch (DecimalOverflowException error)
+            {
+                throw new NSGetterRuntimeError(error.Message);
+            }
+            catch (DecimalDivisionByZeroException error)
+            {
+                throw new NSGetterRuntimeError(error.Message);
+            }
+            catch (DecimalDigitsRangeException error)
+            {
+                throw new NSGetterRuntimeError(error.Message);
+            }
+            catch (DecimalNonFiniteException error)
+            {
+                throw new NSGetterRuntimeError(error.Message);
+            }
+        }
+
+        /// <summary>
+        /// Evaluates a decimalOp's <c>digitsPointer</c> to an integer digit
+        /// count (mirror of the TS evaluator's lazy <c>digits()</c> helper —
+        /// distinct errors for a missing pointer vs a non-integer value; the
+        /// 0..28 range check lives in <see cref="NeoDecimalMath"/>).
+        /// </summary>
+        private static int EvalDecimalOpDigits(
+            FunctionDecimalOpInfo info,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            if (info.digitsPointer is null)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Decimal {info.op} is missing its digits pointer.");
+            }
+            var value = EvalPointer(info.digitsPointer, scope, ctx);
+            if (!TryAsDouble(value, out double number) || number != System.Math.Truncate(number))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Decimal {info.op} digits argument must be an integer; got {ReceiverTypeName(value)}.");
+            }
+            return (int)number;
+        }
+
+        /// <summary>
+        /// Evaluates a <c>stringOp</c> builtin (<c>ToLower</c>/<c>ToUpper</c>/
+        /// <c>Trim</c>/<c>StartsWith</c>/<c>EndsWith</c>), mirroring the TS
+        /// evaluator's <c>NSFunctionType.stringOp</c> case. This closes a
+        /// pre-existing parity gap: the IR kind existed web-side but the
+        /// dotnet converter had no <c>stringOp</c> variant, so such a
+        /// function failed to deserialize.
+        /// </summary>
+        private static object EvalStringOp(
+            FunctionStringOpInfo info,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            var receiver = EvalPointer(info.receiverPointer, scope, ctx);
+            if (receiver is not string receiverText)
+            {
+                throw new NSGetterRuntimeError(
+                    $"string.{info.op} receiver must be a string");
+            }
+            switch (info.op)
+            {
+                case StringOpKind.ToLower:
+                    return receiverText.ToLowerInvariant();
+                case StringOpKind.ToUpper:
+                    return receiverText.ToUpperInvariant();
+                case StringOpKind.Trim:
+                    return receiverText.Trim();
+                case StringOpKind.StartsWith:
+                case StringOpKind.EndsWith:
+                {
+                    if (info.argPointer is null)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"string.{info.op} requires an argument");
+                    }
+                    var arg = EvalPointer(info.argPointer, scope, ctx);
+                    if (arg is not string argText)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"string.{info.op} argument must be a string");
+                    }
+                    return info.op == StringOpKind.StartsWith
+                        ? receiverText.StartsWith(argText, StringComparison.Ordinal)
+                        : receiverText.EndsWith(argText, StringComparison.Ordinal);
+                }
+                default:
+                    throw new NSGetterRuntimeError($"Unknown string op {info.op}");
+            }
+        }
+
         private static void EnsureVectorArity(
             float[] components,
             int expected,
@@ -1295,6 +1633,11 @@ namespace NeoCompose.Runtime.NeoScript
                     return IsVector3Value(value, requireIntegers: true);
                 case AttributeType.Color:
                     return IsColorValue(value);
+                case AttributeType.Decimal:
+                    // Decimal runtime values ARE canonical decimal strings
+                    // (specs/decimal-attribute.md decision 7).
+                    return value is string decimalText
+                        && NeoDecimalValues.GetViolation(decimalText) == NeoDecimalValues.Violation.None;
                 case AttributeType.List: return value is object?[];
                 case AttributeType.Dictionary:
                     return value is IDictionary<string, object?>;
@@ -1409,6 +1752,12 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 BoolAttributeValue b => b.value,
                 NumberAttributeValue n => n.value,
+                // A Decimal attribute's row is a StringAttributeValue
+                // (specs/decimal-attribute.md decision 5) whose schema
+                // attribute is a DecimalAttribute — it falls to the raw
+                // `s.value` arm here, which is exactly right: the evaluator's
+                // decimal representation IS the canonical stored string, and
+                // localization never applies. No Decimal case is needed.
                 StringAttributeValue s => attribute is StringAttribute stringAttribute
                     ? ResolveStringValue(s, stringAttribute, ctx)
                     : s.value,

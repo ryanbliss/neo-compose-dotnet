@@ -174,6 +174,18 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx)
         {
             object? rhs = Eval(instruction.pointer, scope, ctx);
+            // `decimalAttr = intExpr` type-checks via exact int widening; the
+            // runtime value arrives here as a number and must be stored as a
+            // canonical decimal string. Mirrors the TS evaluator's assign
+            // seam, which fires before the local-variable branch and the
+            // write push alike. (This evaluator has its own assign executor —
+            // it does not share NSGetterEvaluator's instruction loop — so the
+            // seam is mirrored here explicitly.)
+            if (instruction.target.typeInfo.type == AttributeType.Decimal
+                && rhs is double or float or int or long or short)
+            {
+                rhs = NSGetterEvaluator.CoerceDecimalOperand(rhs, "assignment");
+            }
             if (instruction.target.pointer is VariablePointer variablePointer)
             {
                 scope[variablePointer.variableId] = rhs;
@@ -564,6 +576,7 @@ namespace NeoCompose.Runtime
                 Vector3Attribute => new PrimitiveTypeInfo { type = AttributeType.Vector3, required = attribute.required },
                 Vector3IntAttribute => new PrimitiveTypeInfo { type = AttributeType.Vector3Int, required = attribute.required },
                 ColorAttribute => new PrimitiveTypeInfo { type = AttributeType.Color, required = attribute.required },
+                DecimalAttribute => new PrimitiveTypeInfo { type = AttributeType.Decimal, required = attribute.required },
                 CustomAttribute custom => new CustomTypeInfo
                 {
                     type = AttributeType.Custom,
@@ -605,6 +618,12 @@ namespace NeoCompose.Runtime
                     return new Vector3IntAttribute { id = id, type = AttributeType.Vector3Int };
                 case AttributeType.Color:
                     return new ColorAttribute { id = id, type = AttributeType.Color };
+                case AttributeType.Decimal:
+                    // A Decimal write flows through AttributeValueFactory as
+                    // a DecimalAttribute → StringAttributeValue row
+                    // (specs/decimal-attribute.md decision 5); the payload is
+                    // the canonical decimal string the evaluator produced.
+                    return new DecimalAttribute { id = id, type = AttributeType.Decimal };
                 case AttributeType.Custom:
                     return new CustomAttribute
                     {

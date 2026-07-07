@@ -101,6 +101,40 @@ namespace NeoCompose.Runtime.Json
         public Pointer[] componentPointers = null!;
     }
 
+    /// <summary>
+    /// Info shape for <c>stringOp</c>: a method-call-style string builtin
+    /// (<c>ToLower</c>/<c>ToUpper</c>/<c>Trim</c>/<c>StartsWith</c>/
+    /// <c>EndsWith</c>). Mirrors TS-side <c>INSFunctionStringOpInfo</c>.
+    /// </summary>
+    public class FunctionStringOpInfo
+    {
+        /// <summary>One of <see cref="StringOpKind"/>.</summary>
+        public string op = null!;
+        public Pointer receiverPointer = null!;
+        /// <summary>Present for startsWith/endsWith.</summary>
+        public Pointer? argPointer;
+    }
+
+    /// <summary>
+    /// Info shape for <c>decimalOp</c>: a method-call-style decimal builtin
+    /// (specs/decimal-attribute.md decision 7). Mirrors TS-side
+    /// <c>INSFunctionDecimalOpInfo</c>.
+    /// </summary>
+    public class FunctionDecimalOpInfo
+    {
+        /// <summary>One of <see cref="DecimalOpKind"/>.</summary>
+        public string op = null!;
+        /// <summary>Decimal receiver (round/divide/toFloat) or Float receiver (toDecimal).</summary>
+        public Pointer receiverPointer = null!;
+        /// <summary>Present for divide: the divisor (Decimal, or Int widened exactly).</summary>
+        public Pointer? argPointer;
+        /// <summary>
+        /// Present for round/divide/toDecimal: the fractional-digit count
+        /// (Int; runtime-validated to 0..28 with a distinct error).
+        /// </summary>
+        public Pointer? digitsPointer;
+    }
+
     // ---------- Per-function variants ----------
 
     public class SelectFunction : Function
@@ -148,6 +182,16 @@ namespace NeoCompose.Runtime.Json
         public FunctionVectorConstructorInfo info = null!;
     }
 
+    public class StringOpFunction : Function
+    {
+        public FunctionStringOpInfo info = null!;
+    }
+
+    public class DecimalOpFunction : Function
+    {
+        public FunctionDecimalOpInfo info = null!;
+    }
+
     public class FunctionConverter : DiscriminatedConverter<Function>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -163,6 +207,8 @@ namespace NeoCompose.Runtime.Json
                 case FunctionKind.VisitCount: return typeof(VisitCountFunction);
                 case FunctionKind.HasVisited: return typeof(HasVisitedFunction);
                 case FunctionKind.VectorConstructor: return typeof(VectorConstructorFunction);
+                case FunctionKind.StringOp: return typeof(StringOpFunction);
+                case FunctionKind.DecimalOp: return typeof(DecimalOpFunction);
                 default: return null;
             }
         }

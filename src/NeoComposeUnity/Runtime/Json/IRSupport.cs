@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.Json
@@ -87,6 +88,34 @@ namespace NeoCompose.Runtime.Json
         public const string VisitCount = "visitCount";
         public const string HasVisited = "hasVisited";
         public const string VectorConstructor = "vectorConstructor";
+        public const string StringOp = "stringOp";
+        public const string DecimalOp = "decimalOp";
+    }
+
+    /// <summary>
+    /// Wire values of the TS-side <c>TNSStringOp</c> union — the ops a
+    /// <c>stringOp</c> function IR node may carry.
+    /// </summary>
+    public static class StringOpKind
+    {
+        public const string ToLower = "toLower";
+        public const string ToUpper = "toUpper";
+        public const string Trim = "trim";
+        public const string StartsWith = "startsWith";
+        public const string EndsWith = "endsWith";
+    }
+
+    /// <summary>
+    /// Wire values of the TS-side <c>TNSDecimalOp</c> union — the ops a
+    /// <c>decimalOp</c> function IR node may carry
+    /// (specs/decimal-attribute.md decision 7).
+    /// </summary>
+    public static class DecimalOpKind
+    {
+        public const string Round = "round";
+        public const string Divide = "divide";
+        public const string ToFloat = "toFloat";
+        public const string ToDecimal = "toDecimal";
     }
 
     public static class WritabilityKind
@@ -175,6 +204,18 @@ namespace NeoCompose.Runtime.Json
         /// <summary>One of <see cref="ArithmeticOpKind"/>.</summary>
         public string type = null!;
         public Pointer[] pointers = null!;
+        /// <summary>
+        /// TS-side <c>decimal?: boolean</c> — when true, this operation is
+        /// Decimal-typed and evaluates over canonical decimal strings via
+        /// <see cref="NeoDecimalMath"/> (specs/decimal-attribute.md
+        /// decision 7). Only <c>+</c>/<c>-</c>/<c>*</c> ever carry the
+        /// stamp (the compiler rejects <c>/</c> and <c>%</c> on decimals).
+        /// The TS-side name <c>decimal</c> is a C# keyword —
+        /// <see cref="JsonPropertyAttribute"/> keeps the wire form
+        /// unchanged (the <c>else</c>/<c>elseInstructions</c> precedent).
+        /// </summary>
+        [JsonProperty("decimal")]
+        public bool? isDecimal;
     }
 
     /// <summary>
@@ -186,6 +227,15 @@ namespace NeoCompose.Runtime.Json
         public string type = null!;
         public Pointer operand1 = null!;
         public Pointer operand2 = null!;
+        /// <summary>
+        /// TS-side <c>decimal?: boolean</c> — when true, this comparison is
+        /// exact decimal: operands are canonical decimal strings compared
+        /// scale-blind via <see cref="NeoDecimalMath.Compare"/>
+        /// ("1.10" == "1.1" is true). Wire name preserved per the
+        /// <c>else</c>/<c>elseInstructions</c> precedent.
+        /// </summary>
+        [JsonProperty("decimal")]
+        public bool? isDecimal;
     }
 
     /// <summary>

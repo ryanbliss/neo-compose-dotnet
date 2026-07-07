@@ -1105,6 +1105,8 @@ namespace NeoCompose.Runtime
                     return CreateDefaultVector3Row(nowIso, attr.defaultValue);
                 case ColorAttribute attr:
                     return CreateDefaultColorRow(nowIso, attr.defaultValue);
+                case DecimalAttribute attr:
+                    return CreateDefaultDecimalRow(nowIso, attr.defaultValue);
                 case StringAttribute attr:
                     return attr.defaultValue is null
                         ? null
@@ -1308,6 +1310,15 @@ namespace NeoCompose.Runtime
                         createdAt = nowIso,
                         updatedAt = nowIso,
                         value = CloneColor(sourceValue.value),
+                        typeId = source.typeId,
+                    };
+                case DecimalAttribute when source is StringAttributeValue sourceValue:
+                    return new StringAttributeValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = sourceValue.value,
                         typeId = source.typeId,
                     };
                 case StringAttribute when source is StringAttributeValue sourceValue:
@@ -1538,6 +1549,26 @@ namespace NeoCompose.Runtime
             return source is null
                 ? null
                 : new NeoColorValue { r = source.r, g = source.g, b = source.b, a = source.a };
+        }
+
+        /// <summary>
+        /// Default-value row for a Decimal attribute. Decimal has a
+        /// well-defined non-null default — canonical "0"
+        /// (specs/decimal-attribute.md decision 4) — so an absent authored
+        /// default still materializes a row (a string row, decision 5) rather
+        /// than leaving a required field valueless.
+        /// </summary>
+        private static StringAttributeValue CreateDefaultDecimalRow(
+            string nowIso,
+            AttributeValueBase<string?>? defaultValue)
+        {
+            return new StringAttributeValue
+            {
+                id = Guid.NewGuid().ToString(),
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = defaultValue?.value ?? "0",
+            };
         }
 
         public static NeoValuePayload? ValuePayload(

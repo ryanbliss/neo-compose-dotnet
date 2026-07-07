@@ -108,6 +108,11 @@ namespace NeoCompose.Runtime
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = ColorPayload(rawPayload, attribute),
                 },
+                DecimalAttribute => new StringAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = DecimalPayload(rawPayload, attribute),
+                },
                 NSGetterAttribute => new NullAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
@@ -249,6 +254,12 @@ namespace NeoCompose.Runtime
                     value = CloneColorValue(attr.defaultValue.value),
                     typeId = attr.defaultValue.typeId,
                 },
+                DecimalAttribute attr => attr.defaultValue is null ? null : new StringAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = attr.defaultValue.value,
+                    typeId = attr.defaultValue.typeId,
+                },
                 _ => null,
             };
         }
@@ -343,6 +354,14 @@ namespace NeoCompose.Runtime
                     b = source.b,
                     a = source.a,
                 };
+        }
+
+        private static string? DecimalPayload(object? payload, Attribute attribute)
+        {
+            if (payload is null) return null;
+            if (payload is string canonical) return canonical;
+            if (payload is decimal value) return NeoDecimalValues.Format(value);
+            throw PayloadError(payload, attribute, "Decimal");
         }
 
         private static NeoColorValue? ColorPayload(object? payload, Attribute attribute)
