@@ -503,7 +503,7 @@ namespace Assets.Scripts.Neo
             set
             {
                 ThrowIfReadOnly("Hero.Position");
-                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value.Value);
+                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value);
             }
         }
 
@@ -525,12 +525,7 @@ namespace Assets.Scripts.Neo
             set
             {
                 ThrowIfReadOnly("Hero.GridCell");
-                if (value is null)
-                {
-                    writableNode.Unset("GridCell");
-                    return;
-                }
-                NeoGeneratedTypesSupport.SetVector3Int(writableNode, "GridCell", value.Value);
+                NeoGeneratedTypesSupport.SetVector3IntOrClear(writableNode, "GridCell", value);
             }
         }
 

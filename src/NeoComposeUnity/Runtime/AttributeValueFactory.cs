@@ -103,6 +103,11 @@ namespace NeoCompose.Runtime
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = Vector3IntPayload(rawPayload, attribute),
                 },
+                ColorAttribute => new ColorAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = ColorPayload(rawPayload, attribute),
+                },
                 NSGetterAttribute => new NullAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
@@ -238,6 +243,12 @@ namespace NeoCompose.Runtime
                     value = CloneVector3Value(attr.defaultValue.value),
                     typeId = attr.defaultValue.typeId,
                 },
+                ColorAttribute attr => attr.defaultValue is null ? null : new ColorAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = CloneColorValue(attr.defaultValue.value),
+                    typeId = attr.defaultValue.typeId,
+                },
                 _ => null,
             };
         }
@@ -319,6 +330,28 @@ namespace NeoCompose.Runtime
             return source is null
                 ? null
                 : new NeoVector3Value { x = source.x, y = source.y, z = source.z };
+        }
+
+        private static NeoColorValue? CloneColorValue(NeoColorValue? source)
+        {
+            return source is null
+                ? null
+                : new NeoColorValue
+                {
+                    r = source.r,
+                    g = source.g,
+                    b = source.b,
+                    a = source.a,
+                };
+        }
+
+        private static NeoColorValue? ColorPayload(object? payload, Attribute attribute)
+        {
+            if (payload is null) return null;
+            if (payload is NeoColorValue raw) return raw;
+            if (payload is Color color) return NeoColorValues.FromColor(color);
+            if (payload is NeoReadOnlyColor wrapper) return NeoColorValues.FromColor(wrapper.Value);
+            throw PayloadError(payload, attribute, "Color");
         }
 
         private static NeoVector2Value? Vector2Payload(object? payload, Attribute attribute)

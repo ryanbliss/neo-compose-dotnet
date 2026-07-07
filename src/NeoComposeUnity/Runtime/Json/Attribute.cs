@@ -353,6 +353,9 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of TS-side <c>TAttributeVector3Int</c>.</summary>
     public class Vector3IntAttribute : Attribute<NeoVector3Value?> { }
 
+    /// <summary>Mirror of TS-side <c>TAttributeColor</c>.</summary>
+    public class ColorAttribute : Attribute<NeoColorValue?> { }
+
     public class AttributeConverter : DiscriminatedConverter<Attribute>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -382,6 +385,7 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Vector2Int: return typeof(Vector2IntAttribute);
                 case AttributeType.Vector3: return typeof(Vector3Attribute);
                 case AttributeType.Vector3Int: return typeof(Vector3IntAttribute);
+                case AttributeType.Color: return typeof(ColorAttribute);
                 default: return null;
             }
         }

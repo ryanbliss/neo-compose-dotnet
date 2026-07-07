@@ -128,7 +128,7 @@ namespace HelloWorld.Assets.Scripts
             {
                 // Neo-native movement: write the object's Session-storage
                 // Position; the renderer moves the spawned GameObject.
-                playerSpawn.Position = new NeoVector3(PlayerCell.x, PlayerCell.y, 0f);
+                playerSpawn.Position = new Vector3(PlayerCell.x, PlayerCell.y, 0f);
             }
             RenderChrome();
         }

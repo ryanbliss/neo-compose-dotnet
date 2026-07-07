@@ -109,6 +109,7 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Vector2Int:
                 case AttributeType.Vector3:
                 case AttributeType.Vector3Int:
+                case AttributeType.Color:
                     return typeof(PrimitiveTypeInfo);
                 case AttributeType.Custom:
                     return typeof(CustomTypeInfo);
@@ -153,6 +154,7 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Vector2Int:
                 case AttributeType.Vector3:
                 case AttributeType.Vector3Int:
+                case AttributeType.Color:
                     return typeof(PrimitiveTypeInfo);
                 case AttributeType.Custom:
                     return typeof(CustomTypeInfo);

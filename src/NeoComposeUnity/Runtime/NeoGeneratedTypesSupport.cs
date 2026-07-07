@@ -82,6 +82,24 @@ namespace NeoCompose.Runtime
             return NeoVectorValues.FromVector3Int(value);
         }
 
+        public static NeoColorValue ColorValue(Color value)
+        {
+            return NeoColorValues.FromColor(value);
+        }
+
+        public static Color? ReadColorValue(object? value)
+        {
+            if (value is null) return null;
+            if (value is Color color) return color;
+            if (value is NeoReadOnlyColor wrapper) return wrapper.Value;
+            if (value is NeoColorValue raw) return NeoColorValues.ToColor(raw);
+            if (TryReadColorComponents(value, out float r, out float g, out float b, out float a))
+            {
+                return new Color(r, g, b, a);
+            }
+            return null;
+        }
+
         public static Vector2? ReadVector2Value(object? value)
         {
             if (value is null) return null;
@@ -164,6 +182,152 @@ namespace NeoCompose.Runtime
             Vector3Int value)
         {
             SetValue(node, key, Value(Vector3IntValue(value)));
+        }
+
+        // ------------------------------------------------------------------
+        // Wrapper-typed write funnels (specs/color-attribute.md §4/§6.2).
+        // Generated property setters route through these: `obj.Position = v`
+        // assigns a (bound or detached) wrapper whose *current* value is
+        // written — value-copy semantics, never a live link. The native-typed
+        // overloads above stay for NeoScript marshalling and value-row
+        // creation. The null guard throws a distinct ArgumentNullException
+        // because an implicit-conversion NRE would otherwise surface with a
+        // useless message.
+        // ------------------------------------------------------------------
+
+        public static void SetVector2(
+            NeoAttributeCustomWritable node,
+            string key,
+            NeoReadOnlyVector2 value)
+        {
+            if (value is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(value),
+                    $"Cannot assign a null Vector2 wrapper to required attribute '{key}'.");
+            }
+            SetVector2(node, key, value.Value);
+        }
+
+        public static void SetVector2OrClear(
+            NeoAttributeCustomWritable node,
+            string key,
+            NeoReadOnlyVector2? value)
+        {
+            if (value is null)
+            {
+                node.Unset(key);
+                return;
+            }
+            SetVector2(node, key, value.Value);
+        }
+
+        public static void SetVector2Int(
+            NeoAttributeCustomWritable node,
+            string key,
+            NeoReadOnlyVector2Int value)
+        {
+            if (value is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(value),
+                    $"Cannot assign a null Vector2Int wrapper to required attribute '{key}'.");
+            }
+            SetVector2Int(node, key, value.Value);
+        }
+
+        public static void SetVector2IntOrClear(
+            NeoAttributeCustomWritable node,
+            string key,
+            NeoReadOnlyVector2Int? value)
+        {
+            if (value is null)
+            {
+                node.Unset(key);
+                return;
+            }
+            SetVector2Int(node, key, value.Value);
+        }
+
+        public static void SetVector3(
+            NeoAttributeCustomWritable node,
+            string key,
+            NeoReadOnlyVector3 value)
+        {
+            if (value is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(value),
+                    $"Cannot assign a null Vector3 wrapper to required attribute '{key}'.");
+            }
+            SetVector3(node, key, value.Value);
+        }
+
+        public static void SetVector3OrClear(
+            NeoAttributeCustomWritable node,
+            string key,
+            NeoReadOnlyVector3? value)
+        {
+            if (value is null)
+            {
+                node.Unset(key);
+                return;
+            }
+            SetVector3(node, key, value.Value);
+        }
+
+        public static void SetVector3Int(
+            NeoAttributeCustomWritable node,
+            string key,
+            NeoReadOnlyVector3Int value)
+        {
+            if (value is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(value),
+                    $"Cannot assign a null Vector3Int wrapper to required attribute '{key}'.");
+            }
+            SetVector3Int(node, key, value.Value);
+        }
+
+        public static void SetVector3IntOrClear(
+            NeoAttributeCustomWritable node,
+            string key,
+            NeoReadOnlyVector3Int? value)
+        {
+            if (value is null)
+            {
+                node.Unset(key);
+                return;
+            }
+            SetVector3Int(node, key, value.Value);
+        }
+
+        public static void SetColor(
+            NeoAttributeCustomWritable node,
+            string key,
+            NeoReadOnlyColor value)
+        {
+            if (value is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(value),
+                    $"Cannot assign a null Color wrapper to required attribute '{key}'.");
+            }
+            SetValue(node, key, Value(ColorValue(value.Value)));
+        }
+
+        public static void SetColorOrClear(
+            NeoAttributeCustomWritable node,
+            string key,
+            NeoReadOnlyColor? value)
+        {
+            if (value is null)
+            {
+                node.Unset(key);
+                return;
+            }
+            SetValue(node, key, Value(ColorValue(value.Value)));
         }
 
         public static TGenerated GetOrCreateGeneratedCustomValue<TGenerated>(
@@ -656,6 +820,36 @@ namespace NeoCompose.Runtime
             return false;
         }
 
+        private static bool TryReadColorComponents(
+            object value,
+            out float r,
+            out float g,
+            out float b,
+            out float a)
+        {
+            r = 0;
+            g = 0;
+            b = 0;
+            a = 0;
+            if (value is IDictionary<string, object?> dict)
+            {
+                if (dict.Count != 4) return false;
+                return TryReadFloat(dict.TryGetValue("r", out var rv) ? rv : null, out r)
+                    && TryReadFloat(dict.TryGetValue("g", out var gv) ? gv : null, out g)
+                    && TryReadFloat(dict.TryGetValue("b", out var bv) ? bv : null, out b)
+                    && TryReadFloat(dict.TryGetValue("a", out var av) ? av : null, out a);
+            }
+            if (value is JObject obj)
+            {
+                if (obj.Count != 4) return false;
+                return TryReadFloat(obj["r"], out r)
+                    && TryReadFloat(obj["g"], out g)
+                    && TryReadFloat(obj["b"], out b)
+                    && TryReadFloat(obj["a"], out a);
+            }
+            return false;
+        }
+
         private static bool TryReadFloat(object? value, out float result)
         {
             switch (value)
@@ -909,6 +1103,8 @@ namespace NeoCompose.Runtime
                     return CreateDefaultVector3Row(nowIso, attr.defaultValue);
                 case Vector3IntAttribute attr:
                     return CreateDefaultVector3Row(nowIso, attr.defaultValue);
+                case ColorAttribute attr:
+                    return CreateDefaultColorRow(nowIso, attr.defaultValue);
                 case StringAttribute attr:
                     return attr.defaultValue is null
                         ? null
@@ -1105,6 +1301,15 @@ namespace NeoCompose.Runtime
                         value = CloneVector3(sourceValue.value),
                         typeId = source.typeId,
                     };
+                case ColorAttribute when source is ColorAttributeValue sourceValue:
+                    return new ColorAttributeValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = CloneColor(sourceValue.value),
+                        typeId = source.typeId,
+                    };
                 case StringAttribute when source is StringAttributeValue sourceValue:
                     return new StringAttributeValue
                     {
@@ -1286,6 +1491,28 @@ namespace NeoCompose.Runtime
                 };
         }
 
+        /// <summary>
+        /// Default-value row for a Color attribute. Unlike the vectors,
+        /// Color has a well-defined identity default — opaque white
+        /// (specs/color-attribute.md decision 4) — so an absent authored
+        /// default still materializes a row rather than leaving a required
+        /// field valueless.
+        /// </summary>
+        private static ColorAttributeValue CreateDefaultColorRow(
+            string nowIso,
+            AttributeValueBase<NeoColorValue?>? defaultValue)
+        {
+            return new ColorAttributeValue
+            {
+                id = Guid.NewGuid().ToString(),
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = CloneColor(defaultValue?.value)
+                    ?? new NeoColorValue { r = 1f, g = 1f, b = 1f, a = 1f },
+                typeId = defaultValue?.typeId,
+            };
+        }
+
         private static string[]? CloneArray(string[]? source)
         {
             if (source is null) return null;
@@ -1304,6 +1531,13 @@ namespace NeoCompose.Runtime
             return source is null
                 ? null
                 : new NeoVector3Value { x = source.x, y = source.y, z = source.z };
+        }
+
+        private static NeoColorValue? CloneColor(NeoColorValue? source)
+        {
+            return source is null
+                ? null
+                : new NeoColorValue { r = source.r, g = source.g, b = source.b, a = source.a };
         }
 
         public static NeoValuePayload? ValuePayload(
