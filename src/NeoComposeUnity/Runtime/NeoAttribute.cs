@@ -179,6 +179,7 @@ namespace NeoCompose.Runtime
                 Vector3Attribute v3 => new NeoAttributeVector3(client, v3, overrideValueId),
                 Vector3IntAttribute v3i => new NeoAttributeVector3Int(client, v3i, overrideValueId),
                 ColorAttribute col => new NeoAttributeColor(client, col, overrideValueId),
+                DecimalAttribute dec => new NeoAttributeDecimal(client, dec, overrideValueId),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}", nameof(attribute)),
             };
@@ -229,6 +230,7 @@ namespace NeoCompose.Runtime
                 Vector3Attribute v3 => new NeoAttributeVector3Writable(client, v3, overrideValueId, ownership),
                 Vector3IntAttribute v3i => new NeoAttributeVector3IntWritable(client, v3i, overrideValueId, ownership),
                 ColorAttribute col => new NeoAttributeColorWritable(client, col, overrideValueId, ownership),
+                DecimalAttribute dec => new NeoAttributeDecimalWritable(client, dec, overrideValueId, ownership),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}", nameof(attribute)),
             };
@@ -258,6 +260,7 @@ namespace NeoCompose.Runtime
                 Vector3Attribute => existing is NeoAttributeVector3Writable,
                 Vector3IntAttribute => existing is NeoAttributeVector3IntWritable,
                 ColorAttribute => existing is NeoAttributeColorWritable,
+                DecimalAttribute => existing is NeoAttributeDecimalWritable,
                 _ => false,
             };
         }

@@ -356,6 +356,25 @@ namespace NeoCompose.Runtime.Json
     /// <summary>Mirror of TS-side <c>TAttributeColor</c>.</summary>
     public class ColorAttribute : Attribute<NeoColorValue?> { }
 
+    /// <summary>
+    /// Mirror of TS-side <c>TAttributeDecimal</c>
+    /// (specs/decimal-attribute.md decision 5). The value is a canonical
+    /// decimal string (see <see cref="NeoDecimalValues"/>) — on the wire and
+    /// in storage a decimal value reuses the String row shape
+    /// (<see cref="StringAttributeValue"/>), so <c>TValue</c> is
+    /// <c>string?</c>. Bounds are canonical decimal STRINGS (decision 3), not
+    /// float64 — an exact bound like <c>"0.0000000000000000001"</c> means
+    /// exactly that. Bounds are web-UI validation concerns only; the SDK
+    /// never enforces them (parity with Float). <see cref="decimalPoints"/>
+    /// is <c>number?</c> on the wire — nullable here.
+    /// </summary>
+    public class DecimalAttribute : Attribute<string?>
+    {
+        public string? minValue;
+        public string? maxValue;
+        public double? decimalPoints;
+    }
+
     public class AttributeConverter : DiscriminatedConverter<Attribute>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -386,6 +405,7 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Vector3: return typeof(Vector3Attribute);
                 case AttributeType.Vector3Int: return typeof(Vector3IntAttribute);
                 case AttributeType.Color: return typeof(ColorAttribute);
+                case AttributeType.Decimal: return typeof(DecimalAttribute);
                 default: return null;
             }
         }

@@ -31,6 +31,7 @@ namespace NeoCompose.Runtime.Json
         Vector3Int = 17,
         DialogueLookup = 18,
         Color = 19,
+        Decimal = 20,
         Unknown = -1,
         Void = -2,
     }

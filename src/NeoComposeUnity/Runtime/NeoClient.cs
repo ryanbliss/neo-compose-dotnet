@@ -2312,6 +2312,26 @@ namespace NeoCompose.Runtime
                         color,
                         c => NeoColorValues.FromColor(c));
                 }
+                case AttributeType.Decimal:
+                {
+                    // Decimal values travel through the evaluator as canonical
+                    // strings (specs/decimal-attribute.md §6.4); a native
+                    // Function returning `decimal` normalizes to that form.
+                    if (value is decimal decimalValue)
+                    {
+                        return NeoDecimalValues.Format(decimalValue);
+                    }
+                    if (value is string canonical)
+                    {
+                        return canonical;
+                    }
+                    if (value is null && !returnTypeInfo.required)
+                    {
+                        return null;
+                    }
+                    throw new NeoDeferredFunctionRuntimeError(
+                        $"Native Function returned a value that could not be converted to {AttributeType.Decimal}.");
+                }
                 default:
                     return value;
             }
@@ -2353,6 +2373,7 @@ namespace NeoCompose.Runtime
                 AttributeType.Vector3 => new NeoDeferredFunction<Vector3>(attribute.id, attribute.name, complete, fail),
                 AttributeType.Vector3Int => new NeoDeferredFunction<Vector3Int>(attribute.id, attribute.name, complete, fail),
                 AttributeType.Color => new NeoDeferredFunction<Color>(attribute.id, attribute.name, complete, fail),
+                AttributeType.Decimal => new NeoDeferredFunction<decimal>(attribute.id, attribute.name, complete, fail),
                 _ => new NeoDeferredFunction<object?>(attribute.id, attribute.name, complete, fail),
             };
         }
