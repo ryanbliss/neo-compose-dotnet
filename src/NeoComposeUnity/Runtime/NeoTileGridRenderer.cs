@@ -76,6 +76,8 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, ReadOnlyNeoObjectLayerRuntime> objectLayersByLayerId = new();
         private readonly Dictionary<string, GameObject> objectLayerRootsByLayerId = new();
         private readonly Dictionary<NeoObjectInstanceId, GameObject> objectRootsByInstanceId = new();
+        private readonly Dictionary<NeoObjectInstanceId, IDisposable>
+            objectPositionSubscriptionsByInstanceId = new();
         private readonly Dictionary<string, int> objectLayerFallbackSortingOrdersByLayerId = new();
         private RendererSmartTileNeighborMatcher? smartTileMatcher;
         private NeoTileGridRenderSession? liveSession;
@@ -493,6 +495,7 @@ namespace NeoCompose.Runtime
         {
             CancelInFlightRender();
             StopLiveSync();
+            DisposeObjectPositionSubscriptions();
         }
 
         /// <summary>
@@ -509,6 +512,36 @@ namespace NeoCompose.Runtime
             }
 
             root = null!;
+            return false;
+        }
+
+        /// <summary>
+        /// Looks up the root GameObject for the first rendered object whose
+        /// generated info is <typeparamref name="TInfo"/> — the presentation-side
+        /// counterpart of <c>content.GetObject&lt;TInfo&gt;()</c> (e.g. binding a
+        /// camera to the SDK-created PlayerSpawnObject). False when no such
+        /// instance is rendered.
+        /// </summary>
+        public bool TryGetObjectRoot<TInfo>(out GameObject root, out TInfo info)
+            where TInfo : class
+        {
+            var content = currentContent;
+            if (content != null)
+            {
+                foreach (var layer in content.ObjectLayersInOrder)
+                {
+                    foreach (var instance in layer.GetObjects())
+                    {
+                        if (instance.Info is not TInfo typed) continue;
+                        if (!TryGetObjectRoot(instance.InstanceId, out root)) continue;
+                        info = typed;
+                        return true;
+                    }
+                }
+            }
+
+            root = null!;
+            info = null!;
             return false;
         }
 
@@ -764,6 +797,7 @@ namespace NeoCompose.Runtime
 
         private void DestroyRenderedObject(NeoObjectInstanceId instanceId)
         {
+            DisposeObjectPositionSubscription(instanceId);
             if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
                 root == null)
             {
@@ -773,6 +807,57 @@ namespace NeoCompose.Runtime
 
             objectRootsByInstanceId.Remove(instanceId);
             DestroyCompositionRoot(root);
+        }
+
+        /// <summary>
+        /// Keeps a rendered object's transform in sync with its value-model
+        /// Position: runtime writes (e.g. a Session-storage Position on the
+        /// player spawn) move the GameObject, so the Neo data model stays the
+        /// single source of truth for placement.
+        /// </summary>
+        private void TrackObjectPosition(NeoResolvedObjectInstance instance)
+        {
+            var instanceId = instance.InstanceId;
+            var value = instance.Object;
+            DisposeObjectPositionSubscription(instanceId);
+            objectPositionSubscriptionsByInstanceId[instanceId] = value.WatchAnyChange(
+                (changedValue, _, _) =>
+                {
+                    if (!objectRootsByInstanceId.TryGetValue(instanceId, out var root) ||
+                        root == null)
+                    {
+                        return;
+                    }
+
+                    var position = NeoGeneratedTypesSupport.ReadVector3Value(
+                        ReadOptionalProperty(changedValue, "Position"));
+                    if (position == null) return;
+                    root.transform.localPosition = new Vector3(
+                        position.Value.x * cellSize,
+                        position.Value.y * cellSize,
+                        position.Value.z * cellSize);
+                });
+        }
+
+        private void DisposeObjectPositionSubscription(NeoObjectInstanceId instanceId)
+        {
+            if (!objectPositionSubscriptionsByInstanceId.TryGetValue(
+                instanceId, out var subscription))
+            {
+                return;
+            }
+
+            objectPositionSubscriptionsByInstanceId.Remove(instanceId);
+            subscription.Dispose();
+        }
+
+        private void DisposeObjectPositionSubscriptions()
+        {
+            foreach (var subscription in objectPositionSubscriptionsByInstanceId.Values)
+            {
+                subscription.Dispose();
+            }
+            objectPositionSubscriptionsByInstanceId.Clear();
         }
 
         private Grid EnsureGrid()
@@ -800,6 +885,7 @@ namespace NeoCompose.Runtime
             tileLayersByLayerId.Clear();
             objectLayersByLayerId.Clear();
             objectLayerRootsByLayerId.Clear();
+            DisposeObjectPositionSubscriptions();
             objectRootsByInstanceId.Clear();
             objectLayerFallbackSortingOrdersByLayerId.Clear();
         }
@@ -963,6 +1049,7 @@ namespace NeoCompose.Runtime
             var go = new GameObject($"Object - {instance.InstanceId.Value}");
             go.transform.SetParent(parent, false);
             go.transform.localPosition = CellToLocalPosition(instance.Cell);
+            TrackObjectPosition(instance);
 
             var sortingOrder =
                 (layer.SortingOrder ?? layerFallbackSortingOrder) + instance.Order;
@@ -976,7 +1063,14 @@ namespace NeoCompose.Runtime
 
             if (TryResolveObjectColliderSpec(instance.Object, out var colliderSpec))
             {
-                ApplyBoxCollider(go, colliderSpec);
+                // Authored collider values are grid cells; BoxCollider2D wants
+                // local units. Offset needs no re-anchoring — it shares the
+                // root transform's origin (the placement cell's corner), the
+                // same contract the web editor renders.
+                ApplyBoxCollider(go, new NeoBoxColliderSpec(
+                    colliderSpec.Size * cellSize,
+                    colliderSpec.Offset * cellSize,
+                    colliderSpec.IsTrigger));
                 if (renderedChildren > 0) return go;
             }
 

@@ -1756,7 +1756,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var child = node.Get<NeoAttributeCustom>("SmartTile");
-                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoSmartTile.Create(client, child);
             }
         }
 
@@ -2107,6 +2107,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
 
+        new IReadOnlyNeoCollider? Collider { get; }
+
         new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers { get; }
 
         new IReadOnlyNeoObjectLayer DefaultLayer { get; }
@@ -2125,28 +2127,44 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public RecoveryCacheObject(string? Name = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? RecoveryCache = null)
-            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Name, DefaultLayer, CompatibleLayers, PlacementTiles, Children, Collider, Position, Size, RecoveryCache), false, NeoValueOwnership.Session)
+        public RecoveryCacheObject(IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
+            : this(HelloWorldNeo.RequireInstance().Client, CreateFactoryNode(Children, CompatibleLayers, DefaultLayer, Name, PlacementTiles, RecoveryCache, Collider, Position, Size), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, IEnumerable<NeoObjectBase>? Children = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoDialogueReference? RecoveryCache = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
             var value = new Dictionary<string, string>();
             var valueRows = new List<AttributeValue>();
-            if (Name is not null)
+            if (Children is not null)
             {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
+                var ChildrenValueId = Guid.NewGuid().ToString();
+                value["Children"] = ChildrenValueId;
+                var ChildrenIds = new List<string>();
+                foreach (var entry in Children)
                 {
-                    id = NameValueId,
+                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ChildrenValueId,
                     createdAt = nowIso,
                     updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                    value = ChildrenIds.ToArray(),
+                });
+            }
+            if (CompatibleLayers is not null)
+            {
+                var CompatibleLayersValueId = Guid.NewGuid().ToString();
+                value["CompatibleLayers"] = CompatibleLayersValueId;
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = CompatibleLayersValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
                 });
             }
             if (DefaultLayer is not null)
@@ -2161,16 +2179,17 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
                 });
             }
-            if (CompatibleLayers is not null)
+            if (Name is not null)
             {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
+                var NameValueId = Guid.NewGuid().ToString();
+                value["Name"] = NameValueId;
+                valueRows.Add(new StringAttributeValue
                 {
-                    id = CompatibleLayersValueId,
+                    id = NameValueId,
                     createdAt = nowIso,
                     updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
+                    value = Name,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 });
             }
             if (PlacementTiles is not null)
@@ -2190,21 +2209,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     value = PlacementTilesIds.ToArray(),
                 });
             }
-            if (Children is not null)
+            if (RecoveryCache is not null)
             {
-                var ChildrenValueId = Guid.NewGuid().ToString();
-                value["Children"] = ChildrenValueId;
-                var ChildrenIds = new List<string>();
-                foreach (var entry in Children)
-                {
-                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
+                var RecoveryCacheValueId = Guid.NewGuid().ToString();
+                value["RecoveryCache"] = RecoveryCacheValueId;
                 valueRows.Add(new ArrayAttributeValue
                 {
-                    id = ChildrenValueId,
+                    id = RecoveryCacheValueId,
                     createdAt = nowIso,
                     updatedAt = nowIso,
-                    value = ChildrenIds.ToArray(),
+                    value = RecoveryCache is null ? null : new[] { RecoveryCache.Id },
                 });
             }
             if (Collider is not null)
@@ -2233,18 +2247,6 @@ namespace HelloWorld.Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
-                });
-            }
-            if (RecoveryCache is not null)
-            {
-                var RecoveryCacheValueId = Guid.NewGuid().ToString();
-                value["RecoveryCache"] = RecoveryCacheValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = RecoveryCacheValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = RecoveryCache is null ? null : new[] { RecoveryCache.Id },
                 });
             }
             return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "27874300-3e78-4d1c-802b-caf34d25d1ab", value, valueRows);
@@ -2297,6 +2299,42 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 return new NeoReadOnlyList<IReadOnlyNeoObjectBase>(client, node.Get<NeoAttributeList>("Children"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectBase.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new NeoCollider? Collider
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoAttributeCustom>("Collider");
+                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoAttributeCustomWritable>("Collider");
+                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("RecoveryCacheObject.Collider");
+                if (value is null)
+                {
+                    writableNode.Unset("Collider");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Collider", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyNeoCollider? IReadOnlyRecoveryCacheObject.Collider
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("Collider");
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
             }
         }
 
@@ -2387,38 +2425,38 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             private Fields() {}
 
-            public static readonly NeoField<string> Name = new("Name");
-
-            public static readonly NeoField<IReadOnlyNeoObjectLayer> DefaultLayer = new("DefaultLayer");
+            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
 
             public static readonly NeoField<NeoLookupSet<IReadOnlyNeoObjectLayer>> CompatibleLayers = new("CompatibleLayers");
 
+            public static readonly NeoField<IReadOnlyNeoObjectLayer> DefaultLayer = new("DefaultLayer");
+
+            public static readonly NeoField<string> Name = new("Name");
+
             public static readonly NeoField<NeoList<NeoObjectPlacementTile>> PlacementTiles = new("PlacementTiles");
 
-            public static readonly NeoField<NeoList<NeoObjectBase>> Children = new("Children");
+            public static readonly NeoField<NeoDialogueReference> RecoveryCache = new("RecoveryCache");
 
             public static readonly NeoField<NeoCollider?> Collider = new("Collider");
 
             public static readonly NeoField<NeoVector3> Position = new("Position");
 
             public static readonly NeoField<NeoVector3> Size = new("Size");
-
-            public static readonly NeoField<NeoDialogueReference> RecoveryCache = new("RecoveryCache");
         }
 
         private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Name] = () => null,
-                [Fields.DefaultLayer] = () => null,
-                [Fields.CompatibleLayers] = () => null,
-                [Fields.PlacementTiles] = () => null,
                 [Fields.Children] = () => null,
+                [Fields.CompatibleLayers] = () => null,
+                [Fields.DefaultLayer] = () => null,
+                [Fields.Name] = () => null,
+                [Fields.PlacementTiles] = () => null,
+                [Fields.RecoveryCache] = () => null,
                 [Fields.Collider] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.Size] = () => null,
-                [Fields.RecoveryCache] = () => null,
             };
         }
 
@@ -2436,15 +2474,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<object?>>
             {
-                [Fields.Name] = () => Name,
-                [Fields.DefaultLayer] = () => DefaultLayer,
-                [Fields.CompatibleLayers] = () => CompatibleLayers,
-                [Fields.PlacementTiles] = () => PlacementTiles,
                 [Fields.Children] = () => Children,
+                [Fields.CompatibleLayers] = () => CompatibleLayers,
+                [Fields.DefaultLayer] = () => DefaultLayer,
+                [Fields.Name] = () => Name,
+                [Fields.PlacementTiles] = () => PlacementTiles,
+                [Fields.RecoveryCache] = () => RecoveryCache,
                 [Fields.Collider] = () => Collider,
                 [Fields.Position] = () => Position,
                 [Fields.Size] = () => Size,
-                [Fields.RecoveryCache] = () => RecoveryCache,
             };
         }
 
@@ -4267,7 +4305,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var child = node.Get<NeoAttributeCustom>("AnimatedImage");
-                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
             }
         }
 
@@ -4540,7 +4578,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var child = node.Get<NeoAttributeCustom>("Collider");
-                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
             }
         }
 
@@ -6885,6 +6923,8 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         new NeoReadOnlyList<IReadOnlyNeoObjectBase> Children { get; }
 
+        new IReadOnlyNeoCollider? Collider { get; }
+
         new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers { get; }
 
         new IReadOnlyNeoObjectLayer DefaultLayer { get; }
@@ -6892,6 +6932,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         new string Name { get; }
 
         new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles { get; }
+
+        new NeoVector3 Position { get; }
     }
 
     public partial class PlayerSpawnObject : ConsoleObject, IReadOnlyPlayerSpawnObject
@@ -7064,6 +7106,42 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
+        public new NeoCollider? Collider
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoAttributeCustom>("Collider");
+                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoAttributeCustomWritable>("Collider");
+                    return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("PlayerSpawnObject.Collider");
+                if (value is null)
+                {
+                    writableNode.Unset("Collider");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Collider", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        IReadOnlyNeoCollider? IReadOnlyPlayerSpawnObject.Collider
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("Collider");
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.NeoCollider.Create(client, child);
+            }
+        }
+
         public new NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
         {
             get
@@ -7130,6 +7208,18 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 return new NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile>(client, node.Get<NeoAttributeList>("PlacementTiles"), (client, child) => global::HelloWorld.Assets.Scripts.Neo.NeoObjectPlacementTile.Create(client, (NeoAttributeCustom)child));
+            }
+        }
+
+        public new NeoVector3 Position
+        {
+            get
+            {
+                return new NeoVector3(writableNode.Get<NeoAttributeVector3Writable>("Position"));
+            }
+            set
+            {
+                NeoGeneratedTypesSupport.SetVector3(writableNode, "Position", value.Value);
             }
         }
 
@@ -8696,7 +8786,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var child = node.Get<NeoAttributeCustom>("FlareAnimation");
-                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
             }
         }
 
@@ -8732,7 +8822,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             get
             {
                 var child = node.Get<NeoAttributeCustom>("ShipAnimation");
-                return child.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
+                return child.value?.value is null ? null : global::HelloWorld.Assets.Scripts.Neo.AnimationInfo.Create(client, child);
             }
         }
 

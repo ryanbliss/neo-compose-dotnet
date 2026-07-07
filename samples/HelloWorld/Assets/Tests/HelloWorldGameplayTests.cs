@@ -193,19 +193,20 @@ namespace HelloWorld.Assets.Tests
                 objectLayer,
                 "The landing scene should render the generated object layer.");
             Assert.AreEqual(
-                3,
+                4,
                 objectLayer!.childCount,
-                "The spawn marker is a lifecycle-vetoed authoring marker, not a rendered object.");
-            Assert.IsNull(
-                objectLayer.Find("Object - old-console-object:player-spawn"),
-                "ShouldRenderObject should keep the player spawn marker out of the scene.");
-            var playerSpriteRenderer = renderer.transform.Find("Player")?.GetComponent<SpriteRenderer>();
+                "The player spawn renders as an ordinary SDK object alongside the other placements.");
+            var playerRoot = objectLayer.Find("Object - old-console-object:player-spawn");
+            Assert.IsNotNull(
+                playerRoot,
+                "The SDK renders the player spawn object under the object layer; gameplay moves it by writing its Session-storage Position.");
+            var playerSpriteRenderer = playerRoot!.GetComponentInChildren<SpriteRenderer>();
             Assert.IsNotNull(
                 playerSpriteRenderer,
-                "The landing UI should present the player at the authored spawn.");
+                "The spawn object's authored child sprite presents the player.");
             Assert.IsNotNull(
                 playerSpriteRenderer!.sprite,
-                "The player should use the spawn marker's authored sprite (or the fallback).");
+                "The player should use the spawn object's authored sprite.");
 
             gameplay.CloseOldConsoleLanding();
 

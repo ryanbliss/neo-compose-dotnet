@@ -82,6 +82,14 @@ namespace HelloWorld.Assets.Scripts
         public string PromptText { get; private set; } = "WASD Move  •  E Interact";
         public string StatusText { get; private set; } = string.Empty;
 
+        /// <summary>
+        /// The placed spawn object's generated value. Its Position attribute
+        /// overrides storage to Session, so gameplay moves the player by
+        /// assigning it — the renderer mirrors the write onto the SDK-spawned
+        /// GameObject.
+        /// </summary>
+        private PlayerSpawnObject playerSpawn;
+
         private bool GlyphAttuned =>
             bootGlyphAttunedId.Length > 0 &&
             neo.Dialogues.HasVisited(bootGlyphAttunedId);
@@ -116,7 +124,12 @@ namespace HelloWorld.Assets.Scripts
 
         private void OnMoveRequested(Vector2Int delta)
         {
-            if (TryMove(delta)) ui.MovePlayerTo(PlayerCell);
+            if (TryMove(delta))
+            {
+                // Neo-native movement: write the object's Session-storage
+                // Position; the renderer moves the spawned GameObject.
+                playerSpawn.Position = new NeoVector3(PlayerCell.x, PlayerCell.y, 0f);
+            }
             RenderChrome();
         }
 
@@ -149,7 +162,14 @@ namespace HelloWorld.Assets.Scripts
             // subscription hears both direct edits and blocked-path changes —
             // the args say which source caused each one.
             collisionSubscription = content.Collisions.OnChanged(OnCollisionsChanged);
-            PlayerCell = content.Objects.GetObjects<PlayerSpawnObject>().First().Cell;
+            var spawn = content.Objects.GetObject<PlayerSpawnObject>();
+            if (spawn is null)
+            {
+                throw new InvalidOperationException(
+                    "The landing grid has no PlayerSpawnObject placed on the Objects layer.");
+            }
+            playerSpawn = spawn.Info;
+            PlayerCell = spawn.Cell;
             // Resolve the flag dialogues once (their owners aren't under the
             // player): the boot-glyph tile and the recovery cache carry their
             // DialogueLookup references as generated NeoDialogueReferences.
@@ -161,7 +181,6 @@ namespace HelloWorld.Assets.Scripts
                     ?.RecoveryCache.Id ?? "";
             UpdatePrompt();
             StatusText = "WASD moves. E talks to whatever the old console is whispering through.";
-            ui.MovePlayerTo(PlayerCell);
             var cellBounds = content.ComputeCellBounds();
             ui.Frame(new Bounds(cellBounds.center, cellBounds.size));
             RenderChrome();
