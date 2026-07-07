@@ -313,7 +313,12 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Returns the dictionary's own object row guaranteed writable (a
         /// clone-on-write shadow at the stable id), minting + binding a
-        /// fresh empty map through the parent when nothing is bound yet.
+        /// fresh row through the parent when nothing is bound yet. The freshly
+        /// minted row is seeded from the currently-effective map (the authored
+        /// default's entries), NOT an empty map — otherwise Remove/Clear would
+        /// index keys the caller can see but the fresh row lacks (throwing
+        /// KeyNotFoundException), and an overwrite of one key would silently
+        /// drop the sibling default entries.
         /// </summary>
         private ObjectAttributeValue EnsureWritableObject(string nowIso)
         {
@@ -328,7 +333,9 @@ namespace NeoCompose.Runtime
                 id = System.Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
-                value = new Dictionary<string, string>(),
+                value = value?.value is null
+                    ? new Dictionary<string, string>()
+                    : new Dictionary<string, string>(value.value),
             };
             BindNewValue(parentRow);
             return parentRow;
