@@ -2,7 +2,6 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Linq;
 using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using UnityEngine;
@@ -19,7 +18,6 @@ namespace HelloWorld.Assets.Scripts
     internal sealed class LandingSceneUI : IDisposable
     {
         private GameObject root;
-        private GameObject player;
         private Camera camera;
         private NeoTileGridRenderer renderer;
         private GameObject promptPanel;
@@ -27,8 +25,6 @@ namespace HelloWorld.Assets.Scripts
         private Text statusText;
         private GameObject loadingPanel;
         private Text loadingText;
-        private Sprite authoredPlayerSprite;
-        private Sprite fallbackPlayerSprite;
 
         public event Action<Vector2Int> MoveRequested;
         public event Action InteractRequested;
@@ -66,17 +62,11 @@ namespace HelloWorld.Assets.Scripts
         {
             // Restart-safe: a newer RenderAsync (or destroying the renderer)
             // cancels this one, so no cancellation plumbing is needed here.
+            // The player is an ordinary SDK-rendered object (the
+            // PlayerSpawnObject instance); gameplay moves it by writing its
+            // Session-storage Position, which the renderer mirrors onto the
+            // spawned GameObject.
             await renderer.RenderAsync(content);
-
-            authoredPlayerSprite = ResolveAuthoredPlayerSprite(content);
-            player = null;
-            EnsurePlayer();
-        }
-
-        public void MovePlayerTo(Vector2Int cell)
-        {
-            EnsurePlayer();
-            player.transform.localPosition = new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.2f);
         }
 
         public void RenderChrome(string prompt, string status)
@@ -115,64 +105,6 @@ namespace HelloWorld.Assets.Scripts
 
             camera.transform.position = new Vector3(bounds.center.x, bounds.center.y, -10f);
             camera.orthographicSize = Mathf.Max(3.5f, height * 0.5f, width / (2f * aspect));
-        }
-
-        private void EnsurePlayer()
-        {
-            if (player != null) return;
-
-            player = new GameObject("Player");
-            player.transform.SetParent(renderer.transform, false);
-            var spriteRenderer = player.AddComponent<SpriteRenderer>();
-            spriteRenderer.sprite = authoredPlayerSprite != null
-                ? authoredPlayerSprite
-                : CreateFallbackPlayerSprite();
-            spriteRenderer.sortingOrder = 20_000;
-            ScaleSpriteRendererToCell(spriteRenderer);
-        }
-
-        private static Sprite ResolveAuthoredPlayerSprite(
-            ReadOnlyOldConsoleLandingGridContent content)
-        {
-            // The spawn marker's art comes from its authored child sprite
-            // object — no need to scrape the rendered hierarchy for it.
-            var spawn = content.Objects.GetObjects<PlayerSpawnObject>().FirstOrDefault();
-            return spawn?.Info.GetChild<NeoSpriteObject>()?.Sprite;
-        }
-
-        private static void ScaleSpriteRendererToCell(SpriteRenderer spriteRenderer)
-        {
-            var sprite = spriteRenderer.sprite;
-            if (sprite == null) return;
-
-            var width = Mathf.Max(sprite.bounds.size.x, 0.0001f);
-            var height = Mathf.Max(sprite.bounds.size.y, 0.0001f);
-            spriteRenderer.transform.localScale = new Vector3(1f / width, 1f / height, 1f);
-        }
-
-        private Sprite CreateFallbackPlayerSprite()
-        {
-            if (fallbackPlayerSprite != null) return fallbackPlayerSprite;
-
-            var texture = new Texture2D(16, 16, TextureFormat.RGBA32, false)
-            {
-                filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Clamp,
-            };
-            var pixels = new Color[16 * 16];
-            for (int i = 0; i < pixels.Length; i++) pixels[i] = new Color(0.28f, 0.35f, 1f, 0f);
-            for (int y = 3; y < 13; y++)
-            {
-                for (int x = 6; x < 10; x++)
-                {
-                    pixels[y * 16 + x] = new Color(0.31f, 0.25f, 1f, 1f);
-                }
-            }
-            texture.SetPixels(pixels);
-            texture.Apply(updateMipmaps: false, makeNoLongerReadable: false);
-            fallbackPlayerSprite = Sprite.Create(texture, new Rect(0, 0, 16, 16), new Vector2(0.5f, 0.5f), 16f);
-            fallbackPlayerSprite.name = "Fallback landing player";
-            return fallbackPlayerSprite;
         }
 
         private void EnsureBuilt()
@@ -337,12 +269,6 @@ namespace HelloWorld.Assets.Scripts
                 context.Tilemap.gameObject.AddComponent<TilemapCollider2D>();
             }
 
-            public override bool ShouldRenderObject(NeoObjectRenderContext context)
-            {
-                // The spawn marker only authors WHERE the player starts;
-                // LandingSceneUI presents the player itself.
-                return context.Instance.Info is not PlayerSpawnObject;
-            }
         }
     }
 }

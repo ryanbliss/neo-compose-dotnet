@@ -107,6 +107,71 @@ namespace NeoCompose.Runtime
             return typedObjects;
         }
 
+        /// <summary>
+        /// First placed object in the layer (placement order) whose generated
+        /// info is <typeparamref name="TObject"/>, or null when none is
+        /// placed — the layer-scoped entry point for singleton-style objects,
+        /// e.g. <c>content.Objects.GetObject&lt;PlayerSpawnObject&gt;()</c>.
+        /// </summary>
+        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+            this ReadOnlyNeoObjectLayerRuntime layer)
+            where TObject : class, INeoValueReference
+        {
+            if (layer is null) throw new ArgumentNullException(nameof(layer));
+            foreach (var obj in layer.GetObjects())
+            {
+                var typed = obj.As<TObject>();
+                if (typed is not null)
+                {
+                    return typed;
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// First placed object across every object layer (layer order, then
+        /// placement order) whose generated info is <typeparamref name="TObject"/>,
+        /// or null when none is placed. The grid-wide entry point for
+        /// singleton-style objects, e.g.
+        /// <c>content.GetObject&lt;PlayerSpawnObject&gt;()</c>.
+        /// </summary>
+        public static NeoResolvedObjectInstance<TObject>? GetObject<TObject>(
+            this INeoTileGridContent content)
+            where TObject : class, INeoValueReference
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            foreach (var layer in content.ObjectLayersInOrder)
+            {
+                foreach (var obj in layer.GetObjects())
+                {
+                    var typed = obj.As<TObject>();
+                    if (typed is not null)
+                    {
+                        return typed;
+                    }
+                }
+            }
+            return null;
+        }
+
+        /// <summary>
+        /// Every placed object across every object layer (layer order, then
+        /// placement order) whose generated info is <typeparamref name="TObject"/>.
+        /// </summary>
+        public static IReadOnlyList<NeoResolvedObjectInstance<TObject>> GetObjects<TObject>(
+            this INeoTileGridContent content)
+            where TObject : class, INeoValueReference
+        {
+            if (content is null) throw new ArgumentNullException(nameof(content));
+            var typedObjects = new List<NeoResolvedObjectInstance<TObject>>();
+            foreach (var layer in content.ObjectLayersInOrder)
+            {
+                typedObjects.AddRange(layer.GetObjects<TObject>());
+            }
+            return typedObjects;
+        }
+
         public static NeoResolvedTileInstance? GetTile(
             this INeoTileGridContent content,
             Vector2Int cell)

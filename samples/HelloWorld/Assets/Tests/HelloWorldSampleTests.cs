@@ -574,24 +574,28 @@ namespace HelloWorld.Assets.Tests
                 Assert.AreEqual(4, objectLayer!.childCount);
                 AssertRenderedObject(
                     objectLayer,
-                    "old-console-object:player-spawn",
+                    RenderedInstanceId(content, new Vector2Int(-7, 2)),
                     new Vector3(-7f, 2f, 0f),
+                    InstanceHasCollider(content, new Vector2Int(-7, 2)),
                     "4bdf7916-db7e-42f9-8b75-02ab429ac1f2-player-spawn-object");
                 AssertRenderedObject(
                     objectLayer,
-                    "old-console-object:vault-plaque",
+                    RenderedInstanceId(content, new Vector2Int(-2, 2)),
                     new Vector3(-2f, 2f, 0f),
+                    InstanceHasCollider(content, new Vector2Int(-2, 2)),
                     "ea5a70da-6213-4b4b-bd44-ab84adc449e0-vault-plaque-object");
                 AssertRenderedObject(
                     objectLayer,
-                    "dfc95664-b19c-4da0-aa98-31dcfbc34e0d",
+                    RenderedInstanceId(content, new Vector2Int(-9, 2)),
                     new Vector3(-9f, 2f, 0f),
+                    InstanceHasCollider(content, new Vector2Int(-9, 2)),
                     "58b3b0b3-257a-46ee-ba87-bab09972ff63-exit-prompt-object",
                     "666675d5-8a39-41c1-ba2c-18f014bf03f5-red-nova-warning-tile");
                 AssertRenderedObject(
                     objectLayer,
-                    "old-console-object:recovery-cache",
+                    RenderedInstanceId(content, new Vector2Int(6, 2)),
                     new Vector3(6f, 2f, 0f),
+                    InstanceHasCollider(content, new Vector2Int(6, 2)),
                     "ea87154e-d1dd-49f4-8050-96f1493a81fc-recovery-cache-object");
             }
             finally
@@ -600,15 +604,59 @@ namespace HelloWorld.Assets.Tests
             }
         }
 
+        /// <summary>
+        /// Resolves a placed instance's id from the content data so renderer
+        /// assertions survive instances being deleted and re-placed in the
+        /// editor (re-placement mints a new instance id; the cell is the
+        /// stable authoring intent).
+        /// </summary>
+        private static string RenderedInstanceId(
+            ReadOnlyOldConsoleLandingGridContent content,
+            Vector2Int cell)
+        {
+            var instance = content.Objects.GetObject(cell);
+            if (instance is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"No object instance is placed at cell {cell} in the OldConsoleLanding grid.");
+            }
+
+            return instance.InstanceId.Value;
+        }
+
+        /// <summary>
+        /// True when the placed instance's own value model resolves a collider —
+        /// an explicit record on the instance; a missing or null-valued
+        /// Collider reads as "no collider" and must render without a
+        /// BoxCollider2D.
+        /// </summary>
+        private static bool InstanceHasCollider(
+            ReadOnlyOldConsoleLandingGridContent content,
+            Vector2Int cell)
+        {
+            return content.Objects.GetObject(cell)?.Info is NeoObject obj
+                && obj.Collider is not null;
+        }
+
         private static void AssertRenderedObject(
             Transform objectLayer,
             string instanceId,
             Vector3 expectedLocalPosition,
+            bool expectCollider,
             params string[] expectedSpriteNameFragments)
         {
             var rendered = objectLayer.Find($"Object - {instanceId}");
             Assert.IsNotNull(rendered, $"Expected object instance '{instanceId}' to render.");
             Assert.AreEqual(expectedLocalPosition, rendered!.localPosition);
+
+            var behaviour = rendered.GetComponent<NeoObjectBehaviour>();
+            Assert.IsNotNull(
+                behaviour,
+                $"Expected object instance '{instanceId}' to carry a NeoObjectBehaviour bridge.");
+            Assert.AreEqual(instanceId, behaviour!.InstanceId.Value);
+            Assert.IsInstanceOf<NeoObject>(
+                behaviour.Object,
+                $"Expected NeoObjectBehaviour on '{instanceId}' to expose the generated object value.");
 
             var spriteNames = rendered.GetComponentsInChildren<SpriteRenderer>()
                 .Select(spriteRenderer => spriteRenderer.sprite == null
@@ -642,7 +690,10 @@ namespace HelloWorld.Assets.Tests
                     1.0001f,
                     $"Object instance '{instanceId}' rendered '{spriteRenderer.sprite.name}' taller than one cell.");
             }
-            Assert.IsNotNull(rendered.GetComponent<BoxCollider2D>());
+            Assert.AreEqual(
+                expectCollider,
+                rendered.GetComponent<BoxCollider2D>() != null,
+                $"Object instance '{instanceId}' collider presence should match its resolved Collider value.");
         }
 
         [Test]
