@@ -78,6 +78,13 @@
     "error": null
   },
   {
+    "attributeId": "c81d2773-032d-4354-8e9e-3fede8bbcddb",
+    "thisValueId": "v-elem-champion-earth",
+    "ok": true,
+    "value": true,
+    "error": null
+  },
+  {
     "attributeId": "4c424986-db70-4a7c-9ef9-3f4d1ade01e0",
     "thisValueId": "0035f636-4921-45d5-bb14-84e27964dc29",
     "ok": true,
@@ -89,6 +96,13 @@
     "thisValueId": "464256b4-2019-4514-87b4-92dc1de78744",
     "ok": true,
     "value": true,
+    "error": null
+  },
+  {
+    "attributeId": "4c424986-db70-4a7c-9ef9-3f4d1ade01e0",
+    "thisValueId": "v-elem-champion-earth",
+    "ok": true,
+    "value": false,
     "error": null
   },
   {
@@ -145,6 +159,20 @@
     "thisValueId": "e78c39e5-a931-4280-8ac8-6325a2229537",
     "ok": true,
     "value": "[Plant] Seed",
+    "error": null
+  },
+  {
+    "attributeId": "attr-elem-fire-damage-get",
+    "thisValueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
+    "ok": true,
+    "value": 42,
+    "error": null
+  },
+  {
+    "attributeId": "attr-elem-selected-damage-get",
+    "thisValueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
+    "ok": true,
+    "value": 20,
     "error": null
   }
 ]

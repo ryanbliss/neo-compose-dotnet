@@ -67,7 +67,8 @@ namespace NeoCompose.Tests
                 "Type with no extendsTypeId has a single-link chain");
             Assert.AreEqual("type-hero", hero.inheritanceChain[0].id);
 
-            Assert.AreEqual(6, hero.mergedSchema.Count);
+            // Name, Health, Position, GridCell, Path, MoveTo, ElementAffinity.
+            Assert.AreEqual(7, hero.mergedSchema.Count);
             // Owner is the declared type for every entry — no inheritance.
             foreach (var entry in hero.mergedSchema)
             {

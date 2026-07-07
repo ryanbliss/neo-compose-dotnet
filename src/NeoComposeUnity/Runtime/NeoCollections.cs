@@ -247,6 +247,19 @@ namespace NeoCompose.Runtime
             return NeoCollectionSubscription.Watch(node, client, this, handler);
         }
 
+        /// <summary>
+        /// Attaches a change subscription for an outer collection that
+        /// delegates its storage to this one (the enum-keyed two-arity
+        /// wrappers), so the outer surface can offer the same
+        /// <c>OnChanged</c> shape without reaching into the node.
+        /// </summary>
+        internal IDisposable WatchNode<TCollection>(
+            TCollection collection,
+            Action<TCollection, NeoChangeSource> handler)
+        {
+            return NeoCollectionSubscription.Watch(node, client, collection, handler);
+        }
+
         public T this[string key] => createItem(client, node[key]);
 
         public IEnumerable<string> Keys
@@ -405,6 +418,222 @@ namespace NeoCompose.Runtime
         }
 
         public bool Remove(KeyValuePair<string, T> item)
+        {
+            if (!Contains(item)) return false;
+            return Remove(item.Key);
+        }
+    }
+
+    /// <summary>
+    /// Read-only view over an enum-keyed Dictionary attribute
+    /// (specs/dictionary-key-types.md §9). Same-name two-arity sibling of
+    /// <see cref="NeoReadOnlyDictionary{T}"/> (the
+    /// <c>System.Collections.Generic</c> arity precedent):
+    /// <typeparamref name="TKey"/> is a generated enum wrapper class and
+    /// every key crosses the boundary through the codec supplied at
+    /// construction (<c>fromOptionId</c> / <c>toOptionId</c>). Storage is
+    /// NOT forked — all reads delegate to a single-arity
+    /// <see cref="NeoReadOnlyDictionary{T}"/> over the same node, whose
+    /// keys are the option-id strings on the wire. <see cref="Keys"/> and
+    /// enumeration materialize keys via <c>fromOptionId</c>, so stale
+    /// option ids (option deleted with "keep orphaned") degrade to ad-hoc
+    /// wrapper instances exactly like dangling Enum values do.
+    /// Enumeration order is the underlying record order (the web UI's
+    /// enum-option-order sort is display-only).
+    /// </summary>
+    public class NeoReadOnlyDictionary<TKey, TValue> : IReadOnlyDictionary<TKey, TValue>
+    {
+        protected readonly NeoReadOnlyDictionary<TValue> entries;
+        protected readonly Func<string, TKey> fromOptionId;
+        protected readonly Func<TKey, string> toOptionId;
+
+        public NeoReadOnlyDictionary(
+            NeoClient client,
+            NeoAttributeDictionary node,
+            Func<NeoClient, NeoAttribute, TValue> createItem,
+            Func<string, TKey> fromOptionId,
+            Func<TKey, string> toOptionId)
+            : this(
+                new NeoReadOnlyDictionary<TValue>(client, node, createItem),
+                fromOptionId,
+                toOptionId)
+        {
+        }
+
+        protected NeoReadOnlyDictionary(
+            NeoReadOnlyDictionary<TValue> entries,
+            Func<string, TKey> fromOptionId,
+            Func<TKey, string> toOptionId)
+        {
+            this.entries = entries ?? throw new ArgumentNullException(nameof(entries));
+            this.fromOptionId = fromOptionId ?? throw new ArgumentNullException(nameof(fromOptionId));
+            this.toOptionId = toOptionId ?? throw new ArgumentNullException(nameof(toOptionId));
+        }
+
+        /// <summary>
+        /// Subscribes to any change inside this dictionary. Mirrors the
+        /// generated field subscription shape: the handler receives the
+        /// current value (this dictionary) and the change source. Dispose the
+        /// returned subscription to stop listening.
+        /// </summary>
+        public IDisposable OnChanged(
+            Action<NeoReadOnlyDictionary<TKey, TValue>, NeoChangeSource> handler)
+        {
+            return entries.WatchNode(this, handler);
+        }
+
+        public TValue this[TKey key] => entries[KeyOptionId(key)];
+
+        public IEnumerable<TKey> Keys
+        {
+            get
+            {
+                foreach (var key in entries.Keys)
+                {
+                    yield return fromOptionId(key);
+                }
+            }
+        }
+
+        public IEnumerable<TValue> Values => entries.Values;
+
+        public int Count => entries.Count;
+
+        public bool ContainsKey(TKey key) => entries.ContainsKey(KeyOptionId(key));
+
+        public bool TryGetValue(TKey key, out TValue value) =>
+            entries.TryGetValue(KeyOptionId(key), out value);
+
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            foreach (var kvp in entries)
+            {
+                yield return new KeyValuePair<TKey, TValue>(
+                    fromOptionId(kvp.Key),
+                    kvp.Value);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        /// <summary>
+        /// Converts a typed key to its wire option-id string via the codec,
+        /// rejecting null before the codec can dereference it.
+        /// </summary>
+        protected string KeyOptionId(TKey key)
+        {
+            if (key is null)
+            {
+                throw new ArgumentNullException(
+                    nameof(key),
+                    "Enum-keyed dictionary key must not be null.");
+            }
+            return toOptionId(key);
+        }
+    }
+
+    /// <summary>
+    /// Writable enum-keyed Dictionary wrapper — the two-arity sibling of
+    /// <see cref="NeoDictionary{T}"/>. All mutations delegate key-wise
+    /// (via the key codec) to a single-arity <see cref="NeoDictionary{T}"/>
+    /// over the same node; see <see cref="NeoReadOnlyDictionary{TKey, TValue}"/>
+    /// for the delegation and stale-key semantics.
+    /// </summary>
+    public class NeoDictionary<TKey, TValue>
+        : NeoReadOnlyDictionary<TKey, TValue>, IDictionary<TKey, TValue>
+    {
+        private readonly NeoDictionary<TValue> writableEntries;
+
+        public NeoDictionary(
+            NeoClient client,
+            NeoAttributeDictionaryWritable node,
+            Func<NeoClient, NeoAttribute, TValue> createItem,
+            Func<TValue, NeoValueWritePayload?> serializeItem,
+            Func<string, TKey> fromOptionId,
+            Func<TKey, string> toOptionId)
+            : this(
+                new NeoDictionary<TValue>(client, node, createItem, serializeItem),
+                fromOptionId,
+                toOptionId)
+        {
+        }
+
+        public NeoDictionary(
+            NeoClient client,
+            NeoAttributeDictionary node,
+            Func<NeoAttributeDictionaryWritable> getWritableNode,
+            Func<NeoClient, NeoAttribute, TValue> createItem,
+            Func<TValue, NeoValueWritePayload?> serializeItem,
+            Func<string, TKey> fromOptionId,
+            Func<TKey, string> toOptionId,
+            Action? beforeWrite = null,
+            Func<bool>? isReadOnly = null)
+            : this(
+                new NeoDictionary<TValue>(
+                    client,
+                    node,
+                    getWritableNode,
+                    createItem,
+                    serializeItem,
+                    beforeWrite,
+                    isReadOnly),
+                fromOptionId,
+                toOptionId)
+        {
+        }
+
+        private NeoDictionary(
+            NeoDictionary<TValue> entries,
+            Func<string, TKey> fromOptionId,
+            Func<TKey, string> toOptionId)
+            : base(entries, fromOptionId, toOptionId)
+        {
+            writableEntries = entries;
+        }
+
+        public new TValue this[TKey key]
+        {
+            get => base[key];
+            set => writableEntries[KeyOptionId(key)] = value;
+        }
+
+        public new ICollection<TKey> Keys
+        {
+            get
+            {
+                var keys = new List<TKey>();
+                foreach (var key in base.Keys) keys.Add(key);
+                return keys;
+            }
+        }
+
+        public new ICollection<TValue> Values => writableEntries.Values;
+
+        public bool IsReadOnly => writableEntries.IsReadOnly;
+
+        public void Add(TKey key, TValue value) =>
+            writableEntries.Add(KeyOptionId(key), value);
+
+        public void Add(KeyValuePair<TKey, TValue> item) => Add(item.Key, item.Value);
+
+        public void Clear() => writableEntries.Clear();
+
+        public bool Contains(KeyValuePair<TKey, TValue> item) =>
+            writableEntries.Contains(
+                new KeyValuePair<string, TValue>(KeyOptionId(item.Key), item.Value));
+
+        public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        {
+            if (array is null) throw new ArgumentNullException(nameof(array));
+            foreach (var kvp in this)
+            {
+                array[arrayIndex++] = kvp;
+            }
+        }
+
+        public bool Remove(TKey key) => writableEntries.Remove(KeyOptionId(key));
+
+        public bool Remove(KeyValuePair<TKey, TValue> item)
         {
             if (!Contains(item)) return false;
             return Remove(item.Key);

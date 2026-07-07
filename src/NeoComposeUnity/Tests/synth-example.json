@@ -293,6 +293,7 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
+      "keyKind": "string",
       "entryAttributeId": "attr-name",
       "defaultValue": {
         "value": {
@@ -352,6 +353,86 @@
       "updatedAt": 0,
       "collectionAttributeId": "attr-tags",
       "multiselect": true
+    },
+    "attr-elem-stats": {
+      "id": "attr-elem-stats",
+      "name": "ElementStats",
+      "type": 5,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "keyKind": "enum",
+      "entryAttributeId": "attr-health",
+      "keyEnumId": "enum-element",
+      "defaultValue": {
+        "value": {}
+      }
+    },
+    "attr-elem-multipliers": {
+      "id": "attr-elem-multipliers",
+      "name": "ElementMultipliers",
+      "type": 5,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "keyKind": "enum",
+      "entryAttributeId": "attr-health",
+      "keyEnumId": "enum-element",
+      "storage": "static",
+      "valueId": "v-elem-multipliers",
+      "defaultValue": {
+        "value": {}
+      }
+    },
+    "attr-elem-affinity": {
+      "id": "attr-elem-affinity",
+      "name": "ElementAffinity",
+      "type": 5,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "keyKind": "enum",
+      "entryAttributeId": "attr-name",
+      "keyEnumId": "enum-element",
+      "defaultValue": {
+        "value": {}
+      }
+    },
+    "attr-elem-champion-entry": {
+      "id": "attr-elem-champion-entry",
+      "name": "Element Champion",
+      "type": 7,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-hero",
+      "defaultValue": {
+        "value": {}
+      }
+    },
+    "attr-elem-champions": {
+      "id": "attr-elem-champions",
+      "name": "ElementChampions",
+      "type": 5,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "keyKind": "enum",
+      "entryAttributeId": "attr-elem-champion-entry",
+      "keyEnumId": "enum-element",
+      "defaultValue": {
+        "value": {}
+      }
     },
     "attr-score": {
       "id": "attr-score",
@@ -1103,6 +1184,7 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
+      "keyKind": "string",
       "entryAttributeId": "attr-text-node-memory-entry",
       "defaultValue": {
         "value": {}
@@ -1131,6 +1213,7 @@
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
+      "keyKind": "string",
       "entryAttributeId": "attr-dialogue-memory-entry",
       "defaultValue": {
         "value": {}
@@ -1178,7 +1261,8 @@
         "Position": "attr-position",
         "GridCell": "attr-grid-cell",
         "Path": "attr-path",
-        "MoveTo": "attr-move-to"
+        "MoveTo": "attr-move-to",
+        "ElementAffinity": "attr-elem-affinity"
       },
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
@@ -1195,7 +1279,10 @@
         "Score": "attr-root-score",
         "NeoMemory": "attr-neo-memory",
         "SampleLayerGroup": "attr-sample-layer-group",
-        "StorageInherit": "attr-storage-a"
+        "StorageInherit": "attr-storage-a",
+        "ElementStats": "attr-elem-stats",
+        "ElementMultipliers": "attr-elem-multipliers",
+        "ElementChampions": "attr-elem-champions"
       },
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
@@ -1531,7 +1618,9 @@
       "id": "v-root-save",
       "projectId": "p-1",
       "value": {
-        "Score": "v-score"
+        "Score": "v-score",
+        "ElementStats": "v-elem-stats",
+        "ElementChampions": "v-elem-champions"
       },
       "createdAt": 0,
       "updatedAt": 0,
@@ -1544,6 +1633,89 @@
       "createdAt": 0,
       "updatedAt": 0,
       "typeId": "type-root"
+    },
+    "v-elem-stats": {
+      "id": "v-elem-stats",
+      "projectId": "p-1",
+      "value": {
+        "fire": "v-elem-stats-fire",
+        "storm": "v-elem-stats-storm"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-elem-stats-fire": {
+      "id": "v-elem-stats-fire",
+      "projectId": "p-1",
+      "value": 12,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-elem-stats-storm": {
+      "id": "v-elem-stats-storm",
+      "projectId": "p-1",
+      "value": 99,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-elem-multipliers": {
+      "id": "v-elem-multipliers",
+      "projectId": "p-1",
+      "value": {
+        "ice": "v-elem-mult-ice"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-elem-mult-ice": {
+      "id": "v-elem-mult-ice",
+      "projectId": "p-1",
+      "value": 3,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-elem-champions": {
+      "id": "v-elem-champions",
+      "projectId": "p-1",
+      "value": {
+        "fire": "v-elem-champion-fire"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-elem-champion-fire": {
+      "id": "v-elem-champion-fire",
+      "projectId": "p-1",
+      "value": {
+        "Name": "v-elem-champion-name",
+        "ElementAffinity": "v-elem-affinity-map"
+      },
+      "createdAt": 0,
+      "updatedAt": 0,
+      "typeId": "type-hero"
+    },
+    "v-elem-champion-name": {
+      "id": "v-elem-champion-name",
+      "projectId": "p-1",
+      "value": "Ignis",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-elem-affinity-map": {
+      "id": "v-elem-affinity-map",
+      "projectId": "p-1",
+      "value": {
+        "fire": "v-elem-affinity-fire"
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "v-elem-affinity-fire": {
+      "id": "v-elem-affinity-fire",
+      "projectId": "p-1",
+      "value": "scorch",
+      "createdAt": 0,
+      "updatedAt": 0
     },
     "v-sample-tile-value": {
       "id": "v-sample-tile-value",
@@ -1683,6 +1855,7 @@
       "typeId": "type-storage-g"
     }
   },
+  "valuePartitions": {},
   "dialogues": {
     "dialogue-linked-hero": {
       "id": "dialogue-linked-hero",
