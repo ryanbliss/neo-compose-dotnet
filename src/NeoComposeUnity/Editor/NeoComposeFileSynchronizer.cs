@@ -7,9 +7,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
 
 namespace NeoCompose.Unity.Editor
 {
@@ -134,9 +137,9 @@ namespace NeoCompose.Unity.Editor
                         assetPath,
                         file.updatedAt,
                         now,
+                        ComputeRecordHash(file),
                         template.templateId,
-                        template.templateUpdatedAt,
-                        template.templateUpdatedAt == null ? null : now,
+                        ComputeRecordHash(template.record),
                         ImportSettingsVersion,
                         sprites,
                         audioClip);
@@ -164,17 +167,48 @@ namespace NeoCompose.Unity.Editor
             if (entry == null) return true;
             if (entry.AssetPath != assetPath) return true;
             if (!assets.FileExists(assetPath)) return true;
-            if (IsAfter(file.updatedAt, entry.LastDownloadedAt)) return true;
             if (entry.ImportSettingsVersion != ImportSettingsVersion) return true;
+            if (entry.FileRecordHash != ComputeRecordHash(file)) return true;
 
             var template = ResolveTemplate(projectData, file);
-            if (entry.TemplateId != template.templateId) return true;
-            if (template.templateUpdatedAt != null &&
-                IsAfter(template.templateUpdatedAt, entry.LastAppliedTemplateEditsAt))
-            {
-                return true;
-            }
+            // Unity serializes null strings as "" on domain reload, so a
+            // null-vs-empty template id difference is not a real change.
+            if ((entry.TemplateId ?? "") != (template.templateId ?? "")) return true;
+            if (entry.TemplateRecordHash != ComputeRecordHash(template.record)) return true;
             return false;
+        }
+
+        /// <summary>
+        /// Deterministic content hash of an exported record. The export ships
+        /// the file/template record head snapshot's data verbatim, so hashing
+        /// the deserialized record identifies the snapshot the bytes were
+        /// downloaded against: an unchanged record hashes identically across
+        /// synchronizations, while any record change (replacement upload,
+        /// import-settings edit, rename) also bumps `updatedAt` and therefore
+        /// the hash. Null records (e.g. "file uses no template") hash to "".
+        /// </summary>
+        internal static string ComputeRecordHash(object? record)
+        {
+            if (record == null) return "";
+            // JsonSerializer.Create ignores JsonConvert.DefaultSettings so a
+            // host project's global serializer configuration cannot change
+            // how records hash between synchronizations.
+            var serializer = JsonSerializer.Create(new JsonSerializerSettings());
+            var buffer = new StringBuilder(256);
+            using (var writer = new StringWriter(buffer))
+            {
+                serializer.Serialize(writer, record);
+            }
+
+            using var sha256 = SHA256.Create();
+            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(buffer.ToString()));
+            var builder = new StringBuilder(hash.Length * 2);
+            foreach (var b in hash)
+            {
+                builder.Append(b.ToString("x2"));
+            }
+
+            return builder.ToString();
         }
 
         internal static string BuildAssetPath(NeoComposeConfig config, ProjectFile file)
@@ -185,24 +219,7 @@ namespace NeoCompose.Unity.Editor
             return NeoComposePathUtility.CombineAssetPath(directory, $"{file.id}-{SanitizeFileName(file.name)}");
         }
 
-        private static bool IsAfter(string? lhs, string? rhs)
-        {
-            if (string.IsNullOrWhiteSpace(lhs)) return false;
-            if (string.IsNullOrWhiteSpace(rhs)) return true;
-            if (NeoTimestamp.TryParse(lhs, out var lhsTimestamp) &&
-                NeoTimestamp.TryParse(rhs, out var rhsTimestamp))
-            {
-                return lhsTimestamp.CompareTo(rhsTimestamp) > 0;
-            }
-            if (DateTime.TryParse(lhs, out var lhsDate) && DateTime.TryParse(rhs, out var rhsDate))
-            {
-                return lhsDate.ToUniversalTime() > rhsDate.ToUniversalTime();
-            }
-
-            return string.CompareOrdinal(lhs, rhs) > 0;
-        }
-
-        private static (string? templateId, string? templateUpdatedAt) ResolveTemplate(
+        private static (string? templateId, object? record) ResolveTemplate(
             ProjectData projectData,
             ProjectFile file)
         {
@@ -212,7 +229,7 @@ namespace NeoCompose.Unity.Editor
                 if (templateId != null &&
                     projectData.audioClipTemplates.TryGetValue(templateId, out var audioTemplate))
                 {
-                    return (templateId, audioTemplate.updatedAt);
+                    return (templateId, audioTemplate);
                 }
 
                 return (templateId, null);
@@ -222,7 +239,7 @@ namespace NeoCompose.Unity.Editor
             if (textureTemplateId != null &&
                 projectData.textureTemplates.TryGetValue(textureTemplateId, out var textureTemplate))
             {
-                return (textureTemplateId, textureTemplate.updatedAt);
+                return (textureTemplateId, textureTemplate);
             }
 
             return (textureTemplateId, null);

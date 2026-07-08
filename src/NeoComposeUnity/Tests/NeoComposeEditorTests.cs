@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Unity.Editor;
+using Newtonsoft.Json;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -659,7 +660,8 @@ namespace NeoCompose.Tests
             Assert.AreEqual(expectedPath, entry.AssetPath);
             Assert.AreEqual("86400000", entry.FileUpdatedAt);
             Assert.AreEqual("texture-template-1", entry.TemplateId);
-            Assert.AreEqual("172800000", entry.TemplateUpdatedAt);
+            Assert.IsNotEmpty(entry.FileRecordHash);
+            Assert.IsNotEmpty(entry.TemplateRecordHash);
             Assert.AreEqual("2026-05-13.2", entry.ImportSettingsVersion);
             Assert.AreSame(expectedSprite, entry.Sprites[0]);
             Assert.IsTrue(assets.savedAsset);
@@ -708,16 +710,20 @@ namespace NeoCompose.Tests
 }";
             var assets = new FakeAssetService();
             var expectedPath = "Assets/Resources/Neo/Files/Sprites/file-1-hero.png";
+            var exportedData = JsonConvert.DeserializeObject<ProjectData>(api.exportResponse.projectJson)!;
             assets.assetDatabase.SetFile(
                 "file-1",
                 "hero.png",
                 expectedPath,
                 "1970-01-02T00:00:00.000Z",
                 "1970-01-04T00:00:00.000Z",
+                NeoComposeFileSynchronizer.ComputeRecordHash(exportedData.files["file-1"]),
                 null,
-                null,
-                null,
+                "",
                 "2026-05-13.2");
+            // Unity serializes null strings as "" across domain reloads; a
+            // template-less file must still count as current afterwards.
+            assets.assetDatabase.TryGetEntry("file-1")!.TemplateId = "";
             assets.binaryFiles[expectedPath] = new byte[] { 1, 2, 3 };
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
             var progress = new List<string>();
@@ -730,6 +736,147 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, assets.binaryFiles.Count);
             CollectionAssert.AreEqual(new byte[] { 1, 2, 3 }, assets.binaryFiles[expectedPath]);
             Assert.IsTrue(assets.savedAsset);
+        }
+
+        [Test]
+        public async Task Synchronizer_RedownloadsUnityFileWhenFileRecordChanges()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.projectJson = ProjectJsonWithFiles(@"
+    ""file-1"": {
+      ""_id"": ""file-1"",
+      ""id"": ""file-1"",
+      ""projectId"": ""project-1"",
+      ""status"": ""uploaded"",
+      ""name"": ""hero.png"",
+      ""fileType"": ""image"",
+      ""mimeType"": ""image/png"",
+      ""byteLength"": 3,
+      ""storageKey"": ""projects/project-1/files/file-1"",
+      ""storageETag"": ""etag-2"",
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-05T00:00:00.000Z""
+    }");
+            api.fileDownloadResponse.files["file-1"] = new NeoComposeUnityExportFileDownload
+            {
+                fileId = "file-1",
+                downloadUrl = "signed-url",
+                expiresAt = "1970-01-01T00:05:00.000Z",
+            };
+            api.downloads["signed-url"] = new byte[] { 4, 5, 6 };
+            var assets = new FakeAssetService();
+            var expectedPath = "Assets/Resources/Neo/Files/Sprites/file-1-hero.png";
+            assets.assetDatabase.SetFile(
+                "file-1",
+                "hero.png",
+                expectedPath,
+                "1970-01-02T00:00:00.000Z",
+                "1970-01-04T00:00:00.000Z",
+                "hash-of-previous-record",
+                null,
+                "",
+                "2026-05-13.2");
+            assets.binaryFiles[expectedPath] = new byte[] { 1, 2, 3 };
+            var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            CollectionAssert.AreEqual(new[] { "file-1" }, api.lastFileDownloadIds);
+            CollectionAssert.AreEqual(new byte[] { 4, 5, 6 }, assets.binaryFiles[expectedPath]);
+            var entry = assets.assetDatabase.TryGetEntry("file-1");
+            Assert.IsNotNull(entry);
+            var exportedData = JsonConvert.DeserializeObject<ProjectData>(api.exportResponse.projectJson)!;
+            Assert.AreEqual(
+                NeoComposeFileSynchronizer.ComputeRecordHash(exportedData.files["file-1"]),
+                entry!.FileRecordHash);
+        }
+
+        [Test]
+        public async Task Synchronizer_RedownloadsUnityFileWhenTemplateRecordChanges()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.exportResponse.projectJson = @"
+{
+  ""project"": {
+    ""_id"": ""project-1"",
+    ""id"": ""project-1"",
+    ""name"": ""Project One"",
+    ""rootAssetsAttributeId"": ""assets-root"",
+    ""rootSaveFileAttributeId"": ""save-root"",
+    ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+    ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+  },
+  ""attributes"": {},
+  ""values"": {},
+  ""types"": {},
+  ""enums"": {},
+  ""files"": {
+    ""file-1"": {
+      ""_id"": ""file-1"",
+      ""id"": ""file-1"",
+      ""projectId"": ""project-1"",
+      ""status"": ""uploaded"",
+      ""name"": ""hero.png"",
+      ""fileType"": ""image"",
+      ""mimeType"": ""image/png"",
+      ""byteLength"": 3,
+      ""storageKey"": ""projects/project-1/files/file-1"",
+      ""storageETag"": ""etag-1"",
+      ""unityTextureSettings"": { ""templateId"": ""texture-template-1"", ""type"": ""texture-2d"", ""values"": {}, ""overridePaths"": [] },
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-02T00:00:00.000Z""
+    }
+  },
+  ""textureTemplates"": {
+    ""texture-template-1"": {
+      ""_id"": ""texture-template-1"",
+      ""id"": ""texture-template-1"",
+      ""projectId"": ""project-1"",
+      ""name"": ""Sprites"",
+      ""type"": ""texture-2d"",
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-06T00:00:00.000Z""
+    }
+  },
+  ""audioClipTemplates"": {}
+}";
+            api.fileDownloadResponse.files["file-1"] = new NeoComposeUnityExportFileDownload
+            {
+                fileId = "file-1",
+                downloadUrl = "signed-url",
+                expiresAt = "1970-01-01T00:05:00.000Z",
+            };
+            api.downloads["signed-url"] = new byte[] { 1, 2, 3 };
+            var assets = new FakeAssetService();
+            var expectedPath = "Assets/Resources/Neo/Files/Sprites/file-1-hero.png";
+            var exportedData = JsonConvert.DeserializeObject<ProjectData>(api.exportResponse.projectJson)!;
+            assets.assetDatabase.SetFile(
+                "file-1",
+                "hero.png",
+                expectedPath,
+                "86400000",
+                "1970-01-04T00:00:00.000Z",
+                NeoComposeFileSynchronizer.ComputeRecordHash(exportedData.files["file-1"]),
+                "texture-template-1",
+                "hash-of-previous-template-record",
+                "2026-05-13.2");
+            assets.binaryFiles[expectedPath] = new byte[] { 1, 2, 3 };
+            var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            CollectionAssert.AreEqual(new[] { "file-1" }, api.lastFileDownloadIds);
+            Assert.Contains(expectedPath, assets.appliedImportSettings);
+            var entry = assets.assetDatabase.TryGetEntry("file-1");
+            Assert.IsNotNull(entry);
+            Assert.AreEqual(
+                NeoComposeFileSynchronizer.ComputeRecordHash(
+                    exportedData.textureTemplates["texture-template-1"]),
+                entry!.TemplateRecordHash);
         }
 
         [Test]
@@ -767,9 +914,9 @@ namespace NeoCompose.Tests
                 expectedPath,
                 "1970-01-02T00:00:00.000Z",
                 "1970-01-04T00:00:00.000Z",
+                "",
                 null,
-                null,
-                null,
+                "",
                 "2026-05-13.2");
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
 
@@ -794,9 +941,9 @@ namespace NeoCompose.Tests
                 "Assets/Resources/Neo/Files/Sprites/file-1-hero.png",
                 "1970-01-02T00:00:00.000Z",
                 "1970-01-04T00:00:00.000Z",
+                "",
                 null,
-                null,
-                null,
+                "",
                 "2026-05-13.2");
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(true), assets);
 
@@ -821,9 +968,9 @@ namespace NeoCompose.Tests
                 "Assets/Resources/Neo/Files/Sprites/file-1-hero.png",
                 "1970-01-02T00:00:00.000Z",
                 "1970-01-04T00:00:00.000Z",
+                "",
                 null,
-                null,
-                null,
+                "",
                 "2026-05-13.2");
             var synchronizer = new NeoComposeSynchronizer(api, new FakeConfirmationService(false), assets);
 
@@ -900,9 +1047,9 @@ namespace NeoCompose.Tests
                     "Assets/Resources/Neo/Files/Sprites/sprite-file-hero.png",
                     "1970-01-02T00:00:00.000Z",
                     "1970-01-04T00:00:00.000Z",
+                    "sprite-record-hash",
                     "texture-template-1",
-                    "1970-01-03T00:00:00.000Z",
-                    "1970-01-04T00:00:00.000Z",
+                    "texture-template-hash",
                     "2026-05-13.2",
                     new[] { sprite },
                     null);
@@ -912,9 +1059,9 @@ namespace NeoCompose.Tests
                     "Assets/Resources/Neo/Files/Audio/audio-file-voice.wav",
                     "1970-01-02T00:00:00.000Z",
                     "1970-01-04T00:00:00.000Z",
+                    "audio-record-hash",
                     "audio-template-1",
-                    "1970-01-03T00:00:00.000Z",
-                    "1970-01-04T00:00:00.000Z",
+                    "audio-template-hash",
                     "2026-05-13.2",
                     null,
                     audio);

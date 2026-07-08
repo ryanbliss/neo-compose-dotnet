@@ -185,9 +185,9 @@ namespace NeoCompose.Runtime
             string assetPath,
             string updatedAt,
             string lastDownloadedAt,
+            string fileRecordHash,
             string? templateId,
-            string? templateUpdatedAt,
-            string? lastAppliedTemplateEditsAt,
+            string templateRecordHash,
             string importSettingsVersion,
             Sprite[]? sprites = null,
             AudioClip? audioClip = null)
@@ -214,9 +214,9 @@ namespace NeoCompose.Runtime
             entry.AssetPath = assetPath;
             entry.FileUpdatedAt = updatedAt;
             entry.LastDownloadedAt = lastDownloadedAt;
+            entry.FileRecordHash = fileRecordHash;
             entry.TemplateId = templateId;
-            entry.TemplateUpdatedAt = templateUpdatedAt;
-            entry.LastAppliedTemplateEditsAt = lastAppliedTemplateEditsAt;
+            entry.TemplateRecordHash = templateRecordHash;
             entry.ImportSettingsVersion = importSettingsVersion;
             entry.Sprites = sprites ?? Array.Empty<Sprite>();
             entry.AudioClip = audioClip;
@@ -326,11 +326,11 @@ namespace NeoCompose.Runtime
         [SerializeField]
         private string lastDownloadedAt = "";
         [SerializeField]
+        private string fileRecordHash = "";
+        [SerializeField]
         private string? templateId;
         [SerializeField]
-        private string? templateUpdatedAt;
-        [SerializeField]
-        private string? lastAppliedTemplateEditsAt;
+        private string templateRecordHash = "";
         [SerializeField]
         private string importSettingsVersion = "";
         [SerializeField]
@@ -373,6 +373,17 @@ namespace NeoCompose.Runtime
             set => lastDownloadedAt = value;
         }
 
+        /// <summary>
+        /// Content hash of the exported file record captured when the file was
+        /// last downloaded. Editor sync skips the download while the incoming
+        /// record hashes to the same value.
+        /// </summary>
+        public string FileRecordHash
+        {
+            get => fileRecordHash;
+            set => fileRecordHash = value;
+        }
+
         /// <summary>Template id used for the last applied import settings.</summary>
         public string? TemplateId
         {
@@ -380,18 +391,15 @@ namespace NeoCompose.Runtime
             set => templateId = value;
         }
 
-        /// <summary>Template updatedAt timestamp used for the last import.</summary>
-        public string? TemplateUpdatedAt
+        /// <summary>
+        /// Content hash of the resolved import-settings template record captured
+        /// when the file was last downloaded (empty when the file uses no
+        /// template). Editor sync re-imports when the template's hash changes.
+        /// </summary>
+        public string TemplateRecordHash
         {
-            get => templateUpdatedAt;
-            set => templateUpdatedAt = value;
-        }
-
-        /// <summary>Timestamp when template-backed edits were last applied.</summary>
-        public string? LastAppliedTemplateEditsAt
-        {
-            get => lastAppliedTemplateEditsAt;
-            set => lastAppliedTemplateEditsAt = value;
+            get => templateRecordHash;
+            set => templateRecordHash = value;
         }
 
         /// <summary>Neo Compose importer implementation version used for the last import.</summary>
