@@ -24,6 +24,13 @@ namespace NeoCompose.Runtime
         protected Attribute entryAttribute;
         protected Dictionary<string, NeoAttribute> childAttributes = new();
 
+        /// <summary>
+        /// The (stamp-substituted) entry attribute children are constructed
+        /// from. Exposed for <see cref="NeoGenericBindings"/> so collection
+        /// codecs can resolve entry codecs before any entry node exists.
+        /// </summary>
+        internal Attribute EntryAttribute => entryAttribute;
+
         public NeoAttributeDictionary(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
             : base(client, attributeId, overrideValueId, ownership)
         {
@@ -85,6 +92,10 @@ namespace NeoCompose.Runtime
         protected override void OnValueIdChainChanged()
         {
             base.OnValueIdChainChanged();
+            // The newly-bound row may carry a genericBindings stamp the
+            // construction-time row lacked — re-substitute the entry
+            // attribute before re-walking children.
+            entryAttribute = ResolveEntryAttribute();
             // The new bound value may have a different keyset — re-walk
             // children so disposed-orphans get released and new keys
             // get nodes.
@@ -124,7 +135,7 @@ namespace NeoCompose.Runtime
             foreach (var child in previousChildren.Values) child.Dispose();
         }
 
-        private Attribute ResolveEntryAttribute()
+        protected Attribute ResolveEntryAttribute()
         {
             if (!client.TryGetAttribute(attribute.entryAttributeId, out Attribute? match))
             {
@@ -132,7 +143,17 @@ namespace NeoCompose.Runtime
                     nameof(attribute.entryAttributeId),
                     $"No attribute for {nameof(attribute)}.{nameof(attribute.entryAttributeId)} {attribute.entryAttributeId}");
             }
-            return match;
+            // Entry substitution is lazy via the row's genericBindings stamp
+            // (specs/custom-type-generics.md Decision 9). A generic entry
+            // subtree with no bound row yet keeps the raw record — no entry
+            // can exist until a (stamped) row is bound, at which point
+            // OnValueIdChainChanged re-substitutes.
+            var stamp = value?.genericBindings;
+            if (stamp is null) return match;
+            return NeoGenericResolution.SubstituteAttribute(
+                client,
+                match,
+                NeoGenericResolution.EnvFromStamp(stamp));
         }
     }
 
@@ -216,6 +237,14 @@ namespace NeoCompose.Runtime
                     existingValueId,
                     existing.createdAt,
                     nowIso);
+                // A shadow of a stamped nested-collection entry keeps the
+                // immutable stamp (spec Decision 9/16).
+                next.genericBindings = existing.genericBindings;
+                NeoGenericResolution.StampGenericBindings(
+                    client,
+                    entryAttribute,
+                    next,
+                    NeoGenericResolution.EnvFromStamp(value?.genericBindings));
                 client.SetWritablePayloadRows(entryOwnership, setValue?.value);
                 client.SetWritableValue(entryOwnership, next);
                 if (childAttributes.TryGetValue(key, out NeoAttribute? oldChild))
@@ -244,6 +273,14 @@ namespace NeoCompose.Runtime
                 newValueId = System.Guid.NewGuid().ToString();
                 AttributeValue newValueRow = AttributeValueFactory.Create(
                     entryAttribute, setValue?.value, newValueId, nowIso, nowIso);
+                // A nested collection entry (e.g. Dictionary<string, List<T>>)
+                // carries its own Decision-9 stamp, resolved through this
+                // row's stamp.
+                NeoGenericResolution.StampGenericBindings(
+                    client,
+                    entryAttribute,
+                    newValueRow,
+                    NeoGenericResolution.EnvFromStamp(value?.genericBindings));
                 client.SetWritablePayloadRows(entryOwnership, setValue?.value);
                 client.SetWritableValue(entryOwnership, newValueRow);
             }
@@ -337,7 +374,14 @@ namespace NeoCompose.Runtime
                     ? new Dictionary<string, string>()
                     : new Dictionary<string, string>(value.value),
             };
+            // SDK-created rows carry the Decision-9 stamp from the wrapper
+            // tree's enclosing context (spec §9).
+            NeoGenericResolution.StampGenericBindings(
+                client, attribute, parentRow, NeoGenericResolution.ResolveContextEnv(parent));
             BindNewValue(parentRow);
+            // The freshly-stamped row may close generic entry references
+            // the construction-time (row-less) resolution left raw.
+            entryAttribute = ResolveEntryAttribute();
             return parentRow;
         }
     }

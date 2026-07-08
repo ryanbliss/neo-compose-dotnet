@@ -117,6 +117,8 @@ namespace NeoCompose.Runtime
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                 },
+                GenericAttribute generic => throw new System.InvalidOperationException(
+                    $"Cannot create a value row for Generic attribute '{generic.id}' ({generic.name}, param '{generic.genericParamId}') — Generic slots must be substituted to their binding attribute before value creation (is the enclosing collection row missing its genericBindings stamp?)."),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}",
                     nameof(attribute)),

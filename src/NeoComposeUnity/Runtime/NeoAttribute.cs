@@ -180,6 +180,8 @@ namespace NeoCompose.Runtime
                 Vector3IntAttribute v3i => new NeoAttributeVector3Int(client, v3i, overrideValueId),
                 ColorAttribute col => new NeoAttributeColor(client, col, overrideValueId),
                 DecimalAttribute dec => new NeoAttributeDecimal(client, dec, overrideValueId),
+                GenericAttribute g => throw new System.InvalidOperationException(
+                    $"Attribute '{g.id}' ({g.name}) is Generic-typed (param '{g.genericParamId}') — Generic slots must be substituted to their binding attribute (NeoGenericResolution.SubstituteAttribute) before node construction."),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}", nameof(attribute)),
             };
@@ -231,6 +233,8 @@ namespace NeoCompose.Runtime
                 Vector3IntAttribute v3i => new NeoAttributeVector3IntWritable(client, v3i, overrideValueId, ownership),
                 ColorAttribute col => new NeoAttributeColorWritable(client, col, overrideValueId, ownership),
                 DecimalAttribute dec => new NeoAttributeDecimalWritable(client, dec, overrideValueId, ownership),
+                GenericAttribute g => throw new System.InvalidOperationException(
+                    $"Attribute '{g.id}' ({g.name}) is Generic-typed (param '{g.genericParamId}') — Generic slots must be substituted to their binding attribute (NeoGenericResolution.SubstituteAttribute) before writable node construction."),
                 _ => throw new System.ArgumentException(
                     $"Unknown attribute type {attribute.GetType().Name}", nameof(attribute)),
             };
@@ -261,6 +265,7 @@ namespace NeoCompose.Runtime
                 Vector3IntAttribute => existing is NeoAttributeVector3IntWritable,
                 ColorAttribute => existing is NeoAttributeColorWritable,
                 DecimalAttribute => existing is NeoAttributeDecimalWritable,
+                GenericAttribute => false,
                 _ => false,
             };
         }
