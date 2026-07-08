@@ -67,6 +67,17 @@ namespace NeoCompose.Runtime.Json
         public string? storageMap;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
+
+        /// <summary>
+        /// Shallow member-wise copy preserving the concrete subclass.
+        /// Used by <c>NeoGenericResolution.SubstituteAttribute</c> to build
+        /// the substituted record (binding's type + config with the generic
+        /// slot's identity fields) without a serialize/deserialize round
+        /// trip. Reference-typed config (e.g. <c>defaultValue</c>) is shared
+        /// with the source — the wire DTOs are read-mostly, matching the
+        /// TS-side object-spread semantics.
+        /// </summary>
+        internal Attribute ShallowClone() => (Attribute)MemberwiseClone();
     }
 
     /// <summary>
@@ -197,6 +208,32 @@ namespace NeoCompose.Runtime.Json
     public class CustomAttribute : Attribute<Dictionary<string, string>?>
     {
         public string customTypeId = null!;
+
+        /// <summary>
+        /// Present iff <see cref="customTypeId"/> references a type with
+        /// unbound generics in scope: the constructed type's arguments,
+        /// keyed by target param id (specs/custom-type-generics.md
+        /// Decision 7). Complete-or-absent; immutable after creation.
+        /// Absent (<c>null</c>) means a plain (non-constructed) reference —
+        /// the same semantics as the web model.
+        /// </summary>
+        public Dictionary<string, GenericBinding>? customTypeArguments;
+    }
+
+    /// <summary>
+    /// Mirror of TS-side <c>IAttributeGenericBase</c>
+    /// (specs/custom-type-generics.md Decision 5). A Generic attribute is a
+    /// placeholder slot: it never holds a value un-substituted (every value
+    /// exists under a closed context where
+    /// <c>NeoGenericResolution.SubstituteAttribute</c> has already replaced
+    /// it with the terminal binding attribute), so <c>TValue</c> is
+    /// <c>object?</c> and <c>defaultValue</c>/<c>required</c> are never set
+    /// (both travel with the binding — Decision 10).
+    /// </summary>
+    public class GenericAttribute : Attribute<object?>
+    {
+        /// <summary>Id of a generic param in this attribute's placement scope.</summary>
+        public string genericParamId = null!;
     }
 
     /// <summary>Mirror of TS-side <c>TAttributeEnum</c>.</summary>
@@ -432,6 +469,7 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Vector3Int: return typeof(Vector3IntAttribute);
                 case AttributeType.Color: return typeof(ColorAttribute);
                 case AttributeType.Decimal: return typeof(DecimalAttribute);
+                case AttributeType.Generic: return typeof(GenericAttribute);
                 default: return null;
             }
         }

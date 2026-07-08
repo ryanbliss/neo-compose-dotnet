@@ -976,7 +976,8 @@ namespace NeoCompose.Runtime
             Dictionary<string, string>? providedValue,
             List<AttributeValue> rows,
             string nowIso,
-            HashSet<string> customTypeStack)
+            HashSet<string> customTypeStack,
+            IReadOnlyDictionary<string, GenericBinding>? customTypeArguments = null)
         {
             if (!customTypeStack.Add(customTypeId))
             {
@@ -989,7 +990,15 @@ namespace NeoCompose.Runtime
                     ? new Dictionary<string, string>()
                     : new Dictionary<string, string>(providedValue);
 
-                var mergedSchema = ResolveMergedSchema(client, customTypeId);
+                var mergedSchema = ResolveMergedSchema(client, customTypeId, customTypeArguments);
+                // Chain env overlaid with the owning slot's constructed
+                // arguments (specs/custom-type-generics.md §4.1) — an
+                // instance of the declared open type binds its params
+                // through the slot, not a named subtype's chain.
+                var env = NeoGenericResolution.ResolveInstanceEnv(
+                    client,
+                    customTypeId,
+                    customTypeArguments);
                 foreach (var entry in mergedSchema)
                 {
                     if (value.ContainsKey(entry.schemaKey)) continue;
@@ -998,6 +1007,11 @@ namespace NeoCompose.Runtime
                         throw new InvalidOperationException(
                             $"Custom type '{customTypeId}' schema key '{entry.schemaKey}' references missing attribute '{entry.attributeId}'.");
                     }
+                    // Generic slots substitute to their binding before the
+                    // required check and default construction — required and
+                    // defaultValue travel with the binding
+                    // (specs/custom-type-generics.md Decision 10).
+                    attribute = NeoGenericResolution.SubstituteAttribute(client, attribute, env);
                     if (!attribute.required) continue;
 
                     var defaultRow = CreateDefaultValueRow(
@@ -1005,7 +1019,8 @@ namespace NeoCompose.Runtime
                         attribute,
                         rows,
                         nowIso,
-                        customTypeStack);
+                        customTypeStack,
+                        env);
                     if (defaultRow is null) continue;
 
                     rows.Add(defaultRow);
@@ -1029,7 +1044,8 @@ namespace NeoCompose.Runtime
 
         private static IList<MergedSchemaEntry> ResolveMergedSchema(
             NeoClient client,
-            string customTypeId)
+            string customTypeId,
+            IReadOnlyDictionary<string, GenericBinding>? customTypeArguments = null)
         {
             if (!client.TryGetType(customTypeId, out CustomType? type))
             {
@@ -1040,6 +1056,17 @@ namespace NeoCompose.Runtime
             {
                 throw new InvalidOperationException(
                     $"Cannot create default custom value for abstract type '{type.name}'.");
+            }
+            // Instantiability: every param must be bound by the chain OR the
+            // owning slot's constructed arguments — `GenericTest<Color>` is
+            // instantiable even though the named type is open
+            // (specs/custom-type-generics.md §3.4).
+            string? unboundParamId = NeoGenericResolution.FirstUnboundParamId(
+                NeoGenericResolution.ResolveInstanceEnv(client, customTypeId, customTypeArguments));
+            if (unboundParamId is not null)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot create default custom value for open generic type '{type.name}': generic param '{unboundParamId}' is unbound — every generic param must be bound before instantiation (specs/custom-type-generics.md Decision 6).");
             }
             return CustomTypeInheritance.MergeSchemas(
                 CustomTypeInheritance.ResolveChain(
@@ -1054,7 +1081,8 @@ namespace NeoCompose.Runtime
             Attribute attribute,
             List<AttributeValue> rows,
             string nowIso,
-            HashSet<string> customTypeStack)
+            HashSet<string> customTypeStack,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
             switch (attribute)
             {
@@ -1152,12 +1180,16 @@ namespace NeoCompose.Runtime
                         customTypeStack);
                 case DictionaryAttribute attr:
                     return CreateDefaultDictionaryValueRow(
+                        client,
                         attr,
-                        nowIso);
+                        nowIso,
+                        env);
                 case ListAttribute attr:
                     return CreateDefaultListValueRow(
+                        client,
                         attr,
-                        nowIso);
+                        nowIso,
+                        env);
                 default:
                     return null;
             }
@@ -1172,20 +1204,26 @@ namespace NeoCompose.Runtime
         {
             var effectiveTypeId = attribute.defaultValue?.typeId
                 ?? attribute.customTypeId;
+            // The slot's constructed arguments travel with every descent
+            // below — the default's effective type may be the DECLARED open
+            // type, closed only by the slot (specs/custom-type-generics.md
+            // §4.1).
             var provided = CloneDefaultCustomChildren(
                 client,
                 attribute.defaultValue?.value,
                 effectiveTypeId,
                 rows,
                 nowIso,
-                customTypeStack);
+                customTypeStack,
+                attribute.customTypeArguments);
             return CreateWritableCustomValueRow(
                 client,
                 effectiveTypeId,
                 provided,
                 rows,
                 nowIso,
-                customTypeStack);
+                customTypeStack,
+                attribute.customTypeArguments);
         }
 
         private static Dictionary<string, string> CloneDefaultCustomChildren(
@@ -1194,16 +1232,21 @@ namespace NeoCompose.Runtime
             string customTypeId,
             List<AttributeValue> rows,
             string nowIso,
-            HashSet<string> customTypeStack)
+            HashSet<string> customTypeStack,
+            IReadOnlyDictionary<string, GenericBinding>? customTypeArguments = null)
         {
             var result = new Dictionary<string, string>();
             if (source is null || source.Count == 0) return result;
 
             var schemaByKey = new Dictionary<string, MergedSchemaEntry>();
-            foreach (var entry in ResolveMergedSchema(client, customTypeId))
+            foreach (var entry in ResolveMergedSchema(client, customTypeId, customTypeArguments))
             {
                 schemaByKey[entry.schemaKey] = entry;
             }
+            var env = NeoGenericResolution.ResolveInstanceEnv(
+                client,
+                customTypeId,
+                customTypeArguments);
 
             foreach (var pair in source)
             {
@@ -1213,11 +1256,12 @@ namespace NeoCompose.Runtime
 
                 var cloned = CloneStoredValueForAttribute(
                     client,
-                    attribute,
+                    NeoGenericResolution.SubstituteAttribute(client, attribute, env),
                     sourceRow,
                     rows,
                     nowIso,
-                    customTypeStack);
+                    customTypeStack,
+                    env);
                 if (cloned is null) continue;
 
                 rows.Add(cloned);
@@ -1227,29 +1271,37 @@ namespace NeoCompose.Runtime
         }
 
         private static ObjectAttributeValue CreateDefaultDictionaryValueRow(
+            NeoClient client,
             DictionaryAttribute attribute,
-            string nowIso)
+            string nowIso,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
-            return new ObjectAttributeValue
+            var row = new ObjectAttributeValue
             {
                 id = Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = new Dictionary<string, string>(),
             };
+            NeoGenericResolution.StampGenericBindings(client, attribute, row, env);
+            return row;
         }
 
         private static ArrayAttributeValue CreateDefaultListValueRow(
+            NeoClient client,
             ListAttribute attribute,
-            string nowIso)
+            string nowIso,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
-            return new ArrayAttributeValue
+            var row = new ArrayAttributeValue
             {
                 id = Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = Array.Empty<string>(),
             };
+            NeoGenericResolution.StampGenericBindings(client, attribute, row, env);
+            return row;
         }
 
         private static AttributeValue? CloneStoredValueForAttribute(
@@ -1258,7 +1310,8 @@ namespace NeoCompose.Runtime
             AttributeValue source,
             List<AttributeValue> rows,
             string nowIso,
-            HashSet<string> customTypeStack)
+            HashSet<string> customTypeStack,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
             switch (attribute)
             {
@@ -1352,10 +1405,12 @@ namespace NeoCompose.Runtime
                             sourceValue.typeId ?? customAttribute.customTypeId,
                             rows,
                             nowIso,
-                            customTypeStack),
+                            customTypeStack,
+                            customAttribute.customTypeArguments),
                         rows,
                         nowIso,
-                        customTypeStack);
+                        customTypeStack,
+                        customAttribute.customTypeArguments);
                 case DictionaryAttribute dictionaryAttribute
                     when source is ObjectAttributeValue sourceValue:
                     return CloneDictionaryValueRow(
@@ -1364,7 +1419,8 @@ namespace NeoCompose.Runtime
                         sourceValue,
                         rows,
                         nowIso,
-                        customTypeStack);
+                        customTypeStack,
+                        env);
                 case ListAttribute listAttribute
                     when source is ArrayAttributeValue sourceValue:
                     return CloneListValueRow(
@@ -1373,7 +1429,8 @@ namespace NeoCompose.Runtime
                         sourceValue,
                         rows,
                         nowIso,
-                        customTypeStack);
+                        customTypeStack,
+                        env);
                 default:
                     return null;
             }
@@ -1385,12 +1442,21 @@ namespace NeoCompose.Runtime
             ObjectAttributeValue source,
             List<AttributeValue> rows,
             string nowIso,
-            HashSet<string> customTypeStack)
+            HashSet<string> customTypeStack,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
+            // The clone keeps the source row's immutable Decision-9 stamp
+            // (falling back to a fresh computation from the creation env
+            // for pre-stamp authored rows), and entries substitute their
+            // attribute through it.
+            var entryEnv = source.genericBindings is null
+                ? env
+                : NeoGenericResolution.EnvFromStamp(source.genericBindings);
             var value = new Dictionary<string, string>();
             if (source.value is not null
                 && client.TryGetAttribute(attribute.entryAttributeId, out Attribute? entryAttribute))
             {
+                entryAttribute = NeoGenericResolution.SubstituteAttribute(client, entryAttribute, entryEnv);
                 foreach (var pair in source.value)
                 {
                     if (!client.TryGetValue(pair.Value, out AttributeValue? sourceRow)) continue;
@@ -1400,7 +1466,8 @@ namespace NeoCompose.Runtime
                         sourceRow,
                         rows,
                         nowIso,
-                        customTypeStack);
+                        customTypeStack,
+                        entryEnv);
                     if (cloned is null) continue;
 
                     rows.Add(cloned);
@@ -1408,14 +1475,19 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            return new ObjectAttributeValue
+            var row = new ObjectAttributeValue
             {
                 id = Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = value,
                 typeId = source.typeId,
+                genericBindings = source.genericBindings is null
+                    ? null
+                    : new Dictionary<string, string>(source.genericBindings),
             };
+            NeoGenericResolution.StampGenericBindings(client, attribute, row, env);
+            return row;
         }
 
         private static ArrayAttributeValue CloneListValueRow(
@@ -1424,12 +1496,18 @@ namespace NeoCompose.Runtime
             ArrayAttributeValue source,
             List<AttributeValue> rows,
             string nowIso,
-            HashSet<string> customTypeStack)
+            HashSet<string> customTypeStack,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
+            // Same stamp semantics as CloneDictionaryValueRow.
+            var entryEnv = source.genericBindings is null
+                ? env
+                : NeoGenericResolution.EnvFromStamp(source.genericBindings);
             var value = new List<string>();
             if (source.value is not null
                 && client.TryGetAttribute(attribute.entryAttributeId, out Attribute? entryAttribute))
             {
+                entryAttribute = NeoGenericResolution.SubstituteAttribute(client, entryAttribute, entryEnv);
                 foreach (var sourceId in source.value)
                 {
                     if (!client.TryGetValue(sourceId, out AttributeValue? sourceRow)) continue;
@@ -1439,7 +1517,8 @@ namespace NeoCompose.Runtime
                         sourceRow,
                         rows,
                         nowIso,
-                        customTypeStack);
+                        customTypeStack,
+                        entryEnv);
                     if (cloned is null) continue;
 
                     rows.Add(cloned);
@@ -1447,14 +1526,19 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            return new ArrayAttributeValue
+            var row = new ArrayAttributeValue
             {
                 id = Guid.NewGuid().ToString(),
                 createdAt = nowIso,
                 updatedAt = nowIso,
                 value = value.ToArray(),
                 typeId = source.typeId,
+                genericBindings = source.genericBindings is null
+                    ? null
+                    : new Dictionary<string, string>(source.genericBindings),
             };
+            NeoGenericResolution.StampGenericBindings(client, attribute, row, env);
+            return row;
         }
 
         private static NullAttributeValue CreateNullValueRow(

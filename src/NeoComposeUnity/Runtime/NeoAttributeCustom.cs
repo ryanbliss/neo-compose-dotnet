@@ -36,6 +36,19 @@ namespace NeoCompose.Runtime
         /// inherited from ancestor Custom types.
         /// </summary>
         public IList<MergedSchemaEntry> mergedSchema { get; private set; } = new List<MergedSchemaEntry>();
+        /// <summary>
+        /// Generic binding environment of the row's effective type
+        /// (specs/custom-type-generics.md §9): every param in the chain's
+        /// scope resolved to its terminal binding at this type, overlaid
+        /// with the slot attribute's constructed <c>customTypeArguments</c>
+        /// (§4.1) so instances of the declared open type resolve the params
+        /// the slot binds at the usage site. Child
+        /// attribute records substitute through this before node dispatch,
+        /// and freshly-minted collection rows stamp their
+        /// <c>genericBindings</c> from it. Empty for non-generic chains.
+        /// </summary>
+        internal IReadOnlyDictionary<string, NeoGenericEnvEntry> GenericEnv { get; private set; }
+            = NeoGenericResolution.EmptyEnv;
         protected Dictionary<string, NeoAttribute> childAttributes = new();
 
         public NeoAttributeCustom(NeoClient client, string attributeId, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
@@ -192,14 +205,33 @@ namespace NeoCompose.Runtime
         {
             // Walks the merged schema rather than `type.schema` directly
             // so a descendant Custom row sees keys inherited from
-            // ancestor types in its `extendsTypeId` chain.
+            // ancestor types in its `extendsTypeId` chain. Generic slots
+            // substitute to their binding attribute before the type check,
+            // so callers asking for the concrete kind resolve correctly.
             string? attributeIdForKey = LookupMergedAttributeId(key);
-            if (attributeIdForKey is not null)
+            if (attributeIdForKey is not null
+                && client.TryGetAttribute(attributeIdForKey, out Attribute? raw)
+                && SubstituteChildAttribute(raw) is TAttribute match)
             {
-                return client.TryGetAttribute(attributeIdForKey, out outAttribute);
+                outAttribute = match;
+                return true;
             }
             outAttribute = null;
             return false;
+        }
+
+        /// <summary>
+        /// Substitutes generic references in a merged-schema child record
+        /// through this node's <see cref="GenericEnv"/>
+        /// (specs/custom-type-generics.md Decision 10) — a <c>T</c> slot on
+        /// a closed instance resolves to its binding attribute BEFORE the
+        /// child node kind is dispatched, so it constructs the concrete
+        /// wrapper (e.g. <see cref="NeoAttributeFloat"/>). Identity for
+        /// non-generic records.
+        /// </summary>
+        protected Attribute SubstituteChildAttribute(Attribute childAttribute)
+        {
+            return NeoGenericResolution.SubstituteAttribute(client, childAttribute, GenericEnv);
         }
 
         /// <summary>
@@ -258,6 +290,7 @@ namespace NeoCompose.Runtime
             foreach (var entry in mergedSchema)
             {
                 if (!client.TryGetAttribute(entry.attributeId, out Attribute? childAttribute)) continue;
+                childAttribute = SubstituteChildAttribute(childAttribute);
                 string? childValueId = value?.value is not null
                     && value.value.TryGetValue(entry.schemaKey, out string valueIdForKey)
                         ? valueIdForKey
@@ -351,12 +384,23 @@ namespace NeoCompose.Runtime
                     type.id,
                     id => client.TryGetType(id, out var t) ? t : null);
                 mergedSchema = CustomTypeInheritance.MergeSchemas(inheritanceChain);
+                // The chain env alone misses constructed slots: an instance
+                // of the DECLARED open type (`typeId: null` rows under a
+                // `GenericTest<Color>` slot) binds its params through the
+                // slot attribute's `customTypeArguments`, not a named
+                // subtype's chain (specs/custom-type-generics.md §4.1).
+                // Concrete documents pay nothing — the overlay is skipped
+                // when the slot carries no arguments.
+                GenericEnv = NeoGenericResolution.ResolveInstanceEnv(
+                    inheritanceChain,
+                    attribute.customTypeArguments);
             }
             catch (CircularInheritanceError ex)
             {
                 Debug.LogError(ex);
                 inheritanceChain = new List<CustomType>();
                 mergedSchema = new List<MergedSchemaEntry>();
+                GenericEnv = NeoGenericResolution.EmptyEnv;
             }
         }
     }
@@ -422,6 +466,7 @@ namespace NeoCompose.Runtime
                 throw new System.Exception(
                     $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
             }
+            childAttribute = SubstituteChildAttribute(childAttribute);
 
             NeoValueWritePayload initialValue = childAttribute switch
             {
@@ -518,7 +563,7 @@ namespace NeoCompose.Runtime
                 throw new System.Exception(
                     $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
             }
-            if (childAttribute is not StringAttribute)
+            if (SubstituteChildAttribute(childAttribute) is not StringAttribute)
             {
                 throw new System.InvalidOperationException(
                     $"Attribute '{key}' is not a string attribute.");
@@ -541,7 +586,7 @@ namespace NeoCompose.Runtime
                 throw new System.Exception(
                     $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
             }
-            if (childAttribute is not StringAttribute)
+            if (SubstituteChildAttribute(childAttribute) is not StringAttribute)
             {
                 throw new System.InvalidOperationException(
                     $"Attribute '{key}' is not a string attribute.");
@@ -576,6 +621,10 @@ namespace NeoCompose.Runtime
                 throw new System.Exception(
                     $"No attribute for {nameof(schemaKeyedAttributeId)} '{schemaKeyedAttributeId}'");
             }
+            // Generic slots substitute to their binding before any typed
+            // dispatch below (required travels with the binding —
+            // specs/custom-type-generics.md Decision 10).
+            childAttribute = SubstituteChildAttribute(childAttribute);
             if (childAttribute.required && (setValue is null || setValue.isNull))
             {
                 throw new System.ArgumentNullException(
@@ -603,7 +652,7 @@ namespace NeoCompose.Runtime
             if (childAttribute is ListAttribute childListAttribute
                 && client.IsUnorderedList(childListAttribute))
             {
-                SetSerializedUnorderedList(key, setValue, childOwnership, recordWritable, nowIso);
+                SetSerializedUnorderedList(key, childListAttribute, setValue, childOwnership, recordWritable, nowIso);
                 return;
             }
 
@@ -646,6 +695,11 @@ namespace NeoCompose.Runtime
                     existingValueId,
                     existing.createdAt,
                     nowIso);
+                // A shadow of a stamped collection row keeps the immutable
+                // stamp (spec Decision 9/16); a row that predates the stamp
+                // recomputes the identical value from this record's env.
+                next.genericBindings = existing.genericBindings;
+                NeoGenericResolution.StampGenericBindings(client, childAttribute, next, GenericEnv);
                 client.SetWritablePayloadRows(childOwnership, setValue?.value);
                 client.SetWritableValue(childOwnership, next);
                 ReinitializeChildren();
@@ -681,6 +735,10 @@ namespace NeoCompose.Runtime
                 newValueId = System.Guid.NewGuid().ToString();
                 AttributeValue newValueRow = AttributeValueFactory.Create(
                     childAttribute, setValue?.value, newValueId, nowIso, nowIso);
+                // Freshly-minted collection rows carry the Decision-9 stamp
+                // computed from this record's env (the SDK walks top-down
+                // with the document in memory).
+                NeoGenericResolution.StampGenericBindings(client, childAttribute, newValueRow, GenericEnv);
                 client.SetWritablePayloadRows(childOwnership, setValue?.value);
                 client.SetWritableValue(childOwnership, newValueRow);
             }
@@ -697,6 +755,7 @@ namespace NeoCompose.Runtime
 
         private void SetSerializedUnorderedList(
             string key,
+            ListAttribute childListAttribute,
             NeoValueWritePayload? setValue,
             NeoValueOwnership childOwnership,
             bool recordWritable,
@@ -720,6 +779,7 @@ namespace NeoCompose.Runtime
                     updatedAt = nowIso,
                     value = System.Array.Empty<string>(),
                 };
+                NeoGenericResolution.StampGenericBindings(client, childListAttribute, listRow, GenericEnv);
                 client.SetWritableValue(childOwnership, listRow);
                 ObjectAttributeValue record = EnsureWritableObject(nowIso);
                 record.value![key] = listRow.id;
@@ -839,7 +899,7 @@ namespace NeoCompose.Runtime
                     $"Merged schema for type {type.id} (chain depth {inheritanceChain.Count}) does not contain key '{key}'");
             }
             if (client.TryGetAttribute(attributeId, out Attribute? childAttribute)
-                && childAttribute.required)
+                && SubstituteChildAttribute(childAttribute).required)
             {
                 throw new System.InvalidOperationException(
                     $"Cannot unset required field '{key}'.");

@@ -32,6 +32,13 @@ namespace NeoCompose.Runtime.Json
         DialogueLookup = 18,
         Color = 19,
         Decimal = 20,
+        /// <summary>
+        /// Generic parameter placeholder (specs/custom-type-generics.md
+        /// Decision 5). Value-bearing only after substitution — resolution
+        /// replaces it with the terminal binding attribute before any node
+        /// is constructed (see <c>NeoGenericResolution.SubstituteAttribute</c>).
+        /// </summary>
+        Generic = 21,
         Unknown = -1,
         Void = -2,
     }

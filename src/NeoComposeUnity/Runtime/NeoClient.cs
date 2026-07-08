@@ -1307,6 +1307,12 @@ namespace NeoCompose.Runtime
             // mapKey is immutable partition identity: a shadow of a
             // partition-stamped row stays in the same storage partition.
             clone.mapKey = row.mapKey;
+            // genericBindings is immutable creation-time context
+            // (specs/custom-type-generics.md Decision 9): a shadow of a
+            // stamped collection row keeps its entry-substitution stamp.
+            clone.genericBindings = row.genericBindings is null
+                ? null
+                : new Dictionary<string, string>(row.genericBindings);
             return clone;
         }
 

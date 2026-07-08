@@ -596,6 +596,22 @@ namespace NeoCompose.Runtime.Json
         public string? mapKey { get; set; }
 
         /// <summary>
+        /// Generic-bindings stamp (specs/custom-type-generics.md
+        /// Decision 9): present on List/Dictionary value rows whose entry
+        /// attribute subtree references generic params — the resolved
+        /// terminal binding attribute id per referenced param. Stamped at
+        /// creation from the enclosing context's environment (the enclosing
+        /// custom value's effective typeId, an enclosing stamped collection,
+        /// or the SDK's in-memory document) and immutable thereafter — the
+        /// same creation-time-immutable row context as
+        /// <see cref="containerId"/>/<see cref="mapKey"/>. Entry reads and
+        /// writes substitute the entry attribute through this stamp instead
+        /// of requiring container context.
+        /// </summary>
+        [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
+        public Dictionary<string, string>? genericBindings { get; set; }
+
+        /// <summary>
         /// Save-overlay tombstone marker. When set to
         /// <see cref="NeoValueMarks.Removed"/>, this row represents an
         /// <b>explicitly removed/emptied</b> optional value and resolves as

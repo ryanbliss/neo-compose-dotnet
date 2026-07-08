@@ -34,6 +34,20 @@ namespace NeoCompose.Runtime.Json
         /// <see cref="extendsTypeId"/> (narrow-only).
         /// </summary>
         public string? allowedStorage;
+        /// <summary>
+        /// Ordered generic parameter declarations
+        /// (specs/custom-type-generics.md Decision 2). Absent/empty means a
+        /// non-generic type — nullable-tolerant for stale local
+        /// <c>project.json</c> files, same semantics as the web model.
+        /// </summary>
+        public List<GenericParamDeclaration>? genericParams;
+        /// <summary>
+        /// Present iff <see cref="extendsTypeId"/> references a type with
+        /// unbound generics in scope: how each parent-scope param is
+        /// implemented, keyed by that param's id (Decision 4). Immutable
+        /// after creation (re-binding is a migration, not an edit).
+        /// </summary>
+        public Dictionary<string, GenericBinding>? extendsGenericBindings;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
     }

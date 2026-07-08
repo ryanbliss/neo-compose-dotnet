@@ -24,6 +24,13 @@ namespace NeoCompose.Runtime
         protected List<NeoAttribute> childAttributes = new();
 
         /// <summary>
+        /// The (stamp-substituted) entry attribute children are constructed
+        /// from. Exposed for <see cref="NeoGenericBindings"/> so collection
+        /// codecs can resolve entry codecs before any entry node exists.
+        /// </summary>
+        internal Attribute EntryAttribute => entryAttribute;
+
+        /// <summary>
         /// True when the attribute declares <c>listKind: "unordered"</c>:
         /// the stored value is only the null-vs-present discriminator
         /// (<c>null</c> or <c>[]</c>) and membership resolves by join over
@@ -82,6 +89,10 @@ namespace NeoCompose.Runtime
         protected override void OnValueIdChainChanged()
         {
             base.OnValueIdChainChanged();
+            // The newly-bound row may carry a genericBindings stamp the
+            // construction-time row lacked (or vice versa) — re-substitute
+            // the entry attribute before re-walking children.
+            entryAttribute = ResolveEntryAttribute();
             ReinitializeChildren();
         }
 
@@ -168,7 +179,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private Attribute ResolveEntryAttribute()
+        protected Attribute ResolveEntryAttribute()
         {
             if (!client.TryGetAttribute(attribute.entryAttributeId, out Attribute? match))
             {
@@ -176,7 +187,17 @@ namespace NeoCompose.Runtime
                     nameof(attribute.entryAttributeId),
                     $"No attribute for {nameof(attribute)}.{nameof(attribute.entryAttributeId)} {attribute.entryAttributeId}");
             }
-            return match;
+            // Entry substitution is lazy via the row's genericBindings stamp
+            // (specs/custom-type-generics.md Decision 9). A generic entry
+            // subtree with no bound row yet keeps the raw record — no entry
+            // can exist until a (stamped) row is bound, at which point
+            // OnValueIdChainChanged re-substitutes.
+            var stamp = value?.genericBindings;
+            if (stamp is null) return match;
+            return NeoGenericResolution.SubstituteAttribute(
+                client,
+                match,
+                NeoGenericResolution.EnvFromStamp(stamp));
         }
     }
 
@@ -246,6 +267,13 @@ namespace NeoCompose.Runtime
                 newValueId = System.Guid.NewGuid().ToString();
                 AttributeValue newValueRow = AttributeValueFactory.Create(
                     entryAttribute, entryValue?.value, newValueId, nowIso, nowIso);
+                // A nested collection entry (e.g. List<List<T>>) carries its
+                // own Decision-9 stamp, resolved through this row's stamp.
+                NeoGenericResolution.StampGenericBindings(
+                    client,
+                    entryAttribute,
+                    newValueRow,
+                    NeoGenericResolution.EnvFromStamp(parentRow.genericBindings));
                 client.SetWritablePayloadRows(entryOwnership, entryValue?.value);
                 client.SetWritableValue(entryOwnership, newValueRow);
             }
@@ -332,6 +360,14 @@ namespace NeoCompose.Runtime
                 entryValueId,
                 existing.createdAt,
                 nowIso);
+            // A shadow of a stamped nested-collection entry keeps the
+            // immutable stamp (spec Decision 9/16).
+            next.genericBindings = existing.genericBindings;
+            NeoGenericResolution.StampGenericBindings(
+                client,
+                entryAttribute,
+                next,
+                NeoGenericResolution.EnvFromStamp(value?.genericBindings));
             client.SetWritablePayloadRows(entryOwnership, entryValue?.value);
             client.SetWritableValue(entryOwnership, next);
             childAttributes[index].Dispose();
@@ -546,6 +582,13 @@ namespace NeoCompose.Runtime
                 AttributeValue newValueRow = AttributeValueFactory.Create(
                     entryAttribute, entryValue?.value, newValueId, nowIso, nowIso);
                 newValueRow.containerId = containerValueId;
+                // Nested collection members carry their own Decision-9
+                // stamp, resolved through the container row's stamp.
+                NeoGenericResolution.StampGenericBindings(
+                    client,
+                    entryAttribute,
+                    newValueRow,
+                    NeoGenericResolution.EnvFromStamp(containerRow.genericBindings));
                 client.SetWritablePayloadRows(entryOwnership, entryValue?.value);
                 client.SetWritableValue(entryOwnership, newValueRow);
             }
@@ -780,7 +823,15 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = System.Array.Empty<string>(),
             };
+            // SDK-created rows carry the Decision-9 stamp from the wrapper
+            // tree's enclosing context (the parent Custom node's env or an
+            // enclosing collection row's own stamp).
+            NeoGenericResolution.StampGenericBindings(
+                client, attribute, minted, NeoGenericResolution.ResolveContextEnv(parent));
             BindNewValue(minted);
+            // The freshly-stamped row may close generic entry references
+            // the construction-time (row-less) resolution left raw.
+            entryAttribute = ResolveEntryAttribute();
             return minted;
         }
 
@@ -804,7 +855,14 @@ namespace NeoCompose.Runtime
                 updatedAt = nowIso,
                 value = System.Array.Empty<string>(),
             };
+            // SDK-created rows carry the Decision-9 stamp from the wrapper
+            // tree's enclosing context (spec §9).
+            NeoGenericResolution.StampGenericBindings(
+                client, attribute, parentRow, NeoGenericResolution.ResolveContextEnv(parent));
             BindNewValue(parentRow);
+            // The freshly-stamped row may close generic entry references
+            // the construction-time (row-less) resolution left raw.
+            entryAttribute = ResolveEntryAttribute();
             return parentRow;
         }
     }
