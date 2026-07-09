@@ -2609,8 +2609,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("fullText").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                var result = node.Get<NeoAttributeNSProperty>("fullText").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
         }
@@ -4069,8 +4069,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                var result = node.Get<NeoAttributeNSProperty>("HasVisited").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (bool)result.value!;
             }
         }
@@ -4314,8 +4314,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                var result = node.Get<NeoAttributeNSProperty>("FullDisplayText").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
         }
@@ -4351,9 +4351,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Save").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadRequiredNSGetterCustom(client, result.value, true, null, OutpostSaveData.CreateWritable);
+                var result = node.Get<NeoAttributeNSProperty>("Save").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadRequiredNSPropertyCustom(client, result.value, true, null, OutpostSaveData.CreateWritable);
             }
         }
 
@@ -4361,9 +4361,9 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("SaveUnsafe").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
-                return NeoGeneratedTypesSupport.ReadNSGetterCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
+                var result = node.Get<NeoAttributeNSProperty>("SaveUnsafe").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                return NeoGeneratedTypesSupport.ReadNSPropertyCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
             }
         }
 
@@ -4855,8 +4855,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("HasVisited").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                var result = node.Get<NeoAttributeNSProperty>("HasVisited").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (bool)result.value!;
             }
         }
@@ -7826,8 +7826,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Visited").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                var result = node.Get<NeoAttributeNSProperty>("Visited").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (bool)result.value!;
             }
         }
@@ -8145,8 +8145,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                var result = node.Get<NeoAttributeNSProperty>("FullDisplayText").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
         }
@@ -9218,8 +9218,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("FullDisplayText").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                var result = node.Get<NeoAttributeNSProperty>("FullDisplayText").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
         }
@@ -11809,8 +11809,8 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("NextHint").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                var result = node.Get<NeoAttributeNSProperty>("NextHint").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
         }

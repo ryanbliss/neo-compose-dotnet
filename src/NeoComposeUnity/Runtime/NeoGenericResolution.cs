@@ -127,7 +127,7 @@ namespace NeoCompose.Runtime
     /// One deliberate deviation from the web module: the SDK operates on
     /// wire records directly rather than resolving <c>extendsAttributeId</c>
     /// override chains first — the export ships full records and every
-    /// other runtime consumer (node construction, NSGetter evaluation)
+    /// other runtime consumer (node construction, NSProperty getter evaluation)
     /// already reads them the same way.
     /// </summary>
     public static class NeoGenericResolution

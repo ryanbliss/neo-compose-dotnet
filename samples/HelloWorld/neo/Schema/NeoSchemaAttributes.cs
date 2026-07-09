@@ -124,11 +124,11 @@ namespace NeoCompose.Schema
     }
 
     [AttributeUsage(AttributeTargets.Property)]
-    public sealed class NeoGetterAttribute : NeoSchemaMemberAttribute
+    public sealed class NeoPropertyAttribute : NeoSchemaMemberAttribute
     {
         public string? Code { get; set; }
         public string? RetJson { get; set; }
-        public NeoGetterAttribute(string? id = null) : base(id) { }
+        public NeoPropertyAttribute(string? id = null) : base(id) { }
     }
 
     [AttributeUsage(AttributeTargets.Property)]

@@ -148,7 +148,7 @@ namespace NeoCompose.Runtime.Json
         ///
         /// <para>Single source of truth for "which Custom type's schema
         /// lists this attribute, and under what key?" — used by the
-        /// NSGetter evaluator to recover the schema key a callGetter
+        /// NSProperty evaluator to recover the NSProperty schema key a callGetter
         /// pointer was bound under so it can re-resolve the dispatch
         /// target via the runtime row's typeId merged schema.</para>
         ///
@@ -196,9 +196,9 @@ namespace NeoCompose.Runtime.Json
         ///   defends against accidental cycles.</description></item>
         /// </list></para>
         ///
-        /// <para>Used by the NSGetter evaluator to find an inherited
+        /// <para>Used by the NSProperty evaluator to find an inherited
         /// compiled <c>getter</c> or <c>returnTypeInfo</c> on
-        /// override-form NSGetter rows that don't carry their own.</para>
+        /// override-form NSProperty rows that don't carry their own.</para>
         /// </summary>
         public static T? WalkExtendsAttributeChain<T>(
             string startId,

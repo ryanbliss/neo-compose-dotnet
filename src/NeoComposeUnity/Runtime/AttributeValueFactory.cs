@@ -113,7 +113,7 @@ namespace NeoCompose.Runtime
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = DecimalPayload(rawPayload, attribute),
                 },
-                NSGetterAttribute => new NullAttributeValue
+                NSPropertyAttribute => new NullAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                 },
@@ -202,7 +202,7 @@ namespace NeoCompose.Runtime
                     value = CloneArray(attr.defaultValue.value),
                     typeId = attr.defaultValue.typeId,
                 },
-                NSGetterAttribute attr => attr.defaultValue is null ? null : new NullAttributeValue
+                NSPropertyAttribute attr => attr.defaultValue is null ? null : new NullAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,
                     value = attr.defaultValue.value,

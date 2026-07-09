@@ -2203,7 +2203,7 @@ namespace NeoCompose.Runtime
             if (attribute.deferred == true)
             {
                 throw new NeoDeferredFunctionRuntimeError(
-                    $"Deferred Function '{attributeId}' can only be invoked from dialogue action runtime.");
+                    $"Deferred Function '{attributeId}' can only be invoked from a dialogue action or NSProperty setter runtime.");
             }
             if (nativeFunctionInvokers is null)
             {
@@ -2226,7 +2226,7 @@ namespace NeoCompose.Runtime
             object?[] args)
         {
             throw new NeoDeferredFunctionRuntimeError(
-                $"Deferred Function '{attributeId}' can only be invoked from dialogue action runtime.");
+                $"Deferred Function '{attributeId}' can only be invoked from a dialogue action or NSProperty setter runtime.");
         }
 
         internal NeoDeferredFunctionBase StartDeferredNativeFunction(
@@ -2234,7 +2234,8 @@ namespace NeoCompose.Runtime
             object? receiver,
             object?[] args,
             System.Action<object?> complete,
-            System.Action<System.Exception> fail)
+            System.Action<System.Exception> fail,
+            System.Action invokerReturned)
         {
             if (!TryResolveFunctionAttribute(attributeId, out var attribute))
             {
@@ -2262,7 +2263,14 @@ namespace NeoCompose.Runtime
             NeoDeferredFunctionBase deferred = attribute.returnTypeInfo is VoidTypeInfo
                 ? new NeoDeferredFunction(attributeId, attribute.name, complete, fail)
                 : CreateTypedDeferredFunction(attribute, completeNormalized, fail);
-            invoker(this, receiver, args, deferred);
+            try
+            {
+                invoker(this, receiver, args, deferred);
+            }
+            finally
+            {
+                invokerReturned();
+            }
             return deferred;
         }
 

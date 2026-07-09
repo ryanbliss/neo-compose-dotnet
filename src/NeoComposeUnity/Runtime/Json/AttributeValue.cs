@@ -130,9 +130,9 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
-    /// Carrier for a Null / NSGetter default-value. Typed
+    /// Carrier for a Null / NSProperty default-value. Typed
     /// <c>object?</c> so it slots into <see cref="Attribute{TValue}"/>
-    /// for <see cref="NullAttribute"/> and <see cref="NSGetterAttribute"/>
+    /// for <see cref="NullAttribute"/> and <see cref="NSPropertyAttribute"/>
     /// (whose stored value is conceptually always null but still needs
     /// to fit the typed <c>defaultValue</c> field).
     /// </summary>
@@ -648,7 +648,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
-    /// Stored value for a Null / NSGetter attribute. Typed
+    /// Stored value for a Null / NSProperty attribute. Typed
     /// <c>object?</c> in parallel with
     /// <see cref="NullAttributeValueBase"/>.
     /// </summary>

@@ -18,7 +18,7 @@ namespace NeoCompose.Runtime.NeoScript
 {
     /// <summary>
     /// Pure, stateless walker that evaluates a compiled
-    /// <see cref="FunctionWithReturnType"/> NSGetter. C# port of the TS
+    /// <see cref="FunctionWithReturnType"/> NSProperty. C# port of the TS
     /// <c>evaluateNSGetter</c> in
     /// <c>src/view-models/neoscript-evaluator/evaluateNSGetter.ts</c> —
     /// feature-by-feature parity for instructions, all 14 pointer
@@ -31,14 +31,14 @@ namespace NeoCompose.Runtime.NeoScript
     /// <see cref="NSGetterRuntimeError"/> on missing values, missing
     /// schema keys, out-of-bounds indices, type mismatches, force-unwrap
     /// of null, or a thrown statement. Wrapped by
-    /// <see cref="NeoAttributeNSGetter.Compute"/>'s try/catch.</para>
+    /// <see cref="NeoAttributeNSProperty.Compute"/>'s try/catch.</para>
     /// </summary>
     public static class NSGetterEvaluator
     {
         /// <summary>
         /// Per-evaluation context: the project, the bound
         /// <c>__this__</c> / <c>__root__</c> values, and a cycle-detection
-        /// stack of NSGetter attribute ids currently being evaluated.
+        /// stack of NSProperty attribute ids currently being evaluated.
         /// </summary>
         public class Context
         {
@@ -53,12 +53,19 @@ namespace NeoCompose.Runtime.NeoScript
             public object? contextValue { get; }
             public INeoDialogueMemoryStore? memoryStore { get; }
             /// <summary>
-            /// Stack of NSGetter attribute ids currently in-flight. Threaded
+            /// Stack of NSProperty attribute ids currently in-flight. Threaded
             /// through callGetter recursion via fresh-copy children so a
             /// cycle (`A.x` calls `B.y` calls `A.x` on a different receiver)
             /// trips before the runtime stack overflows.
             /// </summary>
             public IReadOnlyCollection<string> getterCallStack { get; }
+            /// <summary>
+            /// Stack of NSProperty attribute ids whose setters are currently
+            /// executing. Kept separate from <see cref="getterCallStack"/>,
+            /// but preserved by every child context so setter→getter→setter
+            /// recursion is detected by the shared action executor.
+            /// </summary>
+            public IReadOnlyCollection<string> setterCallStack { get; }
             internal NeoValueOwnership valueOwnership { get; }
 
             /// <summary>
@@ -111,7 +118,8 @@ namespace NeoCompose.Runtime.NeoScript
                 Dictionary<string, object?>? rowUnwrapCache = null,
                 Dictionary<object, RowReference>? rowReverseIndex = null,
                 NeoValueOwnership valueOwnership = NeoValueOwnership.Save,
-                NativeFunctionCallHandler? nativeFunctionCallHandler = null)
+                NativeFunctionCallHandler? nativeFunctionCallHandler = null,
+                IReadOnlyCollection<string>? setterCallStack = null)
             {
                 this.client = client;
                 this.thisValue = thisValue;
@@ -119,6 +127,7 @@ namespace NeoCompose.Runtime.NeoScript
                 this.contextValue = contextValue;
                 this.memoryStore = memoryStore;
                 this.getterCallStack = getterCallStack ?? System.Array.Empty<string>();
+                this.setterCallStack = setterCallStack ?? System.Array.Empty<string>();
                 this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<string, object?>();
                 this.rowReverseIndex = rowReverseIndex
                     ?? new Dictionary<object, RowReference>(ReferenceEqualityComparer.Instance);
@@ -139,7 +148,8 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler);
+                    nativeFunctionCallHandler,
+                    setterCallStack);
             }
 
             internal Context WithThis(object? newThisValue)
@@ -154,7 +164,8 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler);
+                    nativeFunctionCallHandler,
+                    setterCallStack);
             }
 
             internal Context WithRoot(object? newRootValue)
@@ -169,7 +180,8 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler);
+                    nativeFunctionCallHandler,
+                    setterCallStack);
             }
 
             internal Context WithContext(object? newContextValue)
@@ -184,7 +196,8 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler);
+                    nativeFunctionCallHandler,
+                    setterCallStack);
             }
 
             internal Context WithMemoryStore(INeoDialogueMemoryStore? newMemoryStore)
@@ -199,7 +212,8 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler);
+                    nativeFunctionCallHandler,
+                    setterCallStack);
             }
 
             internal Context WithNativeFunctionCallHandler(
@@ -215,7 +229,25 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    handler);
+                    handler,
+                    setterCallStack);
+            }
+
+            internal Context WithSetterPushed(string attributeId)
+            {
+                var next = new HashSet<string>(setterCallStack) { attributeId };
+                return new Context(
+                    client,
+                    thisValue,
+                    rootValue,
+                    contextValue,
+                    memoryStore,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex,
+                    valueOwnership,
+                    nativeFunctionCallHandler,
+                    next);
             }
         }
 
@@ -281,7 +313,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// Materialises the unwrapped CLR shape for an
         /// <see cref="AttributeValue"/> row through the per-context
         /// cache + reverse index. Public so external callers (notably
-        /// <see cref="NeoAttributeNSGetter.Compute"/>) can pre-warm the
+        /// <see cref="NeoAttributeNSProperty.Compute"/>) can pre-warm the
         /// cache when binding <c>__this__</c> to a known row — without
         /// going through the cache, <c>is</c>-checks against Custom
         /// types and runtime-override dispatch on the receiver wouldn't
@@ -598,6 +630,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 throw;
             }
+            catch (NeoDeferredNativeFunctionSuspended)
+            {
+                throw;
+            }
             catch
             {
                 return pointer.mode == NativeFunctionErrorCheckKind.Throws;
@@ -693,7 +729,7 @@ namespace NeoCompose.Runtime.NeoScript
         /// the TS-side <c>dispatchSchemaMember</c>. Recovers the
         /// receiver's runtime <c>typeId</c> by reference-equality
         /// against tracked rows, walks the merged schema for that
-        /// type, and dispatches to either an NSGetter (if the merged
+        /// type, and dispatches to either an NSProperty (if the merged
         /// entry is one and has a compiled getter) or a stored-field
         /// read.
         /// </summary>
@@ -735,7 +771,7 @@ namespace NeoCompose.Runtime.NeoScript
                 return DispatchResult.NoInfo();
             }
 
-            if (attr.type == AttributeType.NSGetter)
+            if (attr.type == AttributeType.NSProperty)
             {
                 if (ResolveCompiledGetter(entry.attributeId, ctx.client) is null)
                 {
@@ -753,7 +789,7 @@ namespace NeoCompose.Runtime.NeoScript
         }
 
         /// <summary>
-        /// Cycle-checked recursive evaluation of an NSGetter attribute by
+        /// Cycle-checked recursive evaluation of an NSProperty attribute by
         /// id. Walks <c>extendsAttributeId</c> for the first compiled
         /// <c>getter</c>, then runs it with the receiver as
         /// <c>__this__</c>.
@@ -787,8 +823,8 @@ namespace NeoCompose.Runtime.NeoScript
             return CustomTypeInheritance.WalkExtendsAttributeChain(
                 attrId,
                 id => client.TryGetAttribute(id, out JsonAttribute? a) ? a : null,
-                a => a is NSGetterAttribute ng ? ng.getter : null,
-                requireType: AttributeType.NSGetter);
+                a => a is NSPropertyAttribute ng ? ng.getter : null,
+                requireType: AttributeType.NSProperty);
         }
 
         // ---------------------------------------------------------------
@@ -2101,8 +2137,20 @@ namespace NeoCompose.Runtime.NeoScript
         // Mirrors the TS-side reliance on `ctx.vm.values.find(r => r.value === value)`.
         // ---------------------------------------------------------------
 
-        private static string? FindRowTypeIdByReference(object? value, Context ctx)
+        internal static string? FindRowTypeIdByReference(object? value, Context ctx)
         {
+            if (value is INeoValueReference valueReference
+                && !string.IsNullOrEmpty(valueReference.valueId)
+                && ctx.client.TryGetValue(valueReference.valueId!, out AttributeValue? referencedRow))
+            {
+                if (!string.IsNullOrEmpty(referencedRow.typeId)) return referencedRow.typeId;
+                if (ctx.client.TryInferAttributeForValueId(
+                        valueReference.valueId!, out JsonAttribute? referencedAttribute)
+                    && referencedAttribute is CustomAttribute referencedCustom)
+                {
+                    return referencedCustom.customTypeId;
+                }
+            }
             // O(1) reverse lookup against the per-context unwrap cache.
             // Only object-shaped values are indexed (see UnwrapCached);
             // primitives correctly miss because reference identity isn't

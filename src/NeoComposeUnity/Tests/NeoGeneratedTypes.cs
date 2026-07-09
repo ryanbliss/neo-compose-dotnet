@@ -690,6 +690,10 @@ namespace Assets.Scripts.Neo
 
         string Manifest { get; }
 
+        bool Active { get; set; }
+
+        bool? Flag { get; }
+
         int Score { get; }
 
         IReadOnlyNeoMemory NeoMemory { get; }
@@ -712,12 +716,12 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        public Root(IEnumerable<Hero?>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, int?>? ElementMultipliers = null, IDictionary<string, Hero>? ElementChampions = null)
-            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementMultipliers, ElementChampions), false, NeoValueOwnership.Session)
+        public Root(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, int?>? ElementMultipliers = null, IDictionary<string, Hero>? ElementChampions = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Heroes, Flag, Score, NeoMemory, SampleLayerGroup, StorageInherit, ElementStats, ElementMultipliers, ElementChampions), false, NeoValueOwnership.Session)
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, int?>? ElementMultipliers = null, IDictionary<string, Hero>? ElementChampions = null)
+        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, int?>? ElementMultipliers = null, IDictionary<string, Hero>? ElementChampions = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
             var nowIso = DateTime.UtcNow.ToString("o");
@@ -754,6 +758,18 @@ namespace Assets.Scripts.Neo
                     createdAt = nowIso,
                     updatedAt = nowIso,
                     value = HeroesIds.ToArray(),
+                });
+            }
+            if (Flag is not null)
+            {
+                var FlagValueId = Guid.NewGuid().ToString();
+                value["Flag"] = FlagValueId;
+                valueRows.Add(new BoolAttributeValue
+                {
+                    id = FlagValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Flag,
                 });
             }
             if (Score is not null)
@@ -904,9 +920,37 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSGetter>("Manifest").Compute(valueId!);
-                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSGetter evaluation failed.");
+                var result = node.Get<NeoAttributeNSProperty>("Manifest").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
+            }
+        }
+
+        public bool Active
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSProperty>("Active").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                return (bool)result.value!;
+            }
+            set
+            {
+                var result = node.Get<NeoAttributeNSProperty>("Active").Set(valueId!, value);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
+            }
+        }
+
+        public bool? Flag
+        {
+            get
+            {
+                return node.Get<NeoAttributeBool>("Flag").value?.value;
+            }
+            set
+            {
+                ThrowIfReadOnly("Root.Flag");
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Flag", NeoGeneratedTypesSupport.Value(value));
             }
         }
 
@@ -1073,6 +1117,10 @@ namespace Assets.Scripts.Neo
 
             public static readonly NeoField<string> Manifest = new("Manifest");
 
+            public static readonly NeoField<bool> Active = new("Active");
+
+            public static readonly NeoField<bool?> Flag = new("Flag");
+
             public static readonly NeoField<int> Score = new("Score");
 
             public static readonly NeoField<NeoMemory> NeoMemory = new("NeoMemory");
@@ -1094,6 +1142,8 @@ namespace Assets.Scripts.Neo
             {
                 [Fields.Heroes] = () => null,
                 [Fields.Manifest] = () => null,
+                [Fields.Active] = () => null,
+                [Fields.Flag] = () => null,
                 [Fields.Score] = () => null,
                 [Fields.NeoMemory] = () => null,
                 [Fields.SampleLayerGroup] = () => null,
@@ -1120,6 +1170,8 @@ namespace Assets.Scripts.Neo
             {
                 [Fields.Heroes] = () => Heroes,
                 [Fields.Manifest] = () => Manifest,
+                [Fields.Active] = () => Active,
+                [Fields.Flag] = () => Flag,
                 [Fields.Score] = () => Score,
                 [Fields.NeoMemory] = () => NeoMemory,
                 [Fields.SampleLayerGroup] = () => SampleLayerGroup,

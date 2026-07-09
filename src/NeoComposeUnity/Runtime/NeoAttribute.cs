@@ -47,7 +47,7 @@ namespace NeoCompose.Runtime
         /// <see cref="NeoAttributeDictionary"/> /
         /// <see cref="NeoAttributeList"/>) when they construct child
         /// nodes; consumers (notably
-        /// <see cref="NeoAttributeNSGetter.Compute"/>) walk this chain
+        /// <see cref="NeoAttributeNSProperty.Compute"/>) walk this chain
         /// to resolve <c>__this__</c> from the nearest Custom-shaped
         /// ancestor.
         /// </summary>
@@ -170,7 +170,7 @@ namespace NeoCompose.Runtime
                 EnumAttribute e => new NeoAttributeEnum(client, e, overrideValueId),
                 LookupAttribute lk => new NeoAttributeLookup(client, lk, overrideValueId),
                 DialogueLookupAttribute dl => new NeoAttributeDialogueLookup(client, dl, overrideValueId),
-                NSGetterAttribute ng => new NeoAttributeNSGetter(client, ng, overrideValueId),
+                NSPropertyAttribute ng => new NeoAttributeNSProperty(client, ng, overrideValueId),
                 FunctionAttribute fn => new NeoAttributeFunction(client, fn, overrideValueId),
                 SpriteAttribute sp => new NeoAttributeSprite(client, sp, overrideValueId),
                 AudioAttribute au => new NeoAttributeAudio(client, au, overrideValueId),
@@ -190,7 +190,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Writeable factory — instantiates <c>NeoAttribute{Kind}Writable</c>
         /// for kinds that support write-back, falling through to the
-        /// read-only variant for Null and NSGetter (which have no
+        /// read-only variant for Null and NSProperty (which have no
         /// stored value to set).
         ///
         /// <para>Same registry-first semantics as
@@ -223,7 +223,7 @@ namespace NeoCompose.Runtime
                 EnumAttribute e => new NeoAttributeEnumWritable(client, e, overrideValueId, ownership),
                 LookupAttribute lk => new NeoAttributeLookupWritable(client, lk, overrideValueId, ownership),
                 DialogueLookupAttribute dl => new NeoAttributeDialogueLookupWritable(client, dl, overrideValueId, ownership),
-                NSGetterAttribute ng => new NeoAttributeNSGetter(client, ng, overrideValueId, ownership),
+                NSPropertyAttribute ng => new NeoAttributeNSProperty(client, ng, overrideValueId, ownership),
                 FunctionAttribute fn => new NeoAttributeFunction(client, fn, overrideValueId, ownership),
                 SpriteAttribute sp => new NeoAttributeSpriteWritable(client, sp, overrideValueId, ownership),
                 AudioAttribute au => new NeoAttributeAudioWritable(client, au, overrideValueId, ownership),
@@ -255,7 +255,7 @@ namespace NeoCompose.Runtime
                 EnumAttribute => existing is NeoAttributeEnumWritable,
                 LookupAttribute => existing is NeoAttributeLookupWritable,
                 DialogueLookupAttribute => existing is NeoAttributeDialogueLookupWritable,
-                NSGetterAttribute => existing is NeoAttributeNSGetter,
+                NSPropertyAttribute => existing is NeoAttributeNSProperty,
                 FunctionAttribute => existing is NeoAttributeFunction,
                 SpriteAttribute => existing is NeoAttributeSpriteWritable,
                 AudioAttribute => existing is NeoAttributeAudioWritable,

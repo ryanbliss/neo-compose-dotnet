@@ -273,18 +273,20 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
-    /// Mirror of TS-side <c>TAttributeNSGetter</c>. The stored value is
+    /// Mirror of TS-side <c>TAttributeNSProperty</c>. The stored value is
     /// always null (the runtime computes it via <c>getter</c>), so
     /// <c>TValue</c> is <c>object?</c>. <see cref="code"/> is
     /// client-authored NeoScript; <see cref="returnTypeInfo"/> is the
-    /// declared return type; <see cref="getter"/> is the server-compiled
-    /// IR.
+    /// declared return type; <see cref="getter"/> and <see cref="setter"/>
+    /// are the server-compiled IR bodies.
     /// </summary>
-    public class NSGetterAttribute : Attribute<object?>
+    public class NSPropertyAttribute : Attribute<object?>
     {
         public string code = null!;
         public TypeInfo returnTypeInfo = null!;
         public FunctionWithReturnType getter = null!;
+        public string? setterCode;
+        public FunctionWithReturnType? setter;
     }
 
     [JsonConverter(typeof(FunctionArgumentTypeInfoConverter))]
@@ -459,7 +461,7 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Enum: return typeof(EnumAttribute);
                 case AttributeType.Lookup: return typeof(LookupAttribute);
                 case AttributeType.DialogueLookup: return typeof(DialogueLookupAttribute);
-                case AttributeType.NSGetter: return typeof(NSGetterAttribute);
+                case AttributeType.NSProperty: return typeof(NSPropertyAttribute);
                 case AttributeType.Sprite: return typeof(SpriteAttribute);
                 case AttributeType.Audio: return typeof(AudioAttribute);
                 case AttributeType.Function: return typeof(FunctionAttribute);

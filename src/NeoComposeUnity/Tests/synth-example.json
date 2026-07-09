@@ -841,6 +841,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "code": "// see compiled getter",
+      "setterCode": "root.Session.Flag = value;",
       "returnTypeInfo": {
         "type": 1,
         "required": true
@@ -865,6 +866,64 @@
                 },
                 "optional": false
               }
+            }
+          }
+        ]
+      },
+      "setter": {
+        "parameters": [],
+        "typeInfo": {
+          "type": 0,
+          "required": true
+        },
+        "instructions": [
+          {
+            "type": "assign",
+            "target": {
+              "pointer": {
+                "type": "keyOf",
+                "keyOf": {
+                  "pointer": {
+                    "type": "keyOf",
+                    "keyOf": {
+                      "pointer": {
+                        "type": "variable",
+                        "variableId": "__root__"
+                      },
+                      "key": {
+                        "type": "value",
+                        "value": {
+                          "typeInfo": {
+                            "type": 3,
+                            "required": true
+                          },
+                          "value": "Session"
+                        }
+                      }
+                    }
+                  },
+                  "key": {
+                    "type": "value",
+                    "value": {
+                      "typeInfo": {
+                        "type": 3,
+                        "required": true
+                      },
+                      "value": "Flag"
+                    }
+                  }
+                }
+              },
+              "typeInfo": {
+                "type": 1,
+                "required": true
+              },
+              "writability": "session"
+            },
+            "operator": "=",
+            "pointer": {
+              "type": "variable",
+              "variableId": "__value__"
             }
           }
         ]
@@ -1276,6 +1335,8 @@
       "schema": {
         "Heroes": "attr-heroes",
         "Manifest": "attr-manifest",
+        "Active": "attr-active",
+        "Flag": "attr-isalive",
         "Score": "attr-root-score",
         "NeoMemory": "attr-neo-memory",
         "SampleLayerGroup": "attr-sample-layer-group",
@@ -1629,7 +1690,9 @@
     "v-root-session": {
       "id": "v-root-session",
       "projectId": "p-1",
-      "value": {},
+      "value": {
+        "Flag": "v-flag"
+      },
       "createdAt": 0,
       "updatedAt": 0,
       "typeId": "type-root"

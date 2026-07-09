@@ -22,4 +22,10 @@ public sealed class PlayerSpawnObject : ConsoleObject
 
     [NeoList("47c21aa5-e852-41d2-882c-b4f555aee9dd", ExtendsId = "5a9ca1f5-a21b-4d4e-8c55-00341af594b4", Locked = true, EntryChainJson = @"[{""customTypeId"":""38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6"",""defaultValue"":{""value"":{}},""id"":""c2bf0c92-1d24-4950-bea3-37d5f195728d"",""locked"":true,""name"":""PlacementTile"",""required"":true,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""},""type"":7}]", DefaultJson = @"{""value"":[""6de63821-b102-4b62-aac6-c99c8aabecc9""]}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
     public IReadOnlyList<NeoObjectPlacementTile> PlacementTiles { get; init; }
+
+    [NeoObject("e5f5125c-fe5c-46b4-9589-9c6ae6fcba19", ExtendsId = "a0083c92-72f7-405f-8863-ff86f995d36d", Locked = true, DefaultJson = @"{""typeId"":""7ed188f9-484b-4692-840d-436acf1635aa"",""value"":{""isTrigger"":""38170df8-0175-40a0-87f4-10145984914d"",""offset"":""4cc9752c-508e-43f8-9589-18d25679e8c0"",""size"":""ee73946a-62a2-4a20-8403-22a50101a38c""}}", ExtraJson = @"{""storage"":null,""system"":null}")]
+    public NeoCollider? Collider { get; init; }
+
+    [NeoVector3("2b10e854-d60a-40a7-bc4c-8aede3e5049e", ExtendsId = "7fc41bde-418a-4507-8c4b-9b75d7012125", Locked = true, Storage = "session")]
+    public NeoVector3 Position { get; init; }
 }

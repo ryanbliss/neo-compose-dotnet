@@ -16,14 +16,14 @@ using Newtonsoft.Json.Linq;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// TS-vs-C# parity for the NSGetter evaluator. The companion script
+    /// TS-vs-C# parity for the NSProperty evaluator. The companion script
     /// <c>scripts/dump-nsgetter-expected.ts</c> drives the TS-side
-    /// <c>evaluateNSGetter</c> against every NSGetter in the real-world
+    /// <c>evaluateNSGetter</c> against every NSProperty in the real-world
     /// <c>project-example.json</c> fixture (and every plausible
     /// <c>__this__</c> binding for it), then writes the produced
     /// values to <c>nsgetter-expected.json</c>. This test loads the
     /// same fixture + the dump and asserts that the SDK's
-    /// <see cref="NeoAttributeNSGetter.Compute(object?)"/> produces
+    /// <see cref="NeoAttributeNSProperty.Compute(object?)"/> produces
     /// identical results entry-by-entry.
     ///
     /// <para>Re-run the dump script after touching the TS evaluator;
@@ -75,12 +75,12 @@ namespace NeoCompose.Tests
             int matched = 0;
             foreach (var entry in expected)
             {
-                if (!client.TryGetAttribute(entry.attributeId, out NSGetterAttribute? attr))
+                if (!client.TryGetAttribute(entry.attributeId, out NSPropertyAttribute? attr))
                 {
                     failures.Add($"[{entry.attributeId}] not found in fixture");
                     continue;
                 }
-                var node = new NeoAttributeNSGetter(client, attr, null);
+                var node = new NeoAttributeNSProperty(client, attr, null);
                 // Use the row-id overload so the receiver is unwrapped
                 // through the evaluator's per-context cache + reverse
                 // index — required for `is`-checks against Custom types

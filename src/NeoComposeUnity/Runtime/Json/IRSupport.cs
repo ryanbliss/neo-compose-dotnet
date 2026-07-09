@@ -127,6 +127,7 @@ namespace NeoCompose.Runtime.Json
         public const string AssetToSaveLookup = "assetToSaveLookup";
         public const string AssetToSessionLookup = "assetToSessionLookup";
         public const string ReadOnly = "readOnly";
+        public const string Setter = "setter";
     }
 
     public static class CollectionMutationKind

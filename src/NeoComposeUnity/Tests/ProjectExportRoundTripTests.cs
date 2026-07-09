@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System.IO;
+using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -44,6 +45,106 @@ namespace NeoCompose.Tests
         private static ProjectData Deserialize(string json)
         {
             return JsonConvert.DeserializeObject<ProjectData>(json);
+        }
+
+        [Test]
+        public void NSPropertySetter_RoundTripsAuthoredCodeCompiledIrAndWritability()
+        {
+            var typeInfo = new PrimitiveTypeInfo
+            {
+                type = AttributeType.Int,
+                required = true,
+            };
+            var source = new NSPropertyAttribute
+            {
+                id = "property-with-setter",
+                projectId = "project",
+                name = "Score",
+                type = AttributeType.NSProperty,
+                code = "return root.Save.Score;",
+                returnTypeInfo = typeInfo,
+                getter = new FunctionWithReturnType
+                {
+                    parameters = System.Array.Empty<Variable>(),
+                    instructions = System.Array.Empty<Instruction>(),
+                    typeInfo = typeInfo,
+                },
+                setterCode = "root.Save.Score = value;",
+                setter = new FunctionWithReturnType
+                {
+                    parameters = System.Array.Empty<Variable>(),
+                    instructions = new Instruction[]
+                    {
+                        new AssignInstruction
+                        {
+                            type = InstructionKind.Assign,
+                            target = new WriteTarget
+                            {
+                                pointer = new ReferencePointer
+                                {
+                                    type = PointerKind.Reference,
+                                    valueId = "score-value",
+                                },
+                                typeInfo = typeInfo,
+                                writability = WritabilityKind.Setter,
+                            },
+                            operatorValue = "=",
+                            pointer = new VariablePointer
+                            {
+                                type = PointerKind.Variable,
+                                variableId = "__value__",
+                            },
+                        },
+                    },
+                    typeInfo = new PrimitiveTypeInfo
+                    {
+                        type = AttributeType.Null,
+                        required = true,
+                    },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+
+            string json = JsonConvert.SerializeObject(source);
+            var roundTripped = (NSPropertyAttribute)JsonConvert
+                .DeserializeObject<Attribute>(json)!;
+
+            Assert.AreEqual(source.setterCode, roundTripped.setterCode);
+            Assert.IsNotNull(roundTripped.setter);
+            var assign = (AssignInstruction)roundTripped.setter!.instructions[0];
+            Assert.AreEqual(WritabilityKind.Setter, assign.target.writability);
+            Assert.AreEqual("__value__", ((VariablePointer)assign.pointer).variableId);
+        }
+
+        [Test]
+        public void TypeInfo_GenericAndConstructedCustomArgumentsRoundTrip()
+        {
+            var source = new CustomTypeInfo
+            {
+                type = AttributeType.Custom,
+                required = true,
+                typeId = "type-box",
+                typeArguments = new Dictionary<string, TypeInfo>
+                {
+                    ["param-t"] = new GenericTypeInfo
+                    {
+                        type = AttributeType.Generic,
+                        required = true,
+                        ownerTypeId = "type-owner",
+                        genericParamId = "param-t",
+                    },
+                },
+            };
+
+            var roundTripped = (CustomTypeInfo)JsonConvert.DeserializeObject<TypeInfo>(
+                JsonConvert.SerializeObject(source))!;
+
+            Assert.AreEqual("type-box", roundTripped.typeId);
+            Assert.IsNotNull(roundTripped.typeArguments);
+            var generic = (GenericTypeInfo)roundTripped.typeArguments!["param-t"];
+            Assert.AreEqual("type-owner", generic.ownerTypeId);
+            Assert.AreEqual("param-t", generic.genericParamId);
         }
 
         // --------------------------------------------------------------
@@ -710,7 +811,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterReturnTypeInfo_IsCollectionTypeInfo()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = (NSGetterAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyAttribute)export.attributes["attr-score"];
             // The synth fixture's Score returns Int, so returnTypeInfo is
             // PrimitiveTypeInfo. Subclass assertion via `is`.
             Assert.IsInstanceOf<PrimitiveTypeInfo>(score.returnTypeInfo);
@@ -722,7 +823,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterCompiledIR_DispatchesAllInstructionKinds()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = (NSGetterAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyAttribute)export.attributes["attr-score"];
             var getter = score.getter;
             Assert.IsNotNull(getter);
             Assert.IsNotEmpty(getter.instructions);
@@ -752,7 +853,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesArithmeticOperationPointer()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = (NSGetterAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyAttribute)export.attributes["attr-score"];
 
             // First instruction: `local int x = 1 + 2;`
             var firstVar = ((VariableInstruction)score.getter.instructions[0]).variable;
@@ -766,7 +867,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesForceUnwrapCoalesceKeyOfChain()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = (NSGetterAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyAttribute)export.attributes["attr-score"];
 
             // Second instruction's pointer chain:
             // forceUnwrap(coalesce(keyOf, "Unknown"))
@@ -788,7 +889,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesFunctionAndListLiteralChain()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = (NSGetterAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyAttribute)export.attributes["attr-score"];
 
             // Inside the if branch:
             //   return [1, 2, 3].Where((n) => n != 0).Count();
@@ -816,7 +917,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesStringifyAndDictLiteral()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var manifest = (NSGetterAttribute)export.attributes["attr-manifest"];
+            var manifest = (NSPropertyAttribute)export.attributes["attr-manifest"];
             var ret = (ReturnInstruction)manifest.getter.instructions[0];
             var stringify = (StringifyPointer)ret.pointer;
             var dictLit = (DictLiteralPointer)stringify.pointer;
@@ -829,7 +930,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesCallGetterAndToBool()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var active = (NSGetterAttribute)export.attributes["attr-active"];
+            var active = (NSPropertyAttribute)export.attributes["attr-active"];
             var ret = (ReturnInstruction)active.getter.instructions[0];
             var toBool = (ToBoolPointer)ret.pointer;
             var callGetter = (CallGetterPointer)toBool.pointer;
@@ -906,30 +1007,30 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void RealWorldFixture_NSGetterAttributes_HaveCompiledGetters()
+        public void RealWorldFixture_NSPropertyAttributes_HaveCompiledGetters()
         {
             var export = Deserialize(LoadFixture("project-example.json"));
             int nsGetterCount = 0;
             // C# 7+ pattern-match each Dictionary value against the
-            // NSGetterAttribute subclass — the converter dispatch made
+            // NSPropertyAttribute subclass — the converter dispatch made
             // this typed, so iterating the typed projection beats
             // re-reading the discriminator + casting at every site.
             foreach (var pair in export.attributes)
             {
-                if (!(pair.Value is NSGetterAttribute nsGetter)) continue;
+                if (!(pair.Value is NSPropertyAttribute nsGetter)) continue;
                 nsGetterCount++;
                 Assert.IsNotNull(
                     nsGetter.getter,
-                    $"NSGetter {nsGetter.id} ({nsGetter.name}) lost its compiled getter");
+                    $"NSProperty {nsGetter.id} ({nsGetter.name}) lost its compiled getter");
                 Assert.IsNotEmpty(
                     nsGetter.getter.instructions,
-                    $"NSGetter {nsGetter.id} ({nsGetter.name}) has no instructions");
+                    $"NSProperty {nsGetter.id} ({nsGetter.name}) has no instructions");
                 Assert.IsNotNull(
                     nsGetter.getter.typeInfo,
-                    $"NSGetter {nsGetter.id} ({nsGetter.name}) lost its typeInfo");
+                    $"NSProperty {nsGetter.id} ({nsGetter.name}) lost its typeInfo");
             }
             Assert.Greater(nsGetterCount, 0,
-                "Real-world fixture should contain at least one NSGetter");
+                "Real-world fixture should contain at least one NSProperty");
         }
 
         [Test]
@@ -1017,10 +1118,10 @@ namespace NeoCompose.Tests
         public void Attribute_AbsentDefaultValue_FieldIsNull()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            // attr-score is an NSGetter — the synth fixture doesn't
+            // attr-score is an NSProperty — the synth fixture doesn't
             // emit a defaultValue for it. Cast first because
             // `defaultValue` lives on the typed Attribute<TValue>.
-            var score = (NSGetterAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyAttribute)export.attributes["attr-score"];
             Assert.IsNull(score.defaultValue);
         }
 
