@@ -11,7 +11,7 @@ public sealed class OutpostSaveData
     [NeoBool("5a4d8d10-9fef-4197-a7a1-1dc1b112677b", DefaultJson = @"{""value"":false}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
     public bool Unlocked { get; init; }
 
-    [NeoGetter("0c02e45d-bb5b-44c3-8b48-91fa75171ff2", Code = @"	return this.VisitCount > 0;", RetJson = @"{""required"":true,""type"":1}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
+    [NeoProperty("0c02e45d-bb5b-44c3-8b48-91fa75171ff2", Code = @"	return this.VisitCount > 0;", RetJson = @"{""required"":true,""type"":1}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
     public object? Visited { get; init; }
 
     [NeoInt("68cd6fe1-7683-4c67-8030-acd6334f77a2", Min = 0, DefaultJson = @"{""value"":0}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]

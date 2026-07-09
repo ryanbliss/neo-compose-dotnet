@@ -1719,13 +1719,13 @@ namespace NeoCompose.Runtime
             return values;
         }
 
-        public static object? ReadNSGetter(NeoAttributeNSGetter attribute)
+        public static object? ReadNSProperty(NeoAttributeNSProperty attribute)
         {
             var result = attribute.Compute();
             if (!result.ok)
             {
                 throw new InvalidOperationException(
-                    result.error ?? "NSGetter evaluation failed.");
+                    result.error ?? "NSProperty getter evaluation failed.");
             }
             return result.value;
         }
@@ -1792,7 +1792,7 @@ namespace NeoCompose.Runtime
             return null;
         }
 
-        public static T? ReadNSGetterCustom<T>(
+        public static T? ReadNSPropertyCustom<T>(
             NeoClient client,
             object? value,
             bool required,
@@ -1807,7 +1807,7 @@ namespace NeoCompose.Runtime
                 if (required)
                 {
                     throw new InvalidOperationException(
-                        "NSGetter returned null for a required custom value.");
+                        "NSProperty getter returned null for a required custom value.");
                 }
                 return default;
             }
@@ -1818,31 +1818,31 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrEmpty(valueId))
             {
                 throw new InvalidOperationException(
-                    $"NSGetter returned a custom value without a backing value id. Runtime value type: {value.GetType().FullName}.");
+                    $"NSProperty getter returned a custom value without a backing value id. Runtime value type: {value.GetType().FullName}.");
             }
 
             if (!client.TryGetValue(valueId, out AttributeValue? untypedRow))
             {
                 throw new InvalidOperationException(
-                    $"NSGetter returned custom value id '{valueId}', but no backing value row exists. Runtime value type: {value.GetType().FullName}.");
+                    $"NSProperty getter returned custom value id '{valueId}', but no backing value row exists. Runtime value type: {value.GetType().FullName}.");
             }
 
             if (untypedRow is not ObjectAttributeValue row)
             {
                 throw new InvalidOperationException(
-                    $"NSGetter returned custom value id '{valueId}', but the backing row is not an object value. Row type: {untypedRow.GetType().FullName}.");
+                    $"NSProperty getter returned custom value id '{valueId}', but the backing row is not an object value. Row type: {untypedRow.GetType().FullName}.");
             }
             string? customTypeId = ResolveCustomValueTypeId(client, valueId!, row);
             if (string.IsNullOrEmpty(customTypeId))
             {
                 throw new InvalidOperationException(
-                    $"NSGetter returned custom value id '{valueId}', but the backing row does not declare a typeId and its owning attribute could not be inferred.");
+                    $"NSProperty getter returned custom value id '{valueId}', but the backing row does not declare a typeId and its owning attribute could not be inferred.");
             }
 
             var attribute = new CustomAttribute
             {
                 id = $"__neo_nsg_custom_{customTypeId}",
-                name = "NSGetterCustomValue",
+                name = "NSPropertyCustomValue",
                 type = AttributeType.Custom,
                 customTypeId = customTypeId,
                 createdAt = row.createdAt,
@@ -1860,13 +1860,13 @@ namespace NeoCompose.Runtime
                     || (ownership != NeoValueOwnership.Save && ownership != NeoValueOwnership.Session))
                 {
                     throw new InvalidOperationException(
-                        "NSGetter returned an asset-owned custom value where a saved value was expected.");
+                        "NSProperty getter returned an asset-owned custom value where a saved value was expected.");
                 }
 
                 if (savedFactory is null)
                 {
                     throw new InvalidOperationException(
-                        "NSGetter custom value resolved to a writable placement, but the type's allowedStorage is static (no writable factory exists).");
+                        "NSProperty getter custom value resolved to a writable placement, but the type's allowedStorage is static (no writable factory exists).");
                 }
                 return savedFactory(
                     client,
@@ -1876,7 +1876,7 @@ namespace NeoCompose.Runtime
             if (readOnlyFactory is null)
             {
                 throw new InvalidOperationException(
-                    "NSGetter custom value requires a read-only factory.");
+                    "NSProperty getter custom value requires a read-only factory.");
             }
 
             return readOnlyFactory(
@@ -1884,14 +1884,14 @@ namespace NeoCompose.Runtime
                 new NeoAttributeCustom(client, attribute, valueId));
         }
 
-        public static T ReadRequiredNSGetterCustom<T>(
+        public static T ReadRequiredNSPropertyCustom<T>(
             NeoClient client,
             object? value,
             bool saved,
             Func<NeoClient, NeoAttributeCustom, T>? readOnlyFactory,
             Func<NeoClient, NeoAttributeCustomWritable, T>? savedFactory)
         {
-            T? resolved = ReadNSGetterCustom(
+            T? resolved = ReadNSPropertyCustom(
                 client,
                 value,
                 true,
@@ -1901,7 +1901,7 @@ namespace NeoCompose.Runtime
             if (resolved is null)
             {
                 throw new InvalidOperationException(
-                    "NSGetter returned null for a required custom value.");
+                    "NSProperty getter returned null for a required custom value.");
             }
             return resolved;
         }

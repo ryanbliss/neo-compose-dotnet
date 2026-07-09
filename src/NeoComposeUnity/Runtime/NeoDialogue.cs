@@ -446,7 +446,12 @@ namespace NeoCompose.Runtime
                             throw new InvalidOperationException(
                                 $"Dialogue action '{action.id}' has no compiled action.");
                         }
-                        var result = NeoDialogueActionEvaluator.Execute(client, compiled, Context, memoryStore);
+                        var result = NeoDialogueActionEvaluator.Execute(
+                            client,
+                            compiled,
+                            Context,
+                            memoryStore,
+                            logger);
                         if (result.IsPaused)
                         {
                             EnterDeferredFunction(node, i, result);
@@ -474,7 +479,7 @@ namespace NeoCompose.Runtime
         private void EnterDeferredFunction(
             DialogueActionsNodeModel node,
             int actionIndex,
-            NeoDialogueActionExecutionResult result)
+            NeoActionExecutionResult result)
         {
             if (result.Deferred == null)
             {

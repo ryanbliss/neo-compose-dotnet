@@ -205,6 +205,17 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedPropertySetter_WritesThroughReadOnlyInterfaceReceiver()
+        {
+            var app = LoadGeneratedClient(out _);
+            IReadOnlyRoot readOnlyRoot = app.Save;
+
+            readOnlyRoot.Active = true;
+
+            Assert.AreEqual(true, app.Session.Flag);
+        }
+
+        [Test]
         public void GeneratedLoad_PassesCustomSaveNameBuilderToNeoClient()
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
@@ -539,7 +550,7 @@ namespace NeoCompose.Tests
                 NeoGeneratedTypesSupport.Value<object?>(null));
 
             var result = app.Save.Manifest;
-            var direct = app.Client.save.Get<NeoAttributeNSGetter>("Manifest").Compute();
+            var direct = app.Client.save.Get<NeoAttributeNSProperty>("Manifest").Compute();
 
             Assert.IsTrue(direct.ok, direct.error);
             Assert.AreEqual(direct.value?.ToString(), result);

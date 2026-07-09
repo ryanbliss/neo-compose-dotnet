@@ -21,7 +21,7 @@ namespace NeoCompose.Runtime.Json
         Custom = 7,
         Enum = 8,
         Lookup = 9,
-        NSGetter = 10,
+        NSProperty = 10,
         Sprite = 11,
         Audio = 12,
         Function = 13,

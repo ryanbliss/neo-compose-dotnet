@@ -8,7 +8,7 @@ namespace ProjectSchema;
 [NeoCustomType("48f37cd8-69d2-4cd3-ae44-7cfed7912415", Hidden = true, ExtraJson = @"{""extendsTypeId"":null,""system"":{""disallow"":[""editRecord"",""deleteRecord""],""reason"":""Generated dialogue memory schema required by the Neo Compose dialogue runtime.""}}")]
 public sealed class NeoDialogueMemory
 {
-    [NeoGetter("cd79c978-da95-4da3-8aa5-eea57f9e4f2c", Locked = true, Code = @"return this.VisitCount > 0;", RetJson = @"{""required"":true,""type"":1}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord""],""reason"":""Generated dialogue memory schema required by the Neo Compose dialogue runtime.""}}")]
+    [NeoProperty("cd79c978-da95-4da3-8aa5-eea57f9e4f2c", Locked = true, Code = @"return this.VisitCount > 0;", RetJson = @"{""required"":true,""type"":1}", ExtraJson = @"{""system"":{""disallow"":[""editRecord"",""deleteRecord""],""reason"":""Generated dialogue memory schema required by the Neo Compose dialogue runtime.""}}")]
     public object HasVisited { get; init; }
 
     [NeoString("defd7f67-7f35-4907-a75d-8da3b24b96f4", Locked = true, DefaultJson = @"{""value"":null}", ExtraJson = @"{""extendsAttributeId"":null,""system"":{""disallow"":[""editRecord"",""deleteRecord""],""reason"":""Generated dialogue memory schema required by the Neo Compose dialogue runtime.""}}")]

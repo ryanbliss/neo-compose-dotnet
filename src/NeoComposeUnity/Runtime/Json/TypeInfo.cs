@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -11,11 +12,9 @@ namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Abstract base for the TS-side <c>TNSTypeInfo</c> discriminated
-    /// union. Four concrete variants:
-    /// {@link PrimitiveTypeInfo}, {@link CustomTypeInfo},
-    /// {@link EnumTypeInfo}, {@link CollectionTypeInfo}. Newtonsoft
-    /// dispatches on the numeric <see cref="type"/> via
-    /// {@link TypeInfoConverter}.
+    /// union. Newtonsoft dispatches primitive, custom, generic, enum,
+    /// collection, lookup, and unknown variants on the numeric
+    /// <see cref="type"/> via {@link TypeInfoConverter}.
     /// </summary>
     [JsonConverter(typeof(TypeInfoConverter))]
     public abstract class TypeInfo
@@ -51,6 +50,19 @@ namespace NeoCompose.Runtime.Json
     public class CustomTypeInfo : TypeInfo
     {
         public string typeId = null!;
+        public Dictionary<string, TypeInfo>? typeArguments;
+    }
+
+    /// <summary>
+    /// Open generic parameter type-info. The declaring type and stable
+    /// parameter id mirror the TS-side <c>INSTypeInfoGenericParam</c>.
+    /// Generated closed surfaces normally substitute this before runtime;
+    /// retaining the wire shape keeps property/function IR round-trippable.
+    /// </summary>
+    public class GenericTypeInfo : TypeInfo
+    {
+        public string ownerTypeId = null!;
+        public string genericParamId = null!;
     }
 
     /// <summary>
@@ -121,6 +133,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(CollectionTypeInfo);
                 case AttributeType.Lookup:
                     return typeof(LookupTypeInfo);
+                case AttributeType.Generic:
+                    return typeof(GenericTypeInfo);
                 default:
                     return null;
             }
@@ -167,6 +181,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(CollectionTypeInfo);
                 case AttributeType.Lookup:
                     return typeof(LookupTypeInfo);
+                case AttributeType.Generic:
+                    return typeof(GenericTypeInfo);
                 default:
                     return null;
             }

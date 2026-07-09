@@ -25,4 +25,7 @@ public sealed class RecoveryCacheObject : ConsoleObject
 
     [NeoDialogueLookup("47466be3-368c-4ac1-8c0e-7a825af6b538", DefaultJson = @"{""value"":[""cb0ac79c-f3b4-4c96-b968-8c4173c1f712""]}")]
     public NeoDialogueLookupRef RecoveryCache { get; init; }
+
+    [NeoObject("94472662-a3a9-4c02-8abb-6229442e1e49", ExtendsId = "a0083c92-72f7-405f-8863-ff86f995d36d", Locked = true, DefaultJson = @"{""value"":{""isTrigger"":""fd96438e-101d-4f6b-9fa3-2a33bd26f494"",""offset"":""3777dff9-fdf7-4ba4-84f0-c4cea2307151"",""size"":""e153f62d-e081-461f-9d78-6debfec01104""}}", ExtraJson = @"{""storage"":null,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""selectRecord""],""reason"":""Locked world authoring system type required by the Neo Compose Tile Grid Builder.""}}")]
+    public NeoCollider? Collider { get; init; }
 }

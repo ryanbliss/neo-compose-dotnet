@@ -20,7 +20,7 @@ namespace NeoCompose.Runtime.NeoScript
     ///   <item><description>a force-unwrap (<c>!</c>) hits null</description></item>
     /// </list></para>
     ///
-    /// <para>Caught by <see cref="NeoAttributeNSGetter.Compute"/> and
+    /// <para>Caught by <see cref="NeoAttributeNSProperty.Compute"/> and
     /// surfaced as the <see cref="NSGetterResult.error"/> string. Other
     /// unexpected runtime errors propagate as the generic
     /// <see cref="System.Exception"/> they're thrown as.</para>

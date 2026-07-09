@@ -81,7 +81,7 @@ namespace NeoCompose.Runtime
         /// the family default in both directions: a Save/Session-stamped
         /// child is writable even under a read-only parent. Sets
         /// <see cref="NeoAttribute.parent"/> on the constructed child so
-        /// consumers (e.g., <see cref="NeoAttributeNSGetter.Compute"/>)
+        /// consumers (e.g., <see cref="NeoAttributeNSProperty.Compute"/>)
         /// can walk up.
         /// </summary>
         protected virtual NeoAttribute CreateChild(

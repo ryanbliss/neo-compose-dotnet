@@ -202,7 +202,7 @@ incremented, or frozen, or zeroed — or gone.
 
 - **`Save.Quest`** object: `Stage` (enum), `EvidenceArchive/Ledger/Faith`
   (bools), `FlareClock` (int), `Ending` (enum).
-- **`NextHint` NSGetter** composes the tracker line the HUD renders, e.g.
+- **`NextHint` NSProperty** composes the tracker line the HUD renders, e.g.
   *"The manifest names Triton. The Anchorpoint logs every burst (Uranus)."*
   — always nudging 1–2 concrete outposts, never a quest log essay.
 - Glitch variants: cheap, devastating — a repeated word, a line said twice,

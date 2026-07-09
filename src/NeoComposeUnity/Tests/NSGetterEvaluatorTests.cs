@@ -16,13 +16,13 @@ using Newtonsoft.Json.Linq;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// Integration coverage for the NSGetter evaluator port. The synth
-    /// fixture's three NSGetter attributes
+    /// Integration coverage for the NSProperty evaluator port. The synth
+    /// fixture's three NSProperty attributes
     /// (<c>attr-score</c>, <c>attr-manifest</c>, <c>attr-active</c>)
     /// were authored on the TS side specifically to exercise every
     /// pointer kind, both operations, and the major function variants
     /// (where, count). Running them through
-    /// <see cref="NeoAttributeNSGetter.Compute"/> verifies that the
+    /// <see cref="NeoAttributeNSProperty.Compute"/> verifies that the
     /// C# evaluator produces the same value the TS evaluator would.
     ///
     /// <para>This isn't comprehensive parity coverage with the TS
@@ -45,11 +45,11 @@ namespace NeoCompose.Tests
             return NeoTestSaveStack.LoadClient(LoadFixture("synth-example.json"));
         }
 
-        private static NSGetterAttribute RequireNSGetter(NeoClient client, string id)
+        private static NSPropertyAttribute RequireNSGetter(NeoClient client, string id)
         {
-            if (!client.TryGetAttribute(id, out NSGetterAttribute? attr))
+            if (!client.TryGetAttribute(id, out NSPropertyAttribute? attr))
             {
-                Assert.Fail($"Fixture is missing NSGetterAttribute '{id}'");
+                Assert.Fail($"Fixture is missing NSPropertyAttribute '{id}'");
                 throw new System.InvalidOperationException("unreachable");
             }
             return attr;
@@ -353,7 +353,7 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient();
             var scoreAttr = RequireNSGetter(client, "attr-score");
-            var node = new NeoAttributeNSGetter(client, scoreAttr, null);
+            var node = new NeoAttributeNSProperty(client, scoreAttr, null);
 
             // `__this__` is a Custom record with a Name field; the IR
             // reads `this.Name`. v-name is "hero" in the fixture.
@@ -385,7 +385,7 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient();
             var manifestAttr = RequireNSGetter(client, "attr-manifest");
-            var node = new NeoAttributeNSGetter(client, manifestAttr, null);
+            var node = new NeoAttributeNSProperty(client, manifestAttr, null);
 
             var result = node.Compute();
 
@@ -407,7 +407,7 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient();
             var activeAttr = RequireNSGetter(client, "attr-active");
-            var node = new NeoAttributeNSGetter(client, activeAttr, null);
+            var node = new NeoAttributeNSProperty(client, activeAttr, null);
 
             var thisValue = new Dictionary<string, object?>
             {
@@ -753,7 +753,7 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient();
             var scoreAttr = RequireNSGetter(client, "attr-score");
-            var node = new NeoAttributeNSGetter(client, scoreAttr, null);
+            var node = new NeoAttributeNSProperty(client, scoreAttr, null);
 
             Assert.AreSame(scoreAttr.getter, node.resolvedGetter);
         }
@@ -763,7 +763,7 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient();
             var scoreAttr = RequireNSGetter(client, "attr-score");
-            var node = new NeoAttributeNSGetter(client, scoreAttr, null);
+            var node = new NeoAttributeNSProperty(client, scoreAttr, null);
 
             Assert.AreSame(scoreAttr.returnTypeInfo, node.resolvedReturnTypeInfo);
             Assert.AreEqual(AttributeType.Int, node.resolvedReturnTypeInfo!.type);
@@ -776,15 +776,15 @@ namespace NeoCompose.Tests
         [Test]
         public void Compute_NoCompiledGetter_ReturnsErrorResult()
         {
-            // Synthesize a fresh NSGetterAttribute with no `getter` and
+            // Synthesize a fresh NSPropertyAttribute with no `getter` and
             // no extends chain — simulates an unsaved override.
             var client = LoadClient();
-            var attr = new NSGetterAttribute
+            var attr = new NSPropertyAttribute
             {
                 id = "test-orphan-getter",
                 projectId = "p",
                 name = "Orphan",
-                type = AttributeType.NSGetter,
+                type = AttributeType.NSProperty,
                 code = "// not compiled",
                 returnTypeInfo = new PrimitiveTypeInfo
                 {
@@ -795,7 +795,7 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var node = new NeoAttributeNSGetter(client, attr, null);
+            var node = new NeoAttributeNSProperty(client, attr, null);
 
             var result = node.Compute();
 
@@ -815,7 +815,7 @@ namespace NeoCompose.Tests
             // mirroring.
             var client = LoadClient();
             var scoreAttr = RequireNSGetter(client, "attr-score");
-            var node = new NeoAttributeNSGetter(client, scoreAttr, null);
+            var node = new NeoAttributeNSProperty(client, scoreAttr, null);
 
             var result = node.Compute();  // no thisValue, no parent
 
@@ -830,12 +830,12 @@ namespace NeoCompose.Tests
             // Pins the force-unwrap-throws-on-null path that the TS
             // evaluator uses.
             var client = LoadClient();
-            var attr = new NSGetterAttribute
+            var attr = new NSPropertyAttribute
             {
                 id = "test-force-unwrap-null",
                 projectId = "p",
                 name = "ForceUnwrapNull",
-                type = AttributeType.NSGetter,
+                type = AttributeType.NSProperty,
                 code = "// `return (null as string?)!;`",
                 returnTypeInfo = new PrimitiveTypeInfo
                 {
@@ -878,7 +878,7 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var node = new NeoAttributeNSGetter(client, attr, null);
+            var node = new NeoAttributeNSProperty(client, attr, null);
 
             var result = node.Compute();
 
@@ -890,8 +890,8 @@ namespace NeoCompose.Tests
         // Auto-resolution of __this__ from the parent chain.
         //
         // Build a wrapper tree where a Custom record contains an
-        // NSGetter as one of its schema-keyed children. When we look
-        // up that NSGetter via the parent and Compute() with no
+        // NSProperty as one of its schema-keyed children. When we look
+        // up that NSProperty via the parent and Compute() with no
         // explicit thisValue, the evaluator should walk parent up to
         // find the Custom record.
         // ---------------------------------------------------------------
@@ -910,9 +910,9 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(heroAttr);
             var hero = (NeoAttributeCustom)NeoAttribute.Create(client, heroAttr!, "v-dict");
 
-            // Now manually attach an NSGetter child under the hero.
+            // Now manually attach an NSProperty child under the hero.
             var scoreAttr = RequireNSGetter(client, "attr-score");
-            var nsg = new NeoAttributeNSGetter(client, scoreAttr, null);
+            var nsg = new NeoAttributeNSProperty(client, scoreAttr, null);
             nsg.parent = hero;  // simulates collection-side wiring
 
             var result = nsg.Compute();  // no explicit thisValue
@@ -1140,7 +1140,7 @@ namespace NeoCompose.Tests
                 "LookupSet",
                 listAttribute.id,
                 "v-list");
-            var getterAttribute = NSGetterAttribute("attr-getter", "Getter");
+            var getterAttribute = NSPropertyAttribute("attr-getter", "Getter");
 
             testAttribute = CustomAttribute("attr-test", "Test", "type-test");
             var rootAttribute = CustomAttribute("attr-root", "Root", "type-root");
@@ -1512,14 +1512,14 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static NSGetterAttribute NSGetterAttribute(string id, string name)
+        private static NSPropertyAttribute NSPropertyAttribute(string id, string name)
         {
-            return new NSGetterAttribute
+            return new NSPropertyAttribute
             {
                 id = id,
                 projectId = "project-generated-surface",
                 name = name,
-                type = AttributeType.NSGetter,
+                type = AttributeType.NSProperty,
                 code = "return \"computed\";",
                 returnTypeInfo = new PrimitiveTypeInfo
                 {

@@ -202,12 +202,12 @@ namespace NeoCompose.Tests
         {
             var client = NeoTestSaveStack.LoadClient(LoadFixture("project-example.json"));
             if (!client.TryGetAttribute(
-                    "attr-elem-fire-damage-get", out NSGetterAttribute? attr))
+                    "attr-elem-fire-damage-get", out NSPropertyAttribute? attr))
             {
                 Assert.Fail("attr-elem-fire-damage-get missing from project-example.json");
             }
 
-            var node = new NeoAttributeNSGetter(client, attr!, null);
+            var node = new NeoAttributeNSProperty(client, attr!, null);
             var result = node.Compute(ProjectExampleAssetsRootValueId);
 
             Assert.IsTrue(result.ok, result.error);
@@ -220,12 +220,12 @@ namespace NeoCompose.Tests
         {
             var client = NeoTestSaveStack.LoadClient(LoadFixture("project-example.json"));
             if (!client.TryGetAttribute(
-                    "attr-elem-selected-damage-get", out NSGetterAttribute? attr))
+                    "attr-elem-selected-damage-get", out NSPropertyAttribute? attr))
             {
                 Assert.Fail("attr-elem-selected-damage-get missing from project-example.json");
             }
 
-            var node = new NeoAttributeNSGetter(client, attr!, null);
+            var node = new NeoAttributeNSProperty(client, attr!, null);
             var result = node.Compute(ProjectExampleAssetsRootValueId);
 
             Assert.IsTrue(result.ok, result.error);

@@ -23,7 +23,7 @@ public sealed class QuestState
     [NeoInt("26df3938-e800-4801-b897-602d50db7ec9", Min = 0, DefaultJson = @"{""value"":0}")]
     public int FlareClock { get; init; }
 
-    [NeoGetter("3c947ad4-3033-4121-b3b0-3b5177ab30b7", Code = @"	int found = 0;
+    [NeoProperty("3c947ad4-3033-4121-b3b0-3b5177ab30b7", Code = @"	int found = 0;
 	if (this.EvidenceArchive) { found = found + 1; }
 	if (this.EvidenceLedger) { found = found + 1; }
 	if (this.EvidenceFaith) { found = found + 1; }
