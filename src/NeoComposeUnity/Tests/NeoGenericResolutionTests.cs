@@ -189,6 +189,8 @@ namespace NeoCompose.Tests
                         type = AttributeType.Generic,
                         genericParamId = ParamT,
                         locked = true,
+                        isVirtual = false,
+                        isAbstract = true,
                     },
                     ["attr-values"] = new ListAttribute
                     {
@@ -222,6 +224,8 @@ namespace NeoCompose.Tests
                         type = AttributeType.Float,
                         required = true,
                         minValue = 0f,
+                        isVirtual = true,
+                        isAbstract = false,
                         // The binding's storage must NOT leak into the slot
                         // (substitution partition — Decision 10).
                         storage = "save",
@@ -405,6 +409,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Json_AttributeVirtualAndAbstractFlagsPreserveAbsenceAndValues()
+        {
+            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5}";
+            const string trueJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5, ""isVirtual"": true, ""isAbstract"": true}";
+            const string falseJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5, ""isVirtual"": false, ""isAbstract"": false}";
+
+            var absent = JsonConvert.DeserializeObject<Attribute>(absentJson)!;
+            var trueValues = JsonConvert.DeserializeObject<Attribute>(trueJson)!;
+            var falseValues = JsonConvert.DeserializeObject<Attribute>(falseJson)!;
+
+            Assert.IsNull(absent.isVirtual);
+            Assert.IsNull(absent.isAbstract);
+            Assert.AreEqual(true, trueValues.isVirtual);
+            Assert.AreEqual(true, trueValues.isAbstract);
+            Assert.AreEqual(false, falseValues.isVirtual);
+            Assert.AreEqual(false, falseValues.isAbstract);
+        }
+
+        [Test]
         public void Json_CustomAttribute_ReadsTypeArguments()
         {
             const string json = @"{
@@ -574,6 +597,10 @@ namespace NeoCompose.Tests
             Assert.AreEqual("attr-speed", substituted.id);
             Assert.AreEqual("Speed", substituted.name);
             Assert.IsTrue(substituted.locked);
+            Assert.AreEqual(false, substituted.isVirtual,
+                "the slot's virtual declaration must not come from its binding");
+            Assert.AreEqual(true, substituted.isAbstract,
+                "the slot's abstract declaration must not come from its binding");
             Assert.IsNull(substituted.storage,
                 "the binding's storage declaration must not leak into the slot");
             Assert.IsNull(substituted.extendsAttributeId);
@@ -582,6 +609,26 @@ namespace NeoCompose.Tests
             Assert.IsTrue(substitutedFloat.required);
             Assert.AreEqual(0f, substitutedFloat.minValue);
             Assert.AreEqual(3.5, substitutedFloat.defaultValue!.value);
+        }
+
+        [Test]
+        public void SubstituteAttribute_AbsentSlotFlagsClearBindingFlags()
+        {
+            var client = LoadClient();
+            var env = NeoGenericResolution.ResolveEnv(client, "type-damage");
+            var slot = client.attributes["attr-speed"];
+            slot.isVirtual = null;
+            slot.isAbstract = null;
+            var binding = client.attributes["attr-binding-float"];
+            binding.isVirtual = false;
+            binding.isAbstract = true;
+
+            var substituted = NeoGenericResolution.SubstituteAttribute(client, slot, env);
+
+            Assert.IsNull(substituted.isVirtual,
+                "an absent slot declaration must clear the binding's virtual flag");
+            Assert.IsNull(substituted.isAbstract,
+                "an absent slot declaration must clear the binding's abstract flag");
         }
 
         [Test]

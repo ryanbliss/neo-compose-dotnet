@@ -1149,6 +1149,385 @@
       "updatedAt": 0,
       "customTypeId": "type-override"
     },
+    "attr-contract-title": {
+      "id": "attr-contract-title",
+      "name": "Title",
+      "type": 3,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-contract-title-reabstracted": {
+      "id": "attr-contract-title-reabstracted",
+      "name": "Title",
+      "type": 3,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "extendsAttributeId": "attr-contract-title",
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-contract-title-sealed": {
+      "id": "attr-contract-title-sealed",
+      "name": "Title",
+      "type": 3,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "extendsAttributeId": "attr-contract-title",
+      "isVirtual": false
+    },
+    "attr-contract-run": {
+      "id": "attr-contract-run",
+      "name": "Run",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "deferred": false,
+      "isVirtual": true,
+      "isAbstract": true,
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "count",
+          "type": 2,
+          "required": true
+        }
+      ]
+    },
+    "attr-contract-run-sealed": {
+      "id": "attr-contract-run-sealed",
+      "name": "Run",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "deferred": false,
+      "extendsAttributeId": "attr-contract-run",
+      "isVirtual": false,
+      "returnTypeInfo": {
+        "type": 1,
+        "required": true
+      },
+      "argumentTypes": [
+        {
+          "name": "count",
+          "type": 2,
+          "required": true
+        }
+      ]
+    },
+    "attr-contract-title-null": {
+      "id": "attr-contract-title-null",
+      "name": "Title",
+      "type": 0,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "attr-generic-contract-float-binding": {
+      "id": "attr-generic-contract-float-binding",
+      "name": "Generic Float Binding",
+      "type": 4,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "attr-generic-contract-string-binding": {
+      "id": "attr-generic-contract-string-binding",
+      "name": "Generic String Binding",
+      "type": 3,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "attr-generic-payload-value": {
+      "id": "attr-generic-payload-value",
+      "name": "Value",
+      "type": 21,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "genericParamId": "param-generic-payload-t"
+    },
+    "attr-generic-contract-amount": {
+      "id": "attr-generic-contract-amount",
+      "name": "Amount",
+      "type": 21,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "genericParamId": "param-generic-contract-t",
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-generic-contract-entry": {
+      "id": "attr-generic-contract-entry",
+      "name": "Value Entry",
+      "type": 21,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "genericParamId": "param-generic-contract-t"
+    },
+    "attr-generic-contract-values": {
+      "id": "attr-generic-contract-values",
+      "name": "Values",
+      "type": 6,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "entryAttributeId": "attr-generic-contract-entry",
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-generic-contract-payload": {
+      "id": "attr-generic-contract-payload",
+      "name": "Payload",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-generic-payload",
+      "customTypeArguments": {
+        "param-generic-payload-t": {
+          "kind": "generic",
+          "genericParamId": "param-generic-contract-t"
+        }
+      },
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-generic-contract-computed": {
+      "id": "attr-generic-contract-computed",
+      "name": "Computed",
+      "type": 10,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "code": "throw \"not evaluated\";",
+      "returnTypeInfo": {
+        "type": 21,
+        "required": true,
+        "ownerTypeId": "type-generic-contract",
+        "genericParamId": "param-generic-contract-t"
+      },
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-generic-contract-echo": {
+      "id": "attr-generic-contract-echo",
+      "name": "Echo",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "deferred": false,
+      "returnTypeInfo": {
+        "type": 21,
+        "required": true,
+        "ownerTypeId": "type-generic-contract",
+        "genericParamId": "param-generic-contract-t"
+      },
+      "argumentTypes": [
+        {
+          "name": "value",
+          "type": 21,
+          "required": true,
+          "ownerTypeId": "type-generic-contract",
+          "genericParamId": "param-generic-contract-t"
+        }
+      ],
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-generic-contract-echo-later": {
+      "id": "attr-generic-contract-echo-later",
+      "name": "EchoLater",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "deferred": true,
+      "returnTypeInfo": {
+        "type": 21,
+        "required": true,
+        "ownerTypeId": "type-generic-contract",
+        "genericParamId": "param-generic-contract-t"
+      },
+      "argumentTypes": [
+        {
+          "name": "value",
+          "type": 21,
+          "required": true,
+          "ownerTypeId": "type-generic-contract",
+          "genericParamId": "param-generic-contract-t"
+        }
+      ],
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-generic-function-hero-binding": {
+      "id": "attr-generic-function-hero-binding",
+      "name": "Generic Function Hero Binding",
+      "type": 7,
+      "locked": false,
+      "required": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "customTypeId": "type-hero"
+    },
+    "attr-generic-function-subject": {
+      "id": "attr-generic-function-subject",
+      "name": "Subject",
+      "type": 21,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "genericParamId": "param-generic-function-t",
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-generic-function-transform": {
+      "id": "attr-generic-function-transform",
+      "name": "Transform",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "deferred": false,
+      "returnTypeInfo": {
+        "type": 21,
+        "required": true,
+        "ownerTypeId": "type-generic-function-contract",
+        "genericParamId": "param-generic-function-t"
+      },
+      "argumentTypes": [
+        {
+          "name": "value",
+          "type": 21,
+          "required": true,
+          "ownerTypeId": "type-generic-function-contract",
+          "genericParamId": "param-generic-function-t"
+        }
+      ],
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-generic-function-transform-later": {
+      "id": "attr-generic-function-transform-later",
+      "name": "TransformLater",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "deferred": true,
+      "returnTypeInfo": {
+        "type": 21,
+        "required": true,
+        "ownerTypeId": "type-generic-function-contract",
+        "genericParamId": "param-generic-function-t"
+      },
+      "argumentTypes": [
+        {
+          "name": "value",
+          "type": 21,
+          "required": true,
+          "ownerTypeId": "type-generic-function-contract",
+          "genericParamId": "param-generic-function-t"
+        }
+      ],
+      "isVirtual": true,
+      "isAbstract": true
+    },
+    "attr-generic-function-transform-box": {
+      "id": "attr-generic-function-transform-box",
+      "name": "TransformBox",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0,
+      "deferred": false,
+      "returnTypeInfo": {
+        "type": 7,
+        "required": true,
+        "typeId": "type-generic-function-box",
+        "typeArguments": {
+          "param-generic-function-box-t": {
+            "type": 21,
+            "required": true,
+            "ownerTypeId": "type-generic-function-contract",
+            "genericParamId": "param-generic-function-t"
+          }
+        }
+      },
+      "argumentTypes": [
+        {
+          "name": "value",
+          "type": 7,
+          "required": true,
+          "typeId": "type-generic-function-box",
+          "typeArguments": {
+            "param-generic-function-box-t": {
+              "type": 21,
+              "required": true,
+              "ownerTypeId": "type-generic-function-contract",
+              "genericParamId": "param-generic-function-t"
+            }
+          }
+        }
+      ],
+      "isVirtual": true,
+      "isAbstract": true
+    },
     "attr-choice-id": {
       "id": "attr-choice-id",
       "name": "Choice ID",
@@ -1519,6 +1898,255 @@
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "extendsTypeId": "type-base",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-contract-base": {
+      "id": "type-contract-base",
+      "name": "ContractBase",
+      "schema": {
+        "Title": "attr-contract-title",
+        "Run": "attr-contract-run"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": true,
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-contract-middle": {
+      "id": "type-contract-middle",
+      "name": "ContractMiddle",
+      "schema": {
+        "Title": "attr-contract-title-reabstracted"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": true,
+      "extendsTypeId": "type-contract-base",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-contract-child": {
+      "id": "type-contract-child",
+      "name": "ContractChild",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-contract-middle",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-contract-deep-child": {
+      "id": "type-contract-deep-child",
+      "name": "ContractDeepChild",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-contract-child",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-contract-explicit-child": {
+      "id": "type-contract-explicit-child",
+      "name": "ContractExplicitChild",
+      "schema": {
+        "Title": "attr-contract-title-sealed",
+        "Run": "attr-contract-run-sealed"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-contract-base",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-contract-null-child": {
+      "id": "type-contract-null-child",
+      "name": "ContractNullChild",
+      "schema": {
+        "Title": "attr-contract-title-null"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-contract-base",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-contract-null-deep-child": {
+      "id": "type-contract-null-deep-child",
+      "name": "ContractNullDeepChild",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-contract-null-child",
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-generic-payload": {
+      "id": "type-generic-payload",
+      "name": "GenericPayload",
+      "schema": {
+        "Value": "attr-generic-payload-value"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "genericParams": [
+        {
+          "id": "param-generic-payload-t",
+          "name": "P"
+        }
+      ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-generic-float-payload": {
+      "id": "type-generic-float-payload",
+      "name": "GenericFloatPayload",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-generic-payload",
+      "extendsGenericBindings": {
+        "param-generic-payload-t": {
+          "kind": "attribute",
+          "attributeId": "attr-generic-contract-float-binding"
+        }
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-generic-string-payload": {
+      "id": "type-generic-string-payload",
+      "name": "GenericStringPayload",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-generic-payload",
+      "extendsGenericBindings": {
+        "param-generic-payload-t": {
+          "kind": "attribute",
+          "attributeId": "attr-generic-contract-string-binding"
+        }
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-generic-contract": {
+      "id": "type-generic-contract",
+      "name": "GenericContract",
+      "schema": {
+        "Amount": "attr-generic-contract-amount",
+        "Values": "attr-generic-contract-values",
+        "Payload": "attr-generic-contract-payload",
+        "Computed": "attr-generic-contract-computed",
+        "Echo": "attr-generic-contract-echo",
+        "EchoLater": "attr-generic-contract-echo-later"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": true,
+      "genericParams": [
+        {
+          "id": "param-generic-contract-t",
+          "name": "T"
+        }
+      ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-generic-float-contract": {
+      "id": "type-generic-float-contract",
+      "name": "GenericFloatContract",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-generic-contract",
+      "extendsGenericBindings": {
+        "param-generic-contract-t": {
+          "kind": "attribute",
+          "attributeId": "attr-generic-contract-float-binding"
+        }
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-generic-string-contract": {
+      "id": "type-generic-string-contract",
+      "name": "GenericStringContract",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-generic-contract",
+      "extendsGenericBindings": {
+        "param-generic-contract-t": {
+          "kind": "attribute",
+          "attributeId": "attr-generic-contract-string-binding"
+        }
+      },
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-generic-function-box": {
+      "id": "type-generic-function-box",
+      "name": "GenericFunctionBox",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "genericParams": [
+        {
+          "id": "param-generic-function-box-t",
+          "name": "B"
+        }
+      ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-generic-function-contract": {
+      "id": "type-generic-function-contract",
+      "name": "GenericFunctionContract",
+      "schema": {
+        "Subject": "attr-generic-function-subject",
+        "Transform": "attr-generic-function-transform",
+        "TransformLater": "attr-generic-function-transform-later",
+        "TransformBox": "attr-generic-function-transform-box"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": true,
+      "genericParams": [
+        {
+          "id": "param-generic-function-t",
+          "name": "T"
+        }
+      ],
+      "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "type-generic-function-hero-contract": {
+      "id": "type-generic-function-hero-contract",
+      "name": "GenericFunctionHeroContract",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "extendsTypeId": "type-generic-function-contract",
+      "extendsGenericBindings": {
+        "param-generic-function-t": {
+          "kind": "attribute",
+          "attributeId": "attr-generic-function-hero-binding"
+        }
+      },
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
