@@ -494,7 +494,8 @@ namespace NeoCompose.Runtime
         ///   per-type config, <c>defaultValue</c>, and <c>required</c>
         ///   (nullability is part of the type — one <c>T</c> is one type).
         ///   The slot keeps its identity/placement fields: <c>id</c>,
-        ///   <c>name</c>, <c>locked</c>, <c>storage</c>, <c>storageMap</c>.
+        ///   <c>name</c>, <c>locked</c>, <c>isVirtual</c>,
+        ///   <c>isAbstract</c>, <c>storage</c>, <c>storageMap</c>.
         ///   Preserving <c>id</c> is what keeps parent-value records, child
         ///   node resolution, and NeoScript pointer IR working with zero
         ///   wire changes. <c>extendsAttributeId</c> is stripped.</description></item>
@@ -524,6 +525,8 @@ namespace NeoCompose.Runtime
                 substituted.id = generic.id;
                 substituted.name = generic.name;
                 substituted.locked = generic.locked;
+                substituted.isVirtual = generic.isVirtual;
+                substituted.isAbstract = generic.isAbstract;
                 // Placement fields are slot-owned. A null declaration means
                 // "inherit from placement parent" and must not fall back to
                 // the binding's own declaration (bindings are type

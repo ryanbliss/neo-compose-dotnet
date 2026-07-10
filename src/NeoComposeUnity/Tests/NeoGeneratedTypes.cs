@@ -31,8 +31,18 @@ namespace Assets.Scripts.Neo
             {
                 ["type-base"] = (client, node) => global::Assets.Scripts.Neo.Base.Create(client, node),
                 ["type-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, node),
+                ["type-contract-child"] = (client, node) => global::Assets.Scripts.Neo.ContractChild.Create(client, node),
+                ["type-contract-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractDeepChild.Create(client, node),
+                ["type-contract-explicit-child"] = (client, node) => global::Assets.Scripts.Neo.ContractExplicitChild.Create(client, node),
+                ["type-contract-null-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullChild.Create(client, node),
+                ["type-contract-null-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullDeepChild.Create(client, node),
                 ["type-derived"] = (client, node) => global::Assets.Scripts.Neo.Derived.Create(client, node),
                 ["type-dialogue-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, node),
+                ["type-generic-float-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatContract.Create(client, node),
+                ["type-generic-float-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatPayload.Create(client, node),
+                ["type-generic-function-hero-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFunctionHeroContract.Create(client, node),
+                ["type-generic-string-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericStringContract.Create(client, node),
+                ["type-generic-string-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericStringPayload.Create(client, node),
                 ["type-hero"] = (client, node) => global::Assets.Scripts.Neo.Hero.Create(client, node),
                 ["type-neo-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoMemory.Create(client, node),
                 ["type-override"] = (client, node) => global::Assets.Scripts.Neo.Override.Create(client, node),
@@ -57,8 +67,18 @@ namespace Assets.Scripts.Neo
             {
                 ["type-base"] = (client, node) => global::Assets.Scripts.Neo.Base.CreateWritable(client, node),
                 ["type-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, node),
+                ["type-contract-child"] = (client, node) => global::Assets.Scripts.Neo.ContractChild.CreateWritable(client, node),
+                ["type-contract-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractDeepChild.CreateWritable(client, node),
+                ["type-contract-explicit-child"] = (client, node) => global::Assets.Scripts.Neo.ContractExplicitChild.CreateWritable(client, node),
+                ["type-contract-null-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullChild.CreateWritable(client, node),
+                ["type-contract-null-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullDeepChild.CreateWritable(client, node),
                 ["type-derived"] = (client, node) => global::Assets.Scripts.Neo.Derived.CreateWritable(client, node),
                 ["type-dialogue-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, node),
+                ["type-generic-float-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatContract.CreateWritable(client, node),
+                ["type-generic-float-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatPayload.CreateWritable(client, node),
+                ["type-generic-function-hero-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFunctionHeroContract.CreateWritable(client, node),
+                ["type-generic-string-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericStringContract.CreateWritable(client, node),
+                ["type-generic-string-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericStringPayload.CreateWritable(client, node),
                 ["type-hero"] = (client, node) => global::Assets.Scripts.Neo.Hero.CreateWritable(client, node),
                 ["type-neo-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoMemory.CreateWritable(client, node),
                 ["type-override"] = (client, node) => global::Assets.Scripts.Neo.Override.CreateWritable(client, node),
@@ -101,11 +121,133 @@ namespace Assets.Scripts.Neo
                 var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(args[1]);
                 return target.MoveTo(destination, cell);
                 },
+                ["attr-contract-run"] = (client, receiver, args) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ContractBase>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "Run",
+                    "attr-contract-run");
+                var count = Convert.ToInt32(args[0]);
+                return target.Run(count);
+                },
+                ["attr-contract-run-sealed"] = (client, receiver, args) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ContractExplicitChild>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "Run",
+                    "attr-contract-run-sealed");
+                var count = Convert.ToInt32(args[0]);
+                return target.Run(count);
+                },
+                ["attr-generic-contract-echo"] = (client, receiver, args) =>
+                {
+                var untypedTarget = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<INeoValueReference>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "Echo",
+                    "attr-generic-contract-echo");
+                if (untypedTarget is GenericContract<double> target1)
+                {
+                    var value = Convert.ToDouble(args[0]);
+                    return target1.Echo(value);
+                }
+                if (untypedTarget is GenericContract<string> target2)
+                {
+                    var value = (string)args[0]!;
+                    return target2.Echo(value);
+                }
+                throw new NSGetterRuntimeError("Cannot invoke Function 'Echo' (attr-generic-contract-echo) because the receiver does not match any closed generic construction.");
+                },
+                ["attr-generic-function-transform"] = (client, receiver, args) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<GenericFunctionContract<Hero>>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "Transform",
+                    "attr-generic-function-transform");
+                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionCustomArgument<Hero>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
+                return target.Transform(value);
+                },
+                ["attr-generic-function-transform-box"] = (client, receiver, args) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<GenericFunctionContract<Hero>>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "TransformBox",
+                    "attr-generic-function-transform-box");
+                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionCustomArgument<IReadOnlyGenericFunctionBox<Hero>>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
+                return target.TransformBox(value);
+                },
             };
 
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
+                ["attr-generic-contract-echo-later"] = (client, receiver, args, deferred) =>
+                {
+                var untypedTarget = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<INeoValueReference>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "EchoLater",
+                    "attr-generic-contract-echo-later");
+                if (untypedTarget is GenericContract<double> target1)
+                {
+                    var value = Convert.ToDouble(args[0]);
+                    if (target1.FunctionHandler is null)
+                    {
+                        throw new NeoFunctionHandlerMissingException(
+                            "Cannot invoke deferred Function 'EchoLater' because FunctionHandler is not set.");
+                    }
+                    var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<double>>(deferred, "EchoLater");
+                    target1.FunctionHandler.EchoLater(value, typedDeferred);
+                    return;
+                }
+                if (untypedTarget is GenericContract<string> target2)
+                {
+                    var value = (string)args[0]!;
+                    if (target2.FunctionHandler is null)
+                    {
+                        throw new NeoFunctionHandlerMissingException(
+                            "Cannot invoke deferred Function 'EchoLater' because FunctionHandler is not set.");
+                    }
+                    var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<string>>(deferred, "EchoLater");
+                    target2.FunctionHandler.EchoLater(value, typedDeferred);
+                    return;
+                }
+                throw new NSGetterRuntimeError("Cannot invoke Function 'EchoLater' (attr-generic-contract-echo-later) because the receiver does not match any closed generic construction.");
+                },
+                ["attr-generic-function-transform-later"] = (client, receiver, args, deferred) =>
+                {
+                var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<GenericFunctionContract<Hero>>(
+                    client,
+                    receiver,
+                    DialogueReadOnlyValueFactories,
+                    DialogueWritableValueFactories,
+                    "TransformLater",
+                    "attr-generic-function-transform-later");
+                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionCustomArgument<Hero>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
+                if (target.FunctionHandler is null)
+                {
+                    throw new NeoFunctionHandlerMissingException(
+                        "Cannot invoke deferred Function 'TransformLater' because FunctionHandler is not set.");
+                }
+                var typedDeferred = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<Hero>>(deferred, "TransformLater");
+                target.FunctionHandler.TransformLater(value, typedDeferred);
+                },
             };
 
         public TestProjectNeo(NeoClient client, NeoDialogueRuntimeOptions? dialogueOptions = null)
@@ -496,7 +638,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<Hero>(out writable);
         }
 
-        public string? Name
+        public virtual string? Name
         {
             get
             {
@@ -509,7 +651,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public int? Health
+        public virtual int? Health
         {
             get
             {
@@ -522,7 +664,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public NeoVector3 Position
+        public virtual NeoVector3 Position
         {
             get
             {
@@ -543,7 +685,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public NeoVector3Int? GridCell
+        public virtual NeoVector3Int? GridCell
         {
             get
             {
@@ -566,7 +708,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public NeoList<NeoVector3> Path
+        public virtual NeoList<NeoVector3> Path
         {
             get
             {
@@ -583,7 +725,7 @@ namespace Assets.Scripts.Neo
         }
 
 
-        public NeoDictionary<Element, string?> ElementAffinity
+        public virtual NeoDictionary<Element, string?> ElementAffinity
         {
             get
             {
@@ -599,7 +741,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public Vector3 MoveTo(Vector3 destination, Vector2Int? cell)
+        public virtual Vector3 MoveTo(Vector3 destination, Vector2Int? cell)
         {
             if (FunctionHandler is null)
             {
@@ -900,7 +1042,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<Root>(out writable);
         }
 
-        public NeoList<Hero?> Heroes
+        public virtual NeoList<Hero?> Heroes
         {
             get
             {
@@ -916,7 +1058,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public string Manifest
+        public virtual string Manifest
         {
             get
             {
@@ -926,7 +1068,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public bool Active
+        public virtual bool Active
         {
             get
             {
@@ -941,7 +1083,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public bool? Flag
+        public virtual bool? Flag
         {
             get
             {
@@ -954,7 +1096,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public int Score
+        public virtual int Score
         {
             get
             {
@@ -967,7 +1109,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public NeoMemory NeoMemory
+        public virtual NeoMemory NeoMemory
         {
             get
             {
@@ -997,7 +1139,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public SampleLayerGroupBase? SampleLayerGroup
+        public virtual SampleLayerGroupBase? SampleLayerGroup
         {
             get
             {
@@ -1033,7 +1175,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public StorageA? StorageInherit
+        public virtual StorageA? StorageInherit
         {
             get
             {
@@ -1069,7 +1211,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public NeoDictionary<Element, int?> ElementStats
+        public virtual NeoDictionary<Element, int?> ElementStats
         {
             get
             {
@@ -1085,7 +1227,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyDictionary<Element, int?> ElementMultipliers
+        public virtual NeoReadOnlyDictionary<Element, int?> ElementMultipliers
         {
             get
             {
@@ -1093,7 +1235,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public NeoDictionary<Element, Hero> ElementChampions
+        public virtual NeoDictionary<Element, Hero> ElementChampions
         {
             get
             {
@@ -1275,7 +1417,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<SampleTileInstance>(out writable);
         }
 
-        public int? Value
+        public virtual int? Value
         {
             get
             {
@@ -1486,7 +1628,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<SampleTileLayerLink>(out writable);
         }
 
-        public NeoList<SampleTileInstance> Tiles
+        public virtual NeoList<SampleTileInstance> Tiles
         {
             get
             {
@@ -1631,6 +1773,14 @@ namespace Assets.Scripts.Neo
             return TryWritable<SampleBlockedPath>(out writable);
         }
 
+        NeoReadOnlyList<IReadOnlySampleTileInstance> IReadOnlySampleTileLayerLink.Tiles
+        {
+            get
+            {
+                return (NeoReadOnlyList<IReadOnlySampleTileInstance>)(object)((SampleTileLayerLink)this).Tiles!;
+            }
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -1763,7 +1913,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<StorageA>(out writable);
         }
 
-        public int? Value
+        public virtual int? Value
         {
             get
             {
@@ -1776,7 +1926,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public StorageB? SaveChild
+        public virtual StorageB? SaveChild
         {
             get
             {
@@ -1916,7 +2066,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<StorageB>(out writable);
         }
 
-        public StorageC? InheritChild
+        public virtual StorageC? InheritChild
         {
             get
             {
@@ -2066,7 +2216,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<StorageC>(out writable);
         }
 
-        public int? Value
+        public virtual int? Value
         {
             get
             {
@@ -2078,7 +2228,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public StorageD? SessionChild
+        public virtual StorageD? SessionChild
         {
             get
             {
@@ -2218,7 +2368,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<StorageD>(out writable);
         }
 
-        public StorageE? InheritChild
+        public virtual StorageE? InheritChild
         {
             get
             {
@@ -2368,7 +2518,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<StorageE>(out writable);
         }
 
-        public int? Value
+        public virtual int? Value
         {
             get
             {
@@ -2380,7 +2530,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyStorageF? StaticChild
+        public virtual IReadOnlyStorageF? StaticChild
         {
             get
             {
@@ -2511,7 +2661,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<StorageF>(out writable);
         }
 
-        public IReadOnlyStorageG? InheritChild
+        public virtual IReadOnlyStorageG? InheritChild
         {
             get
             {
@@ -2646,7 +2796,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<StorageG>(out writable);
         }
 
-        public int? Value
+        public virtual int? Value
         {
             get
             {
@@ -2785,7 +2935,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<Base>(out writable);
         }
 
-        public string? Name
+        public virtual string? Name
         {
             get
             {
@@ -2937,7 +3087,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<Derived>(out writable);
         }
 
-        public int? Health
+        public virtual int? Health
         {
             get
             {
@@ -3081,7 +3231,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<Override>(out writable);
         }
 
-        public new string? Name
+        public override string? Name
         {
             get
             {
@@ -3124,6 +3274,2380 @@ namespace Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<object?>>
             {
                 [Fields.Name] = () => Name,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IContractBaseFunctionHandler
+    {
+        bool Run(int count);
+    }
+
+    public interface IReadOnlyContractBase : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ContractBase writable);
+
+        string? Title { get; }
+
+        bool Run(int count);
+    }
+
+    public abstract partial class ContractBase : NeoGeneratedCustomValue, IReadOnlyContractBase
+    {
+        internal ContractBase(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "type-contract-base", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public IContractBaseFunctionHandler? FunctionHandler
+        {
+            get => FunctionHandlerObject as IContractBaseFunctionHandler;
+            set => FunctionHandlerObject = value;
+        }
+
+        internal static ContractBase Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractBase>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-contract-child" => new ContractChild(client, node, true, NeoValueOwnership.Asset),
+                    "type-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    "type-contract-explicit-child" => new ContractExplicitChild(client, node, true, NeoValueOwnership.Asset),
+                    "type-contract-null-child" => new ContractNullChild(client, node, true, NeoValueOwnership.Asset),
+                    "type-contract-null-deep-child" => new ContractNullDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static ContractBase CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractBase>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-contract-child" => new ContractChild(client, node, false, node.ownership),
+                    "type-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
+                    "type-contract-explicit-child" => new ContractExplicitChild(client, node, false, node.ownership),
+                    "type-contract-null-child" => new ContractNullChild(client, node, false, node.ownership),
+                    "type-contract-null-deep-child" => new ContractNullDeepChild(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractBase' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ContractBase writable)
+        {
+            return TryWritable<ContractBase>(out writable);
+        }
+
+        public abstract string? Title { get; set; }
+
+
+        public abstract bool Run(int count);
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Title = new("Title");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Title] = () => node.Get<NeoAttributeString>("Title").TextId,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Title] = () => Title,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyContractMiddle : IReadOnlyContractBase
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ContractMiddle writable);
+
+        new string? Title { get; }
+    }
+
+    public abstract partial class ContractMiddle : ContractBase, IReadOnlyContractMiddle
+    {
+        internal ContractMiddle(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal new static ContractMiddle Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractMiddle>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-contract-child" => new ContractChild(client, node, true, NeoValueOwnership.Asset),
+                    "type-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractMiddle' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal new static ContractMiddle CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractMiddle>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-contract-child" => new ContractChild(client, node, false, node.ownership),
+                    "type-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractMiddle' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ContractMiddle writable)
+        {
+            return TryWritable<ContractMiddle>(out writable);
+        }
+
+        public abstract override string? Title { get; set; }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Title = new("Title");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Title] = () => node.Get<NeoAttributeString>("Title").TextId,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Title] = () => Title,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyContractChild : IReadOnlyContractMiddle
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ContractChild writable);
+    }
+
+    public partial class ContractChild : ContractMiddle, IReadOnlyContractChild
+    {
+        internal ContractChild(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public ContractChild(string? Title = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Title), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Title = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Title is not null)
+            {
+                var TitleValueId = Guid.NewGuid().ToString();
+                value["Title"] = TitleValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = TitleValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Title,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-contract-child", value, valueRows);
+        }
+
+        internal new static ContractChild Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractChild>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    _ => new ContractChild(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static ContractChild CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractChild>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
+                    _ => new ContractChild(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ContractChild writable)
+        {
+            return TryWritable<ContractChild>(out writable);
+        }
+
+        public override string? Title
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Title").Text;
+            }
+            set
+            {
+                ThrowIfReadOnly("ContractChild.Title");
+                writableNode.SetStringLiteral("Title", value);
+            }
+        }
+
+        public override bool Run(int count)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'Run' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.Run(count);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Title = new("Title");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Title] = () => node.Get<NeoAttributeString>("Title").TextId,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Title] = () => Title,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyContractDeepChild : IReadOnlyContractChild
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ContractDeepChild writable);
+    }
+
+    public partial class ContractDeepChild : ContractChild, IReadOnlyContractDeepChild
+    {
+        internal ContractDeepChild(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public ContractDeepChild(string? Title = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Title), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Title = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Title is not null)
+            {
+                var TitleValueId = Guid.NewGuid().ToString();
+                value["Title"] = TitleValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = TitleValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Title,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-contract-deep-child", value, valueRows);
+        }
+
+        internal new static ContractDeepChild Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractDeepChild>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static ContractDeepChild CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractDeepChild>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ContractDeepChild(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ContractDeepChild writable)
+        {
+            return TryWritable<ContractDeepChild>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Title = new("Title");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Title] = () => node.Get<NeoAttributeString>("Title").TextId,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Title] = () => Title,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IContractExplicitChildFunctionHandler : IContractBaseFunctionHandler
+    {
+        bool Run(int count);
+    }
+
+    public interface IReadOnlyContractExplicitChild : IReadOnlyContractBase
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ContractExplicitChild writable);
+
+        new string? Title { get; }
+
+        new bool Run(int count);
+    }
+
+    public partial class ContractExplicitChild : ContractBase, IReadOnlyContractExplicitChild
+    {
+        internal ContractExplicitChild(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public new IContractExplicitChildFunctionHandler? FunctionHandler
+        {
+            get => FunctionHandlerObject as IContractExplicitChildFunctionHandler;
+            set => FunctionHandlerObject = value;
+        }
+
+        public ContractExplicitChild(string? Title = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Title), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string? Title = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            if (Title is not null)
+            {
+                var TitleValueId = Guid.NewGuid().ToString();
+                value["Title"] = TitleValueId;
+                valueRows.Add(new StringAttributeValue
+                {
+                    id = TitleValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = Title,
+                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                });
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-contract-explicit-child", value, valueRows);
+        }
+
+        internal new static ContractExplicitChild Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractExplicitChild>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ContractExplicitChild(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static ContractExplicitChild CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractExplicitChild>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ContractExplicitChild(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ContractExplicitChild writable)
+        {
+            return TryWritable<ContractExplicitChild>(out writable);
+        }
+
+        public sealed override string? Title
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Title").Text;
+            }
+            set
+            {
+                ThrowIfReadOnly("ContractExplicitChild.Title");
+                writableNode.SetStringLiteral("Title", value);
+            }
+        }
+
+
+        public sealed override bool Run(int count)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'Run' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.Run(count);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string?> Title = new("Title");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Title] = () => node.Get<NeoAttributeString>("Title").TextId,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Title] = () => Title,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyContractNullChild : IReadOnlyContractBase
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ContractNullChild writable);
+
+        // Title: Null is not generated yet.
+    }
+
+    public partial class ContractNullChild : ContractBase, IReadOnlyContractNullChild
+    {
+        internal ContractNullChild(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public ContractNullChild(object? Title = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Title), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(object? Title = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-contract-null-child", value, valueRows);
+        }
+
+        internal new static ContractNullChild Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractNullChild>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-contract-null-deep-child" => new ContractNullDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    _ => new ContractNullChild(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static ContractNullChild CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractNullChild>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-contract-null-deep-child" => new ContractNullDeepChild(client, node, false, node.ownership),
+                    _ => new ContractNullChild(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ContractNullChild writable)
+        {
+            return TryWritable<ContractNullChild>(out writable);
+        }
+
+        // Title: Null is not generated yet.
+
+        public override string? Title
+        {
+            get
+            {
+                return node.Get<NeoAttributeString>("Title").Text;
+            }
+            set
+            {
+                ThrowIfReadOnly("ContractNullChild.Title");
+                writableNode.SetStringLiteral("Title", value);
+            }
+        }
+
+        public override bool Run(int count)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'Run' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.Run(count);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyContractNullDeepChild : IReadOnlyContractNullChild
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out ContractNullDeepChild writable);
+    }
+
+    public partial class ContractNullDeepChild : ContractNullChild, IReadOnlyContractNullDeepChild
+    {
+        internal ContractNullDeepChild(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public ContractNullDeepChild(object? Title = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Title), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(object? Title = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-contract-null-deep-child", value, valueRows);
+        }
+
+        internal new static ContractNullDeepChild Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractNullDeepChild>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ContractNullDeepChild(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static ContractNullDeepChild CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractNullDeepChild>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new ContractNullDeepChild(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out ContractNullDeepChild writable)
+        {
+            return TryWritable<ContractNullDeepChild>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyGenericPayload<P> : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        P Value { get; }
+    }
+
+    public partial class GenericPayload<P> : NeoGeneratedCustomValue, IReadOnlyGenericPayload<P>
+    {
+        internal GenericPayload(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "type-generic-payload", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static GenericPayload<P> Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericPayload<P>>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(client, node, true, NeoValueOwnership.Asset),
+                    "type-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericPayload' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static GenericPayload<P> CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericPayload<P>>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(client, node, false, node.ownership),
+                    "type-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericPayload' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out GenericPayload<P> writable)
+        {
+            return TryWritable<GenericPayload<P>>(out writable);
+        }
+
+        private NeoGenericBinding<P>? _valueGenericBinding;
+
+        public virtual P Value
+        {
+            get
+            {
+                var child = node.Get<NeoAttribute>("Value");
+                _valueGenericBinding ??= NeoGenericBindings.Resolve<P>(client, child);
+                return _valueGenericBinding.Read(child);
+            }
+            set
+            {
+                ThrowIfReadOnly("GenericPayload.Value");
+                var child = writableNode.Get<NeoAttribute>("Value");
+                _valueGenericBinding ??= NeoGenericBindings.Resolve<P>(client, child);
+                _valueGenericBinding.Write(child, value);
+            }
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<P> Value = new("Value");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Value] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Value] = () => Value,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyGenericFloatPayload : IReadOnlyGenericPayload<double>
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out GenericFloatPayload writable);
+    }
+
+    public partial class GenericFloatPayload : GenericPayload<double>, IReadOnlyGenericFloatPayload
+    {
+        internal GenericFloatPayload(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public GenericFloatPayload(double Value)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Value), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(double Value)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var ValueValueId = Guid.NewGuid().ToString();
+            value["Value"] = ValueValueId;
+            valueRows.Add(new NumberAttributeValue
+            {
+                id = ValueValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Value,
+            });
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-generic-float-payload", value, valueRows);
+        }
+
+        internal new static GenericFloatPayload Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFloatPayload>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GenericFloatPayload(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static GenericFloatPayload CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFloatPayload>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GenericFloatPayload(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out GenericFloatPayload writable)
+        {
+            return TryWritable<GenericFloatPayload>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<double> Value = new("Value");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Value] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Value] = () => Value,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyGenericStringPayload : IReadOnlyGenericPayload<string>
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out GenericStringPayload writable);
+    }
+
+    public partial class GenericStringPayload : GenericPayload<string>, IReadOnlyGenericStringPayload
+    {
+        internal GenericStringPayload(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public GenericStringPayload(string Value)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Value), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Value)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var ValueValueId = Guid.NewGuid().ToString();
+            value["Value"] = ValueValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = ValueValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Value,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
+            });
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-generic-string-payload", value, valueRows);
+        }
+
+        internal new static GenericStringPayload Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericStringPayload>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GenericStringPayload(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static GenericStringPayload CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericStringPayload>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GenericStringPayload(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out GenericStringPayload writable)
+        {
+            return TryWritable<GenericStringPayload>(out writable);
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Value = new("Value");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Value] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Value] = () => Value,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IGenericContractFunctionHandler<T>
+    {
+        T Echo(T value);
+        void EchoLater(T value, NeoDeferredFunction<T> deferred);
+    }
+
+    public interface IReadOnlyGenericContract<T> : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        T Amount { get; }
+
+        NeoReadOnlyList<T> Values { get; }
+
+        IReadOnlyGenericPayload<T>? Payload { get; }
+
+        T Computed { get; }
+
+        T Echo(T value);
+
+        void EchoLater(T value);
+    }
+
+    public abstract partial class GenericContract<T> : NeoGeneratedCustomValue, IReadOnlyGenericContract<T>
+    {
+        internal GenericContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "type-generic-contract", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public IGenericContractFunctionHandler<T>? FunctionHandler
+        {
+            get => FunctionHandlerObject as IGenericContractFunctionHandler<T>;
+            set => FunctionHandlerObject = value;
+        }
+
+        internal static GenericContract<T> Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericContract<T>>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(client, node, true, NeoValueOwnership.Asset),
+                    "type-generic-string-contract" => (GenericContract<T>)(object)new GenericStringContract(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericContract' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static GenericContract<T> CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericContract<T>>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(client, node, false, node.ownership),
+                    "type-generic-string-contract" => (GenericContract<T>)(object)new GenericStringContract(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericContract' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out GenericContract<T> writable)
+        {
+            return TryWritable<GenericContract<T>>(out writable);
+        }
+
+        public abstract T Amount { get; set; }
+
+        public abstract NeoList<T> Values { get; }
+
+        NeoReadOnlyList<T> IReadOnlyGenericContract<T>.Values
+        {
+            get
+            {
+                return new NeoReadOnlyList<T>(client, node.Get<NeoAttributeList>("Values"), (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoAttribute)child).Read((NeoAttribute)child));
+            }
+        }
+
+        public abstract GenericPayload<T>? Payload { get; set; }
+
+        IReadOnlyGenericPayload<T>? IReadOnlyGenericContract<T>.Payload
+        {
+            get
+            {
+                var child = node.Get<NeoAttributeCustom>("Payload");
+                return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<T>.Create(client, child);
+            }
+        }
+
+        public abstract T Computed { get; }
+
+
+
+        public abstract T Echo(T value);
+
+        public abstract void EchoLater(T value);
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<T> Amount = new("Amount");
+
+            public static readonly NeoField<NeoList<T>> Values = new("Values");
+
+            public static readonly NeoField<GenericPayload<T>?> Payload = new("Payload");
+
+            public static readonly NeoField<T> Computed = new("Computed");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Amount] = () => null,
+                [Fields.Values] = () => null,
+                [Fields.Payload] = () => null,
+                [Fields.Computed] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Amount] = () => Amount,
+                [Fields.Values] = () => Values,
+                [Fields.Payload] = () => Payload,
+                [Fields.Computed] = () => Computed,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyGenericFloatContract : IReadOnlyGenericContract<double>
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out GenericFloatContract writable);
+    }
+
+    public partial class GenericFloatContract : GenericContract<double>, IReadOnlyGenericFloatContract
+    {
+        internal GenericFloatContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public GenericFloatContract(double Amount, IEnumerable<double>? Values = null, GenericPayload<double>? Payload = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Amount, Values, Payload), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(double Amount, IEnumerable<double>? Values = null, GenericPayload<double>? Payload = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var AmountValueId = Guid.NewGuid().ToString();
+            value["Amount"] = AmountValueId;
+            valueRows.Add(new NumberAttributeValue
+            {
+                id = AmountValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Amount,
+            });
+            if (Values is not null)
+            {
+                var ValuesValueId = Guid.NewGuid().ToString();
+                value["Values"] = ValuesValueId;
+                var ValuesIds = new List<string>();
+                foreach (var entry in Values)
+                {
+                    var entryValueId = Guid.NewGuid().ToString();
+                    ValuesIds.Add(entryValueId);
+                    valueRows.Add(new NumberAttributeValue
+                    {
+                        id = entryValueId,
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = entry,
+                    });
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ValuesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ValuesIds.ToArray(),
+                });
+            }
+            if (Payload is not null)
+            {
+                value["Payload"] = NeoGeneratedTypesSupport.LookupSelectionId(Payload.valueId);
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-generic-float-contract", value, valueRows);
+        }
+
+        internal new static GenericFloatContract Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFloatContract>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GenericFloatContract(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static GenericFloatContract CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFloatContract>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GenericFloatContract(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out GenericFloatContract writable)
+        {
+            return TryWritable<GenericFloatContract>(out writable);
+        }
+
+        private NeoGenericBinding<double>? _amountGenericBinding;
+
+        public override double Amount
+        {
+            get
+            {
+                var child = node.Get<NeoAttribute>("Amount");
+                _amountGenericBinding ??= NeoGenericBindings.Resolve<double>(client, child);
+                return _amountGenericBinding.Read(child);
+            }
+            set
+            {
+                ThrowIfReadOnly("GenericFloatContract.Amount");
+                var child = writableNode.Get<NeoAttribute>("Amount");
+                _amountGenericBinding ??= NeoGenericBindings.Resolve<double>(client, child);
+                _amountGenericBinding.Write(child, value);
+            }
+        }
+
+        public override NeoList<double> Values
+        {
+            get
+            {
+                return new NeoList<double>(client, writableNode.Get<NeoAttributeListWritable>("Values"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Values"), (client, child) => NeoGenericBindings.Resolve<double>(client, (NeoAttribute)child).Read((NeoAttribute)child), item => NeoGenericBindings.Resolve<double>(client, writableNode.Get<NeoAttributeListWritable>("Values")).Serialize(item), () => ThrowIfReadOnly("GenericFloatContract.Values"), () => IsReadOnly);
+            }
+        }
+
+        public override GenericPayload<double>? Payload
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoAttributeCustom>("Payload");
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<double>.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoAttributeCustomWritable>("Payload");
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<double>.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("GenericFloatContract.Payload");
+                if (value is null)
+                {
+                    writableNode.Unset("Payload");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Payload", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        public override double Computed
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSProperty>("Computed").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                return Convert.ToDouble(result.value);
+            }
+        }
+
+        public override double Echo(double value)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'Echo' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.Echo(value);
+        }
+
+        public override void EchoLater(double value)
+        {
+            client.InvokeDeferredNativeFunction("attr-generic-contract-echo-later", this, new object?[] { value });
+        }
+
+        NeoReadOnlyList<double> IReadOnlyGenericContract<double>.Values
+        {
+            get
+            {
+                return (NeoReadOnlyList<double>)(object)((GenericContract<double>)this).Values!;
+            }
+        }
+
+        IReadOnlyGenericPayload<double>? IReadOnlyGenericContract<double>.Payload
+        {
+            get
+            {
+                return (IReadOnlyGenericPayload<double>?)(object)((GenericContract<double>)this).Payload!;
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<double> Amount = new("Amount");
+
+            public static readonly NeoField<NeoList<double>> Values = new("Values");
+
+            public static readonly NeoField<GenericPayload<double>?> Payload = new("Payload");
+
+            public static readonly NeoField<double> Computed = new("Computed");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Amount] = () => null,
+                [Fields.Values] = () => null,
+                [Fields.Payload] = () => null,
+                [Fields.Computed] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Amount] = () => Amount,
+                [Fields.Values] = () => Values,
+                [Fields.Payload] = () => Payload,
+                [Fields.Computed] = () => Computed,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyGenericStringContract : IReadOnlyGenericContract<string>
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out GenericStringContract writable);
+    }
+
+    public partial class GenericStringContract : GenericContract<string>, IReadOnlyGenericStringContract
+    {
+        internal GenericStringContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public GenericStringContract(string Amount, IEnumerable<string>? Values = null, GenericPayload<string>? Payload = null)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Amount, Values, Payload), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(string Amount, IEnumerable<string>? Values = null, GenericPayload<string>? Payload = null)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            var AmountValueId = Guid.NewGuid().ToString();
+            value["Amount"] = AmountValueId;
+            valueRows.Add(new StringAttributeValue
+            {
+                id = AmountValueId,
+                createdAt = nowIso,
+                updatedAt = nowIso,
+                value = Amount,
+                neoLocalizationMode = NeoStringLocalizationMode.Literal,
+            });
+            if (Values is not null)
+            {
+                var ValuesValueId = Guid.NewGuid().ToString();
+                value["Values"] = ValuesValueId;
+                var ValuesIds = new List<string>();
+                foreach (var entry in Values)
+                {
+                    var entryValueId = Guid.NewGuid().ToString();
+                    ValuesIds.Add(entryValueId);
+                    valueRows.Add(new StringAttributeValue
+                    {
+                        id = entryValueId,
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = entry,
+                        neoLocalizationMode = NeoStringLocalizationMode.Literal,
+                    });
+                }
+                valueRows.Add(new ArrayAttributeValue
+                {
+                    id = ValuesValueId,
+                    createdAt = nowIso,
+                    updatedAt = nowIso,
+                    value = ValuesIds.ToArray(),
+                });
+            }
+            if (Payload is not null)
+            {
+                value["Payload"] = NeoGeneratedTypesSupport.LookupSelectionId(Payload.valueId);
+            }
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-generic-string-contract", value, valueRows);
+        }
+
+        internal new static GenericStringContract Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericStringContract>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GenericStringContract(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static GenericStringContract CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericStringContract>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GenericStringContract(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out GenericStringContract writable)
+        {
+            return TryWritable<GenericStringContract>(out writable);
+        }
+
+        private NeoGenericBinding<string>? _amountGenericBinding;
+
+        public override string Amount
+        {
+            get
+            {
+                var child = node.Get<NeoAttribute>("Amount");
+                _amountGenericBinding ??= NeoGenericBindings.Resolve<string>(client, child);
+                return _amountGenericBinding.Read(child);
+            }
+            set
+            {
+                ThrowIfReadOnly("GenericStringContract.Amount");
+                var child = writableNode.Get<NeoAttribute>("Amount");
+                _amountGenericBinding ??= NeoGenericBindings.Resolve<string>(client, child);
+                _amountGenericBinding.Write(child, value);
+            }
+        }
+
+        public override NeoList<string> Values
+        {
+            get
+            {
+                return new NeoList<string>(client, writableNode.Get<NeoAttributeListWritable>("Values"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Values"), (client, child) => NeoGenericBindings.Resolve<string>(client, (NeoAttribute)child).Read((NeoAttribute)child), item => NeoGenericBindings.Resolve<string>(client, writableNode.Get<NeoAttributeListWritable>("Values")).Serialize(item), () => ThrowIfReadOnly("GenericStringContract.Values"), () => IsReadOnly);
+            }
+        }
+
+        public override GenericPayload<string>? Payload
+        {
+            get
+            {
+                if (IsReadOnly)
+                {
+                    var child = node.Get<NeoAttributeCustom>("Payload");
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<string>.Create(client, child);
+                }
+                else
+                {
+                    var child = writableNode.Get<NeoAttributeCustomWritable>("Payload");
+                    return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<string>.CreateWritable(client, child);
+                }
+            }
+            set
+            {
+                ThrowIfReadOnly("GenericStringContract.Payload");
+                if (value is null)
+                {
+                    writableNode.Unset("Payload");
+                    return;
+                }
+                NeoGeneratedTypesSupport.SetValue(writableNode, "Payload", NeoGeneratedTypesSupport.ValueReference(value));
+            }
+        }
+
+        public override string Computed
+        {
+            get
+            {
+                var result = node.Get<NeoAttributeNSProperty>("Computed").Compute(valueId!);
+                if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
+                return (string)result.value!;
+            }
+        }
+
+        public override string Echo(string value)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'Echo' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.Echo(value);
+        }
+
+        public override void EchoLater(string value)
+        {
+            client.InvokeDeferredNativeFunction("attr-generic-contract-echo-later", this, new object?[] { value });
+        }
+
+        NeoReadOnlyList<string> IReadOnlyGenericContract<string>.Values
+        {
+            get
+            {
+                return (NeoReadOnlyList<string>)(object)((GenericContract<string>)this).Values!;
+            }
+        }
+
+        IReadOnlyGenericPayload<string>? IReadOnlyGenericContract<string>.Payload
+        {
+            get
+            {
+                return (IReadOnlyGenericPayload<string>?)(object)((GenericContract<string>)this).Payload!;
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<string> Amount = new("Amount");
+
+            public static readonly NeoField<NeoList<string>> Values = new("Values");
+
+            public static readonly NeoField<GenericPayload<string>?> Payload = new("Payload");
+
+            public static readonly NeoField<string> Computed = new("Computed");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Amount] = () => null,
+                [Fields.Values] = () => null,
+                [Fields.Payload] = () => null,
+                [Fields.Computed] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Amount] = () => Amount,
+                [Fields.Values] = () => Values,
+                [Fields.Payload] = () => Payload,
+                [Fields.Computed] = () => Computed,
+            };
+        }
+
+        public new IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyGenericFunctionBox<B> : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+    }
+
+    public partial class GenericFunctionBox<B> : NeoGeneratedCustomValue, IReadOnlyGenericFunctionBox<B>
+    {
+        internal GenericFunctionBox(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "type-generic-function-box", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        internal static GenericFunctionBox<B> Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionBox<B>>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionBox' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static GenericFunctionBox<B> CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionBox<B>>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionBox' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out GenericFunctionBox<B> writable)
+        {
+            return TryWritable<GenericFunctionBox<B>>(out writable);
+        }
+
+        public sealed class Fields
+        {
+            private Fields() {}
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IGenericFunctionContractFunctionHandler<T>
+    {
+        T Transform(T value);
+        void TransformLater(T value, NeoDeferredFunction<T> deferred);
+        IReadOnlyGenericFunctionBox<T> TransformBox(IReadOnlyGenericFunctionBox<T> value);
+    }
+
+    public interface IReadOnlyGenericFunctionContract<T> : INeoValueReference
+    {
+        bool IsReadOnly { get; }
+
+        bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        T Subject { get; }
+
+        T Transform(T value);
+
+        void TransformLater(T value);
+
+        IReadOnlyGenericFunctionBox<T> TransformBox(IReadOnlyGenericFunctionBox<T> value);
+    }
+
+    public abstract partial class GenericFunctionContract<T> : NeoGeneratedCustomValue, IReadOnlyGenericFunctionContract<T>
+    {
+        internal GenericFunctionContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "type-generic-function-contract", isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public IGenericFunctionContractFunctionHandler<T>? FunctionHandler
+        {
+            get => FunctionHandlerObject as IGenericFunctionContractFunctionHandler<T>;
+            set => FunctionHandlerObject = value;
+        }
+
+        internal static GenericFunctionContract<T> Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionContract<T>>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(client, node, true, NeoValueOwnership.Asset),
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionContract' without a concrete client type id."),
+                };
+            });
+        }
+
+        internal static GenericFunctionContract<T> CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionContract<T>>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    "type-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(client, node, false, node.ownership),
+                    _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionContract' without a concrete client type id."),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out GenericFunctionContract<T> writable)
+        {
+            return TryWritable<GenericFunctionContract<T>>(out writable);
+        }
+
+        public abstract T Subject { get; set; }
+
+
+
+
+        public abstract T Transform(T value);
+
+        public abstract void TransformLater(T value);
+
+        public abstract IReadOnlyGenericFunctionBox<T> TransformBox(IReadOnlyGenericFunctionBox<T> value);
+
+        public sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<T> Subject = new("Subject");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Subject] = () => null,
+            };
+        }
+
+        public string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Subject] = () => Subject,
+            };
+        }
+
+        public IDisposable OnChanged<T>(NeoField<T> field, Action<T, NeoChangeSource> handler)
+        {
+            var readers = ChangedFieldReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return WatchField(field, handler, reader);
+        }
+
+        public IDisposable OnChanged(Action<NeoChangedArgs<Fields>> handler)
+        {
+            return WatchChanges(ChangedFieldReaders(), handler);
+        }
+    }
+    public interface IReadOnlyGenericFunctionHeroContract : IReadOnlyGenericFunctionContract<IReadOnlyHero>
+    {
+        new bool IsReadOnly { get; }
+
+        new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
+
+        bool TryWritable(out GenericFunctionHeroContract writable);
+    }
+
+    public partial class GenericFunctionHeroContract : GenericFunctionContract<Hero>, IReadOnlyGenericFunctionHeroContract
+    {
+        internal GenericFunctionHeroContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, isReadOnly, inheritedStorageOwnership)
+        {
+        }
+
+        public GenericFunctionHeroContract(Hero Subject)
+            : this(TestProjectNeo.RequireInstance().Client, CreateFactoryNode(Subject), false, NeoValueOwnership.Session)
+        {
+        }
+
+        private static NeoAttributeCustomWritable CreateFactoryNode(Hero Subject)
+        {
+            var client = TestProjectNeo.RequireInstance().Client;
+            var nowIso = DateTime.UtcNow.ToString("o");
+            var value = new Dictionary<string, string>();
+            var valueRows = new List<AttributeValue>();
+            value["Subject"] = NeoGeneratedTypesSupport.LookupSelectionId(Subject.valueId);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-generic-function-hero-contract", value, valueRows);
+        }
+
+        internal new static GenericFunctionHeroContract Create(NeoClient client, NeoAttributeCustom node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionHeroContract>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GenericFunctionHeroContract(client, node, true, NeoValueOwnership.Asset),
+                };
+            });
+        }
+
+        internal new static GenericFunctionHeroContract CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        {
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionHeroContract>(client, node, () =>
+            {
+                var clientTypeId = node.value?.typeId;
+                return clientTypeId switch
+                {
+                    _ => new GenericFunctionHeroContract(client, node, false, node.ownership),
+                };
+            });
+        }
+
+        public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
+        {
+            return base.TryWritable(out writable);
+        }
+
+        public bool TryWritable(out GenericFunctionHeroContract writable)
+        {
+            return TryWritable<GenericFunctionHeroContract>(out writable);
+        }
+
+        private NeoGenericBinding<Hero>? _subjectGenericBinding;
+
+        public override Hero Subject
+        {
+            get
+            {
+                var child = node.Get<NeoAttribute>("Subject");
+                _subjectGenericBinding ??= NeoGenericBindings.Resolve<Hero>(client, child);
+                return _subjectGenericBinding.Read(child);
+            }
+            set
+            {
+                ThrowIfReadOnly("GenericFunctionHeroContract.Subject");
+                var child = writableNode.Get<NeoAttribute>("Subject");
+                _subjectGenericBinding ??= NeoGenericBindings.Resolve<Hero>(client, child);
+                _subjectGenericBinding.Write(child, value);
+            }
+        }
+
+        public override Hero Transform(Hero value)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'Transform' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.Transform(value);
+        }
+
+        public override void TransformLater(Hero value)
+        {
+            client.InvokeDeferredNativeFunction("attr-generic-function-transform-later", this, new object?[] { value });
+        }
+
+        public override IReadOnlyGenericFunctionBox<Hero> TransformBox(IReadOnlyGenericFunctionBox<Hero> value)
+        {
+            if (FunctionHandler is null)
+            {
+                var valueDescription = valueId is null ? "without a backing value id" : $"for value '{valueId}'";
+                throw new NeoFunctionHandlerMissingException(
+                    $"Cannot invoke Function 'TransformBox' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
+            }
+            return FunctionHandler.TransformBox(value);
+        }
+
+        IReadOnlyHero IReadOnlyGenericFunctionContract<IReadOnlyHero>.Transform(IReadOnlyHero value)
+        {
+            return (IReadOnlyHero)(object)((GenericFunctionContract<Hero>)this).Transform((Hero)(object)value!)!;
+        }
+
+        void IReadOnlyGenericFunctionContract<IReadOnlyHero>.TransformLater(IReadOnlyHero value)
+        {
+            ((GenericFunctionContract<Hero>)this).TransformLater((Hero)(object)value!);
+        }
+
+        IReadOnlyGenericFunctionBox<IReadOnlyHero> IReadOnlyGenericFunctionContract<IReadOnlyHero>.TransformBox(IReadOnlyGenericFunctionBox<IReadOnlyHero> value)
+        {
+            return (IReadOnlyGenericFunctionBox<IReadOnlyHero>)(object)((GenericFunctionContract<Hero>)this).TransformBox((IReadOnlyGenericFunctionBox<Hero>)(object)value!)!;
+        }
+
+        IReadOnlyHero IReadOnlyGenericFunctionContract<IReadOnlyHero>.Subject
+        {
+            get
+            {
+                return (IReadOnlyHero)(object)((GenericFunctionContract<Hero>)this).Subject!;
+            }
+        }
+
+        public new sealed class Fields
+        {
+            private Fields() {}
+
+            public static readonly NeoField<Hero> Subject = new("Subject");
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<string?>> LocalizedTextIdReaders()
+        {
+            return new Dictionary<INeoField, Func<string?>>
+            {
+                [Fields.Subject] = () => null,
+            };
+        }
+
+        public new string? GetLocalizedTextId<T>(NeoField<T> field)
+        {
+            var readers = LocalizedTextIdReaders();
+            if (!readers.TryGetValue(field, out var reader))
+            {
+                throw new ArgumentException($"Field '{field.Key}' is not defined on this generated type.", nameof(field));
+            }
+            return reader();
+        }
+
+        private IReadOnlyDictionary<INeoField, Func<object?>> ChangedFieldReaders()
+        {
+            return new Dictionary<INeoField, Func<object?>>
+            {
+                [Fields.Subject] = () => Subject,
             };
         }
 
@@ -3218,7 +5742,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<NeoChoiceLog>(out writable);
         }
 
-        public string ChoiceId
+        public virtual string ChoiceId
         {
             get
             {
@@ -3406,7 +5930,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<NeoTextNodeMemory>(out writable);
         }
 
-        public int VisitCount
+        public virtual int VisitCount
         {
             get
             {
@@ -3419,7 +5943,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public string? LastVisitedAt
+        public virtual string? LastVisitedAt
         {
             get
             {
@@ -3432,7 +5956,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public string? MostRecentChoiceId
+        public virtual string? MostRecentChoiceId
         {
             get
             {
@@ -3445,7 +5969,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public NeoList<NeoChoiceLog> ChoiceHistory
+        public virtual NeoList<NeoChoiceLog> ChoiceHistory
         {
             get
             {
@@ -3633,7 +6157,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<NeoDialogueMemory>(out writable);
         }
 
-        public int VisitCount
+        public virtual int VisitCount
         {
             get
             {
@@ -3646,7 +6170,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public string? LastVisitedAt
+        public virtual string? LastVisitedAt
         {
             get
             {
@@ -3659,7 +6183,7 @@ namespace Assets.Scripts.Neo
             }
         }
 
-        public NeoDictionary<NeoTextNodeMemory> TextNodeMemories
+        public virtual NeoDictionary<NeoTextNodeMemory> TextNodeMemories
         {
             get
             {
@@ -3814,7 +6338,7 @@ namespace Assets.Scripts.Neo
             return TryWritable<NeoMemory>(out writable);
         }
 
-        public NeoDictionary<NeoDialogueMemory> DialogueMemories
+        public virtual NeoDictionary<NeoDialogueMemory> DialogueMemories
         {
             get
             {

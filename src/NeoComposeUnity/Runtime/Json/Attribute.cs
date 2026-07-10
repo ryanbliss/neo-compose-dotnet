@@ -34,6 +34,18 @@ namespace NeoCompose.Runtime.Json
         public bool locked;
         public bool required;
         /// <summary>
+        /// Whether declarations in extending custom types may override this
+        /// schema member. Optional on the wire; <c>null</c> has the permanent
+        /// backwards-compatible meaning <c>true</c>.
+        /// </summary>
+        public bool? isVirtual;
+        /// <summary>
+        /// Whether this declaration is an abstract schema member. Optional on
+        /// the wire; only <c>true</c> is abstract. An overriding row is the
+        /// implementation unless it explicitly declares this flag again.
+        /// </summary>
+        public bool? isAbstract;
+        /// <summary>
         /// When set, this attribute is an *override* of the referenced
         /// attribute. Most other fields may be absent on overrides;
         /// missing fields resolve from the inherited attribute via the

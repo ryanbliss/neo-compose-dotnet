@@ -1078,7 +1078,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ConsoleObject>(out writable);
         }
 
-        public new string Name
+        public new virtual string Name
         {
             get
             {
@@ -1306,7 +1306,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<BootGlyphTile>(out writable);
         }
 
-        public NeoDialogueReference BootGlyphAttuned
+        public virtual NeoDialogueReference BootGlyphAttuned
         {
             get
             {
@@ -1320,7 +1320,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
+        public new virtual NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
@@ -1346,7 +1346,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new IReadOnlyNeoTileLayer DefaultLayer
+        public new virtual IReadOnlyNeoTileLayer DefaultLayer
         {
             get
             {
@@ -1360,7 +1360,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -1373,7 +1373,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Sprite Sprite
+        public new virtual Sprite Sprite
         {
             get
             {
@@ -1572,7 +1572,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<AnimationInfo>(out writable);
         }
 
-        public int FPS
+        public virtual int FPS
         {
             get
             {
@@ -1580,7 +1580,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<Sprite> Frames
+        public virtual NeoReadOnlyList<Sprite> Frames
         {
             get
             {
@@ -1588,7 +1588,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string Name
+        public virtual string Name
         {
             get
             {
@@ -1726,7 +1726,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         INeoSmartTile? INeoSmartTileSource.SmartTile => SmartTile;
 
-        public NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
+        public virtual NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
@@ -1734,7 +1734,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyNeoTileLayer DefaultLayer
+        public virtual IReadOnlyNeoTileLayer DefaultLayer
         {
             get
             {
@@ -1743,7 +1743,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string Name
+        public virtual string Name
         {
             get
             {
@@ -1751,7 +1751,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyNeoSmartTile? SmartTile
+        public virtual IReadOnlyNeoSmartTile? SmartTile
         {
             get
             {
@@ -1760,7 +1760,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Sprite Sprite
+        public virtual Sprite Sprite
         {
             get
             {
@@ -1897,7 +1897,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ConsoleTile>(out writable);
         }
 
-        public new string Name
+        public new virtual string Name
         {
             get
             {
@@ -2041,7 +2041,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<Worlds>(out writable);
         }
 
-        public IReadOnlyOldConsoleLandingGrid OldConsoleLanding
+        public virtual IReadOnlyOldConsoleLandingGrid OldConsoleLanding
         {
             get
             {
@@ -2286,7 +2286,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<RecoveryCacheObject>(out writable);
         }
 
-        public new NeoList<NeoObjectBase> Children
+        public new virtual NeoList<NeoObjectBase> Children
         {
             get
             {
@@ -2302,7 +2302,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoCollider? Collider
+        public new virtual NeoCollider? Collider
         {
             get
             {
@@ -2338,7 +2338,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
+        public new virtual NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
         {
             get
             {
@@ -2364,7 +2364,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new IReadOnlyNeoObjectLayer DefaultLayer
+        public new virtual IReadOnlyNeoObjectLayer DefaultLayer
         {
             get
             {
@@ -2378,7 +2378,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -2391,7 +2391,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoList<NeoObjectPlacementTile> PlacementTiles
+        public new virtual NeoList<NeoObjectPlacementTile> PlacementTiles
         {
             get
             {
@@ -2407,7 +2407,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoDialogueReference RecoveryCache
+        public virtual NeoDialogueReference RecoveryCache
         {
             get
             {
@@ -2597,7 +2597,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ComputedText>(out writable);
         }
 
-        public string baseText
+        public virtual string baseText
         {
             get
             {
@@ -2605,7 +2605,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string fullText
+        public virtual string fullText
         {
             get
             {
@@ -2615,7 +2615,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string? optionalSuffix
+        public virtual string? optionalSuffix
         {
             get
             {
@@ -2737,7 +2737,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoWorlds>(out writable);
         }
 
-        public NeoReadOnlyList<IReadOnlyNeoObjectLayer> ObjectLayers
+        public virtual NeoReadOnlyList<IReadOnlyNeoObjectLayer> ObjectLayers
         {
             get
             {
@@ -2745,7 +2745,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<IReadOnlyNeoObject> Objects
+        public virtual NeoReadOnlyList<IReadOnlyNeoObject> Objects
         {
             get
             {
@@ -2753,7 +2753,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<IReadOnlyNeoTileLayer> TileLayers
+        public virtual NeoReadOnlyList<IReadOnlyNeoTileLayer> TileLayers
         {
             get
             {
@@ -2761,7 +2761,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<IReadOnlyNeoTile> Tiles
+        public virtual NeoReadOnlyList<IReadOnlyNeoTile> Tiles
         {
             get
             {
@@ -2907,7 +2907,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoObjectPlacementTile>(out writable);
         }
 
-        public NeoReadOnlyVector2Int Cell
+        public virtual NeoReadOnlyVector2Int Cell
         {
             get
             {
@@ -3055,7 +3055,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoTileInstance>(out writable);
         }
 
-        public NeoVector2Int Cell
+        public virtual NeoVector2Int Cell
         {
             get
             {
@@ -3076,7 +3076,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyNeoTile Tile
+        public virtual IReadOnlyNeoTile Tile
         {
             get
             {
@@ -3283,7 +3283,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<Audio>(out writable);
         }
 
-        public AudioClip BitsGainSfx
+        public virtual AudioClip BitsGainSfx
         {
             get
             {
@@ -3292,7 +3292,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public AudioClip BitsSpendSfx
+        public virtual AudioClip BitsSpendSfx
         {
             get
             {
@@ -3301,7 +3301,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public AudioClip DialogCloseSfx
+        public virtual AudioClip DialogCloseSfx
         {
             get
             {
@@ -3310,7 +3310,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public AudioClip DialogNextSfx
+        public virtual AudioClip DialogNextSfx
         {
             get
             {
@@ -3319,7 +3319,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public AudioClip DialogOpenSfx
+        public virtual AudioClip DialogOpenSfx
         {
             get
             {
@@ -3328,7 +3328,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public AudioClip ItemGetSfx
+        public virtual AudioClip ItemGetSfx
         {
             get
             {
@@ -3337,7 +3337,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public AudioClip RocketThrustSfx
+        public virtual AudioClip RocketThrustSfx
         {
             get
             {
@@ -3583,7 +3583,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<BlockedPath>(out writable);
         }
 
-        public NeoDialogueReference BootGlyphSealLocked
+        public virtual NeoDialogueReference BootGlyphSealLocked
         {
             get
             {
@@ -3597,7 +3597,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoDialogueReference BootGlyphSealReady
+        public virtual NeoDialogueReference BootGlyphSealReady
         {
             get
             {
@@ -3612,7 +3612,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
 
-        public bool ClearPath()
+        public virtual bool ClearPath()
         {
             if (FunctionHandler is null)
             {
@@ -3621,6 +3621,14 @@ namespace HelloWorld.Assets.Scripts.Neo
                     $"Cannot invoke Function 'ClearPath' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
             }
             return FunctionHandler.ClearPath();
+        }
+
+        NeoReadOnlyList<IReadOnlyNeoTileInstance> IReadOnlyNeoTileLayerLink.Tiles
+        {
+            get
+            {
+                return (NeoReadOnlyList<IReadOnlyNeoTileInstance>)(object)((NeoTileLayerLink)this).Tiles!;
+            }
         }
 
         public new sealed class Fields
@@ -3820,7 +3828,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<VoidTile>(out writable);
         }
 
-        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
+        public new virtual NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
@@ -3846,7 +3854,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new IReadOnlyNeoTileLayer DefaultLayer
+        public new virtual IReadOnlyNeoTileLayer DefaultLayer
         {
             get
             {
@@ -3860,7 +3868,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -3873,7 +3881,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Sprite Sprite
+        public new virtual Sprite Sprite
         {
             get
             {
@@ -4065,7 +4073,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoDialogueMemory>(out writable);
         }
 
-        public bool HasVisited
+        public virtual bool HasVisited
         {
             get
             {
@@ -4075,7 +4083,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string? LastVisitedAt
+        public virtual string? LastVisitedAt
         {
             get
             {
@@ -4087,7 +4095,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoDictionary<NeoTextNodeMemory> TextNodeMemories
+        public virtual NeoDictionary<NeoTextNodeMemory> TextNodeMemories
         {
             get
             {
@@ -4095,7 +4103,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public int VisitCount
+        public virtual int VisitCount
         {
             get
             {
@@ -4300,7 +4308,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<Outpost>(out writable);
         }
 
-        public IReadOnlyAnimationInfo? AnimatedImage
+        public virtual IReadOnlyAnimationInfo? AnimatedImage
         {
             get
             {
@@ -4310,7 +4318,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
 
-        public string FullDisplayText
+        public virtual string FullDisplayText
         {
             get
             {
@@ -4320,7 +4328,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Sprite Image
+        public virtual Sprite Image
         {
             get
             {
@@ -4329,7 +4337,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string Name
+        public virtual string Name
         {
             get
             {
@@ -4337,7 +4345,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Planet Planet
+        public virtual Planet Planet
         {
             get
             {
@@ -4347,7 +4355,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
 
-        public OutpostSaveData Save
+        public virtual OutpostSaveData Save
         {
             get
             {
@@ -4357,7 +4365,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public OutpostSaveData? SaveUnsafe
+        public virtual OutpostSaveData? SaveUnsafe
         {
             get
             {
@@ -4368,7 +4376,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
 
 
-        public string DebugLog(string text)
+        public virtual string DebugLog(string text)
         {
             if (FunctionHandler is null)
             {
@@ -4379,12 +4387,12 @@ namespace HelloWorld.Assets.Scripts.Neo
             return FunctionHandler.DebugLog(text);
         }
 
-        public void PlayAnimation()
+        public virtual void PlayAnimation()
         {
             client.InvokeDeferredNativeFunction("cab850e3-cf8c-42b3-a70b-f0066089e6fb", this, new object?[] { });
         }
 
-        public bool ShowRelic()
+        public virtual bool ShowRelic()
         {
             if (FunctionHandler is null)
             {
@@ -4588,7 +4596,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
         }
 
-        public NeoReadOnlyList<IReadOnlyNeoObjectBase> Children
+        public virtual NeoReadOnlyList<IReadOnlyNeoObjectBase> Children
         {
             get
             {
@@ -4596,7 +4604,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyNeoCollider? Collider
+        public virtual IReadOnlyNeoCollider? Collider
         {
             get
             {
@@ -4605,7 +4613,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
+        public virtual NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
         {
             get
             {
@@ -4613,7 +4621,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyNeoObjectLayer DefaultLayer
+        public virtual IReadOnlyNeoObjectLayer DefaultLayer
         {
             get
             {
@@ -4622,7 +4630,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -4630,7 +4638,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles
+        public virtual NeoReadOnlyList<IReadOnlyNeoObjectPlacementTile> PlacementTiles
         {
             get
             {
@@ -4843,7 +4851,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoTextNodeMemory>(out writable);
         }
 
-        public NeoList<NeoChoiceLog> ChoiceHistory
+        public virtual NeoList<NeoChoiceLog> ChoiceHistory
         {
             get
             {
@@ -4851,7 +4859,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public bool HasVisited
+        public virtual bool HasVisited
         {
             get
             {
@@ -4861,7 +4869,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string? LastVisitedAt
+        public virtual string? LastVisitedAt
         {
             get
             {
@@ -4873,7 +4881,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string? MostRecentChoiceId
+        public virtual string? MostRecentChoiceId
         {
             get
             {
@@ -4885,7 +4893,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public int VisitCount
+        public virtual int VisitCount
         {
             get
             {
@@ -5164,7 +5172,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ExitPromptObject>(out writable);
         }
 
-        public new NeoList<NeoObjectBase> Children
+        public new virtual NeoList<NeoObjectBase> Children
         {
             get
             {
@@ -5180,7 +5188,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
+        public new virtual NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
         {
             get
             {
@@ -5206,7 +5214,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new IReadOnlyNeoObjectLayer DefaultLayer
+        public new virtual IReadOnlyNeoObjectLayer DefaultLayer
         {
             get
             {
@@ -5220,7 +5228,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoDialogueReference ExitPromptQuiet
+        public virtual NeoDialogueReference ExitPromptQuiet
         {
             get
             {
@@ -5234,7 +5242,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoDialogueReference ExitPromptRelay
+        public virtual NeoDialogueReference ExitPromptRelay
         {
             get
             {
@@ -5248,7 +5256,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -5261,7 +5269,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoList<NeoObjectPlacementTile> PlacementTiles
+        public new virtual NeoList<NeoObjectPlacementTile> PlacementTiles
         {
             get
             {
@@ -5277,7 +5285,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoVector3 Size
+        public new virtual NeoVector3 Size
         {
             get
             {
@@ -5489,7 +5497,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<Item>(out writable);
         }
 
-        public string Name
+        public virtual string Name
         {
             get
             {
@@ -5497,7 +5505,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public int Value
+        public virtual int Value
         {
             get
             {
@@ -5505,7 +5513,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public double? Weight
+        public virtual double? Weight
         {
             get
             {
@@ -5679,7 +5687,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         string INeoSmartTileNeighbor.Condition => Condition.optionId;
         string? INeoSmartTileNeighbor.TileValueId => Tile?.valueId;
 
-        public NeoReadOnlyVector2Int Cell
+        public virtual NeoReadOnlyVector2Int Cell
         {
             get
             {
@@ -5687,7 +5695,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoSmartTileCondition Condition
+        public virtual NeoSmartTileCondition Condition
         {
             get
             {
@@ -5696,7 +5704,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyNeoTile? Tile
+        public virtual IReadOnlyNeoTile? Tile
         {
             get
             {
@@ -5839,7 +5847,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<Session>(out writable);
         }
 
-        public NeoVector3 Position
+        public virtual NeoVector3 Position
         {
             get
             {
@@ -5982,7 +5990,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoMemory>(out writable);
         }
 
-        public NeoDictionary<NeoDialogueMemory> DialogueMemories
+        public virtual NeoDictionary<NeoDialogueMemory> DialogueMemories
         {
             get
             {
@@ -6275,7 +6283,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<SealBarrierTile>(out writable);
         }
 
-        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
+        public new virtual NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
@@ -6301,7 +6309,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new IReadOnlyNeoTileLayer DefaultLayer
+        public new virtual IReadOnlyNeoTileLayer DefaultLayer
         {
             get
             {
@@ -6315,7 +6323,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -6328,7 +6336,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Sprite Sprite
+        public new virtual Sprite Sprite
         {
             get
             {
@@ -6503,7 +6511,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<LookupContainer>(out writable);
         }
 
-        public IReadOnlyLookupEntry Lookup
+        public virtual IReadOnlyLookupEntry Lookup
         {
             get
             {
@@ -6512,7 +6520,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyDictionary<IReadOnlyLookupEntry> LookupList
+        public virtual NeoReadOnlyDictionary<IReadOnlyLookupEntry> LookupList
         {
             get
             {
@@ -6658,7 +6666,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<PlanetVisit>(out writable);
         }
 
-        public int DateUnix
+        public virtual int DateUnix
         {
             get
             {
@@ -6670,7 +6678,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Planet World
+        public virtual Planet World
         {
             get
             {
@@ -6849,7 +6857,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoSpriteObject>(out writable);
         }
 
-        public new string Name
+        public new virtual string Name
         {
             get
             {
@@ -6862,7 +6870,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Sprite Sprite
+        public virtual Sprite Sprite
         {
             get
             {
@@ -7113,7 +7121,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<PlayerSpawnObject>(out writable);
         }
 
-        public new NeoList<NeoObjectBase> Children
+        public new virtual NeoList<NeoObjectBase> Children
         {
             get
             {
@@ -7129,7 +7137,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoCollider? Collider
+        public new virtual NeoCollider? Collider
         {
             get
             {
@@ -7165,7 +7173,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
+        public new virtual NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
         {
             get
             {
@@ -7191,7 +7199,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new IReadOnlyNeoObjectLayer DefaultLayer
+        public new virtual IReadOnlyNeoObjectLayer DefaultLayer
         {
             get
             {
@@ -7205,7 +7213,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -7218,7 +7226,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoList<NeoObjectPlacementTile> PlacementTiles
+        public new virtual NeoList<NeoObjectPlacementTile> PlacementTiles
         {
             get
             {
@@ -7234,7 +7242,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoVector3 Position
+        public new virtual NeoVector3 Position
         {
             get
             {
@@ -7428,7 +7436,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoCollider>(out writable);
         }
 
-        public bool? isTrigger
+        public virtual bool? isTrigger
         {
             get
             {
@@ -7436,7 +7444,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyVector2? offset
+        public virtual NeoReadOnlyVector2? offset
         {
             get
             {
@@ -7445,7 +7453,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyVector2 size
+        public virtual NeoReadOnlyVector2 size
         {
             get
             {
@@ -7609,7 +7617,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         string INeoSmartTile.DefaultCollider => DefaultCollider.optionId;
         IReadOnlyList<INeoSmartTileRule> INeoSmartTile.Rules => Rules;
 
-        public NeoSmartTileCollider DefaultCollider
+        public virtual NeoSmartTileCollider DefaultCollider
         {
             get
             {
@@ -7618,7 +7626,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<IReadOnlyNeoSmartTileRule> Rules
+        public virtual NeoReadOnlyList<IReadOnlyNeoSmartTileRule> Rules
         {
             get
             {
@@ -7786,7 +7794,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<OutpostSaveData>(out writable);
         }
 
-        public int Reputation
+        public virtual int Reputation
         {
             get
             {
@@ -7798,7 +7806,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public bool Unlocked
+        public virtual bool Unlocked
         {
             get
             {
@@ -7810,7 +7818,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public int VisitCount
+        public virtual int VisitCount
         {
             get
             {
@@ -7822,7 +7830,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public bool Visited
+        public virtual bool Visited
         {
             get
             {
@@ -7971,7 +7979,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<LookupEntry>(out writable);
         }
 
-        public string Name
+        public virtual string Name
         {
             get
             {
@@ -8141,7 +8149,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<SaturnOutpost>(out writable);
         }
 
-        public new string FullDisplayText
+        public new virtual string FullDisplayText
         {
             get
             {
@@ -8151,7 +8159,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public SaturnMoon Moon
+        public virtual SaturnMoon Moon
         {
             get
             {
@@ -8165,7 +8173,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Planet Planet
+        public new virtual Planet Planet
         {
             get
             {
@@ -8455,7 +8463,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<Save>(out writable);
         }
 
-        public int Bits
+        public virtual int Bits
         {
             get
             {
@@ -8467,7 +8475,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public bool Dead
+        public virtual bool Dead
         {
             get
             {
@@ -8479,7 +8487,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoLookupSet<IReadOnlyItem> Inventory
+        public virtual NeoLookupSet<IReadOnlyItem> Inventory
         {
             get
             {
@@ -8496,7 +8504,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyOutpost Location
+        public virtual IReadOnlyOutpost Location
         {
             get
             {
@@ -8509,7 +8517,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoMemory NeoMemory
+        public virtual NeoMemory NeoMemory
         {
             get
             {
@@ -8521,7 +8529,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoDictionary<OutpostSaveData?> OutpostSaveMap
+        public virtual NeoDictionary<OutpostSaveData?> OutpostSaveMap
         {
             get
             {
@@ -8529,7 +8537,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public QuestState Quest
+        public virtual QuestState Quest
         {
             get
             {
@@ -8541,7 +8549,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoList<PlanetVisit> Visited
+        public virtual NeoList<PlanetVisit> Visited
         {
             get
             {
@@ -8549,7 +8557,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Planet World
+        public virtual Planet World
         {
             get
             {
@@ -8795,7 +8803,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<Art>(out writable);
         }
 
-        public Sprite FirstWorldIconSprite
+        public virtual Sprite FirstWorldIconSprite
         {
             get
             {
@@ -8804,7 +8812,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyAnimationInfo? FlareAnimation
+        public virtual IReadOnlyAnimationInfo? FlareAnimation
         {
             get
             {
@@ -8813,7 +8821,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Sprite FlareStaticSprite
+        public virtual Sprite FlareStaticSprite
         {
             get
             {
@@ -8822,7 +8830,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Sprite JupiterSprite
+        public virtual Sprite JupiterSprite
         {
             get
             {
@@ -8831,7 +8839,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Sprite SaturnSprite
+        public virtual Sprite SaturnSprite
         {
             get
             {
@@ -8840,7 +8848,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyAnimationInfo? ShipAnimation
+        public virtual IReadOnlyAnimationInfo? ShipAnimation
         {
             get
             {
@@ -8849,7 +8857,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Sprite ShipSprite
+        public virtual Sprite ShipSprite
         {
             get
             {
@@ -8858,7 +8866,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Sprite SunSprite
+        public virtual Sprite SunSprite
         {
             get
             {
@@ -8867,7 +8875,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public Sprite VaultPlaqueSprite
+        public virtual Sprite VaultPlaqueSprite
         {
             get
             {
@@ -9014,7 +9022,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoTileLayer>(out writable);
         }
 
-        public string Name
+        public virtual string Name
         {
             get
             {
@@ -9022,7 +9030,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyNeoSortingLayer SortingLayer
+        public virtual IReadOnlyNeoSortingLayer SortingLayer
         {
             get
             {
@@ -9031,7 +9039,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public int SortingOrder
+        public virtual int SortingOrder
         {
             get
             {
@@ -9214,7 +9222,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<JupiterOutpost>(out writable);
         }
 
-        public new string FullDisplayText
+        public new virtual string FullDisplayText
         {
             get
             {
@@ -9224,7 +9232,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Sprite? Image
+        public new virtual Sprite? Image
         {
             get
             {
@@ -9237,7 +9245,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public JupiterMoon Moon
+        public virtual JupiterMoon Moon
         {
             get
             {
@@ -9251,7 +9259,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Planet Planet
+        public new virtual Planet Planet
         {
             get
             {
@@ -9466,7 +9474,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<HullPlatingTile>(out writable);
         }
 
-        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
+        public new virtual NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
@@ -9492,7 +9500,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new IReadOnlyNeoTileLayer DefaultLayer
+        public new virtual IReadOnlyNeoTileLayer DefaultLayer
         {
             get
             {
@@ -9506,7 +9514,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -9519,7 +9527,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Sprite Sprite
+        public new virtual Sprite Sprite
         {
             get
             {
@@ -9676,7 +9684,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoChoiceLog>(out writable);
         }
 
-        public string ChoiceId
+        public virtual string ChoiceId
         {
             get
             {
@@ -9926,7 +9934,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string DisplayName
+        public virtual string DisplayName
         {
             get
             {
@@ -9934,7 +9942,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> ObjectLayers
+        public override NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> ObjectLayers
         {
             get
             {
@@ -9942,7 +9950,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> TileLayers
+        public override NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> TileLayers
         {
             get
             {
@@ -10139,7 +10147,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ConsoleObjectLayer>(out writable);
         }
 
-        public string DisplayName
+        public virtual string DisplayName
         {
             get
             {
@@ -10337,7 +10345,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<GlassFloorTile>(out writable);
         }
 
-        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
+        public new virtual NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
@@ -10363,7 +10371,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new IReadOnlyNeoTileLayer DefaultLayer
+        public new virtual IReadOnlyNeoTileLayer DefaultLayer
         {
             get
             {
@@ -10377,7 +10385,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -10390,7 +10398,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Sprite Sprite
+        public new virtual Sprite Sprite
         {
             get
             {
@@ -10526,7 +10534,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoObjectLayer>(out writable);
         }
 
-        public string Name
+        public virtual string Name
         {
             get
             {
@@ -10534,7 +10542,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyNeoSortingLayer SortingLayer
+        public virtual IReadOnlyNeoSortingLayer SortingLayer
         {
             get
             {
@@ -10543,7 +10551,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public int SortingOrder
+        public virtual int SortingOrder
         {
             get
             {
@@ -10808,7 +10816,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<VaultPlaqueObject>(out writable);
         }
 
-        public new NeoList<NeoObjectBase> Children
+        public new virtual NeoList<NeoObjectBase> Children
         {
             get
             {
@@ -10824,7 +10832,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
+        public new virtual NeoLookupSet<IReadOnlyNeoObjectLayer> CompatibleLayers
         {
             get
             {
@@ -10850,7 +10858,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new IReadOnlyNeoObjectLayer DefaultLayer
+        public new virtual IReadOnlyNeoObjectLayer DefaultLayer
         {
             get
             {
@@ -10864,7 +10872,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -10877,7 +10885,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new NeoList<NeoObjectPlacementTile> PlacementTiles
+        public new virtual NeoList<NeoObjectPlacementTile> PlacementTiles
         {
             get
             {
@@ -10893,7 +10901,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoDialogueReference VaultPlaqueLocked
+        public virtual NeoDialogueReference VaultPlaqueLocked
         {
             get
             {
@@ -10907,7 +10915,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoDialogueReference VaultPlaqueReward
+        public virtual NeoDialogueReference VaultPlaqueReward
         {
             get
             {
@@ -11193,7 +11201,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         double INeoSmartTileRule.MinAnimationSpeed => MinAnimationSpeed;
         double INeoSmartTileRule.MaxAnimationSpeed => MaxAnimationSpeed;
 
-        public NeoSmartTileCollider Collider
+        public virtual NeoSmartTileCollider Collider
         {
             get
             {
@@ -11202,7 +11210,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public double MaxAnimationSpeed
+        public virtual double MaxAnimationSpeed
         {
             get
             {
@@ -11210,7 +11218,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public double MinAnimationSpeed
+        public virtual double MinAnimationSpeed
         {
             get
             {
@@ -11218,7 +11226,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor> Neighbors
+        public virtual NeoReadOnlyList<IReadOnlyNeoSmartTileNeighbor> Neighbors
         {
             get
             {
@@ -11226,7 +11234,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoSmartTileOutput Output
+        public virtual NeoSmartTileOutput Output
         {
             get
             {
@@ -11235,7 +11243,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoSmartTileTransform RuleTransform
+        public virtual NeoSmartTileTransform RuleTransform
         {
             get
             {
@@ -11244,7 +11252,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<Sprite> Sprites
+        public virtual NeoReadOnlyList<Sprite> Sprites
         {
             get
             {
@@ -11449,7 +11457,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<RedNovaWarningTile>(out writable);
         }
 
-        public new NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
+        public new virtual NeoLookupSet<IReadOnlyNeoTileLayer> CompatibleLayers
         {
             get
             {
@@ -11475,7 +11483,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new IReadOnlyNeoTileLayer DefaultLayer
+        public new virtual IReadOnlyNeoTileLayer DefaultLayer
         {
             get
             {
@@ -11489,7 +11497,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new string Name
+        public override string Name
         {
             get
             {
@@ -11502,7 +11510,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public new Sprite Sprite
+        public new virtual Sprite Sprite
         {
             get
             {
@@ -11744,7 +11752,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<QuestState>(out writable);
         }
 
-        public WorldEnding Ending
+        public virtual WorldEnding Ending
         {
             get
             {
@@ -11757,7 +11765,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public bool EvidenceArchive
+        public virtual bool EvidenceArchive
         {
             get
             {
@@ -11769,7 +11777,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public bool EvidenceFaith
+        public virtual bool EvidenceFaith
         {
             get
             {
@@ -11781,7 +11789,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public bool EvidenceLedger
+        public virtual bool EvidenceLedger
         {
             get
             {
@@ -11793,7 +11801,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public int FlareClock
+        public virtual int FlareClock
         {
             get
             {
@@ -11805,7 +11813,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public string NextHint
+        public virtual string NextHint
         {
             get
             {
@@ -11815,7 +11823,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public int Reruns
+        public virtual int Reruns
         {
             get
             {
@@ -11827,7 +11835,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public QuestStage Stage
+        public virtual QuestStage Stage
         {
             get
             {
@@ -12070,7 +12078,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<Assets>(out writable);
         }
 
-        public IReadOnlyArt Art
+        public virtual IReadOnlyArt Art
         {
             get
             {
@@ -12078,7 +12086,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyAudio Audio
+        public virtual IReadOnlyAudio Audio
         {
             get
             {
@@ -12086,7 +12094,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyComputedText Computed
+        public virtual IReadOnlyComputedText Computed
         {
             get
             {
@@ -12094,7 +12102,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<IReadOnlyItem> Items
+        public virtual NeoReadOnlyList<IReadOnlyItem> Items
         {
             get
             {
@@ -12102,7 +12110,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyLookupContainer LookupContainer
+        public virtual IReadOnlyLookupContainer LookupContainer
         {
             get
             {
@@ -12110,7 +12118,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyNeoWorlds NeoWorlds
+        public virtual IReadOnlyNeoWorlds NeoWorlds
         {
             get
             {
@@ -12118,7 +12126,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<IReadOnlyOutpost> Outposts
+        public virtual NeoReadOnlyList<IReadOnlyOutpost> Outposts
         {
             get
             {
@@ -12126,7 +12134,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<IReadOnlyNeoSortingLayer> SortingLayers
+        public virtual NeoReadOnlyList<IReadOnlyNeoSortingLayer> SortingLayers
         {
             get
             {
@@ -12134,7 +12142,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public IReadOnlyWorlds Worlds
+        public virtual IReadOnlyWorlds Worlds
         {
             get
             {
@@ -12352,7 +12360,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoTileLayerLink>(out writable);
         }
 
-        public IReadOnlyNeoTileLayer TileLayer
+        public virtual IReadOnlyNeoTileLayer TileLayer
         {
             get
             {
@@ -12366,7 +12374,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoList<NeoTileInstance> Tiles
+        public virtual NeoList<NeoTileInstance> Tiles
         {
             get
             {
@@ -12540,7 +12548,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return NeoGeneratedTypesSupport.GetGeneratedChildren<TChild>(((IReadOnlyNeoTileGrid)this).Children);
         }
 
-        public NeoReadOnlyVector3 CellSize
+        public virtual NeoReadOnlyVector3 CellSize
         {
             get
             {
@@ -12548,7 +12556,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyList<IReadOnlyNeoLayerGroupBase> Children
+        public virtual NeoReadOnlyList<IReadOnlyNeoLayerGroupBase> Children
         {
             get
             {
@@ -12556,7 +12564,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> ObjectLayers
+        public virtual NeoReadOnlyLookupSet<IReadOnlyNeoObjectLayer> ObjectLayers
         {
             get
             {
@@ -12564,7 +12572,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyLookupSet<IReadOnlyNeoObject> Objects
+        public virtual NeoReadOnlyLookupSet<IReadOnlyNeoObject> Objects
         {
             get
             {
@@ -12572,7 +12580,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public int PixelsPerUnit
+        public virtual int PixelsPerUnit
         {
             get
             {
@@ -12580,7 +12588,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> TileLayers
+        public virtual NeoReadOnlyLookupSet<IReadOnlyNeoTileLayer> TileLayers
         {
             get
             {
@@ -12588,7 +12596,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyLookupSet<IReadOnlyNeoTile> Tiles
+        public virtual NeoReadOnlyLookupSet<IReadOnlyNeoTile> Tiles
         {
             get
             {
@@ -12740,7 +12748,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoObjectBase>(out writable);
         }
 
-        public string Name
+        public virtual string Name
         {
             get
             {
@@ -12748,7 +12756,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyVector3 Position
+        public virtual NeoReadOnlyVector3 Position
         {
             get
             {
@@ -12756,7 +12764,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoReadOnlyVector3 Size
+        public virtual NeoReadOnlyVector3 Size
         {
             get
             {
@@ -12951,7 +12959,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoObjectLayerLink>(out writable);
         }
 
-        public IReadOnlyNeoObjectLayer ObjectLayer
+        public virtual IReadOnlyNeoObjectLayer ObjectLayer
         {
             get
             {
@@ -12965,7 +12973,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             }
         }
 
-        public NeoList<NeoObjectBase> Objects
+        public virtual NeoList<NeoObjectBase> Objects
         {
             get
             {
@@ -13124,7 +13132,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<NeoSortingLayer>(out writable);
         }
 
-        public string Name
+        public virtual string Name
         {
             get
             {
@@ -13293,7 +13301,7 @@ namespace HelloWorld.Assets.Scripts.Neo
             return TryWritable<ConsoleTileLayer>(out writable);
         }
 
-        public string DisplayName
+        public virtual string DisplayName
         {
             get
             {
