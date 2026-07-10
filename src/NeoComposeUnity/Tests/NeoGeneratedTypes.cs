@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -447,6 +448,19 @@ namespace Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
         public static bool operator ==(Element? left, Element? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(Element? left, Element? right) => !(left == right);
+    }
+
+    public interface IContract
+    {
+        string? Title { get; }
+        bool Run(int count);
+        int Missing { get; }
+        Task<int> MissingLater();
+    }
+
+    public interface IHeroDeferredTransform
+    {
+        Task<IReadOnlyHero> TransformLater(IReadOnlyHero value);
     }
 
     public interface IHeroFunctionHandler
@@ -3310,7 +3324,7 @@ namespace Assets.Scripts.Neo
         bool Run(int count);
     }
 
-    public abstract partial class ContractBase : NeoGeneratedCustomValue, IReadOnlyContractBase
+    public abstract partial class ContractBase : NeoGeneratedCustomValue, IReadOnlyContractBase, IContract
     {
         internal ContractBase(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "type-contract-base", isReadOnly, inheritedStorageOwnership)
@@ -3371,6 +3385,10 @@ namespace Assets.Scripts.Neo
 
 
         public abstract bool Run(int count);
+
+        public abstract int Missing { get; }
+
+        public abstract Task<int> MissingLater();
 
         public sealed class Fields
         {
@@ -3627,6 +3645,16 @@ namespace Assets.Scripts.Neo
                     $"Cannot invoke Function 'Run' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
             }
             return FunctionHandler.Run(count);
+        }
+
+        public override int Missing
+        {
+            get { throw new NotImplementedException("ContractChild has not implemented IContract.Missing."); }
+        }
+
+        public override Task<int> MissingLater()
+        {
+            throw new NotImplementedException("ContractChild has not implemented IContract.MissingLater.");
         }
 
         public new sealed class Fields
@@ -3919,6 +3947,16 @@ namespace Assets.Scripts.Neo
             return FunctionHandler.Run(count);
         }
 
+        public override int Missing
+        {
+            get { throw new NotImplementedException("ContractExplicitChild has not implemented IContract.Missing."); }
+        }
+
+        public override Task<int> MissingLater()
+        {
+            throw new NotImplementedException("ContractExplicitChild has not implemented IContract.MissingLater.");
+        }
+
         public new sealed class Fields
         {
             private Fields() {}
@@ -4059,6 +4097,16 @@ namespace Assets.Scripts.Neo
                     $"Cannot invoke Function 'Run' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
             }
             return FunctionHandler.Run(count);
+        }
+
+        public override int Missing
+        {
+            get { throw new NotImplementedException("ContractNullChild has not implemented IContract.Missing."); }
+        }
+
+        public override Task<int> MissingLater()
+        {
+            throw new NotImplementedException("ContractNullChild has not implemented IContract.MissingLater.");
         }
 
         public new sealed class Fields
@@ -4599,7 +4647,7 @@ namespace Assets.Scripts.Neo
 
         T Echo(T value);
 
-        void EchoLater(T value);
+        Task<T> EchoLater(T value);
     }
 
     public abstract partial class GenericContract<T> : NeoGeneratedCustomValue, IReadOnlyGenericContract<T>
@@ -4682,7 +4730,7 @@ namespace Assets.Scripts.Neo
 
         public abstract T Echo(T value);
 
-        public abstract void EchoLater(T value);
+        public abstract Task<T> EchoLater(T value);
 
         public sealed class Fields
         {
@@ -4921,9 +4969,9 @@ namespace Assets.Scripts.Neo
             return FunctionHandler.Echo(value);
         }
 
-        public override void EchoLater(double value)
+        public override Task<double> EchoLater(double value)
         {
-            client.InvokeDeferredNativeFunction("attr-generic-contract-echo-later", this, new object?[] { value });
+            return client.InvokeDeferredNativeFunction<double>("attr-generic-contract-echo-later", this, new object?[] { value });
         }
 
         NeoReadOnlyList<double> IReadOnlyGenericContract<double>.Values
@@ -5181,9 +5229,9 @@ namespace Assets.Scripts.Neo
             return FunctionHandler.Echo(value);
         }
 
-        public override void EchoLater(string value)
+        public override Task<string> EchoLater(string value)
         {
-            client.InvokeDeferredNativeFunction("attr-generic-contract-echo-later", this, new object?[] { value });
+            return client.InvokeDeferredNativeFunction<string>("attr-generic-contract-echo-later", this, new object?[] { value });
         }
 
         NeoReadOnlyList<string> IReadOnlyGenericContract<string>.Values
@@ -5371,7 +5419,7 @@ namespace Assets.Scripts.Neo
 
         T Transform(T value);
 
-        void TransformLater(T value);
+        Task<T> TransformLater(T value);
 
         IReadOnlyGenericFunctionBox<T> TransformBox(IReadOnlyGenericFunctionBox<T> value);
     }
@@ -5432,7 +5480,7 @@ namespace Assets.Scripts.Neo
 
         public abstract T Transform(T value);
 
-        public abstract void TransformLater(T value);
+        public abstract Task<T> TransformLater(T value);
 
         public abstract IReadOnlyGenericFunctionBox<T> TransformBox(IReadOnlyGenericFunctionBox<T> value);
 
@@ -5493,7 +5541,7 @@ namespace Assets.Scripts.Neo
         bool TryWritable(out GenericFunctionHeroContract writable);
     }
 
-    public partial class GenericFunctionHeroContract : GenericFunctionContract<Hero>, IReadOnlyGenericFunctionHeroContract
+    public partial class GenericFunctionHeroContract : GenericFunctionContract<Hero>, IReadOnlyGenericFunctionHeroContract, IHeroDeferredTransform
     {
         internal GenericFunctionHeroContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -5579,9 +5627,9 @@ namespace Assets.Scripts.Neo
             return FunctionHandler.Transform(value);
         }
 
-        public override void TransformLater(Hero value)
+        public override Task<Hero> TransformLater(Hero value)
         {
-            client.InvokeDeferredNativeFunction("attr-generic-function-transform-later", this, new object?[] { value });
+            return client.InvokeDeferredNativeFunction<Hero>("attr-generic-function-transform-later", this, new object?[] { value });
         }
 
         public override IReadOnlyGenericFunctionBox<Hero> TransformBox(IReadOnlyGenericFunctionBox<Hero> value)
@@ -5600,9 +5648,9 @@ namespace Assets.Scripts.Neo
             return (IReadOnlyHero)(object)((GenericFunctionContract<Hero>)this).Transform((Hero)(object)value!)!;
         }
 
-        void IReadOnlyGenericFunctionContract<IReadOnlyHero>.TransformLater(IReadOnlyHero value)
+        async Task<IReadOnlyHero> IReadOnlyGenericFunctionContract<IReadOnlyHero>.TransformLater(IReadOnlyHero value)
         {
-            ((GenericFunctionContract<Hero>)this).TransformLater((Hero)(object)value!);
+            return await ((GenericFunctionContract<Hero>)this).TransformLater((Hero)(object)value!);
         }
 
         IReadOnlyGenericFunctionBox<IReadOnlyHero> IReadOnlyGenericFunctionContract<IReadOnlyHero>.TransformBox(IReadOnlyGenericFunctionBox<IReadOnlyHero> value)
@@ -5616,6 +5664,11 @@ namespace Assets.Scripts.Neo
             {
                 return (IReadOnlyHero)(object)((GenericFunctionContract<Hero>)this).Subject!;
             }
+        }
+
+        async Task<IReadOnlyHero> IHeroDeferredTransform.TransformLater(IReadOnlyHero value)
+        {
+            return await ((GenericFunctionHeroContract)this).TransformLater((Hero)(object)value!);
         }
 
         public new sealed class Fields

@@ -142,9 +142,11 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo sourceType = null!;
     }
 
+    [JsonConverter(typeof(PointerConverter))]
     public class CallNativeFunctionPointer : Pointer
     {
-        public string attributeId = null!;
+        public string? attributeId;
+        public string? memberKey;
         public Pointer thisPointer = null!;
         public Pointer[] args = null!;
         public bool? optional;
@@ -180,6 +182,28 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.NativeFunctionErrorCheck: return typeof(NativeFunctionErrorCheckPointer);
                 default: return null;
             }
+        }
+
+        protected override void ValidateObject(JObject obj, Type concrete)
+        {
+            if (concrete != typeof(CallNativeFunctionPointer)) return;
+
+            bool hasAttributeId = HasNonEmptyString(obj, "attributeId");
+            bool hasMemberKey = HasNonEmptyString(obj, "memberKey");
+            if (hasAttributeId == hasMemberKey)
+            {
+                throw new JsonSerializationException(
+                    hasAttributeId
+                        ? "CallNativeFunctionPointer cannot contain both 'attributeId' and 'memberKey'."
+                        : "CallNativeFunctionPointer must contain either 'attributeId' or 'memberKey'.");
+            }
+        }
+
+        private static bool HasNonEmptyString(JObject obj, string propertyName)
+        {
+            var token = obj[propertyName];
+            return token?.Type == JTokenType.String
+                && !string.IsNullOrEmpty(token.Value<string>());
         }
     }
 }

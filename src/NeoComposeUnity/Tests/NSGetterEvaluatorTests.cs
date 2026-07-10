@@ -164,6 +164,50 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Evaluate_InterfaceFunctionMember_ResolvesRuntimeSchemaKey()
+        {
+            var client = LoadNativeFunctionClient(out _);
+            client.RegisterNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+                {
+                    ["attr-native-ping"] = (_, _, args) => $"dynamic:{args[0]}",
+                });
+            var getter = new FunctionWithReturnType
+            {
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = AttributeType.String,
+                    required = true,
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new CallNativeFunctionPointer
+                        {
+                            type = PointerKind.CallNativeFunction,
+                            memberKey = "Ping",
+                            thisPointer = new ReferencePointer
+                            {
+                                type = PointerKind.Reference,
+                                valueId = "v-native-receiver",
+                            },
+                            args = new Pointer[] { StringValuePointer("hello") },
+                        },
+                    },
+                },
+            };
+
+            var result = NSGetterEvaluator.Evaluate(
+                getter,
+                new NSGetterEvaluator.Context(client, null, null));
+
+            Assert.AreEqual("dynamic:hello", result);
+        }
+
+        [Test]
         public void Evaluate_CallNativeFunction_ResolvesGeneratedWrapperAndUsesCachedHandler()
         {
             var client = LoadNativeFunctionClient(out CustomAttribute receiverAttribute);

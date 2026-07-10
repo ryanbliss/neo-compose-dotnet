@@ -69,6 +69,8 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, NeoAttribute> nodesInternal = new();
         private readonly Dictionary<string, NeoGeneratedCustomValue> generatedValuesInternal = new();
         private readonly HashSet<NeoDialogue> activeDialogues = new();
+        private readonly HashSet<NeoDeferredFunctionBase> activeDirectDeferredFunctions = new();
+        private readonly object activeDirectDeferredFunctionsLock = new();
         private bool isDisposed;
 
         /// <summary>
@@ -82,6 +84,7 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, Attribute> attributes => data.attributes;
         internal IReadOnlyDictionary<string, AttributeValue> values => data.values;
         internal IReadOnlyDictionary<string, CustomType> types => data.types;
+        internal IReadOnlyDictionary<string, Interface> interfaces => data.interfaces;
         internal IReadOnlyDictionary<string, Enum> enums => data.enums;
         internal IReadOnlyDictionary<string, Dialogue> dialogues => data.dialogues;
         internal IReadOnlyDictionary<string, DialogueGroup> dialogueGroups => data.dialogueGroups;
@@ -102,6 +105,7 @@ namespace NeoCompose.Runtime
         internal IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
         internal IReadOnlyDictionary<string, AttributeValue> sessionValues => sessionData.values;
         internal Project project => data.project;
+        internal ProjectData ProjectDataForRuntime => data;
         internal bool IsDisposed => isDisposed;
 
         /// <summary>
@@ -300,6 +304,17 @@ namespace NeoCompose.Runtime
                 dialogue.DisposeFromClient();
             }
             activeDialogues.Clear();
+            NeoDeferredFunctionBase[] directDeferredFunctions;
+            lock (activeDirectDeferredFunctionsLock)
+            {
+                directDeferredFunctions = new NeoDeferredFunctionBase[activeDirectDeferredFunctions.Count];
+                activeDirectDeferredFunctions.CopyTo(directDeferredFunctions);
+                activeDirectDeferredFunctions.Clear();
+            }
+            foreach (NeoDeferredFunctionBase deferred in directDeferredFunctions)
+            {
+                deferred.DisposeFromOwner("NeoClient disposed");
+            }
             assets.Dispose();
             save.Dispose();
             session.Dispose();
@@ -329,6 +344,19 @@ namespace NeoCompose.Runtime
                 return true;
             }
             type = null;
+            return false;
+        }
+
+        internal bool TryGetInterface(
+            string id,
+            [NotNullWhen(true)] out Interface? declaration)
+        {
+            if (data.interfaces.TryGetValue(id, out Interface idMatch))
+            {
+                declaration = idMatch;
+                return true;
+            }
+            declaration = null;
             return false;
         }
 
@@ -517,20 +545,19 @@ namespace NeoCompose.Runtime
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
             // Metadata is optional (test fixtures, hand-built exports). Schema
-            // version 3 is the values-native tile grid contract: exports no
-            // longer carry derived `tileGridContents` regions and containment
-            // lists are unordered (membership by `containerId`). Older exports
-            // are structurally incompatible and must be re-exported.
+            // version 4 adds the custom-type interface contract required by
+            // the current runtime. Older exports are structurally incompatible
+            // and must be re-exported.
             if (metadata is null) return;
-            if (metadata.schemaVersion < 3)
+            if (metadata.schemaVersion < 4)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} predates the values-native tile grid (this SDK requires 3). Re-export the project from the current web app.");
+                    $"Project export schema version {metadata.schemaVersion} predates custom-type interfaces (this SDK requires 4). Re-export the project from the current web app.");
             }
-            if (metadata.schemaVersion > 3)
+            if (metadata.schemaVersion > 4)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (3). Update the NeoCompose SDK.");
+                    $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (4). Update the NeoCompose SDK.");
             }
         }
 
@@ -2220,13 +2247,106 @@ namespace NeoCompose.Runtime
                 invoker(this, receiver, args));
         }
 
-        public void InvokeDeferredNativeFunction(
+        /// <summary>
+        /// Invokes a deferred native Function directly from generated C# and
+        /// completes when its handler calls <see cref="NeoDeferredFunction.Complete"/>.
+        /// </summary>
+        public Task InvokeDeferredNativeFunction(
             string attributeId,
             object? receiver,
             object?[] args)
         {
-            throw new NeoDeferredFunctionRuntimeError(
-                $"Deferred Function '{attributeId}' can only be invoked from a dialogue action or NSProperty setter runtime.");
+            var completion = new TaskCompletionSource<object?>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            NeoDeferredFunctionBase? deferred = null;
+            try
+            {
+                deferred = StartDeferredNativeFunctionCore(
+                    attributeId,
+                    receiver,
+                    args,
+                    complete: value =>
+                    {
+                        RemoveDirectDeferredFunction(deferred);
+                        completion.TrySetResult(value);
+                    },
+                    fail: exception =>
+                    {
+                        RemoveDirectDeferredFunction(deferred);
+                        completion.TrySetException(exception);
+                    },
+                    invokerReturned: static () => { },
+                    dispose: _ =>
+                    {
+                        RemoveDirectDeferredFunction(deferred);
+                        completion.TrySetCanceled();
+                    },
+                    normalizeReturnValue: false,
+                    captureInvokerException: true);
+                TrackDirectDeferredFunction(deferred);
+            }
+            catch (System.Exception exception)
+            {
+                completion.TrySetException(exception);
+            }
+            return completion.Task;
+        }
+
+        /// <summary>
+        /// Invokes a non-void deferred native Function directly from generated
+        /// C# and returns its eventual typed result.
+        /// </summary>
+        public Task<T> InvokeDeferredNativeFunction<T>(
+            string attributeId,
+            object? receiver,
+            object?[] args)
+        {
+            var completion = new TaskCompletionSource<T>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            NeoDeferredFunctionBase? deferred = null;
+            try
+            {
+                deferred = StartDeferredNativeFunctionCore(
+                    attributeId,
+                    receiver,
+                    args,
+                    complete: value =>
+                    {
+                        RemoveDirectDeferredFunction(deferred);
+                        if (value is T typedValue)
+                        {
+                            completion.TrySetResult(typedValue);
+                            return;
+                        }
+                        if (value is null)
+                        {
+                            completion.TrySetResult(default!);
+                            return;
+                        }
+                        completion.TrySetException(
+                            new NeoDeferredFunctionRuntimeError(
+                                $"Deferred Function '{attributeId}' completed with {value.GetType().Name}, expected {typeof(T).Name}."));
+                    },
+                    fail: exception =>
+                    {
+                        RemoveDirectDeferredFunction(deferred);
+                        completion.TrySetException(exception);
+                    },
+                    invokerReturned: static () => { },
+                    dispose: _ =>
+                    {
+                        RemoveDirectDeferredFunction(deferred);
+                        completion.TrySetCanceled();
+                    },
+                    normalizeReturnValue: false,
+                    captureInvokerException: true);
+                TrackDirectDeferredFunction(deferred);
+            }
+            catch (System.Exception exception)
+            {
+                completion.TrySetException(exception);
+            }
+            return completion.Task;
         }
 
         internal NeoDeferredFunctionBase StartDeferredNativeFunction(
@@ -2236,6 +2356,29 @@ namespace NeoCompose.Runtime
             System.Action<object?> complete,
             System.Action<System.Exception> fail,
             System.Action invokerReturned)
+        {
+            return StartDeferredNativeFunctionCore(
+                attributeId,
+                receiver,
+                args,
+                complete,
+                fail,
+                invokerReturned,
+                dispose: null,
+                normalizeReturnValue: true,
+                captureInvokerException: false);
+        }
+
+        private NeoDeferredFunctionBase StartDeferredNativeFunctionCore(
+            string attributeId,
+            object? receiver,
+            object?[] args,
+            System.Action<object?> complete,
+            System.Action<System.Exception> fail,
+            System.Action invokerReturned,
+            System.Action<string>? dispose,
+            bool normalizeReturnValue,
+            bool captureInvokerException)
         {
             if (!TryResolveFunctionAttribute(attributeId, out var attribute))
             {
@@ -2258,20 +2401,52 @@ namespace NeoCompose.Runtime
                     $"No deferred native Function invoker is registered for attribute '{attributeId}'.");
             }
 
-            System.Action<object?> completeNormalized =
-                value => complete(NormalizeNativeFunctionReturn(attribute.returnTypeInfo, value));
+            System.Action<object?> completeResult = normalizeReturnValue
+                ? value => complete(NormalizeNativeFunctionReturn(attribute.returnTypeInfo, value))
+                : complete;
             NeoDeferredFunctionBase deferred = attribute.returnTypeInfo is VoidTypeInfo
-                ? new NeoDeferredFunction(attributeId, attribute.name, complete, fail)
-                : CreateTypedDeferredFunction(attribute, completeNormalized, fail);
+                ? new NeoDeferredFunction(attributeId, attribute.name, completeResult, fail, dispose)
+                : CreateTypedDeferredFunction(attribute, completeResult, fail, dispose);
             try
             {
                 invoker(this, receiver, args, deferred);
+            }
+            catch (System.Exception exception)
+            {
+                if (!captureInvokerException)
+                {
+                    throw;
+                }
+                if (deferred.Pending)
+                {
+                    deferred.Fail(exception);
+                }
             }
             finally
             {
                 invokerReturned();
             }
             return deferred;
+        }
+
+        private void TrackDirectDeferredFunction(NeoDeferredFunctionBase deferred)
+        {
+            lock (activeDirectDeferredFunctionsLock)
+            {
+                if (deferred.Pending)
+                {
+                    activeDirectDeferredFunctions.Add(deferred);
+                }
+            }
+        }
+
+        private void RemoveDirectDeferredFunction(NeoDeferredFunctionBase? deferred)
+        {
+            if (deferred is null) return;
+            lock (activeDirectDeferredFunctionsLock)
+            {
+                activeDirectDeferredFunctions.Remove(deferred);
+            }
         }
 
         private static object? NormalizeNativeFunctionReturn(
@@ -2374,25 +2549,26 @@ namespace NeoCompose.Runtime
         private NeoDeferredFunctionBase CreateTypedDeferredFunction(
             FunctionAttribute attribute,
             System.Action<object?> complete,
-            System.Action<System.Exception> fail)
+            System.Action<System.Exception> fail,
+            System.Action<string>? dispose = null)
         {
             return attribute.returnTypeInfo.type switch
             {
-                AttributeType.Bool => new NeoDeferredFunction<bool>(attribute.id, attribute.name, complete, fail),
-                AttributeType.Int => new NeoDeferredFunction<int>(attribute.id, attribute.name, complete, fail),
-                AttributeType.Float => new NeoDeferredFunction<float>(attribute.id, attribute.name, complete, fail),
-                AttributeType.String => new NeoDeferredFunction<string?>(attribute.id, attribute.name, complete, fail),
-                AttributeType.Vector2 => new NeoDeferredFunction<Vector2>(attribute.id, attribute.name, complete, fail),
-                AttributeType.Vector2Int => new NeoDeferredFunction<Vector2Int>(attribute.id, attribute.name, complete, fail),
-                AttributeType.Vector3 => new NeoDeferredFunction<Vector3>(attribute.id, attribute.name, complete, fail),
-                AttributeType.Vector3Int => new NeoDeferredFunction<Vector3Int>(attribute.id, attribute.name, complete, fail),
-                AttributeType.Color => new NeoDeferredFunction<Color>(attribute.id, attribute.name, complete, fail),
-                AttributeType.Decimal => new NeoDeferredFunction<decimal>(attribute.id, attribute.name, complete, fail),
-                _ => new NeoDeferredFunction<object?>(attribute.id, attribute.name, complete, fail),
+                AttributeType.Bool => new NeoDeferredFunction<bool>(attribute.id, attribute.name, complete, fail, dispose),
+                AttributeType.Int => new NeoDeferredFunction<int>(attribute.id, attribute.name, complete, fail, dispose),
+                AttributeType.Float => new NeoDeferredFunction<float>(attribute.id, attribute.name, complete, fail, dispose),
+                AttributeType.String => new NeoDeferredFunction<string?>(attribute.id, attribute.name, complete, fail, dispose),
+                AttributeType.Vector2 => new NeoDeferredFunction<Vector2>(attribute.id, attribute.name, complete, fail, dispose),
+                AttributeType.Vector2Int => new NeoDeferredFunction<Vector2Int>(attribute.id, attribute.name, complete, fail, dispose),
+                AttributeType.Vector3 => new NeoDeferredFunction<Vector3>(attribute.id, attribute.name, complete, fail, dispose),
+                AttributeType.Vector3Int => new NeoDeferredFunction<Vector3Int>(attribute.id, attribute.name, complete, fail, dispose),
+                AttributeType.Color => new NeoDeferredFunction<Color>(attribute.id, attribute.name, complete, fail, dispose),
+                AttributeType.Decimal => new NeoDeferredFunction<decimal>(attribute.id, attribute.name, complete, fail, dispose),
+                _ => new NeoDeferredFunction<object?>(attribute.id, attribute.name, complete, fail, dispose),
             };
         }
 
-        private bool TryResolveFunctionAttribute(
+        internal bool TryResolveFunctionAttribute(
             string attributeId,
             [NotNullWhen(true)] out FunctionAttribute? attribute)
         {

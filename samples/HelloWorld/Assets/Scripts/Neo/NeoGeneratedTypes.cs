@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -1016,6 +1017,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         public override int GetHashCode() => optionId.GetHashCode();
         public static bool operator ==(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(NeoSmartTileTransform? left, NeoSmartTileTransform? right) => !(left == right);
+    }
+
+    public interface IHasName
+    {
+        string Name { get; }
     }
 
     public interface IReadOnlyConsoleObject : IReadOnlyNeoObject
@@ -4202,7 +4208,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         Planet Planet { get; }
 
-        void PlayAnimation();
+        Task<bool> PlayAnimation();
 
         OutpostSaveData Save { get; }
 
@@ -4211,7 +4217,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         bool ShowRelic();
     }
 
-    public partial class Outpost : NeoGeneratedCustomValue, IReadOnlyOutpost
+    public partial class Outpost : NeoGeneratedCustomValue, IReadOnlyOutpost, IHasName
     {
         internal Outpost(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "4c196697-4e08-4aeb-823f-322b353071ac", isReadOnly, inheritedStorageOwnership)
@@ -4387,9 +4393,9 @@ namespace HelloWorld.Assets.Scripts.Neo
             return FunctionHandler.DebugLog(text);
         }
 
-        public virtual void PlayAnimation()
+        public virtual Task<bool> PlayAnimation()
         {
-            client.InvokeDeferredNativeFunction("cab850e3-cf8c-42b3-a70b-f0066089e6fb", this, new object?[] { });
+            return client.InvokeDeferredNativeFunction<bool>("cab850e3-cf8c-42b3-a70b-f0066089e6fb", this, new object?[] { });
         }
 
         public virtual bool ShowRelic()

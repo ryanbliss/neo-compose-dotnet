@@ -19,8 +19,14 @@ namespace NeoCompose.Runtime
             string attributeId,
             string functionName,
             Action<object?> complete,
-            Action<Exception> fail)
-            : this(new NeoDeferredFunctionState(attributeId, functionName, complete, fail))
+            Action<Exception> fail,
+            Action<string>? dispose = null)
+            : this(new NeoDeferredFunctionState(
+                attributeId,
+                functionName,
+                complete,
+                fail,
+                dispose))
         {
         }
 
@@ -55,6 +61,7 @@ namespace NeoCompose.Runtime
     {
         private readonly Action<object?> complete;
         private readonly Action<Exception> fail;
+        private readonly Action<string>? dispose;
         private readonly CancellationTokenSource cancellation = new();
         private bool pending = true;
         private bool disposed;
@@ -63,12 +70,14 @@ namespace NeoCompose.Runtime
             string attributeId,
             string functionName,
             Action<object?> complete,
-            Action<Exception> fail)
+            Action<Exception> fail,
+            Action<string>? dispose = null)
         {
             AttributeId = attributeId;
             FunctionName = functionName;
             this.complete = complete;
             this.fail = fail;
+            this.dispose = dispose;
         }
 
         public string AttributeId { get; }
@@ -96,6 +105,7 @@ namespace NeoCompose.Runtime
             disposed = true;
             pending = false;
             cancellation.Cancel();
+            dispose?.Invoke(reason);
         }
 
         private void EnsurePending(string operation)
@@ -120,8 +130,9 @@ namespace NeoCompose.Runtime
             string attributeId,
             string functionName,
             Action<object?> complete,
-            Action<Exception> fail)
-            : base(attributeId, functionName, complete, fail)
+            Action<Exception> fail,
+            Action<string>? dispose = null)
+            : base(attributeId, functionName, complete, fail, dispose)
         {
         }
 
@@ -142,8 +153,9 @@ namespace NeoCompose.Runtime
             string attributeId,
             string functionName,
             Action<object?> complete,
-            Action<Exception> fail)
-            : base(attributeId, functionName, complete, fail)
+            Action<Exception> fail,
+            Action<string>? dispose = null)
+            : base(attributeId, functionName, complete, fail, dispose)
         {
         }
 

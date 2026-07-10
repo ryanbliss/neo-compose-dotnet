@@ -39,6 +39,12 @@ namespace NeoCompose.Runtime.Json
         /// is constructed (see <c>NeoGenericResolution.SubstituteAttribute</c>).
         /// </summary>
         Generic = 21,
+        /// <summary>
+        /// Custom-type interface reference. In schema version 4 this is a
+        /// type-info-only discriminator; it is never the type of a persisted
+        /// attribute record.
+        /// </summary>
+        Interface = 22,
         Unknown = -1,
         Void = -2,
     }

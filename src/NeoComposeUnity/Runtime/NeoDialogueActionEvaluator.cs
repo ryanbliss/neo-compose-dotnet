@@ -220,7 +220,7 @@ namespace NeoCompose.Runtime
                     scope,
                     ctx,
                     instructionIndex,
-                    new DeferredResumeState(suspended.AttributeId, value),
+                    new DeferredResumeState(suspended.ResumeKey, value),
                     options));
         }
 
@@ -303,9 +303,12 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             DeferredResumeState? resumeState)
         {
+            string resumeKey = !string.IsNullOrEmpty(pointer.attributeId)
+                ? $"attribute:{pointer.attributeId}"
+                : $"member:{pointer.memberKey}";
             if (resumeState is not null
                 && !resumeState.Used
-                && resumeState.AttributeId == pointer.attributeId)
+                && resumeState.ResumeKey == resumeKey)
             {
                 resumeState.Used = true;
                 return resumeState.Value;
@@ -321,14 +324,18 @@ namespace NeoCompose.Runtime
             {
                 args[i] = NSGetterEvaluator.EvaluatePointer(pointer.args[i], scope, ctx);
             }
-            if (!client.IsNativeFunctionDeferred(pointer.attributeId))
+            string attributeId = NSGetterEvaluator.ResolveNativeFunctionAttributeId(
+                pointer,
+                receiver,
+                ctx);
+            if (!client.IsNativeFunctionDeferred(attributeId))
             {
-                return client.InvokeNativeFunction(pointer.attributeId, receiver, args);
+                return client.InvokeNativeFunction(attributeId, receiver, args);
             }
 
             var suspension = new DeferredNativeFunctionSuspension();
             var deferred = client.StartDeferredNativeFunction(
-                pointer.attributeId,
+                attributeId,
                 receiver,
                 args,
                 suspension.Complete,
@@ -342,7 +349,8 @@ namespace NeoCompose.Runtime
                 return inlineValue;
             }
             throw new NeoDeferredNativeFunctionSuspended(
-                pointer.attributeId,
+                resumeKey,
+                attributeId,
                 deferred,
                 suspension);
         }
@@ -1703,13 +1711,13 @@ namespace NeoCompose.Runtime
 
         private sealed class DeferredResumeState
         {
-            public DeferredResumeState(string attributeId, object? value)
+            public DeferredResumeState(string resumeKey, object? value)
             {
-                AttributeId = attributeId;
+                ResumeKey = resumeKey;
                 Value = value;
             }
 
-            public string AttributeId { get; }
+            public string ResumeKey { get; }
             public object? Value { get; }
             public bool Used { get; set; }
         }
@@ -1719,15 +1727,18 @@ namespace NeoCompose.Runtime
     internal sealed class NeoDeferredNativeFunctionSuspended : Exception
     {
         internal NeoDeferredNativeFunctionSuspended(
+            string resumeKey,
             string attributeId,
             NeoDeferredFunctionBase deferred,
             DeferredNativeFunctionSuspension suspension)
         {
+            ResumeKey = resumeKey;
             AttributeId = attributeId;
             Deferred = deferred;
             Suspension = suspension;
         }
 
+        internal string ResumeKey { get; }
         internal string AttributeId { get; }
         internal NeoDeferredFunctionBase Deferred { get; }
         internal DeferredNativeFunctionSuspension Suspension { get; }

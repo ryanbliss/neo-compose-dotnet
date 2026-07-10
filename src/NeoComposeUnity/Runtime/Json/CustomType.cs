@@ -25,6 +25,11 @@ namespace NeoCompose.Runtime.Json
         /// <c>extendsTypeId?</c>.
         /// </summary>
         public string? extendsTypeId;
+        /// <summary>
+        /// Interfaces declared by this type. Implemented interfaces inherited
+        /// through <see cref="extendsTypeId"/> are not repeated here.
+        /// </summary>
+        public List<string>? implementsInterfaceIds;
         public bool hiddenInAttributeSelector;
         public bool isAbstract;
         /// <summary>

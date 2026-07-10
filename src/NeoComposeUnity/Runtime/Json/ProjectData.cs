@@ -28,7 +28,7 @@ namespace NeoCompose.Runtime.Json
     /// Top-level deserialization target — pass to
     /// <c>JsonConvert.DeserializeObject&lt;ProjectExport&gt;(json)</c>.
     /// Mirrors the TS-side <c>IProjectUnityExport</c> wrapper:
-    /// the project record nested under <see cref="project"/>, plus four
+    /// the project record nested under <see cref="project"/>, plus its
     /// keyed-by-id payloads as <see cref="Dictionary{TKey, TValue}"/>.
     ///
     /// JSON shape:
@@ -39,6 +39,7 @@ namespace NeoCompose.Runtime.Json
     ///   "attributes": { "&lt;id&gt;": { ... } },
     ///   "enums":      { "&lt;id&gt;": { ... } },
     ///   "types":      { "&lt;id&gt;": { ... } },
+    ///   "interfaces": { "&lt;id&gt;": { ... } },
     ///   "values":     { "&lt;id&gt;": { ... } }
     /// }
     /// </code>
@@ -68,6 +69,7 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public Dictionary<string, JToken>? valuePartitions;
         public Dictionary<string, CustomType> types = null!;
+        public Dictionary<string, Interface> interfaces = new();
         public Dictionary<string, Enum> enums = null!;
         public Dictionary<string, ProjectFile> files = new();
         public Dictionary<string, UnityTexture2DImportSettingsTemplate> textureTemplates = new();

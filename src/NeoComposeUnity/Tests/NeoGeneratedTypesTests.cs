@@ -187,6 +187,19 @@ namespace NeoCompose.Tests
             }
         }
 
+        private sealed class DeferredTransformHandler : IGenericFunctionContractFunctionHandler<Hero>
+        {
+            public Hero Transform(Hero value) => value;
+
+            public void TransformLater(Hero value, NeoDeferredFunction<Hero> deferred)
+            {
+                deferred.Complete(value);
+            }
+
+            public IReadOnlyGenericFunctionBox<Hero> TransformBox(
+                IReadOnlyGenericFunctionBox<Hero> value) => value;
+        }
+
         [Test]
         public void GeneratedRootClient_WrapsClientAndEnumHelpersSupportUnknownIds()
         {
@@ -502,6 +515,23 @@ namespace NeoCompose.Tests
             var moved = hero.MoveTo(new Vector3(1, 2, 3), new Vector2Int(4, 5));
 
             Assert.AreEqual(new Vector3(5, 7, 3), moved);
+        }
+
+        [Test]
+        public void GeneratedUserInterface_DeferredFunctionReturnsCompletedTaskResult()
+        {
+            var app = LoadGeneratedClient(out _);
+            var hero = (Hero)app.ResolveDialogueValue("v-dict")!;
+            var wrapper = new GenericFunctionHeroContract(hero);
+            var handler = new DeferredTransformHandler();
+            wrapper.FunctionHandler = handler;
+            IHeroDeferredTransform contract = wrapper;
+
+            System.Threading.Tasks.Task<IReadOnlyHero> task =
+                contract.TransformLater(hero);
+
+            Assert.IsTrue(task.IsCompleted);
+            Assert.AreSame(hero, task.GetAwaiter().GetResult());
         }
 
         [Test]

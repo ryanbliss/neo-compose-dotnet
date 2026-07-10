@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 3,
+    "schemaVersion": 4,
     "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
     "versionId": "version-1",
     "semver": {
@@ -3106,6 +3106,7 @@
       "updatedAt": "2026-04-28T23:45:24.626Z"
     }
   },
+  "interfaces": {},
   "values": {
     "e5b02003-d505-46a7-95fb-c11f1a412b61": {
       "_id": "69e8508019f7c06f14880282",
