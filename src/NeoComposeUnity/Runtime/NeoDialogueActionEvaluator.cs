@@ -1237,7 +1237,8 @@ namespace NeoCompose.Runtime
                         parent.value[key] = importedId;
                         parent.updatedAt = now;
                         client.SetWritableValue(ownership, parent);
-                        client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, existingId);
+                        client.RemoveWritableValueAndDescendantsIfUnlinked(
+                            ownership, existingId, attribute);
                         return;
                     }
                     var next = CreateValueRow(client, ownership, attribute, value, existingId, existing.createdAt, now);
@@ -1376,7 +1377,8 @@ namespace NeoCompose.Runtime
                     parent.value[index] = importedId;
                     parent.updatedAt = DateTime.UtcNow.ToString("o");
                     client.SetWritableValue(ownership, parent);
-                    client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, childId);
+                    client.RemoveWritableValueAndDescendantsIfUnlinked(
+                        ownership, childId, AttributeFromTypeInfo(typeInfo));
                     return;
                 }
                 if (!client.TryGetValue(childId, out AttributeValue? existing))
@@ -1471,7 +1473,13 @@ namespace NeoCompose.Runtime
                         return;
                     }
                     case CollectionMutationKind.RemoveAt:
-                        RemoveAt(client, ownership, row, ToInt(args[0], "RemoveAt index"), now);
+                        RemoveAt(
+                            client,
+                            ownership,
+                            row,
+                            ToInt(args[0], "RemoveAt index"),
+                            now,
+                            entryTypeInfo);
                         return;
                     case CollectionMutationKind.Remove:
                     {
@@ -1486,12 +1494,12 @@ namespace NeoCompose.Runtime
                         {
                             if (referenceId != null && row.value[i] == referenceId)
                             {
-                                RemoveAt(client, ownership, row, i, now);
+                                RemoveAt(client, ownership, row, i, now, entryTypeInfo);
                                 return;
                             }
                             if (!client.TryGetValue(row.value[i], out AttributeValue? child)) continue;
                             if (!JsEqual(ReadRowValue(child), args[0])) continue;
-                            RemoveAt(client, ownership, row, i, now);
+                            RemoveAt(client, ownership, row, i, now, entryTypeInfo);
                             return;
                         }
                         return;
@@ -1504,7 +1512,8 @@ namespace NeoCompose.Runtime
                         client.SetWritableValue(ownership, row);
                         foreach (var childId in removedIds)
                         {
-                            client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, childId);
+                            client.RemoveWritableValueAndDescendantsIfUnlinked(
+                                ownership, childId, AttributeFromTypeInfo(entryTypeInfo));
                         }
                         return;
                     }
@@ -1518,7 +1527,8 @@ namespace NeoCompose.Runtime
                 NeoValueOwnership ownership,
                 ArrayAttributeValue row,
                 int index,
-                string now)
+                string now,
+                TypeInfo entryTypeInfo)
             {
                 if (row.value == null || index < 0 || index >= row.value.Length)
                 {
@@ -1534,7 +1544,8 @@ namespace NeoCompose.Runtime
                 row.value = next;
                 row.updatedAt = now;
                 client.SetWritableValue(ownership, row);
-                client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, removedId);
+                client.RemoveWritableValueAndDescendantsIfUnlinked(
+                    ownership, removedId, AttributeFromTypeInfo(entryTypeInfo));
             }
         }
 
@@ -1675,7 +1686,8 @@ namespace NeoCompose.Runtime
                         row.value[key] = importedId;
                         row.updatedAt = now;
                         client.SetWritableValue(ownership, row);
-                        client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, existingId);
+                        client.RemoveWritableValueAndDescendantsIfUnlinked(
+                            ownership, existingId, AttributeFromTypeInfo(entryTypeInfo));
                         return;
                     }
                     var next = CreateValueRow(
@@ -1733,7 +1745,8 @@ namespace NeoCompose.Runtime
                 row.value.Remove(key);
                 row.updatedAt = DateTime.UtcNow.ToString("o");
                 client.SetWritableValue(ownership, row);
-                client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, removedId);
+                client.RemoveWritableValueAndDescendantsIfUnlinked(
+                    ownership, removedId, AttributeFromTypeInfo(entryTypeInfo));
             }
 
             private void Clear(NeoClient client)
@@ -1750,7 +1763,8 @@ namespace NeoCompose.Runtime
                 client.SetWritableValue(ownership, row);
                 foreach (var childId in removedIds)
                 {
-                    client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, childId);
+                    client.RemoveWritableValueAndDescendantsIfUnlinked(
+                        ownership, childId, AttributeFromTypeInfo(entryTypeInfo));
                 }
             }
         }

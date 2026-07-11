@@ -107,6 +107,7 @@ namespace NeoCompose.Runtime
         internal Project project => data.project;
         internal ProjectData ProjectDataForRuntime => data;
         internal bool IsDisposed => isDisposed;
+        internal int ActiveDialogueCount => activeDialogues.Count;
 
         /// <summary>
         /// Fired whenever a save-side value row is added, replaced, or
@@ -775,32 +776,48 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void WriteRemovalTombstone(NeoValueOwnership ownership, string id)
         {
-            var formerChildIds = new List<string>();
+            var formerChildren = new List<(string valueId, Attribute? attribute)>();
             if (TryGetOverlaidValue(ownership, id, out AttributeValue? replaced))
             {
-                CollectDirectChildValueIds(replaced, formerChildIds);
+                Attribute? sourceAttribute = TryInferAttributeForValueId(
+                    id,
+                    out Attribute? inferredAttribute)
+                        ? inferredAttribute
+                        : null;
+                formerChildren.AddRange(EnumerateOwnedChildLinks(replaced, sourceAttribute));
+                if (sourceAttribute is ListAttribute list && IsUnorderedList(list))
+                {
+                    Attribute? entryAttribute = TryResolveCollectionEntryAttribute(sourceAttribute);
+                    if (entryAttribute is not null)
+                    {
+                        foreach (string memberId in EnumerateContainerMemberValueIds(ownership, id))
+                        {
+                            formerChildren.Add((memberId, entryAttribute));
+                        }
+                    }
+                }
             }
             WriteTombstone(ownership, id);
-            if (formerChildIds.Count == 0) return;
+            if (formerChildren.Count == 0) return;
             // Build reachability after the tombstone replaces the value, so the
             // former children are seen as orphaned (unless shared elsewhere).
-            var reachable = BuildReachableWritableValueIds(ownership);
-            foreach (var childId in formerChildIds)
+            var reachableByOwnership = new Dictionary<NeoValueOwnership, HashSet<string>>();
+            foreach (var child in formerChildren)
             {
-                RemoveWritableValueAndDescendantsIfUnlinked(ownership, childId, reachable);
-            }
-        }
-
-        private static void CollectDirectChildValueIds(AttributeValue row, List<string> into)
-        {
-            switch (row)
-            {
-                case ObjectAttributeValue obj when obj.value is not null:
-                    into.AddRange(obj.value.Values);
-                    break;
-                case ArrayAttributeValue arr when arr.value is not null:
-                    into.AddRange(arr.value);
-                    break;
+                NeoValueOwnership childOwnership =
+                    (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
+                if (childOwnership == NeoValueOwnership.Asset) continue;
+                if (!reachableByOwnership.TryGetValue(childOwnership, out var reachable))
+                {
+                    reachable = BuildReachableWritableValueIds(childOwnership);
+                    reachableByOwnership[childOwnership] = reachable;
+                }
+                RemoveWritableValueAndDescendantsIfUnlinked(
+                    childOwnership,
+                    child.valueId,
+                    reachable,
+                    child.attribute,
+                    new HashSet<string>());
             }
         }
 
@@ -1126,24 +1143,39 @@ namespace NeoCompose.Runtime
             NeoValueOwnership sourceOwnership,
             string containerId)
         {
-            ProjectSaveData? store = sourceOwnership == NeoValueOwnership.Asset
-                ? null
-                : GetWritableStore(sourceOwnership);
-            if (store is not null)
+            ProjectSaveData? store = null;
+            if (sourceOwnership != NeoValueOwnership.Asset)
             {
-                foreach (var pair in store.values)
+                store = GetWritableStore(sourceOwnership);
+                var (storeByContainer, _) = MembershipMaps(sourceOwnership);
+                if (storeByContainer.TryGetValue(containerId, out var indexedStoreMembers))
                 {
-                    if (pair.Value.containerId == containerId)
+                    // Snapshot because deletion can remove members while
+                    // consuming this iterator.
+                    foreach (string memberId in new List<string>(indexedStoreMembers))
                     {
-                        yield return pair.Key;
+                        yield return memberId;
                     }
                 }
             }
-            foreach (var pair in data.values)
+
+            if (!authoredEntriesByContainer.TryGetValue(containerId, out var authoredMembers))
             {
-                if (store is not null && store.values.ContainsKey(pair.Key)) continue;
-                if (EffectiveAuthoredOwnership(pair.Key, pair.Value) != sourceOwnership) continue;
-                if (pair.Value.containerId == containerId) yield return pair.Key;
+                yield break;
+            }
+            if (!data.values.TryGetValue(containerId, out AttributeValue authoredContainer)
+                || EffectiveAuthoredOwnership(containerId, authoredContainer) != sourceOwnership)
+            {
+                yield break;
+            }
+            foreach (string memberId in authoredMembers)
+            {
+                // A row in the selected writable overlay replaces its authored
+                // counterpart, including moving it to another container or
+                // tombstoning it. The membership indexes let this remain O(the
+                // members of this container), rather than O(all value rows).
+                if (store is not null && store.values.ContainsKey(memberId)) continue;
+                yield return memberId;
             }
         }
 
@@ -1486,6 +1518,18 @@ namespace NeoCompose.Runtime
             HashSet<string> visitingValueIds,
             [NotNullWhen(true)] out Attribute? attribute)
         {
+            // Value data is expected to be a tree, but inference also runs while
+            // validating/importing hand-built or partially-mutated graphs. Keep
+            // the traversal bounded when malformed owned edges form a cycle.
+            // Each recursive branch receives a copy of this path set below, so
+            // adding here detects only ancestors and does not suppress a valid
+            // search through a sibling branch.
+            if (!visitingValueIds.Add(valueId))
+            {
+                attribute = null;
+                return false;
+            }
+
             foreach (var candidate in data.attributes.Values)
             {
                 if (candidate.valueId == valueId)
@@ -1578,6 +1622,11 @@ namespace NeoCompose.Runtime
                 typeId = value.typeId;
                 return true;
             }
+            // Attribute inference owns the visit marker for this same node.
+            // Keep ancestor markers, but let that traversal add valueId once;
+            // otherwise the shared defensive path set would reject the first
+            // legitimate inference step as though it were a cycle.
+            visitingValueIds.Remove(valueId);
             if (TryInferAttributeForValueId(
                     valueId,
                     visitingValueIds,
@@ -1706,14 +1755,12 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Recursively deletes <paramref name="valueId"/> and every
-        /// value referenced by its content from
+        /// Recursively deletes <paramref name="valueId"/> and every value
+        /// reached by an authoritative owned edge from
         /// <see cref="ProjectSaveData.values"/>. Walks
-        /// <see cref="ObjectAttributeValue"/> (Custom / Dictionary
-        /// records — values are nested value-ids) and
-        /// <see cref="ArrayAttributeValue"/> (List / Enum / Lookup —
-        /// entries may be nested value-ids); leaves and primitives have
-        /// no nested ids so the recursion bottoms out cleanly.
+        /// <see cref="ObjectAttributeValue"/> Custom/Dictionary records and
+        /// <see cref="ArrayAttributeValue"/> Lists. Lookup selections and
+        /// other reference-style links are intentionally not followed.
         ///
         /// <para>Used by collection <c>*Writable</c> Remove operations to
         /// keep the save file lean — when a parent removes a child
@@ -1735,26 +1782,69 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId)
         {
+            Attribute? sourceAttribute = TryInferAttributeForValueId(valueId, out Attribute? inferred)
+                ? inferred
+                : null;
+            RemoveWritableValueAndDescendantsCore(
+                ownership,
+                valueId,
+                sourceAttribute,
+                new HashSet<string>());
+        }
+
+        internal void RemoveWritableValueAndDescendants(
+            NeoValueOwnership ownership,
+            string valueId,
+            Attribute? sourceAttribute)
+        {
+            RemoveWritableValueAndDescendantsCore(
+                ownership,
+                valueId,
+                sourceAttribute,
+                new HashSet<string>());
+        }
+
+        private void RemoveWritableValueAndDescendantsCore(
+            NeoValueOwnership ownership,
+            string valueId,
+            Attribute? sourceAttribute,
+            HashSet<string> visited)
+        {
+            if (!visited.Add(valueId)) return;
             var store = GetWritableStore(ownership);
             if (!store.values.TryGetValue(valueId, out AttributeValue val)) return;
-            // Recurse first so children are pruned before we drop the
-            // parent. Order doesn't strictly matter (no cycles in a
-            // valid save) but doing it depth-first matches the
-            // bottom-up nature of GC.
-            switch (val)
+
+            // Follow only authoritative owned edges. Lookup selections and
+            // other reference payloads deliberately survive deletion. A
+            // defensive visited set prevents malformed cyclic data from
+            // overflowing the stack while retaining bottom-up removal.
+            foreach (var child in EnumerateOwnedChildLinks(val, sourceAttribute))
             {
-                case ObjectAttributeValue obj when obj.value is not null:
-                    foreach (var nestedId in obj.value.Values)
+                NeoValueOwnership childOwnership =
+                    (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
+                if (childOwnership != ownership) continue;
+                RemoveWritableValueAndDescendantsCore(
+                    ownership,
+                    child.valueId,
+                    child.attribute,
+                    visited);
+            }
+            if (sourceAttribute is ListAttribute list && IsUnorderedList(list))
+            {
+                Attribute? entryAttribute = TryResolveCollectionEntryAttribute(sourceAttribute);
+                NeoValueOwnership entryOwnership =
+                    (entryAttribute is null ? null : DeclaredOwnership(entryAttribute)) ?? ownership;
+                if (entryAttribute is not null && entryOwnership == ownership)
+                {
+                    foreach (string memberId in EnumerateContainerMemberValueIds(ownership, valueId))
                     {
-                        RemoveWritableValueAndDescendants(ownership, nestedId);
+                        RemoveWritableValueAndDescendantsCore(
+                            ownership,
+                            memberId,
+                            entryAttribute,
+                            visited);
                     }
-                    break;
-                case ArrayAttributeValue arr when arr.value is not null:
-                    foreach (var nestedId in arr.value)
-                    {
-                        RemoveWritableValueAndDescendants(ownership, nestedId);
-                    }
-                    break;
+                }
             }
             TryResolveContainerIdForValueId(valueId, out string? memberContainerId);
             if (store.values.Remove(valueId))
@@ -1796,24 +1886,71 @@ namespace NeoCompose.Runtime
             string valueId,
             HashSet<string> reachable)
         {
+            Attribute? sourceAttribute = TryInferAttributeForValueId(valueId, out Attribute? inferred)
+                ? inferred
+                : null;
+            RemoveWritableValueAndDescendantsIfUnlinked(
+                ownership,
+                valueId,
+                reachable,
+                sourceAttribute,
+                new HashSet<string>());
+        }
+
+        internal void RemoveWritableValueAndDescendantsIfUnlinked(
+            NeoValueOwnership ownership,
+            string valueId,
+            Attribute? sourceAttribute)
+        {
+            RemoveWritableValueAndDescendantsIfUnlinked(
+                ownership,
+                valueId,
+                BuildReachableWritableValueIds(ownership),
+                sourceAttribute,
+                new HashSet<string>());
+        }
+
+        private void RemoveWritableValueAndDescendantsIfUnlinked(
+            NeoValueOwnership ownership,
+            string valueId,
+            HashSet<string> reachable,
+            Attribute? sourceAttribute,
+            HashSet<string> visited)
+        {
             if (reachable.Contains(valueId)) return;
+            if (!visited.Add(valueId)) return;
             var store = GetWritableStore(ownership);
             if (!store.values.TryGetValue(valueId, out AttributeValue val)) return;
 
-            switch (val)
+            foreach (var child in EnumerateOwnedChildLinks(val, sourceAttribute))
             {
-                case ObjectAttributeValue obj when obj.value is not null:
-                    foreach (var nestedId in obj.value.Values)
+                NeoValueOwnership childOwnership =
+                    (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
+                if (childOwnership != ownership) continue;
+                RemoveWritableValueAndDescendantsIfUnlinked(
+                    ownership,
+                    child.valueId,
+                    reachable,
+                    child.attribute,
+                    visited);
+            }
+            if (sourceAttribute is ListAttribute list && IsUnorderedList(list))
+            {
+                Attribute? entryAttribute = TryResolveCollectionEntryAttribute(sourceAttribute);
+                NeoValueOwnership entryOwnership =
+                    (entryAttribute is null ? null : DeclaredOwnership(entryAttribute)) ?? ownership;
+                if (entryAttribute is not null && entryOwnership == ownership)
+                {
+                    foreach (string memberId in EnumerateContainerMemberValueIds(ownership, valueId))
                     {
-                        RemoveWritableValueAndDescendantsIfUnlinked(ownership, nestedId, reachable);
+                        RemoveWritableValueAndDescendantsIfUnlinked(
+                            ownership,
+                            memberId,
+                            reachable,
+                            entryAttribute,
+                            visited);
                     }
-                    break;
-                case ArrayAttributeValue arr when arr.value is not null:
-                    foreach (var nestedId in arr.value)
-                    {
-                        RemoveWritableValueAndDescendantsIfUnlinked(ownership, nestedId, reachable);
-                    }
-                    break;
+                }
             }
             TryResolveContainerIdForValueId(valueId, out string? memberContainerId);
             if (store.values.Remove(valueId))
@@ -3310,8 +3447,9 @@ namespace NeoCompose.Runtime
         /// tombstones at member ids are reachable whenever their container is
         /// — they are the durable record that an authored member was removed
         /// and must survive GC. Live member rows behind a null container are
-        /// anomalies per the cascade rule and stay collectable. Runs to a
-        /// fixpoint because members may themselves own containers.
+        /// anomalies per the cascade rule and stay collectable. Members may
+        /// themselves own containers, so newly reached rows are
+        /// queued and each reachable container is expanded once.
         /// </summary>
         private void ExpandContainmentReachability(
             NeoValueOwnership ownership,
@@ -3319,54 +3457,76 @@ namespace NeoCompose.Runtime
         {
             var store = GetWritableStore(ownership);
             var (storeByContainer, _) = MembershipMaps(ownership);
-            bool grew = true;
-            while (grew)
+            var pendingContainers = new Queue<string>(reachable);
+            var expandedContainers = new HashSet<string>();
+            while (pendingContainers.Count > 0)
             {
-                grew = false;
-                var containerIds = new HashSet<string>(authoredEntriesByContainer.Keys);
-                containerIds.UnionWith(storeByContainer.Keys);
-                foreach (var containerId in containerIds)
+                string containerId = pendingContainers.Dequeue();
+                if (!expandedContainers.Add(containerId)) continue;
+                if (!authoredEntriesByContainer.ContainsKey(containerId)
+                    && !storeByContainer.ContainsKey(containerId))
                 {
-                    if (!reachable.Contains(containerId)) continue;
-                    bool containerPresent =
-                        TryGetOverlaidValue(ownership, containerId, out ArrayAttributeValue? containerRow)
-                        && containerRow.value is not null;
+                    continue;
+                }
+                bool containerPresent =
+                    TryGetOverlaidValue(ownership, containerId, out ArrayAttributeValue? containerRow)
+                    && containerRow.value is not null;
 
-                    foreach (var memberId in EnumerateContainerMemberIds(storeByContainer, containerId))
+                foreach (var memberId in EnumerateContainerMemberIds(
+                    ownership,
+                    storeByContainer,
+                    containerId))
+                {
+                    bool isTombstone =
+                        store.values.TryGetValue(memberId, out AttributeValue overlayRow)
+                        && overlayRow.IsRemoved;
+                    if (isTombstone)
                     {
-                        bool isTombstone =
-                            store.values.TryGetValue(memberId, out AttributeValue overlayRow)
-                            && overlayRow.IsRemoved;
-                        if (isTombstone)
+                        if (reachable.Add(memberId))
                         {
-                            if (reachable.Add(memberId)) grew = true;
-                            continue;
+                            pendingContainers.Enqueue(memberId);
                         }
-                        if (!containerPresent) continue;
-                        if (reachable.Contains(memberId)) continue;
-                        MarkReachableValue(ownership, memberId, reachable);
-                        grew = true;
+                        continue;
                     }
+                    if (!containerPresent || reachable.Contains(memberId)) continue;
+                    MarkReachableValue(
+                        ownership,
+                        memberId,
+                        reachable,
+                        null,
+                        pendingContainers);
                 }
             }
         }
 
         private IEnumerable<string> EnumerateContainerMemberIds(
+            NeoValueOwnership ownership,
             Dictionary<string, HashSet<string>> storeByContainer,
             string containerId)
         {
+            var store = GetWritableStore(ownership);
+            var emitted = new HashSet<string>();
             if (authoredEntriesByContainer.TryGetValue(containerId, out var authoredMembers))
             {
-                foreach (var id in authoredMembers) yield return id;
+                foreach (var id in authoredMembers)
+                {
+                    if (store.values.TryGetValue(id, out AttributeValue overlayRow))
+                    {
+                        // A removal marker remains reachable containment state
+                        // for this authored membership. Any live overlay row
+                        // replaces the authored stamp and is emitted only from
+                        // its current indexed container below.
+                        if (overlayRow.IsRemoved && emitted.Add(id)) yield return id;
+                        continue;
+                    }
+                    if (emitted.Add(id)) yield return id;
+                }
             }
             if (storeByContainer.TryGetValue(containerId, out var storeMembers))
             {
                 foreach (var id in storeMembers)
                 {
-                    if (authoredMembers is null || !authoredMembers.Contains(id))
-                    {
-                        yield return id;
-                    }
+                    if (emitted.Add(id)) yield return id;
                 }
             }
         }
@@ -3375,24 +3535,37 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId,
             HashSet<string> reachable,
-            Attribute? sourceAttribute = null)
+            Attribute? sourceAttribute = null,
+            Queue<string>? newlyReachable = null)
         {
-            if (!reachable.Add(valueId)) return;
             var store = GetWritableStore(ownership);
-            if (!store.values.TryGetValue(valueId, out AttributeValue? val)
-                && !data.values.TryGetValue(valueId, out val))
+            var pending = new Queue<(string valueId, Attribute? attribute)>();
+            pending.Enqueue((valueId, sourceAttribute));
+            while (pending.Count > 0)
             {
-                return;
-            }
-            sourceAttribute ??= TryInferAttributeForValueId(valueId, out Attribute? inferredAttribute)
-                ? inferredAttribute
-                : null;
-            foreach (var child in EnumerateOwnedChildLinks(val, sourceAttribute))
-            {
-                NeoValueOwnership childOwnership =
-                    (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
-                if (childOwnership != ownership) continue;
-                MarkReachableValue(ownership, child.valueId, reachable, child.attribute);
+                var current = pending.Dequeue();
+                if (!reachable.Add(current.valueId)) continue;
+                newlyReachable?.Enqueue(current.valueId);
+                if (!store.values.TryGetValue(current.valueId, out AttributeValue? val)
+                    && !data.values.TryGetValue(current.valueId, out val))
+                {
+                    continue;
+                }
+                Attribute? currentAttribute = current.attribute;
+                currentAttribute ??= TryInferAttributeForValueId(
+                    current.valueId,
+                    out Attribute? inferredAttribute)
+                        ? inferredAttribute
+                        : null;
+                foreach (var child in EnumerateOwnedChildLinks(val, currentAttribute))
+                {
+                    NeoValueOwnership childOwnership =
+                        (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
+                    if (childOwnership == ownership)
+                    {
+                        pending.Enqueue((child.valueId, child.attribute));
+                    }
+                }
             }
         }
 

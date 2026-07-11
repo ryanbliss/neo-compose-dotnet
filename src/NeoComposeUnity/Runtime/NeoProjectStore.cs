@@ -256,12 +256,20 @@ namespace NeoCompose.Runtime
             State = NeoProjectStoreState.Loading;
             try
             {
-                var json = await dataSource.ReadProjectJsonAsync();
-                var schema = JsonConvert.DeserializeObject<ProjectData>(json);
-                if (schema == null)
+                ProjectData schema;
+                if (dataSource is IParsedProjectDataSource parsedSource)
                 {
-                    throw new InvalidOperationException(
-                        "Neo Compose project JSON could not be deserialized.");
+                    schema = await parsedSource.ReadProjectDataAsync();
+                }
+                else
+                {
+                    var json = await dataSource.ReadProjectJsonAsync();
+                    schema = JsonConvert.DeserializeObject<ProjectData>(json);
+                    if (schema == null)
+                    {
+                        throw new InvalidOperationException(
+                            "Neo Compose project JSON could not be deserialized.");
+                    }
                 }
 
                 NeoProjectDataValidator.Validate(schema);

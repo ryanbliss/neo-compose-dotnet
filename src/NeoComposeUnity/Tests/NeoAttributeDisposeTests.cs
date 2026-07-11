@@ -278,10 +278,19 @@ namespace NeoCompose.Tests
         [Test]
         public void RemoveSaveValueAndDescendants_RecursesIntoNestedValues()
         {
-            // Builds a small tree directly in saveData and verifies the
-            // recursion walks ObjectAttributeValue + ArrayAttributeValue
-            // children.
+            // Builds a small typed tree directly in saveData and verifies
+            // schema-authoritative Custom + List ownership is followed.
             var client = LoadClient();
+            ((System.Collections.Generic.Dictionary<string, CustomType>)client.types)["test-gc-type"] =
+                new CustomType
+                {
+                    id = "test-gc-type",
+                    name = "GcRoot",
+                    schema = new System.Collections.Generic.Dictionary<string, string>
+                    {
+                        ["Tags"] = "attr-tags",
+                    },
+                };
             // Use prefixed ids so we don't collide with the synth
             // fixture's authored values map (which already has v-list,
             // v-num, etc. — the cascade test would falsely fail if a
@@ -303,10 +312,10 @@ namespace NeoCompose.Tests
             };
             var rootObject = new ObjectAttributeValue
             {
-                id = "test-root", createdAt = "x", updatedAt = "x",
+                id = "test-root", typeId = "test-gc-type", createdAt = "x", updatedAt = "x",
                 value = new System.Collections.Generic.Dictionary<string, string>
                 {
-                    { "tags", "test-list" },
+                    { "Tags", "test-list" },
                 },
             };
             client.SetSaveValue(grandchildA);
@@ -320,6 +329,172 @@ namespace NeoCompose.Tests
             Assert.IsFalse(client.TryGetValue<AttributeValue>("test-list", out _));
             Assert.IsFalse(client.TryGetValue<AttributeValue>("test-gca", out _));
             Assert.IsFalse(client.TryGetValue<AttributeValue>("test-gcb", out _));
+        }
+
+        [Test]
+        public void RemoveSaveValueAndDescendants_PreservesLookupTargets()
+        {
+            var client = LoadClient();
+            ((System.Collections.Generic.Dictionary<string, CustomType>)client.types)["test-lookup-owner-type"] =
+                new CustomType
+                {
+                    id = "test-lookup-owner-type",
+                    name = "LookupOwner",
+                    schema = new System.Collections.Generic.Dictionary<string, string>
+                    {
+                        ["Choice"] = "attr-choice",
+                    },
+                };
+            client.SetSaveValue(new StringAttributeValue
+            {
+                id = "test-lookup-target", value = "referenced", createdAt = "x", updatedAt = "x",
+            });
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "test-lookup-row", value = new[] { "test-lookup-target" },
+                createdAt = "x", updatedAt = "x",
+            });
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "test-lookup-owner", typeId = "test-lookup-owner-type",
+                value = new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["Choice"] = "test-lookup-row",
+                },
+                createdAt = "x", updatedAt = "x",
+            });
+
+            client.RemoveSaveValueAndDescendants("test-lookup-owner");
+
+            Assert.IsFalse(client.saveValues.ContainsKey("test-lookup-owner"));
+            Assert.IsFalse(client.saveValues.ContainsKey("test-lookup-row"));
+            Assert.IsTrue(client.saveValues.ContainsKey("test-lookup-target"),
+                "Lookup selections are references and must not be recursively deleted");
+        }
+
+        [Test]
+        public void RemoveSaveValueAndDescendants_DefensivelyHandlesOwnedCycles()
+        {
+            var client = LoadClient();
+            var attributes =
+                (System.Collections.Generic.Dictionary<string, NeoCompose.Runtime.Json.Attribute>)client.attributes;
+            attributes["test-cycle-child"] = new CustomAttribute
+            {
+                id = "test-cycle-child", name = "Child", type = AttributeType.Custom,
+                customTypeId = "test-cycle-type",
+            };
+            ((System.Collections.Generic.Dictionary<string, CustomType>)client.types)["test-cycle-type"] =
+                new CustomType
+                {
+                    id = "test-cycle-type",
+                    name = "Cycle",
+                    schema = new System.Collections.Generic.Dictionary<string, string>
+                    {
+                        ["Child"] = "test-cycle-child",
+                    },
+                };
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "test-cycle-a", typeId = "test-cycle-type",
+                value = new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["Child"] = "test-cycle-b",
+                },
+            });
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "test-cycle-b", typeId = "test-cycle-type",
+                value = new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["Child"] = "test-cycle-a",
+                },
+            });
+
+            Assert.DoesNotThrow(() => client.RemoveSaveValueAndDescendants("test-cycle-a"));
+            Assert.IsFalse(client.saveValues.ContainsKey("test-cycle-a"));
+            Assert.IsFalse(client.saveValues.ContainsKey("test-cycle-b"));
+        }
+
+        [Test]
+        public void TypedUnlinkedRemoval_CollectsDetachedDictionaryAndListRows()
+        {
+            var client = LoadClient();
+            var dictionaryAttribute = new DictionaryAttribute
+            {
+                id = "test-detached-dictionary-attribute",
+                name = "Detached dictionary",
+                type = AttributeType.Dictionary,
+                keyKind = "string",
+                entryAttributeId = "attr-tags",
+            };
+            client.SetSaveValue(new StringAttributeValue
+            {
+                id = "test-detached-leaf", value = "leaf",
+            });
+            client.SetSaveValue(new ArrayAttributeValue
+            {
+                id = "test-detached-list", value = new[] { "test-detached-leaf" },
+            });
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "test-detached-dictionary",
+                value = new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["entry"] = "test-detached-list",
+                },
+            });
+
+            client.RemoveWritableValueAndDescendantsIfUnlinked(
+                NeoValueOwnership.Save,
+                "test-detached-dictionary",
+                dictionaryAttribute);
+
+            Assert.IsFalse(client.saveValues.ContainsKey("test-detached-dictionary"));
+            Assert.IsFalse(client.saveValues.ContainsKey("test-detached-list"));
+            Assert.IsFalse(client.saveValues.ContainsKey("test-detached-leaf"));
+        }
+
+        [Test]
+        public void TypedRemoval_DoesNotCrossDeclaredStorageOwnership()
+        {
+            var client = LoadClient();
+            var attributes =
+                (System.Collections.Generic.Dictionary<string, NeoCompose.Runtime.Json.Attribute>)client.attributes;
+            attributes["test-session-entry"] = new StringAttribute
+            {
+                id = "test-session-entry",
+                name = "Session entry",
+                type = AttributeType.String,
+                storage = "session",
+            };
+            var dictionaryAttribute = new DictionaryAttribute
+            {
+                id = "test-cross-storage-dictionary",
+                name = "Cross-storage dictionary",
+                type = AttributeType.Dictionary,
+                keyKind = "string",
+                entryAttributeId = "test-session-entry",
+            };
+            client.SetWritableValue(NeoValueOwnership.Session, new StringAttributeValue
+            {
+                id = "test-session-owned-leaf", value = "keep",
+            });
+            client.SetSaveValue(new ObjectAttributeValue
+            {
+                id = "test-save-dictionary",
+                value = new System.Collections.Generic.Dictionary<string, string>
+                {
+                    ["entry"] = "test-session-owned-leaf",
+                },
+            });
+
+            client.RemoveWritableValueAndDescendants(
+                NeoValueOwnership.Save,
+                "test-save-dictionary",
+                dictionaryAttribute);
+
+            Assert.IsFalse(client.saveValues.ContainsKey("test-save-dictionary"));
+            Assert.IsTrue(client.sessionValues.ContainsKey("test-session-owned-leaf"));
         }
 
         // -----------------------------------------------------------------

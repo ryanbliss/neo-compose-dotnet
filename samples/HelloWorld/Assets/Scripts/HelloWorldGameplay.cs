@@ -429,17 +429,8 @@ namespace HelloWorld.Assets.Scripts
         private bool HasDialogueAvailable(IReadOnlyOutpost outpost)
         {
             if (neo == null) return false;
-            if (neo.Dialogues.Outposts.Introductions.TryTrigger(outpost, out NeoDialogue intro))
-            {
-                intro.Dispose();
-                return true;
-            }
-            if (neo.Dialogues.Outposts.Visits.TryTrigger(outpost, out NeoDialogue visit))
-            {
-                visit.Dispose();
-                return true;
-            }
-            return false;
+            return neo.Dialogues.Outposts.Introductions.CanTrigger(outpost)
+                || neo.Dialogues.Outposts.Visits.CanTrigger(outpost);
         }
 
         private void OnSaveClicked() => Run(SaveWithIndicatorAsync());

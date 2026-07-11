@@ -33,6 +33,22 @@ namespace HelloWorld.Assets.Tests
         private const string GlassFloorTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588142";
         private const string BootGlyphTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588143";
         private const string RedNovaWarningTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588144";
+        private static readonly string SampleProjectJson =
+            File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json"));
+        private static readonly NeoJsonProjectDataSource SampleProjectSource =
+            new NeoJsonProjectDataSource(SampleProjectJson);
+
+        private readonly List<System.IDisposable> ownedResources = new();
+
+        [TearDown]
+        public void TearDown()
+        {
+            for (var index = ownedResources.Count - 1; index >= 0; index -= 1)
+            {
+                ownedResources[index].Dispose();
+            }
+            ownedResources.Clear();
+        }
         private const string PlayerSpawnObjectValueId = "8f96912d-5bbb-428c-84eb-8932ef588151";
         private const string VaultPlaqueObjectValueId = "8f96912d-5bbb-428c-84eb-8932ef588152";
         private const string BlockedPathValueId = "432f5226-99d8-4d59-8cf0-4d86ca64462f";
@@ -121,17 +137,17 @@ namespace HelloWorld.Assets.Tests
             Assert.AreEqual("es-ES", client.Localization.CurrentLocale);
             Assert.AreEqual("Hola", client.Assets.Computed.baseText);
             Assert.AreEqual("Tierra", Planet.earth.Text);
+            Assert.AreEqual("Tierra", client.Save.Visited[0].World.Text);
             Assert.AreEqual("Hola Tierra!", client.Assets.Computed.fullText);
         }
 
         [Test]
         public void GeneratedSampleTypes_LoadUsesResourcesConfigWhenLocalizationOptionsAreNull()
         {
-            var projectJson = File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json"));
             var configOptions = NeoComposeConfig.LoadDefault()!.ToLocalizationOptions();
 
-            var defaultClient = LoadSampleClient(projectJson, localizationOptions: null);
-            var explicitConfigClient = LoadSampleClient(projectJson, localizationOptions: configOptions);
+            var defaultClient = LoadSampleClient(SampleProjectSource, localizationOptions: null);
+            var explicitConfigClient = LoadSampleClient(SampleProjectSource, localizationOptions: configOptions);
 
             Assert.AreEqual(explicitConfigClient.Localization.CurrentLocale, defaultClient.Localization.CurrentLocale);
             Assert.AreEqual(explicitConfigClient.Assets.Computed.baseText, defaultClient.Assets.Computed.baseText);
@@ -508,15 +524,6 @@ namespace HelloWorld.Assets.Tests
             var outpost = firstRead[0];
             Assert.AreSame(outpost.Save, outpost.Save);
             Assert.AreSame(outpost.SaveUnsafe, outpost.SaveUnsafe);
-        }
-
-        [Test]
-        public void GeneratedSampleTypes_ExplicitSpanishVisitedPlanetTextResolvesEnumText()
-        {
-            var client = LoadSampleClient(SpanishLocalizationOptions());
-
-            Assert.AreEqual("es-ES", client.Localization.CurrentLocale);
-            Assert.AreEqual("Tierra", client.Save.Visited[0].World.Text);
         }
 
         [Test]
@@ -929,41 +936,45 @@ namespace HelloWorld.Assets.Tests
         // store → save synchronizer) in place of the removed loadSave/handleSave
         // delegates. The async load completes synchronously over the in-hand JSON +
         // in-memory store, so blocking here is safe.
-        private static HelloWorldNeo LoadSampleClient(NeoLocalizationOptions localizationOptions = null)
+        private HelloWorldNeo LoadSampleClient(NeoLocalizationOptions localizationOptions = null)
         {
-            return LoadSampleClient(
-                File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json")),
-                localizationOptions);
+            return LoadSampleClient(SampleProjectSource, localizationOptions);
         }
 
-        private static HelloWorldNeo LoadSampleClient(
-            string projectJson,
+        private HelloWorldNeo LoadSampleClient(
+            IProjectDataSource projectSource,
             NeoLocalizationOptions localizationOptions)
         {
-            var store = new NeoProjectStore(dataSource: new NeoJsonProjectDataSource(projectJson), localStore: new NeoInMemoryLocalSaveStore());
+            var store = Own(new NeoProjectStore(
+                dataSource: projectSource,
+                localStore: new NeoInMemoryLocalSaveStore()));
             store.LoadAsync().GetAwaiter().GetResult();
-            return HelloWorldNeo.Load(store.Open("save"), localizationOptions: localizationOptions)
+            return Own(HelloWorldNeo.Load(
+                    store.Open("save"),
+                    localizationOptions: localizationOptions)
                 .GetAwaiter()
-                .GetResult();
+                .GetResult());
         }
 
-        private static (NeoProjectStore Store, HelloWorldNeo Client) LoadSampleStack(
+        private (NeoProjectStore Store, HelloWorldNeo Client) LoadSampleStack(
             NeoLocalizationOptions localizationOptions)
         {
-            var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json"))),
-                localStore: new NeoInMemoryLocalSaveStore());
+            var store = Own(new NeoProjectStore(
+                dataSource: SampleProjectSource,
+                localStore: new NeoInMemoryLocalSaveStore()));
             store.LoadAsync().GetAwaiter().GetResult();
             return (store, ReopenSampleClient(store, localizationOptions));
         }
 
-        private static HelloWorldNeo ReopenSampleClient(
+        private HelloWorldNeo ReopenSampleClient(
             NeoProjectStore store,
             NeoLocalizationOptions localizationOptions)
         {
-            return HelloWorldNeo.Load(store.Open("save"), localizationOptions: localizationOptions)
+            return Own(HelloWorldNeo.Load(
+                    store.Open("save"),
+                    localizationOptions: localizationOptions)
                 .GetAwaiter()
-                .GetResult();
+                .GetResult());
         }
 
         private static T ResolveSampleValue<T>(HelloWorldNeo client, string valueId)
@@ -986,11 +997,19 @@ namespace HelloWorld.Assets.Tests
 
         // Builds a raw NeoClient (not the generated HelloWorld facade) over the save
         // stack — for smoke-testing the loader against an arbitrary project schema.
-        private static NeoClient LoadRawClient(string projectJson)
+        private NeoClient LoadRawClient(string projectJson)
         {
-            var store = new NeoProjectStore(dataSource: new NeoJsonProjectDataSource(projectJson), localStore: new NeoInMemoryLocalSaveStore());
+            var store = Own(new NeoProjectStore(
+                dataSource: new NeoJsonProjectDataSource(projectJson),
+                localStore: new NeoInMemoryLocalSaveStore()));
             store.LoadAsync().GetAwaiter().GetResult();
-            return new NeoLoader().Load(store.Open("save")).GetAwaiter().GetResult();
+            return Own(new NeoLoader().Load(store.Open("save")).GetAwaiter().GetResult());
+        }
+
+        private T Own<T>(T resource) where T : System.IDisposable
+        {
+            ownedResources.Add(resource);
+            return resource;
         }
 
         private static NeoLocalizationOptions EnglishLocalizationOptions()

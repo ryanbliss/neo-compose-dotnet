@@ -12,6 +12,8 @@ using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using UnityEditor;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace NeoCompose.Tests
 {
@@ -457,6 +459,18 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual("unknown", client.Localization.ResolveText("unknown"));
             Assert.AreEqual("{missing", client.Localization.ResolveText("bad-format"));
+        }
+
+        [Test]
+        public void NeoLocalization_WarnsOnlyOncePerMissingTextId()
+        {
+            var localization = NeoLocalization.CreateEmpty(null);
+            LogAssert.Expect(
+                LogType.Warning,
+                "Neo Compose localized text id 'missing-description' was not found.");
+
+            Assert.AreEqual("missing-description", localization.ResolveText("missing-description"));
+            Assert.AreEqual("missing-description", localization.ResolveText("missing-description"));
         }
 
         [Test]

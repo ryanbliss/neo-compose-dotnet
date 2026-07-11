@@ -681,7 +681,8 @@ namespace NeoCompose.Runtime
                     record.updatedAt = nowIso;
                     client.SetWritableValue(ownership, record);
                     value = record;
-                    client.RemoveWritableValueAndDescendantsIfUnlinked(childOwnership, existingValueId);
+                    client.RemoveWritableValueAndDescendantsIfUnlinked(
+                        childOwnership, existingValueId, childAttribute);
                     ReinitializeChildren();
                     if (sourceMoved)
                     {
@@ -864,6 +865,11 @@ namespace NeoCompose.Runtime
         {
             if (value?.value is null) return;
             if (!value.value.ContainsKey(key)) return;
+            string? schemaKeyedAttributeId = LookupMergedAttributeId(key);
+            Attribute? removedAttribute = schemaKeyedAttributeId is not null
+                && client.TryGetAttribute(schemaKeyedAttributeId, out Attribute? resolvedAttribute)
+                    ? SubstituteChildAttribute(resolvedAttribute)
+                    : null;
             string nowIso = System.DateTime.UtcNow.ToString("o");
 
             // Clone-on-write the record (shadowing the authored default at
@@ -882,7 +888,11 @@ namespace NeoCompose.Runtime
                 childAttributes.Remove(key);
             }
 
-            client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, removedValueId);
+            NeoValueOwnership removedOwnership =
+                (removedAttribute is null ? null : client.DeclaredOwnership(removedAttribute))
+                ?? ownership;
+            client.RemoveWritableValueAndDescendantsIfUnlinked(
+                removedOwnership, removedValueId, removedAttribute);
             NotifyChanged();
         }
 

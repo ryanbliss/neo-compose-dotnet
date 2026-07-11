@@ -21,13 +21,6 @@ namespace NeoCompose.Tests
     {
         private const string TempRoot = "Assets/NeoComposeEditorTestsTemp";
 
-        [SetUp]
-        public void SetUp()
-        {
-            CleanupTempRoot();
-            AssetDatabase.CreateFolder("Assets", "NeoComposeEditorTestsTemp");
-        }
-
         [TearDown]
         public void TearDown()
         {
@@ -107,6 +100,7 @@ namespace NeoCompose.Tests
         [Test]
         public void ConfigProvider_CreatesDefaultConfigInResourcesFolder()
         {
+            EnsureTempRoot();
             var path = $"{TempRoot}/Resources/Neo/NeoComposeConfig.asset";
 
             var config = NeoComposeConfigProvider.LoadOrCreate(path, new[] { TempRoot });
@@ -130,6 +124,7 @@ namespace NeoCompose.Tests
         [Test]
         public void ConfigProvider_FindsMovedConfigByType()
         {
+            EnsureTempRoot();
             AssetDatabase.CreateFolder(TempRoot, "Moved");
             var path = $"{TempRoot}/Moved/NeoComposeConfig.asset";
             var moved = ScriptableObject.CreateInstance<NeoComposeConfig>();
@@ -984,6 +979,7 @@ namespace NeoCompose.Tests
         [Test]
         public void ImportSettingsApplier_AppliesGridSpriteSlices()
         {
+            EnsureTempRoot();
             var assetPath = $"{TempRoot}/sheet.png";
             var texture = new Texture2D(32, 16, TextureFormat.RGBA32, false);
             for (var y = 0; y < texture.height; y++)
@@ -1377,6 +1373,12 @@ namespace NeoCompose.Tests
             {
                 AssetDatabase.DeleteAsset(TempRoot);
             }
+        }
+
+        private static void EnsureTempRoot()
+        {
+            CleanupTempRoot();
+            AssetDatabase.CreateFolder("Assets", "NeoComposeEditorTestsTemp");
         }
 
         private sealed class FakeApiClient : INeoComposeEditorApiClient

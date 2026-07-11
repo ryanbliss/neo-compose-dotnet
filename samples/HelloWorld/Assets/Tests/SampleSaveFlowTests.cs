@@ -24,12 +24,17 @@ namespace HelloWorld.Assets.Tests
     {
         private const string SampleProjectJson = "Assets/Resources/Neo/project.json";
         private const string Channel = "channel-1";
+        private static readonly NeoJsonProjectDataSource SampleProjectSource =
+            new NeoJsonProjectDataSource(File.ReadAllText(SampleProjectJson));
 
         private readonly List<string> tempDirs = new();
+        private readonly List<NeoProjectStore> stores = new();
 
         [TearDown]
         public void TearDown()
         {
+            foreach (var store in stores) store.Dispose();
+            stores.Clear();
             foreach (var dir in tempDirs)
             {
                 if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true);
@@ -44,14 +49,24 @@ namespace HelloWorld.Assets.Tests
             return dir;
         }
 
-        private static string ProjectJson() => File.ReadAllText(SampleProjectJson);
+        private NeoProjectStore Store(
+            INeoLocalSaveStore localStore,
+            INeoApiClient apiClient = null,
+            string targetReleaseChannelId = "")
+        {
+            var store = new NeoProjectStore(
+                dataSource: SampleProjectSource,
+                localStore: localStore,
+                apiClient: apiClient,
+                targetReleaseChannelId: targetReleaseChannelId);
+            stores.Add(store);
+            return store;
+        }
 
         [Test]
         public void CreateNew_IsLocalOnlyUntilCommit_ThenListedOnReturn()
         {
-            var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(ProjectJson()),
-                localStore: new NeoFileLocalSaveStore(TempDir()));
+            var store = Store(new NeoFileLocalSaveStore(TempDir()));
             store.LoadAsync().GetAwaiter().GetResult();
             Assert.IsEmpty(store.Saves);
 
@@ -78,11 +93,9 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void Archive_RemovesSaveFromList()
+        public void Archive_MarksSaveArchivedAndHidesItFromTheActiveList()
         {
-            var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(ProjectJson()),
-                localStore: new NeoFileLocalSaveStore(TempDir()));
+            var store = Store(new NeoFileLocalSaveStore(TempDir()));
             store.LoadAsync().GetAwaiter().GetResult();
 
             var synchronizer = store.CreateNew("Doomed");
@@ -90,30 +103,11 @@ namespace HelloWorld.Assets.Tests
             neo.CommitAsync().GetAwaiter().GetResult();
             neo.Dispose();
             store.RefreshSavesAsync().GetAwaiter().GetResult();
-            Assert.AreEqual(1, store.Saves.Count);
-
             store.ArchiveAsync(synchronizer.CustomId).GetAwaiter().GetResult();
 
             Assert.IsTrue(
                 store.Saves.Single(s => s.customId == synchronizer.CustomId).IsArchived,
-                "Archiving marks the save archived so the menu hides it from the active list.");
-        }
-
-        [Test]
-        public void Menu_HidesArchivedSaves_FromTheActiveList()
-        {
-            var store = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(ProjectJson()),
-                localStore: new NeoFileLocalSaveStore(TempDir()));
-            store.LoadAsync().GetAwaiter().GetResult();
-
-            var synchronizer = store.CreateNew("Doomed");
-            var neo = HelloWorldNeo.Load(synchronizer).GetAwaiter().GetResult();
-            neo.CommitAsync().GetAwaiter().GetResult();
-            neo.Dispose();
-            store.RefreshSavesAsync().GetAwaiter().GetResult();
-            store.ArchiveAsync(synchronizer.CustomId).GetAwaiter().GetResult();
-
+                "Archiving marks the save archived so the menu can hide it.");
             var active = store.Saves.Where(s => !s.IsArchived).ToList();
             Assert.IsEmpty(active, "The menu's active list (non-archived) excludes archived saves.");
         }
@@ -124,11 +118,10 @@ namespace HelloWorld.Assets.Tests
             var cloud = new InMemoryCloud();
 
             // Device A: create + play + save with cloud sync wired.
-            var storeA = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(ProjectJson()),
-                localStore: new NeoFileLocalSaveStore(TempDir()),
-                apiClient: cloud,
-                targetReleaseChannelId: Channel);
+            var storeA = Store(
+                new NeoFileLocalSaveStore(TempDir()),
+                cloud,
+                Channel);
             storeA.LoadAsync().GetAwaiter().GetResult();
 
             var synchronizer = storeA.CreateNew("Cloud Game");
@@ -143,11 +136,10 @@ namespace HelloWorld.Assets.Tests
             Assert.IsTrue(cloud.saves.ContainsKey(customId), "Commit synced the save to the cloud.");
 
             // Device B: a fresh local store sharing the same cloud sees + loads the save.
-            var storeB = new NeoProjectStore(
-                dataSource: new NeoJsonProjectDataSource(ProjectJson()),
-                localStore: new NeoFileLocalSaveStore(TempDir()),
-                apiClient: cloud,
-                targetReleaseChannelId: Channel);
+            var storeB = Store(
+                new NeoFileLocalSaveStore(TempDir()),
+                cloud,
+                Channel);
             storeB.LoadAsync().GetAwaiter().GetResult();
 
             Assert.IsTrue(
