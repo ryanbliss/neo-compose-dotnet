@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 3,
+    "schemaVersion": 5,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -1684,7 +1684,99 @@
           "text": "Ice"
         }
       },
+      "optionKeyOrder": [
+        "fire",
+        "ice"
+      ],
       "projectId": "test-project",
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  },
+  "interfaces": {
+    "interface-contract": {
+      "id": "interface-contract",
+      "projectId": "test-project",
+      "name": "IContract",
+      "members": {
+        "Title": {
+          "kind": "property",
+          "typeInfo": {
+            "type": 3,
+            "required": false
+          },
+          "settable": false
+        },
+        "Run": {
+          "kind": "function",
+          "returnTypeInfo": {
+            "type": 1,
+            "required": true
+          },
+          "argumentTypes": [
+            {
+              "name": "count",
+              "type": 2,
+              "required": true
+            }
+          ],
+          "deferred": false
+        },
+        "Missing": {
+          "kind": "property",
+          "typeInfo": {
+            "type": 2,
+            "required": true
+          },
+          "settable": false
+        },
+        "MissingLater": {
+          "kind": "function",
+          "returnTypeInfo": {
+            "type": 2,
+            "required": true
+          },
+          "argumentTypes": [],
+          "deferred": true
+        }
+      },
+      "memberKeyOrder": [
+        "Title",
+        "Run",
+        "Missing",
+        "MissingLater"
+      ],
+      "extendsInterfaceIds": [],
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "interface-hero-deferred-transform": {
+      "id": "interface-hero-deferred-transform",
+      "projectId": "test-project",
+      "name": "IHeroDeferredTransform",
+      "members": {
+        "TransformLater": {
+          "kind": "function",
+          "returnTypeInfo": {
+            "type": 7,
+            "required": true,
+            "typeId": "type-hero"
+          },
+          "argumentTypes": [
+            {
+              "name": "value",
+              "type": 7,
+              "required": true,
+              "typeId": "type-hero"
+            }
+          ],
+          "deferred": true
+        }
+      },
+      "memberKeyOrder": [
+        "TransformLater"
+      ],
+      "extendsInterfaceIds": [],
       "createdAt": 0,
       "updatedAt": 0
     }
@@ -1911,6 +2003,9 @@
       },
       "hiddenInAttributeSelector": false,
       "isAbstract": true,
+      "implementsInterfaceIds": [
+        "interface-contract"
+      ],
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
@@ -2141,6 +2236,9 @@
       "hiddenInAttributeSelector": false,
       "isAbstract": false,
       "extendsTypeId": "type-generic-function-contract",
+      "implementsInterfaceIds": [
+        "interface-hero-deferred-transform"
+      ],
       "extendsGenericBindings": {
         "param-generic-function-t": {
           "kind": "attribute",

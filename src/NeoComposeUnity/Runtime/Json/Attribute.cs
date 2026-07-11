@@ -306,6 +306,7 @@ namespace NeoCompose.Runtime.Json
     {
         public string name = null!;
         public string? typeId;
+        public string? interfaceId;
         public string? enumId;
         public TypeInfo? entryTypeInfo;
         public string? collectionAttributeId;
@@ -346,6 +347,7 @@ namespace NeoCompose.Runtime.Json
                 type = type,
                 required = json.Value<bool?>("required") ?? false,
                 typeId = json.Value<string>("typeId"),
+                interfaceId = json.Value<string>("interfaceId"),
                 enumId = json.Value<string>("enumId"),
                 entryTypeInfo = json["entryTypeInfo"]?.ToObject<TypeInfo>(serializer),
                 collectionAttributeId = json.Value<string>("collectionAttributeId"),

@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "schemaVersion": 3,
+        "schemaVersion": 5,
         "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
         "versionId": "56fbaae9-6c07-4260-a250-65a1ab0689cf",
         "semver": {
@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "f917570ac3a33c8dfb148098789adeaf8f2f9609ce6d00f04d6c1cf090e9662c",
-        "codegenContractHash": "1cb538cc0daf3d8f2f42d8da635ca59768f73158603b33b8f814f3c77b891e04",
-        "runtimeDataContractHash": "9e7f8751f1f89c306a1db51b5fa8451663ecb12bdfd3184d33e473bfc995dd61"
+        "projectDocumentContentHash": "0b79ae7cfdf34dbec56d4d11bb5c04b449855148db669c0512a07ea907b48062",
+        "codegenContractHash": "6eee3912a118d4164fa230faf47e66b458578b64c917bc0b928993c91cbb4a05",
+        "runtimeDataContractHash": "3ccc184fe92a30e5afe50ace1eaf7e3c06c049aeaf19c4f4cbcf3eb161dc0bc8"
     },
     "localization": {
         "schemaVersion": 1,
@@ -1744,7 +1744,7 @@
             },
             "id": "3b523230-a851-4ab5-a6f2-c2d0745c116f",
             "locked": true,
-            "name": "Cell size",
+            "name": "CellSize",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
@@ -4330,7 +4330,7 @@
             },
             "id": "6ed1890b-0ae6-4979-bf5b-6f216d69f432",
             "locked": true,
-            "name": "Is Trigger",
+            "name": "isTrigger",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
@@ -5785,7 +5785,7 @@
             },
             "id": "c66c17e3-ecfc-4f41-96de-6a53bb2acd4f",
             "locked": true,
-            "name": "Size",
+            "name": "size",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": true,
             "system": {
@@ -6715,7 +6715,7 @@
             },
             "id": "ec5b5d5e-7053-4378-87d1-9cceec30ff1a",
             "locked": true,
-            "name": "Offset",
+            "name": "offset",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "system": {
@@ -7284,7 +7284,12 @@
                 ],
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
             },
-            "updatedAt": 1782971224672
+            "updatedAt": 1782971224672,
+            "optionKeyOrder": [
+                "Animation",
+                "Random",
+                "Single"
+            ]
         },
         "576de38f-6c77-440d-91b3-95a19aad5e23": {
             "createdAt": 1777766675438,
@@ -7320,7 +7325,18 @@
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1778179604183
+            "updatedAt": 1778179604183,
+            "optionKeyOrder": [
+                "earth",
+                "jupiter",
+                "mars",
+                "mercury",
+                "neptune",
+                "pluto",
+                "saturn",
+                "uranus",
+                "venus"
+            ]
         },
         "6ff1b376-1b30-449d-8439-d822be95cec1": {
             "createdAt": 1782971224672,
@@ -7346,7 +7362,12 @@
                 ],
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
             },
-            "updatedAt": 1782971224672
+            "updatedAt": 1782971224672,
+            "optionKeyOrder": [
+                "Grid",
+                "None",
+                "Sprite"
+            ]
         },
         "9d3ef3f4-0823-412b-a2b6-97874739072d": {
             "createdAt": 1778179646588,
@@ -7361,7 +7382,11 @@
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1778179675026
+            "updatedAt": 1778179675026,
+            "optionKeyOrder": [
+                "enceladus",
+                "titan"
+            ]
         },
         "a2d44a04-35a6-4529-8fd2-f54a55cf518b": {
             "createdAt": 1778178771572,
@@ -7382,7 +7407,13 @@
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1778178828320
+            "updatedAt": 1778178828320,
+            "optionKeyOrder": [
+                "callisto",
+                "europa",
+                "ganymede",
+                "io"
+            ]
         },
         "a5c2a3f4-f91a-4878-bec0-a38b432ad762": {
             "createdAt": 1781246186689,
@@ -7409,7 +7440,15 @@
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1781246186689
+            "updatedAt": 1781246186689,
+            "optionKeyOrder": [
+                "arrival",
+                "ended",
+                "endgame",
+                "followTheWakes",
+                "threePaths",
+                "vaultOpen"
+            ]
         },
         "ba63d042-51c1-4bce-be70-d9848e6bb240": {
             "createdAt": 1782971224672,
@@ -7438,7 +7477,13 @@
                 ],
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
             },
-            "updatedAt": 1782971224672
+            "updatedAt": 1782971224672,
+            "optionKeyOrder": [
+                "InheritsFromType",
+                "NotInheritsFromType",
+                "NotThis",
+                "This"
+            ]
         },
         "d0b44688-28ab-44ba-b2a1-5cdad0f51e50": {
             "createdAt": 1781246186689,
@@ -7462,7 +7507,14 @@
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1781246186689
+            "updatedAt": 1781246186689,
+            "optionKeyOrder": [
+                "commentOut",
+                "goodbyeWorld",
+                "helloWorld",
+                "none",
+                "secondSun"
+            ]
         },
         "d97f73bc-656f-489f-86de-6cb874ca8181": {
             "createdAt": 1782980021067,
@@ -7497,7 +7549,37 @@
                 ],
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
             },
-            "updatedAt": 1782980021067
+            "updatedAt": 1782980021067,
+            "optionKeyOrder": [
+                "Fixed",
+                "MirrorX",
+                "MirrorXY",
+                "MirrorY",
+                "Rotated",
+                "RotatedMirror"
+            ]
+        }
+    },
+    "interfaces": {
+        "27d59731-311d-4d80-833a-916760c7ed30": {
+            "createdAt": 1783683971331,
+            "id": "27d59731-311d-4d80-833a-916760c7ed30",
+            "memberKeyOrder": [
+                "Name"
+            ],
+            "members": {
+                "Name": {
+                    "kind": "property",
+                    "settable": false,
+                    "typeInfo": {
+                        "required": true,
+                        "type": 3
+                    }
+                }
+            },
+            "name": "IHasName",
+            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
+            "updatedAt": 1783683971331
         }
     },
     "types": {
@@ -7830,6 +7912,9 @@
             "extendsTypeId": null,
             "hiddenInAttributeSelector": false,
             "id": "4c196697-4e08-4aeb-823f-322b353071ac",
+            "implementsInterfaceIds": [
+                "27d59731-311d-4d80-833a-916760c7ed30"
+            ],
             "isAbstract": false,
             "name": "Outpost",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
@@ -7845,8 +7930,20 @@
                 "SaveUnsafe": "f66fba24-44d4-467c-98ac-4db1539910df",
                 "ShowRelic": "736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1"
             },
+            "schemaKeyOrder": [
+                "AnimatedImage",
+                "DebugLog",
+                "FullDisplayText",
+                "Image",
+                "Name",
+                "Planet",
+                "PlayAnimation",
+                "Save",
+                "SaveUnsafe",
+                "ShowRelic"
+            ],
             "system": null,
-            "updatedAt": 1781260632312
+            "updatedAt": 1783683994917
         },
         "4c2aa621-e662-419f-a5b5-d8dcfab9b29b": {
             "createdAt": 1781759686435,

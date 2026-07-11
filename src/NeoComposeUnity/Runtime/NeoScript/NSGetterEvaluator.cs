@@ -578,7 +578,7 @@ namespace NeoCompose.Runtime.NeoScript
                 case ReferencePointer rp:
                     return $"reference {rp.valueId}";
                 case CallNativeFunctionPointer cnfp:
-                    return $"nativeCall {cnfp.attributeId}";
+                    return $"nativeCall {cnfp.attributeId ?? cnfp.memberKey}";
                 default:
                     return pointer.GetType().Name;
             }
@@ -613,7 +613,73 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 args[i] = EvalPointer(pointer.args[i], scope, ctx);
             }
-            return ctx.client.InvokeNativeFunction(pointer.attributeId, receiver, args);
+            string attributeId = ResolveNativeFunctionAttributeId(
+                pointer,
+                receiver,
+                ctx);
+            return ctx.client.InvokeNativeFunction(attributeId, receiver, args);
+        }
+
+        internal static string ResolveNativeFunctionAttributeId(
+            CallNativeFunctionPointer pointer,
+            object? receiver,
+            Context ctx)
+        {
+            string? schemaKey = pointer.memberKey;
+            if (string.IsNullOrEmpty(schemaKey)
+                && !string.IsNullOrEmpty(pointer.attributeId))
+            {
+                var placement = CustomTypeInheritance.FindSchemaPlacement(
+                    pointer.attributeId!,
+                    EnumerateTypes(ctx.client));
+                if (placement is null) return pointer.attributeId!;
+                schemaKey = placement.schemaKey;
+            }
+            if (string.IsNullOrEmpty(schemaKey))
+            {
+                throw new NSGetterRuntimeError(
+                    "Native Function call is missing both attributeId and memberKey.");
+            }
+
+            string? runtimeTypeId = FindRowTypeIdByReference(receiver, ctx);
+            if (string.IsNullOrEmpty(runtimeTypeId))
+            {
+                if (!string.IsNullOrEmpty(pointer.attributeId))
+                {
+                    return pointer.attributeId!;
+                }
+                throw new NSGetterRuntimeError(
+                    $"Cannot resolve interface Function member '{schemaKey}' because the receiver has no runtime custom type.");
+            }
+
+            IList<CustomType> chain;
+            try
+            {
+                chain = CustomTypeInheritance.ResolveChain(
+                    runtimeTypeId!,
+                    id => ctx.client.TryGetType(id, out CustomType? type)
+                        ? type
+                        : null);
+            }
+            catch (CircularInheritanceError)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Cannot resolve Function member '{schemaKey}' because runtime type '{runtimeTypeId}' has circular inheritance.");
+            }
+            foreach (MergedSchemaEntry entry in CustomTypeInheritance.MergeSchemas(chain))
+            {
+                if (entry.schemaKey != schemaKey) continue;
+                if (!ctx.client.TryResolveFunctionAttribute(
+                        entry.attributeId,
+                        out FunctionAttribute? function))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Runtime type '{runtimeTypeId}' member '{schemaKey}' is not a Function attribute.");
+                }
+                return function.id;
+            }
+            throw new NSGetterRuntimeError(
+                $"Runtime type '{runtimeTypeId}' does not implement Function member '{schemaKey}'.");
         }
 
         private static bool EvalNativeFunctionErrorCheck(
@@ -1703,6 +1769,18 @@ namespace NeoCompose.Runtime.NeoScript
                     }
                     return false;
                 }
+                case AttributeType.Interface:
+                {
+                    if (value is not IDictionary<string, object?>) return false;
+                    string? runtimeTypeId = FindRowTypeIdByReference(value, ctx);
+                    if (string.IsNullOrEmpty(runtimeTypeId)) return false;
+                    string interfaceId = (checkType as InterfaceTypeInfo)?.interfaceId ?? "";
+                    if (string.IsNullOrEmpty(interfaceId)) return false;
+                    return NeoInterfaceResolution.TypeImplements(
+                        runtimeTypeId!,
+                        interfaceId,
+                        ctx.client.ProjectDataForRuntime);
+                }
                 default: return false;
             }
         }
@@ -2175,25 +2253,7 @@ namespace NeoCompose.Runtime.NeoScript
 
         private static IEnumerable<CustomType> EnumerateTypes(NeoClient client)
         {
-            // The client doesn't expose its types map directly — the only
-            // enumeration path is to fetch by id. To support
-            // FindSchemaPlacement we need the full list. Walk via the
-            // attributes the client knows about and collect the unique
-            // typeIds they reference. Acceptable for the evaluator's
-            // purpose: every type referenced by a Custom attribute will
-            // appear, which is exactly the set FindSchemaPlacement needs.
-            var seen = new HashSet<string>();
-            foreach (var pair in EnumerateAllAttributes(client))
-            {
-                if (pair.Value is CustomAttribute ca)
-                {
-                    if (seen.Add(ca.customTypeId)
-                        && client.TryGetType(ca.customTypeId, out CustomType? t))
-                    {
-                        yield return t;
-                    }
-                }
-            }
+            foreach (CustomType type in client.types.Values) yield return type;
         }
 
         // Both EnumerateAllAttributes and EnumerateAllValues need access

@@ -1527,6 +1527,107 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void DirectDeferredFunction_ReturnsTaskWithCompletedValue()
+        {
+            var client = CreateClient();
+            NeoDeferredFunction<int>? pending = null;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    {
+                        pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                            deferred,
+                            "DeferredScore");
+                    },
+                });
+
+            System.Threading.Tasks.Task<int> task =
+                client.InvokeDeferredNativeFunction<int>(
+                    "attr-deferred-score",
+                    receiver: null,
+                    args: Array.Empty<object?>());
+
+            Assert.IsFalse(task.IsCompleted);
+            Assert.IsNotNull(pending);
+            pending!.Complete(42);
+            Assert.AreEqual(42, task.GetAwaiter().GetResult());
+        }
+
+        [Test]
+        public void DirectDeferredFunction_SynchronousHandlerExceptionFaultsTask()
+        {
+            var client = CreateClient();
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    ["attr-deferred-score"] = (_, _, _, _) =>
+                        throw new InvalidOperationException("direct boom"),
+                });
+
+            System.Threading.Tasks.Task<int> task =
+                client.InvokeDeferredNativeFunction<int>(
+                    "attr-deferred-score",
+                    receiver: null,
+                    args: Array.Empty<object?>());
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+                () => task.GetAwaiter().GetResult())!;
+            Assert.AreEqual("direct boom", exception.Message);
+        }
+
+        [Test]
+        public void DirectDeferredFunction_FailFaultsTask()
+        {
+            var client = CreateClient();
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                        deferred.Fail(new InvalidOperationException("deferred failed")),
+                });
+
+            System.Threading.Tasks.Task<int> task =
+                client.InvokeDeferredNativeFunction<int>(
+                    "attr-deferred-score",
+                    receiver: null,
+                    args: Array.Empty<object?>());
+
+            InvalidOperationException exception = Assert.Throws<InvalidOperationException>(
+                () => task.GetAwaiter().GetResult())!;
+            Assert.AreEqual("deferred failed", exception.Message);
+        }
+
+        [Test]
+        public void DirectDeferredFunction_ClientDisposeCancelsTaskAndHandle()
+        {
+            var client = CreateClient();
+            NeoDeferredFunction<int>? pending = null;
+            client.RegisterDeferredNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
+                {
+                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    {
+                        pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
+                            deferred,
+                            "DeferredScore");
+                    },
+                });
+            System.Threading.Tasks.Task<int> task =
+                client.InvokeDeferredNativeFunction<int>(
+                    "attr-deferred-score",
+                    receiver: null,
+                    args: Array.Empty<object?>());
+
+            client.Dispose();
+
+            Assert.IsTrue(task.IsCanceled);
+            Assert.IsNotNull(pending);
+            Assert.IsTrue(pending!.CancellationToken.IsCancellationRequested);
+            Assert.Throws<ObjectDisposedException>(() => pending.Complete(1));
+        }
+
+        [Test]
         public void ActionsNode_Pause_ConsecutivePausesRequireCurrentPause()
         {
             var client = CreateClient();

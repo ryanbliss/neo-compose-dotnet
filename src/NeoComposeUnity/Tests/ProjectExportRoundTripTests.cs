@@ -147,6 +147,194 @@ namespace NeoCompose.Tests
             Assert.AreEqual("param-t", generic.genericParamId);
         }
 
+        [Test]
+        public void TypeInfo_InterfaceRoundTripsReferencedId()
+        {
+            var source = new InterfaceTypeInfo
+            {
+                type = AttributeType.Interface,
+                required = true,
+                interfaceId = "interface-entity",
+            };
+
+            var roundTripped = (InterfaceTypeInfo)JsonConvert.DeserializeObject<TypeInfo>(
+                JsonConvert.SerializeObject(source))!;
+
+            Assert.AreEqual(AttributeType.Interface, roundTripped.type);
+            Assert.IsTrue(roundTripped.required);
+            Assert.AreEqual("interface-entity", roundTripped.interfaceId);
+        }
+
+        [Test]
+        public void InterfaceExport_RoundTripsMembersTypeInfoAndImplementsList()
+        {
+            Assert.AreEqual(22, (int)AttributeType.Interface);
+
+            var source = new ProjectData
+            {
+                interfaces = new Dictionary<string, Interface>
+                {
+                    ["interface-damageable"] = new Interface
+                    {
+                        id = "interface-damageable",
+                        projectId = "project",
+                        name = "IDamageable",
+                        members = new Dictionary<string, InterfaceMember>
+                        {
+                            ["Health"] = new InterfaceMember
+                            {
+                                kind = "property",
+                                typeInfo = new PrimitiveTypeInfo
+                                {
+                                    type = AttributeType.Int,
+                                    required = true,
+                                },
+                                settable = true,
+                            },
+                            ["FindTarget"] = new InterfaceMember
+                            {
+                                kind = "function",
+                                returnTypeInfo = new InterfaceTypeInfo
+                                {
+                                    type = AttributeType.Interface,
+                                    required = false,
+                                    interfaceId = "interface-damageable",
+                                },
+                                argumentTypes = new List<FunctionArgumentTypeInfo>
+                                {
+                                    new FunctionArgumentTypeInfo
+                                    {
+                                        name = "candidate",
+                                        type = AttributeType.Interface,
+                                        required = true,
+                                        interfaceId = "interface-damageable",
+                                    },
+                                },
+                                deferred = true,
+                            },
+                        },
+                        memberKeyOrder = new List<string> { "Health", "FindTarget" },
+                        extendsInterfaceIds = new List<string> { "interface-entity" },
+                        createdAt = 1000d,
+                        updatedAt = 2000d,
+                    },
+                },
+                types = new Dictionary<string, CustomType>
+                {
+                    ["type-enemy"] = new CustomType
+                    {
+                        id = "type-enemy",
+                        projectId = "project",
+                        name = "Enemy",
+                        schema = new Dictionary<string, string>(),
+                        implementsInterfaceIds = new List<string> { "interface-damageable" },
+                    },
+                },
+            };
+
+            var json = JsonConvert.SerializeObject(source);
+            var roundTripped = JsonConvert.DeserializeObject<ProjectData>(json)!;
+
+            var declaration = roundTripped.interfaces["interface-damageable"];
+            CollectionAssert.AreEqual(
+                new[] { "Health", "FindTarget" },
+                declaration.memberKeyOrder);
+            CollectionAssert.AreEqual(
+                new[] { "interface-entity" },
+                declaration.extendsInterfaceIds);
+            Assert.AreEqual(true, declaration.members["Health"].settable);
+
+            var function = declaration.members["FindTarget"];
+            Assert.AreEqual(true, function.deferred);
+            var returnType = (InterfaceTypeInfo)function.returnTypeInfo!;
+            Assert.AreEqual("interface-damageable", returnType.interfaceId);
+            Assert.AreEqual(
+                "interface-damageable",
+                function.argumentTypes![0].interfaceId);
+            CollectionAssert.AreEqual(
+                new[] { "interface-damageable" },
+                roundTripped.types["type-enemy"].implementsInterfaceIds);
+        }
+
+        [Test]
+        public void MissingInterfacesMap_DeserializesToEmptyDictionary()
+        {
+            var export = Deserialize(@"{
+  ""project"": {},
+  ""attributes"": {},
+  ""values"": {},
+  ""types"": {},
+  ""enums"": {}
+}");
+
+            Assert.IsNotNull(export.interfaces);
+            Assert.AreEqual(0, export.interfaces.Count);
+        }
+
+        [Test]
+        public void InterfaceMember_RejectsIncompleteAndUnsupportedSignatures()
+        {
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": ""function"",
+  ""returnTypeInfo"": { ""type"": 2, ""required"": true },
+  ""argumentTypes"": []
+}"));
+
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<InterfaceMember>(@"{
+  ""kind"": ""function"",
+  ""returnTypeInfo"": { ""type"": 2, ""required"": true },
+  ""argumentTypes"": [
+    {
+      ""name"": ""value"",
+      ""type"": 21,
+      ""required"": true,
+      ""ownerTypeId"": ""type-owner"",
+      ""genericParamId"": ""param-t""
+    }
+  ],
+  ""deferred"": false
+}"));
+        }
+
+        [Test]
+        public void CallNativeFunctionPointer_AcceptsExactlyOneTargetKind()
+        {
+            var concrete = (CallNativeFunctionPointer)JsonConvert.DeserializeObject<Pointer>(@"{
+  ""type"": ""callNativeFunction"",
+  ""attributeId"": ""attribute-function"",
+  ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
+  ""args"": []
+}")!;
+            Assert.AreEqual("attribute-function", concrete.attributeId);
+            Assert.IsNull(concrete.memberKey);
+
+            var dynamicMember = (CallNativeFunctionPointer)JsonConvert.DeserializeObject<Pointer>(@"{
+  ""type"": ""callNativeFunction"",
+  ""memberKey"": ""TakeDamage"",
+  ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
+  ""args"": []
+}")!;
+            Assert.IsNull(dynamicMember.attributeId);
+            Assert.AreEqual("TakeDamage", dynamicMember.memberKey);
+
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Pointer>(@"{
+  ""type"": ""callNativeFunction"",
+  ""attributeId"": ""attribute-function"",
+  ""memberKey"": ""TakeDamage"",
+  ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
+  ""args"": []
+}"));
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<CallNativeFunctionPointer>(@"{
+  ""type"": ""callNativeFunction"",
+  ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
+  ""args"": []
+}"));
+        }
+
         // --------------------------------------------------------------
         // Synthesized fixture — exercises every IR variant.
         // --------------------------------------------------------------
@@ -989,6 +1177,9 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Element", element.name);
             Assert.AreEqual("Fire", element.options["fire"].text);
             Assert.AreEqual("Ice", element.options["ice"].text);
+            CollectionAssert.AreEqual(
+                new[] { "fire", "ice" },
+                element.optionKeyOrder);
         }
 
         // --------------------------------------------------------------

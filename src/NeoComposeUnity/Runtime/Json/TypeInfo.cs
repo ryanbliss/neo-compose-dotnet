@@ -12,7 +12,7 @@ namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Abstract base for the TS-side <c>TNSTypeInfo</c> discriminated
-    /// union. Newtonsoft dispatches primitive, custom, generic, enum,
+    /// union. Newtonsoft dispatches primitive, custom, interface, generic, enum,
     /// collection, lookup, and unknown variants on the numeric
     /// <see cref="type"/> via {@link TypeInfoConverter}.
     /// </summary>
@@ -51,6 +51,15 @@ namespace NeoCompose.Runtime.Json
     {
         public string typeId = null!;
         public Dictionary<string, TypeInfo>? typeArguments;
+    }
+
+    /// <summary>
+    /// Custom-type interface type info. Carries the referenced interface id.
+    /// Mirrors the TS-side <c>INSTypeInfoInterface</c>.
+    /// </summary>
+    public class InterfaceTypeInfo : TypeInfo
+    {
+        public string interfaceId = null!;
     }
 
     /// <summary>
@@ -126,6 +135,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(PrimitiveTypeInfo);
                 case AttributeType.Custom:
                     return typeof(CustomTypeInfo);
+                case AttributeType.Interface:
+                    return typeof(InterfaceTypeInfo);
                 case AttributeType.Enum:
                     return typeof(EnumTypeInfo);
                 case AttributeType.List:
@@ -174,6 +185,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(PrimitiveTypeInfo);
                 case AttributeType.Custom:
                     return typeof(CustomTypeInfo);
+                case AttributeType.Interface:
+                    return typeof(InterfaceTypeInfo);
                 case AttributeType.Enum:
                     return typeof(EnumTypeInfo);
                 case AttributeType.List:
