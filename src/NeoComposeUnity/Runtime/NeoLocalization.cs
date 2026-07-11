@@ -21,6 +21,7 @@ namespace NeoCompose.Runtime
         private readonly string streamingAssetsRelativePath;
         private readonly Dictionary<string, ProjectLocalizationLocale> localeConfigByLocale = new();
         private readonly Dictionary<string, ProjectLocalizationLocaleFile> loadedLocales = new();
+        private readonly HashSet<string> warnedMissingTextIds = new();
 
         public string MainLocale { get; }
         public string CurrentLocale { get; private set; }
@@ -164,7 +165,10 @@ namespace NeoCompose.Runtime
                 return true;
             }
 
-            Debug.LogWarning($"Neo Compose localized text id '{textId}' was not found.");
+            if (warnedMissingTextIds.Add(textId))
+            {
+                Debug.LogWarning($"Neo Compose localized text id '{textId}' was not found.");
+            }
             return false;
         }
 

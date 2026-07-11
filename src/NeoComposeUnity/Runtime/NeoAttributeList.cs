@@ -328,13 +328,19 @@ namespace NeoCompose.Runtime
                 string importedValueId = client.ImportValueReference(
                     entryOwnership,
                     entryValue.valueId!,
-                    out bool sourceMoved);
+                    out bool sourceMoved,
+                    entryValueId);
+                if (importedValueId == entryValueId)
+                {
+                    return;
+                }
                 ArrayAttributeValue parentRow = EnsureWritableArray(nowIso);
                 parentRow.value![index] = importedValueId;
                 parentRow.updatedAt = nowIso;
                 client.SetWritableValue(ownership, parentRow);
                 value = parentRow;
-                client.RemoveWritableValueAndDescendantsIfUnlinked(entryOwnership, entryValueId);
+                client.RemoveWritableValueAndDescendantsIfUnlinked(
+                    entryOwnership, entryValueId, entryAttribute);
                 childAttributes[index].Dispose();
                 childAttributes[index] = CreateChild(client, entryAttribute, importedValueId);
                 if (sourceMoved)
@@ -426,7 +432,8 @@ namespace NeoCompose.Runtime
             // GC the orphaned value graph from the writable store.
             NeoValueOwnership entryOwnership =
                 client.DeclaredOwnership(entryAttribute) ?? ownership;
-            client.RemoveWritableValueAndDescendantsIfUnlinked(entryOwnership, removedValueId);
+            client.RemoveWritableValueAndDescendantsIfUnlinked(
+                entryOwnership, removedValueId, entryAttribute);
             NotifyListChanged(new NeoListChangedArgs(
                 NeoListChangeKind.Remove,
                 removedValueIds: new[] { removedValueId }));
@@ -469,7 +476,8 @@ namespace NeoCompose.Runtime
             {
                 client.RemoveWritableValueAndDescendantsIfUnlinked(
                     entryOwnership,
-                    removedValueId);
+                    removedValueId,
+                    entryAttribute);
             }
 
             NotifyListChanged(new NeoListChangedArgs(
@@ -733,7 +741,8 @@ namespace NeoCompose.Runtime
                     client.SetWritableValue(ownership, containerRow);
                     value = containerRow;
                 }
-                client.RemoveWritableValueAndDescendantsIfUnlinked(entryOwnership, entryValueId);
+                client.RemoveWritableValueAndDescendantsIfUnlinked(
+                    entryOwnership, entryValueId, entryAttribute);
                 return;
             }
 
@@ -744,7 +753,8 @@ namespace NeoCompose.Runtime
             }
             if (client.TryGetWritableValue(entryOwnership, entryValueId, out AttributeValue? _))
             {
-                client.RemoveWritableValueAndDescendants(entryOwnership, entryValueId);
+                client.RemoveWritableValueAndDescendants(
+                    entryOwnership, entryValueId, entryAttribute);
                 return;
             }
             // The member lives in a lower overlay (e.g. session removal of a

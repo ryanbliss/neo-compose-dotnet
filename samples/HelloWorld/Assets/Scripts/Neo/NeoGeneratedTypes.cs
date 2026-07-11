@@ -1028,6 +1028,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyConsoleObject Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ConsoleObject writable);
@@ -1072,6 +1074,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ConsoleObject' without a concrete client type id."),
                 };
             });
+        }
+
+        public new ConsoleObject Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyConsoleObject IReadOnlyConsoleObject.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -1176,6 +1188,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyBootGlyphTile : IReadOnlyConsoleTile
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyBootGlyphTile Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -1300,6 +1314,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new BootGlyphTile(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new BootGlyphTile Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyBootGlyphTile IReadOnlyBootGlyphTile.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -1465,6 +1489,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyAnimationInfo Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out AnimationInfo writable);
@@ -1568,6 +1594,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        public AnimationInfo Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyAnimationInfo IReadOnlyAnimationInfo.Clone()
+        {
+            return Clone();
+        }
+
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
         {
             return base.TryWritable(out writable);
@@ -1662,6 +1698,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoTile Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoTile writable);
@@ -1718,6 +1756,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTile' without a concrete client type id."),
                 };
             });
+        }
+
+        public NeoTile Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoTile IReadOnlyNeoTile.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -1843,6 +1891,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyConsoleTile Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ConsoleTile writable);
@@ -1891,6 +1941,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ConsoleTile' without a concrete client type id."),
                 };
             });
+        }
+
+        public new ConsoleTile Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyConsoleTile IReadOnlyConsoleTile.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -1984,6 +2044,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyWorlds Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out Worlds writable);
@@ -2035,6 +2097,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new Worlds(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Worlds Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyWorlds IReadOnlyWorlds.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2106,6 +2178,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyRecoveryCacheObject : IReadOnlyConsoleObject
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyRecoveryCacheObject Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -2280,6 +2354,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new RecoveryCacheObject(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new RecoveryCacheObject Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyRecoveryCacheObject IReadOnlyRecoveryCacheObject.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2511,6 +2595,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyComputedText Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ComputedText writable);
@@ -2591,6 +2677,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new ComputedText(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public ComputedText Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyComputedText IReadOnlyComputedText.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2689,6 +2785,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoWorlds Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoWorlds writable);
@@ -2731,6 +2829,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoWorlds' without a concrete client type id."),
                 };
             });
+        }
+
+        public NeoWorlds Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoWorlds IReadOnlyNeoWorlds.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2839,6 +2947,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoObjectPlacementTile Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoObjectPlacementTile writable);
@@ -2901,6 +3011,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoObjectPlacementTile(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoObjectPlacementTile Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoObjectPlacementTile IReadOnlyNeoObjectPlacementTile.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2972,6 +3092,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyNeoTileInstance : INeoValueReference
     {
         bool IsReadOnly { get; }
+
+        IReadOnlyNeoTileInstance Clone();
 
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -3049,6 +3171,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoTileInstance(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoTileInstance Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoTileInstance IReadOnlyNeoTileInstance.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -3151,6 +3283,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyAudio : INeoValueReference
     {
         bool IsReadOnly { get; }
+
+        IReadOnlyAudio Clone();
 
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -3277,6 +3411,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new Audio(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Audio Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyAudio IReadOnlyAudio.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -3433,6 +3577,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyBlockedPath Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out BlockedPath writable);
@@ -3579,6 +3725,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        public new BlockedPath Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyBlockedPath IReadOnlyBlockedPath.Clone()
+        {
+            return Clone();
+        }
+
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
         {
             return base.TryWritable(out writable);
@@ -3713,6 +3869,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyVoidTile Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out VoidTile writable);
@@ -3822,6 +3980,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new VoidTile(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new VoidTile Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyVoidTile IReadOnlyVoidTile.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -3969,6 +4137,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoDialogueMemory Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoDialogueMemory writable);
@@ -4067,6 +4237,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoDialogueMemory(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoDialogueMemory Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoDialogueMemory IReadOnlyNeoDialogueMemory.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4188,9 +4368,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         bool ShowRelic();
     }
 
-    public interface IReadOnlyOutpost : INeoValueReference
+    public interface IReadOnlyOutpost : INeoValueReference, IHasName
     {
         bool IsReadOnly { get; }
+
+        IReadOnlyOutpost Clone();
 
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -4204,7 +4386,7 @@ namespace HelloWorld.Assets.Scripts.Neo
 
         Sprite Image { get; }
 
-        string Name { get; }
+        new string Name { get; }
 
         Planet Planet { get; }
 
@@ -4217,7 +4399,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         bool ShowRelic();
     }
 
-    public partial class Outpost : NeoGeneratedCustomValue, IReadOnlyOutpost, IHasName
+    public partial class Outpost : NeoGeneratedCustomValue, IReadOnlyOutpost
     {
         internal Outpost(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "4c196697-4e08-4aeb-823f-322b353071ac", isReadOnly, inheritedStorageOwnership)
@@ -4302,6 +4484,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new Outpost(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Outpost Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyOutpost IReadOnlyOutpost.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4485,6 +4677,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyNeoObject Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoObject writable);
@@ -4547,6 +4741,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObject' without a concrete client type id."),
                 };
             });
+        }
+
+        public new NeoObject Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoObject IReadOnlyNeoObject.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4732,6 +4936,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoTextNodeMemory Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoTextNodeMemory writable);
@@ -4845,6 +5051,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoTextNodeMemory(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoTextNodeMemory Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoTextNodeMemory IReadOnlyNeoTextNodeMemory.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4978,6 +5194,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyExitPromptObject : IReadOnlyConsoleObject
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyExitPromptObject Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -5166,6 +5384,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new ExitPromptObject(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new ExitPromptObject Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyExitPromptObject IReadOnlyExitPromptObject.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -5400,6 +5628,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyItem Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out Item writable);
@@ -5491,6 +5721,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new Item(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Item Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyItem IReadOnlyItem.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -5587,6 +5827,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoSmartTileNeighbor Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoSmartTileNeighbor writable);
@@ -5677,6 +5919,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoSmartTileNeighbor(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoSmartTileNeighbor Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoSmartTileNeighbor IReadOnlyNeoSmartTileNeighbor.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -5779,6 +6031,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlySession Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out Session writable);
@@ -5841,6 +6095,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new Session(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Session Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlySession IReadOnlySession.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -5917,6 +6181,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoMemory Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoMemory writable);
@@ -5984,6 +6250,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoMemory(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoMemory Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoMemory IReadOnlyNeoMemory.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -6056,6 +6332,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyNeoLayerGroupBase Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoLayerGroupBase writable);
@@ -6096,6 +6374,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoLayerGroupBase' without a concrete client type id."),
                 };
             });
+        }
+
+        public new NeoLayerGroupBase Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoLayerGroupBase IReadOnlyNeoLayerGroupBase.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -6167,6 +6455,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlySealBarrierTile : IReadOnlyConsoleTile
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlySealBarrierTile Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -6277,6 +6567,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new SealBarrierTile(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new SealBarrierTile Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlySealBarrierTile IReadOnlySealBarrierTile.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -6424,6 +6724,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyLookupContainer Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out LookupContainer writable);
@@ -6505,6 +6807,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new LookupContainer(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public LookupContainer Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyLookupContainer IReadOnlyLookupContainer.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -6590,6 +6902,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyPlanetVisit Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out PlanetVisit writable);
@@ -6660,6 +6974,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new PlanetVisit(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public PlanetVisit Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyPlanetVisit IReadOnlyPlanetVisit.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -6752,6 +7076,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyNeoSpriteObject : IReadOnlyNeoObjectBase
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoSpriteObject Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -6851,6 +7177,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoSpriteObject(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new NeoSpriteObject Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoSpriteObject IReadOnlyNeoSpriteObject.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -6953,6 +7289,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyPlayerSpawnObject : IReadOnlyConsoleObject
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyPlayerSpawnObject Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -7115,6 +7453,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new PlayerSpawnObject(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new PlayerSpawnObject Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyPlayerSpawnObject IReadOnlyPlayerSpawnObject.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -7340,6 +7688,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoCollider Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoCollider writable);
@@ -7430,6 +7780,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoCollider(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoCollider Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoCollider IReadOnlyNeoCollider.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -7527,6 +7887,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoSmartTile Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoSmartTile writable);
@@ -7608,6 +7970,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoSmartTile(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoSmartTile Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoSmartTile IReadOnlyNeoSmartTile.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -7695,6 +8067,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyOutpostSaveData : INeoValueReference
     {
         bool IsReadOnly { get; }
+
+        IReadOnlyOutpostSaveData Clone();
 
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -7788,6 +8162,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new OutpostSaveData(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public OutpostSaveData Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyOutpostSaveData IReadOnlyOutpostSaveData.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -7910,6 +8294,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyLookupEntry Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out LookupEntry writable);
@@ -7973,6 +8359,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new LookupEntry(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public LookupEntry Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyLookupEntry IReadOnlyLookupEntry.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -8044,6 +8440,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlySaturnOutpost : IReadOnlyOutpost
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlySaturnOutpost Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -8143,6 +8541,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new SaturnOutpost(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new SaturnOutpost Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlySaturnOutpost IReadOnlySaturnOutpost.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -8272,6 +8680,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlySave : INeoValueReference
     {
         bool IsReadOnly { get; }
+
+        IReadOnlySave Clone();
 
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -8457,6 +8867,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new Save(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Save Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlySave IReadOnlySave.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -8660,6 +9080,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyArt Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out Art writable);
@@ -8797,6 +9219,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new Art(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Art Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyArt IReadOnlyArt.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -8974,6 +9406,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoTileLayer Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoTileLayer writable);
@@ -9016,6 +9450,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileLayer' without a concrete client type id."),
                 };
             });
+        }
+
+        public NeoTileLayer Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoTileLayer IReadOnlyNeoTileLayer.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -9112,6 +9556,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyJupiterOutpost : IReadOnlyOutpost
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyJupiterOutpost Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -9216,6 +9662,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new JupiterOutpost(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new JupiterOutpost Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyJupiterOutpost IReadOnlyJupiterOutpost.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -9359,6 +9815,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyHullPlatingTile Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out HullPlatingTile writable);
@@ -9468,6 +9926,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new HullPlatingTile(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new HullPlatingTile Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyHullPlatingTile IReadOnlyHullPlatingTile.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -9615,6 +10083,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoChoiceLog Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoChoiceLog writable);
@@ -9678,6 +10148,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoChoiceLog(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoChoiceLog Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoChoiceLog IReadOnlyNeoChoiceLog.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -9753,6 +10233,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyOldConsoleLandingGrid : IReadOnlyNeoTileGrid
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyOldConsoleLandingGrid Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -9911,6 +10393,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        public new OldConsoleLandingGrid Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyOldConsoleLandingGrid IReadOnlyOldConsoleLandingGrid.Clone()
+        {
+            return Clone();
+        }
+
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
         {
             return base.TryWritable(out writable);
@@ -10044,6 +10536,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyConsoleObjectLayer Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ConsoleObjectLayer writable);
@@ -10143,6 +10637,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        public new ConsoleObjectLayer Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyConsoleObjectLayer IReadOnlyConsoleObjectLayer.Clone()
+        {
+            return Clone();
+        }
+
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
         {
             return base.TryWritable(out writable);
@@ -10229,6 +10733,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyGlassFloorTile : IReadOnlyConsoleTile
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyGlassFloorTile Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -10339,6 +10845,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new GlassFloorTile(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new GlassFloorTile Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyGlassFloorTile IReadOnlyGlassFloorTile.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -10486,6 +11002,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoObjectLayer Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoObjectLayer writable);
@@ -10528,6 +11046,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectLayer' without a concrete client type id."),
                 };
             });
+        }
+
+        public NeoObjectLayer Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoObjectLayer IReadOnlyNeoObjectLayer.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -10624,6 +11152,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyVaultPlaqueObject : IReadOnlyConsoleObject
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyVaultPlaqueObject Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -10810,6 +11340,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new VaultPlaqueObject(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new VaultPlaqueObject Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyVaultPlaqueObject IReadOnlyVaultPlaqueObject.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -11023,6 +11563,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoSmartTileRule Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoSmartTileRule writable);
@@ -11189,6 +11731,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        public NeoSmartTileRule Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoSmartTileRule IReadOnlyNeoSmartTileRule.Clone()
+        {
+            return Clone();
+        }
+
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
         {
             return base.TryWritable(out writable);
@@ -11342,6 +11894,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyRedNovaWarningTile Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out RedNovaWarningTile writable);
@@ -11451,6 +12005,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new RedNovaWarningTile(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new RedNovaWarningTile Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyRedNovaWarningTile IReadOnlyRedNovaWarningTile.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -11597,6 +12161,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyQuestState : INeoValueReference
     {
         bool IsReadOnly { get; }
+
+        IReadOnlyQuestState Clone();
 
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -11746,6 +12312,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new QuestState(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public QuestState Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyQuestState IReadOnlyQuestState.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -11934,6 +12510,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyAssets Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out Assets writable);
@@ -12072,6 +12650,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new Assets(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Assets Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyAssets IReadOnlyAssets.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -12240,6 +12828,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyNeoTileLayerLink Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoTileLayerLink writable);
@@ -12356,6 +12946,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        public new NeoTileLayerLink Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoTileLayerLink IReadOnlyNeoTileLayerLink.Clone()
+        {
+            return Clone();
+        }
+
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
         {
             return base.TryWritable(out writable);
@@ -12464,6 +13064,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoTileGrid Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoTileGrid writable);
@@ -12522,6 +13124,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoTileGrid' without a concrete client type id."),
                 };
             });
+        }
+
+        public NeoTileGrid Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoTileGrid IReadOnlyNeoTileGrid.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -12686,6 +13298,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoObjectBase Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoObjectBase writable);
@@ -12742,6 +13356,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'NeoObjectBase' without a concrete client type id."),
                 };
             });
+        }
+
+        public NeoObjectBase Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoObjectBase IReadOnlyNeoObjectBase.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -12837,6 +13461,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyNeoObjectLayerLink : IReadOnlyNeoLayerGroupBase, INeoObjectLayerLinkValue
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyNeoObjectLayerLink Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -12955,6 +13581,16 @@ namespace HelloWorld.Assets.Scripts.Neo
             });
         }
 
+        public new NeoObjectLayerLink Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoObjectLayerLink IReadOnlyNeoObjectLayerLink.Clone()
+        {
+            return Clone();
+        }
+
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
         {
             return base.TryWritable(out writable);
@@ -13063,6 +13699,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoSortingLayer Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoSortingLayer writable);
@@ -13126,6 +13764,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new NeoSortingLayer(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoSortingLayer Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoSortingLayer IReadOnlyNeoSortingLayer.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -13197,6 +13845,8 @@ namespace HelloWorld.Assets.Scripts.Neo
     public interface IReadOnlyConsoleTileLayer : IReadOnlyNeoTileLayer
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyConsoleTileLayer Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -13295,6 +13945,16 @@ namespace HelloWorld.Assets.Scripts.Neo
                     _ => new ConsoleTileLayer(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new ConsoleTileLayer Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyConsoleTileLayer IReadOnlyConsoleTileLayer.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference

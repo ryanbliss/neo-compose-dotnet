@@ -210,13 +210,19 @@ namespace NeoCompose.Runtime
                     string importedValueId = client.ImportValueReference(
                         entryOwnership,
                         setValue.valueId!,
-                        out bool sourceMoved);
+                        out bool sourceMoved,
+                        existingValueId);
+                    if (importedValueId == existingValueId)
+                    {
+                        return;
+                    }
                     ObjectAttributeValue parentRow = EnsureWritableObject(nowIso);
                     parentRow.value![key] = importedValueId;
                     parentRow.updatedAt = nowIso;
                     client.SetWritableValue(ownership, parentRow);
                     value = parentRow;
-                    client.RemoveWritableValueAndDescendantsIfUnlinked(entryOwnership, existingValueId);
+                    client.RemoveWritableValueAndDescendantsIfUnlinked(
+                        entryOwnership, existingValueId, entryAttribute);
                     if (childAttributes.TryGetValue(key, out NeoAttribute? linkedOldChild))
                     {
                         linkedOldChild.Dispose();
@@ -321,7 +327,10 @@ namespace NeoCompose.Runtime
             // GC the orphaned value graph from the writable store. The
             // removed valueId may itself reference more child values
             // (e.g., the entry was a Custom record); the cascade walks them.
-            client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, removedValueId);
+            NeoValueOwnership entryOwnership =
+                client.DeclaredOwnership(entryAttribute) ?? ownership;
+            client.RemoveWritableValueAndDescendantsIfUnlinked(
+                entryOwnership, removedValueId, entryAttribute);
             NotifyChanged();
         }
 

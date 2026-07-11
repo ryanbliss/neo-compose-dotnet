@@ -263,6 +263,204 @@ namespace NeoCompose.Tests
             CollectionAssert.Contains(client.FindUnlinkedSaveValueIds(), addedId);
         }
 
+        [Test]
+        public void Reachability_LiveOverlayMoveDoesNotRetainAuthoredContainerMembership()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            client.AddSaveValue("item-a", new ObjectAttributeValue
+            {
+                id = "item-a",
+                typeId = ItemTypeId,
+                containerId = NullItemsListValueId,
+                value = new Dictionary<string, string>(),
+            });
+
+            CollectionAssert.Contains(client.FindUnlinkedSaveValueIds(), "item-a",
+                "the live overlay row replaces its authored container stamp; "
+                + "its new null container cannot keep it reachable");
+        }
+
+        [Test]
+        public void CloneValueReference_UsesIndexedMembersOfWritableOnlySessionContainer()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            client.SetWritableValue(NeoValueOwnership.Session, new ObjectAttributeValue
+            {
+                id = "session-bag",
+                typeId = BagTypeId,
+                value = new Dictionary<string, string>
+                {
+                    ["Items"] = "session-items",
+                },
+            });
+            client.SetWritableValue(NeoValueOwnership.Session, new ArrayAttributeValue
+            {
+                id = "session-items",
+                value = System.Array.Empty<string>(),
+            });
+            client.SetWritableValue(NeoValueOwnership.Session, new ObjectAttributeValue
+            {
+                id = "session-item",
+                typeId = ItemTypeId,
+                containerId = "session-items",
+                value = new Dictionary<string, string>(),
+            });
+
+            string clonedBagId = client.CloneValueReference(
+                "session-bag",
+                NeoValueOwnership.Session);
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session,
+                clonedBagId,
+                out ObjectAttributeValue? clonedBag));
+            string clonedItemsId = clonedBag!.value!["Items"];
+            string clonedItemId = client.GetUnorderedListEntryIds(clonedItemsId).Single();
+            Assert.AreNotEqual("session-items", clonedItemsId);
+            Assert.AreNotEqual("session-item", clonedItemId);
+        }
+
+        [Test]
+        public void CloneValueReference_ClonesNestedUnorderedMembersAcrossAuthoredAndSaveLayers()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var attributes =
+                (Dictionary<string, NeoCompose.Runtime.Json.Attribute>)client.attributes;
+            attributes["nested-items-attribute"] = new ListAttribute
+            {
+                id = "nested-items-attribute",
+                name = "Nested",
+                type = AttributeType.List,
+                entryAttributeId = "nested-entry-attribute",
+                listKind = NeoListKinds.Unordered,
+            };
+            attributes["nested-entry-attribute"] = new StringAttribute
+            {
+                id = "nested-entry-attribute",
+                name = "Nested entry",
+                type = AttributeType.String,
+            };
+            var types = (Dictionary<string, CustomType>)client.types;
+            types[ItemTypeId].schema!["Nested"] = "nested-items-attribute";
+            var authored = (Dictionary<string, AttributeValue>)client.values;
+            ((ObjectAttributeValue)authored["item-a"]).value!["Nested"] = "nested-a";
+            ((ObjectAttributeValue)authored["item-b"]).value!["Nested"] = "nested-b";
+            client.AddSaveValue("nested-a", new ArrayAttributeValue
+            {
+                id = "nested-a", value = System.Array.Empty<string>(),
+            });
+            client.AddSaveValue("nested-b", new ArrayAttributeValue
+            {
+                id = "nested-b", value = System.Array.Empty<string>(),
+            });
+            client.AddSaveValue("nested-a-member", new StringAttributeValue
+            {
+                id = "nested-a-member", containerId = "nested-a", value = "a",
+            });
+            client.AddSaveValue("nested-b-member", new StringAttributeValue
+            {
+                id = "nested-b-member", containerId = "nested-b", value = "b",
+            });
+
+            // Overlay subtraction and addition must both be respected by the
+            // exact Save graph clone.
+            client.AddSaveValue("item-a", new NullAttributeValue
+            {
+                id = "item-a", mark = NeoValueMarks.Removed,
+            });
+            client.AddSaveValue("item-c", new ObjectAttributeValue
+            {
+                id = "item-c",
+                typeId = ItemTypeId,
+                containerId = ItemsListValueId,
+                value = new Dictionary<string, string> { ["Nested"] = "nested-c" },
+            });
+            client.AddSaveValue("nested-c", new ArrayAttributeValue
+            {
+                id = "nested-c", value = System.Array.Empty<string>(),
+            });
+            client.AddSaveValue("nested-c-member", new StringAttributeValue
+            {
+                id = "nested-c-member", containerId = "nested-c", value = "c",
+            });
+
+            string clonedBagId = client.CloneValueReference("bag-value", NeoValueOwnership.Save);
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session,
+                clonedBagId,
+                out ObjectAttributeValue? clonedBag));
+            string clonedItemsId = clonedBag!.value!["Items"];
+            var clonedItemIds = client.GetUnorderedListEntryIds(clonedItemsId).ToArray();
+            Assert.AreEqual(2, clonedItemIds.Length,
+                "the Save tombstone subtracts item-a while item-b and overlay item-c clone");
+            CollectionAssert.DoesNotContain(clonedItemIds, "item-b");
+            CollectionAssert.DoesNotContain(clonedItemIds, "item-c");
+
+            var nestedValues = new List<string>();
+            foreach (string clonedItemId in clonedItemIds)
+            {
+                Assert.IsTrue(client.TryGetValue(
+                    NeoValueOwnership.Session,
+                    clonedItemId,
+                    out ObjectAttributeValue? clonedItem));
+                string clonedNestedId = clonedItem!.value!["Nested"];
+                Assert.AreNotEqual("nested-b", clonedNestedId);
+                Assert.AreNotEqual("nested-c", clonedNestedId);
+                string clonedNestedMemberId =
+                    client.GetUnorderedListEntryIds(clonedNestedId).Single();
+                Assert.IsTrue(client.TryGetValue(
+                    NeoValueOwnership.Session,
+                    clonedNestedMemberId,
+                    out StringAttributeValue? clonedNestedMember));
+                nestedValues.Add(clonedNestedMember!.value!);
+            }
+            CollectionAssert.AreEquivalent(new[] { "b", "c" }, nestedValues);
+        }
+
+        [Test]
+        public void Reachability_DeepNestedUnorderedContainersTraversesEachIndexedLevel()
+        {
+            var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
+            var attributes =
+                (Dictionary<string, NeoCompose.Runtime.Json.Attribute>)client.attributes;
+            attributes["deep-list-attribute"] = new ListAttribute
+            {
+                id = "deep-list-attribute",
+                name = "Nested",
+                type = AttributeType.List,
+                entryAttributeId = "item-entry-attribute",
+                listKind = NeoListKinds.Unordered,
+            };
+            ((Dictionary<string, CustomType>)client.types)[ItemTypeId]
+                .schema!["Nested"] = "deep-list-attribute";
+            const int depth = 64;
+            string parentContainerId = ItemsListValueId;
+            for (int i = 0; i < depth; i++)
+            {
+                string memberId = $"deep-member-{i}";
+                string childContainerId = $"deep-container-{i}";
+                client.AddSaveValue(memberId, new ObjectAttributeValue
+                {
+                    id = memberId,
+                    typeId = ItemTypeId,
+                    containerId = parentContainerId,
+                    value = new Dictionary<string, string>
+                    {
+                        ["Nested"] = childContainerId,
+                    },
+                });
+                client.AddSaveValue(childContainerId, new ArrayAttributeValue
+                {
+                    id = childContainerId,
+                    value = System.Array.Empty<string>(),
+                });
+                parentContainerId = childContainerId;
+            }
+
+            // This scaling-shaped assertion exercises a long containment
+            // chain without relying on machine-specific wall-clock timing.
+            CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
+        }
+
         // ------------------------------------------------------------------
         // Fixture.
         // ------------------------------------------------------------------

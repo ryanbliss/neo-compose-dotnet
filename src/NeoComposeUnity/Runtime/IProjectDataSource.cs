@@ -4,6 +4,8 @@
 #nullable enable
 
 using System;
+using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace NeoCompose.Runtime
@@ -21,12 +23,25 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// A project data source backed by an in-hand JSON string. Useful for tests,
-    /// custom pipelines, and callers that already hold the export.
+    /// Optional fast path for project data sources that can safely reuse an already
+    /// parsed schema. A project schema is shared by every save opened from a project
+    /// store, so callers should treat the returned object as project-scoped data.
     /// </summary>
-    public sealed class NeoJsonProjectDataSource : IProjectDataSource
+    internal interface IParsedProjectDataSource
+    {
+        Awaitable<ProjectData> ReadProjectDataAsync();
+    }
+
+    /// <summary>
+    /// A project data source backed by an in-hand JSON string. Useful for tests,
+    /// custom pipelines, and callers that already hold the export. Reusing one
+    /// instance across project stores also reuses its parsed, project-scoped schema.
+    /// </summary>
+    public sealed class NeoJsonProjectDataSource : IProjectDataSource, IParsedProjectDataSource
     {
         private readonly string projectJson;
+        private readonly object parseLock = new object();
+        private ProjectData? parsedProjectData;
 
         public NeoJsonProjectDataSource(string projectJson)
         {
@@ -39,6 +54,17 @@ namespace NeoCompose.Runtime
         }
 
         public Awaitable<string> ReadProjectJsonAsync() => NeoAwaitable.FromResult(projectJson);
+
+        Awaitable<ProjectData> IParsedProjectDataSource.ReadProjectDataAsync()
+        {
+            lock (parseLock)
+            {
+                parsedProjectData ??= JsonConvert.DeserializeObject<ProjectData>(projectJson)
+                    ?? throw new InvalidOperationException(
+                        "Neo Compose project JSON could not be deserialized.");
+                return NeoAwaitable.FromResult(parsedProjectData);
+            }
+        }
     }
 
     /// <summary>

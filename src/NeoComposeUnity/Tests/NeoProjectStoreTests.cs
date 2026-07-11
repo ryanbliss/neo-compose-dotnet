@@ -70,6 +70,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task ReusedJsonDataSource_ReusesParsedProjectSchemaAcrossStores()
+        {
+            var source = new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson);
+            var first = new NeoProjectStore(
+                dataSource: source,
+                localStore: new NeoInMemoryLocalSaveStore());
+            var second = new NeoProjectStore(
+                dataSource: source,
+                localStore: new NeoInMemoryLocalSaveStore());
+
+            try
+            {
+                await first.LoadAsync();
+                await second.LoadAsync();
+
+                Assert.AreSame(
+                    first.Schema,
+                    second.Schema,
+                    "One immutable JSON data source should deserialize its project schema only once.");
+            }
+            finally
+            {
+                second.Dispose();
+                first.Dispose();
+            }
+        }
+
+        [Test]
         public async Task Commit_ThroughSynchronizer_KeepsListInSync()
         {
             var local = new NeoInMemoryLocalSaveStore();

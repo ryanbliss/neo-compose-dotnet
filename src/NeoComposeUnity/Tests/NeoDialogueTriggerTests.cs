@@ -43,6 +43,21 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void CanTrigger_WithDialogueId_DoesNotMaterializeRuntimeDialogue()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+
+            Assert.IsTrue(root.CanTrigger("dialogue-direct"));
+            Assert.AreEqual(0, client.ActiveDialogueCount);
+
+            Assert.IsTrue(root.TryTrigger("dialogue-direct", out NeoDialogue dialogue));
+            Assert.AreEqual(1, client.ActiveDialogueCount);
+            dialogue.Dispose();
+            Assert.AreEqual(0, client.ActiveDialogueCount);
+        }
+
+        [Test]
         public void NeoDialogueReference_Bound_TryTrigger_ReturnsDialogue()
         {
             var client = CreateClient();
@@ -147,6 +162,41 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void StandardGroupCanTrigger_ParitiesSelectionWithoutMaterializingDialogue()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            var group = new TestStandardDialogueGroup(root, "group-standard");
+
+            Assert.IsTrue(group.CanTrigger());
+            Assert.AreEqual(0, client.ActiveDialogueCount);
+        }
+
+        [Test]
+        public void StandardGroupCanTrigger_DoesNotConsumeRankingRandomness()
+        {
+            var randomCalls = 0;
+            var client = CreateClient();
+            var root = new TestDialogues(
+                client,
+                new NeoDialogueRuntimeOptions
+                {
+                    RandomDouble = () =>
+                    {
+                        randomCalls += 1;
+                        return 0;
+                    },
+                });
+            var group = new TestStandardDialogueGroup(root, "group-visits");
+
+            Assert.IsTrue(group.CanTrigger());
+            Assert.AreEqual(0, randomCalls);
+            Assert.IsTrue(group.TryTrigger(out NeoDialogueTriggerResult result));
+            Assert.AreEqual(1, randomCalls);
+            result.Dialogue!.Dispose();
+        }
+
+        [Test]
         public void StandardGroupTryTrigger_PrefersHigherPriorityBucket()
         {
             var client = CreateClient();
@@ -213,6 +263,18 @@ namespace NeoCompose.Tests
             Assert.AreEqual("dialogue-lookup-b", result.Dialogue!.Id);
             Assert.AreEqual("lookup-value-b", ((TestLookupValue)result.Dialogue.Context.Trigger!).valueId);
             Assert.IsNull(result.Dialogue.Context.Primary);
+        }
+
+        [Test]
+        public void LookupGroupCanTrigger_UsesLookupIndexWithoutMaterializingDialogue()
+        {
+            var client = CreateClient();
+            var root = new TestDialogues(client);
+            var group = new TestLookupDialogueGroup(root, "group-lookup");
+
+            Assert.IsTrue(group.CanTrigger(new TestLookupValue("lookup-value-b")));
+            Assert.IsFalse(group.CanTrigger(new TestLookupValue("lookup-value-missing")));
+            Assert.AreEqual(0, client.ActiveDialogueCount);
         }
 
         [Test]

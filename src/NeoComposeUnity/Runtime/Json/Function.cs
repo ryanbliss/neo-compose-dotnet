@@ -29,6 +29,17 @@ namespace NeoCompose.Runtime.Json
     // Mirrors TS-side INSFunctionCollection*Info family.
 
     /// <summary>
+    /// Info for the intrinsic Custom.Clone operation. The exact constructed
+    /// Custom type is carried on the wire so this never masquerades as a
+    /// schema Function attribute.
+    /// </summary>
+    public class FunctionCustomCloneInfo
+    {
+        public Pointer receiverPointer = null!;
+        public CustomTypeInfo customTypeInfo = null!;
+    }
+
+    /// <summary>
     /// Info shape for <c>select</c>: collection + projection function.
     /// Mirrors TS-side <c>INSFunctionCollectionSelectInfo</c>.
     /// </summary>
@@ -137,6 +148,11 @@ namespace NeoCompose.Runtime.Json
 
     // ---------- Per-function variants ----------
 
+    public class CustomCloneFunction : Function
+    {
+        public FunctionCustomCloneInfo info = null!;
+    }
+
     public class SelectFunction : Function
     {
         public FunctionCollectionSelectInfo info = null!;
@@ -198,6 +214,7 @@ namespace NeoCompose.Runtime.Json
         {
             switch (discriminator.Value<string>())
             {
+                case FunctionKind.CustomClone: return typeof(CustomCloneFunction);
                 case FunctionKind.Select: return typeof(SelectFunction);
                 case FunctionKind.First: return typeof(FirstFunction);
                 case FunctionKind.FirstOrDefault: return typeof(FirstOrDefaultFunction);
