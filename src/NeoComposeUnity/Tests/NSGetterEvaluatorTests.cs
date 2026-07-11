@@ -125,6 +125,113 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void Json_CustomCloneFunctionIR_DeserializesExactCustomType()
+        {
+            var pointer = JsonConvert.DeserializeObject<Pointer>(
+                @"{
+                    ""type"": ""function"",
+                    ""function"": {
+                        ""type"": ""customClone"",
+                        ""info"": {
+                            ""receiverPointer"": {
+                                ""type"": ""variable"",
+                                ""variableId"": ""__this__""
+                            },
+                            ""customTypeInfo"": {
+                                ""type"": 7,
+                                ""required"": true,
+                                ""typeId"": ""type-hero""
+                            }
+                        }
+                    }
+                }");
+
+            Assert.IsInstanceOf<FunctionPointer>(pointer);
+            var clone = ((FunctionPointer)pointer!).function as CustomCloneFunction;
+            Assert.IsNotNull(clone);
+            Assert.AreEqual("type-hero", clone!.info.customTypeInfo.typeId);
+            Assert.IsTrue(clone.info.customTypeInfo.required);
+        }
+
+        [Test]
+        public void Evaluate_CustomClone_ReturnsFreshParentlessSessionValue()
+        {
+            var client = LoadClient();
+            var sourceRow = new ObjectAttributeValue
+            {
+                id = "clone-source",
+                typeId = "type-hero",
+                createdAt = "x",
+                updatedAt = "x",
+                value = new Dictionary<string, string>(),
+            };
+            client.SetSaveValue(sourceRow);
+            var context = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null,
+                valueOwnership: NeoValueOwnership.Save);
+            var source = NSGetterEvaluator.UnwrapRow(
+                sourceRow,
+                context,
+                NeoValueOwnership.Save);
+            var getter = new FunctionWithReturnType
+            {
+                parameters = System.Array.Empty<Variable>(),
+                typeInfo = new CustomTypeInfo
+                {
+                    type = AttributeType.Custom,
+                    required = true,
+                    typeId = "type-hero",
+                },
+                instructions = new Instruction[]
+                {
+                    new ReturnInstruction
+                    {
+                        type = InstructionKind.Return,
+                        pointer = new FunctionPointer
+                        {
+                            type = PointerKind.Function,
+                            function = new CustomCloneFunction
+                            {
+                                type = FunctionKind.CustomClone,
+                                info = new FunctionCustomCloneInfo
+                                {
+                                    receiverPointer = new VariablePointer
+                                    {
+                                        type = PointerKind.Variable,
+                                        variableId = "__this__",
+                                    },
+                                    customTypeInfo = new CustomTypeInfo
+                                    {
+                                        type = AttributeType.Custom,
+                                        required = true,
+                                        typeId = "type-hero",
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            };
+
+            var result = NSGetterEvaluator.Evaluate(
+                getter,
+                context.WithThis(source));
+            string? cloneId = NSGetterEvaluator.FindRowIdByReference(
+                result,
+                context);
+
+            Assert.IsNotNull(cloneId);
+            Assert.AreNotEqual(sourceRow.id, cloneId);
+            Assert.IsTrue(client.TryGetValueOwnership(
+                cloneId!,
+                out NeoValueOwnership ownership));
+            Assert.AreEqual(NeoValueOwnership.Session, ownership);
+            Assert.AreEqual(0, sourceRow.value!.Count);
+        }
+
+        [Test]
         public void Evaluate_CallNativeFunction_InvokesRegisteredBridge()
         {
             var client = LoadClient();

@@ -328,7 +328,12 @@ namespace NeoCompose.Runtime
                 string importedValueId = client.ImportValueReference(
                     entryOwnership,
                     entryValue.valueId!,
-                    out bool sourceMoved);
+                    out bool sourceMoved,
+                    entryValueId);
+                if (importedValueId == entryValueId)
+                {
+                    return;
+                }
                 ArrayAttributeValue parentRow = EnsureWritableArray(nowIso);
                 parentRow.value![index] = importedValueId;
                 parentRow.updatedAt = nowIso;

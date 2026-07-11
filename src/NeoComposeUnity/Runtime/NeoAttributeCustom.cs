@@ -670,7 +670,12 @@ namespace NeoCompose.Runtime
                     string importedValueId = client.ImportValueReference(
                         childOwnership,
                         setValue.valueId!,
-                        out bool sourceMoved);
+                        out bool sourceMoved,
+                        existingValueId);
+                    if (importedValueId == existingValueId)
+                    {
+                        return;
+                    }
                     ObjectAttributeValue record = EnsureWritableObject(nowIso);
                     record.value![key] = importedValueId;
                     record.updatedAt = nowIso;

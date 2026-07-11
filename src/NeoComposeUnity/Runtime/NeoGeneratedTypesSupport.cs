@@ -884,6 +884,56 @@ namespace NeoCompose.Runtime
                     value);
         }
 
+        /// <summary>
+        /// Deep-clones a generated Custom value into a new parentless Session
+        /// graph. The returned writable node preserves the source's runtime
+        /// Custom type while every owned row has a fresh value id.
+        /// </summary>
+        public static NeoAttributeCustomWritable CloneCustomValue(
+            NeoClient client,
+            INeoValueReference source)
+        {
+            if (source is null || string.IsNullOrEmpty(source.valueId))
+            {
+                throw new ArgumentNullException(
+                    nameof(source),
+                    "Cannot clone a Custom value without a backing value id.");
+            }
+            NeoValueOwnership sourceOwnership = source is NeoGeneratedCustomValue generated
+                ? generated.ValueOwnership
+                : (client.TryGetValueOwnership(source.valueId!, out var inferredOwnership)
+                    ? inferredOwnership
+                    : NeoValueOwnership.Asset);
+            string clonedValueId = client.CloneValueReference(
+                source.valueId!,
+                sourceOwnership);
+            if (!client.TryGetValue(clonedValueId, out ObjectAttributeValue? clone))
+            {
+                throw new InvalidOperationException(
+                    $"Cloned Custom value '{clonedValueId}' has no object value row.");
+            }
+            string? clonedTypeId = ResolveCustomValueTypeId(client, clonedValueId, clone);
+            if (string.IsNullOrEmpty(clonedTypeId))
+            {
+                throw new InvalidOperationException(
+                    $"Cloned Custom value '{clonedValueId}' has no resolvable runtime typeId.");
+            }
+            var factoryAttribute = new CustomAttribute
+            {
+                id = $"__neo_clone_custom_{clonedTypeId}",
+                name = "Clone",
+                type = AttributeType.Custom,
+                customTypeId = clonedTypeId!,
+                createdAt = clone.createdAt,
+                updatedAt = clone.updatedAt,
+            };
+            return new NeoAttributeCustomWritable(
+                client,
+                factoryAttribute,
+                clonedValueId,
+                NeoValueOwnership.Session);
+        }
+
         public static void SetValue(
             NeoAttributeCustomWritable node,
             string key,

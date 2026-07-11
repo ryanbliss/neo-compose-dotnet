@@ -79,6 +79,7 @@ namespace NeoCompose.Runtime.Json
 
     public static class FunctionKind
     {
+        public const string CustomClone = "customClone";
         public const string Select = "select";
         public const string First = "first";
         public const string FirstOrDefault = "firstOrDefault";

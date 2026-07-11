@@ -26,6 +26,7 @@ namespace NeoCompose.Runtime
         public string? typeId => node.value?.typeId ?? fallbackTypeId;
         public bool IsReadOnly { get; }
         internal NeoClient Client => client;
+        internal NeoValueOwnership ValueOwnership => node.ownership;
         internal NeoRenderBindingStore RenderBindings { get; } = new();
 
         protected NeoGeneratedCustomValue(

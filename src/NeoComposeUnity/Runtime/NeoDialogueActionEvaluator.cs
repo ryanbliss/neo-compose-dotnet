@@ -748,6 +748,25 @@ namespace NeoCompose.Runtime
             return !string.IsNullOrEmpty(valueId);
         }
 
+        private static string ImportCustomValueReference(
+            NeoClient client,
+            NeoValueOwnership ownership,
+            string sourceValueId,
+            string? currentDestinationValueId = null)
+        {
+            try
+            {
+                return client.ImportValueReference(
+                    ownership,
+                    sourceValueId,
+                    currentDestinationValueId);
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new NSGetterRuntimeError(ex.Message);
+            }
+        }
+
         private static TypeInfo AttributeTypeInfo(JsonAttribute attribute)
         {
             return attribute switch
@@ -1209,7 +1228,13 @@ namespace NeoCompose.Runtime
                             ctx,
                             out string? referenceId))
                     {
-                        parent.value[key] = client.ImportValueReference(ownership, referenceId!);
+                        string importedId = ImportCustomValueReference(
+                            client,
+                            ownership,
+                            referenceId!,
+                            existingId);
+                        if (importedId == existingId) return;
+                        parent.value[key] = importedId;
                         parent.updatedAt = now;
                         client.SetWritableValue(ownership, parent);
                         client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, existingId);
@@ -1227,7 +1252,10 @@ namespace NeoCompose.Runtime
                             ctx,
                             out string? referenceId))
                     {
-                        parent.value[key] = client.ImportValueReference(ownership, referenceId!);
+                        parent.value[key] = ImportCustomValueReference(
+                            client,
+                            ownership,
+                            referenceId!);
                         parent.updatedAt = now;
                         client.SetWritableValue(ownership, parent);
                         return;
@@ -1339,7 +1367,13 @@ namespace NeoCompose.Runtime
                         ctx,
                         out string? referenceId))
                 {
-                    parent.value[index] = client.ImportValueReference(ownership, referenceId!);
+                    string importedId = ImportCustomValueReference(
+                        client,
+                        ownership,
+                        referenceId!,
+                        childId);
+                    if (importedId == childId) return;
+                    parent.value[index] = importedId;
                     parent.updatedAt = DateTime.UtcNow.ToString("o");
                     client.SetWritableValue(ownership, parent);
                     client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, childId);
@@ -1409,7 +1443,10 @@ namespace NeoCompose.Runtime
                         {
                             var referencedNext = new string[row.value.Length + 1];
                             Array.Copy(row.value, referencedNext, row.value.Length);
-                            referencedNext[row.value.Length] = client.ImportValueReference(ownership, referenceId!);
+                            referencedNext[row.value.Length] = ImportCustomValueReference(
+                                client,
+                                ownership,
+                                referenceId!);
                             row.value = referencedNext;
                             row.updatedAt = now;
                             client.SetWritableValue(ownership, row);
@@ -1629,7 +1666,13 @@ namespace NeoCompose.Runtime
                             ctx,
                             out string? referenceId))
                     {
-                        row.value[key] = client.ImportValueReference(ownership, referenceId!);
+                        string importedId = ImportCustomValueReference(
+                            client,
+                            ownership,
+                            referenceId!,
+                            existingId);
+                        if (importedId == existingId) return;
+                        row.value[key] = importedId;
                         row.updatedAt = now;
                         client.SetWritableValue(ownership, row);
                         client.RemoveWritableValueAndDescendantsIfUnlinked(ownership, existingId);
@@ -1654,7 +1697,10 @@ namespace NeoCompose.Runtime
                             ctx,
                             out string? referenceId))
                     {
-                        row.value[key] = client.ImportValueReference(ownership, referenceId!);
+                        row.value[key] = ImportCustomValueReference(
+                            client,
+                            ownership,
+                            referenceId!);
                         row.updatedAt = now;
                         client.SetWritableValue(ownership, row);
                         return;

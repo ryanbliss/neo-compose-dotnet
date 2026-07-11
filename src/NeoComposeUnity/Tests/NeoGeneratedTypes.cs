@@ -472,6 +472,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyHero Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out Hero writable);
@@ -640,6 +642,16 @@ namespace Assets.Scripts.Neo
                     _ => new Hero(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Hero Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyHero IReadOnlyHero.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -837,6 +849,8 @@ namespace Assets.Scripts.Neo
     public interface IReadOnlyRoot : INeoValueReference
     {
         bool IsReadOnly { get; }
+
+        IReadOnlyRoot Clone();
 
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -1044,6 +1058,16 @@ namespace Assets.Scripts.Neo
                     _ => new Root(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Root Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyRoot IReadOnlyRoot.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -1357,6 +1381,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlySampleTileInstance Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out SampleTileInstance writable);
@@ -1419,6 +1445,16 @@ namespace Assets.Scripts.Neo
                     _ => new SampleTileInstance(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public SampleTileInstance Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlySampleTileInstance IReadOnlySampleTileInstance.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -1496,6 +1532,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlySampleLayerGroupBase Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out SampleLayerGroupBase writable);
@@ -1532,6 +1570,16 @@ namespace Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleLayerGroupBase' without a concrete client type id."),
                 };
             });
+        }
+
+        public SampleLayerGroupBase Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlySampleLayerGroupBase IReadOnlySampleLayerGroupBase.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -1592,6 +1640,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlySampleTileLayerLink Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out SampleTileLayerLink writable);
@@ -1630,6 +1680,16 @@ namespace Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleTileLayerLink' without a concrete client type id."),
                 };
             });
+        }
+
+        public new SampleTileLayerLink Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlySampleTileLayerLink IReadOnlySampleTileLayerLink.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -1710,6 +1770,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlySampleBlockedPath Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out SampleBlockedPath writable);
@@ -1775,6 +1837,16 @@ namespace Assets.Scripts.Neo
                     _ => new SampleBlockedPath(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new SampleBlockedPath Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlySampleBlockedPath IReadOnlySampleBlockedPath.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -1847,6 +1919,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyStorageA Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out StorageA writable);
@@ -1915,6 +1989,16 @@ namespace Assets.Scripts.Neo
                     _ => new StorageA(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public StorageA Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyStorageA IReadOnlyStorageA.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2014,6 +2098,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyStorageB Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out StorageB writable);
@@ -2068,6 +2154,16 @@ namespace Assets.Scripts.Neo
                     _ => new StorageB(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public StorageB Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyStorageB IReadOnlyStorageB.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2150,6 +2246,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyStorageC Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out StorageC writable);
@@ -2218,6 +2316,16 @@ namespace Assets.Scripts.Neo
                     _ => new StorageC(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public StorageC Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyStorageC IReadOnlyStorageC.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2316,6 +2424,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyStorageD Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out StorageD writable);
@@ -2370,6 +2480,16 @@ namespace Assets.Scripts.Neo
                     _ => new StorageD(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public StorageD Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyStorageD IReadOnlyStorageD.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2452,6 +2572,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyStorageE Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out StorageE writable);
@@ -2520,6 +2642,16 @@ namespace Assets.Scripts.Neo
                     _ => new StorageE(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public StorageE Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyStorageE IReadOnlyStorageE.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2609,6 +2741,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyStorageF Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out StorageF writable);
@@ -2663,6 +2797,16 @@ namespace Assets.Scripts.Neo
                     _ => new StorageF(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public StorageF Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyStorageF IReadOnlyStorageF.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2736,6 +2880,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyStorageG Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out StorageG writable);
@@ -2798,6 +2944,16 @@ namespace Assets.Scripts.Neo
                     _ => new StorageG(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public StorageG Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyStorageG IReadOnlyStorageG.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -2870,6 +3026,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyBase Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out Base writable);
@@ -2937,6 +3095,16 @@ namespace Assets.Scripts.Neo
                     _ => new Base(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public Base Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyBase IReadOnlyBase.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -3014,6 +3182,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyDerived Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out Derived writable);
@@ -3089,6 +3259,16 @@ namespace Assets.Scripts.Neo
                     _ => new Derived(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new Derived Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyDerived IReadOnlyDerived.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -3170,6 +3350,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyOverride Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out Override writable);
@@ -3233,6 +3415,16 @@ namespace Assets.Scripts.Neo
                     _ => new Override(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new Override Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyOverride IReadOnlyOverride.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -3311,20 +3503,22 @@ namespace Assets.Scripts.Neo
         bool Run(int count);
     }
 
-    public interface IReadOnlyContractBase : INeoValueReference
+    public interface IReadOnlyContractBase : INeoValueReference, IContract
     {
         bool IsReadOnly { get; }
+
+        IReadOnlyContractBase Clone();
 
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ContractBase writable);
 
-        string? Title { get; }
+        new string? Title { get; }
 
-        bool Run(int count);
+        new bool Run(int count);
     }
 
-    public abstract partial class ContractBase : NeoGeneratedCustomValue, IReadOnlyContractBase, IContract
+    public abstract partial class ContractBase : NeoGeneratedCustomValue, IReadOnlyContractBase
     {
         internal ContractBase(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, "type-contract-base", isReadOnly, inheritedStorageOwnership)
@@ -3369,6 +3563,16 @@ namespace Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractBase' without a concrete client type id."),
                 };
             });
+        }
+
+        public ContractBase Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyContractBase IReadOnlyContractBase.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -3442,6 +3646,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyContractMiddle Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ContractMiddle writable);
@@ -3482,6 +3688,16 @@ namespace Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractMiddle' without a concrete client type id."),
                 };
             });
+        }
+
+        public new ContractMiddle Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyContractMiddle IReadOnlyContractMiddle.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -3548,6 +3764,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyContractChild Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ContractChild writable);
@@ -3611,6 +3829,16 @@ namespace Assets.Scripts.Neo
                     _ => new ContractChild(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new ContractChild Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyContractChild IReadOnlyContractChild.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -3709,6 +3937,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyContractDeepChild Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ContractDeepChild writable);
@@ -3770,6 +4000,16 @@ namespace Assets.Scripts.Neo
                     _ => new ContractDeepChild(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new ContractDeepChild Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyContractDeepChild IReadOnlyContractDeepChild.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -3838,6 +4078,8 @@ namespace Assets.Scripts.Neo
     public interface IReadOnlyContractExplicitChild : IReadOnlyContractBase
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyContractExplicitChild Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -3910,6 +4152,16 @@ namespace Assets.Scripts.Neo
                     _ => new ContractExplicitChild(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new ContractExplicitChild Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyContractExplicitChild IReadOnlyContractExplicitChild.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4009,6 +4261,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyContractNullChild Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ContractNullChild writable);
@@ -4061,6 +4315,16 @@ namespace Assets.Scripts.Neo
                     _ => new ContractNullChild(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new ContractNullChild Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyContractNullChild IReadOnlyContractNullChild.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4157,6 +4421,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyContractNullDeepChild Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out ContractNullDeepChild writable);
@@ -4205,6 +4471,16 @@ namespace Assets.Scripts.Neo
                     _ => new ContractNullDeepChild(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new ContractNullDeepChild Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyContractNullDeepChild IReadOnlyContractNullDeepChild.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4265,6 +4541,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyGenericPayload<P> Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         P Value { get; }
@@ -4303,6 +4581,16 @@ namespace Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericPayload' without a concrete client type id."),
                 };
             });
+        }
+
+        public GenericPayload<P> Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyGenericPayload<P> IReadOnlyGenericPayload<P>.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4386,6 +4674,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyGenericFloatPayload Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out GenericFloatPayload writable);
@@ -4443,6 +4733,16 @@ namespace Assets.Scripts.Neo
                     _ => new GenericFloatPayload(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new GenericFloatPayload Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyGenericFloatPayload IReadOnlyGenericFloatPayload.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4507,6 +4807,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyGenericStringPayload Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out GenericStringPayload writable);
@@ -4565,6 +4867,16 @@ namespace Assets.Scripts.Neo
                     _ => new GenericStringPayload(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new GenericStringPayload Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyGenericStringPayload IReadOnlyGenericStringPayload.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4635,6 +4947,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyGenericContract<T> Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         T Amount { get; }
@@ -4689,6 +5003,16 @@ namespace Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericContract' without a concrete client type id."),
                 };
             });
+        }
+
+        public GenericContract<T> Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyGenericContract<T> IReadOnlyGenericContract<T>.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -4796,6 +5120,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyGenericFloatContract Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out GenericFloatContract writable);
@@ -4882,6 +5208,16 @@ namespace Assets.Scripts.Neo
                     _ => new GenericFloatContract(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new GenericFloatContract Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyGenericFloatContract IReadOnlyGenericFloatContract.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -5054,6 +5390,8 @@ namespace Assets.Scripts.Neo
     {
         new bool IsReadOnly { get; }
 
+        new IReadOnlyGenericStringContract Clone();
+
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out GenericStringContract writable);
@@ -5142,6 +5480,16 @@ namespace Assets.Scripts.Neo
                     _ => new GenericStringContract(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new GenericStringContract Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyGenericStringContract IReadOnlyGenericStringContract.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -5314,6 +5662,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyGenericFunctionBox<B> Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
@@ -5346,6 +5696,16 @@ namespace Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionBox' without a concrete client type id."),
                 };
             });
+        }
+
+        public GenericFunctionBox<B> Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyGenericFunctionBox<B> IReadOnlyGenericFunctionBox<B>.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -5413,6 +5773,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyGenericFunctionContract<T> Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         T Subject { get; }
@@ -5461,6 +5823,16 @@ namespace Assets.Scripts.Neo
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionContract' without a concrete client type id."),
                 };
             });
+        }
+
+        public GenericFunctionContract<T> Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyGenericFunctionContract<T> IReadOnlyGenericFunctionContract<T>.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -5532,16 +5904,18 @@ namespace Assets.Scripts.Neo
             return WatchChanges(ChangedFieldReaders(), handler);
         }
     }
-    public interface IReadOnlyGenericFunctionHeroContract : IReadOnlyGenericFunctionContract<IReadOnlyHero>
+    public interface IReadOnlyGenericFunctionHeroContract : IReadOnlyGenericFunctionContract<IReadOnlyHero>, IHeroDeferredTransform
     {
         new bool IsReadOnly { get; }
+
+        new IReadOnlyGenericFunctionHeroContract Clone();
 
         new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out GenericFunctionHeroContract writable);
     }
 
-    public partial class GenericFunctionHeroContract : GenericFunctionContract<Hero>, IReadOnlyGenericFunctionHeroContract, IHeroDeferredTransform
+    public partial class GenericFunctionHeroContract : GenericFunctionContract<Hero>, IReadOnlyGenericFunctionHeroContract
     {
         internal GenericFunctionHeroContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
@@ -5585,6 +5959,16 @@ namespace Assets.Scripts.Neo
                     _ => new GenericFunctionHeroContract(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public new GenericFunctionHeroContract Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyGenericFunctionHeroContract IReadOnlyGenericFunctionHeroContract.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -5641,6 +6025,11 @@ namespace Assets.Scripts.Neo
                     $"Cannot invoke Function 'TransformBox' on {GetType().Name} {valueDescription} because FunctionHandler is not set.");
             }
             return FunctionHandler.TransformBox(value);
+        }
+
+        IReadOnlyGenericFunctionContract<IReadOnlyHero> IReadOnlyGenericFunctionContract<IReadOnlyHero>.Clone()
+        {
+            return (IReadOnlyGenericFunctionContract<IReadOnlyHero>)(object)Clone();
         }
 
         IReadOnlyHero IReadOnlyGenericFunctionContract<IReadOnlyHero>.Transform(IReadOnlyHero value)
@@ -5723,6 +6112,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoChoiceLog Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoChoiceLog writable);
@@ -5783,6 +6174,16 @@ namespace Assets.Scripts.Neo
                     _ => new NeoChoiceLog(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoChoiceLog Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoChoiceLog IReadOnlyNeoChoiceLog.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -5859,6 +6260,8 @@ namespace Assets.Scripts.Neo
     public interface IReadOnlyNeoTextNodeMemory : INeoValueReference
     {
         bool IsReadOnly { get; }
+
+        IReadOnlyNeoTextNodeMemory Clone();
 
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
@@ -5971,6 +6374,16 @@ namespace Assets.Scripts.Neo
                     _ => new NeoTextNodeMemory(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoTextNodeMemory Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoTextNodeMemory IReadOnlyNeoTextNodeMemory.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -6102,6 +6515,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoDialogueMemory Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoDialogueMemory writable);
@@ -6198,6 +6613,16 @@ namespace Assets.Scripts.Neo
                     _ => new NeoDialogueMemory(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoDialogueMemory Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoDialogueMemory IReadOnlyNeoDialogueMemory.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference
@@ -6312,6 +6737,8 @@ namespace Assets.Scripts.Neo
     {
         bool IsReadOnly { get; }
 
+        IReadOnlyNeoMemory Clone();
+
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
 
         bool TryWritable(out NeoMemory writable);
@@ -6379,6 +6806,16 @@ namespace Assets.Scripts.Neo
                     _ => new NeoMemory(client, node, false, node.ownership),
                 };
             });
+        }
+
+        public NeoMemory Clone()
+        {
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+        }
+
+        IReadOnlyNeoMemory IReadOnlyNeoMemory.Clone()
+        {
+            return Clone();
         }
 
         public new bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference

@@ -909,5 +909,294 @@ namespace NeoCompose.Tests
             Assert.AreEqual(NeoValueOwnership.Save, promotedOwnership);
             Assert.IsTrue(app.SerializeSaveData().Contains("Transient Hero"));
         }
+
+        [Test]
+        public void CustomAssignment_SameSessionStoreRequiresParentlessValueAndAllowsSelfRebind()
+        {
+            var app = LoadGeneratedClient(out _);
+            var hero = new Hero(Name: "Session-owned", Health: 4);
+            string sourceId = hero.valueId!;
+
+            app.Session.Heroes.Add(hero);
+            Assert.AreEqual(sourceId, app.Session.Heroes[app.Session.Heroes.Count - 1]!.valueId);
+
+            int index = app.Session.Heroes.Count - 1;
+            Assert.DoesNotThrow(() => app.Session.Heroes[index] = hero);
+
+            var ex = Assert.Throws<System.InvalidOperationException>(
+                () => app.Session.Heroes.Add(hero))!;
+            StringAssert.Contains(sourceId, ex.Message);
+            StringAssert.Contains(".Clone()", ex.Message);
+            Assert.AreEqual(sourceId, app.Session.Heroes[index]!.valueId);
+        }
+
+        [Test]
+        public void CustomAssignment_SameSaveStoreRejectsSecondParent()
+        {
+            var app = LoadGeneratedClient(out _);
+            var hero = new Hero(Name: "Save-owned", Health: 7);
+            string sourceId = hero.valueId!;
+
+            app.Save.Heroes.Add(hero); // parentless Session -> Save promotion
+            Assert.IsTrue(app.Client.TryGetValueOwnership(sourceId, out var ownership));
+            Assert.AreEqual(NeoValueOwnership.Save, ownership);
+
+            var ex = Assert.Throws<System.InvalidOperationException>(
+                () => app.Save.Heroes.Add(hero))!;
+            StringAssert.Contains(sourceId, ex.Message);
+            StringAssert.Contains("already owned", ex.Message);
+            StringAssert.Contains(".Clone()", ex.Message);
+        }
+
+        [Test]
+        public void GeneratedCustomPropertySetter_EnforcesOwnershipAndPreservesUnparentedId()
+        {
+            var app = LoadGeneratedClient(out _);
+            var source = new StorageB();
+            var firstDestination = new StorageA();
+            var secondDestination = new StorageA();
+            string sourceId = source.valueId!;
+
+            // SaveChild is explicitly Save-stamped, so assigning the
+            // parentless factory value promotes it while retaining its id.
+            firstDestination.SaveChild = source;
+            Assert.AreEqual(sourceId, firstDestination.SaveChild!.valueId);
+            Assert.IsTrue(app.Client.TryGetValueOwnership(sourceId, out var ownership));
+            Assert.AreEqual(NeoValueOwnership.Save, ownership);
+
+            Assert.DoesNotThrow(() => firstDestination.SaveChild = source);
+            Assert.AreEqual(sourceId, firstDestination.SaveChild!.valueId);
+            Assert.IsTrue(app.Client.TryGetValue(sourceId, out ObjectAttributeValue? _));
+
+            var ex = Assert.Throws<System.InvalidOperationException>(
+                () => secondDestination.SaveChild = source)!;
+            StringAssert.Contains(sourceId, ex.Message);
+            StringAssert.Contains(".Clone()", ex.Message);
+        }
+
+        [Test]
+        public void GeneratedClone_DeepCopiesOwnedCustomListAndDictionaryRows()
+        {
+            var app = LoadGeneratedClient(out _);
+            var source = new Hero(
+                Name: "Original",
+                Health: 11,
+                Path: new[]
+                {
+                    new NeoVector3(1, 2, 3),
+                    new NeoVector3(4, 5, 6),
+                },
+                ElementAffinity: new Dictionary<string, string?>
+                {
+                    ["Fire"] = "Hot",
+                    ["Water"] = "Cold",
+                });
+
+            // Add a runtime-only Lookup field so the clone assertion covers
+            // the crucial distinction between the owned Lookup row and its
+            // reference-style target ids.
+            const string lookupAttributeId = "attr-clone-lookup";
+            const string lookupValueId = "value-clone-lookup";
+            var attributes = (Dictionary<string, Attribute>)app.Client.attributes;
+            attributes[lookupAttributeId] = new LookupAttribute
+            {
+                id = lookupAttributeId,
+                name = "CloneLookup",
+                type = AttributeType.Lookup,
+                collectionAttributeId = "attr-heroes",
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-01T00:00:00.000Z",
+            };
+            var types = (Dictionary<string, CustomType>)app.Client.types;
+            types["type-hero"].schema!["CloneLookup"] = lookupAttributeId;
+            Assert.IsTrue(app.Client.TryGetValue(source.valueId!, out ObjectAttributeValue? writableSourceRoot));
+            writableSourceRoot!.value!["CloneLookup"] = lookupValueId;
+            app.Client.SetWritableValue(NeoValueOwnership.Session, writableSourceRoot);
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ArrayAttributeValue
+            {
+                id = lookupValueId,
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-01T00:00:00.000Z",
+                value = new[] { "asset-reference-a", "asset-reference-b" },
+            });
+
+            var clone = source.Clone();
+            Assert.AreNotEqual(source.valueId, clone.valueId);
+            Assert.IsTrue(app.Client.TryGetValueOwnership(clone.valueId!, out var cloneOwnership));
+            Assert.AreEqual(NeoValueOwnership.Session, cloneOwnership);
+
+            Assert.IsTrue(app.Client.TryGetValue(source.valueId!, out ObjectAttributeValue? sourceRoot));
+            Assert.IsTrue(app.Client.TryGetValue(clone.valueId!, out ObjectAttributeValue? cloneRoot));
+            CollectionAssert.AreEquivalent(sourceRoot!.value!.Keys, cloneRoot!.value!.Keys);
+            foreach (string key in sourceRoot.value.Keys)
+            {
+                Assert.AreNotEqual(
+                    sourceRoot.value[key],
+                    cloneRoot.value[key],
+                    $"owned row for '{key}' must receive a fresh id");
+            }
+
+            string sourcePathId = sourceRoot.value["Path"];
+            string clonePathId = cloneRoot.value["Path"];
+            Assert.IsTrue(app.Client.TryGetValue(sourcePathId, out ArrayAttributeValue? sourcePath));
+            Assert.IsTrue(app.Client.TryGetValue(clonePathId, out ArrayAttributeValue? clonePath));
+            Assert.AreEqual(sourcePath!.value!.Length, clonePath!.value!.Length);
+            for (int i = 0; i < sourcePath.value.Length; i++)
+            {
+                Assert.AreNotEqual(sourcePath.value[i], clonePath.value[i]);
+            }
+
+            string sourceDictionaryId = sourceRoot.value["ElementAffinity"];
+            string cloneDictionaryId = cloneRoot.value["ElementAffinity"];
+            Assert.IsTrue(app.Client.TryGetValue(sourceDictionaryId, out ObjectAttributeValue? sourceDictionary));
+            Assert.IsTrue(app.Client.TryGetValue(cloneDictionaryId, out ObjectAttributeValue? cloneDictionary));
+            foreach (string key in sourceDictionary!.value!.Keys)
+            {
+                Assert.AreNotEqual(sourceDictionary.value[key], cloneDictionary!.value![key]);
+            }
+
+            string cloneLookupId = cloneRoot.value["CloneLookup"];
+            Assert.AreNotEqual(lookupValueId, cloneLookupId);
+            Assert.IsTrue(app.Client.TryGetValue(cloneLookupId, out ArrayAttributeValue? cloneLookup));
+            CollectionAssert.AreEqual(
+                new[] { "asset-reference-a", "asset-reference-b" },
+                cloneLookup!.value,
+                "Lookup selections remain references rather than cloned owned children");
+
+            clone.Name = "Clone";
+            Assert.AreEqual("Original", source.Name);
+            Assert.AreEqual("Clone", clone.Name);
+            Assert.DoesNotThrow(() => app.Session.Heroes.Add(clone));
+            Assert.AreEqual(clone.valueId, app.Session.Heroes[app.Session.Heroes.Count - 1]!.valueId);
+        }
+
+        [Test]
+        public void CloneValueReference_RejectsStaticOnlyRuntimeType()
+        {
+            var app = LoadGeneratedClient(out _);
+            const string typeId = "type-test-static-clone";
+            const string valueId = "value-test-static-clone";
+            var types = (Dictionary<string, CustomType>)app.Client.types;
+            types[typeId] = new CustomType
+            {
+                id = typeId,
+                name = "StaticClone",
+                allowedStorage = "static",
+                schema = new Dictionary<string, string>(),
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-01T00:00:00.000Z",
+            };
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectAttributeValue
+            {
+                id = valueId,
+                typeId = typeId,
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-01T00:00:00.000Z",
+                value = new Dictionary<string, string>(),
+            });
+
+            var ex = Assert.Throws<System.InvalidOperationException>(
+                () => app.Client.CloneValueReference(valueId))!;
+            StringAssert.Contains(valueId, ex.Message);
+            StringAssert.Contains("static-only", ex.Message);
+        }
+
+        [Test]
+        public void OwnedParentDetection_InspectsSaveAndSessionRowsWithTheSameIdIndependently()
+        {
+            var app = LoadGeneratedClient(out _);
+            const string parentTypeId = "type-parent-detection-probe";
+            const string childAttributeId = "attr-parent-detection-child";
+            const string parentValueId = "value-parent-detection-shared";
+            const string childValueId = "value-parent-detection-child";
+            var now = "1970-01-01T00:00:00.000Z";
+
+            var attributes = (Dictionary<string, Attribute>)app.Client.attributes;
+            attributes[childAttributeId] = new CustomAttribute
+            {
+                id = childAttributeId,
+                name = "Child",
+                type = AttributeType.Custom,
+                customTypeId = "type-hero",
+                storage = "save",
+                createdAt = now,
+                updatedAt = now,
+            };
+            var types = (Dictionary<string, CustomType>)app.Client.types;
+            types[parentTypeId] = new CustomType
+            {
+                id = parentTypeId,
+                name = "ParentDetectionProbe",
+                schema = new Dictionary<string, string> { ["Child"] = childAttributeId },
+                createdAt = now,
+                updatedAt = now,
+            };
+
+            app.Client.SetWritableValue(NeoValueOwnership.Save, new ObjectAttributeValue
+            {
+                id = childValueId,
+                typeId = "type-hero",
+                createdAt = now,
+                updatedAt = now,
+                value = new Dictionary<string, string>(),
+            });
+            app.Client.SetWritableValue(NeoValueOwnership.Save, new ObjectAttributeValue
+            {
+                id = parentValueId,
+                typeId = parentTypeId,
+                createdAt = now,
+                updatedAt = now,
+                value = new Dictionary<string, string> { ["Child"] = childValueId },
+            });
+            // Global TryGetValue resolves this Session row first; it
+            // intentionally has no child edge and must not hide the Save row.
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectAttributeValue
+            {
+                id = parentValueId,
+                typeId = parentTypeId,
+                createdAt = now,
+                updatedAt = now,
+                value = new Dictionary<string, string>(),
+            });
+
+            Assert.IsTrue(app.Client.TryFindOwnedParent(
+                NeoValueOwnership.Save,
+                childValueId,
+                out string? detectedParent));
+            Assert.AreEqual(parentValueId, detectedParent);
+
+            string clonedSaveParentId = app.Client.CloneValueReference(
+                parentValueId,
+                NeoValueOwnership.Save);
+            Assert.IsTrue(app.Client.TryGetValue(
+                NeoValueOwnership.Session,
+                clonedSaveParentId,
+                out ObjectAttributeValue? clonedSaveParent));
+            Assert.IsTrue(
+                clonedSaveParent!.value!.ContainsKey("Child"),
+                "explicit clone must use the requested Save row, not the same-id Session row");
+            Assert.AreNotEqual(childValueId, clonedSaveParent.value["Child"]);
+        }
+
+        [Test]
+        public void OwnedParentDetection_AuthoredSaveRootIsNotHiddenBySameIdSessionRow()
+        {
+            var app = LoadGeneratedClient(out _);
+            string saveRootId = app.Client.save.value!.id;
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectAttributeValue
+            {
+                id = saveRootId,
+                typeId = app.Client.save.value!.typeId,
+                createdAt = "1970-01-01T00:00:00.000Z",
+                updatedAt = "1970-01-01T00:00:00.000Z",
+                value = new Dictionary<string, string>(),
+            });
+
+            Assert.IsTrue(app.Client.TryFindOwnedParent(
+                NeoValueOwnership.Save,
+                saveRootId,
+                out string? detectedParent));
+            StringAssert.StartsWith("attribute:", detectedParent);
+        }
     }
 }

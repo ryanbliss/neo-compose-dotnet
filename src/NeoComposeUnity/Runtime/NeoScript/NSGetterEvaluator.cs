@@ -1205,6 +1205,40 @@ namespace NeoCompose.Runtime.NeoScript
         {
             switch (fn)
             {
+                case CustomCloneFunction ccf:
+                {
+                    var receiver = EvalPointer(ccf.info.receiverPointer, scope, ctx);
+                    if (receiver is null)
+                    {
+                        throw new NSGetterRuntimeError(
+                            "Custom.Clone receiver is null; narrow or force-unwrap the optional value first.");
+                    }
+                    if (!TryFindRowReferenceByReference(receiver, ctx, out RowReference source))
+                    {
+                        throw new NSGetterRuntimeError(
+                            "Custom.Clone receiver has no backing value row.");
+                    }
+                    try
+                    {
+                        string cloneId = ctx.client.CloneValueReference(
+                            source.valueId,
+                            source.ownership);
+                        if (!ctx.client.TryGetValue(
+                                NeoValueOwnership.Session,
+                                cloneId,
+                                out AttributeValue? cloneRow))
+                        {
+                            throw new NSGetterRuntimeError(
+                                $"Custom.Clone created value '{cloneId}', but its Session row could not be read.");
+                        }
+                        return UnwrapCached(cloneRow, ctx, NeoValueOwnership.Session);
+                    }
+                    catch (InvalidOperationException error)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"Custom.Clone failed for value '{source.valueId}': {error.Message}");
+                    }
+                }
                 case VisitCountFunction vcf:
                 {
                     var pointer = EvalPointer(vcf.info.pointer, scope, ctx);
