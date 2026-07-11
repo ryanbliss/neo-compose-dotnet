@@ -29,6 +29,12 @@ namespace NeoCompose.Runtime.Json
         public string projectId = null!;
         public string name = null!;
         public Dictionary<string, EnumOption> options = null!;
+
+        /// <summary>
+        /// Authoritative display and generated-member order for
+        /// <see cref="options"/> keys.
+        /// </summary>
+        public List<string> optionKeyOrder = null!;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
     }

@@ -1177,6 +1177,9 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Element", element.name);
             Assert.AreEqual("Fire", element.options["fire"].text);
             Assert.AreEqual("Ice", element.options["ice"].text);
+            CollectionAssert.AreEqual(
+                new[] { "fire", "ice" },
+                element.optionKeyOrder);
         }
 
         // --------------------------------------------------------------

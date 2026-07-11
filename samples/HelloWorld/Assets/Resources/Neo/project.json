@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "schemaVersion": 4,
+        "schemaVersion": 5,
         "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
         "versionId": "56fbaae9-6c07-4260-a250-65a1ab0689cf",
         "semver": {
@@ -7284,7 +7284,12 @@
                 ],
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
             },
-            "updatedAt": 1782971224672
+            "updatedAt": 1782971224672,
+            "optionKeyOrder": [
+                "Animation",
+                "Random",
+                "Single"
+            ]
         },
         "576de38f-6c77-440d-91b3-95a19aad5e23": {
             "createdAt": 1777766675438,
@@ -7320,7 +7325,18 @@
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1778179604183
+            "updatedAt": 1778179604183,
+            "optionKeyOrder": [
+                "earth",
+                "jupiter",
+                "mars",
+                "mercury",
+                "neptune",
+                "pluto",
+                "saturn",
+                "uranus",
+                "venus"
+            ]
         },
         "6ff1b376-1b30-449d-8439-d822be95cec1": {
             "createdAt": 1782971224672,
@@ -7346,7 +7362,12 @@
                 ],
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
             },
-            "updatedAt": 1782971224672
+            "updatedAt": 1782971224672,
+            "optionKeyOrder": [
+                "Grid",
+                "None",
+                "Sprite"
+            ]
         },
         "9d3ef3f4-0823-412b-a2b6-97874739072d": {
             "createdAt": 1778179646588,
@@ -7361,7 +7382,11 @@
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1778179675026
+            "updatedAt": 1778179675026,
+            "optionKeyOrder": [
+                "enceladus",
+                "titan"
+            ]
         },
         "a2d44a04-35a6-4529-8fd2-f54a55cf518b": {
             "createdAt": 1778178771572,
@@ -7382,7 +7407,13 @@
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1778178828320
+            "updatedAt": 1778178828320,
+            "optionKeyOrder": [
+                "callisto",
+                "europa",
+                "ganymede",
+                "io"
+            ]
         },
         "a5c2a3f4-f91a-4878-bec0-a38b432ad762": {
             "createdAt": 1781246186689,
@@ -7409,7 +7440,15 @@
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1781246186689
+            "updatedAt": 1781246186689,
+            "optionKeyOrder": [
+                "arrival",
+                "ended",
+                "endgame",
+                "followTheWakes",
+                "threePaths",
+                "vaultOpen"
+            ]
         },
         "ba63d042-51c1-4bce-be70-d9848e6bb240": {
             "createdAt": 1782971224672,
@@ -7438,7 +7477,13 @@
                 ],
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
             },
-            "updatedAt": 1782971224672
+            "updatedAt": 1782971224672,
+            "optionKeyOrder": [
+                "InheritsFromType",
+                "NotInheritsFromType",
+                "NotThis",
+                "This"
+            ]
         },
         "d0b44688-28ab-44ba-b2a1-5cdad0f51e50": {
             "createdAt": 1781246186689,
@@ -7462,7 +7507,14 @@
                 }
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "updatedAt": 1781246186689
+            "updatedAt": 1781246186689,
+            "optionKeyOrder": [
+                "commentOut",
+                "goodbyeWorld",
+                "helloWorld",
+                "none",
+                "secondSun"
+            ]
         },
         "d97f73bc-656f-489f-86de-6cb874ca8181": {
             "createdAt": 1782980021067,
@@ -7497,7 +7549,15 @@
                 ],
                 "reason": "Locked world authoring system type required by the Neo Compose Tile Grid Builder."
             },
-            "updatedAt": 1782980021067
+            "updatedAt": 1782980021067,
+            "optionKeyOrder": [
+                "Fixed",
+                "MirrorX",
+                "MirrorXY",
+                "MirrorY",
+                "Rotated",
+                "RotatedMirror"
+            ]
         }
     },
     "interfaces": {

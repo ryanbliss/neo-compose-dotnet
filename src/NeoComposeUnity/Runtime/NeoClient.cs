@@ -545,19 +545,19 @@ namespace NeoCompose.Runtime
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
             // Metadata is optional (test fixtures, hand-built exports). Schema
-            // version 4 adds the custom-type interface contract required by
+            // Version 5 adds explicit enum option ordering required by
             // the current runtime. Older exports are structurally incompatible
             // and must be re-exported.
             if (metadata is null) return;
-            if (metadata.schemaVersion < 4)
+            if (metadata.schemaVersion < 5)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} predates custom-type interfaces (this SDK requires 4). Re-export the project from the current web app.");
+                    $"Project export schema version {metadata.schemaVersion} predates explicit enum option ordering (this SDK requires 5). Re-export the project from the current web app.");
             }
-            if (metadata.schemaVersion > 4)
+            if (metadata.schemaVersion > 5)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (4). Update the NeoCompose SDK.");
+                    $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (5). Update the NeoCompose SDK.");
             }
         }
 
