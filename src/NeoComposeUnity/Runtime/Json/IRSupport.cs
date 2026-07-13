@@ -91,6 +91,13 @@ namespace NeoCompose.Runtime.Json
         public const string VectorConstructor = "vectorConstructor";
         public const string StringOp = "stringOp";
         public const string DecimalOp = "decimalOp";
+        public const string ListIndex = "listIndex";
+    }
+
+    public static class ListIndexKeyKind
+    {
+        public const string String = "string";
+        public const string Enum = "enum";
     }
 
     /// <summary>

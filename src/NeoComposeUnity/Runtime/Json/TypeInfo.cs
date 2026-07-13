@@ -90,6 +90,8 @@ namespace NeoCompose.Runtime.Json
     public class CollectionTypeInfo : TypeInfo
     {
         public TypeInfo entryTypeInfo = null!;
+        public string? keyEnumId;
+        public string? listAttributeId;
     }
 
     /// <summary>

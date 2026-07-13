@@ -614,6 +614,18 @@ namespace NeoCompose.Runtime
                 {
                     type = typeInfo.type,
                     required = typeInfo.required,
+                    keyEnumId = typeInfo switch
+                    {
+                        FunctionArgumentTypeInfo argument => argument.keyEnumId,
+                        CollectionTypeInfo collection => collection.keyEnumId,
+                        _ => null,
+                    },
+                    listAttributeId = typeInfo switch
+                    {
+                        FunctionArgumentTypeInfo argument => argument.listAttributeId,
+                        CollectionTypeInfo collection => collection.listAttributeId,
+                        _ => null,
+                    },
                     entryTypeInfo = ResolveInvocationTypeInfo(
                         client,
                         entryTypeInfo,
@@ -852,6 +864,8 @@ namespace NeoCompose.Runtime
             {
                 type = collection.type,
                 required = collection.required,
+                keyEnumId = (collection as DictionaryAttribute)?.keyEnumId,
+                listAttributeId = collection is ListAttribute ? collection.id : null,
                 entryTypeInfo = TypeInfoFromBindingAttribute(
                     client,
                     entryAttribute,

@@ -3,9 +3,12 @@
 
 #nullable enable
 
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using NeoCompose.Runtime.Json;
+using Attribute = NeoCompose.Runtime.Json.Attribute;
 
 namespace NeoCompose.Runtime
 {
@@ -22,6 +25,16 @@ namespace NeoCompose.Runtime
     {
         protected Attribute entryAttribute;
         protected List<NeoAttribute> childAttributes = new();
+        private Dictionary<string, NeoAttribute>? childrenByValueId;
+        private readonly Dictionary<string, NeoRawListIndex> derivedIndexes = new();
+
+        /// <summary>
+        /// Operation counters used by tests and development diagnostics to
+        /// verify that warm index lookup does not regress to a linear scan.
+        /// They deliberately count work rather than wall-clock time so the
+        /// signal is stable across Mono, IL2CPP, and CI hardware.
+        /// </summary>
+        internal NeoListIndexDiagnostics IndexDiagnostics { get; } = new();
 
         /// <summary>
         /// The (stamp-substituted) entry attribute children are constructed
@@ -44,6 +57,7 @@ namespace NeoCompose.Runtime
             entryAttribute = ResolveEntryAttribute();
             IsUnordered = client.IsUnorderedList(attribute);
             ReinitializeChildren();
+            client.OnValuePartitionChanged += HandleValuePartitionChanged;
         }
 
         public NeoAttributeList(NeoClient client, ListAttribute attribute, string? overrideValueId, NeoValueOwnership ownership = NeoValueOwnership.Asset)
@@ -52,6 +66,7 @@ namespace NeoCompose.Runtime
             entryAttribute = ResolveEntryAttribute();
             IsUnordered = client.IsUnorderedList(attribute);
             ReinitializeChildren();
+            client.OnValuePartitionChanged += HandleValuePartitionChanged;
         }
 
         protected virtual NeoAttribute CreateChild(
@@ -88,20 +103,151 @@ namespace NeoCompose.Runtime
 
         protected override void OnValueIdChainChanged()
         {
-            base.OnValueIdChainChanged();
+            value = valueData;
             // The newly-bound row may carry a genericBindings stamp the
             // construction-time row lacked (or vice versa) — re-substitute
             // the entry attribute before re-walking children.
             entryAttribute = ResolveEntryAttribute();
             ReinitializeChildren();
+            InvalidateAllIndexes();
+            NotifyListChanged(NeoListChangedArgs.Unknown, applyToIndexes: false);
         }
 
         public override void Dispose()
         {
             if (isDisposed) return;
-            foreach (var child in childAttributes) child.Dispose();
+            client.OnValuePartitionChanged -= HandleValuePartitionChanged;
+            foreach (var child in childAttributes)
+            {
+                child.OnChanged -= HandleChildChanged;
+                child.Dispose();
+            }
             childAttributes.Clear();
+            childrenByValueId?.Clear();
+            childrenByValueId = null;
+            derivedIndexes.Clear();
             base.Dispose();
+        }
+
+        private void HandleValuePartitionChanged(string _)
+        {
+            if (isDisposed) return;
+            // A partition may add/remove unordered members or rows below an
+            // ordered member while keeping the same stable ids. Force fresh
+            // child nodes so indexed fields cannot retain unloaded values.
+            foreach (NeoAttribute child in childAttributes)
+            {
+                child.OnChanged -= HandleChildChanged;
+                child.Dispose();
+            }
+            childAttributes = new List<NeoAttribute>();
+            entryAttribute = ResolveEntryAttribute();
+            ReinitializeChildren();
+            InvalidateAllIndexes();
+            NotifyListChanged(NeoListChangedArgs.Unknown, applyToIndexes: false);
+        }
+
+        /// <summary>
+        /// Looks up a materialized child by its stable value id. The map is
+        /// built lazily, then maintained with List membership changes.
+        /// </summary>
+        internal bool TryGetChildById(
+            string valueId,
+            [NotNullWhen(true)] out NeoAttribute? child)
+        {
+            if (valueId is null) throw new ArgumentNullException(nameof(valueId));
+            EnsureIdentityIndex();
+            IndexDiagnostics.IdentityLookupCount += 1;
+            return childrenByValueId!.TryGetValue(valueId, out child);
+        }
+
+        internal bool ContainsValueId(string valueId)
+        {
+            if (valueId is null) throw new ArgumentNullException(nameof(valueId));
+            EnsureIdentityIndex();
+            IndexDiagnostics.IdentityLookupCount += 1;
+            return childrenByValueId!.ContainsKey(valueId);
+        }
+
+        internal NeoRawListIndex GetDerivedIndex(string schemaKey, bool unique)
+        {
+            if (schemaKey is null) throw new ArgumentNullException(nameof(schemaKey));
+            ListIndexDefinition definition = ResolveIndexDefinition(schemaKey);
+            if (definition.unique != unique)
+            {
+                throw new InvalidOperationException(
+                    $"List index '{schemaKey}' on attribute '{attribute.id}' is declared "
+                    + $"{(definition.unique ? "unique" : "many")}, but the generated runtime view expects "
+                    + $"{(unique ? "unique" : "many")}.");
+            }
+            if (!derivedIndexes.TryGetValue(schemaKey, out NeoRawListIndex? index))
+            {
+                index = new NeoRawListIndex(this, definition);
+                derivedIndexes.Add(schemaKey, index);
+            }
+            return index;
+        }
+
+        private ListIndexDefinition ResolveIndexDefinition(string schemaKey)
+        {
+            ListAttribute? cursor = attribute;
+            var visited = new HashSet<string>();
+            while (cursor is not null && visited.Add(cursor.id))
+            {
+                if (cursor.indexes is not null)
+                {
+                    foreach (ListIndexDefinition definition in cursor.indexes)
+                    {
+                        if (definition is not null
+                            && string.Equals(definition.schemaKey, schemaKey, StringComparison.Ordinal))
+                        {
+                            return definition;
+                        }
+                    }
+                    // An explicit array is authoritative. Empty and absent
+                    // both mean no local indexes, but only absence inherits an
+                    // older export's fully-defined List declaration.
+                    break;
+                }
+                if (string.IsNullOrEmpty(cursor.extendsAttributeId)
+                    || !client.TryGetAttribute(cursor.extendsAttributeId, out ListAttribute? parent))
+                {
+                    break;
+                }
+                cursor = parent;
+            }
+            throw new KeyNotFoundException(
+                $"List attribute '{attribute.id}' has no declared index named '{schemaKey}'.");
+        }
+
+        internal void EnsureIdentityIndex()
+        {
+            if (childrenByValueId is not null) return;
+            var map = new Dictionary<string, NeoAttribute>(childAttributes.Count, StringComparer.Ordinal);
+            foreach (NeoAttribute child in childAttributes)
+            {
+                string id = EntryValueId(child);
+                IndexDiagnostics.IdentityBuildEntryCount += 1;
+                if (!map.TryAdd(id, child))
+                {
+                    throw new InvalidOperationException(
+                        $"List attribute '{attribute.id}' value '{value?.id ?? "<unbound>"}' "
+                        + $"contains duplicate entry value id '{id}'.");
+                }
+            }
+            childrenByValueId = map;
+            IndexDiagnostics.IdentityBuildCount += 1;
+        }
+
+        internal string EntryValueId(NeoAttribute child)
+        {
+            string? id = child.overrideValueId ?? child.value?.id;
+            if (string.IsNullOrEmpty(id))
+            {
+                throw new InvalidOperationException(
+                    $"Entry of List attribute '{attribute.id}' has no stable value id.");
+            }
+            return id!;
         }
 
         /// <summary>
@@ -140,7 +286,11 @@ namespace NeoCompose.Runtime
             var entryValueIds = ResolveEntryValueIds();
             if (value?.value is null)
             {
-                foreach (var child in previousChildren) child.Dispose();
+                foreach (var child in previousChildren)
+                {
+                    child.OnChanged -= HandleChildChanged;
+                    child.Dispose();
+                }
                 return;
             }
             for (int i = 0; i < entryValueIds.Count; i++)
@@ -158,16 +308,53 @@ namespace NeoCompose.Runtime
                         continue;
                     }
                 }
-                childAttributes.Add(CreateChild(client, entryAttribute, entryValueId));
+                NeoAttribute child = CreateChild(client, entryAttribute, entryValueId);
+                child.OnChanged += HandleChildChanged;
+                childAttributes.Add(child);
+                // Reconciliation may recreate a retained child at a new
+                // ordinal (notably unordered id-sorted membership). Keep an
+                // already-materialized identity map pointing at the live node;
+                // genuinely-added ids are inserted from the subsequent
+                // NeoListChangedArgs so duplicate detection remains central.
+                if (childrenByValueId is not null
+                    && childrenByValueId.ContainsKey(entryValueId))
+                {
+                    childrenByValueId[entryValueId] = child;
+                }
             }
             foreach (var child in previousChildren)
             {
-                if (child is not null) child.Dispose();
+                if (child is not null)
+                {
+                    child.OnChanged -= HandleChildChanged;
+                    child.Dispose();
+                }
             }
         }
 
-        protected void NotifyListChanged(NeoListChangedArgs change)
+        protected void HandleChildChanged(NeoAttribute changed)
         {
+            NeoAttribute? entry = changed;
+            while (entry is not null && entry.parent != this)
+            {
+                entry = entry.parent;
+            }
+            if (entry is null)
+            {
+                InvalidateDerivedIndexes();
+                NotifyListChanged(NeoListChangedArgs.Unknown, applyToIndexes: false);
+                return;
+            }
+            NotifyListChanged(new NeoListChangedArgs(
+                NeoListChangeKind.Set,
+                replacedValueIds: new[] { EntryValueId(entry) }));
+        }
+
+        protected void NotifyListChanged(
+            NeoListChangedArgs change,
+            bool applyToIndexes = true)
+        {
+            if (applyToIndexes) ApplyListChangeToIndexes(change);
             ActiveListChange = change ?? NeoListChangedArgs.Unknown;
             try
             {
@@ -177,6 +364,95 @@ namespace NeoCompose.Runtime
             {
                 ActiveListChange = null;
             }
+        }
+
+        private void ApplyListChangeToIndexes(NeoListChangedArgs change)
+        {
+            if (change.Kind == NeoListChangeKind.Unknown)
+            {
+                InvalidateAllIndexes();
+                return;
+            }
+
+            if (childrenByValueId is not null)
+            {
+                foreach (string removedId in change.RemovedValueIds)
+                {
+                    childrenByValueId.Remove(removedId);
+                }
+                if (change.Kind == NeoListChangeKind.Clear)
+                {
+                    childrenByValueId.Clear();
+                }
+                foreach (string addedId in change.AddedValueIds)
+                {
+                    NeoAttribute child = FindChildByIdLinear(addedId);
+                    if (!childrenByValueId.TryAdd(addedId, child))
+                    {
+                        throw new InvalidOperationException(
+                            $"List attribute '{attribute.id}' contains duplicate entry value id '{addedId}'.");
+                    }
+                }
+                foreach (string replacedId in change.ReplacedValueIds)
+                {
+                    childrenByValueId[replacedId] = FindChildByIdLinear(replacedId);
+                }
+            }
+
+            foreach (NeoRawListIndex index in derivedIndexes.Values)
+            {
+                foreach (string removedId in change.RemovedValueIds)
+                {
+                    index.RemoveEntry(removedId);
+                }
+                if (change.Kind == NeoListChangeKind.Clear)
+                {
+                    index.Clear();
+                }
+                foreach (string addedId in change.AddedValueIds)
+                {
+                    index.UpdateEntry(addedId);
+                }
+                foreach (string replacedId in change.ReplacedValueIds)
+                {
+                    index.UpdateEntry(replacedId);
+                }
+            }
+
+            if (change.Kind == NeoListChangeKind.Replace
+                && change.RemovedValueIds.Count == 0
+                && change.AddedValueIds.Count == 0
+                && change.ReplacedValueIds.Count == 0)
+            {
+                InvalidateAllIndexes();
+            }
+        }
+
+        private NeoAttribute FindChildByIdLinear(string valueId)
+        {
+            foreach (NeoAttribute child in childAttributes)
+            {
+                if (string.Equals(EntryValueId(child), valueId, StringComparison.Ordinal))
+                {
+                    return child;
+                }
+            }
+            throw new InvalidOperationException(
+                $"List attribute '{attribute.id}' reported added entry '{valueId}', but no child is materialized for it.");
+        }
+
+        private void InvalidateDerivedIndexes()
+        {
+            foreach (NeoRawListIndex index in derivedIndexes.Values)
+            {
+                index.Invalidate();
+            }
+        }
+
+        private void InvalidateAllIndexes()
+        {
+            childrenByValueId = null;
+            InvalidateDerivedIndexes();
         }
 
         protected Attribute ResolveEntryAttribute()
@@ -341,8 +617,13 @@ namespace NeoCompose.Runtime
                 value = parentRow;
                 client.RemoveWritableValueAndDescendantsIfUnlinked(
                     entryOwnership, entryValueId, entryAttribute);
-                childAttributes[index].Dispose();
-                childAttributes[index] = CreateChild(client, entryAttribute, importedValueId);
+                NeoAttribute previousChild = childAttributes[index];
+                previousChild.OnChanged -= HandleChildChanged;
+                previousChild.Dispose();
+                NeoAttribute replacementChild = CreateChild(
+                    client, entryAttribute, importedValueId);
+                replacementChild.OnChanged += HandleChildChanged;
+                childAttributes[index] = replacementChild;
                 if (sourceMoved)
                 {
                     entryValue.RetargetMovedReference(client, entryAttribute, importedValueId, entryOwnership);
@@ -376,8 +657,12 @@ namespace NeoCompose.Runtime
                 NeoGenericResolution.EnvFromStamp(value?.genericBindings));
             client.SetWritablePayloadRows(entryOwnership, entryValue?.value);
             client.SetWritableValue(entryOwnership, next);
-            childAttributes[index].Dispose();
-            childAttributes[index] = CreateChild(client, entryAttribute, entryValueId);
+            NeoAttribute replacedChild = childAttributes[index];
+            replacedChild.OnChanged -= HandleChildChanged;
+            replacedChild.Dispose();
+            NeoAttribute newChild = CreateChild(client, entryAttribute, entryValueId);
+            newChild.OnChanged += HandleChildChanged;
+            childAttributes[index] = newChild;
             NotifyListChanged(new NeoListChangedArgs(
                 NeoListChangeKind.Set,
                 replacedValueIds: new[] { entryValueId }));
@@ -426,6 +711,7 @@ namespace NeoCompose.Runtime
             // Dispose recursively disposes any descendants the entry
             // owned in the wrapper tree.
             NeoAttribute removedChild = childAttributes[index];
+            removedChild.OnChanged -= HandleChildChanged;
             removedChild.Dispose();
             childAttributes.RemoveAt(index);
 
@@ -466,6 +752,7 @@ namespace NeoCompose.Runtime
 
             foreach (var child in childAttributes)
             {
+                child.OnChanged -= HandleChildChanged;
                 child.Dispose();
             }
             childAttributes.Clear();
@@ -640,6 +927,7 @@ namespace NeoCompose.Runtime
 
             foreach (var child in childAttributes)
             {
+                child.OnChanged -= HandleChildChanged;
                 child.Dispose();
             }
             childAttributes.Clear();

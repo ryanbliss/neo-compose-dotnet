@@ -35,6 +35,9 @@ namespace NeoCompose.Runtime.NeoScript
     /// </summary>
     public static class NSGetterEvaluator
     {
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<
+            object, Dictionary<string, int>> ListIdentityIndexes = new();
+
         /// <summary>
         /// Per-evaluation context: the project, the bound
         /// <c>__this__</c> / <c>__root__</c> values, and a cycle-detection
@@ -884,10 +887,25 @@ namespace NeoCompose.Runtime.NeoScript
                     $"Cannot read property '{key}' of null");
             }
 
-            // List indexing: receiver is object?[]. Key is an int (or a
-            // numeric string).
+            // List indexing: numeric keys are positional; String keys are
+            // exact stable value ids (including numeric-looking strings).
             if (receiver is object?[] arr)
             {
+                if (key is string valueId)
+                {
+                    Dictionary<string, int> identity = ListIdentityIndexes.GetValue(
+                        arr,
+                        entries => BuildListIdentityIndex((object?[])entries));
+                    if (!identity.TryGetValue(valueId, out int valueIndex))
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"Value id '{valueId}' is not a member of this List");
+                    }
+                    return ResolveValueIfId(
+                        arr[valueIndex],
+                        ctx,
+                        FindRowOwnershipByReference(receiver, ctx));
+                }
                 int idx = ToIntKey(key);
                 if (idx < 0 || idx >= arr.Length)
                 {
@@ -932,6 +950,25 @@ namespace NeoCompose.Runtime.NeoScript
 
             throw new NSGetterRuntimeError(
                 $"Cannot index into {ReceiverTypeName(receiver)} with key '{key}'");
+        }
+
+        private static Dictionary<string, int> BuildListIdentityIndex(object?[] entries)
+        {
+            var index = new Dictionary<string, int>(entries.Length, StringComparer.Ordinal);
+            for (int i = 0; i < entries.Length; i++)
+            {
+                if (entries[i] is not string valueId)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Schema-backed List entry at position {i} has no stable String value id");
+                }
+                if (!index.TryAdd(valueId, i))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Schema-backed List contains duplicate value id '{valueId}'");
+                }
+            }
+            return index;
         }
 
         private enum DispatchKind { Ok, NoInfo }
@@ -1416,6 +1453,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return EvalDecimalOp(dof.info, scope, ctx);
                 case StringOpFunction sof:
                     return EvalStringOp(sof.info, scope, ctx);
+                case ListIndexFunction lif:
+                    return EvalListIndex(lif.info, scope, ctx);
                 case CountFunction cf:
                 {
                     var c = EvalPointer(cf.info.collectionPointer, scope, ctx);
@@ -1544,6 +1583,130 @@ namespace NeoCompose.Runtime.NeoScript
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown function kind {fn.GetType().Name}");
+            }
+        }
+
+        private static object? EvalListIndex(
+            FunctionListIndexInfo info,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            object? collection = EvalPointer(info.collectionPointer, scope, ctx);
+            if (collection is null)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Cannot use List index '{info.schemaKey}' on null");
+            }
+            collection = UnwrapGeneratedValue(collection, ctx);
+            if (collection is not object?[])
+            {
+                throw new NSGetterRuntimeError(
+                    $"List index '{info.schemaKey}' receiver is not a schema-backed List");
+            }
+            if (!TryFindRowReferenceByReference(collection, ctx, out RowReference row))
+            {
+                throw new NSGetterRuntimeError(
+                    $"List index '{info.schemaKey}' receiver has no backing value row");
+            }
+            if (!ctx.client.TryGetAttribute(info.listAttributeId, out ListAttribute? listAttribute))
+            {
+                throw new NSGetterRuntimeError(
+                    $"List index IR references missing List attribute '{info.listAttributeId}'");
+            }
+
+            NeoAttributeList listNode;
+            if (ctx.client.TryGetNode(
+                    info.listAttributeId,
+                    row.valueId,
+                    row.ownership,
+                    out NeoAttribute? existing)
+                && existing is NeoAttributeList existingList)
+            {
+                listNode = existingList;
+            }
+            else
+            {
+                NeoAttribute created = row.ownership == NeoValueOwnership.Asset
+                    ? NeoAttribute.Create(ctx.client, listAttribute, row.valueId)
+                    : NeoAttribute.CreateWritable(
+                        ctx.client,
+                        listAttribute,
+                        row.valueId,
+                        row.ownership);
+                if (created is not NeoAttributeList createdList)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"List index '{info.schemaKey}' could not materialize its runtime List node");
+                }
+                listNode = createdList;
+            }
+
+            if (info.keyKind != ListIndexKeyKind.String
+                && info.keyKind != ListIndexKeyKind.Enum)
+            {
+                throw new NSGetterRuntimeError(
+                    $"List index '{info.schemaKey}' has unknown key kind '{info.keyKind}'");
+            }
+
+            try
+            {
+                NeoRawListIndex index = listNode.GetDerivedIndex(info.schemaKey, info.unique);
+                index.ValidateKeyContract(info.keyKind, info.keyEnumId);
+                if (info.keyPointer is null)
+                {
+                    var view = new Dictionary<string, object?>();
+                    foreach (string indexedKey in index.Keys)
+                    {
+                        if (info.unique)
+                        {
+                            if (index.TryGetUnique(indexedKey, out string? valueId))
+                            {
+                                view[indexedKey] = ResolveValueIfId(
+                                    valueId,
+                                    ctx,
+                                    row.ownership);
+                            }
+                            continue;
+                        }
+                        IReadOnlyList<string> bucket = index.GetMany(indexedKey);
+                        var bucketIds = new object?[bucket.Count];
+                        for (int i = 0; i < bucket.Count; i++)
+                        {
+                            bucketIds[i] = ResolveValueIfId(
+                                bucket[i],
+                                ctx,
+                                row.ownership);
+                        }
+                        view[indexedKey] = bucketIds;
+                    }
+                    return view;
+                }
+
+                object? key = EvalPointer(info.keyPointer, scope, ctx);
+                if (key is not string rawKey)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"List index '{info.schemaKey}' key must be a String or Enum option id");
+                }
+                if (info.unique)
+                {
+                    if (!index.TryGetUnique(rawKey, out string? valueId)) return null;
+                    return ResolveValueIfId(valueId, ctx, row.ownership);
+                }
+                IReadOnlyList<string> valueIds = index.GetMany(rawKey);
+                var result = new object?[valueIds.Count];
+                for (int i = 0; i < valueIds.Count; i++) result[i] = valueIds[i];
+                return result;
+            }
+            catch (InvalidOperationException error)
+            {
+                throw new NSGetterRuntimeError(
+                    $"List index '{info.schemaKey}' failed: {error.Message}");
+            }
+            catch (KeyNotFoundException error)
+            {
+                throw new NSGetterRuntimeError(
+                    $"List index '{info.schemaKey}' is stale: {error.Message}");
             }
         }
 

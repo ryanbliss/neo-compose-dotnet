@@ -93,6 +93,27 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// Info for a declared List index lookup. The schema provenance is
+    /// carried in IR so runtime evaluation does not depend on generated
+    /// wrapper types.
+    /// </summary>
+    public class FunctionListIndexInfo
+    {
+        public Pointer collectionPointer = null!;
+        public string listAttributeId = null!;
+        public string schemaKey = null!;
+        public bool unique;
+        /// <summary>One of <see cref="ListIndexKeyKind"/>.</summary>
+        public string keyKind = null!;
+        public string? keyEnumId;
+        /// <summary>
+        /// Present for direct keyed lookup; omitted when the declared index
+        /// is evaluated as a read-only Dictionary view.
+        /// </summary>
+        public Pointer? keyPointer;
+    }
+
+    /// <summary>
     /// Info shape for global dialogue-memory functions
     /// (<c>VisitCount</c> / <c>HasVisited</c>): one string pointer.
     /// Mirrors TS-side <c>INSFunctionDialogueMemoryInfo</c>.
@@ -208,6 +229,11 @@ namespace NeoCompose.Runtime.Json
         public FunctionDecimalOpInfo info = null!;
     }
 
+    public class ListIndexFunction : Function
+    {
+        public FunctionListIndexInfo info = null!;
+    }
+
     public class FunctionConverter : DiscriminatedConverter<Function>
     {
         protected override Type? ResolveSubclass(JToken discriminator)
@@ -226,6 +252,7 @@ namespace NeoCompose.Runtime.Json
                 case FunctionKind.VectorConstructor: return typeof(VectorConstructorFunction);
                 case FunctionKind.StringOp: return typeof(StringOpFunction);
                 case FunctionKind.DecimalOp: return typeof(DecimalOpFunction);
+                case FunctionKind.ListIndex: return typeof(ListIndexFunction);
                 default: return null;
             }
         }
