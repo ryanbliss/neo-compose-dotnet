@@ -299,20 +299,22 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CallNativeFunctionPointer_AcceptsExactlyOneTargetKind()
+        public void CallFunctionPointer_RequiresOneTargetAndCallSiteId()
         {
-            var concrete = (CallNativeFunctionPointer)JsonConvert.DeserializeObject<Pointer>(@"{
-  ""type"": ""callNativeFunction"",
+            var concrete = (CallFunctionPointer)JsonConvert.DeserializeObject<Pointer>(@"{
+  ""type"": ""callFunction"",
   ""attributeId"": ""attribute-function"",
+  ""callSiteId"": ""call-1"",
   ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
   ""args"": []
 }")!;
             Assert.AreEqual("attribute-function", concrete.attributeId);
             Assert.IsNull(concrete.memberKey);
 
-            var dynamicMember = (CallNativeFunctionPointer)JsonConvert.DeserializeObject<Pointer>(@"{
-  ""type"": ""callNativeFunction"",
+            var dynamicMember = (CallFunctionPointer)JsonConvert.DeserializeObject<Pointer>(@"{
+  ""type"": ""callFunction"",
   ""memberKey"": ""TakeDamage"",
+  ""callSiteId"": ""call-2"",
   ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
   ""args"": []
 }")!;
@@ -321,15 +323,24 @@ namespace NeoCompose.Tests
 
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<Pointer>(@"{
-  ""type"": ""callNativeFunction"",
+  ""type"": ""callFunction"",
   ""attributeId"": ""attribute-function"",
   ""memberKey"": ""TakeDamage"",
+  ""callSiteId"": ""call-3"",
   ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
   ""args"": []
 }"));
             Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<CallNativeFunctionPointer>(@"{
-  ""type"": ""callNativeFunction"",
+                JsonConvert.DeserializeObject<CallFunctionPointer>(@"{
+  ""type"": ""callFunction"",
+  ""callSiteId"": ""call-4"",
+  ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
+  ""args"": []
+}"));
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<CallFunctionPointer>(@"{
+  ""type"": ""callFunction"",
+  ""attributeId"": ""attribute-function"",
   ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
   ""args"": []
 }"));

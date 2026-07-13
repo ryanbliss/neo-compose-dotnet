@@ -42,8 +42,8 @@ namespace NeoCompose.Runtime.NeoScript
         /// </summary>
         public class Context
         {
-            public delegate object? NativeFunctionCallHandler(
-                CallNativeFunctionPointer pointer,
+            public delegate object? FunctionCallHandler(
+                CallFunctionPointer pointer,
                 Dictionary<string, object?> scope,
                 Context ctx);
 
@@ -66,6 +66,12 @@ namespace NeoCompose.Runtime.NeoScript
             /// recursion is detected by the shared action executor.
             /// </summary>
             public IReadOnlyCollection<string> setterCallStack { get; }
+            /// <summary>
+            /// Ordered stack of NSFunction attribute ids currently executing.
+            /// Unlike getter/setter cycle sets, recursion is valid and is only
+            /// rejected once the runtime depth cap is reached.
+            /// </summary>
+            public IReadOnlyList<string> functionCallStack { get; }
             internal NeoValueOwnership valueOwnership { get; }
 
             /// <summary>
@@ -106,7 +112,14 @@ namespace NeoCompose.Runtime.NeoScript
             /// false-positive.
             /// </summary>
             internal Dictionary<object, RowReference> rowReverseIndex { get; }
-            internal NativeFunctionCallHandler? nativeFunctionCallHandler { get; }
+            internal Dictionary<string, HashSet<string>> rowCacheKeysByRow { get; }
+            internal FunctionCallHandler? functionCallHandler { get; }
+            internal Dictionary<string, SchemaPlacement?> schemaPlacementCache { get; }
+            internal Dictionary<string, string?> callableDispatchCache { get; }
+            internal Dictionary<
+                string,
+                IReadOnlyDictionary<string, NeoGenericEnvEntry>>
+                genericEnvironmentCache { get; }
 
             public Context(
                 NeoClient client,
@@ -118,8 +131,16 @@ namespace NeoCompose.Runtime.NeoScript
                 Dictionary<string, object?>? rowUnwrapCache = null,
                 Dictionary<object, RowReference>? rowReverseIndex = null,
                 NeoValueOwnership valueOwnership = NeoValueOwnership.Save,
-                NativeFunctionCallHandler? nativeFunctionCallHandler = null,
-                IReadOnlyCollection<string>? setterCallStack = null)
+                FunctionCallHandler? functionCallHandler = null,
+                IReadOnlyCollection<string>? setterCallStack = null,
+                IReadOnlyList<string>? functionCallStack = null,
+                Dictionary<string, SchemaPlacement?>? schemaPlacementCache = null,
+                Dictionary<string, string?>? callableDispatchCache = null,
+                Dictionary<string, HashSet<string>>? rowCacheKeysByRow = null,
+                Dictionary<
+                    string,
+                    IReadOnlyDictionary<string, NeoGenericEnvEntry>>?
+                    genericEnvironmentCache = null)
             {
                 this.client = client;
                 this.thisValue = thisValue;
@@ -131,8 +152,19 @@ namespace NeoCompose.Runtime.NeoScript
                 this.rowUnwrapCache = rowUnwrapCache ?? new Dictionary<string, object?>();
                 this.rowReverseIndex = rowReverseIndex
                     ?? new Dictionary<object, RowReference>(ReferenceEqualityComparer.Instance);
+                this.rowCacheKeysByRow = rowCacheKeysByRow
+                    ?? new Dictionary<string, HashSet<string>>();
                 this.valueOwnership = valueOwnership;
-                this.nativeFunctionCallHandler = nativeFunctionCallHandler;
+                this.functionCallHandler = functionCallHandler;
+                this.functionCallStack = functionCallStack ?? System.Array.Empty<string>();
+                this.schemaPlacementCache = schemaPlacementCache
+                    ?? new Dictionary<string, SchemaPlacement?>();
+                this.callableDispatchCache = callableDispatchCache
+                    ?? new Dictionary<string, string?>();
+                this.genericEnvironmentCache = genericEnvironmentCache
+                    ?? new Dictionary<
+                        string,
+                        IReadOnlyDictionary<string, NeoGenericEnvEntry>>();
             }
 
             internal Context WithGetterPushed(string attributeId)
@@ -148,8 +180,13 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler,
-                    setterCallStack);
+                    functionCallHandler,
+                    setterCallStack,
+                    functionCallStack,
+                    schemaPlacementCache,
+                    callableDispatchCache,
+                    rowCacheKeysByRow,
+                    genericEnvironmentCache);
             }
 
             internal Context WithThis(object? newThisValue)
@@ -164,8 +201,13 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler,
-                    setterCallStack);
+                    functionCallHandler,
+                    setterCallStack,
+                    functionCallStack,
+                    schemaPlacementCache,
+                    callableDispatchCache,
+                    rowCacheKeysByRow,
+                    genericEnvironmentCache);
             }
 
             internal Context WithRoot(object? newRootValue)
@@ -180,8 +222,13 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler,
-                    setterCallStack);
+                    functionCallHandler,
+                    setterCallStack,
+                    functionCallStack,
+                    schemaPlacementCache,
+                    callableDispatchCache,
+                    rowCacheKeysByRow,
+                    genericEnvironmentCache);
             }
 
             internal Context WithContext(object? newContextValue)
@@ -196,8 +243,13 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler,
-                    setterCallStack);
+                    functionCallHandler,
+                    setterCallStack,
+                    functionCallStack,
+                    schemaPlacementCache,
+                    callableDispatchCache,
+                    rowCacheKeysByRow,
+                    genericEnvironmentCache);
             }
 
             internal Context WithMemoryStore(INeoDialogueMemoryStore? newMemoryStore)
@@ -212,12 +264,17 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler,
-                    setterCallStack);
+                    functionCallHandler,
+                    setterCallStack,
+                    functionCallStack,
+                    schemaPlacementCache,
+                    callableDispatchCache,
+                    rowCacheKeysByRow,
+                    genericEnvironmentCache);
             }
 
-            internal Context WithNativeFunctionCallHandler(
-                NativeFunctionCallHandler handler)
+            internal Context WithFunctionCallHandler(
+                FunctionCallHandler handler)
             {
                 return new Context(
                     client,
@@ -230,7 +287,12 @@ namespace NeoCompose.Runtime.NeoScript
                     rowReverseIndex,
                     valueOwnership,
                     handler,
-                    setterCallStack);
+                    setterCallStack,
+                    functionCallStack,
+                    schemaPlacementCache,
+                    callableDispatchCache,
+                    rowCacheKeysByRow,
+                    genericEnvironmentCache);
             }
 
             internal Context WithSetterPushed(string attributeId)
@@ -246,8 +308,37 @@ namespace NeoCompose.Runtime.NeoScript
                     rowUnwrapCache,
                     rowReverseIndex,
                     valueOwnership,
-                    nativeFunctionCallHandler,
-                    next);
+                    functionCallHandler,
+                    next,
+                    functionCallStack,
+                    schemaPlacementCache,
+                    callableDispatchCache,
+                    rowCacheKeysByRow,
+                    genericEnvironmentCache);
+            }
+
+            internal Context WithFunctionPushed(string attributeId)
+            {
+                var next = new List<string>(functionCallStack.Count + 1);
+                next.AddRange(functionCallStack);
+                next.Add(attributeId);
+                return new Context(
+                    client,
+                    thisValue,
+                    rootValue,
+                    contextValue,
+                    memoryStore,
+                    getterCallStack,
+                    rowUnwrapCache,
+                    rowReverseIndex,
+                    valueOwnership,
+                    functionCallHandler,
+                    setterCallStack,
+                    next,
+                    schemaPlacementCache,
+                    callableDispatchCache,
+                    rowCacheKeysByRow,
+                    genericEnvironmentCache);
             }
         }
 
@@ -409,9 +500,9 @@ namespace NeoCompose.Runtime.NeoScript
                         var msg = EvalPointer(throwInstr.pointer, scope, ctx);
                         throw new NSGetterRuntimeError(msg?.ToString() ?? "null");
                     }
-                    case NativeCallInstruction nativeCall:
+                    case FunctionCallInstruction functionCall:
                     {
-                        EvalNativeFunctionCall(nativeCall.call, scope, ctx);
+                        EvalFunctionCall(functionCall.call, scope, ctx);
                         break;
                     }
                     case AssignInstruction assign:
@@ -525,8 +616,8 @@ namespace NeoCompose.Runtime.NeoScript
                     // schema first — same trick the TS evaluator uses to
                     // honor runtime overrides regardless of the static
                     // compile-time binding.
-                    var placement = CustomTypeInheritance.FindSchemaPlacement(
-                        cgp.attributeId, EnumerateTypes(ctx.client));
+                    SchemaPlacement? placement = FindSchemaPlacementCached(
+                        cgp.attributeId, ctx);
                     if (placement is not null)
                     {
                         var dispatched = DispatchSchemaMember(innerThis, placement.schemaKey, ctx);
@@ -550,10 +641,10 @@ namespace NeoCompose.Runtime.NeoScript
                     var v = EvalPointer(sp.pointer, scope, ctx);
                     return FormatForInterp(v, sp.sourceType, ctx);
                 }
-                case CallNativeFunctionPointer cnfp:
-                    return EvalNativeFunctionCall(cnfp, scope, ctx);
-                case NativeFunctionErrorCheckPointer nfec:
-                    return EvalNativeFunctionErrorCheck(nfec, scope, ctx);
+                case CallFunctionPointer functionCall:
+                    return EvalFunctionCall(functionCall, scope, ctx);
+                case FunctionErrorCheckPointer functionErrorCheck:
+                    return EvalFunctionErrorCheck(functionErrorCheck, scope, ctx);
                 default:
                     throw new NSGetterRuntimeError(
                         $"Unknown pointer kind {pointer.GetType().Name}");
@@ -577,8 +668,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return $"variable {vp.variableId}";
                 case ReferencePointer rp:
                     return $"reference {rp.valueId}";
-                case CallNativeFunctionPointer cnfp:
-                    return $"nativeCall {cnfp.attributeId ?? cnfp.memberKey}";
+                case CallFunctionPointer functionCall:
+                    return $"functionCall {functionCall.attributeId ?? functionCall.memberKey}";
                 default:
                     return pointer.GetType().Name;
             }
@@ -594,14 +685,14 @@ namespace NeoCompose.Runtime.NeoScript
             return "<dynamic>";
         }
 
-        private static object? EvalNativeFunctionCall(
-            CallNativeFunctionPointer pointer,
+        private static object? EvalFunctionCall(
+            CallFunctionPointer pointer,
             Dictionary<string, object?> scope,
             Context ctx)
         {
-            if (ctx.nativeFunctionCallHandler is not null)
+            if (ctx.functionCallHandler is not null)
             {
-                return ctx.nativeFunctionCallHandler(pointer, scope, ctx);
+                return ctx.functionCallHandler(pointer, scope, ctx);
             }
             var receiver = EvalPointer(pointer.thisPointer, scope, ctx);
             if (pointer.optional == true && receiver is null)
@@ -613,15 +704,34 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 args[i] = EvalPointer(pointer.args[i], scope, ctx);
             }
-            string attributeId = ResolveNativeFunctionAttributeId(
+            string attributeId = ResolveFunctionAttributeId(
                 pointer,
                 receiver,
                 ctx);
-            return ctx.client.InvokeNativeFunction(attributeId, receiver, args);
+            if (!ctx.client.TryGetAttribute(attributeId, out JsonAttribute? attribute))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Function attribute '{attributeId}' was not found.");
+            }
+            if (attribute is FunctionAttribute)
+            {
+                return ctx.client.InvokeNativeFunction(attributeId, receiver, args);
+            }
+            if (attribute is NSFunctionAttribute)
+            {
+                return NeoNSFunctionRuntime.InvokeImmediate(
+                    ctx.client,
+                    attributeId,
+                    receiver,
+                    args,
+                    ctx);
+            }
+            throw new NSGetterRuntimeError(
+                $"Attribute '{attributeId}' is not a callable Function member.");
         }
 
-        internal static string ResolveNativeFunctionAttributeId(
-            CallNativeFunctionPointer pointer,
+        internal static string ResolveFunctionAttributeId(
+            CallFunctionPointer pointer,
             object? receiver,
             Context ctx)
         {
@@ -629,16 +739,15 @@ namespace NeoCompose.Runtime.NeoScript
             if (string.IsNullOrEmpty(schemaKey)
                 && !string.IsNullOrEmpty(pointer.attributeId))
             {
-                var placement = CustomTypeInheritance.FindSchemaPlacement(
-                    pointer.attributeId!,
-                    EnumerateTypes(ctx.client));
+                SchemaPlacement? placement = FindSchemaPlacementCached(
+                    pointer.attributeId!, ctx);
                 if (placement is null) return pointer.attributeId!;
                 schemaKey = placement.schemaKey;
             }
             if (string.IsNullOrEmpty(schemaKey))
             {
                 throw new NSGetterRuntimeError(
-                    "Native Function call is missing both attributeId and memberKey.");
+                    "Function call is missing both attributeId and memberKey.");
             }
 
             string? runtimeTypeId = FindRowTypeIdByReference(receiver, ctx);
@@ -650,6 +759,18 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 throw new NSGetterRuntimeError(
                     $"Cannot resolve interface Function member '{schemaKey}' because the receiver has no runtime custom type.");
+            }
+
+            string dispatchCacheKey = runtimeTypeId + "\n" + schemaKey;
+            if (ctx.callableDispatchCache.TryGetValue(
+                    dispatchCacheKey, out string? cachedAttributeId))
+            {
+                if (cachedAttributeId is null)
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Runtime type '{runtimeTypeId}' does not implement Function member '{schemaKey}'.");
+                }
+                return cachedAttributeId;
             }
 
             IList<CustomType> chain;
@@ -669,41 +790,78 @@ namespace NeoCompose.Runtime.NeoScript
             foreach (MergedSchemaEntry entry in CustomTypeInheritance.MergeSchemas(chain))
             {
                 if (entry.schemaKey != schemaKey) continue;
-                if (!ctx.client.TryResolveFunctionAttribute(
-                        entry.attributeId,
-                        out FunctionAttribute? function))
+                if (!TryResolveCallableKind(ctx.client, entry.attributeId))
                 {
                     throw new NSGetterRuntimeError(
                         $"Runtime type '{runtimeTypeId}' member '{schemaKey}' is not a Function attribute.");
                 }
-                return function.id;
+                ctx.callableDispatchCache[dispatchCacheKey] = entry.attributeId;
+                return entry.attributeId;
             }
+            ctx.callableDispatchCache[dispatchCacheKey] = null;
             throw new NSGetterRuntimeError(
                 $"Runtime type '{runtimeTypeId}' does not implement Function member '{schemaKey}'.");
         }
 
-        private static bool EvalNativeFunctionErrorCheck(
-            NativeFunctionErrorCheckPointer pointer,
+        private static bool EvalFunctionErrorCheck(
+            FunctionErrorCheckPointer pointer,
             Dictionary<string, object?> scope,
             Context ctx)
         {
             try
             {
-                EvalNativeFunctionCall(pointer.call, scope, ctx);
-                return pointer.mode == NativeFunctionErrorCheckKind.DoesNotThrow;
+                EvalFunctionCall(pointer.call, scope, ctx);
+                return pointer.mode == FunctionErrorCheckKind.DoesNotThrow;
             }
             catch (NeoDeferredFunctionRuntimeError)
             {
                 throw;
             }
-            catch (NeoDeferredNativeFunctionSuspended)
+            catch (NeoFunctionCallSuspended)
             {
                 throw;
             }
             catch
             {
-                return pointer.mode == NativeFunctionErrorCheckKind.Throws;
+                return pointer.mode == FunctionErrorCheckKind.Throws;
             }
+        }
+
+        private static bool TryResolveCallableKind(NeoClient client, string attributeId)
+        {
+            var visited = new HashSet<string>();
+            string? cursor = attributeId;
+            AttributeType? expectedType = null;
+            while (!string.IsNullOrEmpty(cursor) && visited.Add(cursor))
+            {
+                if (!client.TryGetAttribute(cursor!, out JsonAttribute? attribute)) return false;
+                expectedType ??= attribute.type;
+                if (attribute.type != expectedType
+                    || (attribute.type != AttributeType.Function
+                        && attribute.type != AttributeType.NSFunction))
+                {
+                    return false;
+                }
+                if (attribute is FunctionAttribute or NSFunctionAttribute) return true;
+                cursor = attribute.extendsAttributeId;
+            }
+            return false;
+        }
+
+        private static SchemaPlacement? FindSchemaPlacementCached(
+            string attributeId,
+            Context ctx)
+        {
+            if (ctx.schemaPlacementCache.TryGetValue(
+                    attributeId, out SchemaPlacement? cached))
+            {
+                return cached;
+            }
+            SchemaPlacement? placement = CustomTypeInheritance.FindSchemaPlacement(
+                attributeId,
+                EnumerateTypes(ctx.client));
+            ctx.schemaPlacementCache[attributeId] = placement;
+            return placement;
         }
 
         // ---------------------------------------------------------------
@@ -1958,6 +2116,14 @@ namespace NeoCompose.Runtime.NeoScript
             if (ctx.rowUnwrapCache.TryGetValue(cacheKey, out var cached)) return cached;
             var unwrapped = ExtractWireValue(row, ownership, attribute, ctx);
             ctx.rowUnwrapCache[cacheKey] = unwrapped;
+            string rowCacheKey = RowCacheRowKey(ownership, row.id);
+            if (!ctx.rowCacheKeysByRow.TryGetValue(
+                    rowCacheKey, out HashSet<string>? rowKeys))
+            {
+                rowKeys = new HashSet<string>();
+                ctx.rowCacheKeysByRow[rowCacheKey] = rowKeys;
+            }
+            rowKeys.Add(cacheKey);
             // Reverse-index only object-shaped unwraps. Primitive
             // boxes don't have meaningful reference identity for our
             // lookups (two rows with `value = "hi"` would share a
@@ -1971,6 +2137,98 @@ namespace NeoCompose.Runtime.NeoScript
             }
             return unwrapped;
         }
+
+        /// <summary>
+        /// Keeps the per-evaluation row cache coherent after a mutation-capable
+        /// NeoScript frame writes a row. Object-shaped rows are patched in
+        /// place so an already-bound <c>this</c> / nested Custom receiver keeps
+        /// both its identity and its updated child ids. Fixed-size arrays are
+        /// patched when possible; values whose CLR shape cannot be updated in
+        /// place are evicted so the next read materialises the new row value.
+        /// </summary>
+        internal static void RefreshCachedRowAfterWrite(
+            AttributeValue row,
+            Context ctx,
+            NeoValueOwnership ownership)
+        {
+            string rowCacheKey = RowCacheRowKey(ownership, row.id);
+            if (!ctx.rowCacheKeysByRow.TryGetValue(
+                    rowCacheKey, out HashSet<string>? indexedKeys))
+            {
+                return;
+            }
+            var matchingKeys = new List<string>(indexedKeys);
+
+            foreach (string key in matchingKeys)
+            {
+                if (!ctx.rowUnwrapCache.TryGetValue(key, out object? cached))
+                {
+                    indexedKeys.Remove(key);
+                    continue;
+                }
+                if (row is ObjectAttributeValue objectRow
+                    && cached is IDictionary<string, object?> record)
+                {
+                    record.Clear();
+                    if (objectRow.value is not null)
+                    {
+                        foreach (var pair in objectRow.value)
+                        {
+                            record[pair.Key] = pair.Value;
+                        }
+                    }
+                    continue;
+                }
+                if (row is ArrayAttributeValue arrayRow
+                    && cached is object?[] array
+                    && arrayRow.value is not null
+                    && array.Length == arrayRow.value.Length)
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        array[i] = arrayRow.value[i];
+                    }
+                    continue;
+                }
+                if (row is FileAttributeValue fileRow
+                    && cached is IDictionary<string, object?> fileRecord)
+                {
+                    fileRecord.Clear();
+                    if (fileRow.value is not null)
+                    {
+                        fileRecord["fileId"] = fileRow.value.fileId;
+                    }
+                    continue;
+                }
+                if (row is SpriteAttributeValue spriteRow
+                    && cached is IDictionary<string, object?> spriteRecord)
+                {
+                    spriteRecord.Clear();
+                    if (spriteRow.value is not null)
+                    {
+                        spriteRecord["fileId"] = spriteRow.value.fileId;
+                        spriteRecord["sliceIndex"] = spriteRow.value.sliceIndex;
+                    }
+                    continue;
+                }
+
+                ctx.rowUnwrapCache.Remove(key);
+                indexedKeys.Remove(key);
+                if (cached is not null)
+                {
+                    ctx.rowReverseIndex.Remove(cached);
+                }
+            }
+            if (indexedKeys.Count == 0)
+            {
+                ctx.rowCacheKeysByRow.Remove(rowCacheKey);
+            }
+        }
+
+        private static string RowCacheRowKey(
+            NeoValueOwnership ownership,
+            string rowId) =>
+            ownership.ToString() + ":" + rowId;
 
         private static string RowCacheKey(
             NeoValueOwnership ownership,

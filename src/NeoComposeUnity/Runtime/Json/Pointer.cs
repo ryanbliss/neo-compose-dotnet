@@ -142,19 +142,25 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo sourceType = null!;
     }
 
+    /// <summary>
+    /// General native-or-NeoScript callable pointer introduced by export
+    /// schema 6. Exactly one of <see cref="attributeId"/> and
+    /// <see cref="memberKey"/> identifies the call target.
+    /// </summary>
     [JsonConverter(typeof(PointerConverter))]
-    public class CallNativeFunctionPointer : Pointer
+    public class CallFunctionPointer : Pointer
     {
         public string? attributeId;
         public string? memberKey;
         public Pointer thisPointer = null!;
         public Pointer[] args = null!;
         public bool? optional;
+        public string callSiteId = null!;
     }
 
-    public class NativeFunctionErrorCheckPointer : Pointer
+    public class FunctionErrorCheckPointer : Pointer
     {
-        public CallNativeFunctionPointer call = null!;
+        public CallFunctionPointer call = null!;
         public string mode = null!;
     }
 
@@ -178,15 +184,33 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.Coalesce: return typeof(CoalescePointer);
                 case PointerKind.ToBool: return typeof(ToBoolPointer);
                 case PointerKind.Stringify: return typeof(StringifyPointer);
-                case PointerKind.CallNativeFunction: return typeof(CallNativeFunctionPointer);
-                case PointerKind.NativeFunctionErrorCheck: return typeof(NativeFunctionErrorCheckPointer);
+                case PointerKind.CallFunction: return typeof(CallFunctionPointer);
+                case PointerKind.FunctionErrorCheck: return typeof(FunctionErrorCheckPointer);
                 default: return null;
             }
         }
 
         protected override void ValidateObject(JObject obj, Type concrete)
         {
-            if (concrete != typeof(CallNativeFunctionPointer)) return;
+            if (concrete == typeof(FunctionErrorCheckPointer))
+            {
+                if (obj["call"]?.Type != JTokenType.Object)
+                {
+                    throw new JsonSerializationException(
+                        "FunctionErrorCheckPointer must contain a 'call' object.");
+                }
+                string? mode = obj["mode"]?.Type == JTokenType.String
+                    ? obj["mode"]!.Value<string>()
+                    : null;
+                if (mode != FunctionErrorCheckKind.Throws
+                    && mode != FunctionErrorCheckKind.DoesNotThrow)
+                {
+                    throw new JsonSerializationException(
+                        "FunctionErrorCheckPointer 'mode' must be 'throws' or 'doesNotThrow'.");
+                }
+                return;
+            }
+            if (concrete != typeof(CallFunctionPointer)) return;
 
             bool hasAttributeId = HasNonEmptyString(obj, "attributeId");
             bool hasMemberKey = HasNonEmptyString(obj, "memberKey");
@@ -194,8 +218,23 @@ namespace NeoCompose.Runtime.Json
             {
                 throw new JsonSerializationException(
                     hasAttributeId
-                        ? "CallNativeFunctionPointer cannot contain both 'attributeId' and 'memberKey'."
-                        : "CallNativeFunctionPointer must contain either 'attributeId' or 'memberKey'.");
+                        ? "CallFunctionPointer cannot contain both 'attributeId' and 'memberKey'."
+                        : "CallFunctionPointer must contain either 'attributeId' or 'memberKey'.");
+            }
+            if (!HasNonEmptyString(obj, "callSiteId"))
+            {
+                throw new JsonSerializationException(
+                    "CallFunctionPointer must contain a non-empty 'callSiteId'.");
+            }
+            if (obj["thisPointer"]?.Type != JTokenType.Object)
+            {
+                throw new JsonSerializationException(
+                    "CallFunctionPointer must contain a 'thisPointer' object.");
+            }
+            if (obj["args"]?.Type != JTokenType.Array)
+            {
+                throw new JsonSerializationException(
+                    "CallFunctionPointer must contain an 'args' array.");
             }
         }
 

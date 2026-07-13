@@ -214,6 +214,12 @@ namespace NeoCompose.Runtime
                     value = attr.defaultValue.value,
                     typeId = attr.defaultValue.typeId,
                 },
+                NSFunctionAttribute attr => attr.defaultValue is null ? null : new NullAttributeValue
+                {
+                    id = id, createdAt = createdAt, updatedAt = updatedAt,
+                    value = attr.defaultValue.value,
+                    typeId = attr.defaultValue.typeId,
+                },
                 SpriteAttribute attr => attr.defaultValue is null ? null : new SpriteAttributeValue
                 {
                     id = id, createdAt = createdAt, updatedAt = updatedAt,

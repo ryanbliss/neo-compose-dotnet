@@ -93,9 +93,9 @@ namespace NeoCompose.Runtime.Json
         public Pointer[] args = null!;
     }
 
-    public class NativeCallInstruction : Instruction
+    public class FunctionCallInstruction : Instruction
     {
-        public CallNativeFunctionPointer call = null!;
+        public CallFunctionPointer call = null!;
     }
 
     public class InstructionConverter : DiscriminatedConverter<Instruction>
@@ -110,8 +110,18 @@ namespace NeoCompose.Runtime.Json
                 case InstructionKind.Throw: return typeof(ThrowInstruction);
                 case InstructionKind.Assign: return typeof(AssignInstruction);
                 case InstructionKind.CollectionCall: return typeof(CollectionCallInstruction);
-                case InstructionKind.NativeCall: return typeof(NativeCallInstruction);
+                case InstructionKind.FunctionCall: return typeof(FunctionCallInstruction);
                 default: return null;
+            }
+        }
+
+        protected override void ValidateObject(JObject obj, Type concrete)
+        {
+            if (concrete == typeof(FunctionCallInstruction)
+                && obj["call"]?.Type != JTokenType.Object)
+            {
+                throw new JsonSerializationException(
+                    "FunctionCallInstruction must contain a 'call' object.");
             }
         }
     }

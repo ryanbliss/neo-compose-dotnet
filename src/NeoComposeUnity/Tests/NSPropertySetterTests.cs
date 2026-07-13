@@ -124,7 +124,9 @@ namespace NeoCompose.Tests
                     enumId = "enum-test",
                 },
                 new TestEnumOption("option-a"),
-                captured => Assert.AreEqual("option-a", captured));
+                captured => CollectionAssert.AreEqual(
+                    new[] { "option-a" },
+                    (string[])captured!));
             AssertNormalized(
                 new CustomTypeInfo
                 {
@@ -643,7 +645,10 @@ namespace NeoCompose.Tests
                     type = AttributeType.Void,
                     required = true,
                 },
-                argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
+                argumentTypes = new[]
+                {
+                    FunctionArgument("value", propertyType),
+                },
                 deferred = false,
                 createdAt = "x",
                 updatedAt = "x",
@@ -766,6 +771,32 @@ namespace NeoCompose.Tests
             return getter;
         }
 
+        private static FunctionArgumentTypeInfo FunctionArgument(
+            string name,
+            TypeInfo typeInfo)
+        {
+            return new FunctionArgumentTypeInfo
+            {
+                name = name,
+                type = typeInfo.type,
+                required = typeInfo.required,
+                typeId = (typeInfo as CustomTypeInfo)?.typeId,
+                interfaceId = (typeInfo as InterfaceTypeInfo)?.interfaceId,
+                enumId = (typeInfo as EnumTypeInfo)?.enumId,
+                entryTypeInfo = typeInfo switch
+                {
+                    CollectionTypeInfo collection => collection.entryTypeInfo,
+                    LookupTypeInfo lookup => lookup.entryTypeInfo,
+                    _ => null,
+                },
+                collectionAttributeId = (typeInfo as LookupTypeInfo)?.collectionAttributeId,
+                collectionValueId = (typeInfo as LookupTypeInfo)?.collectionValueId,
+                ownerTypeId = (typeInfo as GenericTypeInfo)?.ownerTypeId,
+                genericParamId = (typeInfo as GenericTypeInfo)?.genericParamId,
+                typeArguments = (typeInfo as CustomTypeInfo)?.typeArguments,
+            };
+        }
+
         private static FunctionWithReturnType SetterCallingDeferredThenWritingTarget()
         {
             return Function(
@@ -781,28 +812,30 @@ namespace NeoCompose.Tests
 
         private static FunctionWithReturnType SetterCallingCaptureFunction()
         {
-            return Function(new NativeCallInstruction
+            return Function(new FunctionCallInstruction
             {
-                type = InstructionKind.NativeCall,
-                call = new CallNativeFunctionPointer
+                type = InstructionKind.FunctionCall,
+                call = new CallFunctionPointer
                 {
-                    type = PointerKind.CallNativeFunction,
+                    type = PointerKind.CallFunction,
                     attributeId = "attribute-capture",
                     thisPointer = ThisVariable(),
                     args = new Pointer[] { ValueVariable() },
+                    callSiteId = "capture-setter-value",
                 },
             });
         }
 
-        private static NativeCallInstruction DeferredCallInstruction() => new()
+        private static FunctionCallInstruction DeferredCallInstruction() => new()
         {
-            type = InstructionKind.NativeCall,
-            call = new CallNativeFunctionPointer
+            type = InstructionKind.FunctionCall,
+            call = new CallFunctionPointer
             {
-                type = PointerKind.CallNativeFunction,
+                type = PointerKind.CallFunction,
                 attributeId = "attribute-deferred",
                 thisPointer = ThisVariable(),
                 args = Array.Empty<Pointer>(),
+                callSiteId = "deferred-setter-call",
             },
         };
 

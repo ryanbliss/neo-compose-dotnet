@@ -311,6 +311,9 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo? entryTypeInfo;
         public string? collectionAttributeId;
         public string? collectionValueId;
+        public string? ownerTypeId;
+        public string? genericParamId;
+        public Dictionary<string, TypeInfo>? typeArguments;
     }
 
     public class FunctionArgumentTypeInfoConverter : JsonConverter
@@ -333,6 +336,7 @@ namespace NeoCompose.Runtime.Json
                 "Function argument type info is missing 'type'.");
             var type = ReadArgumentType(typeToken);
             if (type == AttributeType.Function
+                || type == AttributeType.NSFunction
                 || type == AttributeType.Unknown
                 || type == AttributeType.Void)
             {
@@ -352,6 +356,9 @@ namespace NeoCompose.Runtime.Json
                 entryTypeInfo = json["entryTypeInfo"]?.ToObject<TypeInfo>(serializer),
                 collectionAttributeId = json.Value<string>("collectionAttributeId"),
                 collectionValueId = json.Value<string>("collectionValueId"),
+                ownerTypeId = json.Value<string>("ownerTypeId"),
+                genericParamId = json.Value<string>("genericParamId"),
+                typeArguments = json["typeArguments"]?.ToObject<Dictionary<string, TypeInfo>>(serializer),
             };
         }
 
@@ -388,6 +395,24 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo returnTypeInfo = null!;
         public FunctionArgumentTypeInfo[] argumentTypes = null!;
         public bool? deferred;
+    }
+
+    /// <summary>
+    /// NeoScript-backed callable schema member. Signature fields mirror
+    /// <see cref="FunctionAttribute"/> while <see cref="code"/> and
+    /// <see cref="action"/> carry the authored body and compiled IR.
+    /// Override rows may omit any inherited field.
+    /// </summary>
+    public sealed class NSFunctionAttribute : Attribute<object?>
+    {
+        public string code = null!;
+
+        [JsonConverter(typeof(FunctionReturnTypeInfoConverter))]
+        public TypeInfo returnTypeInfo = null!;
+
+        public FunctionArgumentTypeInfo[] argumentTypes = null!;
+        public bool? deferred;
+        public FunctionWithReturnType action = null!;
     }
 
     /// <summary>
@@ -479,6 +504,7 @@ namespace NeoCompose.Runtime.Json
                 case AttributeType.Sprite: return typeof(SpriteAttribute);
                 case AttributeType.Audio: return typeof(AudioAttribute);
                 case AttributeType.Function: return typeof(FunctionAttribute);
+                case AttributeType.NSFunction: return typeof(NSFunctionAttribute);
                 case AttributeType.Vector2: return typeof(Vector2Attribute);
                 case AttributeType.Vector2Int: return typeof(Vector2IntAttribute);
                 case AttributeType.Vector3: return typeof(Vector3Attribute);

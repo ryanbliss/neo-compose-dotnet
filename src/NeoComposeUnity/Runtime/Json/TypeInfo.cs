@@ -144,6 +144,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(CollectionTypeInfo);
                 case AttributeType.Lookup:
                     return typeof(LookupTypeInfo);
+                case AttributeType.DialogueLookup:
+                    return typeof(PrimitiveTypeInfo);
                 case AttributeType.Generic:
                     return typeof(GenericTypeInfo);
                 default:
@@ -194,6 +196,8 @@ namespace NeoCompose.Runtime.Json
                     return typeof(CollectionTypeInfo);
                 case AttributeType.Lookup:
                     return typeof(LookupTypeInfo);
+                case AttributeType.DialogueLookup:
+                    return typeof(PrimitiveTypeInfo);
                 case AttributeType.Generic:
                     return typeof(GenericTypeInfo);
                 default:

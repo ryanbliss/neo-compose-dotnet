@@ -57,6 +57,7 @@ namespace NeoCompose.Runtime
             return ExecuteInstructions(
                 client,
                 action.instructions,
+                action.typeInfo,
                 scope,
                 ctx,
                 0,
@@ -67,18 +68,31 @@ namespace NeoCompose.Runtime
         private static NeoActionExecutionResult ExecuteInstructions(
             NeoClient client,
             Instruction[] instructions,
+            TypeInfo returnTypeInfo,
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx,
             int startIndex,
-            DeferredResumeState? resumeState,
+            ExpressionResumeState? resumeState,
             NeoActionExecutionOptions? options)
         {
-            var actionCtx = ctx.WithNativeFunctionCallHandler(
+            var expressionState = resumeState ?? new ExpressionResumeState();
+            var actionCtx = ctx.WithFunctionCallHandler(
                 (pointer, currentScope, currentCtx) =>
-                    EvalNativeFunctionCall(client, pointer, currentScope, currentCtx, resumeState));
+                    EvalFunctionCall(
+                        client,
+                        pointer,
+                        currentScope,
+                        currentCtx,
+                        expressionState,
+                        options));
             for (int i = startIndex; i < instructions.Length; i++)
             {
                 var instruction = instructions[i];
+                // A callSiteId identifies a source location, not one dynamic
+                // invocation. Reset only the per-attempt occurrence counters
+                // so repeated calls from a collection lambda receive stable
+                // frame keys while completed results survive a replay.
+                expressionState.BeginInstructionAttempt();
                 switch (instruction)
                 {
                     case VariableInstruction variable:
@@ -86,9 +100,9 @@ namespace NeoCompose.Runtime
                         {
                             scope[variable.variable.id] = Eval(variable.variable.pointer, scope, actionCtx);
                         }
-                        catch (NeoDeferredNativeFunctionSuspended suspended)
+                        catch (NeoFunctionCallSuspended suspended)
                         {
-                            return PauseAtInstruction(client, instructions, scope, ctx, i, suspended, options);
+                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
                         }
                         break;
                     case IfInstruction ifInstruction:
@@ -101,46 +115,65 @@ namespace NeoCompose.Runtime
                                 if (EvaluateBoolean(branch.expression, scope, actionCtx))
                                 {
                                     matched = true;
-                                    var branchResult = ExecuteInstructions(client, branch.instructions, scope, ctx, 0, null, options);
+                                    var branchResult = ExecuteInstructions(client, branch.instructions, returnTypeInfo, scope, ctx, 0, null, options);
                                     if (branchResult.IsPaused || branchResult.Returned)
                                     {
-                                        return branchResult.Then(afterBranch =>
-                                            afterBranch.IsPaused || afterBranch.Returned
+                                        return ThenWhenCompleted(branchResult, afterBranch =>
+                                            afterBranch.Returned
                                                 ? afterBranch
-                                                : ExecuteInstructions(client, instructions, scope, ctx, i + 1, null, options));
+                                                : ExecuteInstructions(client, instructions, returnTypeInfo, scope, ctx, i + 1, null, options));
                                     }
                                     break;
                                 }
                             }
                             if (!matched && ifInstruction.elseInstructions != null)
                             {
-                                var elseResult = ExecuteInstructions(client, ifInstruction.elseInstructions, scope, ctx, 0, null, options);
+                                var elseResult = ExecuteInstructions(client, ifInstruction.elseInstructions, returnTypeInfo, scope, ctx, 0, null, options);
                                 if (elseResult.IsPaused || elseResult.Returned)
                                 {
-                                    return elseResult.Then(afterElse =>
-                                        afterElse.IsPaused || afterElse.Returned
+                                    return ThenWhenCompleted(elseResult, afterElse =>
+                                        afterElse.Returned
                                             ? afterElse
-                                            : ExecuteInstructions(client, instructions, scope, ctx, i + 1, null, options));
+                                            : ExecuteInstructions(client, instructions, returnTypeInfo, scope, ctx, i + 1, null, options));
                                 }
                             }
                         }
-                        catch (NeoDeferredNativeFunctionSuspended suspended)
+                        catch (NeoFunctionCallSuspended suspended)
                         {
-                            return PauseAtInstruction(client, instructions, scope, ctx, i, suspended, options);
+                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
                         }
                         break;
                     }
-                    case ReturnInstruction:
-                        return NeoActionExecutionResult.Completed(returned: true);
+                    case ReturnInstruction returnInstruction:
+                        try
+                        {
+                            object? returnValue = returnInstruction.pointer is null
+                                ? null
+                                : Eval(returnInstruction.pointer, scope, actionCtx);
+                            if (returnTypeInfo.type == AttributeType.Decimal
+                                && returnValue is double or float or int or long or short)
+                            {
+                                returnValue = NSGetterEvaluator.CoerceDecimalOperand(
+                                    returnValue,
+                                    "return");
+                            }
+                            return NeoActionExecutionResult.Completed(
+                                returned: true,
+                                returnValue);
+                        }
+                        catch (NeoFunctionCallSuspended suspended)
+                        {
+                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
+                        }
                     case ThrowInstruction throwInstruction:
                         try
                         {
                             throw new NSGetterRuntimeError(
                                 Eval(throwInstruction.pointer, scope, actionCtx)?.ToString() ?? "null");
                         }
-                        catch (NeoDeferredNativeFunctionSuspended suspended)
+                        catch (NeoFunctionCallSuspended suspended)
                         {
-                            return PauseAtInstruction(client, instructions, scope, ctx, i, suspended, options);
+                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
                         }
                     case AssignInstruction assign:
                         try
@@ -154,12 +187,11 @@ namespace NeoCompose.Runtime
                             if (nestedSetter is not null
                                 && (nestedSetter.IsPaused || nestedSetter.Returned))
                             {
-                                return nestedSetter.Then(afterSetter =>
-                                    afterSetter.IsPaused
-                                        ? afterSetter
-                                        : ExecuteInstructions(
+                                return ThenWhenCompleted(nestedSetter, _ =>
+                                    ExecuteInstructions(
                                             client,
                                             instructions,
+                                            returnTypeInfo,
                                             scope,
                                             ctx,
                                             i + 1,
@@ -167,9 +199,9 @@ namespace NeoCompose.Runtime
                                             options));
                             }
                         }
-                        catch (NeoDeferredNativeFunctionSuspended suspended)
+                        catch (NeoFunctionCallSuspended suspended)
                         {
-                            return PauseAtInstruction(client, instructions, scope, ctx, i, suspended, options);
+                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
                         }
                         break;
                     case CollectionCallInstruction collectionCall:
@@ -177,19 +209,19 @@ namespace NeoCompose.Runtime
                         {
                             ExecuteCollectionCall(client, collectionCall, scope, actionCtx);
                         }
-                        catch (NeoDeferredNativeFunctionSuspended suspended)
+                        catch (NeoFunctionCallSuspended suspended)
                         {
-                            return PauseAtInstruction(client, instructions, scope, ctx, i, suspended, options);
+                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
                         }
                         break;
-                    case NativeCallInstruction nativeCall:
+                    case FunctionCallInstruction functionCall:
                         try
                         {
-                            Eval(nativeCall.call, scope, actionCtx);
+                            Eval(functionCall.call, scope, actionCtx);
                         }
-                        catch (NeoDeferredNativeFunctionSuspended suspended)
+                        catch (NeoFunctionCallSuspended suspended)
                         {
-                            return PauseAtInstruction(client, instructions, scope, ctx, i, suspended, options);
+                            return PauseAtInstruction(client, instructions, returnTypeInfo, scope, ctx, i, expressionState, suspended, options);
                         }
                         break;
                     default:
@@ -197,31 +229,54 @@ namespace NeoCompose.Runtime
                             $"Unknown instruction kind {instruction.GetType().Name}");
                 }
             }
-            return NeoActionExecutionResult.Completed(returned: false);
+            return NeoActionExecutionResult.Completed(returned: false, returnValue: null);
         }
 
         private static NeoActionExecutionResult PauseAtInstruction(
             NeoClient client,
             Instruction[] instructions,
+            TypeInfo returnTypeInfo,
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx,
             int instructionIndex,
-            NeoDeferredNativeFunctionSuspended suspended,
+            ExpressionResumeState expressionState,
+            NeoFunctionCallSuspended suspended,
             NeoActionExecutionOptions? options)
         {
             options?.WarnDeferred(suspended.AttributeId);
-            return NeoActionExecutionResult.Paused(
-                suspended.AttributeId,
-                suspended.Deferred,
-                suspended.Suspension,
-                value => ExecuteInstructions(
+            return ResumeAfterNestedCall(suspended.Execution);
+
+            NeoActionExecutionResult ResumeAfterNestedCall(
+                NeoActionExecutionResult nestedResult)
+            {
+                if (nestedResult.IsPaused)
+                {
+                    return nestedResult.Then(ResumeAfterNestedCall);
+                }
+                expressionState.StoreValue(
+                    suspended.ResumeKey,
+                    nestedResult.ReturnValue);
+                return ExecuteInstructions(
                     client,
                     instructions,
+                    returnTypeInfo,
                     scope,
                     ctx,
                     instructionIndex,
-                    new DeferredResumeState(suspended.ResumeKey, value),
-                    options));
+                    expressionState,
+                    options);
+            }
+        }
+
+        private static NeoActionExecutionResult ThenWhenCompleted(
+            NeoActionExecutionResult result,
+            Func<NeoActionExecutionResult, NeoActionExecutionResult> next)
+        {
+            if (result.IsPaused)
+            {
+                return result.Then(resumed => ThenWhenCompleted(resumed, next));
+            }
+            return next(result);
         }
 
         private static NeoActionExecutionResult? ExecuteAssign(
@@ -296,63 +351,144 @@ namespace NeoCompose.Runtime
             return NSGetterEvaluator.EvaluatePointer(pointer, scope, ctx);
         }
 
-        private static object? EvalNativeFunctionCall(
+        private static object? EvalFunctionCall(
             NeoClient client,
-            CallNativeFunctionPointer pointer,
+            CallFunctionPointer pointer,
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx,
-            DeferredResumeState? resumeState)
+            ExpressionResumeState expressionState,
+            NeoActionExecutionOptions? options)
         {
-            string resumeKey = !string.IsNullOrEmpty(pointer.attributeId)
-                ? $"attribute:{pointer.attributeId}"
-                : $"member:{pointer.memberKey}";
-            if (resumeState is not null
-                && !resumeState.Used
-                && resumeState.ResumeKey == resumeKey)
+            if (string.IsNullOrEmpty(pointer.callSiteId))
             {
-                resumeState.Used = true;
-                return resumeState.Value;
+                throw new NSGetterRuntimeError(
+                    "Function call is missing its schema-6 callSiteId.");
             }
-
-            var receiver = NSGetterEvaluator.EvaluatePointer(pointer.thisPointer, scope, ctx);
-            if (pointer.optional == true && receiver is null)
+            string callSiteKey = pointer.callSiteId;
+            string resumeKey = expressionState.NextInvocationKey(callSiteKey);
+            if (expressionState.TryGet(resumeKey, out object? cachedValue, out Exception? cachedError))
             {
-                return null;
+                if (cachedError is not null) throw cachedError;
+                return cachedValue;
             }
-            var args = new object?[pointer.args.Length];
-            for (int i = 0; i < pointer.args.Length; i++)
+            try
             {
-                args[i] = NSGetterEvaluator.EvaluatePointer(pointer.args[i], scope, ctx);
+                var receiver = NSGetterEvaluator.EvaluatePointer(pointer.thisPointer, scope, ctx);
+                if (pointer.optional == true && receiver is null)
+                {
+                    expressionState.StoreValue(resumeKey, null);
+                    return null;
+                }
+                var args = new object?[pointer.args.Length];
+                for (int i = 0; i < pointer.args.Length; i++)
+                {
+                    args[i] = NSGetterEvaluator.EvaluatePointer(pointer.args[i], scope, ctx);
+                }
+                string attributeId = NSGetterEvaluator.ResolveFunctionAttributeId(
+                    pointer,
+                    receiver,
+                    ctx);
+                object? value;
+                if (client.TryGetAttribute(attributeId, out NSFunctionAttribute? nsFunction))
+                {
+                    bool deferred = NeoNSFunctionRuntime.ResolveSignature(
+                        client,
+                        attributeId).Deferred;
+                    if (deferred && options?.AllowDeferredFunctionCalls != true)
+                    {
+                        throw new NeoDeferredFunctionRuntimeError(
+                            $"NSFunction '{nsFunction!.name}' ({attributeId}) deferred-mode mismatch: " +
+                            "an immediate NeoScript frame called its deferred signature; " +
+                            "compiled call IR is stale/corrupt.");
+                    }
+                    NeoActionExecutionResult nested = NeoNSFunctionRuntime.Execute(
+                        client,
+                        attributeId,
+                        receiver,
+                        args,
+                        ctx,
+                        options ?? NeoActionExecutionOptions.ForImmediate(client));
+                    if (nested.IsPaused)
+                    {
+                        if (!deferred)
+                        {
+                            nested.Deferred?.DisposeFromOwner(
+                                "non-deferred NSFunction suspended");
+                            throw new NSGetterRuntimeError(
+                                $"Non-deferred NSFunction '{nsFunction.name}' suspended; its compiled IR is stale or corrupt.");
+                        }
+                        throw new NeoFunctionCallSuspended(
+                            resumeKey,
+                            attributeId,
+                            nested);
+                    }
+                    value = nested.ReturnValue;
+                }
+                else
+                {
+                    bool deferred = client.IsNativeFunctionDeferred(attributeId);
+                    if (!deferred)
+                    {
+                        value = client.InvokeNativeFunction(attributeId, receiver, args);
+                    }
+                    else
+                    {
+                        if (options?.AllowDeferredFunctionCalls != true)
+                        {
+                            string functionName = client.TryGetAttribute(
+                                attributeId, out JsonAttribute? deferredAttribute)
+                                    ? deferredAttribute.name
+                                    : attributeId;
+                            throw new NeoDeferredFunctionRuntimeError(
+                                $"Function '{functionName}' ({attributeId}) deferred-mode mismatch: " +
+                                "an immediate NeoScript frame called its deferred signature; " +
+                                "compiled call IR is stale/corrupt.");
+                        }
+                        var suspension = new DeferredNativeFunctionSuspension();
+                        var deferredHandle = client.StartDeferredNativeFunction(
+                            attributeId,
+                            receiver,
+                            args,
+                            suspension.Complete,
+                            suspension.Fail,
+                            suspension.MarkInvokerReturned,
+                            options?.CancelContinuationOnDeferredDisposal == true
+                                ? suspension.Cancel
+                                : null);
+                        if (suspension.TryGetInlineResult(
+                                out object? inlineValue,
+                                out Exception? inlineError))
+                        {
+                            if (inlineError is not null) throw inlineError;
+                            value = inlineValue;
+                        }
+                        else
+                        {
+                            throw new NeoFunctionCallSuspended(
+                                resumeKey,
+                                attributeId,
+                                NeoActionExecutionResult.Paused(
+                                    attributeId,
+                                    deferredHandle,
+                                    suspension,
+                                    inlineValue => NeoActionExecutionResult.Completed(
+                                        returned: true,
+                                        inlineValue)));
+                        }
+                    }
+                }
+                expressionState.StoreValue(resumeKey, value);
+                return value;
             }
-            string attributeId = NSGetterEvaluator.ResolveNativeFunctionAttributeId(
-                pointer,
-                receiver,
-                ctx);
-            if (!client.IsNativeFunctionDeferred(attributeId))
+            catch (NeoFunctionCallSuspended)
             {
-                return client.InvokeNativeFunction(attributeId, receiver, args);
+                throw;
             }
-
-            var suspension = new DeferredNativeFunctionSuspension();
-            var deferred = client.StartDeferredNativeFunction(
-                attributeId,
-                receiver,
-                args,
-                suspension.Complete,
-                suspension.Fail,
-                suspension.MarkInvokerReturned);
-            if (suspension.TryGetInlineResult(
-                    out object? inlineValue,
-                    out Exception? inlineError))
+            catch (Exception exception)
             {
-                if (inlineError is not null) throw inlineError;
-                return inlineValue;
+                expressionState.StoreError(resumeKey, exception);
+                throw;
             }
-            throw new NeoDeferredNativeFunctionSuspended(
-                resumeKey,
-                attributeId,
-                deferred,
-                suspension);
         }
 
         private static bool EvaluateBoolean(
@@ -1123,6 +1259,16 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx);
         }
 
+        private static void StoreWritableRow(
+            NeoClient client,
+            NeoValueOwnership ownership,
+            AttributeValue row,
+            NSGetterEvaluator.Context ctx)
+        {
+            client.SetWritableValue(ownership, row);
+            NSGetterEvaluator.RefreshCachedRowAfterWrite(row, ctx, ownership);
+        }
+
         private sealed class NeoRowWriteTarget : NeoResolvedWriteTarget
         {
             private readonly string rowId;
@@ -1167,7 +1313,7 @@ namespace NeoCompose.Runtime
                     existing.createdAt,
                     DateTime.UtcNow.ToString("o"));
                 next.typeId = existing.typeId;
-                client.SetWritableValue(ownership, next);
+                StoreWritableRow(client, ownership, next, ctx);
             }
         }
 
@@ -1236,14 +1382,14 @@ namespace NeoCompose.Runtime
                         if (importedId == existingId) return;
                         parent.value[key] = importedId;
                         parent.updatedAt = now;
-                        client.SetWritableValue(ownership, parent);
+                        StoreWritableRow(client, ownership, parent, ctx);
                         client.RemoveWritableValueAndDescendantsIfUnlinked(
                             ownership, existingId, attribute);
                         return;
                     }
                     var next = CreateValueRow(client, ownership, attribute, value, existingId, existing.createdAt, now);
                     next.typeId = existing.typeId;
-                    client.SetWritableValue(ownership, next);
+                    StoreWritableRow(client, ownership, next, ctx);
                 }
                 else
                 {
@@ -1258,16 +1404,16 @@ namespace NeoCompose.Runtime
                             ownership,
                             referenceId!);
                         parent.updatedAt = now;
-                        client.SetWritableValue(ownership, parent);
+                        StoreWritableRow(client, ownership, parent, ctx);
                         return;
                     }
                     var childId = Guid.NewGuid().ToString();
                     var next = CreateValueRow(client, ownership, attribute, value, childId, now, now);
-                    client.SetWritableValue(ownership, next);
+                    StoreWritableRow(client, ownership, next, ctx);
                     parent.value[key] = childId;
                 }
                 parent.updatedAt = now;
-                client.SetWritableValue(ownership, parent);
+                StoreWritableRow(client, ownership, parent, ctx);
             }
         }
 
@@ -1376,7 +1522,7 @@ namespace NeoCompose.Runtime
                     if (importedId == childId) return;
                     parent.value[index] = importedId;
                     parent.updatedAt = DateTime.UtcNow.ToString("o");
-                    client.SetWritableValue(ownership, parent);
+                    StoreWritableRow(client, ownership, parent, ctx);
                     client.RemoveWritableValueAndDescendantsIfUnlinked(
                         ownership, childId, AttributeFromTypeInfo(typeInfo));
                     return;
@@ -1394,7 +1540,7 @@ namespace NeoCompose.Runtime
                     existing.createdAt,
                     DateTime.UtcNow.ToString("o"));
                 next.typeId = existing.typeId;
-                client.SetWritableValue(ownership, next);
+                StoreWritableRow(client, ownership, next, ctx);
             }
         }
 
@@ -1451,7 +1597,7 @@ namespace NeoCompose.Runtime
                                 referenceId!);
                             row.value = referencedNext;
                             row.updatedAt = now;
-                            client.SetWritableValue(ownership, row);
+                            StoreWritableRow(client, ownership, row, ctx);
                             return;
                         }
                         var childId = Guid.NewGuid().ToString();
@@ -1463,13 +1609,13 @@ namespace NeoCompose.Runtime
                             childId,
                             now,
                             now);
-                        client.SetWritableValue(ownership, child);
+                        StoreWritableRow(client, ownership, child, ctx);
                         var next = new string[row.value.Length + 1];
                         Array.Copy(row.value, next, row.value.Length);
                         next[row.value.Length] = childId;
                         row.value = next;
                         row.updatedAt = now;
-                        client.SetWritableValue(ownership, row);
+                        StoreWritableRow(client, ownership, row, ctx);
                         return;
                     }
                     case CollectionMutationKind.RemoveAt:
@@ -1479,7 +1625,8 @@ namespace NeoCompose.Runtime
                             row,
                             ToInt(args[0], "RemoveAt index"),
                             now,
-                            entryTypeInfo);
+                            entryTypeInfo,
+                            ctx);
                         return;
                     case CollectionMutationKind.Remove:
                     {
@@ -1494,12 +1641,12 @@ namespace NeoCompose.Runtime
                         {
                             if (referenceId != null && row.value[i] == referenceId)
                             {
-                                RemoveAt(client, ownership, row, i, now, entryTypeInfo);
+                                RemoveAt(client, ownership, row, i, now, entryTypeInfo, ctx);
                                 return;
                             }
                             if (!client.TryGetValue(row.value[i], out AttributeValue? child)) continue;
                             if (!JsEqual(ReadRowValue(child), args[0])) continue;
-                            RemoveAt(client, ownership, row, i, now, entryTypeInfo);
+                            RemoveAt(client, ownership, row, i, now, entryTypeInfo, ctx);
                             return;
                         }
                         return;
@@ -1509,7 +1656,7 @@ namespace NeoCompose.Runtime
                         var removedIds = row.value;
                         row.value = Array.Empty<string>();
                         row.updatedAt = now;
-                        client.SetWritableValue(ownership, row);
+                        StoreWritableRow(client, ownership, row, ctx);
                         foreach (var childId in removedIds)
                         {
                             client.RemoveWritableValueAndDescendantsIfUnlinked(
@@ -1528,7 +1675,8 @@ namespace NeoCompose.Runtime
                 ArrayAttributeValue row,
                 int index,
                 string now,
-                TypeInfo entryTypeInfo)
+                TypeInfo entryTypeInfo,
+                NSGetterEvaluator.Context ctx)
             {
                 if (row.value == null || index < 0 || index >= row.value.Length)
                 {
@@ -1543,7 +1691,7 @@ namespace NeoCompose.Runtime
                 }
                 row.value = next;
                 row.updatedAt = now;
-                client.SetWritableValue(ownership, row);
+                StoreWritableRow(client, ownership, row, ctx);
                 client.RemoveWritableValueAndDescendantsIfUnlinked(
                     ownership, removedId, AttributeFromTypeInfo(entryTypeInfo));
             }
@@ -1586,7 +1734,7 @@ namespace NeoCompose.Runtime
                         next[row.value.Length] = selectionId;
                         row.value = next;
                         row.updatedAt = now;
-                        client.SetWritableValue(ownership, row);
+                        StoreWritableRow(client, ownership, row, ctx);
                         return;
                     }
                     case CollectionMutationKind.Remove:
@@ -1602,13 +1750,13 @@ namespace NeoCompose.Runtime
                         }
                         row.value = next;
                         row.updatedAt = now;
-                        client.SetWritableValue(ownership, row);
+                        StoreWritableRow(client, ownership, row, ctx);
                         return;
                     }
                     case CollectionMutationKind.Clear:
                         row.value = Array.Empty<string>();
                         row.updatedAt = now;
-                        client.SetWritableValue(ownership, row);
+                        StoreWritableRow(client, ownership, row, ctx);
                         return;
                     default:
                         throw new NSGetterRuntimeError($"Unsupported lookup set mutation '{mutation}'.");
@@ -1645,10 +1793,13 @@ namespace NeoCompose.Runtime
                             ctx);
                         return;
                     case CollectionMutationKind.Remove:
-                        Remove(client, ToStringKey(args[0], "Dictionary Remove key"));
+                        Remove(
+                            client,
+                            ToStringKey(args[0], "Dictionary Remove key"),
+                            ctx);
                         return;
                     case CollectionMutationKind.Clear:
-                        Clear(client);
+                        Clear(client, ctx);
                         return;
                     default:
                         throw new NSGetterRuntimeError($"Unsupported dictionary mutation '{mutation}'.");
@@ -1685,7 +1836,7 @@ namespace NeoCompose.Runtime
                         if (importedId == existingId) return;
                         row.value[key] = importedId;
                         row.updatedAt = now;
-                        client.SetWritableValue(ownership, row);
+                        StoreWritableRow(client, ownership, row, ctx);
                         client.RemoveWritableValueAndDescendantsIfUnlinked(
                             ownership, existingId, AttributeFromTypeInfo(entryTypeInfo));
                         return;
@@ -1699,7 +1850,7 @@ namespace NeoCompose.Runtime
                         existing.createdAt,
                         now);
                     next.typeId = existing.typeId;
-                    client.SetWritableValue(ownership, next);
+                    StoreWritableRow(client, ownership, next, ctx);
                 }
                 else
                 {
@@ -1714,7 +1865,7 @@ namespace NeoCompose.Runtime
                             ownership,
                             referenceId!);
                         row.updatedAt = now;
-                        client.SetWritableValue(ownership, row);
+                        StoreWritableRow(client, ownership, row, ctx);
                         return;
                     }
                     var childId = Guid.NewGuid().ToString();
@@ -1726,14 +1877,17 @@ namespace NeoCompose.Runtime
                         childId,
                         now,
                         now);
-                    client.SetWritableValue(ownership, next);
+                    StoreWritableRow(client, ownership, next, ctx);
                     row.value[key] = childId;
                 }
                 row.updatedAt = now;
-                client.SetWritableValue(ownership, row);
+                StoreWritableRow(client, ownership, row, ctx);
             }
 
-            private void Remove(NeoClient client, string key)
+            private void Remove(
+                NeoClient client,
+                string key,
+                NSGetterEvaluator.Context ctx)
             {
                 EnsureWritableRow(client, rowId, ownership);
                 if (!client.TryGetValue(rowId, out ObjectAttributeValue? row)
@@ -1744,12 +1898,14 @@ namespace NeoCompose.Runtime
                 }
                 row.value.Remove(key);
                 row.updatedAt = DateTime.UtcNow.ToString("o");
-                client.SetWritableValue(ownership, row);
+                StoreWritableRow(client, ownership, row, ctx);
                 client.RemoveWritableValueAndDescendantsIfUnlinked(
                     ownership, removedId, AttributeFromTypeInfo(entryTypeInfo));
             }
 
-            private void Clear(NeoClient client)
+            private void Clear(
+                NeoClient client,
+                NSGetterEvaluator.Context ctx)
             {
                 EnsureWritableRow(client, rowId, ownership);
                 if (!client.TryGetValue(rowId, out ObjectAttributeValue? row)
@@ -1760,7 +1916,7 @@ namespace NeoCompose.Runtime
                 var removedIds = new List<string>(row.value.Values);
                 row.value.Clear();
                 row.updatedAt = DateTime.UtcNow.ToString("o");
-                client.SetWritableValue(ownership, row);
+                StoreWritableRow(client, ownership, row, ctx);
                 foreach (var childId in removedIds)
                 {
                     client.RemoveWritableValueAndDescendantsIfUnlinked(
@@ -1769,39 +1925,79 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private sealed class DeferredResumeState
+        private sealed class ExpressionResumeState
         {
-            public DeferredResumeState(string resumeKey, object? value)
+            private readonly Dictionary<string, CachedFunctionResult> results = new();
+            private readonly Dictionary<string, int> invocationCounts = new();
+
+            internal void BeginInstructionAttempt()
             {
-                ResumeKey = resumeKey;
-                Value = value;
+                invocationCounts.Clear();
             }
 
-            public string ResumeKey { get; }
-            public object? Value { get; }
-            public bool Used { get; set; }
+            internal string NextInvocationKey(string callSiteId)
+            {
+                invocationCounts.TryGetValue(callSiteId, out int occurrence);
+                invocationCounts[callSiteId] = occurrence + 1;
+                return callSiteId + "\n" + occurrence;
+            }
+
+            internal bool TryGet(
+                string callSiteId,
+                out object? value,
+                out Exception? error)
+            {
+                if (results.TryGetValue(callSiteId, out CachedFunctionResult cached))
+                {
+                    value = cached.Value;
+                    error = cached.Error;
+                    return true;
+                }
+                value = null;
+                error = null;
+                return false;
+            }
+
+            internal void StoreValue(string callSiteId, object? value)
+            {
+                results[callSiteId] = new CachedFunctionResult(value, null);
+            }
+
+            internal void StoreError(string callSiteId, Exception error)
+            {
+                results[callSiteId] = new CachedFunctionResult(null, error);
+            }
+
+            private readonly struct CachedFunctionResult
+            {
+                internal CachedFunctionResult(object? value, Exception? error)
+                {
+                    Value = value;
+                    Error = error;
+                }
+
+                internal object? Value { get; }
+                internal Exception? Error { get; }
+            }
         }
 
     }
 
-    internal sealed class NeoDeferredNativeFunctionSuspended : Exception
+    internal sealed class NeoFunctionCallSuspended : Exception
     {
-        internal NeoDeferredNativeFunctionSuspended(
+        internal NeoFunctionCallSuspended(
             string resumeKey,
             string attributeId,
-            NeoDeferredFunctionBase deferred,
-            DeferredNativeFunctionSuspension suspension)
+            NeoActionExecutionResult execution)
         {
             ResumeKey = resumeKey;
             AttributeId = attributeId;
-            Deferred = deferred;
-            Suspension = suspension;
+            Execution = execution;
         }
 
         internal string ResumeKey { get; }
         internal string AttributeId { get; }
-        internal NeoDeferredFunctionBase Deferred { get; }
-        internal DeferredNativeFunctionSuspension Suspension { get; }
+        internal NeoActionExecutionResult Execution { get; }
     }
 
     internal sealed class NeoActionExecutionOptions
@@ -1809,15 +2005,22 @@ namespace NeoCompose.Runtime
         private readonly NeoClient client;
         private readonly Action<string> warning;
         private readonly string? propertyAttributeId;
+        internal bool AllowDeferredFunctionCalls { get; }
+        internal bool CancelContinuationOnDeferredDisposal { get; }
 
         private NeoActionExecutionOptions(
             NeoClient client,
             Action<string> warning,
-            string? propertyAttributeId)
+            string? propertyAttributeId,
+            bool allowDeferredFunctionCalls,
+            bool cancelContinuationOnDeferredDisposal)
         {
             this.client = client;
             this.warning = warning;
             this.propertyAttributeId = propertyAttributeId;
+            AllowDeferredFunctionCalls = allowDeferredFunctionCalls;
+            CancelContinuationOnDeferredDisposal =
+                cancelContinuationOnDeferredDisposal;
         }
 
         internal static NeoActionExecutionOptions ForDialogue(
@@ -1829,7 +2032,9 @@ namespace NeoCompose.Runtime
                 logger is null
                     ? UnityEngine.Debug.LogWarning
                     : logger.LogWarning,
-                null);
+                null,
+                allowDeferredFunctionCalls: true,
+                cancelContinuationOnDeferredDisposal: false);
         }
 
         internal static NeoActionExecutionOptions ForUnity(NeoClient client)
@@ -1837,15 +2042,54 @@ namespace NeoCompose.Runtime
             return new NeoActionExecutionOptions(
                 client,
                 UnityEngine.Debug.LogWarning,
-                null);
+                null,
+                allowDeferredFunctionCalls: true,
+                cancelContinuationOnDeferredDisposal: false);
+        }
+
+        internal static NeoActionExecutionOptions ForDirectFunction(
+            NeoClient client)
+        {
+            return new NeoActionExecutionOptions(
+                client,
+                UnityEngine.Debug.LogWarning,
+                null,
+                allowDeferredFunctionCalls: true,
+                cancelContinuationOnDeferredDisposal: true);
+        }
+
+        internal static NeoActionExecutionOptions ForImmediate(NeoClient client)
+        {
+            return new NeoActionExecutionOptions(
+                client,
+                UnityEngine.Debug.LogWarning,
+                null,
+                allowDeferredFunctionCalls: false,
+                cancelContinuationOnDeferredDisposal: false);
         }
 
         internal NeoActionExecutionOptions ForProperty(string attributeId)
         {
-            return new NeoActionExecutionOptions(client, warning, attributeId);
+            return new NeoActionExecutionOptions(
+                client,
+                warning,
+                attributeId,
+                AllowDeferredFunctionCalls,
+                CancelContinuationOnDeferredDisposal);
         }
 
-        internal void WarnDeferred(string nativeFunctionAttributeId)
+        internal NeoActionExecutionOptions ForFunction(bool deferred)
+        {
+            return new NeoActionExecutionOptions(
+                client,
+                warning,
+                propertyAttributeId,
+                allowDeferredFunctionCalls: deferred,
+                cancelContinuationOnDeferredDisposal:
+                    CancelContinuationOnDeferredDisposal);
+        }
+
+        internal void WarnDeferred(string functionAttributeId)
         {
             if (propertyAttributeId is null) return;
             string propertyName = client.TryGetAttribute(
@@ -1853,12 +2097,12 @@ namespace NeoCompose.Runtime
                     ? propertyAttribute.name
                     : propertyAttributeId;
             string functionName = client.TryGetAttribute(
-                nativeFunctionAttributeId, out JsonAttribute? functionAttribute)
+                functionAttributeId, out JsonAttribute? functionAttribute)
                     ? functionAttribute.name
-                    : nativeFunctionAttributeId;
+                    : functionAttributeId;
             warning(
                 $"NeoScript property setter '{propertyName}' ({propertyAttributeId}) " +
-                $"called deferred native Function '{functionName}' ({nativeFunctionAttributeId}), " +
+                $"called deferred Function '{functionName}' ({functionAttributeId}), " +
                 "which did not call Complete/Fail inline. The setter will continue " +
                 "asynchronously; any later error will be logged by the Neo Compose SDK.");
         }
@@ -1872,6 +2116,7 @@ namespace NeoCompose.Runtime
         private NeoActionExecutionResult(
             bool isPaused,
             bool returned,
+            object? returnValue,
             string? suspendedAttributeId,
             NeoDeferredFunctionBase? deferred,
             DeferredNativeFunctionSuspension? suspension,
@@ -1879,6 +2124,7 @@ namespace NeoCompose.Runtime
         {
             IsPaused = isPaused;
             Returned = returned;
+            ReturnValue = returnValue;
             SuspendedAttributeId = suspendedAttributeId;
             Deferred = deferred;
             this.suspension = suspension;
@@ -1887,12 +2133,22 @@ namespace NeoCompose.Runtime
 
         internal bool IsPaused { get; }
         internal bool Returned { get; }
+        internal object? ReturnValue { get; }
         internal string? SuspendedAttributeId { get; }
         internal NeoDeferredFunctionBase? Deferred { get; }
 
-        internal static NeoActionExecutionResult Completed(bool returned)
+        internal static NeoActionExecutionResult Completed(
+            bool returned,
+            object? returnValue)
         {
-            return new NeoActionExecutionResult(false, returned, null, null, null, null);
+            return new NeoActionExecutionResult(
+                false,
+                returned,
+                returnValue,
+                null,
+                null,
+                null,
+                null);
         }
 
         internal static NeoActionExecutionResult Paused(
@@ -1904,6 +2160,7 @@ namespace NeoCompose.Runtime
             return new NeoActionExecutionResult(
                 true,
                 false,
+                null,
                 suspendedAttributeId,
                 deferred,
                 suspension,
@@ -1999,6 +2256,11 @@ namespace NeoCompose.Runtime
                 continuation = failContinuation;
             }
             continuation?.Invoke(ex);
+        }
+
+        internal void Cancel(string reason)
+        {
+            Fail(new OperationCanceledException(reason));
         }
 
         internal void MarkInvokerReturned()

@@ -45,6 +45,11 @@ namespace NeoCompose.Runtime.Json
         /// attribute record.
         /// </summary>
         Interface = 22,
+        /// <summary>
+        /// Mutation-capable NeoScript function with an authored signature and
+        /// server-compiled action body. Appended in Unity export schema 6.
+        /// </summary>
+        NSFunction = 23,
         Unknown = -1,
         Void = -2,
     }

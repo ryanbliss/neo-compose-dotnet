@@ -116,8 +116,24 @@ namespace NeoCompose.Tests
         /// tests that construct the schema in code rather than from JSON. The stub
         /// loader persists nothing.
         /// </summary>
-        public static NeoClient ClientFromSchema(ProjectData schema, NeoSaveOptions? options = null)
+        public static NeoClient ClientFromSchema(
+            ProjectData schema,
+            NeoSaveOptions? options = null,
+            bool assumeCurrentSchema = true)
         {
+            // Programmatically-built unit-test schemas predate export metadata
+            // and are intentionally treated as current unless a schema-gate
+            // test explicitly opts out. JSON fixtures still pass through the
+            // production boundary unchanged.
+            if (assumeCurrentSchema && schema.metadata is null)
+            {
+                schema.metadata = new ProjectExportMetadata
+                {
+                    schemaVersion = 6,
+                    projectId = schema.project.id,
+                    versionId = "unit-test-version",
+                };
+            }
             return new NeoClient(new SchemaOnlyLoader(schema), null, saveOptions: options);
         }
 

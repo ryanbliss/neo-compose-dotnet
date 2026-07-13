@@ -121,29 +121,29 @@ namespace NeoCompose.Tests
             var data = BuildStorageProjectData();
             data.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 6,
+                schemaVersion = 7,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(data));
-            StringAssert.Contains("schema version 6", error!.Message);
+            StringAssert.Contains("schema version 7", error!.Message);
             StringAssert.Contains("newer", error.Message);
         }
 
         [Test]
-        public void ExportSchemaVersion_OlderThanEnumOrderingThrows()
+        public void ExportSchemaVersion_OlderThanNSFunctionSupportThrows()
         {
             var legacy = BuildStorageProjectData();
             legacy.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 4,
+                schemaVersion = 5,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(legacy));
-            StringAssert.Contains("schema version 4", error!.Message);
+            StringAssert.Contains("schema version 5", error!.Message);
             StringAssert.Contains("Re-export", error.Message);
         }
 
@@ -153,11 +153,27 @@ namespace NeoCompose.Tests
             var current = BuildStorageProjectData();
             current.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 5,
+                schemaVersion = 6,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             Assert.DoesNotThrow(() => NeoTestSaveStack.ClientFromSchema(current));
+        }
+
+        [Test]
+        public void ExportSchemaVersion_MissingMetadataThrows()
+        {
+            var missing = BuildStorageProjectData();
+            missing.metadata = null;
+
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(
+                    missing,
+                    assumeCurrentSchema: false));
+
+            StringAssert.Contains("metadata is missing", error!.Message);
+            StringAssert.Contains("schema version 6", error.Message);
+            StringAssert.Contains("Re-export", error.Message);
         }
 
         private static NeoClient LoadStorageClient()

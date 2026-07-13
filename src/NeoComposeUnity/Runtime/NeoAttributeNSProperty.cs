@@ -4,7 +4,6 @@
 #nullable enable
 
 using System.Collections.Generic;
-using System.Collections;
 using System.Threading;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
@@ -326,242 +325,13 @@ namespace NeoCompose.Runtime
             TypeInfo typeInfo,
             NSGetterEvaluator.Context ctx)
         {
-            if (value is NeoValueWritePayload payload)
-            {
-                if (payload.isValueReference)
-                {
-                    value = payload.valueReference
-                        ?? (object?)payload.valueId;
-                }
-                else
-                {
-                    value = payload.value;
-                }
-            }
-            if (value is null) return null;
-
-            if (value is NeoLookupSelection selection)
-            {
-                if (!client.TryGetValue(selection.valueId, out AttributeValue? selectedRow))
-                {
-                    throw new System.InvalidOperationException(
-                        $"Selected Neo value '{selection.valueId}' was not found.");
-                }
-                NeoValueOwnership selectedOwnership = client.TryGetValueOwnership(
-                    selection.valueId, out NeoValueOwnership foundSelectionOwnership)
-                        ? foundSelectionOwnership
-                        : ownership;
-                return NSGetterEvaluator.UnwrapRow(
-                    selectedRow,
-                    ctx,
-                    selectedOwnership);
-            }
-            if (value is NeoDialogueReference dialogueReference)
-            {
-                return dialogueReference.Id;
-            }
-            string? optionId = EnumOptionId(value);
-            if (optionId is not null && value is not string)
-            {
-                return optionId;
-            }
-
-            if (value is INeoValueReference reference
-                && !string.IsNullOrEmpty(reference.valueId))
-            {
-                if (!client.TryGetValue(reference.valueId!, out AttributeValue? referencedRow))
-                {
-                    throw new System.InvalidOperationException(
-                        $"Referenced Neo value '{reference.valueId}' was not found.");
-                }
-                NeoValueOwnership referencedOwnership = client.TryGetValueOwnership(
-                    reference.valueId!, out NeoValueOwnership foundOwnership)
-                        ? foundOwnership
-                        : ownership;
-                return NSGetterEvaluator.UnwrapRow(
-                    referencedRow,
-                    ctx,
-                    referencedOwnership);
-            }
-
-            switch (typeInfo.type)
-            {
-                case AttributeType.Decimal:
-                    if (value is decimal decimalValue)
-                    {
-                        return NeoDecimalValues.Format(decimalValue);
-                    }
-                    if (value is double or float or int or long or short)
-                    {
-                        return NSGetterEvaluator.CoerceDecimalOperand(
-                            value,
-                            "setter value");
-                    }
-                    return value;
-                case AttributeType.Vector2:
-                    if (value is NeoReadOnlyVector2 vector2)
-                        return NeoGeneratedTypesSupport.Vector2Value(vector2.Value);
-                    if (value is Vector2 unityVector2)
-                        return NeoGeneratedTypesSupport.Vector2Value(unityVector2);
-                    return value;
-                case AttributeType.Vector2Int:
-                    if (value is NeoReadOnlyVector2Int vector2Int)
-                        return NeoGeneratedTypesSupport.Vector2IntValue(vector2Int.Value);
-                    if (value is Vector2Int unityVector2Int)
-                        return NeoGeneratedTypesSupport.Vector2IntValue(unityVector2Int);
-                    return value;
-                case AttributeType.Vector3:
-                    if (value is NeoReadOnlyVector3 vector3)
-                        return NeoGeneratedTypesSupport.Vector3Value(vector3.Value);
-                    if (value is Vector3 unityVector3)
-                        return NeoGeneratedTypesSupport.Vector3Value(unityVector3);
-                    return value;
-                case AttributeType.Vector3Int:
-                    if (value is NeoReadOnlyVector3Int vector3Int)
-                        return NeoGeneratedTypesSupport.Vector3IntValue(vector3Int.Value);
-                    if (value is Vector3Int unityVector3Int)
-                        return NeoGeneratedTypesSupport.Vector3IntValue(unityVector3Int);
-                    return value;
-                case AttributeType.Color:
-                    if (value is NeoReadOnlyColor color)
-                        return NeoGeneratedTypesSupport.ColorValue(color.Value);
-                    if (value is Color unityColor)
-                        return NeoGeneratedTypesSupport.ColorValue(unityColor);
-                    return value;
-                case AttributeType.Sprite:
-                    if (value is Sprite sprite)
-                        return NeoGeneratedTypesSupport.SpriteValue(client, sprite);
-                    return value;
-                case AttributeType.Audio:
-                    if (value is AudioClip audio)
-                        return NeoGeneratedTypesSupport.AudioValue(client, audio);
-                    return value;
-                case AttributeType.Enum:
-                    return EnumOptionId(value) ?? value;
-                case AttributeType.List:
-                case AttributeType.Lookup:
-                case AttributeType.DialogueLookup:
-                    return NormalizeEnumerable(value, typeInfo, ctx);
-                case AttributeType.Dictionary:
-                    return NormalizeDictionary(value, typeInfo, ctx);
-                default:
-                    return value;
-            }
-        }
-
-        private object?[] NormalizeEnumerable(
-            object value,
-            TypeInfo typeInfo,
-            NSGetterEvaluator.Context ctx)
-        {
-            if (value is string || value is not IEnumerable enumerable)
-            {
-                throw new System.InvalidOperationException(
-                    $"Expected an enumerable setter value for {typeInfo.type}.");
-            }
-            TypeInfo? entryType = typeInfo switch
-            {
-                CollectionTypeInfo collection => collection.entryTypeInfo,
-                LookupTypeInfo lookup => lookup.entryTypeInfo,
-                _ => null,
-            };
-            var result = new List<object?>();
-            foreach (object? entry in enumerable)
-            {
-                result.Add(entryType is null
-                    ? NormalizeSetterValue(
-                        entry,
-                        new UnknownTypeInfo
-                        {
-                            type = AttributeType.Unknown,
-                            required = false,
-                        },
-                        ctx)
-                    : NormalizeSetterValue(entry, entryType, ctx));
-            }
-            return result.ToArray();
-        }
-
-        private Dictionary<string, object?> NormalizeDictionary(
-            object value,
-            TypeInfo typeInfo,
-            NSGetterEvaluator.Context ctx)
-        {
-            TypeInfo? entryType = (typeInfo as CollectionTypeInfo)?.entryTypeInfo;
-            var result = new Dictionary<string, object?>();
-            if (value is IDictionary dictionary)
-            {
-                foreach (DictionaryEntry entry in dictionary)
-                {
-                    AddNormalizedDictionaryEntry(
-                        result,
-                        entry.Key,
-                        entry.Value,
-                        entryType,
-                        ctx);
-                }
-                return result;
-            }
-
-            // NeoReadOnlyDictionary<T> and the enum-keyed two-arity wrapper
-            // implement generic IEnumerable<KeyValuePair<...>>, not the
-            // non-generic IDictionary interface. Read their stable Key/Value
-            // shape without coupling this boundary codec to every closed
-            // generic wrapper type emitted by codegen.
-            if (value is IEnumerable entries && value is not string)
-            {
-                foreach (object? entry in entries)
-                {
-                    if (entry is null) continue;
-                    System.Type entryClrType = entry.GetType();
-                    System.Reflection.PropertyInfo? keyProperty =
-                        entryClrType.GetProperty("Key");
-                    System.Reflection.PropertyInfo? valueProperty =
-                        entryClrType.GetProperty("Value");
-                    if (keyProperty is null || valueProperty is null)
-                    {
-                        throw new System.InvalidOperationException(
-                            $"Dictionary setter entry '{entryClrType.FullName}' does not expose Key/Value properties.");
-                    }
-                    AddNormalizedDictionaryEntry(
-                        result,
-                        keyProperty.GetValue(entry),
-                        valueProperty.GetValue(entry),
-                        entryType,
-                        ctx);
-                }
-                return result;
-            }
-
-            throw new System.InvalidOperationException(
-                "Expected a dictionary setter value.");
-        }
-
-        private void AddNormalizedDictionaryEntry(
-            Dictionary<string, object?> result,
-            object? keyValue,
-            object? entryValue,
-            TypeInfo? entryType,
-            NSGetterEvaluator.Context ctx)
-        {
-            string key = EnumOptionId(keyValue)
-                ?? keyValue?.ToString()
-                ?? "null";
-            result[key] = entryType is null
-                ? entryValue
-                : NormalizeSetterValue(entryValue, entryType, ctx);
-        }
-
-        private static string? EnumOptionId(object? value)
-        {
-            if (value is string text) return text;
-            System.Reflection.PropertyInfo? property = value?.GetType().GetProperty(
-                "optionId",
-                System.Reflection.BindingFlags.Instance
-                    | System.Reflection.BindingFlags.Public);
-            return property?.PropertyType == typeof(string)
-                ? property.GetValue(value) as string
-                : null;
+            return NeoScriptValueMarshaller.Normalize(
+                client,
+                ownership,
+                value,
+                typeInfo,
+                ctx,
+                "setter value");
         }
 
         private NSSetterResult SetterError(string message)
@@ -617,17 +387,7 @@ namespace NeoCompose.Runtime
         /// </summary>
         private object? ResolveRootValue(NSGetterEvaluator.Context ctx)
         {
-            var root = new Dictionary<string, object?>(3);
-            root["Assets"] = client.assets.value is ObjectAttributeValue a
-                ? NSGetterEvaluator.UnwrapRow(a, ctx, NeoValueOwnership.Asset)
-                : null;
-            root["Save"] = client.save.value is ObjectAttributeValue s
-                ? NSGetterEvaluator.UnwrapRow(s, ctx, NeoValueOwnership.Save)
-                : null;
-            root["Session"] = client.session.value is ObjectAttributeValue ss
-                ? NSGetterEvaluator.UnwrapRow(ss, ctx, NeoValueOwnership.Session)
-                : null;
-            return root;
+            return NeoScriptValueMarshaller.ResolveRoot(client, ctx);
         }
     }
 }

@@ -3,6 +3,7 @@
 
 #nullable enable
 
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
@@ -71,7 +72,35 @@ namespace NeoCompose.Runtime
         private readonly HashSet<NeoDialogue> activeDialogues = new();
         private readonly HashSet<NeoDeferredFunctionBase> activeDirectDeferredFunctions = new();
         private readonly object activeDirectDeferredFunctionsLock = new();
+        private readonly Dictionary<string, NeoResolvedNSFunction> resolvedNSFunctions = new();
+        private readonly object resolvedNSFunctionsLock = new();
         private bool isDisposed;
+
+        internal bool TryGetResolvedNSFunction(
+            string attributeId,
+            [NotNullWhen(true)] out NeoResolvedNSFunction? function)
+        {
+            lock (resolvedNSFunctionsLock)
+            {
+                return resolvedNSFunctions.TryGetValue(attributeId, out function);
+            }
+        }
+
+        internal NeoResolvedNSFunction CacheResolvedNSFunction(
+            NeoResolvedNSFunction function)
+        {
+            lock (resolvedNSFunctionsLock)
+            {
+                if (resolvedNSFunctions.TryGetValue(
+                        function.AttributeId,
+                        out NeoResolvedNSFunction existing))
+                {
+                    return existing;
+                }
+                resolvedNSFunctions[function.AttributeId] = function;
+                return function;
+            }
+        }
 
         /// <summary>
         /// Read-only views over the underlying project + save maps.
@@ -274,7 +303,7 @@ namespace NeoCompose.Runtime
             ValidateRootCustomAttribute(data.project.rootAssetsAttributeId, nameof(Project.rootAssetsAttributeId));
             ValidateRootCustomAttribute(data.project.rootSaveFileAttributeId, nameof(Project.rootSaveFileAttributeId));
             ValidateRootCustomAttribute(data.project.rootSessionAttributeId, nameof(Project.rootSessionAttributeId));
-            ValidateFunctionAttributes();
+            ValidateCallableAttributes();
             LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
             BuildMembershipIndex();
@@ -315,6 +344,10 @@ namespace NeoCompose.Runtime
             foreach (NeoDeferredFunctionBase deferred in directDeferredFunctions)
             {
                 deferred.DisposeFromOwner("NeoClient disposed");
+            }
+            lock (resolvedNSFunctionsLock)
+            {
+                resolvedNSFunctions.Clear();
             }
             assets.Dispose();
             save.Dispose();
@@ -545,20 +578,24 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            // Metadata is optional (test fixtures, hand-built exports). Schema
-            // Version 5 adds explicit enum option ordering required by
-            // the current runtime. Older exports are structurally incompatible
-            // and must be re-exported.
-            if (metadata is null) return;
-            if (metadata.schemaVersion < 5)
+            // Schema Version 6 coordinates NSFunction ordinal 23, general
+            // function-call IR, and typed action continuations. Missing or
+            // older metadata cannot prove that those wire contracts match, so
+            // fail at the client boundary before partially loading the export.
+            if (metadata is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} predates explicit enum option ordering (this SDK requires 5). Re-export the project from the current web app.");
+                    "Project export metadata is missing (this SDK requires schema version 6). Re-export the project from the current web app.");
             }
-            if (metadata.schemaVersion > 5)
+            if (metadata.schemaVersion < 6)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (5). Update the NeoCompose SDK.");
+                    $"Project export schema version {metadata.schemaVersion} predates NeoScript Function support (this SDK requires 6). Re-export the project from the current web app.");
+            }
+            if (metadata.schemaVersion > 6)
+            {
+                throw new System.InvalidOperationException(
+                    $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports (6). Update the NeoCompose SDK.");
             }
         }
 
@@ -2721,16 +2758,11 @@ namespace NeoCompose.Runtime
             object? receiver,
             object?[] args)
         {
-            if (!TryResolveFunctionAttribute(attributeId, out var attribute))
-            {
-                throw new NeoScript.NSGetterRuntimeError(
-                    $"No Function attribute exists for '{attributeId}'.");
-            }
-            if (attribute.deferred == true)
-            {
-                throw new NeoDeferredFunctionRuntimeError(
-                    $"Deferred Function '{attributeId}' can only be invoked from a dialogue action or NSProperty setter runtime.");
-            }
+            FunctionAttribute attribute = PrepareNativeFunctionInvocation(
+                attributeId,
+                args,
+                expectedDeferred: false,
+                out object?[] preparedArgs);
             if (nativeFunctionInvokers is null)
             {
                 throw new NeoScript.NSGetterRuntimeError(
@@ -2743,7 +2775,7 @@ namespace NeoCompose.Runtime
             }
             return NormalizeNativeFunctionReturn(
                 attribute.returnTypeInfo,
-                invoker(this, receiver, args));
+                invoker(this, receiver, preparedArgs));
         }
 
         /// <summary>
@@ -2854,7 +2886,8 @@ namespace NeoCompose.Runtime
             object?[] args,
             System.Action<object?> complete,
             System.Action<System.Exception> fail,
-            System.Action invokerReturned)
+            System.Action invokerReturned,
+            System.Action<string>? dispose = null)
         {
             return StartDeferredNativeFunctionCore(
                 attributeId,
@@ -2863,7 +2896,7 @@ namespace NeoCompose.Runtime
                 complete,
                 fail,
                 invokerReturned,
-                dispose: null,
+                dispose,
                 normalizeReturnValue: true,
                 captureInvokerException: false);
         }
@@ -2879,16 +2912,11 @@ namespace NeoCompose.Runtime
             bool normalizeReturnValue,
             bool captureInvokerException)
         {
-            if (!TryResolveFunctionAttribute(attributeId, out var attribute))
-            {
-                throw new NeoScript.NSGetterRuntimeError(
-                    $"No Function attribute exists for '{attributeId}'.");
-            }
-            if (attribute.deferred != true)
-            {
-                throw new NeoScript.NSGetterRuntimeError(
-                    $"Function '{attribute.name}' ({attributeId}) is not deferred.");
-            }
+            FunctionAttribute attribute = PrepareNativeFunctionInvocation(
+                attributeId,
+                args,
+                expectedDeferred: true,
+                out object?[] preparedArgs);
             if (deferredNativeFunctionInvokers is null)
             {
                 throw new NeoScript.NSGetterRuntimeError(
@@ -2908,7 +2936,7 @@ namespace NeoCompose.Runtime
                 : CreateTypedDeferredFunction(attribute, completeResult, fail, dispose);
             try
             {
-                invoker(this, receiver, args, deferred);
+                invoker(this, receiver, preparedArgs, deferred);
             }
             catch (System.Exception exception)
             {
@@ -2928,18 +2956,184 @@ namespace NeoCompose.Runtime
             return deferred;
         }
 
-        private void TrackDirectDeferredFunction(NeoDeferredFunctionBase deferred)
+        private FunctionAttribute PrepareNativeFunctionInvocation(
+            string attributeId,
+            object?[]? args,
+            bool expectedDeferred,
+            out object?[] preparedArgs)
         {
+            if (!TryResolveFunctionAttribute(attributeId, out FunctionAttribute? signature))
+            {
+                throw new NeoScript.NSGetterRuntimeError(
+                    $"Function '{attributeId}' has no effective native signature; its override chain or compiled call IR is stale/corrupt.");
+            }
+
+            string functionName = data.attributes.TryGetValue(
+                    attributeId, out Attribute? effectiveAttribute)
+                ? effectiveAttribute.name
+                : signature.name;
+            bool actualDeferred = signature.deferred == true;
+            if (actualDeferred != expectedDeferred)
+            {
+                string expected = expectedDeferred ? "deferred" : "immediate";
+                string actual = actualDeferred ? "deferred" : "immediate";
+                string message =
+                    $"Function '{functionName}' ({attributeId}) deferred-mode mismatch: " +
+                    $"the call path requires {expected}, but its effective signature is {actual}; " +
+                    "compiled call IR is stale/corrupt.";
+                if (actualDeferred)
+                {
+                    throw new NeoDeferredFunctionRuntimeError(message);
+                }
+                throw new NeoScript.NSGetterRuntimeError(message);
+            }
+
+            object?[] sourceArgs = args ?? System.Array.Empty<object?>();
+            if (sourceArgs.Length != signature.argumentTypes.Length)
+            {
+                throw new NeoScript.NSGetterRuntimeError(
+                    $"Function '{functionName}' ({attributeId}) expects " +
+                    $"{signature.argumentTypes.Length} arguments but received {sourceArgs.Length}; " +
+                    "compiled call IR or caller is stale/corrupt.");
+            }
+
+            if (sourceArgs.Length == 0)
+            {
+                preparedArgs = System.Array.Empty<object?>();
+                return signature;
+            }
+
+            preparedArgs = new object?[sourceArgs.Length];
+            for (int i = 0; i < sourceArgs.Length; i++)
+            {
+                FunctionArgumentTypeInfo argument = signature.argumentTypes[i];
+                string subject =
+                    $"argument {i} '{argument.name}' of Function '{functionName}' ({attributeId})";
+                try
+                {
+                    NeoScriptValueMarshaller.ValidateRuntimeValue(
+                        sourceArgs[i],
+                        argument,
+                        subject);
+                    object? prepared = NormalizeNativeFunctionArgument(
+                        sourceArgs[i],
+                        argument,
+                        subject);
+                    NeoScriptValueMarshaller.ValidateRuntimeValue(
+                        prepared,
+                        argument,
+                        subject);
+                    preparedArgs[i] = prepared;
+                }
+                catch (System.Exception exception)
+                {
+                    throw new NeoScript.NSGetterRuntimeError(
+                        $"Function '{functionName}' ({attributeId}) argument {i} " +
+                        $"'{argument.name}' is incompatible with declared {argument.type}; " +
+                        "compiled call IR or caller is stale/corrupt: " +
+                        exception.Message);
+                }
+            }
+            return signature;
+        }
+
+        private object? NormalizeNativeFunctionArgument(
+            object? value,
+            FunctionArgumentTypeInfo typeInfo,
+            string subject)
+        {
+            if (value is null) return null;
+            switch (typeInfo.type)
+            {
+                case AttributeType.Int:
+                    return System.Convert.ToInt32(value);
+                case AttributeType.Float:
+                    return System.Convert.ToDouble(value);
+                case AttributeType.Decimal:
+                    if (value is decimal decimalValue)
+                    {
+                        return NeoDecimalValues.Format(decimalValue);
+                    }
+                    if (value is double or float or int or long or short)
+                    {
+                        return NeoScript.NSGetterEvaluator.CoerceDecimalOperand(
+                            value,
+                            subject);
+                    }
+                    return value;
+                case AttributeType.Enum:
+                {
+                    string[] optionIds = NormalizeNativeFunctionEnumArgument(
+                        value,
+                        subject);
+                    if (typeInfo.required && optionIds.Length == 0)
+                    {
+                        throw new System.InvalidOperationException(
+                            $"Required {subject} has no enum option id.");
+                    }
+                    return optionIds;
+                }
+                case AttributeType.Sprite:
+                    return value is Sprite sprite
+                        ? NeoGeneratedTypesSupport.SpriteValue(this, sprite)
+                        : value;
+                case AttributeType.Audio:
+                    return value is AudioClip audio
+                        ? NeoGeneratedTypesSupport.AudioValue(this, audio)
+                        : value;
+                default:
+                    return value;
+            }
+        }
+
+        private static string[] NormalizeNativeFunctionEnumArgument(
+            object value,
+            string subject)
+        {
+            if (value is string text) return new[] { text };
+            string? optionId = NeoScriptValueMarshaller.EnumOptionId(value);
+            if (optionId is not null) return new[] { optionId };
+            if (value is not IEnumerable enumerable)
+            {
+                throw new System.InvalidOperationException(
+                    $"{subject} must be an enum option or option-id collection.");
+            }
+            var result = new List<string>();
+            foreach (object? entry in enumerable)
+            {
+                string? entryId = entry as string
+                    ?? NeoScriptValueMarshaller.EnumOptionId(entry);
+                if (entryId is null)
+                {
+                    throw new System.InvalidOperationException(
+                        $"{subject} contains an entry without an enum option id.");
+                }
+                result.Add(entryId);
+            }
+            return result.ToArray();
+        }
+
+        internal void TrackDirectDeferredFunction(NeoDeferredFunctionBase deferred)
+        {
+            bool disposeImmediately = false;
             lock (activeDirectDeferredFunctionsLock)
             {
-                if (deferred.Pending)
+                if (isDisposed)
+                {
+                    disposeImmediately = deferred.Pending;
+                }
+                else if (deferred.Pending)
                 {
                     activeDirectDeferredFunctions.Add(deferred);
                 }
             }
+            if (disposeImmediately)
+            {
+                deferred.DisposeFromOwner("NeoClient disposed");
+            }
         }
 
-        private void RemoveDirectDeferredFunction(NeoDeferredFunctionBase? deferred)
+        internal void RemoveDirectDeferredFunction(NeoDeferredFunctionBase? deferred)
         {
             if (deferred is null) return;
             lock (activeDirectDeferredFunctionsLock)
@@ -3093,28 +3287,254 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        private void ValidateFunctionAttributes()
+        private void ValidateCallableAttributes()
         {
             foreach (var pair in data.attributes)
             {
-                if (pair.Value is not FunctionAttribute function) continue;
-                if (!string.IsNullOrEmpty(function.extendsAttributeId)) continue;
-                if (function.returnTypeInfo is null)
+                if (pair.Value is FunctionAttribute function)
                 {
-                    throw new System.InvalidOperationException(
-                        $"Function attribute '{function.id}' is missing returnTypeInfo.");
+                    ValidateCallableSignature(
+                        function,
+                        function.returnTypeInfo,
+                        function.argumentTypes,
+                        function.deferred,
+                        "Function",
+                        rejectOverrideFields: false);
+                    continue;
                 }
-                if (function.argumentTypes is null)
+                if (pair.Value is not NSFunctionAttribute nsFunction) continue;
+                ValidateCallableSignature(
+                    nsFunction,
+                    nsFunction.returnTypeInfo,
+                    nsFunction.argumentTypes,
+                    nsFunction.deferred,
+                    "NSFunction",
+                    rejectOverrideFields: true);
+                ValidateNSFunctionAttribute(nsFunction);
+            }
+        }
+
+        private static void ValidateCallableSignature(
+            Attribute attribute,
+            Json.TypeInfo? returnTypeInfo,
+            FunctionArgumentTypeInfo[]? argumentTypes,
+            bool? deferred,
+            string kind,
+            bool rejectOverrideFields)
+        {
+            bool isOverride = !string.IsNullOrEmpty(attribute.extendsAttributeId);
+            if (isOverride)
+            {
+                if (rejectOverrideFields
+                    && (returnTypeInfo is not null
+                    || argumentTypes is not null
+                    || deferred.HasValue))
                 {
                     throw new System.InvalidOperationException(
-                        $"Function attribute '{function.id}' is missing argumentTypes.");
+                        $"{kind} override '{attribute.id}' must inherit returnTypeInfo, argumentTypes, and deferred from its declaration.");
                 }
-                if (!function.deferred.HasValue)
+                return;
+            }
+            if (returnTypeInfo is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"{kind} attribute '{attribute.id}' is missing returnTypeInfo.");
+            }
+            if (argumentTypes is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"{kind} attribute '{attribute.id}' is missing argumentTypes.");
+            }
+            if (!deferred.HasValue)
+            {
+                throw new System.InvalidOperationException(
+                    $"{kind} attribute '{attribute.id}' is missing deferred.");
+            }
+        }
+
+        private void ValidateNSFunctionAttribute(NSFunctionAttribute attribute)
+        {
+            if (attribute.required
+                || attribute.defaultValue is not null
+                || !string.IsNullOrEmpty(attribute.valueId)
+                || !string.IsNullOrEmpty(attribute.storage))
+            {
+                throw new System.InvalidOperationException(
+                    $"NSFunction attribute '{attribute.id}' is value-less and cannot declare required/default/value/storage fields.");
+            }
+            bool hasLocalCodeField = attribute.code is not null;
+            bool hasLocalAction = attribute.action is not null;
+            if (hasLocalCodeField != hasLocalAction)
+            {
+                throw new System.InvalidOperationException(
+                    $"NSFunction attribute '{attribute.id}' must export its local code and compiled action together.");
+            }
+            if (hasLocalCodeField && string.IsNullOrWhiteSpace(attribute.code))
+            {
+                throw new System.InvalidOperationException(
+                    $"NSFunction attribute '{attribute.id}' local code must not be empty.");
+            }
+            if (attribute.isAbstract == true) return;
+
+            if (string.IsNullOrEmpty(attribute.extendsAttributeId)
+                && !hasLocalCodeField)
+            {
+                throw new System.InvalidOperationException(
+                    $"Concrete NSFunction declaration '{attribute.id}' is missing code and compiled action.");
+            }
+
+            NSFunctionAttribute? signature = ResolveNSFunctionSignature(attribute.id);
+            FunctionWithReturnType? action = ResolveNSFunctionAction(attribute.id);
+            if (signature is null || action is null)
+            {
+                throw new System.InvalidOperationException(
+                    $"Concrete NSFunction attribute '{attribute.id}' is missing its compiled action or inherited signature.");
+            }
+            int expectedParameters = signature.argumentTypes.Length + 2;
+            if (action.parameters is null || action.parameters.Length != expectedParameters)
+            {
+                throw new System.InvalidOperationException(
+                    $"NSFunction attribute '{attribute.id}' compiled action has {action.parameters?.Length ?? 0} parameters; expected {expectedParameters} (__this__, __root__, and {signature.argumentTypes.Length} arguments).");
+            }
+            if (action.parameters[0].id != "__this__"
+                || action.parameters[1].id != "__root__")
+            {
+                throw new System.InvalidOperationException(
+                    $"NSFunction attribute '{attribute.id}' compiled action must begin with __this__ and __root__ parameters.");
+            }
+            for (int i = 0; i < signature.argumentTypes.Length; i++)
+            {
+                string expectedId = $"__arg_{i}__";
+                if (action.parameters[i + 2].id != expectedId)
                 {
                     throw new System.InvalidOperationException(
-                        $"Function attribute '{function.id}' is missing deferred.");
+                        $"NSFunction attribute '{attribute.id}' compiled argument {i} must use parameter id '{expectedId}'.");
+                }
+                if (!TypeInfoMatches(
+                        signature.argumentTypes[i],
+                        action.parameters[i + 2].typeInfo))
+                {
+                    throw new System.InvalidOperationException(
+                        $"NSFunction attribute '{attribute.id}' compiled argument {i} type does not match its declared signature.");
                 }
             }
+            bool validReturn = signature.returnTypeInfo is VoidTypeInfo
+                ? action.typeInfo?.type == AttributeType.Null
+                    && action.typeInfo.required
+                : TypeInfoMatches(signature.returnTypeInfo, action.typeInfo);
+            if (!validReturn)
+            {
+                throw new System.InvalidOperationException(
+                    $"NSFunction attribute '{attribute.id}' compiled action return type does not match its declared return type.");
+            }
+        }
+
+        private NSFunctionAttribute? ResolveNSFunctionSignature(string attributeId)
+        {
+            return CustomTypeInheritance.WalkExtendsAttributeChain(
+                attributeId,
+                id => data.attributes.TryGetValue(id, out Attribute? value) ? value : null,
+                current => current is NSFunctionAttribute function
+                    && function.returnTypeInfo is not null
+                    && function.argumentTypes is not null
+                    && function.deferred.HasValue
+                        ? function
+                        : null,
+                requireType: AttributeType.NSFunction);
+        }
+
+        private FunctionWithReturnType? ResolveNSFunctionAction(string attributeId)
+        {
+            return CustomTypeInheritance.WalkExtendsAttributeChain(
+                attributeId,
+                id => data.attributes.TryGetValue(id, out Attribute? value) ? value : null,
+                current => current is NSFunctionAttribute function
+                    ? function.action
+                    : null,
+                requireType: AttributeType.NSFunction);
+        }
+
+        private static bool TypeInfoMatches(Json.TypeInfo? left, Json.TypeInfo? right)
+        {
+            if (left is null || right is null) return left is null && right is null;
+            if (left.type != right.type || left.required != right.required) return false;
+            return (left, right) switch
+            {
+                (FunctionArgumentTypeInfo a, FunctionArgumentTypeInfo b) =>
+                    a.typeId == b.typeId
+                    && a.interfaceId == b.interfaceId
+                    && a.enumId == b.enumId
+                    && a.ownerTypeId == b.ownerTypeId
+                    && a.genericParamId == b.genericParamId
+                    && a.collectionAttributeId == b.collectionAttributeId
+                    && a.collectionValueId == b.collectionValueId
+                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo)
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                (CustomTypeInfo a, CustomTypeInfo b) =>
+                    a.typeId == b.typeId
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                (FunctionArgumentTypeInfo a, CustomTypeInfo b) =>
+                    a.typeId == b.typeId
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                (CustomTypeInfo a, FunctionArgumentTypeInfo b) =>
+                    a.typeId == b.typeId
+                    && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
+                (InterfaceTypeInfo a, InterfaceTypeInfo b) => a.interfaceId == b.interfaceId,
+                (FunctionArgumentTypeInfo a, InterfaceTypeInfo b) =>
+                    a.interfaceId == b.interfaceId,
+                (InterfaceTypeInfo a, FunctionArgumentTypeInfo b) =>
+                    a.interfaceId == b.interfaceId,
+                (EnumTypeInfo a, EnumTypeInfo b) => a.enumId == b.enumId,
+                (FunctionArgumentTypeInfo a, EnumTypeInfo b) =>
+                    a.enumId == b.enumId,
+                (EnumTypeInfo a, FunctionArgumentTypeInfo b) =>
+                    a.enumId == b.enumId,
+                (GenericTypeInfo a, GenericTypeInfo b) =>
+                    a.ownerTypeId == b.ownerTypeId
+                    && a.genericParamId == b.genericParamId,
+                (FunctionArgumentTypeInfo a, GenericTypeInfo b) =>
+                    a.ownerTypeId == b.ownerTypeId
+                    && a.genericParamId == b.genericParamId,
+                (GenericTypeInfo a, FunctionArgumentTypeInfo b) =>
+                    a.ownerTypeId == b.ownerTypeId
+                    && a.genericParamId == b.genericParamId,
+                (CollectionTypeInfo a, CollectionTypeInfo b) =>
+                    TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                (FunctionArgumentTypeInfo a, CollectionTypeInfo b) =>
+                    TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                (CollectionTypeInfo a, FunctionArgumentTypeInfo b) =>
+                    TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                (LookupTypeInfo a, LookupTypeInfo b) =>
+                    a.collectionAttributeId == b.collectionAttributeId
+                    && a.collectionValueId == b.collectionValueId
+                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                (FunctionArgumentTypeInfo a, LookupTypeInfo b) =>
+                    a.collectionAttributeId == b.collectionAttributeId
+                    && a.collectionValueId == b.collectionValueId
+                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                (LookupTypeInfo a, FunctionArgumentTypeInfo b) =>
+                    a.collectionAttributeId == b.collectionAttributeId
+                    && a.collectionValueId == b.collectionValueId
+                    && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
+                _ => true,
+            };
+        }
+
+        private static bool TypeArgumentsMatch(
+            Dictionary<string, Json.TypeInfo>? left,
+            Dictionary<string, Json.TypeInfo>? right)
+        {
+            if (left is null || right is null) return left is null && right is null;
+            if (left.Count != right.Count) return false;
+            foreach (var pair in left)
+            {
+                if (!right.TryGetValue(pair.Key, out Json.TypeInfo? other)
+                    || !TypeInfoMatches(pair.Value, other))
+                {
+                    return false;
+                }
+            }
+            return true;
         }
 
         /// <summary>
