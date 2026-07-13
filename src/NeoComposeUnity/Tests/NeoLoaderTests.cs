@@ -587,6 +587,11 @@ namespace NeoCompose.Tests
         private static NeoClient LoadLocalizedStringClient(bool localizable, string initialSave = "")
         {
             var projectJson = $@"{{
+  ""metadata"": {{
+    ""schemaVersion"": 6,
+    ""projectId"": ""project-1"",
+    ""versionId"": ""version-1""
+  }},
   ""project"": {{
     ""id"": ""project-1"",
     ""rootAssetsAttributeId"": ""root-assets"",

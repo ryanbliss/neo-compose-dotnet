@@ -67,7 +67,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Json_FunctionAttributeAndNativeCallIR_Deserializes()
+        public void Json_FunctionAttributeAndGeneralCallIR_Deserializes()
         {
             var attribute = JsonConvert.DeserializeObject<Attribute>(
                 @"{
@@ -104,10 +104,11 @@ namespace NeoCompose.Tests
 
             var instruction = JsonConvert.DeserializeObject<Instruction>(
                 @"{
-                    ""type"": ""nativeCall"",
+                    ""type"": ""functionCall"",
                     ""call"": {
-                        ""type"": ""callNativeFunction"",
+                        ""type"": ""callFunction"",
                         ""attributeId"": ""attr-fn"",
+                        ""callSiteId"": ""body:1:1#0"",
                         ""thisPointer"": {
                             ""type"": ""value"",
                             ""value"": {
@@ -119,9 +120,63 @@ namespace NeoCompose.Tests
                     }
                 }");
 
-            Assert.IsInstanceOf<NativeCallInstruction>(instruction);
-            Assert.IsInstanceOf<CallNativeFunctionPointer>(
-                ((NativeCallInstruction)instruction!).call);
+            Assert.IsInstanceOf<FunctionCallInstruction>(instruction);
+            Assert.IsInstanceOf<CallFunctionPointer>(
+                ((FunctionCallInstruction)instruction!).call);
+            Assert.AreEqual(
+                "body:1:1#0",
+                ((FunctionCallInstruction)instruction).call.callSiteId);
+
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Instruction>(
+                    @"{ ""type"": ""nativeCall"", ""call"": {} }"));
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Pointer>(
+                    @"{
+                        ""type"": ""callNativeFunction"",
+                        ""attributeId"": ""attr-fn"",
+                        ""thisPointer"": { ""type"": ""variable"", ""variableId"": ""__this__"" },
+                        ""args"": []
+                    }"));
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Pointer>(
+                    @"{
+                        ""type"": ""nativeFunctionErrorCheck"",
+                        ""mode"": ""throws"",
+                        ""call"": {}
+                    }"));
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Pointer>(
+                    @"{
+                        ""type"": ""callFunction"",
+                        ""attributeId"": ""attr-fn"",
+                        ""callSiteId"": ""body:1:1#0"",
+                        ""thisPointer"": { ""type"": ""variable"", ""variableId"": ""__this__"" }
+                    }"));
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Pointer>(
+                    @"{
+                        ""type"": ""callFunction"",
+                        ""attributeId"": ""attr-fn"",
+                        ""callSiteId"": ""body:1:1#0"",
+                        ""args"": []
+                    }"));
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Pointer>(
+                    @"{
+                        ""type"": ""functionErrorCheck"",
+                        ""mode"": ""sometimes"",
+                        ""call"": {
+                            ""type"": ""callFunction"",
+                            ""attributeId"": ""attr-fn"",
+                            ""callSiteId"": ""body:1:1#0"",
+                            ""thisPointer"": { ""type"": ""variable"", ""variableId"": ""__this__"" },
+                            ""args"": []
+                        }
+                    }"));
+            Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Instruction>(
+                    @"{ ""type"": ""functionCall"" }"));
         }
 
         [Test]
@@ -252,12 +307,13 @@ namespace NeoCompose.Tests
                     new ReturnInstruction
                     {
                         type = InstructionKind.Return,
-                        pointer = new CallNativeFunctionPointer
+                        pointer = new CallFunctionPointer
                         {
-                            type = PointerKind.CallNativeFunction,
+                            type = PointerKind.CallFunction,
                             attributeId = "attr-native",
                             thisPointer = StringValuePointer("receiver"),
                             args = new Pointer[] { StringValuePointer("hello") },
+                            callSiteId = "native-bridge",
                         },
                     },
                 },
@@ -292,9 +348,9 @@ namespace NeoCompose.Tests
                     new ReturnInstruction
                     {
                         type = InstructionKind.Return,
-                        pointer = new CallNativeFunctionPointer
+                        pointer = new CallFunctionPointer
                         {
-                            type = PointerKind.CallNativeFunction,
+                            type = PointerKind.CallFunction,
                             memberKey = "Ping",
                             thisPointer = new ReferencePointer
                             {
@@ -302,6 +358,7 @@ namespace NeoCompose.Tests
                                 valueId = "v-native-receiver",
                             },
                             args = new Pointer[] { StringValuePointer("hello") },
+                            callSiteId = "interface-ping",
                         },
                     },
                 },
@@ -312,6 +369,96 @@ namespace NeoCompose.Tests
                 new NSGetterEvaluator.Context(client, null, null));
 
             Assert.AreEqual("dynamic:hello", result);
+        }
+
+        [Test]
+        public void Evaluate_CallFunctionRejectsStaleArityBeforeNativeInvoker()
+        {
+            var client = LoadNativeFunctionClient(out _);
+            int invocationCount = 0;
+            client.RegisterNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+                {
+                    ["attr-native-ping"] = (_, _, _) =>
+                    {
+                        invocationCount++;
+                        return "unexpected";
+                    },
+                });
+            var call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                attributeId = "attr-native-ping",
+                thisPointer = new ReferencePointer
+                {
+                    type = PointerKind.Reference,
+                    valueId = "v-native-receiver",
+                },
+                args = System.Array.Empty<Pointer>(),
+                callSiteId = "bad-arity",
+            };
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.Evaluate(
+                    ReturnFunction(call, AttributeType.String),
+                    new NSGetterEvaluator.Context(client, null, null)))!;
+
+            StringAssert.Contains("Function 'Ping' (attr-native-ping) expects 1 arguments", error.Message);
+            StringAssert.Contains("stale/corrupt", error.Message);
+            Assert.AreEqual(0, invocationCount);
+        }
+
+        [Test]
+        public void Evaluate_CallFunctionRejectsWrongArgumentShapeBeforeNativeInvoker()
+        {
+            var client = LoadNativeFunctionClient(out _);
+            int invocationCount = 0;
+            client.RegisterNativeFunctionInvokers(
+                new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
+                {
+                    ["attr-native-ping"] = (_, _, _) =>
+                    {
+                        invocationCount++;
+                        return "unexpected";
+                    },
+                });
+            var call = new CallFunctionPointer
+            {
+                type = PointerKind.CallFunction,
+                attributeId = "attr-native-ping",
+                thisPointer = new ReferencePointer
+                {
+                    type = PointerKind.Reference,
+                    valueId = "v-native-receiver",
+                },
+                args = new Pointer[]
+                {
+                    new ValuePointer
+                    {
+                        type = PointerKind.Value,
+                        value = new Value
+                        {
+                            typeInfo = new PrimitiveTypeInfo
+                            {
+                                type = AttributeType.Int,
+                                required = true,
+                            },
+                            value = JToken.FromObject(7),
+                        },
+                    },
+                },
+                callSiteId = "bad-shape",
+            };
+
+            NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
+                NSGetterEvaluator.Evaluate(
+                    ReturnFunction(call, AttributeType.String),
+                    new NSGetterEvaluator.Context(client, null, null)))!;
+
+            StringAssert.Contains("argument 0 'message'", error.Message);
+            StringAssert.Contains("declared String", error.Message);
+            StringAssert.Contains("stale/corrupt", error.Message);
+            Assert.AreEqual(0, invocationCount);
         }
 
         [Test]
@@ -360,9 +507,9 @@ namespace NeoCompose.Tests
                     new ReturnInstruction
                     {
                         type = InstructionKind.Return,
-                        pointer = new CallNativeFunctionPointer
+                        pointer = new CallFunctionPointer
                         {
-                            type = PointerKind.CallNativeFunction,
+                            type = PointerKind.CallFunction,
                             attributeId = "attr-native-ping",
                             thisPointer = new ReferencePointer
                             {
@@ -370,6 +517,7 @@ namespace NeoCompose.Tests
                                 valueId = "v-native-receiver",
                             },
                             args = new Pointer[] { StringValuePointer("hello") },
+                            callSiteId = "generated-ping",
                         },
                     },
                 },
@@ -409,16 +557,17 @@ namespace NeoCompose.Tests
                     new ReturnInstruction
                     {
                         type = InstructionKind.Return,
-                        pointer = new NativeFunctionErrorCheckPointer
+                        pointer = new FunctionErrorCheckPointer
                         {
-                            type = PointerKind.NativeFunctionErrorCheck,
-                            mode = NativeFunctionErrorCheckKind.Throws,
-                            call = new CallNativeFunctionPointer
+                            type = PointerKind.FunctionErrorCheck,
+                            mode = FunctionErrorCheckKind.Throws,
+                            call = new CallFunctionPointer
                             {
-                                type = PointerKind.CallNativeFunction,
+                                type = PointerKind.CallFunction,
                                 attributeId = "attr-throws",
                                 thisPointer = StringValuePointer("receiver"),
                                 args = new Pointer[0],
+                                callSiteId = "throws-check",
                             },
                         },
                     },
@@ -449,12 +598,13 @@ namespace NeoCompose.Tests
                     new ReturnInstruction
                     {
                         type = InstructionKind.Return,
-                        pointer = new CallNativeFunctionPointer
+                        pointer = new CallFunctionPointer
                         {
-                            type = PointerKind.CallNativeFunction,
+                            type = PointerKind.CallFunction,
                             attributeId = "attr-native",
                             thisPointer = StringValuePointer("receiver"),
-                            args = new Pointer[0],
+                            args = new Pointer[] { StringValuePointer("hello") },
+                            callSiteId = "missing-wrapper",
                         },
                     },
                 },

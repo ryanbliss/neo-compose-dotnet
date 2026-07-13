@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 5,
+    "schemaVersion": 6,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -262,7 +262,13 @@
         "type": 3,
         "required": true
       },
-      "argumentTypes": []
+      "argumentTypes": [
+        {
+          "name": "message",
+          "type": 3,
+          "required": true
+        }
+      ]
     },
     "attr-hero": {
       "id": "attr-hero",

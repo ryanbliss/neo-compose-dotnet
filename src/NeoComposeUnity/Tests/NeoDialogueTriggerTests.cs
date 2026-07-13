@@ -3659,12 +3659,13 @@ namespace NeoCompose.Tests
                     {
                         id = "score",
                         typeInfo = IntTypeInfo(),
-                        pointer = new CallNativeFunctionPointer
+                        pointer = new CallFunctionPointer
                         {
-                            type = PointerKind.CallNativeFunction,
+                            type = PointerKind.CallFunction,
                             attributeId = "attr-deferred-score",
                             thisPointer = NullPointer(),
                             args = new Pointer[0],
+                            callSiteId = "deferred-score",
                         },
                     },
                 },

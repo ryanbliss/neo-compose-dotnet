@@ -108,9 +108,10 @@
                     "type": "variable",
                     "variableId": "__this__"
                   },
-                  "type": "callNativeFunction"
+                  "type": "callFunction",
+                  "callSiteId": "capitol-og-intro:32014fbd:0"
                 },
-                "type": "nativeCall"
+                "type": "functionCall"
               }
             ],
             "parameters": [],
@@ -218,9 +219,10 @@
                     "type": "variable",
                     "variableId": "__this__"
                   },
-                  "type": "callNativeFunction"
+                  "type": "callFunction",
+                  "callSiteId": "capitol-og-intro:88cacaa9:0"
                 },
-                "type": "nativeCall"
+                "type": "functionCall"
               }
             ],
             "parameters": [],
