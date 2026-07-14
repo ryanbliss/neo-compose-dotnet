@@ -1,37 +1,82 @@
 // Canonical Neo Compose schema projection — managed by `neo`.
-// Edit freely within the constrained subset; pull/push rewrite this file canonically.
+// Native C# is authoritative. NeoScript bodies live under Scripts/.
 
 using NeoCompose.Schema;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ProjectSchema;
 
-[NeoCustomType("96e8284d-ae43-4e91-919d-86c25ce098e0", Hidden = true, ExtraJson = @"{""extendsTypeId"":null,""system"":null}")]
-public sealed class Save
+[NeoType("96e8284d-ae43-4e91-919d-86c25ce098e0", Hidden = true)]
+public partial class Save
 {
-    [NeoInt("1f76e191-faaf-4840-9bb0-29785a1c8ed6", Min = 0, DefaultJson = @"{""value"":1000}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
-    public int Bits { get; init; }
+    [NeoMember("1f76e191-faaf-4840-9bb0-29785a1c8ed6")]
+    [NeoNumber(Min = 0)]
+    public virtual int Bits { get; init; } = 1000;
 
-    [NeoBool("5155954d-ca1d-441e-b9ee-1837b0a08e05", DefaultJson = @"{""value"":false}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
-    public bool Dead { get; init; }
+    [NeoMember("5155954d-ca1d-441e-b9ee-1837b0a08e05")]
+    public virtual bool Dead { get; init; } = false;
 
-    [NeoLookup("bf4a75b5-acf9-4ff8-8511-57f871749db3", CollectionId = "214df1a1-abca-4141-987b-380a5417c70a", DefaultJson = @"{""value"":[]}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
-    public IReadOnlyList<NeoLookupRef> Inventory { get; init; }
+    [NeoMember("bf4a75b5-acf9-4ff8-8511-57f871749db3")]
+    [NeoLookup(nameof(Assets.Items))]
+    public virtual IReadOnlyList<NeoLookup<Item>> Inventory { get; init; } = Array.Empty<NeoLookup<Item>>();
 
-    [NeoLookup("82a12a52-95ac-453a-9353-24c11a63c530", CollectionId = "2827aefd-7f57-48ea-994c-c5c39ec659e3", DefaultJson = @"{""value"":[""913fd757-d6ee-488e-866f-c7af41aa544b""]}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
-    public NeoLookupRef Location { get; init; }
+    [NeoMember("82a12a52-95ac-453a-9353-24c11a63c530")]
+    [NeoLookup(nameof(Assets.Outposts))]
+    public virtual NeoLookup<Outpost> Location { get; init; } = Neo.Lookup<Outpost>("913fd757-d6ee-488e-866f-c7af41aa544b");
 
-    [NeoObject("99b07db1-f732-437e-a903-98183edca96b", Locked = true, DefaultJson = @"{""value"":{}}", ExtraJson = @"{""extendsAttributeId"":null,""system"":{""disallow"":[""editRecord"",""deleteRecord"",""replaceValue""],""reason"":""Generated dialogue memory schema required by the Neo Compose dialogue runtime.""}}")]
-    public NeoMemory NeoMemory { get; init; }
+    [NeoMember("99b07db1-f732-437e-a903-98183edca96b", Locked = true)]
+    [NeoSystem(NeoSystemDisallowedOperation.EditRecord, NeoSystemDisallowedOperation.DeleteRecord, NeoSystemDisallowedOperation.ReplaceValue, Reason = "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")]
+    public virtual NeoMemory NeoMemory { get; init; } = default!;
 
-    [NeoDictionary("f977a94e-aa40-414c-9812-dacdd50110a8", EntryChainJson = @"[{""customTypeId"":""8ccfe860-309f-428b-b74c-76a873bdea8a"",""defaultValue"":{""value"":{}},""extendsAttributeId"":null,""id"":""42d3d49d-3ba8-4672-ad54-53dc109697fc"",""locked"":false,""name"":""OutpostSaveData"",""required"":false,""system"":null,""type"":7}]", DefaultJson = @"{""value"":{}}", ExtraJson = @"{""extendsAttributeId"":null,""system"":null}")]
-    public IReadOnlyDictionary<string, OutpostSaveData> OutpostSaveMap { get; init; }
+    [NeoMember("f977a94e-aa40-414c-9812-dacdd50110a8")]
+    [NeoDictionary()]
+    [NeoEntries(nameof(Save.OutpostSaveMapEntries))]
+    public virtual IReadOnlyDictionary<string, OutpostSaveData> OutpostSaveMap { get; init; } = default!;
 
-    [NeoObject("4868ab84-027a-405d-bfca-d04d4d4917fa", DefaultJson = @"{""value"":{}}")]
-    public QuestState Quest { get; init; }
+    private static IReadOnlyList<NeoEntrySettings> OutpostSaveMapEntries { get; } =
+    new NeoEntrySettings[]
+    {
+        new NeoEntrySettings
+        {
+            Id = "42d3d49d-3ba8-4672-ad54-53dc109697fc",
+            Path = "$",
+            Kind = NeoEntryKind.Custom,
+            Required = false,
+            Virtual = true,
+            Custom = new()
+            {
+                Type = typeof(OutpostSaveData),
+            },
+        },
+    };
 
-    [NeoList("c151eda4-ecce-4edf-988d-25a97c657146", EntryChainJson = @"[{""customTypeId"":""7755a905-f2a1-4e5d-8b60-78cbdd2b2042"",""defaultValue"":{""value"":{}},""extendsAttributeId"":null,""id"":""659589fe-95b2-472f-a53b-e305db97450f"",""locked"":false,""name"":""visits"",""required"":true,""type"":7}]", DefaultJson = @"{""value"":[]}", ExtraJson = @"{""extendsAttributeId"":null}")]
-    public IReadOnlyList<PlanetVisit> Visited { get; init; }
+    [NeoMember("4868ab84-027a-405d-bfca-d04d4d4917fa")]
+    public virtual QuestState Quest { get; init; } = new();
 
-    [NeoEnum("ebab06a2-98e9-4a30-bb13-cfea8f910462", DefaultJson = @"{""value"":[""earth""]}", ExtraJson = @"{""extendsAttributeId"":null}")]
-    public Planet World { get; init; }
+    [NeoMember("c151eda4-ecce-4edf-988d-25a97c657146")]
+    [NeoList]
+    [NeoEntries(nameof(Save.VisitedEntries))]
+    public virtual IReadOnlyList<PlanetVisit> Visited { get; init; } = new List<PlanetVisit> {  };
+
+    private static IReadOnlyList<NeoEntrySettings> VisitedEntries { get; } =
+    new NeoEntrySettings[]
+    {
+        new NeoEntrySettings
+        {
+            Id = "659589fe-95b2-472f-a53b-e305db97450f",
+            Path = "$",
+            Kind = NeoEntryKind.Custom,
+            Required = true,
+            Virtual = true,
+            Custom = new()
+            {
+                Type = typeof(PlanetVisit),
+            },
+        },
+    };
+
+    [NeoMember("ebab06a2-98e9-4a30-bb13-cfea8f910462")]
+    public virtual Planet World { get; init; } = Planet.earth;
 }

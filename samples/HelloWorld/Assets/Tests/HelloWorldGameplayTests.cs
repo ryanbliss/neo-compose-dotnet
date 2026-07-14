@@ -24,8 +24,8 @@ namespace HelloWorld.Assets.Tests
     {
         private const string SampleProjectJson = "Assets/Resources/Neo/project.json";
 
-        private static readonly NeoJsonProjectDataSource SampleProjectSource =
-            new NeoJsonProjectDataSource(File.ReadAllText(SampleProjectJson));
+        private static readonly string SampleProjectSourceJson =
+            File.ReadAllText(SampleProjectJson);
 
         private string saveDirectory;
         private readonly List<GameObject> spawned = new();
@@ -57,7 +57,7 @@ namespace HelloWorld.Assets.Tests
         private NeoProjectStore LoadedStore()
         {
             var store = new NeoProjectStore(
-                dataSource: SampleProjectSource,
+                dataSource: new NeoJsonProjectDataSource(SampleProjectSourceJson),
                 localStore: new NeoFileLocalSaveStore(saveDirectory));
             store.LoadAsync().GetAwaiter().GetResult();
             stores.Add(store);

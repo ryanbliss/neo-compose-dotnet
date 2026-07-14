@@ -22,6 +22,7 @@ ExportedObj/
 # share a folder with Unity-generated csprojs (which match `*.csproj` above
 # and stay ignored) but use a `.IDE.csproj` suffix so the two never collide.
 !*.IDE.csproj
+!neo/NeoCompose.Schema.csproj
 *.suo
 *.tmp
 *.user

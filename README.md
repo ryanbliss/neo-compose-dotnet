@@ -10,6 +10,7 @@ src/
 samples/
   HelloWorld/             Unity 6000.0.40f1 project consuming the package
                           via a local file: dependency
+    neo/                  Neo Schema Authoring v2 workspace for the sample
 ```
 
 The package source lives entirely under `src/NeoComposeUnity/` (Runtime
@@ -23,12 +24,17 @@ separate raw-.NET library or precompiled `.dll`.
    in `Packages/manifest.json`, so edits in `src/NeoComposeUnity/` are
    picked up live.
 
+The Hello World project also serves as the downstream Schema Authoring v2
+sample. Its tracked schema lives in `samples/HelloWorld/neo/`; see the
+[sample README](./samples/HelloWorld/README.md#schema-authoring) for the
+authoring and synchronization workflow.
+
 ## Tests
 
 - **Package tests** — open the sample in Unity, then **Window → General →
   Test Runner**. The package's `NeoCompose.Unity.Tests` assembly shows up
-  alongside the sample's `HelloWorld.Tests`.
-- **Sample tests** — same Test Runner window; the `HelloWorld.Tests`
+  alongside the sample's `Tests` assembly.
+- **Sample tests** — same Test Runner window; the `Tests`
   assembly demonstrates how a downstream project consumes + tests against
   the package.
 

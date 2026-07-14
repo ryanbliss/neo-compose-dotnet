@@ -1,11 +1,115 @@
 // Canonical Neo Compose schema projection — managed by `neo`.
-// Edit freely within the constrained subset; pull/push rewrite this file canonically.
+// Native C# is authoritative. NeoScript bodies live under Scripts/.
 
 using NeoCompose.Schema;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace ProjectSchema;
 
-[NeoTextureTemplate("66504747-cbd5-4026-9d4c-89a0644f8192", Name = "16x16-PivotCenter", ExtraJson = @"{""alphaCutoffValue"":0.5,""alphaIsTransparency"":true,""alphaSource"":""input-texture-alpha"",""anisoLevel"":1,""borderMipMaps"":false,""compressionQuality"":50,""cookieSettings"":{""lightType"":""spot""},""crunchedCompression"":false,""fadeOutMipMaps"":false,""filterMode"":""point"",""generateMipMaps"":false,""ignorePngGamma"":false,""maxTextureSize"":2048,""mipMapFadeDistanceEnd"":3,""mipMapFadeDistanceStart"":1,""mipMapFiltering"":""box"",""mipMapsPreserveCoverage"":false,""nonPowerOfTwoScale"":""none"",""normalMapSettings"":{""bumpiness"":0.25,""createFromGrayscale"":false,""filtering"":""smooth"",""flipGreenChannel"":false},""platformSettings"":{""default"":{""compressionQuality"":50,""crunchedCompression"":false,""format"":""automatic"",""maxTextureSize"":2048,""resizeAlgorithm"":""mitchell"",""textureCompression"":""none""},""standalone"":{""compressionQuality"":50,""crunchedCompression"":false,""format"":""rgba-compressed-dxt5-bc3"",""maxTextureSize"":2048,""override"":false,""resizeAlgorithm"":""mitchell"",""textureCompression"":""normal-quality""},""web"":{""compressionQuality"":50,""crunchedCompression"":false,""format"":""rgba-compressed-dxt5-bc3"",""maxTextureSize"":2048,""override"":false,""resizeAlgorithm"":""mitchell"",""textureCompression"":""normal-quality""}},""readWriteEnabled"":true,""resizeAlgorithm"":""mitchell"",""sRGBTexture"":true,""singleChannelSettings"":{""component"":""alpha""},""spriteSettings"":{""extrudeEdges"":1,""generatePhysicsShape"":true,""meshType"":""tight"",""pivot"":{""x"":0.5,""y"":0.5},""pivotAlignment"":""center"",""pixelsPerUnit"":16,""spriteEditor"":{""slice"":{""border"":{""w"":0,""x"":0,""y"":0,""z"":0},""keepEmptyRects"":false,""naming"":{""order"":""row-major"",""pattern"":""{fileName}_{row}_{column}"",""startIndex"":0},""offset"":{""x"":0,""y"":0},""padding"":{""x"":0,""y"":0},""pivot"":{""x"":0.5,""y"":0.5},""pivotAlignment"":""center"",""pixelSize"":{""x"":16,""y"":16},""type"":""grid-by-cell-size""}},""spriteMode"":""multiple""},""swizzle"":{""a"":""alpha"",""b"":""blue"",""g"":""green"",""r"":""red""},""textureCompression"":""none"",""textureShape"":""2d"",""textureType"":""sprite"",""type"":""texture-2d"",""virtualTextureOnly"":false,""wrapMode"":""clamp"",""wrapModeU"":null,""wrapModeV"":null}")]
-public sealed class _16x16PivotCenter
+[NeoTextureTemplate("66504747-cbd5-4026-9d4c-89a0644f8192")]
+public sealed partial class _16x16PivotCenter
 {
+    public static NeoTextureTemplateSettings Settings { get; } = new()
+    {
+        Name = "16x16-PivotCenter",
+        TextureType = NeoTextureType.Sprite,
+        SrgbTexture = true,
+        AlphaSource = NeoAlphaSource.InputTextureAlpha,
+        AlphaIsTransparency = true,
+        NonPowerOfTwoScale = NeoNonPowerOfTwoScale.None,
+        IgnorePngGamma = false,
+        ReadWriteEnabled = true,
+        VirtualTextureOnly = false,
+        GenerateMipMaps = false,
+        BorderMipMaps = false,
+        MipMapFiltering = NeoMipMapFiltering.Box,
+        MipMapsPreserveCoverage = false,
+        AlphaCutoffValue = 0.5,
+        FadeOutMipMaps = false,
+        MipMapFadeDistanceStart = 1,
+        MipMapFadeDistanceEnd = 3,
+        AnisoLevel = 1,
+        WrapMode = NeoTextureWrapMode.Clamp,
+        WrapModeU = null,
+        WrapModeV = null,
+        FilterMode = NeoTextureFilterMode.Point,
+        MaxTextureSize = 2048,
+        ResizeAlgorithm = NeoTextureResizeAlgorithm.Mitchell,
+        TextureCompression = NeoTextureCompression.None,
+        CompressionQuality = 50,
+        CrunchedCompression = false,
+        Platforms = new()
+        {
+            Default = new()
+            {
+                MaxTextureSize = 2048,
+                ResizeAlgorithm = NeoTextureResizeAlgorithm.Mitchell,
+                Format = NeoTextureFormat.Automatic,
+                TextureCompression = NeoTextureCompression.None,
+                CrunchedCompression = false,
+                CompressionQuality = 50,
+            },
+            Standalone = new()
+            {
+                Override = false,
+                MaxTextureSize = 2048,
+                ResizeAlgorithm = NeoTextureResizeAlgorithm.Mitchell,
+                Format = NeoTextureFormat.RgbaCompressedDxt5Bc3,
+                TextureCompression = NeoTextureCompression.NormalQuality,
+                CrunchedCompression = false,
+                CompressionQuality = 50,
+            },
+            Web = new()
+            {
+                Override = false,
+                MaxTextureSize = 2048,
+                ResizeAlgorithm = NeoTextureResizeAlgorithm.Mitchell,
+                Format = NeoTextureFormat.RgbaCompressedDxt5Bc3,
+                TextureCompression = NeoTextureCompression.NormalQuality,
+                CrunchedCompression = false,
+                CompressionQuality = 50,
+            },
+        },
+        Sprite = new()
+        {
+            Mode = NeoSpriteMode.Multiple,
+            PixelsPerUnit = 16,
+            MeshType = NeoSpriteMeshType.Tight,
+            ExtrudeEdges = 1,
+            PivotAlignment = NeoSpriteAlignment.Center,
+            Pivot = new(0.5, 0.5),
+            GeneratePhysicsShape = true,
+            Slice = new()
+            {
+                PixelSize = new(16, 16),
+                Offset = new(0, 0),
+                Padding = new(0, 0),
+                KeepEmptyRects = false,
+                PivotAlignment = NeoSpriteAlignment.Center,
+                Pivot = new(0.5, 0.5),
+                Border = new(0, 0, 0, 0),
+                NamingPattern = "{fileName}_{row}_{column}",
+                NamingStartIndex = 0,
+                ColumnMajor = false,
+            },
+        },
+        NormalMap = new()
+        {
+            CreateFromGrayscale = false,
+            Bumpiness = 0.25,
+            Filtering = NeoNormalMapFiltering.Smooth,
+            FlipGreenChannel = false,
+        },
+        Cookie = new() { LightType = NeoCookieLightType.Spot },
+        SingleChannel = new() { Component = NeoSingleChannelComponent.Alpha },
+        Swizzle = new()
+        {
+            R = NeoTextureSwizzle.Red,
+            G = NeoTextureSwizzle.Green,
+            B = NeoTextureSwizzle.Blue,
+            A = NeoTextureSwizzle.Alpha,
+        },
+    };
 }

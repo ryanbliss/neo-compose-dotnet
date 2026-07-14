@@ -1,6 +1,6 @@
 {
     "metadata": {
-        "schemaVersion": 5,
+        "schemaVersion": 6,
         "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
         "versionId": "56fbaae9-6c07-4260-a250-65a1ab0689cf",
         "semver": {
@@ -19,9 +19,9 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "ebe9ea2a909e697add6f3c1b9d36a3e6bcb3c8e6b02f6a28971a40ffbe76dffa",
-        "codegenContractHash": "e0709f3f8c25fab632dceb792049da516809d02834d047811a37e8d2c35966dd",
-        "runtimeDataContractHash": "f1d7f9e12b40a413386a5b5df2bf485fba2c9ee6fcca8f55690197f973b1ed75"
+        "projectDocumentContentHash": "9863156b3d1e749a615570821b808867721981906896ad072367b3dc09972ddb",
+        "codegenContractHash": "8225a17ac3a56a202c79b8822d899cfcc45e7bda22e2d9bcb7514e2ff1675be5",
+        "runtimeDataContractHash": "8d1d66c7b8dc2d4aa0f966c372e5247f11cc2a03254e22a285414952b4f74159"
     },
     "localization": {
         "schemaVersion": 1,
@@ -572,8 +572,7 @@
                                             }
                                         },
                                         "type": "greaterThan"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "type": "boolean"
                             },
@@ -1832,8 +1831,7 @@
                                             }
                                         },
                                         "type": "equalTo"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "instructions": [
                                     {
@@ -1917,8 +1915,7 @@
                                             }
                                         },
                                         "type": "equalTo"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "instructions": [
                                     {
@@ -2002,8 +1999,7 @@
                                             }
                                         },
                                         "type": "equalTo"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "instructions": [
                                     {
@@ -2078,59 +2074,36 @@
                                 "expression": {
                                     "condition": {
                                         "operand1": {
-                                            "operation": {
-                                                "expression": {
-                                                    "condition": {
-                                                        "operand1": {
-                                                            "keyOf": {
-                                                                "key": {
-                                                                    "type": "value",
-                                                                    "value": {
-                                                                        "typeInfo": {
-                                                                            "required": true,
-                                                                            "type": 3
-                                                                        },
-                                                                        "value": "FlareClock"
-                                                                    }
-                                                                },
-                                                                "pointer": {
-                                                                    "type": "variable",
-                                                                    "variableId": "__this__"
-                                                                }
-                                                            },
-                                                            "type": "keyOf"
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
                                                         },
-                                                        "operand2": {
-                                                            "type": "value",
-                                                            "value": {
-                                                                "typeInfo": {
-                                                                    "required": true,
-                                                                    "type": 2
-                                                                },
-                                                                "value": 6
-                                                            }
-                                                        },
-                                                        "type": "greaterThanOrEqualTo"
-                                                    },
-                                                    "connective": null
+                                                        "value": "FlareClock"
+                                                    }
                                                 },
-                                                "type": "boolean"
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
                                             },
-                                            "type": "operation"
+                                            "type": "keyOf"
                                         },
                                         "operand2": {
                                             "type": "value",
                                             "value": {
                                                 "typeInfo": {
                                                     "required": true,
-                                                    "type": 1
+                                                    "type": 2
                                                 },
-                                                "value": true
+                                                "value": 6
                                             }
                                         },
-                                        "type": "equalTo"
-                                    },
-                                    "connective": null
+                                        "type": "greaterThanOrEqualTo"
+                                    }
                                 },
                                 "instructions": [
                                     {
@@ -2170,59 +2143,36 @@
                                 "expression": {
                                     "condition": {
                                         "operand1": {
-                                            "operation": {
-                                                "expression": {
-                                                    "condition": {
-                                                        "operand1": {
-                                                            "keyOf": {
-                                                                "key": {
-                                                                    "type": "value",
-                                                                    "value": {
-                                                                        "typeInfo": {
-                                                                            "required": true,
-                                                                            "type": 3
-                                                                        },
-                                                                        "value": "FlareClock"
-                                                                    }
-                                                                },
-                                                                "pointer": {
-                                                                    "type": "variable",
-                                                                    "variableId": "__this__"
-                                                                }
-                                                            },
-                                                            "type": "keyOf"
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
                                                         },
-                                                        "operand2": {
-                                                            "type": "value",
-                                                            "value": {
-                                                                "typeInfo": {
-                                                                    "required": true,
-                                                                    "type": 2
-                                                                },
-                                                                "value": 9
-                                                            }
-                                                        },
-                                                        "type": "greaterThanOrEqualTo"
-                                                    },
-                                                    "connective": null
+                                                        "value": "FlareClock"
+                                                    }
                                                 },
-                                                "type": "boolean"
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
                                             },
-                                            "type": "operation"
+                                            "type": "keyOf"
                                         },
                                         "operand2": {
                                             "type": "value",
                                             "value": {
                                                 "typeInfo": {
                                                     "required": true,
-                                                    "type": 1
+                                                    "type": 2
                                                 },
-                                                "value": true
+                                                "value": 9
                                             }
                                         },
-                                        "type": "equalTo"
-                                    },
-                                    "connective": null
+                                        "type": "greaterThanOrEqualTo"
+                                    }
                                 },
                                 "instructions": [
                                     {
@@ -2262,62 +2212,39 @@
                                 "expression": {
                                     "condition": {
                                         "operand1": {
-                                            "operation": {
-                                                "expression": {
-                                                    "condition": {
-                                                        "operand1": {
-                                                            "keyOf": {
-                                                                "key": {
-                                                                    "type": "value",
-                                                                    "value": {
-                                                                        "typeInfo": {
-                                                                            "required": true,
-                                                                            "type": 3
-                                                                        },
-                                                                        "value": "Stage"
-                                                                    }
-                                                                },
-                                                                "pointer": {
-                                                                    "type": "variable",
-                                                                    "variableId": "__this__"
-                                                                }
-                                                            },
-                                                            "type": "keyOf"
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
                                                         },
-                                                        "operand2": {
-                                                            "type": "value",
-                                                            "value": {
-                                                                "typeInfo": {
-                                                                    "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
-                                                                    "required": true,
-                                                                    "type": 8
-                                                                },
-                                                                "value": [
-                                                                    "arrival"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "type": "equalTo"
-                                                    },
-                                                    "connective": null
+                                                        "value": "Stage"
+                                                    }
                                                 },
-                                                "type": "boolean"
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
                                             },
-                                            "type": "operation"
+                                            "type": "keyOf"
                                         },
                                         "operand2": {
                                             "type": "value",
                                             "value": {
                                                 "typeInfo": {
+                                                    "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
                                                     "required": true,
-                                                    "type": 1
+                                                    "type": 8
                                                 },
-                                                "value": true
+                                                "value": [
+                                                    "arrival"
+                                                ]
                                             }
                                         },
                                         "type": "equalTo"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "instructions": [
                                     {
@@ -2360,62 +2287,39 @@
                                 "expression": {
                                     "condition": {
                                         "operand1": {
-                                            "operation": {
-                                                "expression": {
-                                                    "condition": {
-                                                        "operand1": {
-                                                            "keyOf": {
-                                                                "key": {
-                                                                    "type": "value",
-                                                                    "value": {
-                                                                        "typeInfo": {
-                                                                            "required": true,
-                                                                            "type": 3
-                                                                        },
-                                                                        "value": "Stage"
-                                                                    }
-                                                                },
-                                                                "pointer": {
-                                                                    "type": "variable",
-                                                                    "variableId": "__this__"
-                                                                }
-                                                            },
-                                                            "type": "keyOf"
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
                                                         },
-                                                        "operand2": {
-                                                            "type": "value",
-                                                            "value": {
-                                                                "typeInfo": {
-                                                                    "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
-                                                                    "required": true,
-                                                                    "type": 8
-                                                                },
-                                                                "value": [
-                                                                    "followTheWakes"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "type": "equalTo"
-                                                    },
-                                                    "connective": null
+                                                        "value": "Stage"
+                                                    }
                                                 },
-                                                "type": "boolean"
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
                                             },
-                                            "type": "operation"
+                                            "type": "keyOf"
                                         },
                                         "operand2": {
                                             "type": "value",
                                             "value": {
                                                 "typeInfo": {
+                                                    "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
                                                     "required": true,
-                                                    "type": 1
+                                                    "type": 8
                                                 },
-                                                "value": true
+                                                "value": [
+                                                    "followTheWakes"
+                                                ]
                                             }
                                         },
                                         "type": "equalTo"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "instructions": [
                                     {
@@ -2458,62 +2362,39 @@
                                 "expression": {
                                     "condition": {
                                         "operand1": {
-                                            "operation": {
-                                                "expression": {
-                                                    "condition": {
-                                                        "operand1": {
-                                                            "keyOf": {
-                                                                "key": {
-                                                                    "type": "value",
-                                                                    "value": {
-                                                                        "typeInfo": {
-                                                                            "required": true,
-                                                                            "type": 3
-                                                                        },
-                                                                        "value": "Stage"
-                                                                    }
-                                                                },
-                                                                "pointer": {
-                                                                    "type": "variable",
-                                                                    "variableId": "__this__"
-                                                                }
-                                                            },
-                                                            "type": "keyOf"
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
                                                         },
-                                                        "operand2": {
-                                                            "type": "value",
-                                                            "value": {
-                                                                "typeInfo": {
-                                                                    "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
-                                                                    "required": true,
-                                                                    "type": 8
-                                                                },
-                                                                "value": [
-                                                                    "threePaths"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "type": "equalTo"
-                                                    },
-                                                    "connective": null
+                                                        "value": "Stage"
+                                                    }
                                                 },
-                                                "type": "boolean"
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
                                             },
-                                            "type": "operation"
+                                            "type": "keyOf"
                                         },
                                         "operand2": {
                                             "type": "value",
                                             "value": {
                                                 "typeInfo": {
+                                                    "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
                                                     "required": true,
-                                                    "type": 1
+                                                    "type": 8
                                                 },
-                                                "value": true
+                                                "value": [
+                                                    "threePaths"
+                                                ]
                                             }
                                         },
                                         "type": "equalTo"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "instructions": [
                                     {
@@ -2522,44 +2403,21 @@
                                                 "expression": {
                                                     "condition": {
                                                         "operand1": {
-                                                            "operation": {
-                                                                "expression": {
-                                                                    "condition": {
-                                                                        "operand1": {
-                                                                            "type": "variable",
-                                                                            "variableId": "found"
-                                                                        },
-                                                                        "operand2": {
-                                                                            "type": "value",
-                                                                            "value": {
-                                                                                "typeInfo": {
-                                                                                    "required": true,
-                                                                                    "type": 2
-                                                                                },
-                                                                                "value": 2
-                                                                            }
-                                                                        },
-                                                                        "type": "greaterThanOrEqualTo"
-                                                                    },
-                                                                    "connective": null
-                                                                },
-                                                                "type": "boolean"
-                                                            },
-                                                            "type": "operation"
+                                                            "type": "variable",
+                                                            "variableId": "found"
                                                         },
                                                         "operand2": {
                                                             "type": "value",
                                                             "value": {
                                                                 "typeInfo": {
                                                                     "required": true,
-                                                                    "type": 1
+                                                                    "type": 2
                                                                 },
-                                                                "value": true
+                                                                "value": 2
                                                             }
                                                         },
-                                                        "type": "equalTo"
-                                                    },
-                                                    "connective": null
+                                                        "type": "greaterThanOrEqualTo"
+                                                    }
                                                 },
                                                 "instructions": [
                                                     {
@@ -2602,45 +2460,23 @@
                                                 "expression": {
                                                     "condition": {
                                                         "operand1": {
-                                                            "operation": {
-                                                                "expression": {
-                                                                    "condition": {
-                                                                        "operand1": {
-                                                                            "keyOf": {
-                                                                                "key": {
-                                                                                    "type": "value",
-                                                                                    "value": {
-                                                                                        "typeInfo": {
-                                                                                            "required": true,
-                                                                                            "type": 3
-                                                                                        },
-                                                                                        "value": "EvidenceArchive"
-                                                                                    }
-                                                                                },
-                                                                                "pointer": {
-                                                                                    "type": "variable",
-                                                                                    "variableId": "__this__"
-                                                                                }
-                                                                            },
-                                                                            "type": "keyOf"
+                                                            "keyOf": {
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "required": true,
+                                                                            "type": 3
                                                                         },
-                                                                        "operand2": {
-                                                                            "type": "value",
-                                                                            "value": {
-                                                                                "typeInfo": {
-                                                                                    "required": true,
-                                                                                    "type": 1
-                                                                                },
-                                                                                "value": false
-                                                                            }
-                                                                        },
-                                                                        "type": "equalTo"
-                                                                    },
-                                                                    "connective": null
+                                                                        "value": "EvidenceArchive"
+                                                                    }
                                                                 },
-                                                                "type": "boolean"
+                                                                "pointer": {
+                                                                    "type": "variable",
+                                                                    "variableId": "__this__"
+                                                                }
                                                             },
-                                                            "type": "operation"
+                                                            "type": "keyOf"
                                                         },
                                                         "operand2": {
                                                             "type": "value",
@@ -2649,12 +2485,11 @@
                                                                     "required": true,
                                                                     "type": 1
                                                                 },
-                                                                "value": true
+                                                                "value": false
                                                             }
                                                         },
                                                         "type": "equalTo"
-                                                    },
-                                                    "connective": null
+                                                    }
                                                 },
                                                 "instructions": [
                                                     {
@@ -2697,45 +2532,23 @@
                                                 "expression": {
                                                     "condition": {
                                                         "operand1": {
-                                                            "operation": {
-                                                                "expression": {
-                                                                    "condition": {
-                                                                        "operand1": {
-                                                                            "keyOf": {
-                                                                                "key": {
-                                                                                    "type": "value",
-                                                                                    "value": {
-                                                                                        "typeInfo": {
-                                                                                            "required": true,
-                                                                                            "type": 3
-                                                                                        },
-                                                                                        "value": "EvidenceLedger"
-                                                                                    }
-                                                                                },
-                                                                                "pointer": {
-                                                                                    "type": "variable",
-                                                                                    "variableId": "__this__"
-                                                                                }
-                                                                            },
-                                                                            "type": "keyOf"
+                                                            "keyOf": {
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "required": true,
+                                                                            "type": 3
                                                                         },
-                                                                        "operand2": {
-                                                                            "type": "value",
-                                                                            "value": {
-                                                                                "typeInfo": {
-                                                                                    "required": true,
-                                                                                    "type": 1
-                                                                                },
-                                                                                "value": false
-                                                                            }
-                                                                        },
-                                                                        "type": "equalTo"
-                                                                    },
-                                                                    "connective": null
+                                                                        "value": "EvidenceLedger"
+                                                                    }
                                                                 },
-                                                                "type": "boolean"
+                                                                "pointer": {
+                                                                    "type": "variable",
+                                                                    "variableId": "__this__"
+                                                                }
                                                             },
-                                                            "type": "operation"
+                                                            "type": "keyOf"
                                                         },
                                                         "operand2": {
                                                             "type": "value",
@@ -2744,12 +2557,11 @@
                                                                     "required": true,
                                                                     "type": 1
                                                                 },
-                                                                "value": true
+                                                                "value": false
                                                             }
                                                         },
                                                         "type": "equalTo"
-                                                    },
-                                                    "connective": null
+                                                    }
                                                 },
                                                 "instructions": [
                                                     {
@@ -2826,62 +2638,39 @@
                                 "expression": {
                                     "condition": {
                                         "operand1": {
-                                            "operation": {
-                                                "expression": {
-                                                    "condition": {
-                                                        "operand1": {
-                                                            "keyOf": {
-                                                                "key": {
-                                                                    "type": "value",
-                                                                    "value": {
-                                                                        "typeInfo": {
-                                                                            "required": true,
-                                                                            "type": 3
-                                                                        },
-                                                                        "value": "Stage"
-                                                                    }
-                                                                },
-                                                                "pointer": {
-                                                                    "type": "variable",
-                                                                    "variableId": "__this__"
-                                                                }
-                                                            },
-                                                            "type": "keyOf"
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
                                                         },
-                                                        "operand2": {
-                                                            "type": "value",
-                                                            "value": {
-                                                                "typeInfo": {
-                                                                    "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
-                                                                    "required": true,
-                                                                    "type": 8
-                                                                },
-                                                                "value": [
-                                                                    "vaultOpen"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "type": "equalTo"
-                                                    },
-                                                    "connective": null
+                                                        "value": "Stage"
+                                                    }
                                                 },
-                                                "type": "boolean"
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
                                             },
-                                            "type": "operation"
+                                            "type": "keyOf"
                                         },
                                         "operand2": {
                                             "type": "value",
                                             "value": {
                                                 "typeInfo": {
+                                                    "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
                                                     "required": true,
-                                                    "type": 1
+                                                    "type": 8
                                                 },
-                                                "value": true
+                                                "value": [
+                                                    "vaultOpen"
+                                                ]
                                             }
                                         },
                                         "type": "equalTo"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "instructions": [
                                     {
@@ -2924,62 +2713,39 @@
                                 "expression": {
                                     "condition": {
                                         "operand1": {
-                                            "operation": {
-                                                "expression": {
-                                                    "condition": {
-                                                        "operand1": {
-                                                            "keyOf": {
-                                                                "key": {
-                                                                    "type": "value",
-                                                                    "value": {
-                                                                        "typeInfo": {
-                                                                            "required": true,
-                                                                            "type": 3
-                                                                        },
-                                                                        "value": "Stage"
-                                                                    }
-                                                                },
-                                                                "pointer": {
-                                                                    "type": "variable",
-                                                                    "variableId": "__this__"
-                                                                }
-                                                            },
-                                                            "type": "keyOf"
+                                            "keyOf": {
+                                                "key": {
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
                                                         },
-                                                        "operand2": {
-                                                            "type": "value",
-                                                            "value": {
-                                                                "typeInfo": {
-                                                                    "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
-                                                                    "required": true,
-                                                                    "type": 8
-                                                                },
-                                                                "value": [
-                                                                    "endgame"
-                                                                ]
-                                                            }
-                                                        },
-                                                        "type": "equalTo"
-                                                    },
-                                                    "connective": null
+                                                        "value": "Stage"
+                                                    }
                                                 },
-                                                "type": "boolean"
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
                                             },
-                                            "type": "operation"
+                                            "type": "keyOf"
                                         },
                                         "operand2": {
                                             "type": "value",
                                             "value": {
                                                 "typeInfo": {
+                                                    "enumId": "a5c2a3f4-f91a-4878-bec0-a38b432ad762",
                                                     "required": true,
-                                                    "type": 1
+                                                    "type": 8
                                                 },
-                                                "value": true
+                                                "value": [
+                                                    "endgame"
+                                                ]
                                             }
                                         },
                                         "type": "equalTo"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "instructions": [
                                     {
@@ -3144,8 +2910,7 @@
                                             }
                                         },
                                         "type": "greaterThan"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "type": "boolean"
                             },
@@ -6032,8 +5797,7 @@
                                             }
                                         },
                                         "type": "greaterThan"
-                                    },
-                                    "connective": null
+                                    }
                                 },
                                 "type": "boolean"
                             },
@@ -6264,7 +6028,7 @@
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "required": false,
             "type": 3,
-            "updatedAt": 1777857512060
+            "updatedAt": 1784013205429
         },
         "d611cb73-fc9b-44e8-a3d9-5784253cae6f": {
             "createdAt": 1781994690524,
@@ -6941,8 +6705,7 @@
                                                                     "type": "keyOf"
                                                                 },
                                                                 "type": "equalTo"
-                                                            },
-                                                            "connective": null
+                                                            }
                                                         },
                                                         "type": "boolean"
                                                     },
@@ -6955,8 +6718,14 @@
                                             {
                                                 "id": "key",
                                                 "pointer": {
-                                                    "type": "variable",
-                                                    "variableId": "key"
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 3
+                                                        },
+                                                        "value": null
+                                                    }
                                                 },
                                                 "typeInfo": {
                                                     "required": true,
@@ -6966,8 +6735,15 @@
                                             {
                                                 "id": "value",
                                                 "pointer": {
-                                                    "type": "variable",
-                                                    "variableId": "value"
+                                                    "type": "value",
+                                                    "value": {
+                                                        "typeInfo": {
+                                                            "required": true,
+                                                            "type": 7,
+                                                            "typeId": "8ccfe860-309f-428b-b74c-76a873bdea8a"
+                                                        },
+                                                        "value": null
+                                                    }
                                                 },
                                                 "typeInfo": {
                                                     "required": true,
@@ -10876,17 +10652,6 @@
                 "NotThis"
             ]
         },
-        "346287ca-aedc-48a8-839c-ee2d5362adfb": {
-            "createdAt": 1783029550358,
-            "id": "346287ca-aedc-48a8-839c-ee2d5362adfb",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "typeId": null,
-            "updatedAt": 1783029550358,
-            "value": {
-                "x": 1,
-                "y": 0
-            }
-        },
         "34847ed4-97ba-4d60-82b1-6854b8ceb2b6": {
             "createdAt": 1782973918616,
             "id": "34847ed4-97ba-4d60-82b1-6854b8ceb2b6",
@@ -11468,16 +11233,6 @@
                 "Cell": "82bf0de8-aad7-4c30-afbd-4d5f09d4ed62",
                 "Tile": "27ccb746-5610-4636-8a8d-423e0e543a8a"
             }
-        },
-        "4011b76e-baad-47b8-97a8-55c9b43fc78a": {
-            "createdAt": 1783029550358,
-            "id": "4011b76e-baad-47b8-97a8-55c9b43fc78a",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "typeId": null,
-            "updatedAt": 1783029550358,
-            "value": [
-                "8f96912d-5bbb-428c-84eb-8932ef588144"
-            ]
         },
         "407fc03f-80c9-44d5-ac56-0306b18a512e": {
             "createdAt": 1782973524907,
@@ -15608,17 +15363,6 @@
                 "World": "e14e53d6-7ef2-4f61-bfb1-98f9d114a301"
             }
         },
-        "9b8e18e3-d5b8-41c1-aca4-b0221e66ed9d": {
-            "createdAt": 1783029550359,
-            "id": "9b8e18e3-d5b8-41c1-aca4-b0221e66ed9d",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "typeId": null,
-            "updatedAt": 1783029550359,
-            "value": {
-                "x": 0,
-                "y": 0
-            }
-        },
         "9be76f0c-0a16-452c-af1c-4d7fc4d595bb": {
             "createdAt": 1781240898784,
             "id": "9be76f0c-0a16-452c-af1c-4d7fc4d595bb",
@@ -18022,17 +17766,6 @@
                 "Tile": "5cb94a5c-78cb-46f4-9b91-5c6a32038bdf"
             }
         },
-        "d730b76d-d98f-48e4-8d83-7dd46804b7ca": {
-            "createdAt": 1783029550359,
-            "id": "d730b76d-d98f-48e4-8d83-7dd46804b7ca",
-            "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-            "typeId": null,
-            "updatedAt": 1783029550359,
-            "value": {
-                "x": 1,
-                "y": 0
-            }
-        },
         "d76eab15-9dbc-4f3e-8b2c-5cc2bac516c3": {
             "createdAt": 1779225903520,
             "id": "d76eab15-9dbc-4f3e-8b2c-5cc2bac516c3",
@@ -19266,15 +18999,13 @@
             "id": "f622993f-d9f3-4118-b717-04aff004f636",
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "typeId": null,
-            "updatedAt": 1783938766496,
+            "updatedAt": 1783938786803,
             "value": [
                 "8f96912d-5bbb-428c-84eb-8932ef588151",
                 "8f96912d-5bbb-428c-84eb-8932ef588152",
                 "8f96912d-5bbb-428c-84eb-8932ef588153",
                 "2dfa385e-d314-4aaf-a888-2462c53421b6",
                 "old-console-object:exit-prompt",
-                "old-console-object:recovery-cache",
-                "dfc95664-b19c-4da0-aa98-31dcfbc34e0d",
                 "43edbd02-5755-4bee-953f-bdc8dee5860b"
             ]
         },
@@ -20173,18 +19904,6 @@
                 "updatedAt": 1783204416813,
                 "value": [
                     "8f96912d-5bbb-428c-84eb-8932ef588142"
-                ]
-            },
-            "057ce3a7-2208-4d6c-903e-8d7b425991d8": {
-                "createdAt": 1783029550359,
-                "id": "057ce3a7-2208-4d6c-903e-8d7b425991d8",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": [
-                    "5feb5de0-1fec-4127-9866-4cc7b2d97910",
-                    "28649c7a-2428-4eca-96b0-0594be113a36"
                 ]
             },
             "058aa8bb-0714-44ce-a7dc-991ff526c8a2": {
@@ -22717,20 +22436,6 @@
                     "8f96912d-5bbb-428c-84eb-8932ef588141"
                 ]
             },
-            "23e126b2-3177-4798-9651-3da0aae2ecd7": {
-                "createdAt": 1783029550356,
-                "id": "23e126b2-3177-4798-9651-3da0aae2ecd7",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
-                "updatedAt": 1783204862342,
-                "value": {
-                    "Name": "62397f14-0654-4cdd-8573-d3fcd39067fd",
-                    "Position": "829b0930-a41a-4b33-be6e-220cdac18f77",
-                    "Size": "24b2e17d-0680-4839-ba80-4bedf44d5d86",
-                    "Sprite": "a851d70e-1e29-49f1-a0e9-2a064991d4a1"
-                }
-            },
             "23f30aa3-a5b2-4937-b832-b7fa279fefe8": {
                 "createdAt": 1783122845330,
                 "id": "23f30aa3-a5b2-4937-b832-b7fa279fefe8",
@@ -22763,19 +22468,6 @@
                 "value": [
                     "54325d98-7172-4f7b-b1d3-47216c623a0b"
                 ]
-            },
-            "24b2e17d-0680-4839-ba80-4bedf44d5d86": {
-                "createdAt": 1783029550355,
-                "id": "24b2e17d-0680-4839-ba80-4bedf44d5d86",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": {
-                    "x": 1,
-                    "y": 1,
-                    "z": 0
-                }
             },
             "24bd1fb6-2084-444e-9ed6-6e451bb77cfc": {
                 "createdAt": 1782952217267,
@@ -23074,17 +22766,6 @@
                 "value": [
                     "8f96912d-5bbb-428c-84eb-8932ef588142"
                 ]
-            },
-            "28649c7a-2428-4eca-96b0-0594be113a36": {
-                "createdAt": 1783029550359,
-                "id": "28649c7a-2428-4eca-96b0-0594be113a36",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": {
-                    "Cell": "d730b76d-d98f-48e4-8d83-7dd46804b7ca"
-                }
             },
             "28687024-41ed-4cee-82e4-7ece77bb9da7": {
                 "createdAt": 1783122857836,
@@ -24433,18 +24114,6 @@
                     "x": 11,
                     "y": -7
                 }
-            },
-            "36eac912-3dcc-4dd3-9362-cf44edf987f1": {
-                "createdAt": 1783029550358,
-                "id": "36eac912-3dcc-4dd3-9362-cf44edf987f1",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": [
-                    "23e126b2-3177-4798-9651-3da0aae2ecd7",
-                    "64a83de1-d170-4a38-a35d-4bdb847a2a88"
-                ]
             },
             "36fb7172-4381-4743-bc4b-e6d57e089c80": {
                 "createdAt": 1782952202186,
@@ -26051,17 +25720,6 @@
                     "y": 4
                 }
             },
-            "48814a86-7a12-41dc-8d86-2fca64523598": {
-                "createdAt": 1783029550355,
-                "id": "48814a86-7a12-41dc-8d86-2fca64523598",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": [
-                    "8f96912d-5bbb-428c-84eb-8932ef588123"
-                ]
-            },
             "488df274-3c05-4698-8ab3-74da4ece2b9a": {
                 "createdAt": 1782952217267,
                 "id": "488df274-3c05-4698-8ab3-74da4ece2b9a",
@@ -26413,15 +26071,6 @@
                     "Cell": "ef8a9411-8a9f-48da-8b4b-4d6792bc313c",
                     "Tile": "7b10fa44-7fbd-434c-85fe-8150a5af73d8"
                 }
-            },
-            "4c22a2e6-039b-4daf-94e4-05299a5b7ec6": {
-                "createdAt": 1783029550356,
-                "id": "4c22a2e6-039b-4daf-94e4-05299a5b7ec6",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": "Background"
             },
             "4c268b3b-4187-4db1-9149-e2b83c66a3ad": {
                 "createdAt": 1782952202186,
@@ -27246,19 +26895,6 @@
                     "8f96912d-5bbb-428c-84eb-8932ef588141"
                 ]
             },
-            "56ab9966-880e-4c57-b865-9dc0ad593334": {
-                "containerId": "7d2bfa46-00b6-4408-a99e-f7965cd0c1e7",
-                "createdAt": 1783029550358,
-                "id": "56ab9966-880e-4c57-b865-9dc0ad593334",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783208643950,
-                "value": {
-                    "Cell": "346287ca-aedc-48a8-839c-ee2d5362adfb",
-                    "Tile": "4011b76e-baad-47b8-97a8-55c9b43fc78a"
-                }
-            },
             "56bb6dbf-e9a3-4bc8-acf8-e95200558641": {
                 "containerId": "1a60291c-5123-4090-a4eb-2ba55e9a4ace",
                 "createdAt": 1782952202186,
@@ -27552,19 +27188,6 @@
                 "value": {
                     "Cell": "6289e541-9033-423e-836d-716a7c1e72d3",
                     "Tile": "6c9378ce-59e2-4dfd-a35d-1c446cbf0b5c"
-                }
-            },
-            "593b8531-b00c-4425-82cb-ac5279e437e0": {
-                "createdAt": 1783029550359,
-                "id": "593b8531-b00c-4425-82cb-ac5279e437e0",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": {
-                    "x": 2,
-                    "y": 1,
-                    "z": 0
                 }
             },
             "5952def0-e1f5-4104-b858-7cfc5bb1b44e": {
@@ -28104,17 +27727,6 @@
                     "8f96912d-5bbb-428c-84eb-8932ef588141"
                 ]
             },
-            "5feb5de0-1fec-4127-9866-4cc7b2d97910": {
-                "createdAt": 1783029550359,
-                "id": "5feb5de0-1fec-4127-9866-4cc7b2d97910",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": {
-                    "Cell": "9b8e18e3-d5b8-41c1-aca4-b0221e66ed9d"
-                }
-            },
             "5ff3da3b-b7b3-4032-b2ef-c5e5ce953982": {
                 "createdAt": 1782952202186,
                 "id": "5ff3da3b-b7b3-4032-b2ef-c5e5ce953982",
@@ -28344,15 +27956,6 @@
                     "x": 1,
                     "y": -2
                 }
-            },
-            "62397f14-0654-4cdd-8573-d3fcd39067fd": {
-                "createdAt": 1783029550355,
-                "id": "62397f14-0654-4cdd-8573-d3fcd39067fd",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": ""
             },
             "6257fd92-413a-4c74-8883-42124128f802": {
                 "containerId": "1a60291c-5123-4090-a4eb-2ba55e9a4ace",
@@ -28615,21 +28218,6 @@
                 "value": [
                     "8f96912d-5bbb-428c-84eb-8932ef588141"
                 ]
-            },
-            "64a83de1-d170-4a38-a35d-4bdb847a2a88": {
-                "createdAt": 1783029550358,
-                "id": "64a83de1-d170-4a38-a35d-4bdb847a2a88",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": "e78cfcd2-78ae-4656-9f04-6429bb0efe20",
-                "updatedAt": 1783204862342,
-                "value": {
-                    "Name": "4c22a2e6-039b-4daf-94e4-05299a5b7ec6",
-                    "Position": "eabf482b-274a-4c75-bf69-e58bc6e77482",
-                    "Size": "d2d3c454-e856-4e7b-b812-0ade78f40b2f",
-                    "TileLayer": "cac1b3f4-b857-41a6-8da1-39e6d07a069c",
-                    "Tiles": "7d2bfa46-00b6-4408-a99e-f7965cd0c1e7"
-                }
             },
             "64b97ed1-502e-454c-a1d3-5a1676f85b9e": {
                 "createdAt": 1782952229512,
@@ -30636,15 +30224,6 @@
                     "y": 5
                 }
             },
-            "7d2bfa46-00b6-4408-a99e-f7965cd0c1e7": {
-                "createdAt": 1783029550358,
-                "id": "7d2bfa46-00b6-4408-a99e-f7965cd0c1e7",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": []
-            },
             "7d4fbe4c-7ad1-458b-9fdd-7b8b518cb08a": {
                 "containerId": "1a60291c-5123-4090-a4eb-2ba55e9a4ace",
                 "createdAt": 1782952202186,
@@ -31178,19 +30757,6 @@
                 "value": {
                     "x": -4,
                     "y": -6
-                }
-            },
-            "829b0930-a41a-4b33-be6e-220cdac18f77": {
-                "createdAt": 1783029550355,
-                "id": "829b0930-a41a-4b33-be6e-220cdac18f77",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
                 }
             },
             "829cb39d-b2e7-4ab4-9ee3-d2e573714abf": {
@@ -34446,18 +34012,6 @@
                 "updatedAt": 1783203695443,
                 "value": "Collisions"
             },
-            "a851d70e-1e29-49f1-a0e9-2a064991d4a1": {
-                "createdAt": 1783029550356,
-                "id": "a851d70e-1e29-49f1-a0e9-2a064991d4a1",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": {
-                    "fileId": "58b3b0b3-257a-46ee-ba87-bab09972ff63",
-                    "sliceIndex": 0
-                }
-            },
             "a8bccfb4-98db-4674-967e-ce9582b87622": {
                 "createdAt": 1782952202186,
                 "id": "a8bccfb4-98db-4674-967e-ce9582b87622",
@@ -34896,15 +34450,6 @@
                     "x": 1,
                     "y": 1
                 }
-            },
-            "ad998424-0354-464b-88ed-6dcc77494564": {
-                "createdAt": 1783029550355,
-                "id": "ad998424-0354-464b-88ed-6dcc77494564",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": "Exit Prompt"
             },
             "ada6717c-d46e-4e10-a83d-572a0b7ea68b": {
                 "createdAt": 1782952202186,
@@ -37286,17 +36831,6 @@
                     "8f96912d-5bbb-428c-84eb-8932ef588141"
                 ]
             },
-            "c6f9c70c-0664-4089-96d5-c5b49d79395b": {
-                "createdAt": 1783296613271,
-                "id": "c6f9c70c-0664-4089-96d5-c5b49d79395b",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783296613271,
-                "value": [
-                    "7a6bcb67-d42a-4eb8-9934-0263d506e85c"
-                ]
-            },
             "c71bcff1-46b8-4116-babd-398e51045023": {
                 "containerId": "1a60291c-5123-4090-a4eb-2ba55e9a4ace",
                 "createdAt": 1782952229512,
@@ -37592,17 +37126,6 @@
                     "Tile": "d88d9a11-8688-4fa5-b830-cfe44826174d"
                 }
             },
-            "cac1b3f4-b857-41a6-8da1-39e6d07a069c": {
-                "createdAt": 1783029550357,
-                "id": "cac1b3f4-b857-41a6-8da1-39e6d07a069c",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": [
-                    "8f96912d-5bbb-428c-84eb-8932ef588121"
-                ]
-            },
             "cac5a9c3-fcfa-47eb-b48a-fcb56b67a4ed": {
                 "createdAt": 1782952202186,
                 "id": "cac5a9c3-fcfa-47eb-b48a-fcb56b67a4ed",
@@ -37633,17 +37156,6 @@
                 "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
                 "typeId": null,
                 "updatedAt": 1783404316091,
-                "value": [
-                    "8f96912d-5bbb-428c-84eb-8932ef588123"
-                ]
-            },
-            "cb8a4f29-b25f-48db-834e-0ca9efb05725": {
-                "createdAt": 1783029550355,
-                "id": "cb8a4f29-b25f-48db-834e-0ca9efb05725",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
                 "value": [
                     "8f96912d-5bbb-428c-84eb-8932ef588123"
                 ]
@@ -38501,19 +38013,6 @@
                 "value": {
                     "Cell": "5108f94e-6239-4872-a7ec-4b998bf83463",
                     "Tile": "8b4ca8cd-cf9c-478f-8f75-574eacdea559"
-                }
-            },
-            "d2d3c454-e856-4e7b-b812-0ade78f40b2f": {
-                "createdAt": 1783029550357,
-                "id": "d2d3c454-e856-4e7b-b812-0ade78f40b2f",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": {
-                    "x": 1,
-                    "y": 1,
-                    "z": 0
                 }
             },
             "d2e99778-61dd-4db4-ba31-7988407c5ab6": {
@@ -39544,26 +39043,6 @@
                 "value": [
                     "8f96912d-5bbb-428c-84eb-8932ef588141"
                 ]
-            },
-            "dfc95664-b19c-4da0-aa98-31dcfbc34e0d": {
-                "containerId": "1d57ae36-0e0a-4558-a03b-27b5eb0a733d",
-                "createdAt": 1783029550360,
-                "id": "dfc95664-b19c-4da0-aa98-31dcfbc34e0d",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": "5c65b156-e83a-41c5-bef0-ee375798bdc2",
-                "updatedAt": 1783398430708,
-                "value": {
-                    "Children": "36eac912-3dcc-4dd3-9362-cf44edf987f1",
-                    "CompatibleLayers": "cb8a4f29-b25f-48db-834e-0ca9efb05725",
-                    "DefaultLayer": "48814a86-7a12-41dc-8d86-2fca64523598",
-                    "ExitPromptQuiet": "c6f9c70c-0664-4089-96d5-c5b49d79395b",
-                    "ExitPromptRelay": "ff5bb683-2ff7-4bb9-a05a-5eda1764a0c7",
-                    "Name": "ad998424-0354-464b-88ed-6dcc77494564",
-                    "PlacementTiles": "057ce3a7-2208-4d6c-903e-8d7b425991d8",
-                    "Position": "fb6c7f78-1078-4818-a048-7752ea18f8dd",
-                    "Size": "593b8531-b00c-4425-82cb-ac5279e437e0"
-                }
             },
             "e0064e30-796c-47ab-a856-2ee095f0759e": {
                 "containerId": "1a60291c-5123-4090-a4eb-2ba55e9a4ace",
@@ -40718,19 +40197,6 @@
                 "value": {
                     "Cell": "5136970d-9280-4b75-92ed-a5929ea18967",
                     "Tile": "a4a8ba4d-69c9-487b-a99b-0521e70f5d3c"
-                }
-            },
-            "eabf482b-274a-4c75-bf69-e58bc6e77482": {
-                "createdAt": 1783029550357,
-                "id": "eabf482b-274a-4c75-bf69-e58bc6e77482",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": {
-                    "x": 0,
-                    "y": 0,
-                    "z": 0
                 }
             },
             "eae6505a-d73d-413c-a5f0-aab4b1428d82": {
@@ -42089,19 +41555,6 @@
                     "y": 6
                 }
             },
-            "fb6c7f78-1078-4818-a048-7752ea18f8dd": {
-                "createdAt": 1783029550360,
-                "id": "fb6c7f78-1078-4818-a048-7752ea18f8dd",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783204862342,
-                "value": {
-                    "x": -9,
-                    "y": 2,
-                    "z": 0
-                }
-            },
             "fb72a4db-71ae-45f1-afbe-b62a4d141f48": {
                 "createdAt": 1782952217267,
                 "id": "fb72a4db-71ae-45f1-afbe-b62a4d141f48",
@@ -42429,17 +41882,6 @@
                     "Cell": "d5c7c5d5-7677-4c13-9202-6f35feae0938",
                     "Tile": "59b5695e-1a45-4aea-b04b-fd27849ec200"
                 }
-            },
-            "ff5bb683-2ff7-4bb9-a05a-5eda1764a0c7": {
-                "createdAt": 1783296605658,
-                "id": "ff5bb683-2ff7-4bb9-a05a-5eda1764a0c7",
-                "mapKey": "world:b44d80a9-7760-4919-8844-0cb71d08b788",
-                "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
-                "typeId": null,
-                "updatedAt": 1783296605658,
-                "value": [
-                    "d5a8097d-f02b-41c7-8356-9442a4a29412"
-                ]
             },
             "ff6ed703-3c15-4bd2-bd5e-2ad7c13e7ed7": {
                 "containerId": "1a60291c-5123-4090-a4eb-2ba55e9a4ace",
@@ -48084,13 +47526,14 @@
                                             "call": {
                                                 "args": [],
                                                 "attributeId": "cab850e3-cf8c-42b3-a70b-f0066089e6fb",
+                                                "callSiteId": "migrated:$.actions[0].logic.action.instructions[0].call",
                                                 "thisPointer": {
                                                     "type": "variable",
                                                     "variableId": "__this__"
                                                 },
-                                                "type": "callNativeFunction"
+                                                "type": "callFunction"
                                             },
-                                            "type": "nativeCall"
+                                            "type": "functionCall"
                                         }
                                     ],
                                     "parameters": [],
@@ -48241,13 +47684,14 @@
                                                     }
                                                 ],
                                                 "attributeId": "e549555b-9276-48d8-be33-156972520d31",
+                                                "callSiteId": "migrated:$.actions[1].logic.action.instructions[0].call",
                                                 "thisPointer": {
                                                     "type": "variable",
                                                     "variableId": "__this__"
                                                 },
-                                                "type": "callNativeFunction"
+                                                "type": "callFunction"
                                             },
-                                            "type": "nativeCall"
+                                            "type": "functionCall"
                                         }
                                     ],
                                     "parameters": [],
@@ -62066,13 +61510,14 @@
                                             "call": {
                                                 "args": [],
                                                 "attributeId": "736ca2ec-5f56-4f93-8cc5-c8b2ae8f76a1",
+                                                "callSiteId": "1:1:0",
                                                 "thisPointer": {
                                                     "type": "variable",
                                                     "variableId": "__this__"
                                                 },
-                                                "type": "callNativeFunction"
+                                                "type": "callFunction"
                                             },
-                                            "type": "nativeCall"
+                                            "type": "functionCall"
                                         }
                                     ],
                                     "parameters": [
@@ -66688,13 +66133,14 @@
                                             "call": {
                                                 "args": [],
                                                 "attributeId": "0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd",
+                                                "callSiteId": "1:1:0",
                                                 "thisPointer": {
                                                     "type": "variable",
                                                     "variableId": "__this__"
                                                 },
-                                                "type": "callNativeFunction"
+                                                "type": "callFunction"
                                             },
-                                            "type": "nativeCall"
+                                            "type": "functionCall"
                                         }
                                     ],
                                     "parameters": [
@@ -66862,13 +66308,14 @@
                                             "call": {
                                                 "args": [],
                                                 "attributeId": "0fa12fa0-9e74-4e85-9ce3-df0efe78d2dd",
+                                                "callSiteId": "1:1:0",
                                                 "thisPointer": {
                                                     "type": "variable",
                                                     "variableId": "__this__"
                                                 },
-                                                "type": "callNativeFunction"
+                                                "type": "callFunction"
                                             },
-                                            "type": "nativeCall"
+                                            "type": "functionCall"
                                         }
                                     ],
                                     "parameters": [
@@ -67499,123 +66946,20 @@
                                 "action": {
                                     "instructions": [
                                         {
-                                            "args": [
-                                                {
-                                                    "type": "variable",
-                                                    "variableId": "__this__"
-                                                }
-                                            ],
-                                            "mutation": "Remove",
-                                            "target": {
-                                                "pointer": {
-                                                    "keyOf": {
-                                                        "key": {
-                                                            "type": "value",
-                                                            "value": {
-                                                                "typeInfo": {
-                                                                    "required": true,
-                                                                    "type": 3
-                                                                },
-                                                                "value": "Inventory"
-                                                            }
-                                                        },
-                                                        "pointer": {
-                                                            "keyOf": {
-                                                                "key": {
-                                                                    "type": "value",
-                                                                    "value": {
-                                                                        "typeInfo": {
-                                                                            "required": true,
-                                                                            "type": 3
-                                                                        },
-                                                                        "value": "Save"
-                                                                    }
-                                                                },
-                                                                "pointer": {
-                                                                    "type": "variable",
-                                                                    "variableId": "__root__"
-                                                                }
-                                                            },
-                                                            "type": "keyOf"
-                                                        }
-                                                    },
-                                                    "type": "keyOf"
-                                                },
-                                                "typeInfo": {
-                                                    "collectionAttributeId": "214df1a1-abca-4141-987b-380a5417c70a",
-                                                    "collectionValueId": null,
-                                                    "entryTypeInfo": {
+                                            "pointer": {
+                                                "type": "value",
+                                                "value": {
+                                                    "typeInfo": {
                                                         "required": true,
-                                                        "type": 7,
-                                                        "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
+                                                        "type": 3
                                                     },
-                                                    "required": true,
-                                                    "type": 9
-                                                },
-                                                "writability": "save"
+                                                    "value": "1:1: Remove argument type Custom<4c196697-4e08-4aeb-823f-322b353071ac> is not assignable to string"
+                                                }
                                             },
-                                            "type": "collectionCall"
+                                            "type": "throw"
                                         }
                                     ],
-                                    "parameters": [
-                                        {
-                                            "id": "__this__",
-                                            "pointer": {
-                                                "type": "value",
-                                                "value": {
-                                                    "typeInfo": {
-                                                        "required": true,
-                                                        "type": 7,
-                                                        "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
-                                                    },
-                                                    "value": null
-                                                }
-                                            },
-                                            "typeInfo": {
-                                                "required": true,
-                                                "type": 7,
-                                                "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
-                                            }
-                                        },
-                                        {
-                                            "id": "__root__",
-                                            "pointer": {
-                                                "type": "value",
-                                                "value": {
-                                                    "typeInfo": {
-                                                        "required": true,
-                                                        "type": 7,
-                                                        "typeId": "__root__"
-                                                    },
-                                                    "value": null
-                                                }
-                                            },
-                                            "typeInfo": {
-                                                "required": true,
-                                                "type": 7,
-                                                "typeId": "__root__"
-                                            }
-                                        },
-                                        {
-                                            "id": "__context__",
-                                            "pointer": {
-                                                "type": "value",
-                                                "value": {
-                                                    "typeInfo": {
-                                                        "required": true,
-                                                        "type": 7,
-                                                        "typeId": "__dialogue_context__"
-                                                    },
-                                                    "value": null
-                                                }
-                                            },
-                                            "typeInfo": {
-                                                "required": true,
-                                                "type": 7,
-                                                "typeId": "__dialogue_context__"
-                                            }
-                                        }
-                                    ],
+                                    "parameters": [],
                                     "typeInfo": {
                                         "required": true,
                                         "type": 0
@@ -73472,7 +72816,7 @@
                 "en-US": {
                     "localeComment": null,
                     "statusId": "localization-status-approved",
-                    "updatedAt": 1779674427578,
+                    "updatedAt": 1784013879219,
                     "value": "Hello"
                 },
                 "es-ES": {
@@ -73484,7 +72828,7 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
-            "updatedAt": 1779749262207
+            "updatedAt": 1784013879219
         },
         "5ff342f3-f8a6-4ffc-a2ca-471b15017d1f": {
             "createdAt": 1781272867287,
@@ -75117,7 +74461,7 @@
                 "en-US": {
                     "localeComment": null,
                     "statusId": "localization-status-approved",
-                    "updatedAt": 1781168838970,
+                    "updatedAt": 1784013158147,
                     "value": "!"
                 },
                 "es-ES": {
@@ -75129,7 +74473,7 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
-            "updatedAt": 1781168838970
+            "updatedAt": 1784013158147
         },
         "920fdac4-1b4a-4be8-b980-22e9efaa932b": {
             "createdAt": 1781237547826,

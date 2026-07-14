@@ -1,0 +1,3 @@
+get {
+	return root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });
+}

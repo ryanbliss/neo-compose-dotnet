@@ -1,0 +1,3 @@
+get {
+	return this.VisitCount > 0;
+}
