@@ -1,0 +1,5 @@
+bool HasVisited(NeoTextNodeMemory this, Root root) {
+	get {
+return this.VisitCount > 0;
+	}
+}

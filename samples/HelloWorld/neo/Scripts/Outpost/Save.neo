@@ -1,0 +1,5 @@
+OutpostSaveData Save(Outpost this, Root root) {
+	get {
+		return this.SaveUnsafe!;
+	}
+}

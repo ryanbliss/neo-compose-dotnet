@@ -1,0 +1,5 @@
+bool HasVisited(NeoDialogueMemory this, Root root) {
+	get {
+return this.VisitCount > 0;
+	}
+}

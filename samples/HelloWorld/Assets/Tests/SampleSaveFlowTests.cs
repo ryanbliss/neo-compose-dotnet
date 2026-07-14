@@ -24,8 +24,8 @@ namespace HelloWorld.Assets.Tests
     {
         private const string SampleProjectJson = "Assets/Resources/Neo/project.json";
         private const string Channel = "channel-1";
-        private static readonly NeoJsonProjectDataSource SampleProjectSource =
-            new NeoJsonProjectDataSource(File.ReadAllText(SampleProjectJson));
+        private static readonly string SampleProjectSourceJson =
+            File.ReadAllText(SampleProjectJson);
 
         private readonly List<string> tempDirs = new();
         private readonly List<NeoProjectStore> stores = new();
@@ -55,7 +55,7 @@ namespace HelloWorld.Assets.Tests
             string targetReleaseChannelId = "")
         {
             var store = new NeoProjectStore(
-                dataSource: SampleProjectSource,
+                dataSource: new NeoJsonProjectDataSource(SampleProjectSourceJson),
                 localStore: localStore,
                 apiClient: apiClient,
                 targetReleaseChannelId: targetReleaseChannelId);

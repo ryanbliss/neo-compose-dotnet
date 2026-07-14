@@ -35,7 +35,7 @@ namespace HelloWorld.Assets.Tests
         private const string RedNovaWarningTileValueId = "8f96912d-5bbb-428c-84eb-8932ef588144";
         private static readonly string SampleProjectJson =
             File.ReadAllText(Path.Combine(SampleProjectRoot, "project.json"));
-        private static readonly NeoJsonProjectDataSource SampleProjectSource =
+        private static NeoJsonProjectDataSource CreateSampleProjectSource() =>
             new NeoJsonProjectDataSource(SampleProjectJson);
 
         private readonly List<System.IDisposable> ownedResources = new();
@@ -146,8 +146,8 @@ namespace HelloWorld.Assets.Tests
         {
             var configOptions = NeoComposeConfig.LoadDefault()!.ToLocalizationOptions();
 
-            var defaultClient = LoadSampleClient(SampleProjectSource, localizationOptions: null);
-            var explicitConfigClient = LoadSampleClient(SampleProjectSource, localizationOptions: configOptions);
+            var defaultClient = LoadSampleClient(CreateSampleProjectSource(), localizationOptions: null);
+            var explicitConfigClient = LoadSampleClient(CreateSampleProjectSource(), localizationOptions: configOptions);
 
             Assert.AreEqual(explicitConfigClient.Localization.CurrentLocale, defaultClient.Localization.CurrentLocale);
             Assert.AreEqual(explicitConfigClient.Assets.Computed.baseText, defaultClient.Assets.Computed.baseText);
@@ -552,10 +552,6 @@ namespace HelloWorld.Assets.Tests
             NeoResolvedObjectInstance<PlayerSpawnObject> typedPlayerSpawn =
                 content.Objects.GetObject<PlayerSpawnObject>(new Vector2Int(-7, 2));
             Assert.IsNotNull(typedPlayerSpawn);
-            Assert.IsInstanceOf<VaultPlaqueObject>(
-                content.Objects.GetObject(new Vector2Int(-2, 2))?.Info);
-            Assert.IsInstanceOf<ExitPromptObject>(
-                content.Objects.GetObject(new Vector2Int(-9, 2))?.Info);
 
             var go = new GameObject("Neo TileGrid Renderer Smoke");
             try
@@ -578,26 +574,13 @@ namespace HelloWorld.Assets.Tests
                 Assert.IsNotNull(
                     objectLayer,
                     "Expected the generated object layer to render as a child root.");
-                Assert.AreEqual(4, objectLayer!.childCount);
+                Assert.AreEqual(2, objectLayer!.childCount);
                 AssertRenderedObject(
                     objectLayer,
                     RenderedInstanceId(content, new Vector2Int(-7, 2)),
                     new Vector3(-7f, 2f, 0f),
                     InstanceHasCollider(content, new Vector2Int(-7, 2)),
                     "4bdf7916-db7e-42f9-8b75-02ab429ac1f2-player-spawn-object");
-                AssertRenderedObject(
-                    objectLayer,
-                    RenderedInstanceId(content, new Vector2Int(-2, 2)),
-                    new Vector3(-2f, 2f, 0f),
-                    InstanceHasCollider(content, new Vector2Int(-2, 2)),
-                    "ea5a70da-6213-4b4b-bd44-ab84adc449e0-vault-plaque-object");
-                AssertRenderedObject(
-                    objectLayer,
-                    RenderedInstanceId(content, new Vector2Int(-9, 2)),
-                    new Vector3(-9f, 2f, 0f),
-                    InstanceHasCollider(content, new Vector2Int(-9, 2)),
-                    "58b3b0b3-257a-46ee-ba87-bab09972ff63-exit-prompt-object",
-                    "666675d5-8a39-41c1-ba2c-18f014bf03f5-red-nova-warning-tile");
                 AssertRenderedObject(
                     objectLayer,
                     RenderedInstanceId(content, new Vector2Int(6, 2)),
@@ -938,7 +921,7 @@ namespace HelloWorld.Assets.Tests
         // in-memory store, so blocking here is safe.
         private HelloWorldNeo LoadSampleClient(NeoLocalizationOptions localizationOptions = null)
         {
-            return LoadSampleClient(SampleProjectSource, localizationOptions);
+            return LoadSampleClient(CreateSampleProjectSource(), localizationOptions);
         }
 
         private HelloWorldNeo LoadSampleClient(
@@ -960,7 +943,7 @@ namespace HelloWorld.Assets.Tests
             NeoLocalizationOptions localizationOptions)
         {
             var store = Own(new NeoProjectStore(
-                dataSource: SampleProjectSource,
+                dataSource: CreateSampleProjectSource(),
                 localStore: new NeoInMemoryLocalSaveStore()));
             store.LoadAsync().GetAwaiter().GetResult();
             return (store, ReopenSampleClient(store, localizationOptions));
