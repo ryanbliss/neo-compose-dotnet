@@ -1,5 +1,7 @@
-get {
+string fullText(ComputedText this, Root root) {
+	get {
 	Planet planet = root.Save.World;
 	string suffix = this.optionalSuffix ?? "";
 	return $"{this.baseText} {planet}{suffix}";
+	}
 }

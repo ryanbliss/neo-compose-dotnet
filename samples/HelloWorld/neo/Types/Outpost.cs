@@ -19,11 +19,10 @@ public partial class Outpost : IHasName
     [NeoFunction]
     public virtual partial string DebugLog(string text);
 
-    #pragma warning disable CS8618
+    // NeoScript: Scripts/Outpost/FullDisplayText.neo
     [NeoMember("514a79c5-dd23-4ede-9fc8-b07b3c866fe5")]
     [NeoComputed]
     public virtual string FullDisplayText { get; }
-    #pragma warning restore CS8618
 
     [NeoMember("7ce8a389-265c-4ad4-90f4-42c3e91e7648")]
     [NeoFile(NeoFileKind.Sprite)]
@@ -40,12 +39,12 @@ public partial class Outpost : IHasName
     [NeoFunction]
     public virtual partial Task<bool> PlayAnimation();
 
-    #pragma warning disable CS8618
+    // NeoScript: Scripts/Outpost/Save.neo
     [NeoMember("cccadaa5-0623-4a0f-9197-7175726c0e8b")]
     [NeoComputed]
     public virtual OutpostSaveData Save { get; }
-    #pragma warning restore CS8618
 
+    // NeoScript: Scripts/Outpost/SaveUnsafe.neo
     [NeoMember("f66fba24-44d4-467c-98ac-4db1539910df")]
     [NeoComputed]
     public virtual OutpostSaveData? SaveUnsafe { get; }

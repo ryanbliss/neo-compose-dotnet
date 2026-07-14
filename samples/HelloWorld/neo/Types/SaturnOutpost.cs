@@ -11,11 +11,10 @@ namespace ProjectSchema;
 [NeoType("96818dab-90e5-4ab9-8f69-cce66e39e370")]
 public partial class SaturnOutpost : Outpost
 {
-    #pragma warning disable CS8618
+    // NeoScript: Scripts/SaturnOutpost/FullDisplayText.neo
     [NeoMember("33e86f10-7989-4d82-9156-631a19e3bf06")]
     [NeoComputed]
     public override string FullDisplayText { get; }
-    #pragma warning restore CS8618
 
     [NeoMember("a804bead-3d5b-4c68-a733-94e85e1e79b6")]
     public virtual SaturnMoon Moon { get; init; }

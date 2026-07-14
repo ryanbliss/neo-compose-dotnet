@@ -14,6 +14,7 @@ public partial class OutpostSaveData
     [NeoMember("5a4d8d10-9fef-4197-a7a1-1dc1b112677b")]
     public virtual bool Unlocked { get; init; } = false;
 
+    // NeoScript: Scripts/OutpostSaveData/Visited.neo
     [NeoMember("0c02e45d-bb5b-44c3-8b48-91fa75171ff2")]
     [NeoComputed]
     public virtual bool Visited { get; }

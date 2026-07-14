@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 namespace ProjectSchema;
 
 [NeoRegistry]
-public abstract partial class Loose
+public abstract partial class Root
 {
     [NeoMember("8f1dbf20-8d7c-49e0-9e0f-5e172da6f684", Locked = true, Storage = NeoStorage.Static)]
     [NeoSchemaOrder("Outposts", "Computed", "Items", "LookupContainer")]
@@ -26,7 +26,7 @@ public abstract partial class Loose
 
     [NeoMember("52e6a08d-5b41-4d77-8890-e23bac51eda8")]
     [NeoList]
-    [NeoEntries(nameof(Loose.ObjectLayersEntries))]
+    [NeoEntries(nameof(Root.ObjectLayersEntries))]
     public virtual IReadOnlyList<ConsoleObjectLayer> ObjectLayers { get; init; } = default!;
 
     private static IReadOnlyList<NeoEntrySettings> ObjectLayersEntries { get; } =
@@ -55,7 +55,7 @@ public abstract partial class Loose
 
     [NeoMember("477a7320-35e3-42f6-b03e-ff4a23b4f18a")]
     [NeoList]
-    [NeoEntries(nameof(Loose.TileLayersEntries))]
+    [NeoEntries(nameof(Root.TileLayersEntries))]
     public virtual IReadOnlyList<ConsoleTileLayer> TileLayers { get; init; } = default!;
 
     private static IReadOnlyList<NeoEntrySettings> TileLayersEntries { get; } =

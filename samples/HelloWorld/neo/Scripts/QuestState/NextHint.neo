@@ -1,4 +1,5 @@
-get {
+string NextHint(QuestState this, Root root) {
+	get {
 	int found = 0;
 	if (this.EvidenceArchive) { found = found + 1; }
 	if (this.EvidenceLedger) { found = found + 1; }
@@ -31,4 +32,5 @@ get {
 		return $"{urgency}The Old Console at Capitol OG awaits your final output. The Regent's Signet may open one more door.";
 	}
 	return "The run has ended. Thank you for playing.";
+	}
 }

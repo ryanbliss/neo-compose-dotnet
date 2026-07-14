@@ -12,6 +12,7 @@ namespace ProjectSchema;
 [NeoSystem(NeoSystemDisallowedOperation.EditRecord, NeoSystemDisallowedOperation.DeleteRecord, Reason = "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")]
 public partial class NeoDialogueMemory
 {
+    // NeoScript: Scripts/NeoDialogueMemory/HasVisited.neo
     [NeoMember("cd79c978-da95-4da3-8aa5-eea57f9e4f2c", Locked = true)]
     [NeoSystem(NeoSystemDisallowedOperation.EditRecord, NeoSystemDisallowedOperation.DeleteRecord, Reason = "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")]
     [NeoComputed]

@@ -37,6 +37,7 @@ public partial class NeoTextNodeMemory
         },
     };
 
+    // NeoScript: Scripts/NeoTextNodeMemory/HasVisited.neo
     [NeoMember("4042fd7d-88d4-4acf-81de-13052c70673e", Locked = true)]
     [NeoSystem(NeoSystemDisallowedOperation.EditRecord, NeoSystemDisallowedOperation.DeleteRecord, Reason = "Generated dialogue memory schema required by the Neo Compose dialogue runtime.")]
     [NeoComputed]

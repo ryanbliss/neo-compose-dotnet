@@ -27,11 +27,10 @@ public partial class QuestState
     [NeoNumber(Min = 0)]
     public virtual int FlareClock { get; init; } = 0;
 
-    #pragma warning disable CS8618
+    // NeoScript: Scripts/QuestState/NextHint.neo
     [NeoMember("3c947ad4-3033-4121-b3b0-3b5177ab30b7")]
     [NeoComputed]
     public virtual string NextHint { get; }
-    #pragma warning restore CS8618
 
     [NeoMember("cb9bb845-466c-46ac-aee0-345163dcfbf3")]
     [NeoNumber(Min = 0)]

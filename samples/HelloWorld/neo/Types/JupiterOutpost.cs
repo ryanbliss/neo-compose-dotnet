@@ -11,11 +11,10 @@ namespace ProjectSchema;
 [NeoType("a50efb7e-58f6-4342-906e-0b01f98b15af")]
 public partial class JupiterOutpost : Outpost
 {
-    #pragma warning disable CS8618
+    // NeoScript: Scripts/JupiterOutpost/FullDisplayText.neo
     [NeoMember("48c7bc64-fc1a-41bc-becb-4d24da7df9aa")]
     [NeoComputed]
     public override string FullDisplayText { get; }
-    #pragma warning restore CS8618
 
     #pragma warning disable CS8764, CS8765
     [NeoMember("6133e24a-bf87-4d3a-a71e-3933eebcab25")]

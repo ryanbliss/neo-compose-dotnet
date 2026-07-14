@@ -22,12 +22,16 @@ workspace. `neo/neo.json` declares `formatVersion: 2`, and
 `netstandard2.1` for complete C# and Neo schema IntelliSense.
 
 - Types, inheritance, overrides, nullability, defaults, ordering, and
-  function signatures are authored as native C# under `neo/Attributes/`,
+  function signatures are authored as native C# under `neo/Types/`,
   `neo/Interfaces/`, and `neo/Enums/`.
+- Root-level and otherwise loose members are authored in the `[NeoRegistry]`
+  declaration at `neo/Root.cs`.
 - Stable server identities remain explicit through `[NeoType]`,
   `[NeoMember]`, and the other typed Neo attributes.
-- Computed-property and NeoScript function bodies are tracked as `.neo`
-  sidecars under `neo/Scripts/<DeclaringType>/<Member>.neo`.
+- Computed-property and NeoScript functions are tracked as complete contextual
+  `.neo` documents under `neo/Scripts/<DeclaringType>/<Member>.neo`. Their
+  outer signature mirrors C# and includes `<DeclaringType> this, Root root`;
+  canonical C# links back with a `// NeoScript: Scripts/...` comment.
 - Template and localization configuration use strongly typed C# settings
   objects, including workflow statuses under `neo/LocalizationStatuses/`.
   There are no embedded JSON schema carriers.
