@@ -751,6 +751,11 @@ namespace NeoCompose.Runtime
 
             if (row is ArrayAttributeValue)
             {
+                if (key is string)
+                {
+                    throw new NSGetterRuntimeError(
+                        "Assignment through a List value-id index is read-only; mutate the returned entry or use a positional index.");
+                }
                 return new NeoListIndexWriteTarget(receiverRowId, ToInt(key, "List assignment index"), targetType, ownership);
             }
             if (row is ObjectAttributeValue objectRow)

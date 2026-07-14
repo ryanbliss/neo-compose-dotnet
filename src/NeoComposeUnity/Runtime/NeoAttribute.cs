@@ -433,7 +433,15 @@ namespace NeoCompose.Runtime
             if (this is NeoAttributeDictionary
                 || this is NeoAttributeList)
             {
-                return;
+                // Local collection mutators reinitialize explicitly after
+                // completing their multi-row write and publish one precise
+                // collection change. External live-save reconciliation has
+                // no such mutator frame, so collection nodes must refresh
+                // here or their membership and derived indexes stay stale.
+                if (client.CurrentChangeSource != NeoChangeSource.External)
+                {
+                    return;
+                }
             }
             OnValueIdChainChanged();
         }

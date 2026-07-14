@@ -191,6 +191,17 @@ namespace NeoCompose.Runtime.Json
         public const string Enum = "enum";
     }
 
+    /// <summary>
+    /// One derived index declared by a List attribute. The key is read from
+    /// the Custom entry field at <see cref="schemaKey"/>; <see cref="unique"/>
+    /// selects zero-or-one versus zero-or-many lookup semantics.
+    /// </summary>
+    public sealed class ListIndexDefinition
+    {
+        public string schemaKey = null!;
+        public bool unique;
+    }
+
     /// <summary>Mirror of TS-side <c>TAttributeList</c>.</summary>
     public class ListAttribute : Attribute<string[]?>
     {
@@ -207,6 +218,13 @@ namespace NeoCompose.Runtime.Json
         /// creation.
         /// </summary>
         public string? listKind;
+
+        /// <summary>
+        /// Optional derived indexes over String or single-select Enum fields
+        /// on Custom entries. The maps themselves are runtime-only and are
+        /// never serialized.
+        /// </summary>
+        public ListIndexDefinition[]? indexes;
     }
 
     /// <summary>Well-known values for <see cref="ListAttribute.listKind"/>.</summary>
@@ -311,6 +329,8 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo? entryTypeInfo;
         public string? collectionAttributeId;
         public string? collectionValueId;
+        public string? keyEnumId;
+        public string? listAttributeId;
         public string? ownerTypeId;
         public string? genericParamId;
         public Dictionary<string, TypeInfo>? typeArguments;
@@ -356,6 +376,8 @@ namespace NeoCompose.Runtime.Json
                 entryTypeInfo = json["entryTypeInfo"]?.ToObject<TypeInfo>(serializer),
                 collectionAttributeId = json.Value<string>("collectionAttributeId"),
                 collectionValueId = json.Value<string>("collectionValueId"),
+                keyEnumId = json.Value<string>("keyEnumId"),
+                listAttributeId = json.Value<string>("listAttributeId"),
                 ownerTypeId = json.Value<string>("ownerTypeId"),
                 genericParamId = json.Value<string>("genericParamId"),
                 typeArguments = json["typeArguments"]?.ToObject<Dictionary<string, TypeInfo>>(serializer),

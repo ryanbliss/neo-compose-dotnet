@@ -6,6 +6,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 
 namespace NeoCompose.Runtime
 {
@@ -114,6 +115,44 @@ namespace NeoCompose.Runtime
 
         public T this[int index] => createItem(client, node[index]);
 
+        /// <summary>
+        /// Resolves a List member by its stable value id. The underlying
+        /// identity map is allocated lazily on first use.
+        /// </summary>
+        public T this[string valueId]
+        {
+            get
+            {
+                if (valueId is null) throw new ArgumentNullException(nameof(valueId));
+                if (!node.TryGetChildById(valueId, out NeoAttribute? child))
+                {
+                    throw new KeyNotFoundException(
+                        $"Value '{valueId}' is not a member of List attribute '{node.attribute.id}'.");
+                }
+                return createItem(client, child);
+            }
+        }
+
+        public bool TryGetById(
+            string valueId,
+            [MaybeNullWhen(false)] out T item)
+        {
+            if (valueId is null) throw new ArgumentNullException(nameof(valueId));
+            if (node.TryGetChildById(valueId, out NeoAttribute? child))
+            {
+                item = createItem(client, child);
+                return true;
+            }
+            item = default!;
+            return false;
+        }
+
+        public bool ContainsId(string valueId)
+        {
+            if (valueId is null) throw new ArgumentNullException(nameof(valueId));
+            return node.ContainsValueId(valueId);
+        }
+
         public int Count => node.Count;
 
         public IEnumerator<T> GetEnumerator()
@@ -172,6 +211,13 @@ namespace NeoCompose.Runtime
             get => base[index];
             set => RequireWritableNode().SetSerialized(index, serializeItem(value));
         }
+
+        /// <summary>
+        /// Getter-only stable-id overload. Replacement remains positional so
+        /// assigning through a String key cannot be confused with changing an
+        /// entry's identity.
+        /// </summary>
+        public new T this[string valueId] => base[valueId];
 
         public bool IsReadOnly => isReadOnly?.Invoke() ?? false;
 
