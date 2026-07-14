@@ -1,5 +1,5 @@
 OutpostSaveData? SaveUnsafe(Outpost this, Root root) {
 	get {
-	return root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });
+		return root.Save.OutpostSaveMap.FirstOrDefault((key, value) => { return key == this.Id; });
 	}
 }
