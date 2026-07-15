@@ -7,7 +7,7 @@ Draft task ledger for implementing
 
 Active chunk: Phase 2 ICU-to-SmartFormat export conversion/diagnostics, Phase
 3 editor synchronization, Phase 4 runtime locale loading, Phase 5 string
-attribute runtime/NSGetter behavior, Phase 6 generated C# facades, and most of
+member runtime/NSGetter behavior, Phase 6 generated C# facades, and most of
 Phase 7 dialogue/enum localization are in place. Next chunk should add explicit
 coverage for SmartFormat formatting after dialogue Neo variable interpolation.
 
@@ -44,8 +44,8 @@ metadata before changing runtime behavior.
 
 ### Web export contract
 
-- [x] LRT-001 Add Unity export localization metadata model types in the web repo.
-- [x] LRT-002 Add compact locale runtime file model types in the web repo.
+- [x] LRT-001 Add Unity export localization metadata model classes in the web repo.
+- [x] LRT-002 Add compact locale runtime file model classes in the web repo.
 - [x] LRT-003 Add `localization` metadata to `IProjectUnityExport`.
 - [x] LRT-004 Add `localizationFiles` to the Unity editor export response.
 - [x] LRT-005 Build locale file names with stable, safe locale-code naming.
@@ -186,21 +186,21 @@ loading.
 
 - [x] LRT-084 Run focused Unity runtime localization tests from the HelloWorld Unity Test Runner.
 
-## Phase 5: String attribute runtime behavior
+## Phase 5: String member runtime behavior
 
-Goal: make localizable string attributes resolve text ids by default while
+Goal: make localizable string members resolve text ids by default while
 preserving literal string behavior for non-localizable fields and runtime
 save/session overrides.
 
-### Attribute JSON and runtime support
+### Member JSON and runtime support
 
-- [x] LRT-085 Add `StringAttribute.localizable` to Unity JSON DTOs.
+- [x] LRT-085 Add `StringMember.localizable` to Unity JSON DTOs.
 - [x] LRT-086 Add `NeoStringLocalizationMode` enum.
-- [x] LRT-087 Add optional `StringAttributeValue.neoLocalizationMode`.
+- [x] LRT-087 Add optional `StringMemberValue.neoLocalizationMode`.
 - [x] LRT-088 Interpret exported localizable string values/defaults as text ids when `neoLocalizationMode` is absent.
 - [x] LRT-089 Interpret runtime-created localizable string overrides as literals when `neoLocalizationMode` is `Literal`.
-- [x] LRT-090 Keep non-localizable string attributes literal-only.
-- [x] LRT-091 Add `NeoAttributeString.SetLiteralOverride`.
+- [x] LRT-090 Keep non-localizable string members literal-only.
+- [x] LRT-091 Add `NeoMemberString.SetLiteralOverride`.
 - [x] LRT-092 Ensure clearing a writable override restores inherited localized resolution.
 - [x] LRT-093 Add tests for localizable string get resolution.
 - [x] LRT-094 Add tests for non-localizable string literal behavior.
@@ -217,7 +217,7 @@ save/session overrides.
 
 ### Phase 5 verification
 
-- [x] LRT-102 Run focused Unity string attribute and NSGetter tests from the HelloWorld Unity Test Runner.
+- [x] LRT-102 Run focused Unity string member and NSGetter tests from the HelloWorld Unity Test Runner.
 
 ## Phase 6: Generated C# facade updates
 
@@ -228,16 +228,16 @@ while using runtime localization internally.
 
 - [x] LRT-103 Generate localized string getters that call `client.Localization`.
 - [x] LRT-104 Generate nullable localized string getters that return `string?`.
-- [x] LRT-105 Preserve literal getter generation for non-localizable string attributes.
+- [x] LRT-105 Preserve literal getter generation for non-localizable string members.
 - [x] LRT-106 Generate writable localizable string setters that route through literal override support.
-- [x] LRT-107 Preserve existing setter behavior for non-localizable string attributes.
+- [x] LRT-107 Preserve existing setter behavior for non-localizable string members.
 - [x] LRT-108 Add generated-code tests for localizable string getters.
 - [x] LRT-109 Add generated-code tests for writable localizable string setters.
 
 ### Field-token text id lookup
 
 - [x] LRT-110 Reuse existing generated `NeoField<T>` tokens for localized text-id lookup.
-- [x] LRT-111 Generate `GetLocalizedTextId<T>(NeoField<T> field)` for custom value wrappers with localizable fields.
+- [x] LRT-111 Generate `GetLocalizedTextId<T>(NeoField<T> field)` for class value wrappers with localizable fields.
 - [x] LRT-112 Return underlying text ids for localizable string fields that still use text ids.
 - [x] LRT-113 Return `null` for literal overrides.
 - [x] LRT-114 Match existing `OnChanged(NeoField<T>, ...)` behavior for fields not defined on the generated type.
@@ -247,7 +247,7 @@ while using runtime localization internally.
 ### Phase 6 verification
 
 - [x] LRT-117 Run generated-code tests in the web repo.
-- [x] LRT-118 Run Unity generated types tests from the HelloWorld Unity Test Runner.
+- [x] LRT-118 Run Unity generated classes tests from the HelloWorld Unity Test Runner.
 
 ## Phase 7: Dialogue and enum localization
 

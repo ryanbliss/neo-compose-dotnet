@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 7,
+    "schemaVersion": 8,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -40,9 +40,9 @@
         "namespaceForGeneratedTypes": "NeoCompose.StaticCompileFixture"
       }
     },
-    "rootAssetsAttributeId": "root-assets",
-    "rootSaveFileAttributeId": "root-save",
-    "rootSessionAttributeId": "root-session",
+    "rootAssetsMemberId": "root-assets",
+    "rootSaveFileMemberId": "root-save",
+    "rootSessionMemberId": "root-session",
     "defaultPriorityGroupId": "default-priority-group",
     "defaultTextureTemplateId": null,
     "defaultAudioClipTemplateId": null,
@@ -56,16 +56,16 @@
     },
     "ownerOrganization": null
   },
-  "attributes": {
+  "members": {
     "root-assets": {
       "id": "root-assets",
       "projectId": "test-project",
       "name": "Assets",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": true,
       "isStatic": false,
-      "customTypeId": "static-smoke-root-type",
+      "classId": "static-smoke-root-class",
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -73,11 +73,11 @@
       "id": "root-save",
       "projectId": "test-project",
       "name": "Save",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": true,
       "isStatic": false,
-      "customTypeId": "static-smoke-root-type",
+      "classId": "static-smoke-root-class",
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -85,11 +85,11 @@
       "id": "root-session",
       "projectId": "test-project",
       "name": "Session",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": true,
       "isStatic": false,
-      "customTypeId": "static-smoke-root-type",
+      "classId": "static-smoke-root-class",
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -97,7 +97,7 @@
       "id": "static-smoke-count",
       "projectId": "test-project",
       "name": "Global Count",
-      "type": 2,
+      "kind": 2,
       "locked": false,
       "required": true,
       "isStatic": true,
@@ -111,7 +111,7 @@
       "id": "static-smoke-motto",
       "projectId": "test-project",
       "name": "Motto",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": true,
       "isStatic": true,
@@ -126,7 +126,7 @@
       "id": "static-smoke-entry",
       "projectId": "test-project",
       "name": "Entry",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -138,13 +138,13 @@
       "id": "static-smoke-names",
       "projectId": "test-project",
       "name": "Names",
-      "type": 6,
+      "kind": 6,
       "locked": false,
       "required": false,
       "isStatic": true,
       "isVirtual": false,
       "storage": "save",
-      "entryAttributeId": "static-smoke-entry",
+      "entryMemberId": "static-smoke-entry",
       "listKind": "ordered",
       "createdAt": 0,
       "updatedAt": 0
@@ -153,13 +153,13 @@
       "id": "static-smoke-current",
       "projectId": "test-project",
       "name": "Current",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": true,
       "isVirtual": false,
       "storage": "session",
-      "customTypeId": "static-smoke-item-type",
+      "classId": "static-smoke-item-class",
       "createdAt": 0,
       "updatedAt": 0
     },
@@ -167,7 +167,7 @@
       "id": "static-smoke-reset",
       "projectId": "test-project",
       "name": "Reset",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": true,
@@ -191,7 +191,7 @@
       "id": "static-smoke-wait",
       "projectId": "test-project",
       "name": "Wait",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": true,
@@ -209,7 +209,7 @@
       "id": "static-smoke-calculate",
       "projectId": "test-project",
       "name": "Calculate",
-      "type": 23,
+      "kind": 23,
       "locked": false,
       "required": false,
       "isStatic": true,
@@ -233,29 +233,29 @@
   },
   "enums": {},
   "interfaces": {},
-  "types": {
-    "static-smoke-root-type": {
-      "id": "static-smoke-root-type",
+  "classes": {
+    "static-smoke-root-class": {
+      "id": "static-smoke-root-class",
       "projectId": "test-project",
       "name": "Smoke Root",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "createdAt": 0,
       "updatedAt": 0
     },
-    "static-smoke-item-type": {
-      "id": "static-smoke-item-type",
+    "static-smoke-item-class": {
+      "id": "static-smoke-item-class",
       "projectId": "test-project",
       "name": "Smoke Item",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "createdAt": 0,
       "updatedAt": 0
     },
-    "static-smoke-rules-type": {
-      "id": "static-smoke-rules-type",
+    "static-smoke-rules-class": {
+      "id": "static-smoke-rules-class",
       "projectId": "test-project",
       "name": "Smoke Rules",
       "schema": {
@@ -267,7 +267,7 @@
         "Wait": "static-smoke-wait",
         "Calculate": "static-smoke-calculate"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "createdAt": 0,
       "updatedAt": 0

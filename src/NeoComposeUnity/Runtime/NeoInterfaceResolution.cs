@@ -10,7 +10,7 @@ using NeoCompose.Runtime.Json;
 namespace NeoCompose.Runtime
 {
     /// <summary>
-    /// Resolves custom-type interface inheritance and implementation at runtime.
+    /// Resolves class interface inheritance and implementation at runtime.
     /// Mirrors the web model's <c>src/models/interfaces/interface-graph.ts</c>.
     /// </summary>
     public static class NeoInterfaceResolution
@@ -58,18 +58,18 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        public static bool TypeImplements(
-            string typeId,
+        public static bool ClassImplements(
+            string classId,
             string interfaceId,
             ProjectData projectData)
         {
-            IList<CustomType> typeChain;
+            IList<NeoSchemaClass> classChain;
             try
             {
-                typeChain = CustomTypeInheritance.ResolveChain(
-                    typeId,
-                    id => projectData.types.TryGetValue(id, out CustomType? type)
-                        ? type
+                classChain = NeoSchemaClassInheritance.ResolveChain(
+                    classId,
+                    id => projectData.classes.TryGetValue(id, out NeoSchemaClass? schemaClass)
+                        ? schemaClass
                         : null);
             }
             catch (CircularInheritanceError)
@@ -77,10 +77,10 @@ namespace NeoCompose.Runtime
                 return false;
             }
 
-            foreach (CustomType type in typeChain)
+            foreach (NeoSchemaClass schemaClass in classChain)
             {
-                if (type.implementsInterfaceIds is null) continue;
-                foreach (string declaredId in type.implementsInterfaceIds)
+                if (schemaClass.implementsInterfaceIds is null) continue;
+                foreach (string declaredId in schemaClass.implementsInterfaceIds)
                 {
                     IReadOnlyList<Interface> closure;
                     try

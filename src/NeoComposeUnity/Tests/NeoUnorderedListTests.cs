@@ -12,15 +12,15 @@ using NUnit.Framework;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// Unordered List attributes (listKind: "unordered"): the stored value is
+    /// Unordered List members (listKind: "unordered"): the stored value is
     /// only the null-vs-present discriminator; membership is the set of live
     /// rows carrying the list value's id as their containerId, layered like
     /// the value overlay (authored + save/session joins, tombstones subtract).
     /// </summary>
     public class NeoUnorderedListTests
     {
-        private const string BagTypeId = "bag-type";
-        private const string ItemTypeId = "item-type";
+        private const string BagClassId = "bag-class";
+        private const string ItemClassId = "item-class";
         private const string ItemsListValueId = "bag-items-list";
         private const string NullItemsListValueId = "bag-null-items-list";
 
@@ -63,10 +63,10 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
 
             // Save overlay adds a member by join.
-            client.AddSaveValue("item-c", new ObjectAttributeValue
+            client.AddSaveValue("item-c", new ObjectMemberValue
             {
                 id = "item-c",
-                typeId = ItemTypeId,
+                classId = ItemClassId,
                 containerId = ItemsListValueId,
                 value = new Dictionary<string, string>(),
             });
@@ -75,7 +75,7 @@ namespace NeoCompose.Tests
                 client.GetUnorderedListEntryIds(ItemsListValueId).ToArray());
 
             // A save tombstone at an authored member id subtracts it.
-            client.AddSaveValue("item-a", new NullAttributeValue
+            client.AddSaveValue("item-a", new NullMemberValue
             {
                 id = "item-a",
                 createdAt = "2026-01-01T00:00:00.000Z",
@@ -110,13 +110,13 @@ namespace NeoCompose.Tests
                 .Select(child => child.value!.id)
                 .Single(id => id != "item-a" && id != "item-b");
             Assert.IsTrue(client.TryGetWritableValue(
-                NeoValueOwnership.Save, addedId, out AttributeValue? addedRow));
+                NeoValueOwnership.Save, addedId, out MemberValue? addedRow));
             Assert.AreEqual(ItemsListValueId, addedRow!.containerId);
 
             // Membership lives on the entry row: the container's discriminator
             // was NOT shadowed into the save store by the add.
             Assert.IsFalse(client.saveValues.ContainsKey(ItemsListValueId));
-            var authoredContainer = (ArrayAttributeValue)client.values[ItemsListValueId];
+            var authoredContainer = (ArrayMemberValue)client.values[ItemsListValueId];
             CollectionAssert.IsEmpty(authoredContainer.value!);
         }
 
@@ -131,7 +131,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, items.Count);
             Assert.AreEqual("item-b", items[0].value!.id);
             Assert.IsTrue(client.TryGetWritableValue(
-                NeoValueOwnership.Save, "item-a", out AttributeValue? tombstone));
+                NeoValueOwnership.Save, "item-a", out MemberValue? tombstone));
             Assert.IsTrue(tombstone!.IsRemoved);
             // The authored row itself is never touched.
             Assert.IsFalse(client.values["item-a"].IsRemoved);
@@ -197,7 +197,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.saveValues["item-b"].IsRemoved);
             // ...and the discriminator shadow is null: the list instance is gone.
             Assert.IsTrue(client.TryGetWritableValue(
-                NeoValueOwnership.Save, ItemsListValueId, out ArrayAttributeValue? shadow));
+                NeoValueOwnership.Save, ItemsListValueId, out ArrayMemberValue? shadow));
             Assert.IsNull(shadow!.value);
             Assert.AreEqual(0, items.Count);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
@@ -218,7 +218,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.saveValues["item-a"].IsRemoved);
             // The discriminator is present ([]), never a member array.
             Assert.IsTrue(client.TryGetWritableValue(
-                NeoValueOwnership.Save, ItemsListValueId, out ArrayAttributeValue? shadow));
+                NeoValueOwnership.Save, ItemsListValueId, out ArrayMemberValue? shadow));
             CollectionAssert.IsEmpty(shadow!.value!);
         }
 
@@ -252,7 +252,7 @@ namespace NeoCompose.Tests
             // Null the container WITHOUT the cascading whole-list op —
             // simulating a mid-transaction/corrupted state. The stranded live
             // member is an anomaly and must be collectable.
-            client.AddSaveValue(ItemsListValueId, new ArrayAttributeValue
+            client.AddSaveValue(ItemsListValueId, new ArrayMemberValue
             {
                 id = ItemsListValueId,
                 createdAt = "2026-01-01T00:00:00.000Z",
@@ -267,10 +267,10 @@ namespace NeoCompose.Tests
         public void Reachability_LiveOverlayMoveDoesNotRetainAuthoredContainerMembership()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            client.AddSaveValue("item-a", new ObjectAttributeValue
+            client.AddSaveValue("item-a", new ObjectMemberValue
             {
                 id = "item-a",
-                typeId = ItemTypeId,
+                classId = ItemClassId,
                 containerId = NullItemsListValueId,
                 value = new Dictionary<string, string>(),
             });
@@ -284,24 +284,24 @@ namespace NeoCompose.Tests
         public void CloneValueReference_UsesIndexedMembersOfWritableOnlySessionContainer()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            client.SetWritableValue(NeoValueOwnership.Session, new ObjectAttributeValue
+            client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
             {
                 id = "session-bag",
-                typeId = BagTypeId,
+                classId = BagClassId,
                 value = new Dictionary<string, string>
                 {
                     ["Items"] = "session-items",
                 },
             });
-            client.SetWritableValue(NeoValueOwnership.Session, new ArrayAttributeValue
+            client.SetWritableValue(NeoValueOwnership.Session, new ArrayMemberValue
             {
                 id = "session-items",
                 value = System.Array.Empty<string>(),
             });
-            client.SetWritableValue(NeoValueOwnership.Session, new ObjectAttributeValue
+            client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
             {
                 id = "session-item",
-                typeId = ItemTypeId,
+                classId = ItemClassId,
                 containerId = "session-items",
                 value = new Dictionary<string, string>(),
             });
@@ -312,7 +312,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 clonedBagId,
-                out ObjectAttributeValue? clonedBag));
+                out ObjectMemberValue? clonedBag));
             string clonedItemsId = clonedBag!.value!["Items"];
             string clonedItemId = client.GetUnorderedListEntryIds(clonedItemsId).Single();
             Assert.AreNotEqual("session-items", clonedItemsId);
@@ -323,62 +323,62 @@ namespace NeoCompose.Tests
         public void CloneValueReference_ClonesNestedUnorderedMembersAcrossAuthoredAndSaveLayers()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            var attributes =
-                (Dictionary<string, NeoCompose.Runtime.Json.Attribute>)client.attributes;
-            attributes["nested-items-attribute"] = new ListAttribute
+            var members =
+                (Dictionary<string, NeoCompose.Runtime.Json.Member>)client.members;
+            members["nested-items-member"] = new ListMember
             {
-                id = "nested-items-attribute",
+                id = "nested-items-member",
                 name = "Nested",
-                type = AttributeType.List,
-                entryAttributeId = "nested-entry-attribute",
+                kind = MemberKind.List,
+                entryMemberId = "nested-entry-member",
                 listKind = NeoListKinds.Unordered,
             };
-            attributes["nested-entry-attribute"] = new StringAttribute
+            members["nested-entry-member"] = new StringMember
             {
-                id = "nested-entry-attribute",
+                id = "nested-entry-member",
                 name = "Nested entry",
-                type = AttributeType.String,
+                kind = MemberKind.String,
             };
-            var types = (Dictionary<string, CustomType>)client.types;
-            types[ItemTypeId].schema!["Nested"] = "nested-items-attribute";
-            var authored = (Dictionary<string, AttributeValue>)client.values;
-            ((ObjectAttributeValue)authored["item-a"]).value!["Nested"] = "nested-a";
-            ((ObjectAttributeValue)authored["item-b"]).value!["Nested"] = "nested-b";
-            client.AddSaveValue("nested-a", new ArrayAttributeValue
+            var classes = (Dictionary<string, NeoSchemaClass>)client.classes;
+            classes[ItemClassId].schema!["Nested"] = "nested-items-member";
+            var authored = (Dictionary<string, MemberValue>)client.values;
+            ((ObjectMemberValue)authored["item-a"]).value!["Nested"] = "nested-a";
+            ((ObjectMemberValue)authored["item-b"]).value!["Nested"] = "nested-b";
+            client.AddSaveValue("nested-a", new ArrayMemberValue
             {
                 id = "nested-a", value = System.Array.Empty<string>(),
             });
-            client.AddSaveValue("nested-b", new ArrayAttributeValue
+            client.AddSaveValue("nested-b", new ArrayMemberValue
             {
                 id = "nested-b", value = System.Array.Empty<string>(),
             });
-            client.AddSaveValue("nested-a-member", new StringAttributeValue
+            client.AddSaveValue("nested-a-member", new StringMemberValue
             {
                 id = "nested-a-member", containerId = "nested-a", value = "a",
             });
-            client.AddSaveValue("nested-b-member", new StringAttributeValue
+            client.AddSaveValue("nested-b-member", new StringMemberValue
             {
                 id = "nested-b-member", containerId = "nested-b", value = "b",
             });
 
             // Overlay subtraction and addition must both be respected by the
             // exact Save graph clone.
-            client.AddSaveValue("item-a", new NullAttributeValue
+            client.AddSaveValue("item-a", new NullMemberValue
             {
                 id = "item-a", mark = NeoValueMarks.Removed,
             });
-            client.AddSaveValue("item-c", new ObjectAttributeValue
+            client.AddSaveValue("item-c", new ObjectMemberValue
             {
                 id = "item-c",
-                typeId = ItemTypeId,
+                classId = ItemClassId,
                 containerId = ItemsListValueId,
                 value = new Dictionary<string, string> { ["Nested"] = "nested-c" },
             });
-            client.AddSaveValue("nested-c", new ArrayAttributeValue
+            client.AddSaveValue("nested-c", new ArrayMemberValue
             {
                 id = "nested-c", value = System.Array.Empty<string>(),
             });
-            client.AddSaveValue("nested-c-member", new StringAttributeValue
+            client.AddSaveValue("nested-c-member", new StringMemberValue
             {
                 id = "nested-c-member", containerId = "nested-c", value = "c",
             });
@@ -387,7 +387,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 clonedBagId,
-                out ObjectAttributeValue? clonedBag));
+                out ObjectMemberValue? clonedBag));
             string clonedItemsId = clonedBag!.value!["Items"];
             var clonedItemIds = client.GetUnorderedListEntryIds(clonedItemsId).ToArray();
             Assert.AreEqual(2, clonedItemIds.Length,
@@ -401,7 +401,7 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(client.TryGetValue(
                     NeoValueOwnership.Session,
                     clonedItemId,
-                    out ObjectAttributeValue? clonedItem));
+                    out ObjectMemberValue? clonedItem));
                 string clonedNestedId = clonedItem!.value!["Nested"];
                 Assert.AreNotEqual("nested-b", clonedNestedId);
                 Assert.AreNotEqual("nested-c", clonedNestedId);
@@ -410,7 +410,7 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(client.TryGetValue(
                     NeoValueOwnership.Session,
                     clonedNestedMemberId,
-                    out StringAttributeValue? clonedNestedMember));
+                    out StringMemberValue? clonedNestedMember));
                 nestedValues.Add(clonedNestedMember!.value!);
             }
             CollectionAssert.AreEquivalent(new[] { "b", "c" }, nestedValues);
@@ -420,35 +420,35 @@ namespace NeoCompose.Tests
         public void Reachability_DeepNestedUnorderedContainersTraversesEachIndexedLevel()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            var attributes =
-                (Dictionary<string, NeoCompose.Runtime.Json.Attribute>)client.attributes;
-            attributes["deep-list-attribute"] = new ListAttribute
+            var members =
+                (Dictionary<string, NeoCompose.Runtime.Json.Member>)client.members;
+            members["deep-list-member"] = new ListMember
             {
-                id = "deep-list-attribute",
+                id = "deep-list-member",
                 name = "Nested",
-                type = AttributeType.List,
-                entryAttributeId = "item-entry-attribute",
+                kind = MemberKind.List,
+                entryMemberId = "item-entry-member",
                 listKind = NeoListKinds.Unordered,
             };
-            ((Dictionary<string, CustomType>)client.types)[ItemTypeId]
-                .schema!["Nested"] = "deep-list-attribute";
+            ((Dictionary<string, NeoSchemaClass>)client.classes)[ItemClassId]
+                .schema!["Nested"] = "deep-list-member";
             const int depth = 64;
             string parentContainerId = ItemsListValueId;
             for (int i = 0; i < depth; i++)
             {
                 string memberId = $"deep-member-{i}";
                 string childContainerId = $"deep-container-{i}";
-                client.AddSaveValue(memberId, new ObjectAttributeValue
+                client.AddSaveValue(memberId, new ObjectMemberValue
                 {
                     id = memberId,
-                    typeId = ItemTypeId,
+                    classId = ItemClassId,
                     containerId = parentContainerId,
                     value = new Dictionary<string, string>
                     {
                         ["Nested"] = childContainerId,
                     },
                 });
-                client.AddSaveValue(childContainerId, new ArrayAttributeValue
+                client.AddSaveValue(childContainerId, new ArrayMemberValue
                 {
                     id = childContainerId,
                     value = System.Array.Empty<string>(),
@@ -465,48 +465,48 @@ namespace NeoCompose.Tests
         // Fixture.
         // ------------------------------------------------------------------
 
-        private static NeoAttributeListWritable ResolveItems(NeoClient client) =>
+        private static NeoMemberListWritable ResolveItems(NeoClient client) =>
             ResolveList(client, "Items");
 
-        private static NeoAttributeListWritable ResolveList(NeoClient client, string key)
+        private static NeoMemberListWritable ResolveList(NeoClient client, string key)
         {
-            var bag = client.save.Get<NeoAttributeCustomWritable>("Bag");
-            return bag.Get<NeoAttributeListWritable>(key);
+            var bag = client.save.Get<NeoMemberClassWritable>("Bag");
+            return bag.Get<NeoMemberListWritable>(key);
         }
 
         private static ProjectData BuildProjectData()
         {
-            var rootType = new CustomType
+            var rootClass = new NeoSchemaClass
             {
-                id = "root-type",
+                id = "root-class",
                 projectId = "project-a",
                 name = "Root",
                 schema = new Dictionary<string, string>(),
             };
-            var saveRootType = new CustomType
+            var saveRootClass = new NeoSchemaClass
             {
-                id = "save-root-type",
+                id = "save-root-class",
                 projectId = "project-a",
                 name = "Save Root",
                 schema = new Dictionary<string, string>
                 {
-                    ["Bag"] = "bag-attribute",
+                    ["Bag"] = "bag-member",
                 },
             };
-            var bagType = new CustomType
+            var bagClass = new NeoSchemaClass
             {
-                id = BagTypeId,
+                id = BagClassId,
                 projectId = "project-a",
                 name = "Bag",
                 schema = new Dictionary<string, string>
                 {
-                    ["Items"] = "items-attribute",
-                    ["NullItems"] = "null-items-attribute",
+                    ["Items"] = "items-member",
+                    ["NullItems"] = "null-items-member",
                 },
             };
-            var itemType = new CustomType
+            var itemClass = new NeoSchemaClass
             {
-                id = ItemTypeId,
+                id = ItemClassId,
                 projectId = "project-a",
                 name = "Item",
                 schema = new Dictionary<string, string>(),
@@ -519,77 +519,77 @@ namespace NeoCompose.Tests
                     id = "project-a",
                     _id = "project-a",
                     name = "Unordered Lists",
-                    rootAssetsAttributeId = "root-assets",
-                    rootSaveFileAttributeId = "root-save",
-                    rootSessionAttributeId = "root-session",
+                    rootAssetsMemberId = "root-assets",
+                    rootSaveFileMemberId = "root-save",
+                    rootSessionMemberId = "root-session",
                 },
-                attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
+                members = new Dictionary<string, NeoCompose.Runtime.Json.Member>
                 {
-                    ["root-assets"] = RootAttribute("root-assets", "root-assets-value", rootType.id),
-                    ["root-save"] = RootAttribute("root-save", "root-save-value", saveRootType.id),
-                    ["root-session"] = RootAttribute("root-session", "root-session-value", rootType.id),
-                    ["bag-attribute"] = new CustomAttribute
+                    ["root-assets"] = RootMember("root-assets", "root-assets-value", rootClass.id),
+                    ["root-save"] = RootMember("root-save", "root-save-value", saveRootClass.id),
+                    ["root-session"] = RootMember("root-session", "root-session-value", rootClass.id),
+                    ["bag-member"] = new ClassMember
                     {
-                        id = "bag-attribute",
+                        id = "bag-member",
                         projectId = "project-a",
                         name = "Bag",
-                        type = AttributeType.Custom,
-                        customTypeId = BagTypeId,
+                        kind = MemberKind.Class,
+                        classId = BagClassId,
                         required = true,
                     },
-                    ["items-attribute"] = new ListAttribute
+                    ["items-member"] = new ListMember
                     {
-                        id = "items-attribute",
+                        id = "items-member",
                         projectId = "project-a",
                         name = "Items",
-                        type = AttributeType.List,
-                        entryAttributeId = "item-entry-attribute",
+                        kind = MemberKind.List,
+                        entryMemberId = "item-entry-member",
                         listKind = NeoListKinds.Unordered,
                         required = true,
                     },
-                    ["null-items-attribute"] = new ListAttribute
+                    ["null-items-member"] = new ListMember
                     {
-                        id = "null-items-attribute",
+                        id = "null-items-member",
                         projectId = "project-a",
                         name = "NullItems",
-                        type = AttributeType.List,
-                        entryAttributeId = "item-entry-attribute",
+                        kind = MemberKind.List,
+                        entryMemberId = "item-entry-member",
                         listKind = NeoListKinds.Unordered,
                     },
-                    ["item-entry-attribute"] = new CustomAttribute
+                    ["item-entry-member"] = new ClassMember
                     {
-                        id = "item-entry-attribute",
+                        id = "item-entry-member",
                         projectId = "project-a",
                         name = "Item",
-                        type = AttributeType.Custom,
-                        customTypeId = ItemTypeId,
+                        kind = MemberKind.Class,
+                        classId = ItemClassId,
                         required = true,
                     },
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    ["root-assets-value"] = ObjectValue("root-assets-value", rootType.id, new()),
+                    ["root-assets-value"] = ObjectValue("root-assets-value", rootClass.id, new()),
                     ["root-save-value"] = ObjectValue(
                         "root-save-value",
-                        saveRootType.id,
+                        saveRootClass.id,
                         new Dictionary<string, string> { ["Bag"] = "bag-value" }),
-                    ["root-session-value"] = ObjectValue("root-session-value", rootType.id, new()),
+                    ["root-session-value"] = ObjectValue("root-session-value", rootClass.id, new()),
                     ["bag-value"] = ObjectValue(
                         "bag-value",
-                        BagTypeId,
+                        BagClassId,
                         new Dictionary<string, string>
                         {
                             ["Items"] = ItemsListValueId,
                             ["NullItems"] = NullItemsListValueId,
                         }),
                     // Present discriminator: [] — membership is joined.
-                    [ItemsListValueId] = new ArrayAttributeValue
+                    [ItemsListValueId] = new ArrayMemberValue
                     {
                         id = ItemsListValueId,
                         value = System.Array.Empty<string>(),
                     },
                     // Null discriminator: the list resolves as null.
-                    [NullItemsListValueId] = new ArrayAttributeValue
+                    [NullItemsListValueId] = new ArrayMemberValue
                     {
                         id = NullItemsListValueId,
                         value = null,
@@ -601,50 +601,50 @@ namespace NeoCompose.Tests
                     // Anomalous member behind the null container.
                     ["stray-item"] = MemberValue("stray-item", NullItemsListValueId),
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    [rootType.id] = rootType,
-                    [saveRootType.id] = saveRootType,
-                    [BagTypeId] = bagType,
-                    [ItemTypeId] = itemType,
+                    [rootClass.id] = rootClass,
+                    [saveRootClass.id] = saveRootClass,
+                    [BagClassId] = bagClass,
+                    [ItemClassId] = itemClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
         }
 
-        private static CustomAttribute RootAttribute(string id, string valueId, string customTypeId)
+        private static ClassMember RootMember(string id, string valueId, string classId)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = "project-a",
                 name = id,
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
                 valueId = valueId,
-                customTypeId = customTypeId,
+                classId = classId,
             };
         }
 
-        private static ObjectAttributeValue ObjectValue(
+        private static ObjectMemberValue ObjectValue(
             string id,
-            string typeId,
+            string classId,
             Dictionary<string, string> record)
         {
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = typeId,
+                classId = classId,
                 value = record,
             };
         }
 
-        private static ObjectAttributeValue MemberValue(string id, string containerId)
+        private static ObjectMemberValue MemberValue(string id, string containerId)
         {
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = ItemTypeId,
+                classId = ItemClassId,
                 containerId = containerId,
                 value = new Dictionary<string, string>(),
             };

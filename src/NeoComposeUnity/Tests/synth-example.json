@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 7,
+    "schemaVersion": 8,
     "projectId": "test-project",
     "versionId": "version-1",
     "semver": {
@@ -35,9 +35,9 @@
       "id": "test-user"
     },
     "exportSettings": null,
-    "rootAssetsAttributeId": "root-assets",
-    "rootSaveFileAttributeId": "root-save",
-    "rootSessionAttributeId": "root-session",
+    "rootAssetsMemberId": "root-assets",
+    "rootSaveFileMemberId": "root-save",
+    "rootSessionMemberId": "root-session",
     "defaultPriorityGroupId": "default-priority-group",
     "defaultTextureTemplateId": null,
     "defaultAudioClipTemplateId": null,
@@ -51,49 +51,49 @@
     },
     "ownerOrganization": null
   },
-  "attributes": {
+  "members": {
     "root-assets": {
       "id": "root-assets",
       "name": "Assets",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-root"
+      "classId": "class-root"
     },
     "root-save": {
       "id": "root-save",
       "name": "Save",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-root",
+      "classId": "class-root",
       "valueId": "v-root-save"
     },
     "root-session": {
       "id": "root-session",
       "name": "Session",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-root",
+      "classId": "class-root",
       "valueId": "v-root-session"
     },
-    "attr-name": {
-      "id": "attr-name",
+    "member-name": {
+      "id": "member-name",
       "name": "Name",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -104,10 +104,10 @@
         "value": "Hero"
       }
     },
-    "attr-altname": {
-      "id": "attr-altname",
+    "member-altname": {
+      "id": "member-altname",
       "name": "AltName",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -118,10 +118,10 @@
         "value": "AltHero"
       }
     },
-    "attr-health": {
-      "id": "attr-health",
+    "member-health": {
+      "id": "member-health",
       "name": "Health",
-      "type": 2,
+      "kind": 2,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -132,10 +132,10 @@
         "value": 100
       }
     },
-    "attr-root-score": {
-      "id": "attr-root-score",
+    "member-root-score": {
+      "id": "member-root-score",
       "name": "Score",
-      "type": 2,
+      "kind": 2,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -147,10 +147,10 @@
         "value": 10
       }
     },
-    "attr-speed": {
-      "id": "attr-speed",
+    "member-speed": {
+      "id": "member-speed",
       "name": "Speed",
-      "type": 4,
+      "kind": 4,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -161,10 +161,10 @@
         "value": 7.5
       }
     },
-    "attr-isalive": {
-      "id": "attr-isalive",
+    "member-isalive": {
+      "id": "member-isalive",
       "name": "IsAlive",
-      "type": 1,
+      "kind": 1,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -175,10 +175,10 @@
         "value": true
       }
     },
-    "attr-position": {
-      "id": "attr-position",
+    "member-position": {
+      "id": "member-position",
       "name": "Position",
-      "type": 16,
+      "kind": 16,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -193,10 +193,10 @@
         }
       }
     },
-    "attr-grid-cell": {
-      "id": "attr-grid-cell",
+    "member-grid-cell": {
+      "id": "member-grid-cell",
       "name": "Grid Cell",
-      "type": 17,
+      "kind": 17,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -211,10 +211,10 @@
         }
       }
     },
-    "attr-path-entry": {
-      "id": "attr-path-entry",
+    "member-path-entry": {
+      "id": "member-path-entry",
       "name": "Path Entry",
-      "type": 16,
+      "kind": 16,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -222,22 +222,22 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "attr-path": {
-      "id": "attr-path",
+    "member-path": {
+      "id": "member-path",
       "name": "Path",
-      "type": 6,
+      "kind": 6,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "entryAttributeId": "attr-path-entry"
+      "entryMemberId": "member-path-entry"
     },
-    "attr-move-to": {
-      "id": "attr-move-to",
+    "member-move-to": {
+      "id": "member-move-to",
       "name": "MoveTo",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -262,10 +262,10 @@
         }
       ]
     },
-    "attr-native": {
-      "id": "attr-native",
+    "member-native": {
+      "id": "member-native",
       "name": "Native",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -285,17 +285,17 @@
         }
       ]
     },
-    "attr-hero": {
-      "id": "attr-hero",
+    "member-hero": {
+      "id": "member-hero",
       "name": "Hero",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-hero",
+      "classId": "class-hero",
       "defaultValue": {
         "value": {
           "Name": "v-name",
@@ -306,10 +306,10 @@
         }
       }
     },
-    "attr-inventory": {
-      "id": "attr-inventory",
+    "member-inventory": {
+      "id": "member-inventory",
       "name": "Inventory",
-      "type": 5,
+      "kind": 5,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -317,7 +317,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "keyKind": "string",
-      "entryAttributeId": "attr-name",
+      "entryMemberId": "member-name",
       "defaultValue": {
         "value": {
           "sword": "v-sword",
@@ -325,17 +325,17 @@
         }
       }
     },
-    "attr-tags": {
-      "id": "attr-tags",
+    "member-tags": {
+      "id": "member-tags",
       "name": "Tags",
-      "type": 6,
+      "kind": 6,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "entryAttributeId": "attr-name",
+      "entryMemberId": "member-name",
       "defaultValue": {
         "value": [
           "v-a",
@@ -343,22 +343,22 @@
         ]
       }
     },
-    "attr-heroes": {
-      "id": "attr-heroes",
+    "member-heroes": {
+      "id": "member-heroes",
       "name": "Heroes",
-      "type": 6,
+      "kind": 6,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "entryAttributeId": "attr-hero"
+      "entryMemberId": "member-hero"
     },
-    "attr-element": {
-      "id": "attr-element",
+    "member-element": {
+      "id": "member-element",
       "name": "Element",
-      "type": 8,
+      "kind": 8,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -368,23 +368,23 @@
       "enumId": "enum-element",
       "multiselect": false
     },
-    "attr-choice": {
-      "id": "attr-choice",
+    "member-choice": {
+      "id": "member-choice",
       "name": "Choice",
-      "type": 9,
+      "kind": 9,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "collectionAttributeId": "attr-tags",
+      "collectionMemberId": "member-tags",
       "multiselect": true
     },
-    "attr-elem-stats": {
-      "id": "attr-elem-stats",
+    "member-elem-stats": {
+      "id": "member-elem-stats",
       "name": "ElementStats",
-      "type": 5,
+      "kind": 5,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -392,16 +392,16 @@
       "createdAt": 0,
       "updatedAt": 0,
       "keyKind": "enum",
-      "entryAttributeId": "attr-health",
+      "entryMemberId": "member-health",
       "keyEnumId": "enum-element",
       "defaultValue": {
         "value": {}
       }
     },
-    "attr-elem-multipliers": {
-      "id": "attr-elem-multipliers",
+    "member-elem-multipliers": {
+      "id": "member-elem-multipliers",
       "name": "ElementMultipliers",
-      "type": 5,
+      "kind": 5,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -409,7 +409,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "keyKind": "enum",
-      "entryAttributeId": "attr-health",
+      "entryMemberId": "member-health",
       "keyEnumId": "enum-element",
       "storage": "immutable",
       "valueId": "v-elem-multipliers",
@@ -417,10 +417,10 @@
         "value": {}
       }
     },
-    "attr-elem-affinity": {
-      "id": "attr-elem-affinity",
+    "member-elem-affinity": {
+      "id": "member-elem-affinity",
       "name": "ElementAffinity",
-      "type": 5,
+      "kind": 5,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -428,31 +428,31 @@
       "createdAt": 0,
       "updatedAt": 0,
       "keyKind": "enum",
-      "entryAttributeId": "attr-name",
+      "entryMemberId": "member-name",
       "keyEnumId": "enum-element",
       "defaultValue": {
         "value": {}
       }
     },
-    "attr-elem-champion-entry": {
-      "id": "attr-elem-champion-entry",
+    "member-elem-champion-entry": {
+      "id": "member-elem-champion-entry",
       "name": "Element Champion",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": true,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-hero",
+      "classId": "class-hero",
       "defaultValue": {
         "value": {}
       }
     },
-    "attr-elem-champions": {
-      "id": "attr-elem-champions",
+    "member-elem-champions": {
+      "id": "member-elem-champions",
       "name": "ElementChampions",
-      "type": 5,
+      "kind": 5,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -460,16 +460,16 @@
       "createdAt": 0,
       "updatedAt": 0,
       "keyKind": "enum",
-      "entryAttributeId": "attr-elem-champion-entry",
+      "entryMemberId": "member-elem-champion-entry",
       "keyEnumId": "enum-element",
       "defaultValue": {
         "value": {}
       }
     },
-    "attr-score": {
-      "id": "attr-score",
+    "member-score": {
+      "id": "member-score",
       "name": "Score",
-      "type": 10,
+      "kind": 10,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -488,7 +488,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "type-hero"
+              "classId": "class-hero"
             },
             "pointer": {
               "type": "value",
@@ -496,7 +496,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "type-hero"
+                  "classId": "class-hero"
                 },
                 "value": null
               }
@@ -791,10 +791,10 @@
         ]
       }
     },
-    "attr-manifest": {
-      "id": "attr-manifest",
+    "member-manifest": {
+      "id": "member-manifest",
       "name": "Manifest",
-      "type": 10,
+      "kind": 10,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -865,10 +865,10 @@
         ]
       }
     },
-    "attr-active": {
-      "id": "attr-active",
+    "member-active": {
+      "id": "member-active",
       "name": "Active",
-      "type": 10,
+      "kind": 10,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -894,7 +894,7 @@
               "type": "toBool",
               "pointer": {
                 "type": "callGetter",
-                "attributeId": "attr-score",
+                "memberId": "member-score",
                 "receiver": {
                   "kind": "instance",
                   "pointer": {
@@ -967,10 +967,10 @@
         ]
       }
     },
-    "attr-sample-tile-value": {
-      "id": "attr-sample-tile-value",
+    "member-sample-tile-value": {
+      "id": "member-sample-tile-value",
       "name": "Value",
-      "type": 2,
+      "kind": 2,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -978,10 +978,10 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "attr-construct-sample-tile": {
-      "id": "attr-construct-sample-tile",
+    "member-construct-sample-tile": {
+      "id": "member-construct-sample-tile",
       "name": "ConstructSample",
-      "type": 23,
+      "kind": 23,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -992,7 +992,7 @@
       "code": "this.Value = 1;\nreturn new SampleTileInstance();",
       "returnTypeInfo": {
         "type": 7,
-        "typeId": "type-sample-tile-instance",
+        "classId": "class-sample-tile-instance",
         "required": true
       },
       "argumentTypes": [],
@@ -1003,7 +1003,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "type-sample-tile-instance"
+              "classId": "class-sample-tile-instance"
             },
             "pointer": {
               "type": "value",
@@ -1011,7 +1011,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "type-sample-tile-instance"
+                  "classId": "class-sample-tile-instance"
                 },
                 "value": null
               }
@@ -1022,7 +1022,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -1030,7 +1030,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -1083,12 +1083,12 @@
             "pointer": {
               "type": "function",
               "function": {
-                "type": "customConstructor",
+                "type": "classConstructor",
                 "info": {
-                  "customTypeInfo": {
+                  "classTypeInfo": {
                     "type": 7,
                     "required": true,
-                    "typeId": "type-sample-tile-instance"
+                    "classId": "class-sample-tile-instance"
                   },
                   "fields": []
                 }
@@ -1099,51 +1099,51 @@
         "typeInfo": {
           "type": 7,
           "required": true,
-          "typeId": "type-sample-tile-instance"
+          "classId": "class-sample-tile-instance"
         }
       }
     },
-    "attr-sample-tile-entry": {
-      "id": "attr-sample-tile-entry",
+    "member-sample-tile-entry": {
+      "id": "member-sample-tile-entry",
       "name": "Sample Tile",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": true,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-sample-tile-instance"
+      "classId": "class-sample-tile-instance"
     },
-    "attr-sample-tiles": {
-      "id": "attr-sample-tiles",
+    "member-sample-tiles": {
+      "id": "member-sample-tiles",
       "name": "Tiles",
-      "type": 6,
+      "kind": 6,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "entryAttributeId": "attr-sample-tile-entry"
+      "entryMemberId": "member-sample-tile-entry"
     },
-    "attr-sample-layer-group": {
-      "id": "attr-sample-layer-group",
+    "member-sample-layer-group": {
+      "id": "member-sample-layer-group",
       "name": "SampleLayerGroup",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-sample-layer-group-base",
+      "classId": "class-sample-layer-group-base",
       "valueId": "v-sample-blocked-path"
     },
-    "attr-storage-a-value": {
-      "id": "attr-storage-a-value",
+    "member-storage-a-value": {
+      "id": "member-storage-a-value",
       "name": "Value",
-      "type": 2,
+      "kind": 2,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1155,10 +1155,10 @@
         "value": 10
       }
     },
-    "attr-storage-c-value": {
-      "id": "attr-storage-c-value",
+    "member-storage-c-value": {
+      "id": "member-storage-c-value",
       "name": "Value",
-      "type": 2,
+      "kind": 2,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1170,10 +1170,10 @@
         "value": 30
       }
     },
-    "attr-storage-e-value": {
-      "id": "attr-storage-e-value",
+    "member-storage-e-value": {
+      "id": "member-storage-e-value",
       "name": "Value",
-      "type": 2,
+      "kind": 2,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1185,10 +1185,10 @@
         "value": 50
       }
     },
-    "attr-storage-g-value": {
-      "id": "attr-storage-g-value",
+    "member-storage-g-value": {
+      "id": "member-storage-g-value",
       "name": "Value",
-      "type": 2,
+      "kind": 2,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1200,140 +1200,140 @@
         "value": 70
       }
     },
-    "attr-storage-f-inherit-child": {
-      "id": "attr-storage-f-inherit-child",
+    "member-storage-f-inherit-child": {
+      "id": "member-storage-f-inherit-child",
       "name": "InheritChild",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-storage-g",
+      "classId": "class-storage-g",
       "valueId": "v-storage-g"
     },
-    "attr-storage-e-static-child": {
-      "id": "attr-storage-e-static-child",
+    "member-storage-e-static-child": {
+      "id": "member-storage-e-static-child",
       "name": "StaticChild",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-storage-f",
+      "classId": "class-storage-f",
       "storage": "immutable",
       "valueId": "v-storage-f"
     },
-    "attr-storage-d-inherit-child": {
-      "id": "attr-storage-d-inherit-child",
+    "member-storage-d-inherit-child": {
+      "id": "member-storage-d-inherit-child",
       "name": "InheritChild",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-storage-e",
+      "classId": "class-storage-e",
       "valueId": "v-storage-e"
     },
-    "attr-storage-c-session-child": {
-      "id": "attr-storage-c-session-child",
+    "member-storage-c-session-child": {
+      "id": "member-storage-c-session-child",
       "name": "SessionChild",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-storage-d",
+      "classId": "class-storage-d",
       "storage": "session",
       "valueId": "v-storage-d"
     },
-    "attr-storage-b-inherit-child": {
-      "id": "attr-storage-b-inherit-child",
+    "member-storage-b-inherit-child": {
+      "id": "member-storage-b-inherit-child",
       "name": "InheritChild",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-storage-c",
+      "classId": "class-storage-c",
       "valueId": "v-storage-c"
     },
-    "attr-storage-a-save-child": {
-      "id": "attr-storage-a-save-child",
+    "member-storage-a-save-child": {
+      "id": "member-storage-a-save-child",
       "name": "SaveChild",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-storage-b",
+      "classId": "class-storage-b",
       "storage": "save",
       "valueId": "v-storage-b"
     },
-    "attr-storage-a": {
-      "id": "attr-storage-a",
+    "member-storage-a": {
+      "id": "member-storage-a",
       "name": "StorageInherit",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-storage-a",
+      "classId": "class-storage-a",
       "valueId": "v-storage-a"
     },
-    "attr-base": {
-      "id": "attr-base",
+    "member-base": {
+      "id": "member-base",
       "name": "BaseRecord",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-base"
+      "classId": "class-base"
     },
-    "attr-derived": {
-      "id": "attr-derived",
+    "member-derived": {
+      "id": "member-derived",
       "name": "DerivedRecord",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-derived"
+      "classId": "class-derived"
     },
-    "attr-override": {
-      "id": "attr-override",
+    "member-override": {
+      "id": "member-override",
       "name": "OverrideRecord",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-override"
+      "classId": "class-override"
     },
-    "attr-contract-title": {
-      "id": "attr-contract-title",
+    "member-contract-title": {
+      "id": "member-contract-title",
       "name": "Title",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1343,37 +1343,37 @@
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-contract-title-reabstracted": {
-      "id": "attr-contract-title-reabstracted",
+    "member-contract-title-reabstracted": {
+      "id": "member-contract-title-reabstracted",
       "name": "Title",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "extendsAttributeId": "attr-contract-title",
+      "extendsMemberId": "member-contract-title",
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-contract-title-sealed": {
-      "id": "attr-contract-title-sealed",
+    "member-contract-title-sealed": {
+      "id": "member-contract-title-sealed",
       "name": "Title",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "extendsAttributeId": "attr-contract-title",
+      "extendsMemberId": "member-contract-title",
       "isVirtual": false
     },
-    "attr-contract-run": {
-      "id": "attr-contract-run",
+    "member-contract-run": {
+      "id": "member-contract-run",
       "name": "Run",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1395,10 +1395,10 @@
         }
       ]
     },
-    "attr-contract-run-sealed": {
-      "id": "attr-contract-run-sealed",
+    "member-contract-run-sealed": {
+      "id": "member-contract-run-sealed",
       "name": "Run",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1406,7 +1406,7 @@
       "createdAt": 0,
       "updatedAt": 0,
       "deferred": false,
-      "extendsAttributeId": "attr-contract-run",
+      "extendsMemberId": "member-contract-run",
       "isVirtual": false,
       "returnTypeInfo": {
         "type": 1,
@@ -1420,10 +1420,10 @@
         }
       ]
     },
-    "attr-contract-title-null": {
-      "id": "attr-contract-title-null",
+    "member-contract-title-null": {
+      "id": "member-contract-title-null",
       "name": "Title",
-      "type": 0,
+      "kind": 0,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1431,10 +1431,10 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "attr-generic-contract-float-binding": {
-      "id": "attr-generic-contract-float-binding",
+    "member-generic-contract-float-binding": {
+      "id": "member-generic-contract-float-binding",
       "name": "Generic Float Binding",
-      "type": 4,
+      "kind": 4,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -1442,10 +1442,10 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "attr-generic-contract-string-binding": {
-      "id": "attr-generic-contract-string-binding",
+    "member-generic-contract-string-binding": {
+      "id": "member-generic-contract-string-binding",
       "name": "Generic String Binding",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -1453,10 +1453,10 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "attr-generic-payload-value": {
-      "id": "attr-generic-payload-value",
+    "member-generic-payload-value": {
+      "id": "member-generic-payload-value",
       "name": "Value",
-      "type": 21,
+      "kind": 21,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1465,10 +1465,10 @@
       "updatedAt": 0,
       "genericParamId": "param-generic-payload-t"
     },
-    "attr-generic-contract-amount": {
-      "id": "attr-generic-contract-amount",
+    "member-generic-contract-amount": {
+      "id": "member-generic-contract-amount",
       "name": "Amount",
-      "type": 21,
+      "kind": 21,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1479,10 +1479,10 @@
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-generic-contract-entry": {
-      "id": "attr-generic-contract-entry",
+    "member-generic-contract-entry": {
+      "id": "member-generic-contract-entry",
       "name": "Value Entry",
-      "type": 21,
+      "kind": 21,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1491,32 +1491,32 @@
       "updatedAt": 0,
       "genericParamId": "param-generic-contract-t"
     },
-    "attr-generic-contract-values": {
-      "id": "attr-generic-contract-values",
+    "member-generic-contract-values": {
+      "id": "member-generic-contract-values",
       "name": "Values",
-      "type": 6,
+      "kind": 6,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "entryAttributeId": "attr-generic-contract-entry",
+      "entryMemberId": "member-generic-contract-entry",
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-generic-contract-payload": {
-      "id": "attr-generic-contract-payload",
+    "member-generic-contract-payload": {
+      "id": "member-generic-contract-payload",
       "name": "Payload",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": false,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-generic-payload",
-      "customTypeArguments": {
+      "classId": "class-generic-payload",
+      "classArguments": {
         "param-generic-payload-t": {
           "kind": "generic",
           "genericParamId": "param-generic-contract-t"
@@ -1525,10 +1525,10 @@
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-generic-contract-computed": {
-      "id": "attr-generic-contract-computed",
+    "member-generic-contract-computed": {
+      "id": "member-generic-contract-computed",
       "name": "Computed",
-      "type": 10,
+      "kind": 10,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1539,16 +1539,16 @@
       "returnTypeInfo": {
         "type": 21,
         "required": true,
-        "ownerTypeId": "type-generic-contract",
+        "ownerClassId": "class-generic-contract",
         "genericParamId": "param-generic-contract-t"
       },
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-generic-contract-echo": {
-      "id": "attr-generic-contract-echo",
+    "member-generic-contract-echo": {
+      "id": "member-generic-contract-echo",
       "name": "Echo",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1559,7 +1559,7 @@
       "returnTypeInfo": {
         "type": 21,
         "required": true,
-        "ownerTypeId": "type-generic-contract",
+        "ownerClassId": "class-generic-contract",
         "genericParamId": "param-generic-contract-t"
       },
       "argumentTypes": [
@@ -1567,17 +1567,17 @@
           "name": "value",
           "type": 21,
           "required": true,
-          "ownerTypeId": "type-generic-contract",
+          "ownerClassId": "class-generic-contract",
           "genericParamId": "param-generic-contract-t"
         }
       ],
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-generic-contract-echo-later": {
-      "id": "attr-generic-contract-echo-later",
+    "member-generic-contract-echo-later": {
+      "id": "member-generic-contract-echo-later",
       "name": "EchoLater",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1588,7 +1588,7 @@
       "returnTypeInfo": {
         "type": 21,
         "required": true,
-        "ownerTypeId": "type-generic-contract",
+        "ownerClassId": "class-generic-contract",
         "genericParamId": "param-generic-contract-t"
       },
       "argumentTypes": [
@@ -1596,29 +1596,29 @@
           "name": "value",
           "type": 21,
           "required": true,
-          "ownerTypeId": "type-generic-contract",
+          "ownerClassId": "class-generic-contract",
           "genericParamId": "param-generic-contract-t"
         }
       ],
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-generic-function-hero-binding": {
-      "id": "attr-generic-function-hero-binding",
+    "member-generic-function-hero-binding": {
+      "id": "member-generic-function-hero-binding",
       "name": "Generic Function Hero Binding",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": true,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-hero"
+      "classId": "class-hero"
     },
-    "attr-generic-function-subject": {
-      "id": "attr-generic-function-subject",
+    "member-generic-function-subject": {
+      "id": "member-generic-function-subject",
       "name": "Subject",
-      "type": 21,
+      "kind": 21,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1629,10 +1629,10 @@
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-generic-function-transform": {
-      "id": "attr-generic-function-transform",
+    "member-generic-function-transform": {
+      "id": "member-generic-function-transform",
       "name": "Transform",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1643,7 +1643,7 @@
       "returnTypeInfo": {
         "type": 21,
         "required": true,
-        "ownerTypeId": "type-generic-function-contract",
+        "ownerClassId": "class-generic-function-contract",
         "genericParamId": "param-generic-function-t"
       },
       "argumentTypes": [
@@ -1651,17 +1651,17 @@
           "name": "value",
           "type": 21,
           "required": true,
-          "ownerTypeId": "type-generic-function-contract",
+          "ownerClassId": "class-generic-function-contract",
           "genericParamId": "param-generic-function-t"
         }
       ],
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-generic-function-transform-later": {
-      "id": "attr-generic-function-transform-later",
+    "member-generic-function-transform-later": {
+      "id": "member-generic-function-transform-later",
       "name": "TransformLater",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1672,7 +1672,7 @@
       "returnTypeInfo": {
         "type": 21,
         "required": true,
-        "ownerTypeId": "type-generic-function-contract",
+        "ownerClassId": "class-generic-function-contract",
         "genericParamId": "param-generic-function-t"
       },
       "argumentTypes": [
@@ -1680,17 +1680,17 @@
           "name": "value",
           "type": 21,
           "required": true,
-          "ownerTypeId": "type-generic-function-contract",
+          "ownerClassId": "class-generic-function-contract",
           "genericParamId": "param-generic-function-t"
         }
       ],
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-generic-function-transform-box": {
-      "id": "attr-generic-function-transform-box",
+    "member-generic-function-transform-box": {
+      "id": "member-generic-function-transform-box",
       "name": "TransformBox",
-      "type": 13,
+      "kind": 13,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1701,12 +1701,12 @@
       "returnTypeInfo": {
         "type": 7,
         "required": true,
-        "typeId": "type-generic-function-box",
+        "classId": "class-generic-function-box",
         "typeArguments": {
           "param-generic-function-box-t": {
             "type": 21,
             "required": true,
-            "ownerTypeId": "type-generic-function-contract",
+            "ownerClassId": "class-generic-function-contract",
             "genericParamId": "param-generic-function-t"
           }
         }
@@ -1716,12 +1716,12 @@
           "name": "value",
           "type": 7,
           "required": true,
-          "typeId": "type-generic-function-box",
+          "classId": "class-generic-function-box",
           "typeArguments": {
             "param-generic-function-box-t": {
               "type": 21,
               "required": true,
-              "ownerTypeId": "type-generic-function-contract",
+              "ownerClassId": "class-generic-function-contract",
               "genericParamId": "param-generic-function-t"
             }
           }
@@ -1730,10 +1730,10 @@
       "isVirtual": true,
       "isAbstract": true
     },
-    "attr-choice-id": {
-      "id": "attr-choice-id",
+    "member-choice-id": {
+      "id": "member-choice-id",
       "name": "Choice ID",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -1741,40 +1741,40 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "attr-choice-log-entry": {
-      "id": "attr-choice-log-entry",
+    "member-choice-log-entry": {
+      "id": "member-choice-log-entry",
       "name": "Choice Log Entry",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": true,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-choice-log",
+      "classId": "class-choice-log",
       "defaultValue": {
         "value": {}
       }
     },
-    "attr-choice-history": {
-      "id": "attr-choice-history",
+    "member-choice-history": {
+      "id": "member-choice-history",
       "name": "Choice History",
-      "type": 6,
+      "kind": 6,
       "locked": false,
       "required": true,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "entryAttributeId": "attr-choice-log-entry",
+      "entryMemberId": "member-choice-log-entry",
       "defaultValue": {
         "value": []
       }
     },
-    "attr-visit-count": {
-      "id": "attr-visit-count",
+    "member-visit-count": {
+      "id": "member-visit-count",
       "name": "Visit Count",
-      "type": 2,
+      "kind": 2,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -1785,10 +1785,10 @@
         "value": 0
       }
     },
-    "attr-last-visited-at": {
-      "id": "attr-last-visited-at",
+    "member-last-visited-at": {
+      "id": "member-last-visited-at",
       "name": "Last Visited At",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1796,10 +1796,10 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "attr-most-recent-choice-id": {
-      "id": "attr-most-recent-choice-id",
+    "member-most-recent-choice-id": {
+      "id": "member-most-recent-choice-id",
       "name": "Most Recent Choice ID",
-      "type": 3,
+      "kind": 3,
       "locked": false,
       "required": false,
       "isStatic": false,
@@ -1807,25 +1807,25 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "attr-text-node-memory-entry": {
-      "id": "attr-text-node-memory-entry",
+    "member-text-node-memory-entry": {
+      "id": "member-text-node-memory-entry",
       "name": "Text Node Memory Entry",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": true,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-text-node-memory",
+      "classId": "class-text-node-memory",
       "defaultValue": {
         "value": {}
       }
     },
-    "attr-text-node-memories": {
-      "id": "attr-text-node-memories",
+    "member-text-node-memories": {
+      "id": "member-text-node-memories",
       "name": "Text Node Memories",
-      "type": 5,
+      "kind": 5,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -1833,30 +1833,30 @@
       "createdAt": 0,
       "updatedAt": 0,
       "keyKind": "string",
-      "entryAttributeId": "attr-text-node-memory-entry",
+      "entryMemberId": "member-text-node-memory-entry",
       "defaultValue": {
         "value": {}
       }
     },
-    "attr-dialogue-memory-entry": {
-      "id": "attr-dialogue-memory-entry",
+    "member-dialogue-memory-entry": {
+      "id": "member-dialogue-memory-entry",
       "name": "Dialogue Memory Entry",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": true,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-dialogue-memory",
+      "classId": "class-dialogue-memory",
       "defaultValue": {
         "value": {}
       }
     },
-    "attr-dialogue-memories": {
-      "id": "attr-dialogue-memories",
+    "member-dialogue-memories": {
+      "id": "member-dialogue-memories",
       "name": "Dialogue Memories",
-      "type": 5,
+      "kind": 5,
       "locked": false,
       "required": true,
       "isStatic": false,
@@ -1864,22 +1864,22 @@
       "createdAt": 0,
       "updatedAt": 0,
       "keyKind": "string",
-      "entryAttributeId": "attr-dialogue-memory-entry",
+      "entryMemberId": "member-dialogue-memory-entry",
       "defaultValue": {
         "value": {}
       }
     },
-    "attr-neo-memory": {
-      "id": "attr-neo-memory",
+    "member-neo-memory": {
+      "id": "member-neo-memory",
       "name": "NeoMemory",
-      "type": 7,
+      "kind": 7,
       "locked": false,
       "required": true,
       "isStatic": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0,
-      "customTypeId": "type-neo-memory",
+      "classId": "class-neo-memory",
       "defaultValue": {
         "value": {}
       }
@@ -1973,14 +1973,14 @@
           "returnTypeInfo": {
             "type": 7,
             "required": true,
-            "typeId": "type-hero"
+            "classId": "class-hero"
           },
           "argumentTypes": [
             {
               "name": "value",
               "type": 7,
               "required": true,
-              "typeId": "type-hero"
+              "classId": "class-hero"
             }
           ],
           "deferred": true
@@ -1994,228 +1994,228 @@
       "updatedAt": 0
     }
   },
-  "types": {
-    "type-hero": {
-      "id": "type-hero",
+  "classes": {
+    "class-hero": {
+      "id": "class-hero",
       "name": "Hero",
       "schema": {
-        "Name": "attr-name",
-        "Health": "attr-health",
-        "Position": "attr-position",
-        "GridCell": "attr-grid-cell",
-        "Path": "attr-path",
-        "MoveTo": "attr-move-to",
-        "ElementAffinity": "attr-elem-affinity"
+        "Name": "member-name",
+        "Health": "member-health",
+        "Position": "member-position",
+        "GridCell": "member-grid-cell",
+        "Path": "member-path",
+        "MoveTo": "member-move-to",
+        "ElementAffinity": "member-elem-affinity"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-root": {
-      "id": "type-root",
+    "class-root": {
+      "id": "class-root",
       "name": "Root",
       "schema": {
-        "Heroes": "attr-heroes",
-        "Manifest": "attr-manifest",
-        "Active": "attr-active",
-        "Flag": "attr-isalive",
-        "Score": "attr-root-score",
-        "NeoMemory": "attr-neo-memory",
-        "SampleLayerGroup": "attr-sample-layer-group",
-        "StorageInherit": "attr-storage-a",
-        "ElementStats": "attr-elem-stats",
-        "ElementMultipliers": "attr-elem-multipliers",
-        "ElementChampions": "attr-elem-champions"
+        "Heroes": "member-heroes",
+        "Manifest": "member-manifest",
+        "Active": "member-active",
+        "Flag": "member-isalive",
+        "Score": "member-root-score",
+        "NeoMemory": "member-neo-memory",
+        "SampleLayerGroup": "member-sample-layer-group",
+        "StorageInherit": "member-storage-a",
+        "ElementStats": "member-elem-stats",
+        "ElementMultipliers": "member-elem-multipliers",
+        "ElementChampions": "member-elem-champions"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-sample-tile-instance": {
-      "id": "type-sample-tile-instance",
+    "class-sample-tile-instance": {
+      "id": "class-sample-tile-instance",
       "name": "SampleTileInstance",
       "schema": {
-        "Value": "attr-sample-tile-value",
-        "ConstructSample": "attr-construct-sample-tile"
+        "Value": "member-sample-tile-value",
+        "ConstructSample": "member-construct-sample-tile"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-sample-layer-group-base": {
-      "id": "type-sample-layer-group-base",
+    "class-sample-layer-group-base": {
+      "id": "class-sample-layer-group-base",
       "name": "SampleLayerGroupBase",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": true,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-sample-tile-layer-link": {
-      "id": "type-sample-tile-layer-link",
+    "class-sample-tile-layer-link": {
+      "id": "class-sample-tile-layer-link",
       "name": "SampleTileLayerLink",
       "schema": {
-        "Tiles": "attr-sample-tiles"
+        "Tiles": "member-sample-tiles"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": true,
-      "extendsTypeId": "type-sample-layer-group-base",
+      "extendsClassId": "class-sample-layer-group-base",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-sample-blocked-path": {
-      "id": "type-sample-blocked-path",
+    "class-sample-blocked-path": {
+      "id": "class-sample-blocked-path",
       "name": "SampleBlockedPath",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-sample-tile-layer-link",
+      "extendsClassId": "class-sample-tile-layer-link",
       "allowedStorage": "save",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-storage-a": {
-      "id": "type-storage-a",
+    "class-storage-a": {
+      "id": "class-storage-a",
       "name": "StorageA",
       "schema": {
-        "Value": "attr-storage-a-value",
-        "SaveChild": "attr-storage-a-save-child"
+        "Value": "member-storage-a-value",
+        "SaveChild": "member-storage-a-save-child"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-storage-b": {
-      "id": "type-storage-b",
+    "class-storage-b": {
+      "id": "class-storage-b",
       "name": "StorageB",
       "schema": {
-        "InheritChild": "attr-storage-b-inherit-child"
+        "InheritChild": "member-storage-b-inherit-child"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-storage-c": {
-      "id": "type-storage-c",
+    "class-storage-c": {
+      "id": "class-storage-c",
       "name": "StorageC",
       "schema": {
-        "Value": "attr-storage-c-value",
-        "SessionChild": "attr-storage-c-session-child"
+        "Value": "member-storage-c-value",
+        "SessionChild": "member-storage-c-session-child"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-storage-d": {
-      "id": "type-storage-d",
+    "class-storage-d": {
+      "id": "class-storage-d",
       "name": "StorageD",
       "schema": {
-        "InheritChild": "attr-storage-d-inherit-child"
+        "InheritChild": "member-storage-d-inherit-child"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-storage-e": {
-      "id": "type-storage-e",
+    "class-storage-e": {
+      "id": "class-storage-e",
       "name": "StorageE",
       "schema": {
-        "Value": "attr-storage-e-value",
-        "StaticChild": "attr-storage-e-static-child"
+        "Value": "member-storage-e-value",
+        "StaticChild": "member-storage-e-static-child"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-storage-f": {
-      "id": "type-storage-f",
+    "class-storage-f": {
+      "id": "class-storage-f",
       "name": "StorageF",
       "schema": {
-        "InheritChild": "attr-storage-f-inherit-child"
+        "InheritChild": "member-storage-f-inherit-child"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-storage-g": {
-      "id": "type-storage-g",
+    "class-storage-g": {
+      "id": "class-storage-g",
       "name": "StorageG",
       "schema": {
-        "Value": "attr-storage-g-value"
+        "Value": "member-storage-g-value"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-base": {
-      "id": "type-base",
+    "class-base": {
+      "id": "class-base",
       "name": "Base",
       "schema": {
-        "Name": "attr-name"
+        "Name": "member-name"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-derived": {
-      "id": "type-derived",
+    "class-derived": {
+      "id": "class-derived",
       "name": "Derived",
       "schema": {
-        "Health": "attr-health"
+        "Health": "member-health"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-base",
+      "extendsClassId": "class-base",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-override": {
-      "id": "type-override",
+    "class-override": {
+      "id": "class-override",
       "name": "Override",
       "schema": {
-        "Name": "attr-altname"
+        "Name": "member-altname"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-base",
+      "extendsClassId": "class-base",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-contract-base": {
-      "id": "type-contract-base",
+    "class-contract-base": {
+      "id": "class-contract-base",
       "name": "ContractBase",
       "schema": {
-        "Title": "attr-contract-title",
-        "Run": "attr-contract-run"
+        "Title": "member-contract-title",
+        "Run": "member-contract-run"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": true,
       "implementsInterfaceIds": [
         "interface-contract"
@@ -2224,86 +2224,86 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-contract-middle": {
-      "id": "type-contract-middle",
+    "class-contract-middle": {
+      "id": "class-contract-middle",
       "name": "ContractMiddle",
       "schema": {
-        "Title": "attr-contract-title-reabstracted"
+        "Title": "member-contract-title-reabstracted"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": true,
-      "extendsTypeId": "type-contract-base",
+      "extendsClassId": "class-contract-base",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-contract-child": {
-      "id": "type-contract-child",
+    "class-contract-child": {
+      "id": "class-contract-child",
       "name": "ContractChild",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-contract-middle",
+      "extendsClassId": "class-contract-middle",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-contract-deep-child": {
-      "id": "type-contract-deep-child",
+    "class-contract-deep-child": {
+      "id": "class-contract-deep-child",
       "name": "ContractDeepChild",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-contract-child",
+      "extendsClassId": "class-contract-child",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-contract-explicit-child": {
-      "id": "type-contract-explicit-child",
+    "class-contract-explicit-child": {
+      "id": "class-contract-explicit-child",
       "name": "ContractExplicitChild",
       "schema": {
-        "Title": "attr-contract-title-sealed",
-        "Run": "attr-contract-run-sealed"
+        "Title": "member-contract-title-sealed",
+        "Run": "member-contract-run-sealed"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-contract-base",
+      "extendsClassId": "class-contract-base",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-contract-null-child": {
-      "id": "type-contract-null-child",
+    "class-contract-null-child": {
+      "id": "class-contract-null-child",
       "name": "ContractNullChild",
       "schema": {
-        "Title": "attr-contract-title-null"
+        "Title": "member-contract-title-null"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-contract-base",
+      "extendsClassId": "class-contract-base",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-contract-null-deep-child": {
-      "id": "type-contract-null-deep-child",
+    "class-contract-null-deep-child": {
+      "id": "class-contract-null-deep-child",
       "name": "ContractNullDeepChild",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-contract-null-child",
+      "extendsClassId": "class-contract-null-child",
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-generic-payload": {
-      "id": "type-generic-payload",
+    "class-generic-payload": {
+      "id": "class-generic-payload",
       "name": "GenericPayload",
       "schema": {
-        "Value": "attr-generic-payload-value"
+        "Value": "member-generic-payload-value"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "genericParams": [
         {
@@ -2315,52 +2315,52 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-generic-float-payload": {
-      "id": "type-generic-float-payload",
+    "class-generic-float-payload": {
+      "id": "class-generic-float-payload",
       "name": "GenericFloatPayload",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-generic-payload",
+      "extendsClassId": "class-generic-payload",
       "extendsGenericBindings": {
         "param-generic-payload-t": {
-          "kind": "attribute",
-          "attributeId": "attr-generic-contract-float-binding"
+          "kind": "member",
+          "memberId": "member-generic-contract-float-binding"
         }
       },
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-generic-string-payload": {
-      "id": "type-generic-string-payload",
+    "class-generic-string-payload": {
+      "id": "class-generic-string-payload",
       "name": "GenericStringPayload",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-generic-payload",
+      "extendsClassId": "class-generic-payload",
       "extendsGenericBindings": {
         "param-generic-payload-t": {
-          "kind": "attribute",
-          "attributeId": "attr-generic-contract-string-binding"
+          "kind": "member",
+          "memberId": "member-generic-contract-string-binding"
         }
       },
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-generic-contract": {
-      "id": "type-generic-contract",
+    "class-generic-contract": {
+      "id": "class-generic-contract",
       "name": "GenericContract",
       "schema": {
-        "Amount": "attr-generic-contract-amount",
-        "Values": "attr-generic-contract-values",
-        "Payload": "attr-generic-contract-payload",
-        "Computed": "attr-generic-contract-computed",
-        "Echo": "attr-generic-contract-echo",
-        "EchoLater": "attr-generic-contract-echo-later"
+        "Amount": "member-generic-contract-amount",
+        "Values": "member-generic-contract-values",
+        "Payload": "member-generic-contract-payload",
+        "Computed": "member-generic-contract-computed",
+        "Echo": "member-generic-contract-echo",
+        "EchoLater": "member-generic-contract-echo-later"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": true,
       "genericParams": [
         {
@@ -2372,45 +2372,45 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-generic-float-contract": {
-      "id": "type-generic-float-contract",
+    "class-generic-float-contract": {
+      "id": "class-generic-float-contract",
       "name": "GenericFloatContract",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-generic-contract",
+      "extendsClassId": "class-generic-contract",
       "extendsGenericBindings": {
         "param-generic-contract-t": {
-          "kind": "attribute",
-          "attributeId": "attr-generic-contract-float-binding"
+          "kind": "member",
+          "memberId": "member-generic-contract-float-binding"
         }
       },
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-generic-string-contract": {
-      "id": "type-generic-string-contract",
+    "class-generic-string-contract": {
+      "id": "class-generic-string-contract",
       "name": "GenericStringContract",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-generic-contract",
+      "extendsClassId": "class-generic-contract",
       "extendsGenericBindings": {
         "param-generic-contract-t": {
-          "kind": "attribute",
-          "attributeId": "attr-generic-contract-string-binding"
+          "kind": "member",
+          "memberId": "member-generic-contract-string-binding"
         }
       },
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-generic-function-box": {
-      "id": "type-generic-function-box",
+    "class-generic-function-box": {
+      "id": "class-generic-function-box",
       "name": "GenericFunctionBox",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "genericParams": [
         {
@@ -2422,16 +2422,16 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-generic-function-contract": {
-      "id": "type-generic-function-contract",
+    "class-generic-function-contract": {
+      "id": "class-generic-function-contract",
       "name": "GenericFunctionContract",
       "schema": {
-        "Subject": "attr-generic-function-subject",
-        "Transform": "attr-generic-function-transform",
-        "TransformLater": "attr-generic-function-transform-later",
-        "TransformBox": "attr-generic-function-transform-box"
+        "Subject": "member-generic-function-subject",
+        "Transform": "member-generic-function-transform",
+        "TransformLater": "member-generic-function-transform-later",
+        "TransformBox": "member-generic-function-transform-box"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": true,
       "genericParams": [
         {
@@ -2443,74 +2443,74 @@
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-generic-function-hero-contract": {
-      "id": "type-generic-function-hero-contract",
+    "class-generic-function-hero-contract": {
+      "id": "class-generic-function-hero-contract",
       "name": "GenericFunctionHeroContract",
       "schema": {},
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
-      "extendsTypeId": "type-generic-function-contract",
+      "extendsClassId": "class-generic-function-contract",
       "implementsInterfaceIds": [
         "interface-hero-deferred-transform"
       ],
       "extendsGenericBindings": {
         "param-generic-function-t": {
-          "kind": "attribute",
-          "attributeId": "attr-generic-function-hero-binding"
+          "kind": "member",
+          "memberId": "member-generic-function-hero-binding"
         }
       },
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-choice-log": {
-      "id": "type-choice-log",
+    "class-choice-log": {
+      "id": "class-choice-log",
       "name": "NeoChoiceLog",
       "schema": {
-        "ChoiceId": "attr-choice-id"
+        "ChoiceId": "member-choice-id"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-text-node-memory": {
-      "id": "type-text-node-memory",
+    "class-text-node-memory": {
+      "id": "class-text-node-memory",
       "name": "NeoTextNodeMemory",
       "schema": {
-        "VisitCount": "attr-visit-count",
-        "LastVisitedAt": "attr-last-visited-at",
-        "MostRecentChoiceId": "attr-most-recent-choice-id",
-        "ChoiceHistory": "attr-choice-history"
+        "VisitCount": "member-visit-count",
+        "LastVisitedAt": "member-last-visited-at",
+        "MostRecentChoiceId": "member-most-recent-choice-id",
+        "ChoiceHistory": "member-choice-history"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-dialogue-memory": {
-      "id": "type-dialogue-memory",
+    "class-dialogue-memory": {
+      "id": "class-dialogue-memory",
       "name": "NeoDialogueMemory",
       "schema": {
-        "VisitCount": "attr-visit-count",
-        "LastVisitedAt": "attr-last-visited-at",
-        "TextNodeMemories": "attr-text-node-memories"
+        "VisitCount": "member-visit-count",
+        "LastVisitedAt": "member-last-visited-at",
+        "TextNodeMemories": "member-text-node-memories"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
       "updatedAt": 0
     },
-    "type-neo-memory": {
-      "id": "type-neo-memory",
+    "class-neo-memory": {
+      "id": "class-neo-memory",
       "name": "NeoMemory",
       "schema": {
-        "DialogueMemories": "attr-dialogue-memories"
+        "DialogueMemories": "member-dialogue-memories"
       },
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "isAbstract": false,
       "projectId": "test-project",
       "createdAt": 0,
@@ -2606,7 +2606,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-hero"
+      "classId": "class-hero"
     },
     "v-null": {
       "id": "v-null",
@@ -2625,7 +2625,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-root"
+      "classId": "class-root"
     },
     "v-root-session": {
       "id": "v-root-session",
@@ -2635,7 +2635,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-root"
+      "classId": "class-root"
     },
     "v-elem-stats": {
       "id": "v-elem-stats",
@@ -2695,7 +2695,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-hero"
+      "classId": "class-hero"
     },
     "v-elem-champion-name": {
       "id": "v-elem-champion-name",
@@ -2735,7 +2735,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-sample-tile-instance"
+      "classId": "class-sample-tile-instance"
     },
     "v-sample-tiles": {
       "id": "v-sample-tiles",
@@ -2754,7 +2754,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-sample-blocked-path"
+      "classId": "class-sample-blocked-path"
     },
     "v-storage-a-value": {
       "id": "v-storage-a-value",
@@ -2793,7 +2793,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-storage-a"
+      "classId": "class-storage-a"
     },
     "v-storage-b": {
       "id": "v-storage-b",
@@ -2803,7 +2803,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-storage-b"
+      "classId": "class-storage-b"
     },
     "v-storage-c": {
       "id": "v-storage-c",
@@ -2814,7 +2814,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-storage-c"
+      "classId": "class-storage-c"
     },
     "v-storage-d": {
       "id": "v-storage-d",
@@ -2824,7 +2824,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-storage-d"
+      "classId": "class-storage-d"
     },
     "v-storage-e": {
       "id": "v-storage-e",
@@ -2835,7 +2835,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-storage-e"
+      "classId": "class-storage-e"
     },
     "v-storage-f": {
       "id": "v-storage-f",
@@ -2845,7 +2845,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-storage-f"
+      "classId": "class-storage-f"
     },
     "v-storage-g": {
       "id": "v-storage-g",
@@ -2855,7 +2855,7 @@
       },
       "createdAt": 0,
       "updatedAt": 0,
-      "typeId": "type-storage-g"
+      "classId": "class-storage-g"
     }
   },
   "valuePartitions": {},
@@ -2892,7 +2892,7 @@
           "dialogueGroupId": "dialogue-group-standard",
           "lookupValueId": null,
           "priority": {
-            "priorityTypeId": "priority-low",
+            "priorityOptionId": "priority-low",
             "relativeOrder": null
           }
         },
@@ -3005,7 +3005,7 @@
                       "typeInfo": {
                         "type": 7,
                         "required": true,
-                        "typeId": "__root__"
+                        "classId": "__root__"
                       },
                       "pointer": {
                         "type": "value",
@@ -3013,7 +3013,7 @@
                           "typeInfo": {
                             "type": 7,
                             "required": true,
-                            "typeId": "__root__"
+                            "classId": "__root__"
                           },
                           "value": null
                         }
@@ -3207,7 +3207,7 @@
                       "typeInfo": {
                         "type": 7,
                         "required": true,
-                        "typeId": "__root__"
+                        "classId": "__root__"
                       },
                       "pointer": {
                         "type": "value",
@@ -3215,7 +3215,7 @@
                           "typeInfo": {
                             "type": 7,
                             "required": true,
-                            "typeId": "__root__"
+                            "classId": "__root__"
                           },
                           "value": null
                         }
@@ -3409,7 +3409,7 @@
                       "typeInfo": {
                         "type": 7,
                         "required": true,
-                        "typeId": "__root__"
+                        "classId": "__root__"
                       },
                       "pointer": {
                         "type": "value",
@@ -3417,7 +3417,7 @@
                           "typeInfo": {
                             "type": 7,
                             "required": true,
-                            "typeId": "__root__"
+                            "classId": "__root__"
                           },
                           "value": null
                         }
@@ -3611,7 +3611,7 @@
                       "typeInfo": {
                         "type": 7,
                         "required": true,
-                        "typeId": "__root__"
+                        "classId": "__root__"
                       },
                       "pointer": {
                         "type": "value",
@@ -3619,7 +3619,7 @@
                           "typeInfo": {
                             "type": 7,
                             "required": true,
-                            "typeId": "__root__"
+                            "classId": "__root__"
                           },
                           "value": null
                         }
@@ -3813,7 +3813,7 @@
                       "typeInfo": {
                         "type": 7,
                         "required": true,
-                        "typeId": "__root__"
+                        "classId": "__root__"
                       },
                       "pointer": {
                         "type": "value",
@@ -3821,7 +3821,7 @@
                           "typeInfo": {
                             "type": 7,
                             "required": true,
-                            "typeId": "__root__"
+                            "classId": "__root__"
                           },
                           "value": null
                         }
@@ -4015,7 +4015,7 @@
                       "typeInfo": {
                         "type": 7,
                         "required": true,
-                        "typeId": "__root__"
+                        "classId": "__root__"
                       },
                       "pointer": {
                         "type": "value",
@@ -4023,7 +4023,7 @@
                           "typeInfo": {
                             "type": 7,
                             "required": true,
-                            "typeId": "__root__"
+                            "classId": "__root__"
                           },
                           "value": null
                         }
@@ -4217,7 +4217,7 @@
                       "typeInfo": {
                         "type": 7,
                         "required": true,
-                        "typeId": "__root__"
+                        "classId": "__root__"
                       },
                       "pointer": {
                         "type": "value",
@@ -4225,7 +4225,7 @@
                           "typeInfo": {
                             "type": 7,
                             "required": true,
-                            "typeId": "__root__"
+                            "classId": "__root__"
                           },
                           "value": null
                         }

@@ -281,7 +281,7 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedNSGetters_InRepeatedCustomValuesResolveAgainstEachOutpost()
+        public void GeneratedNSGetters_InRepeatedClassValuesResolveAgainstEachOutpost()
         {
             var client = LoadSampleClient(EnglishLocalizationOptions());
 
@@ -507,7 +507,7 @@ namespace HelloWorld.Assets.Tests
         }
 
         [Test]
-        public void GeneratedCustomValues_ReturnCachedInstances()
+        public void GeneratedClassValues_ReturnCachedInstances()
         {
             var client = LoadSampleClient(EnglishLocalizationOptions());
 
@@ -963,7 +963,7 @@ namespace HelloWorld.Assets.Tests
         private static T ResolveSampleValue<T>(HelloWorldNeo client, string valueId)
             where T : class
         {
-            var resolved = NeoGeneratedTypesSupport.ResolveCustomValue(
+            var resolved = NeoGeneratedTypesSupport.ResolveClassValue(
                 client.Client,
                 valueId,
                 HelloWorldNeo.NeoReadOnlyValueFactories,

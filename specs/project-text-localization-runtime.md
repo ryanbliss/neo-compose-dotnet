@@ -19,7 +19,7 @@ web project's versioned text localization records.
 - Unity export additions for localization config and locale runtime files.
 - Unity editor synchronization of localization JSON files.
 - Runtime loading, locale selection, fallback resolution, and formatting.
-- Generated C# accessors for localized string attributes and enum display text.
+- Generated C# accessors for localized string members and enum display text.
 - Dialogue runtime localization before existing Neo dialogue variable
   interpolation.
 - Optional async loading from `Assets/StreamingAssets/Neo/Localization`.
@@ -44,8 +44,8 @@ Assets/Resources/Neo/project.json
 ```
 
 The runtime loads `project.json` through `NeoLoader`, deserializes into
-`ProjectData`, and exposes values through `NeoClient`, `NeoAttribute*`, and the
-generated facade. String attributes, enum option text, dialogue descriptions,
+`ProjectData`, and exposes values through `NeoClient`, `NeoMember*`, and the
+generated facade. String members, enum option text, dialogue descriptions,
 dialogue node text, and dialogue option text are currently treated as literal
 strings. After the web migration, localizable fields will store localized text
 ids in the structural project export.
@@ -120,8 +120,8 @@ interface IProjectUnityRuntimeLocale {
 The structural records in `project.json` should keep localized text ids in
 localizable fields:
 
-- `StringAttributeValue.value`
-- `StringAttribute.defaultValue.value`
+- `StringMemberValue.value`
+- `StringMember.defaultValue.value`
 - `Dialogue.description`
 - `DialogueTextNode.text`
 - `DialogueTextOption.text`
@@ -231,7 +231,7 @@ The default implementation should wrap Unity Localization's SmartFormat API.
 Neo should not force locale storage through Unity `StringTable` assets just to
 use that formatter; JSON files remain the canonical synchronized data format.
 
-The runtime should not expose Unity Localization package types in generated
+The runtime should not expose Unity Localization package classes in generated
 project code or common gameplay APIs. This keeps developers insulated from the
 underlying formatter and leaves room for a future "no Unity Localization
 package" variant that could embed or reference `SmartFormat.NET` behind the
@@ -370,7 +370,7 @@ UnityWebRequest-compatible reads rather than `File.ReadAllText`.
 
 Generated code should continue to feel like ordinary C# string access.
 
-For localizable string attributes:
+For localizable string members:
 
 ```csharp
 public string Name => client.Localization.ResolveText(nameNode.value?.value);
@@ -382,10 +382,10 @@ For nullable localizable strings:
 public string? Subtitle => client.Localization.TryResolveText(subtitleNode.value?.value);
 ```
 
-For non-localizable string attributes, generated code should continue returning
+For non-localizable string members, generated code should continue returning
 the literal stored value.
 
-Writable localizable string attributes should still support runtime `set` in
+Writable localizable string members should still support runtime `set` in
 save/session paths, but setting the property must not mutate the project
 localized text table. Instead, the generated setter should create or update a
 local save/session override whose string payload is treated as a literal. That
@@ -397,17 +397,17 @@ Generated writable code should therefore look conceptually like:
 ```csharp
 public string Name
 {
-    get => client.Localization.ResolveStringAttributeValue(nameNode);
+    get => client.Localization.ResolveStringMemberValue(nameNode);
     set => nameNode.SetLiteralOverride(value);
 }
 ```
 
-Runtime string attribute values need enough metadata to distinguish exported
+Runtime string member values need enough metadata to distinguish exported
 localized text ids from runtime-authored literal overrides. Do not infer this
 only by checking whether the string happens to match a known text id, because a
 player-authored literal could collide with a text id.
 
-Proposal: add an optional SDK-owned field to C# `StringAttributeValue`:
+Proposal: add an optional SDK-owned field to C# `StringMemberValue`:
 
 ```csharp
 public enum NeoStringLocalizationMode
@@ -416,7 +416,7 @@ public enum NeoStringLocalizationMode
     Literal = 1,
 }
 
-public class StringAttributeValue : AttributeValue<string?>
+public class StringMemberValue : MemberValue<string?>
 {
     public NeoStringLocalizationMode? neoLocalizationMode;
 }
@@ -427,7 +427,7 @@ The JSON save/session shape for runtime-authored literal overrides becomes:
 ```json
 {
   "id": "save-value-id",
-  "value": "Custom sword name",
+  "value": "Player-authored sword name",
   "neoLocalizationMode": 1
 }
 ```
@@ -436,9 +436,9 @@ Rules:
 
 - Exported localizable string values/defaults omit `neoLocalizationMode` and
   are interpreted as text ids.
-- Runtime-created overrides for localizable string attributes are interpreted
+- Runtime-created overrides for localizable string members are interpreted
   as literals when marked `NeoStringLocalizationMode.Literal`.
-- Non-localizable string attributes always interpret values as literals.
+- Non-localizable string members always interpret values as literals.
 - Clearing a runtime override should restore the inherited exported text id and
   localization behavior.
 - Setting a localizable string to `null` should follow existing required/null
@@ -449,7 +449,7 @@ Rules:
 Generated code should provide field-token helpers instead of one-off text-id
 properties for every string. Proposal: reuse the existing generated
 `NeoField<T>` tokens from change subscriptions and add generated
-`GetLocalizedTextId<T>(NeoField<T> field)` methods on generated custom value
+`GetLocalizedTextId<T>(NeoField<T> field)` methods on generated class value
 wrappers.
 
 ```csharp
@@ -514,10 +514,10 @@ needed to reach localization:
 
 ```csharp
 public string GetDisplayText(NeoClient client);
-public string GetDisplayText(NeoAttributeEnum node);
+public string GetDisplayText(NeoMemberEnum node);
 ```
 
-The current `GetDisplayText(NeoAttributeEnum node)` pattern can remain the
+The current `GetDisplayText(NeoMemberEnum node)` pattern can remain the
 preferred generated surface because the node already has a client reference.
 
 ## NSGetter Behavior
@@ -526,9 +526,9 @@ The web evaluator already resolves localized string value ids to main locale
 values for authoring-time evaluation. The C# runtime should mirror runtime
 locale behavior instead:
 
-- Dereferencing a localizable string attribute from NSGetter should return the
+- Dereferencing a localizable string member from NSGetter should return the
   resolved string for `client.Localization.CurrentLocale`.
-- Dereferencing a non-localizable string attribute should return the literal.
+- Dereferencing a non-localizable string member should return the literal.
 - Enum option stringification should use localized display text.
 
 This keeps dialogue variable getters and generated computed strings consistent
@@ -557,12 +557,12 @@ Implementation should include Unity tests for:
   main-locale fallback.
 - Cached multi-hop locale loading.
 - StreamingAssets async loading path using a mocked loader.
-- Localizable string attribute generated getters.
+- Localizable string member generated getters.
 - Localizable writable string setters storing literal save/session overrides
   without mutating localized text ids.
 - Clearing localizable string overrides restoring inherited localized
   resolution.
-- Non-localizable string attributes preserving literal behavior.
+- Non-localizable string members preserving literal behavior.
 - `GetLocalizedTextId` field-token lookup.
 - Dialogue text resolving localized text before Neo variable interpolation.
 - Dialogue option text and hidden option text localization.
@@ -583,7 +583,7 @@ from `samples/HelloWorld`, covering both `src/NeoComposeUnity/Tests/` and
 - `com.unity.localization` is a hard UPM dependency declared by the Neo Compose
   Unity package.
 - Runtime-authored localizable string overrides use
-  `StringAttributeValue.neoLocalizationMode =
+  `StringMemberValue.neoLocalizationMode =
   NeoStringLocalizationMode.Literal`.
 - Generated localized text-id inspection reuses existing `NeoField<T>` tokens
   through `GetLocalizedTextId<T>(NeoField<T> field)`.

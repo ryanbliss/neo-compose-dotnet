@@ -14,7 +14,7 @@ namespace NeoCompose.Runtime.Json
     /// Opaque carrier for a save file's <c>values</c> map.
     ///
     /// <para>A save's value rows are kept as a raw JSON token until something
-    /// actually needs to read them as typed <see cref="AttributeValue"/> rows.
+    /// actually needs to read them as typed <see cref="MemberValue"/> rows.
     /// This lets the SDK list, clone, archive, and migrate saves it cannot (yet)
     /// interpret — for example a save authored against a newer schema version, or
     /// one bound to a different release channel that must be cloned before it can
@@ -49,26 +49,26 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// Attempts to materialize the opaque token into typed
-        /// <see cref="AttributeValue"/> rows. On any incompatibility (non-object
+        /// <see cref="MemberValue"/> rows. On any incompatibility (non-object
         /// token, an unrecognized value shape, a deserialization error) this
         /// returns <c>false</c> and the raw token is left untouched and still
         /// readable through <see cref="Raw"/>. The out parameter is an empty map
         /// on failure, never null.
         /// </summary>
-        public bool TryDeserialize(out Dictionary<string, AttributeValue> values)
+        public bool TryDeserialize(out Dictionary<string, MemberValue> values)
         {
-            values = new Dictionary<string, AttributeValue>();
+            values = new Dictionary<string, MemberValue>();
             if (raw.Type != JTokenType.Object) return false;
             try
             {
-                var deserialized = raw.ToObject<Dictionary<string, AttributeValue>>();
+                var deserialized = raw.ToObject<Dictionary<string, MemberValue>>();
                 if (deserialized == null) return false;
                 values = deserialized;
                 return true;
             }
             catch (JsonException)
             {
-                values = new Dictionary<string, AttributeValue>();
+                values = new Dictionary<string, MemberValue>();
                 return false;
             }
         }
@@ -76,10 +76,10 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// Builds an opaque values map from typed rows (used when serializing a
         /// commit payload). Writes through default serialization so the
-        /// per-shape <see cref="AttributeValue"/> converters apply.
+        /// per-shape <see cref="MemberValue"/> converters apply.
         /// </summary>
         public static NeoSaveValues FromTypedValues(
-            IReadOnlyDictionary<string, AttributeValue> values)
+            IReadOnlyDictionary<string, MemberValue> values)
         {
             if (values == null) throw new ArgumentNullException(nameof(values));
             return new NeoSaveValues(JToken.FromObject(values));
@@ -88,7 +88,7 @@ namespace NeoCompose.Runtime.Json
 
     /// <summary>
     /// Splits a merged save overlay into its storage partitions
-    /// (specs/list-attribute-and-tilegrid-scaling.md §6) for the commit wire:
+    /// (specs/list-member-and-tilegrid-scaling.md §6) for the commit wire:
     /// rows stamped with a non-empty <c>mapKey</c> ride in their partition's
     /// overlay; unstamped rows are the main partition.
     /// </summary>

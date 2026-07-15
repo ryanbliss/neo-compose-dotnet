@@ -212,7 +212,7 @@ Awaitable<NeoLiveForkResult> ForkLiveAsync(NeoLiveForkRequest request);
 Awaitable<NeoLivePatchResult> PatchLiveAsync(NeoLivePatchRequest request);
 ```
 
-with `NeoSavePatch` (entries + restoredToAuthored) expressed in core types.
+with `NeoSavePatch` (entries + restoredToAuthored) expressed in core classes.
 There is **no REST fallback** for these: live mode requires the socket, and
 disconnects queue (decision 7). `ConvexRealtimeProvider` maps them to the two
 mutations. The fake provider in tests grows matching surface.
@@ -356,7 +356,7 @@ suite (SDK) green before moving on.
       rejection, retention sweep sparing manual snapshots, scope gates on
       both front doors).
 - [x] **Phase 2 — SDK transport**: provider seam methods, Convex
-      implementation, fake-provider surface, patch/fork wire types.
+      implementation, fake-provider surface, patch/fork wire classes.
 - [x] **Phase 3 — SDK synchronizer**: live-mode staging, debounce/max-latency
       flush, delta diff, offline composition, echo ring, auto-apply with
       dirty-key skip, `OnLiveContentChanged`; full test matrix on the

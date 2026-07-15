@@ -13,15 +13,15 @@ namespace NeoCompose.Tests
 {
     /// <summary>
     /// Coverage for the flat <see cref="NeoClient.nodes"/> registry +
-    /// dedup behavior on <see cref="NeoAttribute.Create"/> /
-    /// <see cref="NeoAttribute.CreateWritable"/>.
+    /// dedup behavior on <see cref="NeoMember.Create"/> /
+    /// <see cref="NeoMember.CreateWritable"/>.
     ///
     /// The registry's contract:
     ///
-        ///   - Every constructed <see cref="NeoAttribute"/> registers itself
-        ///     under <c>MakeNodeKey(attribute.id, overrideValueId, ownership)</c>.
-    ///   - <see cref="NeoAttribute.Create"/> /
-    ///     <see cref="NeoAttribute.CreateWritable"/> short-circuit to the
+        ///   - Every constructed <see cref="NeoMember"/> registers itself
+        ///     under <c>MakeNodeKey(member.id, overrideValueId, ownership)</c>.
+    ///   - <see cref="NeoMember.Create"/> /
+    ///     <see cref="NeoMember.CreateWritable"/> short-circuit to the
     ///     registered instance when one exists for the requested key.
         ///   - <c>overrideValueId</c> being null produces a key scoped by
         ///     ownership; non-null appends <c>"_{valueId}"</c>.
@@ -42,45 +42,45 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>
-        /// Wraps <see cref="NeoClient.TryGetAttribute"/> with an assert
+        /// Wraps <see cref="NeoClient.TryGetMember"/> with an assert
         /// + non-null return so tests can chain through to typed usage
         /// without the nullable flow-analysis fighting them. NUnit's
         /// <c>Assert.IsTrue(TryGet(out var x))</c> doesn't propagate
         /// the not-null narrowing the way an inline <c>if</c> does, so
         /// callers reading <c>x</c> after the assert still see <c>T?</c>.
         /// </summary>
-        private static T RequireAttribute<T>(NeoClient client, string id) where T : Attribute
+        private static T RequireMember<T>(NeoClient client, string id) where T : Member
         {
-            if (!client.TryGetAttribute(id, out T? attr))
+            if (!client.TryGetMember(id, out T? member))
             {
-                Assert.Fail($"Fixture is missing attribute '{id}' of type {typeof(T).Name}");
+                Assert.Fail($"Fixture is missing member '{id}' of type {typeof(T).Name}");
                 throw new System.InvalidOperationException("unreachable");
             }
-            return attr;
+            return member;
         }
 
-        private static NeoAttribute RequireNode(
+        private static NeoMember RequireNode(
             NeoClient client,
-            string attributeId,
+            string memberId,
             string? overrideValueId,
             NeoValueOwnership ownership = NeoValueOwnership.Asset)
         {
-            if (!client.TryGetNode(attributeId, overrideValueId, ownership, out NeoAttribute? node))
+            if (!client.TryGetNode(memberId, overrideValueId, ownership, out NeoMember? node))
             {
                 Assert.Fail(
-                    $"Registry is missing node {NeoClient.MakeNodeKey(attributeId, overrideValueId, ownership)}");
+                    $"Registry is missing node {NeoClient.MakeNodeKey(memberId, overrideValueId, ownership)}");
                 throw new System.InvalidOperationException("unreachable");
             }
             return node;
         }
 
         [Test]
-        public void MakeNodeKey_NoOverride_IsBareAttributeId()
+        public void MakeNodeKey_NoOverride_IsBareMemberId()
         {
-            Assert.AreEqual("asset:attr-x", NeoClient.MakeNodeKey("attr-x", null));
-            Assert.AreEqual("asset:attr-x", NeoClient.MakeNodeKey("attr-x", ""));
-            Assert.AreEqual("save:attr-x", NeoClient.MakeNodeKey(
-                "attr-x",
+            Assert.AreEqual("asset:member-x", NeoClient.MakeNodeKey("member-x", null));
+            Assert.AreEqual("asset:member-x", NeoClient.MakeNodeKey("member-x", ""));
+            Assert.AreEqual("save:member-x", NeoClient.MakeNodeKey(
+                "member-x",
                 null,
                 NeoValueOwnership.Save));
         }
@@ -88,7 +88,7 @@ namespace NeoCompose.Tests
         [Test]
         public void MakeNodeKey_WithOverride_AppendsValueId()
         {
-            Assert.AreEqual("asset:attr-x_v-7", NeoClient.MakeNodeKey("attr-x", "v-7"));
+            Assert.AreEqual("asset:member-x_v-7", NeoClient.MakeNodeKey("member-x", "v-7"));
         }
 
         [Test]
@@ -115,10 +115,10 @@ namespace NeoCompose.Tests
         public void Create_ReturnsCachedInstance_OnSecondCall()
         {
             var client = LoadClient();
-            var nameAttr = RequireAttribute<StringAttribute>(client, "attr-name");
+            var nameMember = RequireMember<StringMember>(client, "member-name");
 
-            var first = NeoAttribute.Create(client, nameAttr, null);
-            var second = NeoAttribute.Create(client, nameAttr, null);
+            var first = NeoMember.Create(client, nameMember, null);
+            var second = NeoMember.Create(client, nameMember, null);
 
             Assert.AreSame(first, second,
                 "Create should short-circuit to the cached node, not construct a duplicate");
@@ -128,62 +128,62 @@ namespace NeoCompose.Tests
         public void CreateWritable_ReturnsCachedInstance_OnSecondCall()
         {
             var client = LoadClient();
-            var nameAttr = RequireAttribute<StringAttribute>(client, "attr-name");
+            var nameMember = RequireMember<StringMember>(client, "member-name");
 
-            var first = NeoAttribute.CreateWritable(client, nameAttr, null);
-            var second = NeoAttribute.CreateWritable(client, nameAttr, null);
+            var first = NeoMember.CreateWritable(client, nameMember, null);
+            var second = NeoMember.CreateWritable(client, nameMember, null);
 
             Assert.AreSame(first, second);
-            Assert.IsInstanceOf<NeoAttributeStringWritable>(first);
+            Assert.IsInstanceOf<NeoMemberStringWritable>(first);
         }
 
         [Test]
         public void Create_OverrideValueId_RegistersUnderComposedKey()
         {
             var client = LoadClient();
-            var nameAttr = RequireAttribute<StringAttribute>(client, "attr-name");
+            var nameMember = RequireMember<StringMember>(client, "member-name");
 
-            var noOverride = NeoAttribute.Create(client, nameAttr, null);
-            var withOverride = NeoAttribute.Create(client, nameAttr, "v-str");
+            var noOverride = NeoMember.Create(client, nameMember, null);
+            var withOverride = NeoMember.Create(client, nameMember, "v-str");
 
             Assert.AreNotSame(noOverride, withOverride,
                 "Different override-value ids must compose distinct registry keys");
 
-            Assert.AreSame(noOverride, RequireNode(client, "attr-name", null));
-            Assert.AreSame(withOverride, RequireNode(client, "attr-name", "v-str"));
+            Assert.AreSame(noOverride, RequireNode(client, "member-name", null));
+            Assert.AreSame(withOverride, RequireNode(client, "member-name", "v-str"));
         }
 
         [Test]
         public void NeoClient_Nodes_ContainsWalkedChildren()
         {
             var client = LoadClient();
-            var heroAttr = RequireAttribute<CustomAttribute>(client, "attr-hero");
-            // Construct a Custom bound to the stored v-dict row
+            var heroMember = RequireMember<ClassMember>(client, "member-hero");
+            // Construct a Class bound to the stored v-dict row
             // (defaultValue alone wouldn't trigger a child walk —
-            // attr-hero has no static valueId of its own). v-dict
+            // member-hero has no static valueId of its own). v-dict
             // carries `{ Name: "v-name", Level: "v-level" }`; "Level"
-            // isn't in the type-hero schema so only the "Name" child
+            // isn't in the class-hero schema so only the "Name" child
             // is walked + registered.
-            var hero = NeoAttribute.Create(client, heroAttr, "v-dict") as NeoAttributeCustom;
+            var hero = NeoMember.Create(client, heroMember, "v-dict") as NeoMemberClass;
             Assert.IsNotNull(hero);
 
             Assert.IsTrue(
-                client.nodes.ContainsKey("asset:attr-hero_v-dict"),
+                client.nodes.ContainsKey("asset:member-hero_v-dict"),
                 "Parent registers under its composed key");
-            var nameChild = RequireNode(client, "attr-name", "v-name");
-            Assert.IsInstanceOf<NeoAttributeString>(nameChild);
+            var nameChild = RequireNode(client, "member-name", "v-name");
+            Assert.IsInstanceOf<NeoMemberString>(nameChild);
         }
 
         [Test]
-        public void CustomChild_ReadsSchemaDefault_WhenParentValueDoesNotReferenceChildRow()
+        public void ClassChild_ReadsSchemaDefault_WhenParentValueDoesNotReferenceChildRow()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildDefaultBackedProjectData());
-            var cardAttr = RequireAttribute<CustomAttribute>(client, "attr-card");
+            var cardMember = RequireMember<ClassMember>(client, "member-card");
 
-            var card = NeoAttribute.Create(client, cardAttr, "v-card") as NeoAttributeCustom;
+            var card = NeoMember.Create(client, cardMember, "v-card") as NeoMemberClass;
             Assert.IsNotNull(card);
 
-            var name = card!.Get<NeoAttributeString>("Name");
+            var name = card!.Get<NeoMemberString>("Name");
             Assert.AreEqual("Default Name", name.value?.value);
         }
 
@@ -191,109 +191,109 @@ namespace NeoCompose.Tests
         public void List_ReadsDefaultEntryIds_WhenListHasNoStoredValueRow()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildDefaultBackedProjectData());
-            var listAttr = RequireAttribute<ListAttribute>(client, "attr-children");
+            var listMember = RequireMember<ListMember>(client, "member-children");
 
-            var list = NeoAttribute.Create(client, listAttr, null) as NeoAttributeList;
+            var list = NeoMember.Create(client, listMember, null) as NeoMemberList;
             Assert.IsNotNull(list);
 
             Assert.AreEqual(2, list!.Count);
             Assert.AreEqual(
                 "One",
-                ((NeoAttributeString)list[0]).value?.value);
+                ((NeoMemberString)list[0]).value?.value);
             Assert.AreEqual(
                 "Two",
-                ((NeoAttributeString)list[1]).value?.value);
+                ((NeoMemberString)list[1]).value?.value);
         }
 
         [Test]
-        public void CustomListEntry_UsesConcreteRowType_ForInheritedSchemaDefaults()
+        public void ClassListEntry_UsesConcreteRowClass_ForInheritedSchemaDefaults()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildDefaultBackedProjectData());
-            var containerAttr = RequireAttribute<CustomAttribute>(client, "attr-container");
+            var containerMember = RequireMember<ClassMember>(client, "member-container");
 
-            var container = NeoAttribute.Create(client, containerAttr, "v-container") as NeoAttributeCustom;
+            var container = NeoMember.Create(client, containerMember, "v-container") as NeoMemberClass;
             Assert.IsNotNull(container);
 
-            var items = container!.Get<NeoAttributeList>("Items");
+            var items = container!.Get<NeoMemberList>("Items");
             Assert.AreEqual(1, items.Count);
 
-            var item = items[0] as NeoAttributeCustom;
+            var item = items[0] as NeoMemberClass;
             Assert.IsNotNull(item);
-            Assert.AreEqual("type-derived-item", item!.inheritanceChain[0].id);
+            Assert.AreEqual("class-derived-item", item!.inheritanceChain[0].id);
             Assert.AreEqual(
                 "Inherited Name",
-                item.Get<NeoAttributeString>("Name").value?.value);
+                item.Get<NeoMemberString>("Name").value?.value);
         }
 
         [Test]
         public void Create_FollowedByCreateWritable_ReplacesReadOnlyWithSavedInstance()
         {
             // Assets are constructed before Save and can register
-            // read-only children for shared schema attributes. A later
+            // read-only children for shared schema members. A later
             // saved construction for the same key must upgrade the
             // registry entry so save-side generated wrappers can get
             // writeable child nodes.
             var client = LoadClient();
-            var altAttr = RequireAttribute<StringAttribute>(client, "attr-altname");
+            var altMember = RequireMember<StringMember>(client, "member-altname");
 
-            var first = NeoAttribute.Create(client, altAttr, null);
-            var second = NeoAttribute.CreateWritable(client, altAttr, null);
+            var first = NeoMember.Create(client, altMember, null);
+            var second = NeoMember.CreateWritable(client, altMember, null);
 
             Assert.AreNotSame(first, second);
-            Assert.IsInstanceOf<NeoAttributeString>(first);
-            Assert.IsInstanceOf<NeoAttributeStringWritable>(second);
+            Assert.IsInstanceOf<NeoMemberString>(first);
+            Assert.IsInstanceOf<NeoMemberStringWritable>(second);
             Assert.AreSame(second, RequireNode(
                 client,
-                "attr-altname",
+                "member-altname",
                 null,
                 NeoValueOwnership.Session));
         }
 
         private static ProjectData BuildDefaultBackedProjectData()
         {
-            var rootType = new CustomType
+            var rootClass = new NeoSchemaClass
             {
-                id = "type-root",
+                id = "class-root",
                 projectId = "project-defaults",
                 name = "Root",
                 schema = new Dictionary<string, string>(),
             };
-            var cardType = new CustomType
+            var cardClass = new NeoSchemaClass
             {
-                id = "type-card",
+                id = "class-card",
                 projectId = "project-defaults",
                 name = "Card",
                 schema = new Dictionary<string, string>
                 {
-                    ["Name"] = "attr-default-name",
+                    ["Name"] = "member-default-name",
                 },
             };
-            var containerType = new CustomType
+            var containerClass = new NeoSchemaClass
             {
-                id = "type-container",
+                id = "class-container",
                 projectId = "project-defaults",
                 name = "Container",
                 schema = new Dictionary<string, string>
                 {
-                    ["Items"] = "attr-items",
+                    ["Items"] = "member-items",
                 },
             };
-            var baseItemType = new CustomType
+            var baseItemClass = new NeoSchemaClass
             {
-                id = "type-base-item",
+                id = "class-base-item",
                 projectId = "project-defaults",
                 name = "BaseItem",
                 schema = new Dictionary<string, string>
                 {
-                    ["Name"] = "attr-inherited-name",
+                    ["Name"] = "member-inherited-name",
                 },
             };
-            var derivedItemType = new CustomType
+            var derivedItemClass = new NeoSchemaClass
             {
-                id = "type-derived-item",
+                id = "class-derived-item",
                 projectId = "project-defaults",
                 name = "DerivedItem",
-                extendsTypeId = baseItemType.id,
+                extendsClassId = baseItemClass.id,
                 schema = new Dictionary<string, string>(),
             };
 
@@ -304,169 +304,169 @@ namespace NeoCompose.Tests
                     id = "project-defaults",
                     _id = "project-defaults",
                     name = "Defaults",
-                    rootAssetsAttributeId = "root-assets",
-                    rootSaveFileAttributeId = "root-save",
-                    rootSessionAttributeId = "root-session",
+                    rootAssetsMemberId = "root-assets",
+                    rootSaveFileMemberId = "root-save",
+                    rootSessionMemberId = "root-session",
                 },
-                attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
+                members = new Dictionary<string, NeoCompose.Runtime.Json.Member>
                 {
-                    ["root-assets"] = RootAttribute("root-assets", "v-root-assets", rootType.id),
-                    ["root-save"] = RootAttribute("root-save", "v-root-save", rootType.id),
-                    ["root-session"] = RootAttribute("root-session", "v-root-session", rootType.id),
-                    ["attr-card"] = new CustomAttribute
+                    ["root-assets"] = RootMember("root-assets", "v-root-assets", rootClass.id),
+                    ["root-save"] = RootMember("root-save", "v-root-save", rootClass.id),
+                    ["root-session"] = RootMember("root-session", "v-root-session", rootClass.id),
+                    ["member-card"] = new ClassMember
                     {
-                        id = "attr-card",
+                        id = "member-card",
                         projectId = "project-defaults",
                         name = "Card",
-                        type = AttributeType.Custom,
+                        kind = MemberKind.Class,
                         required = true,
-                        customTypeId = cardType.id,
+                        classId = cardClass.id,
                     },
-                    ["attr-container"] = new CustomAttribute
+                    ["member-container"] = new ClassMember
                     {
-                        id = "attr-container",
+                        id = "member-container",
                         projectId = "project-defaults",
                         name = "Container",
-                        type = AttributeType.Custom,
+                        kind = MemberKind.Class,
                         required = true,
-                        customTypeId = containerType.id,
+                        classId = containerClass.id,
                     },
-                    ["attr-default-name"] = new StringAttribute
+                    ["member-default-name"] = new StringMember
                     {
-                        id = "attr-default-name",
+                        id = "member-default-name",
                         projectId = "project-defaults",
                         name = "Name",
-                        type = AttributeType.String,
+                        kind = MemberKind.String,
                         required = true,
-                        defaultValue = new StringAttributeValueBase
+                        defaultValue = new StringMemberValueBase
                         {
                             value = "Default Name",
                         },
                     },
-                    ["attr-inherited-name"] = new StringAttribute
+                    ["member-inherited-name"] = new StringMember
                     {
-                        id = "attr-inherited-name",
+                        id = "member-inherited-name",
                         projectId = "project-defaults",
                         name = "Inherited Name",
-                        type = AttributeType.String,
+                        kind = MemberKind.String,
                         required = true,
-                        defaultValue = new StringAttributeValueBase
+                        defaultValue = new StringMemberValueBase
                         {
                             value = "Inherited Name",
                         },
                     },
-                    ["attr-items"] = new ListAttribute
+                    ["member-items"] = new ListMember
                     {
-                        id = "attr-items",
+                        id = "member-items",
                         projectId = "project-defaults",
                         name = "Items",
-                        type = AttributeType.List,
+                        kind = MemberKind.List,
                         required = true,
-                        entryAttributeId = "attr-item-entry",
+                        entryMemberId = "member-item-entry",
                     },
-                    ["attr-item-entry"] = new CustomAttribute
+                    ["member-item-entry"] = new ClassMember
                     {
-                        id = "attr-item-entry",
+                        id = "member-item-entry",
                         projectId = "project-defaults",
                         name = "Item Entry",
-                        type = AttributeType.Custom,
+                        kind = MemberKind.Class,
                         required = true,
-                        customTypeId = baseItemType.id,
+                        classId = baseItemClass.id,
                     },
-                    ["attr-children"] = new ListAttribute
+                    ["member-children"] = new ListMember
                     {
-                        id = "attr-children",
+                        id = "member-children",
                         projectId = "project-defaults",
                         name = "Children",
-                        type = AttributeType.List,
+                        kind = MemberKind.List,
                         required = true,
-                        entryAttributeId = "attr-list-entry",
-                        defaultValue = new ArrayAttributeValueBase
+                        entryMemberId = "member-list-entry",
+                        defaultValue = new ArrayMemberValueBase
                         {
                             value = new[] { "v-entry-one", "v-entry-two" },
                         },
                     },
-                    ["attr-list-entry"] = new StringAttribute
+                    ["member-list-entry"] = new StringMember
                     {
-                        id = "attr-list-entry",
+                        id = "member-list-entry",
                         projectId = "project-defaults",
                         name = "Entry",
-                        type = AttributeType.String,
+                        kind = MemberKind.String,
                         required = true,
                     },
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    ["v-root-assets"] = ObjectValue("v-root-assets", rootType.id),
-                    ["v-root-save"] = ObjectValue("v-root-save", rootType.id),
-                    ["v-root-session"] = ObjectValue("v-root-session", rootType.id),
-                    ["v-card"] = ObjectValue("v-card", cardType.id),
+                    ["v-root-assets"] = ObjectValue("v-root-assets", rootClass.id),
+                    ["v-root-save"] = ObjectValue("v-root-save", rootClass.id),
+                    ["v-root-session"] = ObjectValue("v-root-session", rootClass.id),
+                    ["v-card"] = ObjectValue("v-card", cardClass.id),
                     ["v-container"] = ObjectValue(
                         "v-container",
-                        containerType.id,
+                        containerClass.id,
                         new Dictionary<string, string>
                         {
                             ["Items"] = "v-items",
                         }),
                     ["v-items"] = ArrayValue("v-items", "v-derived-item"),
-                    ["v-derived-item"] = ObjectValue("v-derived-item", derivedItemType.id),
+                    ["v-derived-item"] = ObjectValue("v-derived-item", derivedItemClass.id),
                     ["v-entry-one"] = StringValue("v-entry-one", "One"),
                     ["v-entry-two"] = StringValue("v-entry-two", "Two"),
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    [rootType.id] = rootType,
-                    [cardType.id] = cardType,
-                    [containerType.id] = containerType,
-                    [baseItemType.id] = baseItemType,
-                    [derivedItemType.id] = derivedItemType,
+                    [rootClass.id] = rootClass,
+                    [cardClass.id] = cardClass,
+                    [containerClass.id] = containerClass,
+                    [baseItemClass.id] = baseItemClass,
+                    [derivedItemClass.id] = derivedItemClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
         }
 
-        private static CustomAttribute RootAttribute(
+        private static ClassMember RootMember(
             string id,
             string valueId,
-            string customTypeId)
+            string classId)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = "project-defaults",
                 name = id,
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
                 valueId = valueId,
-                customTypeId = customTypeId,
+                classId = classId,
             };
         }
 
-        private static ObjectAttributeValue ObjectValue(
+        private static ObjectMemberValue ObjectValue(
             string id,
-            string typeId,
+            string classId,
             Dictionary<string, string>? value = null)
         {
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = typeId,
+                classId = classId,
                 value = value ?? new Dictionary<string, string>(),
             };
         }
 
-        private static ArrayAttributeValue ArrayValue(string id, params string[] values)
+        private static ArrayMemberValue ArrayValue(string id, params string[] values)
         {
-            return new ArrayAttributeValue
+            return new ArrayMemberValue
             {
                 id = id,
                 value = values,
             };
         }
 
-        private static StringAttributeValue StringValue(string id, string value)
+        private static StringMemberValue StringValue(string id, string value)
         {
-            return new StringAttributeValue
+            return new StringMemberValue
             {
                 id = id,
                 value = value,

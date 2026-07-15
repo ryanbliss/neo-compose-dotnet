@@ -11,7 +11,7 @@ using Newtonsoft.Json.Linq;
 namespace NeoCompose.Runtime.Json
 {
     /// <summary>
-    /// One property or Function declaration in a custom-type interface.
+    /// One property or Function declaration in a class interface.
     /// The <see cref="kind"/> discriminator determines which signature
     /// fields are present.
     /// </summary>
@@ -37,7 +37,7 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
-    /// Custom-type interface declaration. Mirrors the TS-side
+    /// Class interface declaration. Mirrors the TS-side
     /// <c>INeoInterface</c> export record.
     /// </summary>
     public class Interface
@@ -177,13 +177,13 @@ namespace NeoCompose.Runtime.Json
 
         private static void RejectUnsupportedTypeInfo(TypeInfo typeInfo, string subject)
         {
-            if (typeInfo.type == AttributeType.Generic
-                || typeInfo.type == AttributeType.Unknown)
+            if (typeInfo.type == MemberKind.Generic
+                || typeInfo.type == MemberKind.Unknown)
             {
                 throw new JsonSerializationException(
                     $"{subject} cannot use type '{typeInfo.type}'.");
             }
-            if (typeInfo.type == AttributeType.Interface)
+            if (typeInfo.type == MemberKind.Interface)
             {
                 string? interfaceId = typeInfo switch
                 {
@@ -211,9 +211,9 @@ namespace NeoCompose.Runtime.Json
             {
                 RejectUnsupportedTypeInfo(argument.entryTypeInfo, subject);
             }
-            if (typeInfo is CustomTypeInfo custom && custom.typeArguments is not null)
+            if (typeInfo is ClassTypeInfo classType && classType.typeArguments is not null)
             {
-                foreach (TypeInfo typeArgument in custom.typeArguments.Values)
+                foreach (TypeInfo typeArgument in classType.typeArguments.Values)
                 {
                     RejectUnsupportedTypeInfo(typeArgument, subject);
                 }

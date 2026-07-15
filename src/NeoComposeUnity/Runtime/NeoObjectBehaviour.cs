@@ -13,7 +13,7 @@ namespace NeoCompose.Runtime
     /// codegen implements this on the generated <c>NeoObject</c> base class,
     /// delegating to <c>protected virtual OnObjectSpawned/OnObjectDespawned</c>
     /// methods that game code overrides in partial classes — the same extension
-    /// pattern as <see cref="NeoGeneratedCustomValue.LazyInitialize"/>.
+    /// pattern as <see cref="NeoGeneratedClassValue.LazyInitialize"/>.
     /// </summary>
     public interface INeoObjectSpawnHooks
     {
@@ -52,7 +52,7 @@ namespace NeoCompose.Runtime
         private bool didNotifyDespawn;
 
         /// <summary>The generated Neo value this GameObject renders.</summary>
-        public NeoGeneratedCustomValue Object { get; private set; } = null!;
+        public NeoGeneratedClassValue Object { get; private set; } = null!;
 
         /// <summary>
         /// The placed instance's stable identity. Survives despawn/respawn
@@ -72,7 +72,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>Typed access to <see cref="Object"/>.</summary>
         public bool TryGetObject<TObject>(out TObject obj)
-            where TObject : NeoGeneratedCustomValue
+            where TObject : NeoGeneratedClassValue
         {
             if (!isInitialized)
             {

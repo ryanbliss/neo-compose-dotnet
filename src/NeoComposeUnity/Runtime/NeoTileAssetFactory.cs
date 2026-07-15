@@ -18,7 +18,7 @@ namespace NeoCompose.Runtime
     public static class NeoTileAssetFactory
     {
         public static TileBase? CreateTransientTileBase(
-            NeoGeneratedCustomValue value,
+            NeoGeneratedClassValue value,
             INeoSmartTileNeighborMatcher? matcher = null)
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
@@ -49,7 +49,7 @@ namespace NeoCompose.Runtime
         }
 
         public static bool TryResolveSmartTile(
-            NeoGeneratedCustomValue value,
+            NeoGeneratedClassValue value,
             out INeoSmartTile smartTile)
         {
             if (value is INeoSmartTileSource source && source.SmartTile is { } resolved)
@@ -62,7 +62,7 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        public static Sprite? ResolveSprite(NeoGeneratedCustomValue value)
+        public static Sprite? ResolveSprite(NeoGeneratedClassValue value)
         {
             var exact = TryReadSpriteProperty(value, "Sprite")
                 ?? TryReadSpriteProperty(value, "Image");

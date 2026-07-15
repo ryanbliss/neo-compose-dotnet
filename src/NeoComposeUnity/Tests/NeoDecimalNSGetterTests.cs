@@ -14,7 +14,7 @@ using NUnit.Framework;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// NSGetterEvaluator decimal wiring (specs/decimal-attribute.md
+    /// NSGetterEvaluator decimal wiring (specs/decimal-member.md
     /// decision 7 / §6.4), mirroring the web evaluator's semantics:
     /// decimal-stamped arithmetic/comparisons route through
     /// <see cref="NeoDecimalMath"/> over canonical strings, the
@@ -113,7 +113,7 @@ namespace NeoCompose.Tests
                         isDecimal: null,
                         StringLiteral("0.1"),
                         StringLiteral("0.2")),
-                    AttributeType.String));
+                    MemberKind.String));
         }
 
         [Test]
@@ -241,7 +241,7 @@ namespace NeoCompose.Tests
                 0.5d,
                 EvaluateReturn(
                     DecimalOp(DecimalOpKind.ToFloat, DecimalLiteral("0.5")),
-                    AttributeType.Float));
+                    MemberKind.Float));
         }
 
         [Test]
@@ -348,12 +348,12 @@ namespace NeoCompose.Tests
                 "hello",
                 EvaluateReturn(
                     StringOp(StringOpKind.ToLower, StringLiteral("HeLLo")),
-                    AttributeType.String));
+                    MemberKind.String));
             Assert.AreEqual(
                 true,
                 EvaluateReturn(
                     StringOp(StringOpKind.StartsWith, StringLiteral("hello"), StringLiteral("he")),
-                    AttributeType.Bool));
+                    MemberKind.Bool));
         }
 
         [Test]
@@ -362,7 +362,7 @@ namespace NeoCompose.Tests
             var error = Assert.Throws<NSGetterRuntimeError>(() =>
                 EvaluateReturn(
                     StringOp(StringOpKind.Trim, NullLiteral()),
-                    AttributeType.String));
+                    MemberKind.String));
             StringAssert.Contains("receiver must be a string", error!.Message);
         }
 
@@ -372,9 +372,9 @@ namespace NeoCompose.Tests
 
         private static NeoClient BuildClient()
         {
-            var rootType = new CustomType
+            var rootClass = new NeoSchemaClass
             {
-                id = "root-type",
+                id = "root-class",
                 projectId = "project-a",
                 name = "Root",
                 schema = new Dictionary<string, string>(),
@@ -386,50 +386,50 @@ namespace NeoCompose.Tests
                     id = "project-a",
                     _id = "project-a",
                     name = "Decimal NSGetters",
-                    rootAssetsAttributeId = "root-assets",
-                    rootSaveFileAttributeId = "root-save",
-                    rootSessionAttributeId = "root-session",
+                    rootAssetsMemberId = "root-assets",
+                    rootSaveFileMemberId = "root-save",
+                    rootSessionMemberId = "root-session",
                 },
-                attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
+                members = new Dictionary<string, NeoCompose.Runtime.Json.Member>
                 {
-                    ["root-assets"] = RootAttribute("root-assets", "root-assets-value", rootType.id),
-                    ["root-save"] = RootAttribute("root-save", "root-save-value", rootType.id),
-                    ["root-session"] = RootAttribute("root-session", "root-session-value", rootType.id),
+                    ["root-assets"] = RootMember("root-assets", "root-assets-value", rootClass.id),
+                    ["root-save"] = RootMember("root-save", "root-save-value", rootClass.id),
+                    ["root-session"] = RootMember("root-session", "root-session-value", rootClass.id),
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    ["root-assets-value"] = ObjectValue("root-assets-value", rootType.id),
-                    ["root-save-value"] = ObjectValue("root-save-value", rootType.id),
-                    ["root-session-value"] = ObjectValue("root-session-value", rootType.id),
+                    ["root-assets-value"] = ObjectValue("root-assets-value", rootClass.id),
+                    ["root-save-value"] = ObjectValue("root-save-value", rootClass.id),
+                    ["root-session-value"] = ObjectValue("root-session-value", rootClass.id),
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    [rootType.id] = rootType,
+                    [rootClass.id] = rootClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             });
         }
 
-        private static CustomAttribute RootAttribute(string id, string valueId, string customTypeId)
+        private static ClassMember RootMember(string id, string valueId, string classId)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = "project-a",
                 name = id,
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
                 valueId = valueId,
-                customTypeId = customTypeId,
+                classId = classId,
             };
         }
 
-        private static ObjectAttributeValue ObjectValue(string id, string typeId)
+        private static ObjectMemberValue ObjectValue(string id, string classId)
         {
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = typeId,
+                classId = classId,
                 value = new Dictionary<string, string>(),
             };
         }
@@ -444,7 +444,7 @@ namespace NeoCompose.Tests
         /// <summary>Evaluates `return &lt;pointer&gt;;` as a getter of the given type.</summary>
         private static object? EvaluateReturn(
             Pointer pointer,
-            AttributeType returnType = AttributeType.Decimal)
+            MemberKind returnType = MemberKind.Decimal)
         {
             return Evaluate(new FunctionWithReturnType
             {
@@ -476,7 +476,7 @@ namespace NeoCompose.Tests
                         },
                     },
                 },
-                AttributeType.Bool);
+                MemberKind.Bool);
         }
 
         private static ReturnInstruction Return(Pointer pointer)
@@ -499,10 +499,10 @@ namespace NeoCompose.Tests
 
         private static PrimitiveTypeInfo DecimalTypeInfo()
         {
-            return new PrimitiveTypeInfo { type = AttributeType.Decimal, required = true };
+            return new PrimitiveTypeInfo { type = MemberKind.Decimal, required = true };
         }
 
-        private static ValuePointer Literal(AttributeType type, JToken? value)
+        private static ValuePointer Literal(MemberKind type, JToken? value)
         {
             return new ValuePointer
             {
@@ -516,16 +516,16 @@ namespace NeoCompose.Tests
         }
 
         private static Pointer DecimalLiteral(string value) =>
-            Literal(AttributeType.Decimal, JToken.FromObject(value));
+            Literal(MemberKind.Decimal, JToken.FromObject(value));
 
         private static Pointer StringLiteral(string value) =>
-            Literal(AttributeType.String, JToken.FromObject(value));
+            Literal(MemberKind.String, JToken.FromObject(value));
 
         private static Pointer NumberLiteral(double value) =>
-            Literal(AttributeType.Int, JToken.FromObject(value));
+            Literal(MemberKind.Int, JToken.FromObject(value));
 
         private static Pointer NullLiteral() =>
-            Literal(AttributeType.Null, JValue.CreateNull());
+            Literal(MemberKind.Null, JValue.CreateNull());
 
         private static Pointer Arithmetic(string op, bool? isDecimal, params Pointer[] operands)
         {
@@ -567,7 +567,7 @@ namespace NeoCompose.Tests
                         argPointer = arg,
                         digitsPointer = digits is null
                             ? null
-                            : Literal(AttributeType.Int, JToken.FromObject((double)digits.Value)),
+                            : Literal(MemberKind.Int, JToken.FromObject((double)digits.Value)),
                     },
                 },
             };

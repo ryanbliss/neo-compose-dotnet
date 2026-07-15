@@ -1,0 +1,22 @@
+{
+    "name": "HelloWorld.PlayMode.Tests",
+    "rootNamespace": "HelloWorld.Assets.Tests.PlayMode",
+    "references": [
+        "HelloWorld",
+        "NeoCompose.Unity"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ]
+}

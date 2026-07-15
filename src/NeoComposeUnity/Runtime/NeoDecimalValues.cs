@@ -11,7 +11,7 @@ namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Boundary conversion funnel between a canonical decimal string (the
-    /// storage/wire representation, specs/decimal-attribute.md decision 5)
+    /// storage/wire representation, specs/decimal-member.md decision 5)
     /// and the native <see cref="decimal"/> the generated SDK surface
     /// exposes. Every string ↔ <see cref="decimal"/> conversion at an SDK
     /// public boundary flows through here so the invariant-culture rule and
@@ -45,7 +45,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Why a string is not a canonical decimal string. Each value maps to
         /// a distinct, single-condition failure so callers throw pinpointable
-        /// errors (specs/decimal-attribute.md decision 2).
+        /// errors (specs/decimal-member.md decision 2).
         /// </summary>
         internal enum Violation
         {

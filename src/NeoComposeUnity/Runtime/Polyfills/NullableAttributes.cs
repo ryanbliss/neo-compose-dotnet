@@ -1,7 +1,7 @@
 // Copyright (c) Ryan Bliss and contributors. All rights reserved.
 // Licensed under the MIT License.
 
-// Polyfill for nullable-analysis attributes that Roslyn understands by
+// Polyfill for nullable-analysis members that Roslyn understands by
 // name but that aren't in the netstandard2.1 BCL (they were added to
 // `System.Diagnostics.CodeAnalysis` in .NET 5+). Defining them locally
 // in the same namespace lets the compiler pick them up — same trick

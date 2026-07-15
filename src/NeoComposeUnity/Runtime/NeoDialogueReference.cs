@@ -9,7 +9,7 @@ namespace NeoCompose.Runtime
 {
     /// <summary>
     /// A stable, lightweight handle to a dialogue by id — the runtime value a
-    /// <c>DialogueLookup</c> attribute resolves to. Triggering goes through
+    /// <c>DialogueLookup</c> member resolves to. Triggering goes through
     /// <see cref="TryTrigger(out NeoDialogue)"/>, which honors the dialogue's
     /// trigger criteria (conditions, occurrence limits, group priority) exactly
     /// like <see cref="NeoDialoguesBase.TryTrigger(string, out NeoDialogue)"/> —

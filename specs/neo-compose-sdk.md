@@ -4,9 +4,9 @@
 
 The Neo Compose web tool's purpose is to compose schema for static data assets, dynamic save file assets, and branching dialogue trees for use in games — starting with Unity. The reason it is in a web tool at all is because building high quality UX is much easier in web, with the added benefit of being a standalone platform decoupled from a single game engine. Because building data-driven branching dialogues in a UI requires having the data model well understood by the dialogue builder (e.g., `if (npc.friendshipPoints > 100) ? showDialogA() : showDialogB()`), Neo Compose asks developers to build their schema in its UI, treating it as the "source of truth" for their data. But of course, that data is still needed within the game. That's where the C# Unity SDK comes in.
 
-While each Neo project has its own schema, the underlying types are standardized via `IProject`, `IAttribute`, `IAttributeValue`, `IEnum`, and `ICustomType`. A project's schema will be exported to a JSON file containing `IProjectUnityExport` — in [project-unity-export-types](../src/models/exports/project-unity-export-types.ts) and [project-unity-export-utils](../src/models/exports/project-unity-export-utils.ts) — which will need to deserialize via Newtonsoft (due to the complexity of the JSON).
+While each Neo project has its own schema, the underlying models are standardized via `IProject`, `IMember`, `IMemberValue`, `IEnum`, and `INeoSchemaClass`. A project's schema will be exported to a JSON file containing `IProjectUnityExport` — in [project-unity-export-types](../../neo-compose/src/models/exports/project-unity-export-types.ts) and [project-unity-export-utils](../../neo-compose/src/models/exports/project-unity-export-utils.ts) — which will need to deserialize via Newtonsoft (due to the complexity of the JSON).
 
-While the developer will be able to access attributes, values, etc. if they wish, that is not the primary way developers will use the SDK. Alongside the JSON, Neo Compose will generate C# code using the project's schema, which internally will use the SDK to read and write values in the generic format that the SDK expects. This allows the developer to use the hierarchal data structures they defined in the web tool, despite the underlying data models being relatively flat. By keeping the data models flat, the SDK can serialize/deserialize data without knowing anything about the hierarchy of each project.
+While the developer will be able to access members, values, etc. if they wish, that is not the primary way developers will use the SDK. Alongside the JSON, Neo Compose will generate C# code using the project's schema, which internally will use the SDK to read and write values in the generic format that the SDK expects. This allows the developer to use the hierarchal data structures they defined in the web tool, despite the underlying data models being relatively flat. By keeping the data models flat, the SDK can serialize/deserialize data without knowing anything about the hierarchy of each project.
 
 Let's take the following example project:
 
@@ -14,9 +14,9 @@ Let's take the following example project:
 project:
     name = "HelloWorld"
 
-types / attributes / values (default):
+classes / members / values (default):
     Assets
-        computedText: ComputedText (Custom)
+        computedText: ComputedText (Class)
             baseText: String = "Hello"
             optionalSuffix: String? = null
             fullText: NSGetter = $"return "{this.BaseText} {root.save.world}{this.optionalSuffix ?? ""}"
@@ -41,13 +41,13 @@ enums:
         ...
 ```
 
-`Assets` are unchanging, whereas `Save` is dynamic. The `save` attribute is used to determine the initial value of a save file, which contains overridden save values and `attribute.valueId`s.
+`Assets` are unchanging, whereas `Save` is dynamic. The `save` member is used to determine the initial value of a save file, which contains overridden save values and `member.valueId`s.
 
-### Generated types
+### Generated classes
 
-The generated types leverage the `NeoClient` (loaded via `NeoLoader`), which wraps the JSON data and save file into `NeoAttribute`s, consolidating values, attributes, types, etc. under a single umbrella. Each attribute type has its own `NeoAttribute*`.
+The generated classes leverage the `NeoClient` (loaded via `NeoLoader`), which wraps the JSON data and save file into `NeoMember`s, consolidating values, members, classes, etc. under a single umbrella. Each member type has its own `NeoMember*`.
 
-The generated types would look something like this:
+The generated classes would look something like this:
 
 ```c#
 using NeoCompose.Runtime;
@@ -68,23 +68,23 @@ namespace Assets.Scripts.Neo
 
     public class Assets : NeoNode
     {
-        private NeoAttributeCustom thisNode;
+        private NeoMemberClass thisNode;
 
         public ComputedText computedText { get; protected init; }
 
-        public Assets(NeoClient client, NeoAttributeCustom node) : base(client)
+        public Assets(NeoClient client, NeoMemberClass node) : base(client)
         {
             thisNode = node;
-            NeoAttributeCustom computedTextNode = thisNode.Get("computedText");
+            NeoMemberClass computedTextNode = thisNode.Get("computedText");
             computedText = new(client, computedTextNode);
         }
     }
 
     public class Save : NeoNode
     {
-        private NeoAttributeCustomSaved thisNode;
+        private NeoMemberClassSaved thisNode;
 
-        private NeoAttributeEnumSaved worldNode;
+        private NeoMemberEnumSaved worldNode;
         public Planet world {
             get => Planet.FromOptionId(worldNode.Selected[0]);
             set {
@@ -95,29 +95,29 @@ namespace Assets.Scripts.Neo
 
         public NeoList<VisitedPlanet> visited { get; protected set; }
 
-        public Save(NeoClient client, NeoAttributeCustomSaved node) : base(client)
+        public Save(NeoClient client, NeoMemberClassSaved node) : base(client)
         {
             thisNode = node;
             worldNode = thisNode.Get("world");
-            NeoAttributeListSaved visitedNode = thisNode.Get("visited");
+            NeoMemberListSaved visitedNode = thisNode.Get("visited");
             visited = new(client, visitedNode);
         }
     }
 
     public class ComputedText : NeoNode
     {
-        private NeoAttributeCustom thisNode;
+        private NeoMemberClass thisNode;
 
-        private NeoAttributeString baseTextNode;
+        private NeoMemberString baseTextNode;
         public string baseText => baseTextNode.value.value;
 
-        private NeoAttributeString optionalSuffixNode;
+        private NeoMemberString optionalSuffixNode;
         public string? optionalSuffix => optionalSuffixNode.value?.value;
 
-        private NeoAttributeNSGetter fullTextNode;
+        private NeoMemberNSGetter fullTextNode;
         public NSGetterResult<string> fullText => fullTextNode.Compute();
 
-        public ComputedText(NeoClient client, NeoAttributeCustom node) : base(client)
+        public ComputedText(NeoClient client, NeoMemberClass node) : base(client)
         {
             thisNode = node;
             baseTextNode = thisNode.Get("baseText");
@@ -153,7 +153,7 @@ namespace Assets.Scripts.Neo
             values.Add(optionId, new Planet(optionId));
         }
 
-        public string GetDisplayText(NeoAttributeEnum node)
+        public string GetDisplayText(NeoMemberEnum node)
         {
             return node.GetOption(_value).text;
         }
@@ -187,9 +187,9 @@ namespace Assets.Scripts.Neo
 
     public class VisitedPlanet : NeoNode
     {
-        private NeoAttributeCustom thisNode;
+        private NeoMemberClass thisNode;
 
-        private NeoAttributeEnumSaved worldNode;
+        private NeoMemberEnumSaved worldNode;
         public Planet world {
             get => Planet.FromOptionId(worldNode.Selected[0]);
             set {
@@ -198,10 +198,10 @@ namespace Assets.Scripts.Neo
         }
         public string worldDisplayText => world.GetDisplayText();
 
-        private NeoAttributeString dateNode;
+        private NeoMemberString dateNode;
         public string date => dateNode.value.value;
 
-        public VisitedPlanet(NeoClient client, NeoAttributeCustomSaved node) : base(client)
+        public VisitedPlanet(NeoClient client, NeoMemberClassSaved node) : base(client)
         {
             thisNode = node;
             worldNode = thisNode.Get("world");
@@ -211,18 +211,18 @@ namespace Assets.Scripts.Neo
 }
 ```
 
-The types are intended to be very strong, using the information about the schema and known constraints to make assumptions about the shape that is generated. For example, `assets` is static, so all child types do not have value setters, whereas `save` children do. In cases where `required: true` on an attribute, the value return types are non-nullable (e.g., `string` vs `string?`). And for things like `Enum`, if `multiselect: false`, the value is `valueKey: EnumType`, but if `multiselect: true` then it is `valueKey: EnumType[]`. For collection types like `List` and `Dictionary`, the SDK will expose a new `NeoList` and `NeoDictionary` (or if not saveable, `NeoReadOnlyList` and `NeoReadOnlyDictionary`) class that the generated types will use, which should fulfill the `List` and `Dictionary` interfaces accordingly.
+The generated APIs are intended to be strongly typed, using the schema and known constraints to make assumptions about the emitted shape. For example, `assets` is static, so generated asset members do not expose value setters, whereas `save` members do. When a member is `required: true`, its value return type is non-nullable (for example, `string` rather than `string?`). For an `Enum`, `multiselect: false` produces `valueKey: EnumType`, while `multiselect: true` produces `valueKey: EnumType[]`. Collection members such as `List` and `Dictionary` use the SDK's `NeoList` and `NeoDictionary` wrappers (or `NeoReadOnlyList` and `NeoReadOnlyDictionary` when not saveable), which implement the corresponding collection interfaces.
 
-The generated types should be exposed in a new tab of `ProjectPageContainer.tsx` in the `neo-compose` web app. Right now that page exposes just the project json, so a new "Unity types" tab should be exposed to view the text of the generated C# classes. The "Copy to clipboard" button should be updated to copy the text of the currently open tab. Alongside the "Copy to clipboard" button, we should also show a new button for "Download files", which should download a ZIP file with a `project.json` file and `NeoGeneratedTypes.cs` for the generated C# code.
+The generated classes should be exposed in a new tab of `ProjectPageContainer.tsx` in the `neo-compose` web app. Right now that page exposes just the project json, so a new "Unity classes" tab should be exposed to view the text of the generated C# classes. The "Copy to clipboard" button should be updated to copy the text of the currently open tab. Alongside the "Copy to clipboard" button, we should also show a new button for "Download files", which should download a ZIP file with a `project.json` file and `NeoGeneratedTypes.cs` for the generated C# code.
 
-The unit tests should support using the existing test fixture scripts (including the real-world json) to copy the generated C# code for the appropriate JSON into the C# project, with unit tests then using those statically generated types (obviously tests would need to be updated after copied in).
+The unit tests should support using the existing test fixture scripts (including the real-world json) to copy the generated C# code for the appropriate JSON into the C# project, with unit tests then using those statically generated classes (obviously tests would need to be updated after copied in).
 
 ## Full spec
 
 ### Goals
 
 - Keep the Unity export JSON as the stable data contract. The web app continues to emit `IProjectUnityExport` using native `Record` / array / primitive shapes from `toUnityExport`; the C# SDK deserializes that with Newtonsoft into `ProjectData`.
-- Add a generated C# facade on top of the generic SDK runtime so game code can use project-specific types, properties, enums, and collections without manually navigating `NeoAttribute` maps.
+- Add a generated C# facade on top of the generic SDK runtime so game code can use project-specific classes, properties, enums, and collections without manually navigating `NeoMember` maps.
 - Generate the C# facade in the web app as the primary mechanism. Unity receives `project.json` plus `NeoGeneratedTypes.cs`.
 - Add a repeatable TypeScript fixture script that generates `NeoGeneratedTypes.cs` from the same JSON fixtures used by Unity tests and copies it into the SDK/sample test projects.
 - Add SDK runtime support classes (`NeoList`, `NeoDictionary`, read-only variants, and change notifications) that generated code can rely on instead of duplicating collection logic.
@@ -245,12 +245,12 @@ The web app already owns the project authoring model:
 
 The Unity SDK already owns generic runtime behavior:
 
-- `Runtime/Json/*` mirrors the TS domain model and deserializes polymorphic attributes, values, type info, and NSGetter IR.
+- `Runtime/Json/*` mirrors the TS domain model and deserializes polymorphic members, values, type info, and NSGetter IR.
 - `NeoLoader` loads `ProjectData` from JSON.
-- `NeoClient` owns the project data, save data, root `assets` / `save` attributes, id-keyed lookups, save overrides, and a flat node registry.
-- `NeoAttribute*` wrappers provide typed runtime navigation and `*Saved` mutation methods.
-- `NeoAttributeCustom` resolves custom type inheritance via merged schemas.
-- `NeoAttributeNSGetter.Compute(...)` evaluates compiled NeoScript IR through the C# evaluator.
+- `NeoClient` owns the project data, save data, root `assets` / `save` members, id-keyed lookups, save overrides, and a flat node registry.
+- `NeoMember*` wrappers provide typed runtime navigation and `*Saved` mutation methods.
+- `NeoMemberClass` resolves class inheritance via merged schemas.
+- `NeoMemberNSGetter.Compute(...)` evaluates compiled NeoScript IR through the C# evaluator.
 
 Generated code must sit above this surface rather than replacing it.
 
@@ -261,7 +261,7 @@ Generated code must sit above this surface rather than replacing it.
 The web app generates two files:
 
 1. `project.json` — the pretty-printed `IProjectUnityExport`.
-2. `NeoGeneratedTypes.cs` — one C# source file containing all project-specific generated types.
+2. `NeoGeneratedTypes.cs` — one C# source file containing all project-specific generated classes.
 
 The generated C# namespace is hardcoded to:
 
@@ -274,16 +274,16 @@ Users who want a different namespace can rename it after download. This keeps th
 `NeoGeneratedTypes.cs` should include:
 
 - One root client class named `{ProjectName}Client`.
-- One generated class for the assets root custom type.
-- One generated class for the save root custom type.
-- One generated class per custom type.
+- One generated class for the assets root class.
+- One generated class for the save root class.
+- One generated class per class.
 - One generated wrapper type per enum.
 - Any helper glue needed by generated code, unless that helper belongs in the SDK runtime and is reusable across projects.
 
 The web app "Overview" page should expose two tabs:
 
 - `Project JSON`
-- `Unity types`
+- `Unity classes`
 
 The existing `Copy to clipboard` button copies the active tab contents. A new `Download files` button downloads a ZIP containing `project.json` and `NeoGeneratedTypes.cs`.
 
@@ -295,10 +295,10 @@ Add a pure generator module in the web app, e.g.:
 
 ```
 src/models/exports/unity-codegen/
-  generate-unity-types.ts
+  generate-unity-classes.ts
   csharp-identifiers.ts
   csharp-type-resolver.ts
-  generate-unity-types.test.ts
+  generate-unity-classes.test.ts
   index.ts
 ```
 
@@ -321,12 +321,12 @@ Diagnostics are non-fatal warnings/errors surfaced in the UI above the generated
 
 Important diagnostics:
 
-- Missing root assets/save attributes.
-- Root attributes not `Custom`.
-- Missing custom type for a custom attribute.
-- Missing entry attribute for list/dictionary.
-- Missing enum for enum attribute.
-- Circular custom type inheritance.
+- Missing root assets/save members.
+- Root members not `Class`.
+- Missing class for a class member.
+- Missing entry member for list/dictionary.
+- Missing enum for enum member.
+- Circular class inheritance.
 - Invalid C# identifier schema key or enum option id.
 - Duplicate generated member names after reserved-keyword handling.
 
@@ -347,7 +347,7 @@ Examples:
 
 Do not silently convert arbitrary invalid identifiers. If a schema key contains spaces, punctuation, starts with a number, or otherwise is not a valid C# identifier, emit a diagnostic. This preserves the rule that game code names reflect schema names instead of hiding a lossy rename.
 
-Generated type names use project/custom type/enum names converted to valid PascalCase C# identifiers because C# type names cannot safely preserve arbitrary display names. Collisions are resolved deterministically by suffixing a stable short id fragment.
+Generated type names use project/class/enum names converted to valid PascalCase C# identifiers because C# type names cannot safely preserve arbitrary display names. Collisions are resolved deterministically by suffixing a stable short id fragment.
 
 ### Generated root client
 
@@ -373,51 +373,51 @@ The generated client constructor accepts an already-loaded `NeoClient`, rather t
 
 ---
 
-### Generated custom types
+### Generated classes
 
-Each generated custom type wraps a `NeoAttributeCustom` or `NeoAttributeCustomSaved` node. The node field should be protected so derived generated classes can reuse it.
+Each generated class wraps a `NeoMemberClass` or `NeoMemberClassSaved` node. The node field should be protected so derived generated classes can reuse it.
 
 For a non-inherited type:
 
 ```csharp
 public class ComputedText : NeoNode
 {
-    protected NeoAttributeCustom thisNode;
+    protected NeoMemberClass thisNode;
 
-    public ComputedText(NeoClient client, NeoAttributeCustom node) : base(client)
+    public ComputedText(NeoClient client, NeoMemberClass node) : base(client)
     {
         thisNode = node;
-        baseTextNode = thisNode.Get<NeoAttributeString>("baseText");
+        baseTextNode = thisNode.Get<NeoMemberString>("baseText");
     }
 }
 ```
 
-For a type with `extendsTypeId`, generate C# inheritance:
+For a class with `extendsClassId`, generate C# inheritance:
 
 ```csharp
 public class ToolItem : InventoryItem
 {
-    public ToolItem(NeoClient client, NeoAttributeCustom node) : base(client, node)
+    public ToolItem(NeoClient client, NeoMemberClass node) : base(client, node)
     {
-        miningPowerNode = thisNode.Get<NeoAttributeInt>("miningPower");
+        miningPowerNode = thisNode.Get<NeoMemberInt>("miningPower");
     }
 }
 ```
 
-If `ICustomType.isAbstract === true`, generate `abstract class`.
+If `INeoSchemaClass.isAbstract === true`, generate `abstract class`.
 
-Lowest-level types whose `extendsTypeId` is unset extend `NeoNode`. Derived types extend the generated C# class for their parent type. The generated class hierarchy mirrors `ICustomType.extendsTypeId`.
+Lowest-level classes whose `extendsClassId` is unset extend `NeoNode`. Derived classes extend the generated C# class for their parent class. The generated class hierarchy mirrors `INeoSchemaClass.extendsClassId`.
 
 Inherited fields should be available through normal C# inheritance. A derived class only emits members for schema keys it owns/overrides; inherited members come from its base generated class.
 
-When a runtime value row has `typeId` set to a more-derived type than the attribute's declared `customTypeId`, factory creation should return the generated class matching the runtime type id. This is required for lists/dictionaries of an abstract or base type to expose derived members when the concrete row uses a derived `typeId`.
+When a runtime value row has `classId` set to a more-derived class than the member's declared `classId`, factory creation should return the generated class matching the runtime class ID. This is required for lists/dictionaries of an abstract or base class to expose derived members when the concrete row uses a derived `classId`.
 
-### Generated custom type factories
+### Generated class factories
 
-Each generated custom type should expose a factory method for constructing new generated values in game code. This is the ergonomic path for:
+Each generated class should expose a factory method for constructing new generated values in game code. This is the ergonomic path for:
 
-- Setting a save-backed custom attribute to a new object.
-- Adding a new custom object to a `NeoList<T>`.
+- Setting a save-backed class member to a new object.
+- Adding a new class object to a `NeoList<T>`.
 - Assigning a dictionary entry in `NeoDictionary<T>`.
 - Creating a derived object for a base/abstract collection.
 
@@ -432,9 +432,9 @@ public class ToolItem : InventoryItem
         int miningPower,
         Material material)
     {
-        // Builds a save-side ObjectAttributeValue graph using the
-        // generated schema, registers child values, sets typeId to
-        // ToolItem's custom type id, and returns the generated wrapper.
+        // Builds a save-side ObjectMemberValue graph using the
+        // generated schema, registers child values, sets classId to
+        // ToolItem's class id, and returns the generated wrapper.
     }
 }
 ```
@@ -443,26 +443,26 @@ The method name is intentionally `factory` (lowercase) so it follows the same sc
 
 Factories should:
 
-- Accept one argument per settable generated field owned by the type and its inherited base types, using generated C# property names.
+- Accept one argument per settable generated field owned by the class and its inherited base classes, using generated C# property names.
 - Omit NSGetter fields because they are computed.
-- Accept nullable arguments for optional attributes.
-- Use generated enum wrapper types for enum fields.
+- Accept nullable arguments for optional members.
+- Use generated enum wrapper classes for enum fields.
 - Use `IEnumerable<T>` / dictionary-friendly shapes for list and dictionary fields.
-- Set `typeId` on the created custom value row to the generated type's custom type id.
+- Set `classId` on the created class value row to the generated type's class id.
 - Create all required child value rows.
 - Register created rows through `NeoClient` / SDK helper APIs rather than mutating `ProjectSaveData` directly.
 - Return the generated wrapper bound to the newly-created value row.
 
-Factories should be generated for abstract custom types only when they are useful for base initialization. An abstract type factory must not instantiate that abstract type directly; it may expose protected/shared helper logic used by derived factories.
+Factories should be generated for abstract classes only when they are useful for base initialization. An abstract class factory must not instantiate that abstract class directly; it may expose protected/shared helper logic used by derived factories.
 
-Generated constructors remain wrapper constructors around existing `NeoAttributeCustom` nodes. Generated factories are separate creation helpers that materialize new save-side value graphs.
+Generated constructors remain wrapper constructors around existing `NeoMemberClass` nodes. Generated factories are separate creation helpers that materialize new save-side value graphs.
 
-### Static vs saved custom wrappers
+### Static vs saved class wrappers
 
 Generated classes should distinguish read-only and saved contexts:
 
-- Classes under `assets` wrap `NeoAttributeCustom`.
-- Classes under `save` wrap `NeoAttributeCustomSaved`.
+- Classes under `assets` wrap `NeoMemberClass`.
+- Classes under `save` wrap `NeoMemberClassSaved`.
 - Collection entries inherit the writeability of their parent collection.
 - NSGetter results and other synthetic read-only values wrap read-only nodes.
 
@@ -471,15 +471,15 @@ Implementation options:
 1. Generate one class with overloaded constructors for read-only/saved nodes plus private nullable saved fields.
 2. Generate paired classes (`Foo` / `FooSaved`) when a type can appear in both contexts.
 
-Prefer paired generated classes if it keeps generated setters and collection types simpler. The public shape should stay intuitive: save-backed properties expose setters; asset-backed properties do not.
+Prefer paired generated classes if it keeps generated setters and collection wrappers simpler. The public shape should stay intuitive: save-backed properties expose setters; asset-backed properties do not.
 
 ---
 
-### Generated attribute members
+### Generated member members
 
-Primitive attributes:
+Primitive members:
 
-| Attribute type | Read-only C# type        | Saved setter value type |
+| Member type | Read-only C# type        | Saved setter value type |
 | -------------- | ------------------------ | ----------------------- |
 | Null           | `object?` or `null`      | none                    |
 | Bool           | `bool` / `bool?`         | `bool?`                 |
@@ -490,18 +490,18 @@ Primitive attributes:
 | Lookup         | generated target wrapper | selected id wrapper     |
 | NSGetter       | `NSGetterResult`         | none                    |
 
-Nullability is derived from `attribute.required`:
+Nullability is derived from `member.required`:
 
 - `required: true` produces non-nullable return types where the runtime can reasonably guarantee the value exists.
 - `required: false` produces nullable return types.
-- If data is missing at runtime for a required attribute, generated code should throw a focused exception naming the schema key and value id rather than returning a misleading default.
+- If data is missing at runtime for a required member, generated code should throw a focused exception naming the schema key and value id rather than returning a misleading default.
 
-Saved primitive properties call the corresponding `NeoAttribute*Saved.Set(...)` method in their setter. These methods already write through `NeoClient` save state. The SDK runtime should expose change notifications so generated wrappers and collection wrappers can refresh cached children after set/remove/add operations.
+Saved primitive properties call the corresponding `NeoMember*Saved.Set(...)` method in their setter. These methods already write through `NeoClient` save state. The SDK runtime should expose change notifications so generated wrappers and collection wrappers can refresh cached children after set/remove/add operations.
 
-NSGetter attributes expose computation, not a setter:
+NSGetter members expose computation, not a setter:
 
 ```csharp
-private NeoAttributeNSGetter fullTextNode;
+private NeoMemberNSGetter fullTextNode;
 public NSGetterResult fullText => fullTextNode.Compute();
 ```
 
@@ -513,7 +513,7 @@ public NSGetterResult<string> fullText => fullTextNode.Compute<string>();
 
 Until that generic API exists, generated code uses the current non-generic `NSGetterResult`.
 
-### Enum attributes
+### Enum members
 
 Generate one wrapper class per `IEnum`:
 
@@ -553,13 +553,13 @@ public sealed class Planet : System.IEquatable<Planet>
 
 Unknown option ids are supported. This is required for modded data and forward compatibility. Unknown ids do not have generated static members, so user code should handle `default` cases when using switch expressions/statements.
 
-`GetDisplayText(NeoAttributeEnum node)` should use the runtime enum metadata when available. If the option id is unknown to the enum metadata, return the raw option id.
+`GetDisplayText(NeoMemberEnum node)` should use the runtime enum metadata when available. If the option id is unknown to the enum metadata, return the raw option id.
 
 For `multiselect: false`, generated property type is `Planet` / `Planet?`.
 
 For `multiselect: true`, generated property type is `IReadOnlyList<Planet>` in read-only contexts and a settable collection-friendly shape in saved contexts. Setter input should accept `IEnumerable<Planet>` or `Planet[]` and convert to `string[]` option ids.
 
-### Lookup attributes
+### Lookup members
 
 Lookup values store selected target value ids. Generated lookup access should expose the looked-up target rows, not just raw ids.
 
@@ -573,7 +573,7 @@ For `multiselect: true`:
 - Read-only property: `IReadOnlyList<TTarget>`.
 - Saved property: a collection wrapper that can set the selected target ids.
 
-The SDK should expose a small reusable selection abstraction so generated lookup code does not need to rely on protected/internal details of target wrappers. A generated custom wrapper should be able to reveal its backing value id for lookup selection without exposing mutable DTO internals.
+The SDK should expose a small reusable selection abstraction so generated lookup code does not need to rely on protected/internal details of target wrappers. A generated class wrapper should be able to reveal its backing value id for lookup selection without exposing mutable DTO internals.
 
 ---
 
@@ -588,7 +588,7 @@ NeoReadOnlyDictionary<T>
 NeoDictionary<T>
 ```
 
-These are real SDK classes, not generated per-project classes. Generated code uses them for list/dictionary attributes.
+These are real SDK classes, not generated per-project classes. Generated code uses them for list/dictionary members.
 
 Suggested constructor shape:
 
@@ -597,16 +597,16 @@ public sealed class NeoReadOnlyList<T> : IReadOnlyList<T>
 {
     public NeoReadOnlyList(
         NeoClient client,
-        NeoAttributeList node,
-        Func<NeoClient, NeoAttribute, T> createItem);
+        NeoMemberList node,
+        Func<NeoClient, NeoMember, T> createItem);
 }
 
 public sealed class NeoList<T> : IList<T>
 {
     public NeoList(
         NeoClient client,
-        NeoAttributeListSaved node,
-        Func<NeoClient, NeoAttribute, T> createItem,
+        NeoMemberListSaved node,
+        Func<NeoClient, NeoMember, T> createItem,
         Func<T, object?> serializeItem);
 }
 ```
@@ -619,17 +619,17 @@ Generated code supplies item factory delegates:
 visited = new NeoList<VisitedPlanet>(
     client,
     visitedNode,
-    (client, attr) => new VisitedPlanet(client, (NeoAttributeCustomSaved)attr),
+    (client, member) => new VisitedPlanet(client, (NeoMemberClassSaved)member),
     item => item.ToNeoValuePayload());
 ```
 
 Collection wrappers are responsible for:
 
-- Refreshing count/index/key caches when the underlying `NeoAttributeListSaved` / `NeoAttributeDictionarySaved` changes.
+- Refreshing count/index/key caches when the underlying `NeoMemberListSaved` / `NeoMemberDictionarySaved` changes.
 - Calling SDK saved methods (`Add`, `Set`, `RemoveAt`, `Remove`) rather than mutating DTOs directly.
 - Raising change notifications when their shape changes.
-- Preserving runtime `typeId` for custom entries.
-- Accepting generated custom type instances produced by `TypeName.factory(...)` for add/set operations.
+- Preserving runtime `classId` for class entries.
+- Accepting generated class instances produced by `TypeName.factory(...)` for add/set operations.
 
 Do not ask generated code to duplicate child-cache synchronization.
 
@@ -637,19 +637,19 @@ Do not ask generated code to duplicate child-cache synchronization.
 
 ### Reactivity and save mutation
 
-`NeoAttribute*Saved.Set(...)` updates `NeoClient` save state today, but generated code needs a reliable way to react to changes.
+`NeoMember*Saved.Set(...)` updates `NeoClient` save state today, but generated code needs a reliable way to react to changes.
 
 Add SDK-level change notifications:
 
 - `NeoClient.OnSaveValueChanged(valueId)`
-- `NeoClient.OnSaveOverrideChanged(attributeId, valueId?)` (already exists)
-- Collection-level events on `NeoAttributeListSaved` / `NeoAttributeDictionarySaved` / `NeoAttributeCustomSaved`, or a shared `NeoAttribute.OnChanged`
+- `NeoClient.OnSaveOverrideChanged(memberId, valueId?)` (already exists)
+- Collection-level events on `NeoMemberListSaved` / `NeoMemberDictionarySaved` / `NeoMemberClassSaved`, or a shared `NeoMember.OnChanged`
 
 Saved setters and collection mutations should:
 
 1. Validate required/null constraints.
-2. Create or mutate the correct save-side `AttributeValue`.
-3. Notify the affected attribute/value.
+2. Create or mutate the correct save-side `MemberValue`.
+3. Notify the affected member/value.
 4. Refresh wrapper child caches.
 5. Let the host decide when to persist to disk.
 
@@ -670,7 +670,7 @@ Update `/Users/ryanbliss/Documents/Development-Personal/Web/neo-compose/src/app/
 
 - Compute `unityExportText` as today.
 - Compute generated C# with `generateUnityTypes(toUnityExport(vm))`.
-- Render Fluent `TabList` with `Project JSON` and `Unity types`.
+- Render Fluent `TabList` with `Project JSON` and `Unity classes`.
 - Render a shared code viewer for active tab text.
 - `CopyToClipboard` receives active tab text.
 - Add `Download files` button.
@@ -727,12 +727,12 @@ Unity-side tests should include:
 - Generated read-only asset properties read expected values.
 - Generated save properties call saved setters and observe updated values.
 - Generated lists/dictionaries expose count/index/key access and mutation.
-- Generated custom type factories create new object graphs that can be assigned to save fields and added to lists/dictionaries.
+- Generated class factories create new object graphs that can be assigned to save fields and added to lists/dictionaries.
 - Generated enum wrappers support known static members and unknown ids.
-- Generated inherited custom types expose inherited members through C# inheritance.
-- Abstract custom types generate `abstract class` and cannot be directly instantiated by generated factories.
-- Runtime `typeId` dispatch returns the most-derived generated wrapper for custom values.
-- NSGetter generated properties compute through `NeoAttributeNSGetter`.
+- Generated inherited classes expose inherited members through C# inheritance.
+- Abstract classes generate `abstract class` and cannot be directly instantiated by generated factories.
+- Runtime `classId` dispatch returns the most-derived generated wrapper for class values.
+- NSGetter generated properties compute through `NeoMemberNSGetter`.
 
 Web-side tests should include:
 
@@ -754,7 +754,7 @@ Verification policy:
 
 1. **Web codegen core**
    - Add `generateUnityTypes`.
-   - Generate root client, custom classes, primitive properties, enum wrappers.
+   - Generate root client, classes, primitive properties, enum wrappers.
    - Add unit tests for small fixtures and identifier behavior.
 
 2. **SDK runtime collections**
@@ -764,22 +764,22 @@ Verification policy:
 
 3. **SDK reactivity/persistence surface**
    - Add public `NeoClient.Save()` / `SerializeSaveData()`.
-   - Add value/attribute change notifications.
+   - Add value/member change notifications.
    - Ensure saved setters and collection mutations refresh children and fire notifications.
 
 4. **Generated saved/read-only split**
    - Generate save-backed setters and read-only asset properties.
    - Generate collection properties using the new runtime collection classes.
-   - Generate custom type factories for new object creation.
+   - Generate class factories for new object creation.
    - Generate lookup access and selection helpers.
 
 5. **Generated inheritance and runtime type dispatch**
-   - Generate C# class inheritance from `extendsTypeId`.
-   - Generate `abstract class` for abstract custom types.
-   - Add generated factories that choose the most-derived wrapper based on row `typeId`.
+   - Generate C# class inheritance from `extendsClassId`.
+   - Generate `abstract class` for abstract classes.
+   - Add generated factories that choose the most-derived wrapper based on row `classId`.
 
 6. **Project page export UI**
-   - Add `Project JSON` / `Unity types` tabs.
+   - Add `Project JSON` / `Unity classes` tabs.
    - Wire copy to active tab.
    - Add `Download files` ZIP output.
    - Show codegen diagnostics.
@@ -787,7 +787,7 @@ Verification policy:
 7. **Fixture script and downstream Unity tests**
    - Add `dump-unity-generated-types.ts`.
    - Copy generated files into sample test path with explicit flag.
-   - Add Unity tests that use generated types.
+   - Add Unity tests that use generated classes.
 
 8. **Real-world fixture hardening**
    - Run generation against `project-example.json`.
@@ -799,9 +799,9 @@ Verification policy:
 ### Risks and design notes
 
 - **Identifier exactness vs compile safety.** Schema keys should remain exact in generated property names. Invalid C# identifiers need diagnostics instead of silent renames, otherwise user code will not obviously match the web schema.
-- **Generic variance.** Runtime collections and generated factories must avoid relying on generic covariance that Unity's runtime may not support. Use explicit delegates and non-generic `NeoAttribute` where needed.
+- **Generic variance.** Runtime collections and generated factories must avoid relying on generic covariance that Unity's runtime may not support. Use explicit delegates and non-generic `NeoMember` where needed.
 - **Save persistence.** Runtime setters update save state, but persistence to disk should remain explicit. Generated code should make mutation easy, not hide file writes.
 - **Unknown enum ids.** Unknown ids are normal in modded/forward-compatible data. Generated enum wrappers must never assume the static generated option set is exhaustive.
-- **Custom type inheritance.** The runtime already merges schema for generic navigation. Generated code additionally needs C# inheritance so game code can use base/derived types naturally.
-- **Runtime `typeId`.** Generated collection factories must respect value row `typeId`; otherwise lists of base/abstract types will lose derived behavior.
+- **Class inheritance.** The runtime already merges schema for generic navigation. Generated code additionally needs C# inheritance so game code can use base/derived classes naturally.
+- **Runtime `classId`.** Generated collection factories must respect value row `classId`; otherwise lists of base/abstract classes will lose derived behavior.
 - **Cross-repo scripts.** Fixture scripts originate in the web app because codegen is a web concern, but copying into the SDK/sample project must be explicit and deterministic.

@@ -1,0 +1,16 @@
+# Changelog
+
+## [0.2.0] - 2026-07-15
+
+### Breaking
+
+- Updated the realtime synchronization contract for the Neo Compose Class/Member
+  runtime vocabulary and Unity export schema 8.
+- Requires `com.ryanbliss.neocompose` 0.2.0; schema-7 runtime exports are no
+  longer accepted.
+
+## [0.1.0]
+
+### Added
+
+- Initial Convex realtime synchronization package.

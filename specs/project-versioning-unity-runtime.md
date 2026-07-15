@@ -506,7 +506,7 @@ versioned records, likely everything except the project record.
 
 Unity runtime and editor DTOs should treat Mongo `_id` as optional unless the
 specific API contract guarantees it. If existing generated/runtime models
-declare `_id` as required for attributes, values, types, enums, dialogues,
+declare `_id` as required for members, values, classes, enums, dialogues,
 files, import templates, release channels, statuses, or versions, update the
 serialization layer before consuming versioned payloads.
 

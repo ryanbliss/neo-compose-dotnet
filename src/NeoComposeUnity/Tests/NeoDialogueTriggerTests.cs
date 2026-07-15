@@ -790,7 +790,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_Assign_MutatesSaveValueBeforeContinuing()
         {
             var client = CreateClient();
-            client.SetSaveValue(new NumberAttributeValue
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "score-value",
                 createdAt = Now,
@@ -807,7 +807,7 @@ namespace NeoCompose.Tests
 
             Assert.IsNotNull(shown);
             Assert.AreEqual("text-after-action", shown!.Id);
-            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberMemberValue? score));
             Assert.AreEqual(5, score!.value);
         }
 
@@ -815,7 +815,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_Assign_CompoundOperatorMutatesSaveValue()
         {
             var client = CreateClient();
-            client.SetSaveValue(new NumberAttributeValue
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "score-value",
                 createdAt = Now,
@@ -827,7 +827,7 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberMemberValue? score));
             Assert.AreEqual(900, score!.value);
         }
 
@@ -844,14 +844,14 @@ namespace NeoCompose.Tests
             double expectedValue)
         {
             var client = NeoTestSaveStack.LoadClient(LoadFixture("synth-example.json"));
-            var scoreNode = client.save.Get<NeoAttributeIntWritable>("Score");
+            var scoreNode = client.save.Get<NeoMemberIntWritable>("Score");
             scoreNode.Set((int)initialValue);
             var root = new TestDialogues(client);
             Assert.IsTrue(root.TryTrigger(dialogueId, out NeoDialogue dialogue));
 
             dialogue.Start();
 
-            var score = client.save.Get<NeoAttributeInt>("Score").value;
+            var score = client.save.Get<NeoMemberInt>("Score").value;
             Assert.IsNotNull(score);
             Assert.AreEqual(expectedValue, score!.value, $"dialogue {dialogueId}");
         }
@@ -870,7 +870,7 @@ namespace NeoCompose.Tests
 
             Assert.IsNotNull(error);
             StringAssert.Contains("not save-owned", error!.Message);
-            Assert.IsTrue(client.TryGetValue("asset-score-value", out NumberAttributeValue? assetScore));
+            Assert.IsTrue(client.TryGetValue("asset-score-value", out NumberMemberValue? assetScore));
             Assert.AreEqual(3, assetScore!.value);
         }
 
@@ -886,11 +886,11 @@ namespace NeoCompose.Tests
             // Stable-id overlay: a save shadows the authored values at their SAME
             // ids (no override-map hop, no eager root clone). The dialogue write
             // shadows the root record + the Score leaf it touched.
-            Assert.IsTrue(client.saveValues.TryGetValue("root-save-default-value", out AttributeValue? saveRootUntyped));
-            var saveRoot = (ObjectAttributeValue)saveRootUntyped;
+            Assert.IsTrue(client.saveValues.TryGetValue("root-save-default-value", out MemberValue? saveRootUntyped));
+            var saveRoot = (ObjectMemberValue)saveRootUntyped;
             Assert.AreEqual("score-default-value", saveRoot.value!["Score"]);
-            Assert.IsTrue(client.saveValues.TryGetValue("score-default-value", out AttributeValue? scoreUntyped));
-            var score = (NumberAttributeValue)scoreUntyped;
+            Assert.IsTrue(client.saveValues.TryGetValue("score-default-value", out MemberValue? scoreUntyped));
+            var score = (NumberMemberValue)scoreUntyped;
             Assert.AreEqual(22, score!.value);
             CollectionAssert.IsEmpty(client.FindUnlinkedSaveValueIds());
         }
@@ -908,8 +908,8 @@ namespace NeoCompose.Tests
 
             // Inferred session ownership: the Foo leaf is shadowed in the SESSION
             // store at its authored id (stable-id overlay), never the save store.
-            Assert.IsTrue(client.sessionValues.TryGetValue("session-foo-default-value", out AttributeValue? sessionFooUntyped));
-            var sessionFoo = (BoolAttributeValue)sessionFooUntyped;
+            Assert.IsTrue(client.sessionValues.TryGetValue("session-foo-default-value", out MemberValue? sessionFooUntyped));
+            var sessionFoo = (BoolMemberValue)sessionFooUntyped;
             Assert.AreEqual(true, sessionFoo.value);
             Assert.IsFalse(client.saveValues.ContainsKey("session-foo-default-value"));
             Assert.IsFalse(client.SerializeSaveData().Contains("session-foo-default-value"));
@@ -919,7 +919,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_CollectionCall_AddsSaveListEntry()
         {
             var client = CreateClient();
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "list-value",
                 createdAt = Now,
@@ -931,9 +931,9 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("list-value", out ArrayAttributeValue? list));
+            Assert.IsTrue(client.TryGetValue("list-value", out ArrayMemberValue? list));
             Assert.AreEqual(1, list!.value!.Length);
-            Assert.IsTrue(client.TryGetValue(list.value[0], out StringAttributeValue? entry));
+            Assert.IsTrue(client.TryGetValue(list.value[0], out StringMemberValue? entry));
             Assert.AreEqual("Potion", entry!.value);
         }
 
@@ -941,7 +941,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_CollectionCall_LookupAdd_StoresAssetEntryRef()
         {
             var client = CreateClient();
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "default-inventory-value",
                 createdAt = Now,
@@ -956,7 +956,7 @@ namespace NeoCompose.Tests
             dialogue.Start();
 
             Assert.IsNull(error, error?.Message);
-            Assert.IsTrue(client.TryGetValue("default-inventory-value", out ArrayAttributeValue? lookup));
+            Assert.IsTrue(client.TryGetValue("default-inventory-value", out ArrayMemberValue? lookup));
             CollectionAssert.AreEqual(new[] { "asset-item-value-b" }, lookup!.value);
         }
 
@@ -968,7 +968,7 @@ namespace NeoCompose.Tests
             // because the resolved lookup read mapped back to the looked-up
             // asset row instead of the save-side ref list.
             var client = CreateClient();
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "default-inventory-value",
                 createdAt = Now,
@@ -983,7 +983,7 @@ namespace NeoCompose.Tests
             dialogue.Start();
 
             Assert.IsNull(error, error?.Message);
-            Assert.IsTrue(client.TryGetValue("default-inventory-value", out ArrayAttributeValue? lookup));
+            Assert.IsTrue(client.TryGetValue("default-inventory-value", out ArrayMemberValue? lookup));
             CollectionAssert.AreEqual(
                 new[] { "asset-item-value", "asset-item-value-b" },
                 lookup!.value);
@@ -999,10 +999,10 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("list-value", out ArrayAttributeValue? list));
+            Assert.IsTrue(client.TryGetValue("list-value", out ArrayMemberValue? list));
             Assert.AreEqual(1, list!.value!.Length);
             Assert.AreEqual("list-entry-elixir", list.value[0]);
-            Assert.IsFalse(client.TryGetValue("list-entry-potion", out AttributeValue? _));
+            Assert.IsFalse(client.TryGetValue("list-entry-potion", out MemberValue? _));
         }
 
         [Test]
@@ -1015,10 +1015,10 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("list-value", out ArrayAttributeValue? list));
+            Assert.IsTrue(client.TryGetValue("list-value", out ArrayMemberValue? list));
             Assert.AreEqual(1, list!.value!.Length);
             Assert.AreEqual("list-entry-elixir", list.value[0]);
-            Assert.IsFalse(client.TryGetValue("list-entry-potion", out AttributeValue? _));
+            Assert.IsFalse(client.TryGetValue("list-entry-potion", out MemberValue? _));
         }
 
         [Test]
@@ -1031,10 +1031,10 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("list-value", out ArrayAttributeValue? list));
+            Assert.IsTrue(client.TryGetValue("list-value", out ArrayMemberValue? list));
             Assert.AreEqual(0, list!.value!.Length);
-            Assert.IsFalse(client.TryGetValue("list-entry-potion", out AttributeValue? _));
-            Assert.IsFalse(client.TryGetValue("list-entry-elixir", out AttributeValue? _));
+            Assert.IsFalse(client.TryGetValue("list-entry-potion", out MemberValue? _));
+            Assert.IsFalse(client.TryGetValue("list-entry-elixir", out MemberValue? _));
         }
 
         [Test]
@@ -1047,9 +1047,9 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectAttributeValue? dict));
+            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectMemberValue? dict));
             Assert.IsTrue(dict!.value!.TryGetValue("slot", out string valueId));
-            Assert.IsTrue(client.TryGetValue(valueId, out StringAttributeValue? entry));
+            Assert.IsTrue(client.TryGetValue(valueId, out StringMemberValue? entry));
             Assert.AreEqual("Potion", entry!.value);
         }
 
@@ -1063,9 +1063,9 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectAttributeValue? dict));
+            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectMemberValue? dict));
             Assert.IsFalse(dict!.value!.ContainsKey("slot"));
-            Assert.IsFalse(client.TryGetValue("dict-entry-slot", out AttributeValue? _));
+            Assert.IsFalse(client.TryGetValue("dict-entry-slot", out MemberValue? _));
         }
 
         [Test]
@@ -1078,9 +1078,9 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectAttributeValue? dict));
+            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectMemberValue? dict));
             Assert.AreEqual(0, dict!.value!.Count);
-            Assert.IsFalse(client.TryGetValue("dict-entry-slot", out AttributeValue? _));
+            Assert.IsFalse(client.TryGetValue("dict-entry-slot", out MemberValue? _));
         }
 
         [Test]
@@ -1090,33 +1090,33 @@ namespace NeoCompose.Tests
             // Stable-id overlay: make the shared value reachable from the save
             // root (via the root's Items list) so the GC preserves it when the
             // unrelated dict entry is cleared — there is no override-map rebind.
-            client.SetSaveValue(new ObjectAttributeValue
+            client.SetSaveValue(new ObjectMemberValue
             {
                 id = "root-save-default-value",
                 createdAt = Now,
                 updatedAt = Now,
-                typeId = "type-root",
+                classId = "class-root",
                 value = new Dictionary<string, string>
                 {
                     ["Items"] = "shared-items-list",
                 },
             });
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "shared-items-list",
                 createdAt = Now,
                 updatedAt = Now,
                 value = new[] { "shared-item-value" },
             });
-            client.SetSaveValue(new ObjectAttributeValue
+            client.SetSaveValue(new ObjectMemberValue
             {
                 id = "shared-item-value",
                 createdAt = Now,
                 updatedAt = Now,
-                typeId = "type-item",
+                classId = "class-item",
                 value = new Dictionary<string, string>(),
             });
-            client.SetSaveValue(new ObjectAttributeValue
+            client.SetSaveValue(new ObjectMemberValue
             {
                 id = "dict-value",
                 createdAt = Now,
@@ -1131,32 +1131,32 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectAttributeValue? dict));
+            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectMemberValue? dict));
             Assert.AreEqual(0, dict!.value!.Count);
-            Assert.IsTrue(client.TryGetValue("shared-item-value", out ObjectAttributeValue? rootRow));
-            Assert.AreEqual("type-item", rootRow!.typeId);
+            Assert.IsTrue(client.TryGetValue("shared-item-value", out ObjectMemberValue? rootRow));
+            Assert.AreEqual("class-item", rootRow!.classId);
         }
 
         [Test]
-        public void ActionsNode_Assign_CreatesCustomMemberSaveValue()
+        public void ActionsNode_Assign_CreatesClassMemberSaveValue()
         {
             var client = CreateClient();
-            client.AddSaveValue("root-save", new ObjectAttributeValue
+            client.AddSaveValue("root-save", new ObjectMemberValue
             {
                 id = "root-save-value",
                 createdAt = Now,
                 updatedAt = Now,
-                typeId = "type-root",
+                classId = "class-root",
                 value = new Dictionary<string, string>(),
             });
             var root = new TestDialogues(client);
-            Assert.IsTrue(root.TryTrigger("dialogue-action-custom-set", out NeoDialogue dialogue));
+            Assert.IsTrue(root.TryTrigger("dialogue-action-class-set", out NeoDialogue dialogue));
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("root-save-value", out ObjectAttributeValue? rootRow));
+            Assert.IsTrue(client.TryGetValue("root-save-value", out ObjectMemberValue? rootRow));
             Assert.IsTrue(rootRow!.value!.TryGetValue("Score", out string scoreValueId));
-            Assert.IsTrue(client.TryGetValue(scoreValueId, out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue(scoreValueId, out NumberMemberValue? score));
             Assert.AreEqual(12, score!.value);
         }
 
@@ -1164,12 +1164,12 @@ namespace NeoCompose.Tests
         public void ActionsNode_Assign_CanMutateGeneratedContextPrimary()
         {
             var client = CreateClient();
-            client.AddSaveValue("root-save", new ObjectAttributeValue
+            client.AddSaveValue("root-save", new ObjectMemberValue
             {
                 id = "root-save-value",
                 createdAt = Now,
                 updatedAt = Now,
-                typeId = "type-root",
+                classId = "class-root",
                 value = new Dictionary<string, string>(),
             });
             var root = new TestDialogues(
@@ -1179,29 +1179,29 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("root-save-value", out ObjectAttributeValue? rootRow));
+            Assert.IsTrue(client.TryGetValue("root-save-value", out ObjectMemberValue? rootRow));
             Assert.IsTrue(rootRow!.value!.TryGetValue("Score", out string scoreValueId));
-            Assert.IsTrue(client.TryGetValue(scoreValueId, out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue(scoreValueId, out NumberMemberValue? score));
             Assert.AreEqual(15, score!.value);
         }
 
         [Test]
-        public void ActionsNode_CollectionCall_CanLinkGeneratedCustomValue()
+        public void ActionsNode_CollectionCall_CanLinkGeneratedClassValue()
         {
             var client = CreateClient();
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "list-value",
                 createdAt = Now,
                 updatedAt = Now,
                 value = new string[0],
             });
-            client.SetSaveValue(new ObjectAttributeValue
+            client.SetSaveValue(new ObjectMemberValue
             {
                 id = "root-save-value",
                 createdAt = Now,
                 updatedAt = Now,
-                typeId = "type-root",
+                classId = "class-root",
                 value = new Dictionary<string, string>(),
             });
             var root = new TestDialogues(
@@ -1211,7 +1211,7 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("list-value", out ArrayAttributeValue? list));
+            Assert.IsTrue(client.TryGetValue("list-value", out ArrayMemberValue? list));
             CollectionAssert.AreEqual(new[] { "root-save-value" }, list!.value);
         }
 
@@ -1219,7 +1219,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_LookupSetAdd_ResolvesNestedCollectionValueWhenUnpinned()
         {
             var client = CreateClient();
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "save-inventory-value",
                 createdAt = Now,
@@ -1233,7 +1233,7 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("save-inventory-value", out ArrayAttributeValue? inventory));
+            Assert.IsTrue(client.TryGetValue("save-inventory-value", out ArrayMemberValue? inventory));
             CollectionAssert.AreEqual(new[] { "asset-item-value" }, inventory!.value);
         }
 
@@ -1245,17 +1245,17 @@ namespace NeoCompose.Tests
             // id directly (a stable instance id). Shadow that id and bind the
             // wrapper to the same id so the action's write notifies the wrapper —
             // no override-map rebind of the root.
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "save-inventory-value",
                 createdAt = Now,
                 updatedAt = Now,
                 value = new string[0],
             });
-            Assert.IsTrue(client.TryGetAttribute("attr-inventory", out LookupAttribute? inventoryAttr));
-            var inventoryNode = (NeoAttributeLookupWritable)NeoAttribute.CreateWritable(
+            Assert.IsTrue(client.TryGetMember("member-inventory", out LookupMember? inventoryMember));
+            var inventoryNode = (NeoMemberLookupWritable)NeoMember.CreateWritable(
                 client,
-                inventoryAttr!,
+                inventoryMember!,
                 "save-inventory-value",
                 NeoValueOwnership.Save);
             var inventory = new NeoLookupSet<TestLookupValue>(
@@ -1278,18 +1278,18 @@ namespace NeoCompose.Tests
         public void ActionsNode_LookupSetAddThroughRootPath_NotifiesExistingLookupSetWrapper()
         {
             var client = CreateClient();
-            client.AddSaveValue("root-save", new ObjectAttributeValue
+            client.AddSaveValue("root-save", new ObjectMemberValue
             {
                 id = "root-save-with-inventory-value",
                 createdAt = Now,
                 updatedAt = Now,
-                typeId = "type-root",
+                classId = "class-root",
                 value = new Dictionary<string, string>
                 {
                     ["Inventory"] = "save-inventory-value",
                 },
             });
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "save-inventory-value",
                 createdAt = Now,
@@ -1334,22 +1334,22 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ActionsNode_CollectionCall_CanLinkGeneratedCustomDictionaryValue()
+        public void ActionsNode_CollectionCall_CanLinkGeneratedClassDictionaryValue()
         {
             var client = CreateClient();
-            client.SetSaveValue(new ObjectAttributeValue
+            client.SetSaveValue(new ObjectMemberValue
             {
                 id = "dict-value",
                 createdAt = Now,
                 updatedAt = Now,
                 value = new Dictionary<string, string>(),
             });
-            client.SetSaveValue(new ObjectAttributeValue
+            client.SetSaveValue(new ObjectMemberValue
             {
                 id = "root-save-value",
                 createdAt = Now,
                 updatedAt = Now,
-                typeId = "type-root",
+                classId = "class-root",
                 value = new Dictionary<string, string>(),
             });
             var root = new TestDialogues(
@@ -1359,7 +1359,7 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectAttributeValue? dict));
+            Assert.IsTrue(client.TryGetValue("dict-value", out ObjectMemberValue? dict));
             Assert.IsTrue(dict!.value!.TryGetValue("slot", out string valueId));
             Assert.AreEqual("root-save-value", valueId);
         }
@@ -1371,33 +1371,33 @@ namespace NeoCompose.Tests
             // Stable-id overlay: make the shared value reachable from the save
             // root (via the root's Items list) so the GC preserves it when the
             // unrelated list entry is cleared — there is no override-map rebind.
-            client.SetSaveValue(new ObjectAttributeValue
+            client.SetSaveValue(new ObjectMemberValue
             {
                 id = "root-save-default-value",
                 createdAt = Now,
                 updatedAt = Now,
-                typeId = "type-root",
+                classId = "class-root",
                 value = new Dictionary<string, string>
                 {
                     ["Items"] = "shared-items-list",
                 },
             });
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "shared-items-list",
                 createdAt = Now,
                 updatedAt = Now,
                 value = new[] { "shared-item-value" },
             });
-            client.SetSaveValue(new ObjectAttributeValue
+            client.SetSaveValue(new ObjectMemberValue
             {
                 id = "shared-item-value",
                 createdAt = Now,
                 updatedAt = Now,
-                typeId = "type-item",
+                classId = "class-item",
                 value = new Dictionary<string, string>(),
             });
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "list-value",
                 createdAt = Now,
@@ -1409,10 +1409,10 @@ namespace NeoCompose.Tests
 
             dialogue.Start();
 
-            Assert.IsTrue(client.TryGetValue("list-value", out ArrayAttributeValue? list));
+            Assert.IsTrue(client.TryGetValue("list-value", out ArrayMemberValue? list));
             Assert.AreEqual(0, list!.value!.Length);
-            Assert.IsTrue(client.TryGetValue("shared-item-value", out ObjectAttributeValue? rootRow));
-            Assert.AreEqual("type-item", rootRow!.typeId);
+            Assert.IsTrue(client.TryGetValue("shared-item-value", out ObjectMemberValue? rootRow));
+            Assert.AreEqual("class-item", rootRow!.classId);
         }
 
         [Test]
@@ -1439,7 +1439,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_Pause_EmitsPauseAndResumesAtNextAction()
         {
             var client = CreateClient();
-            client.SetSaveValue(new NumberAttributeValue
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "score-value",
                 createdAt = Now,
@@ -1472,7 +1472,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(shown);
             Assert.AreEqual("text-after-action", shown!.Id);
             Assert.AreEqual(NeoDialogueState.Started, dialogue.State);
-            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberMemberValue? score));
             Assert.AreEqual(5, score!.value);
             Assert.Throws<System.InvalidOperationException>(() => pause.Resume());
         }
@@ -1481,7 +1481,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_DeferredFunction_PausesAndResumesWithResult()
         {
             var client = CreateClient();
-            client.SetSaveValue(new NumberAttributeValue
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "score-value",
                 createdAt = Now,
@@ -1492,7 +1492,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, deferred) =>
                     {
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
@@ -1518,7 +1518,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(NeoDialogueState.Started, dialogue.State);
             Assert.IsNotNull(shown);
             Assert.AreEqual("text-after-action", shown!.Id);
-            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberMemberValue? score));
             Assert.AreEqual(42, score!.value);
         }
 
@@ -1526,7 +1526,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_DeferredFunction_SynchronousCompleteContinuesAfterHandlerReturns()
         {
             var client = CreateClient();
-            client.SetSaveValue(new NumberAttributeValue
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "score-value",
                 createdAt = Now,
@@ -1537,7 +1537,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, deferred) =>
                     {
                         var typed = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
@@ -1557,7 +1557,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(handlerReturned);
             Assert.AreEqual(NeoDialogueState.Started, dialogue.State);
             Assert.IsNotNull(shown);
-            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberMemberValue? score));
             Assert.AreEqual(77, score!.value);
         }
 
@@ -1569,7 +1569,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, deferred) =>
                     {
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
@@ -1596,7 +1596,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, deferred) =>
                     {
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
@@ -1606,7 +1606,7 @@ namespace NeoCompose.Tests
 
             System.Threading.Tasks.Task<int> task =
                 client.InvokeDeferredNativeFunction<int>(
-                    "attr-deferred-score",
+                    "member-deferred-score",
                     receiver: null,
                     args: Array.Empty<object?>());
 
@@ -1623,13 +1623,13 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attr-deferred-score"] = (_, _, _, _) =>
+                    ["member-deferred-score"] = (_, _, _, _) =>
                         throw new InvalidOperationException("direct boom"),
                 });
 
             System.Threading.Tasks.Task<int> task =
                 client.InvokeDeferredNativeFunction<int>(
-                    "attr-deferred-score",
+                    "member-deferred-score",
                     receiver: null,
                     args: Array.Empty<object?>());
 
@@ -1645,13 +1645,13 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, deferred) =>
                         deferred.Fail(new InvalidOperationException("deferred failed")),
                 });
 
             System.Threading.Tasks.Task<int> task =
                 client.InvokeDeferredNativeFunction<int>(
-                    "attr-deferred-score",
+                    "member-deferred-score",
                     receiver: null,
                     args: Array.Empty<object?>());
 
@@ -1668,7 +1668,7 @@ namespace NeoCompose.Tests
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attr-deferred-score"] = (_, _, _, deferred) =>
+                    ["member-deferred-score"] = (_, _, _, deferred) =>
                     {
                         pending = NeoGeneratedTypesSupport.ResolveDeferredFunction<NeoDeferredFunction<int>>(
                             deferred,
@@ -1677,7 +1677,7 @@ namespace NeoCompose.Tests
                 });
             System.Threading.Tasks.Task<int> task =
                 client.InvokeDeferredNativeFunction<int>(
-                    "attr-deferred-score",
+                    "member-deferred-score",
                     receiver: null,
                     args: Array.Empty<object?>());
 
@@ -1693,7 +1693,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_Pause_ConsecutivePausesRequireCurrentPause()
         {
             var client = CreateClient();
-            client.SetSaveValue(new NumberAttributeValue
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "score-value",
                 createdAt = Now,
@@ -1720,7 +1720,7 @@ namespace NeoCompose.Tests
             pauses[1].Resume();
 
             Assert.IsNotNull(shown);
-            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberMemberValue? score));
             Assert.AreEqual(7, score!.value);
         }
 
@@ -1728,7 +1728,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_Pause_SynchronousResumeContinuesBeforeStartReturns()
         {
             var client = CreateClient();
-            client.SetSaveValue(new NumberAttributeValue
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "score-value",
                 createdAt = Now,
@@ -1746,7 +1746,7 @@ namespace NeoCompose.Tests
 
             Assert.IsNotNull(shown);
             Assert.AreEqual("text-after-action", shown!.Id);
-            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberMemberValue? score));
             Assert.AreEqual(5, score!.value);
         }
 
@@ -1754,7 +1754,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_Pause_AutoResumeZeroContinuesAfterHandlersReturn()
         {
             var client = CreateClient();
-            client.SetSaveValue(new NumberAttributeValue
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "score-value",
                 createdAt = Now,
@@ -1778,7 +1778,7 @@ namespace NeoCompose.Tests
 
             Assert.IsTrue(handlerSawPausedState);
             Assert.IsNotNull(shown);
-            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberMemberValue? score));
             Assert.AreEqual(9, score!.value);
         }
 
@@ -1786,7 +1786,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_Pause_AutoResumePositiveUsesSchedulerAndManualResumeCancels()
         {
             var client = CreateClient();
-            client.SetSaveValue(new NumberAttributeValue
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "score-value",
                 createdAt = Now,
@@ -1817,7 +1817,7 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(0, scheduler.PendingCount);
             Assert.IsNotNull(shown);
-            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberMemberValue? score));
             Assert.AreEqual(11, score!.value);
             Assert.DoesNotThrow(() => scheduler.RunAll());
         }
@@ -1826,7 +1826,7 @@ namespace NeoCompose.Tests
         public void ActionsNode_Pause_AutoResumePositiveContinuesWhenSchedulerFires()
         {
             var client = CreateClient();
-            client.SetSaveValue(new NumberAttributeValue
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "score-value",
                 createdAt = Now,
@@ -1853,7 +1853,7 @@ namespace NeoCompose.Tests
             scheduler.RunNext();
 
             Assert.IsNotNull(shown);
-            Assert.IsTrue(client.TryGetValue("score-value", out NumberAttributeValue? score));
+            Assert.IsTrue(client.TryGetValue("score-value", out NumberMemberValue? score));
             Assert.AreEqual(11, score!.value);
         }
 
@@ -1954,9 +1954,9 @@ namespace NeoCompose.Tests
                 {
                     id = ProjectId,
                     name = "Dialogue Project",
-                    rootAssetsAttributeId = "root-assets",
-                    rootSaveFileAttributeId = "root-save",
-                    rootSessionAttributeId = "root-session",
+                    rootAssetsMemberId = "root-assets",
+                    rootSaveFileMemberId = "root-save",
+                    rootSessionMemberId = "root-session",
                     defaultPriorityGroupId = "priority-default",
                     createdAt = Now,
                     updatedAt = Now,
@@ -1980,83 +1980,83 @@ namespace NeoCompose.Tests
                         sourceSyntax = "icu",
                     },
                 },
-                attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
+                members = new Dictionary<string, NeoCompose.Runtime.Json.Member>
                 {
-                    ["root-assets"] = RootAttribute("root-assets", "Assets"),
-                    ["root-save"] = RootAttribute("root-save", "Save"),
-                    ["root-session"] = RootAttribute("root-session", "Session"),
-                    ["attr-score"] = new IntAttribute
+                    ["root-assets"] = RootMember("root-assets", "Assets"),
+                    ["root-save"] = RootMember("root-save", "Save"),
+                    ["root-session"] = RootMember("root-session", "Session"),
+                    ["member-score"] = new IntMember
                     {
-                        id = "attr-score",
+                        id = "member-score",
                         projectId = ProjectId,
                         name = "Score",
-                        type = AttributeType.Int,
+                        kind = MemberKind.Int,
                         required = true,
                         createdAt = Now,
                         updatedAt = Now,
                     },
-                    ["attr-item-name"] = new StringAttribute
+                    ["member-item-name"] = new StringMember
                     {
-                        id = "attr-item-name",
+                        id = "member-item-name",
                         projectId = ProjectId,
                         name = "Name",
-                        type = AttributeType.String,
+                        kind = MemberKind.String,
                         required = true,
                         createdAt = Now,
                         updatedAt = Now,
                     },
-                    ["attr-item"] = new CustomAttribute
+                    ["member-item"] = new ClassMember
                     {
-                        id = "attr-item",
+                        id = "member-item",
                         projectId = ProjectId,
                         name = "Item",
-                        type = AttributeType.Custom,
+                        kind = MemberKind.Class,
                         required = true,
-                        customTypeId = "type-item",
+                        classId = "class-item",
                         createdAt = Now,
                         updatedAt = Now,
                     },
-                    ["attr-items"] = new ListAttribute
+                    ["member-items"] = new ListMember
                     {
-                        id = "attr-items",
+                        id = "member-items",
                         projectId = ProjectId,
                         name = "Items",
-                        type = AttributeType.List,
+                        kind = MemberKind.List,
                         required = true,
                         valueId = "default-items-value",
-                        entryAttributeId = "attr-item",
+                        entryMemberId = "member-item",
                         createdAt = Now,
                         updatedAt = Now,
                     },
-                    ["attr-inventory"] = new LookupAttribute
+                    ["member-inventory"] = new LookupMember
                     {
-                        id = "attr-inventory",
+                        id = "member-inventory",
                         projectId = ProjectId,
                         name = "Inventory",
-                        type = AttributeType.Lookup,
+                        kind = MemberKind.Lookup,
                         required = true,
                         multiselect = true,
-                        collectionAttributeId = "attr-items",
+                        collectionMemberId = "member-items",
                         collectionValueId = null,
                         createdAt = Now,
                         updatedAt = Now,
                     },
-                    ["attr-session-foo"] = new BoolAttribute
+                    ["member-session-foo"] = new BoolMember
                     {
-                        id = "attr-session-foo",
+                        id = "member-session-foo",
                         projectId = ProjectId,
                         name = "Foo",
-                        type = AttributeType.Bool,
+                        kind = MemberKind.Bool,
                         required = true,
                         createdAt = Now,
                         updatedAt = Now,
                     },
-                    ["attr-deferred-score"] = new FunctionAttribute
+                    ["member-deferred-score"] = new FunctionMember
                     {
-                        id = "attr-deferred-score",
+                        id = "member-deferred-score",
                         projectId = ProjectId,
                         name = "DeferredScore",
-                        type = AttributeType.Function,
+                        kind = MemberKind.Function,
                         required = false,
                         isStatic = true,
                         returnTypeInfo = IntTypeInfo(),
@@ -2066,122 +2066,122 @@ namespace NeoCompose.Tests
                         updatedAt = Now,
                     },
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    ["root-assets-value"] = new ObjectAttributeValue
+                    ["root-assets-value"] = new ObjectMemberValue
                     {
                         id = "root-assets-value",
                         createdAt = Now,
                         updatedAt = Now,
-                        typeId = "type-root",
+                        classId = "class-root",
                         value = new Dictionary<string, string>
                         {
                             ["Items"] = "assets-items-value",
                             ["Score"] = "asset-score-value",
                         },
                     },
-                    ["asset-score-value"] = new NumberAttributeValue
+                    ["asset-score-value"] = new NumberMemberValue
                     {
                         id = "asset-score-value",
                         createdAt = Now,
                         updatedAt = Now,
                         value = 3,
                     },
-                    ["root-save-default-value"] = new ObjectAttributeValue
+                    ["root-save-default-value"] = new ObjectMemberValue
                     {
                         id = "root-save-default-value",
                         createdAt = Now,
                         updatedAt = Now,
-                        typeId = "type-root",
+                        classId = "class-root",
                         value = new Dictionary<string, string>
                         {
                             ["Score"] = "score-default-value",
                             ["Inventory"] = "default-inventory-value",
                         },
                     },
-                    ["root-session-default-value"] = new ObjectAttributeValue
+                    ["root-session-default-value"] = new ObjectMemberValue
                     {
                         id = "root-session-default-value",
                         createdAt = Now,
                         updatedAt = Now,
-                        typeId = "type-root",
+                        classId = "class-root",
                         value = new Dictionary<string, string>
                         {
                             ["Foo"] = "session-foo-default-value",
                         },
                     },
-                    ["session-foo-default-value"] = new BoolAttributeValue
+                    ["session-foo-default-value"] = new BoolMemberValue
                     {
                         id = "session-foo-default-value",
                         createdAt = Now,
                         updatedAt = Now,
                         value = false,
                     },
-                    ["score-default-value"] = new NumberAttributeValue
+                    ["score-default-value"] = new NumberMemberValue
                     {
                         id = "score-default-value",
                         createdAt = Now,
                         updatedAt = Now,
                         value = 1,
                     },
-                    ["lookup-value-direct"] = new ObjectAttributeValue
+                    ["lookup-value-direct"] = new ObjectMemberValue
                     {
                         id = "lookup-value-direct",
                         createdAt = Now,
                         updatedAt = Now,
                         value = new Dictionary<string, string>(),
                     },
-                    ["default-items-value"] = new ArrayAttributeValue
+                    ["default-items-value"] = new ArrayMemberValue
                     {
                         id = "default-items-value",
                         createdAt = Now,
                         updatedAt = Now,
                         value = new string[0],
                     },
-                    ["default-inventory-value"] = new ArrayAttributeValue
+                    ["default-inventory-value"] = new ArrayMemberValue
                     {
                         id = "default-inventory-value",
                         createdAt = Now,
                         updatedAt = Now,
                         value = new string[0],
                     },
-                    ["assets-items-value"] = new ArrayAttributeValue
+                    ["assets-items-value"] = new ArrayMemberValue
                     {
                         id = "assets-items-value",
                         createdAt = Now,
                         updatedAt = Now,
                         value = new[] { "asset-item-value", "asset-item-value-b" },
                     },
-                    ["asset-item-value"] = new ObjectAttributeValue
+                    ["asset-item-value"] = new ObjectMemberValue
                     {
                         id = "asset-item-value",
                         createdAt = Now,
                         updatedAt = Now,
-                        typeId = "type-item",
+                        classId = "class-item",
                         value = new Dictionary<string, string>
                         {
                             ["Name"] = "asset-item-name-value",
                         },
                     },
-                    ["asset-item-name-value"] = new StringAttributeValue
+                    ["asset-item-name-value"] = new StringMemberValue
                     {
                         id = "asset-item-name-value",
                         createdAt = Now,
                         updatedAt = Now,
                         value = "Compass",
                     },
-                    ["asset-item-value-b"] = new ObjectAttributeValue
+                    ["asset-item-value-b"] = new ObjectMemberValue
                     {
                         id = "asset-item-value-b",
                         createdAt = Now,
                         updatedAt = Now,
-                        typeId = "type-item",
+                        classId = "class-item",
                         value = new Dictionary<string, string>
                         {
                             ["Name"] = "asset-item-name-value-b",
                         },
                     },
-                    ["asset-item-name-value-b"] = new StringAttributeValue
+                    ["asset-item-name-value-b"] = new StringMemberValue
                     {
                         id = "asset-item-name-value-b",
                         createdAt = Now,
@@ -2189,32 +2189,32 @@ namespace NeoCompose.Tests
                         value = "Parasol",
                     },
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    ["type-root"] = new()
+                    ["class-root"] = new()
                     {
-                        id = "type-root",
+                        id = "class-root",
                         projectId = ProjectId,
                         name = "Root",
                         schema = new Dictionary<string, string>
                         {
-                            ["Score"] = "attr-score",
-                            ["Items"] = "attr-items",
-                            ["Inventory"] = "attr-inventory",
-                            ["Foo"] = "attr-session-foo",
-                            ["DeferredScore"] = "attr-deferred-score",
+                            ["Score"] = "member-score",
+                            ["Items"] = "member-items",
+                            ["Inventory"] = "member-inventory",
+                            ["Foo"] = "member-session-foo",
+                            ["DeferredScore"] = "member-deferred-score",
                         },
                         createdAt = Now,
                         updatedAt = Now,
                     },
-                    ["type-item"] = new()
+                    ["class-item"] = new()
                     {
-                        id = "type-item",
+                        id = "class-item",
                         projectId = ProjectId,
                         name = "Item",
                         schema = new Dictionary<string, string>
                         {
-                            ["Name"] = "attr-item-name",
+                            ["Name"] = "member-item-name",
                         },
                         createdAt = Now,
                         updatedAt = Now,
@@ -2238,7 +2238,7 @@ namespace NeoCompose.Tests
                         projectId = ProjectId,
                         name = "Lookup",
                         type = DialogueGroupType.Lookup,
-                        collectionAttributeId = "attr-npcs",
+                        collectionMemberId = "member-npcs",
                         createdAt = Now,
                         updatedAt = Now,
                     },
@@ -2375,15 +2375,15 @@ namespace NeoCompose.Tests
                             RootKeyPointer("Save", "Inventory"),
                             new LookupTypeInfo
                             {
-                                type = AttributeType.Lookup,
+                                type = MemberKind.Lookup,
                                 required = true,
-                                entryTypeInfo = new CustomTypeInfo
+                                entryTypeInfo = new ClassTypeInfo
                                 {
-                                    type = AttributeType.Custom,
+                                    type = MemberKind.Class,
                                     required = true,
-                                    typeId = "type-item",
+                                    classId = "class-item",
                                 },
-                                collectionAttributeId = "attr-items",
+                                collectionMemberId = "member-items",
                                 collectionValueId = null,
                             },
                             CollectionMutationKind.Add,
@@ -2402,7 +2402,7 @@ namespace NeoCompose.Tests
                             },
                             new CollectionTypeInfo
                             {
-                                type = AttributeType.List,
+                                type = MemberKind.List,
                                 required = true,
                                 entryTypeInfo = StringTypeInfo(),
                             },
@@ -2473,8 +2473,8 @@ namespace NeoCompose.Tests
                             },
                             DictionaryTypeInfo(StringTypeInfo()),
                             CollectionMutationKind.Clear)),
-                    ["dialogue-action-custom-set"] = ActionDialogue(
-                        "dialogue-action-custom-set",
+                    ["dialogue-action-class-set"] = ActionDialogue(
+                        "dialogue-action-class-set",
                         AssignAction(
                             new KeyOfPointer
                             {
@@ -2514,7 +2514,7 @@ namespace NeoCompose.Tests
                                 type = PointerKind.Reference,
                                 valueId = "list-value",
                             },
-                            ListTypeInfo(CustomTypeInfo("type-root")),
+                            ListTypeInfo(ClassTypeInfo("class-root")),
                             CollectionMutationKind.Add,
                             ContextKeyPointer("primary")),
                         primaryLinkedValueId: "root-save-value"),
@@ -2526,7 +2526,7 @@ namespace NeoCompose.Tests
                                 type = PointerKind.Reference,
                                 valueId = "dict-value",
                             },
-                            DictionaryTypeInfo(CustomTypeInfo("type-root")),
+                            DictionaryTypeInfo(ClassTypeInfo("class-root")),
                             CollectionMutationKind.Add,
                             StringPointer("slot"),
                             ContextKeyPointer("primary")),
@@ -2539,7 +2539,7 @@ namespace NeoCompose.Tests
                                 type = PointerKind.Reference,
                                 valueId = "save-inventory-value",
                             },
-                            LookupTypeInfo("attr-items", CustomTypeInfo("type-item")),
+                            LookupTypeInfo("member-items", ClassTypeInfo("class-item")),
                             CollectionMutationKind.Add,
                             ContextKeyPointer("primary")),
                         primaryLinkedValueId: "asset-item-value"),
@@ -2547,7 +2547,7 @@ namespace NeoCompose.Tests
                         "dialogue-action-lookup-add-root-path",
                         CollectionAction(
                             RootKeyPointer("Save", "Inventory"),
-                            LookupTypeInfo("attr-items", CustomTypeInfo("type-item")),
+                            LookupTypeInfo("member-items", ClassTypeInfo("class-item")),
                             CollectionMutationKind.Add,
                             ContextKeyPointer("primary")),
                         primaryLinkedValueId: "asset-item-value"),
@@ -2625,12 +2625,12 @@ namespace NeoCompose.Tests
                         "dialogue-priority-low",
                         "Priority Low",
                         "group-priority",
-                        priorityTypeId: "priority-low"),
+                        priorityOptionId: "priority-low"),
                     ["dialogue-priority-high"] = Dialogue(
                         "dialogue-priority-high",
                         "Priority High",
                         "group-priority",
-                        priorityTypeId: "priority-high"),
+                        priorityOptionId: "priority-high"),
                     ["dialogue-visit-a"] = Dialogue(
                         "dialogue-visit-a",
                         "Visit A",
@@ -2746,15 +2746,15 @@ namespace NeoCompose.Tests
             return client;
         }
 
-        private static CustomAttribute RootAttribute(string id, string name)
+        private static ClassMember RootMember(string id, string name)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = ProjectId,
                 name = name,
-                type = AttributeType.Custom,
-                customTypeId = "type-root",
+                kind = MemberKind.Class,
+                classId = "class-root",
                 valueId = name == "Save"
                     ? "root-save-default-value"
                     : name == "Session"
@@ -2771,7 +2771,7 @@ namespace NeoCompose.Tests
             string groupId,
             string? lookupValueId = null,
             LogicCondition[]? conditions = null,
-            string? priorityTypeId = null,
+            string? priorityOptionId = null,
             int? relativeOrder = null,
             int? occurrenceLimit = null,
             string? primaryLinkedValueId = null,
@@ -2808,7 +2808,7 @@ namespace NeoCompose.Tests
                         lookupValueId = lookupValueId,
                         priority = new DialogueGroupPrioritySettings
                         {
-                            priorityTypeId = priorityTypeId,
+                            priorityOptionId = priorityOptionId,
                             relativeOrder = relativeOrder,
                         },
                     },
@@ -2880,10 +2880,10 @@ namespace NeoCompose.Tests
                         toNodeId = "text-after-action",
                         actions = new DialogueAction[]
                         {
-                            new DialogueLogicEditAttributeAction
+                            new DialogueLogicEditMemberAction
                             {
                                 id = $"{id}-action",
-                                type = DialogueActionType.EditAttribute,
+                                type = DialogueActionType.EditMember,
                                 logic = new UILogicAction
                                 {
                                     type = LogicType.UI,
@@ -2944,14 +2944,14 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static DialogueLogicEditAttributeAction EditAction(
+        private static DialogueLogicEditMemberAction EditAction(
             string id,
             FunctionWithReturnType action)
         {
-            return new DialogueLogicEditAttributeAction
+            return new DialogueLogicEditMemberAction
             {
                 id = id,
-                type = DialogueActionType.EditAttribute,
+                type = DialogueActionType.EditMember,
                 logic = new UILogicAction
                 {
                     type = LogicType.UI,
@@ -3383,7 +3383,7 @@ namespace NeoCompose.Tests
             return Getter(
                 new PrimitiveTypeInfo
                 {
-                    type = AttributeType.Bool,
+                    type = MemberKind.Bool,
                     required = true,
                 },
                 JToken.FromObject(value));
@@ -3394,7 +3394,7 @@ namespace NeoCompose.Tests
             return Getter(
                 new PrimitiveTypeInfo
                 {
-                    type = AttributeType.String,
+                    type = MemberKind.String,
                     required = true,
                 },
                 JToken.FromObject(value));
@@ -3482,7 +3482,7 @@ namespace NeoCompose.Tests
             {
                 typeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.Bool,
+                    type = MemberKind.Bool,
                     required = true,
                 },
                 parameters = new Variable[0],
@@ -3583,7 +3583,7 @@ namespace NeoCompose.Tests
                 {
                     typeInfo = new PrimitiveTypeInfo
                     {
-                        type = AttributeType.Null,
+                        type = MemberKind.Null,
                         required = false,
                     },
                     value = JValue.CreateNull(),
@@ -3664,11 +3664,11 @@ namespace NeoCompose.Tests
                         pointer = new CallFunctionPointer
                         {
                             type = PointerKind.CallFunction,
-                            attributeId = "attr-deferred-score",
+                            memberId = "member-deferred-score",
                             receiver = new CallReceiver
                             {
                                 kind = CallReceiverKind.Static,
-                                attributeId = "attr-deferred-score",
+                                memberId = "member-deferred-score",
                             },
                             args = new Pointer[0],
                             callSiteId = "deferred-score",
@@ -3704,7 +3704,7 @@ namespace NeoCompose.Tests
             {
                 typeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.Null,
+                    type = MemberKind.Null,
                     required = false,
                 },
                 parameters = new Variable[0],
@@ -3716,7 +3716,7 @@ namespace NeoCompose.Tests
         {
             return new PrimitiveTypeInfo
             {
-                type = AttributeType.Int,
+                type = MemberKind.Int,
                 required = true,
             };
         }
@@ -3725,7 +3725,7 @@ namespace NeoCompose.Tests
         {
             return new PrimitiveTypeInfo
             {
-                type = AttributeType.Bool,
+                type = MemberKind.Bool,
                 required = true,
             };
         }
@@ -3734,7 +3734,7 @@ namespace NeoCompose.Tests
         {
             return new PrimitiveTypeInfo
             {
-                type = AttributeType.String,
+                type = MemberKind.String,
                 required = true,
             };
         }
@@ -3743,7 +3743,7 @@ namespace NeoCompose.Tests
         {
             return new CollectionTypeInfo
             {
-                type = AttributeType.List,
+                type = MemberKind.List,
                 required = true,
                 entryTypeInfo = entryTypeInfo,
             };
@@ -3753,33 +3753,33 @@ namespace NeoCompose.Tests
         {
             return new CollectionTypeInfo
             {
-                type = AttributeType.Dictionary,
+                type = MemberKind.Dictionary,
                 required = true,
                 entryTypeInfo = entryTypeInfo,
             };
         }
 
         private static LookupTypeInfo LookupTypeInfo(
-            string collectionAttributeId,
+            string collectionMemberId,
             TypeInfo entryTypeInfo)
         {
             return new LookupTypeInfo
             {
-                type = AttributeType.Lookup,
+                type = MemberKind.Lookup,
                 required = true,
-                collectionAttributeId = collectionAttributeId,
+                collectionMemberId = collectionMemberId,
                 collectionValueId = null,
                 entryTypeInfo = entryTypeInfo,
             };
         }
 
-        private static CustomTypeInfo CustomTypeInfo(string typeId)
+        private static ClassTypeInfo ClassTypeInfo(string classId)
         {
-            return new CustomTypeInfo
+            return new ClassTypeInfo
             {
-                type = AttributeType.Custom,
+                type = MemberKind.Class,
                 required = true,
-                typeId = typeId,
+                classId = classId,
             };
         }
 
@@ -3841,21 +3841,21 @@ namespace NeoCompose.Tests
 
         private static void SeedList(NeoClient client, string listValueId)
         {
-            client.SetSaveValue(new StringAttributeValue
+            client.SetSaveValue(new StringMemberValue
             {
                 id = "list-entry-potion",
                 createdAt = Now,
                 updatedAt = Now,
                 value = "Potion",
             });
-            client.SetSaveValue(new StringAttributeValue
+            client.SetSaveValue(new StringMemberValue
             {
                 id = "list-entry-elixir",
                 createdAt = Now,
                 updatedAt = Now,
                 value = "Elixir",
             });
-            client.SetSaveValue(new ArrayAttributeValue
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = listValueId,
                 createdAt = Now,
@@ -3866,14 +3866,14 @@ namespace NeoCompose.Tests
 
         private static void SeedDictionary(NeoClient client, string dictionaryValueId)
         {
-            client.SetSaveValue(new StringAttributeValue
+            client.SetSaveValue(new StringMemberValue
             {
                 id = "dict-entry-slot",
                 createdAt = Now,
                 updatedAt = Now,
                 value = "Potion",
             });
-            client.SetSaveValue(new ObjectAttributeValue
+            client.SetSaveValue(new ObjectMemberValue
             {
                 id = dictionaryValueId,
                 createdAt = Now,
@@ -3948,7 +3948,7 @@ namespace NeoCompose.Tests
 
         private static object? ResolveClientValue(NeoClient client, string valueId)
         {
-            if (!client.TryGetValue(valueId, out AttributeValue? row)) return null;
+            if (!client.TryGetValue(valueId, out MemberValue? row)) return null;
             var ctx = new NeoCompose.Runtime.NeoScript.NSGetterEvaluator.Context(
                 client,
                 thisValue: null,

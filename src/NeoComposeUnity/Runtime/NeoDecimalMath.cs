@@ -11,7 +11,7 @@ namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Exact result exceeded 28 significant digits or scale 28
-    /// (specs/decimal-attribute.md decision 7). Never thrown by an explicit
+    /// (specs/decimal-member.md decision 7). Never thrown by an explicit
     /// rounding entry point (<see cref="NeoDecimalMath.Round"/> /
     /// <see cref="NeoDecimalMath.Divide"/> reduce precision on purpose).
     /// </summary>
@@ -41,7 +41,7 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// Exact decimal math over canonical decimal strings — the C# mirror of
     /// the web's <c>src/models/decimal/decimal-math.ts</c>
-    /// (specs/decimal-attribute.md decision 7). Both runtimes represent a
+    /// (specs/decimal-member.md decision 7). Both runtimes represent a
     /// decimal as a <c>(coefficient, scale)</c> integer pair
     /// (<see cref="BigInteger"/> here, <c>bigint</c> on the web) so neither
     /// depends on the other's rounding quirks; native
@@ -381,7 +381,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Canonical decimal string → nearest double. Used only by NeoScript's
         /// explicit <c>ToFloat</c> — never by the editor UI (which edits the
-        /// string directly, specs/decimal-attribute.md decision 8).
+        /// string directly, specs/decimal-member.md decision 8).
         /// </summary>
         public static double ToFloat(string value)
         {

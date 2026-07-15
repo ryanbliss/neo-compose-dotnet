@@ -13,7 +13,7 @@ namespace NeoCompose.Tests
 {
     /// <summary>
     /// Cross-runtime parity for <see cref="NeoDecimalMath"/>
-    /// (specs/decimal-attribute.md §6.3/§8). Every vector in the vendored
+    /// (specs/decimal-member.md §6.3/§8). Every vector in the vendored
     /// <see cref="NeoDecimalParityFixture"/> — shared verbatim with the web's
     /// <c>decimal-math.test.ts</c> — is executed against the BigInteger core
     /// and asserted against the expected canonical result or the mapped

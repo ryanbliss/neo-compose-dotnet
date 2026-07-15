@@ -269,8 +269,8 @@ namespace NeoCompose.Unity.Editor
             public int CredentialBlobSize;
             public IntPtr CredentialBlob;
             public int Persist;
-            public int AttributeCount;
-            public IntPtr Attributes;
+            public int MemberCount;
+            public IntPtr Members;
             public string? TargetAlias;
             public string UserName;
         }

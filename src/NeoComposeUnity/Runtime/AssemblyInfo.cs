@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 
 // Tests reach into a few internal members (e.g.
-// `NeoAttribute.parent`'s internal setter) so they can construct
+// `NeoMember.parent`'s internal setter) so they can construct
 // wrapper-tree shapes the production code path always builds via
 // collection-type CreateChild. Both names cover the dual builds:
 //   - `NeoCompose.Unity.Tests` — Unity's asmdef-driven build

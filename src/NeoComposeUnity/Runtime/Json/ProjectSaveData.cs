@@ -3,7 +3,10 @@
 
 #nullable enable
 
+using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime.Json
 {
@@ -81,6 +84,7 @@ namespace NeoCompose.Runtime.Json
     /// authored default at the same id, so there is no override-map
     /// indirection.</para>
     /// </summary>
+    [JsonConverter(typeof(Schema8SaveEnvelopeConverter<ProjectSaveData>))]
     public class ProjectSaveData
     {
         /// <summary>
@@ -167,15 +171,55 @@ namespace NeoCompose.Runtime.Json
         /// <c>save.values[id] ?? authored.values[id]</c>); a row may carry a
         /// <c>mark: "removed"</c> tombstone to express an explicit unset.
         /// </summary>
-        public Dictionary<string, AttributeValue> values = null!;
+        public Dictionary<string, MemberValue> values = null!;
 
         /// <summary>
-        /// Sparse runtime bindings for static Custom-type members, keyed by
-        /// stable attribute id. A missing key inherits the authored
-        /// <c>attribute.valueId</c>; a present null value is an explicit unset.
+        /// Sparse runtime bindings for static Class members, keyed by
+        /// stable member id. A missing key inherits the authored
+        /// <c>member.valueId</c>; a present null value is an explicit unset.
         /// The referenced value graph remains in <see cref="values"/>.
-        /// Schema-6 save files omit this field and load as an empty map.
         /// </summary>
         public Dictionary<string, string?> staticBindings = new();
+    }
+
+    /// <summary>
+    /// Strict reader for schema-8 save envelopes. Value-row metadata is
+    /// checked for removed class/member fields while the authored payload
+    /// inside each row's <c>value</c> property remains opaque.
+    /// </summary>
+    public sealed class Schema8SaveEnvelopeConverter<T> : JsonConverter
+        where T : class, new()
+    {
+        public override bool CanConvert(Type objectType) => objectType == typeof(T);
+
+        public override bool CanWrite => false;
+
+        public override object? ReadJson(
+            JsonReader reader,
+            Type objectType,
+            object? existingValue,
+            JsonSerializer serializer)
+        {
+            if (reader.TokenType == JsonToken.Null) return null;
+
+            var obj = JObject.Load(reader);
+            Schema8LegacyFieldGuard.ValidateSaveEnvelope(obj);
+
+            var envelope = new T();
+            using (var subReader = obj.CreateReader())
+            {
+                serializer.Populate(subReader, envelope);
+            }
+            return envelope;
+        }
+
+        public override void WriteJson(
+            JsonWriter writer,
+            object? value,
+            JsonSerializer serializer)
+        {
+            throw new NotImplementedException(
+                "Schema8SaveEnvelopeConverter is read-only; default serialization handles writes.");
+        }
     }
 }

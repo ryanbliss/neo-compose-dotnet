@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using DialogueActionsNodeModel = NeoCompose.Runtime.Json.DialogueActionsNode;
 using DialogueActionModel = NeoCompose.Runtime.Json.DialogueAction;
 using DialogueConditionsNodeModel = NeoCompose.Runtime.Json.DialogueConditionsNode;
-using DialogueLogicEditAttributeActionModel = NeoCompose.Runtime.Json.DialogueLogicEditAttributeAction;
+using DialogueLogicEditMemberActionModel = NeoCompose.Runtime.Json.DialogueLogicEditMemberAction;
 using DialogueModel = NeoCompose.Runtime.Json.Dialogue;
 using DialogueOutcomeModel = NeoCompose.Runtime.Json.DialogueOutcome;
 using DialoguePauseActionModel = NeoCompose.Runtime.Json.DialoguePauseAction;
@@ -433,7 +433,7 @@ namespace NeoCompose.Runtime
                 for (int i = startIndex; i < actions.Length; i++)
                 {
                     var action = actions[i];
-                    if (action is DialogueLogicEditAttributeActionModel logicAction)
+                    if (action is DialogueLogicEditMemberActionModel logicAction)
                     {
                         var compiled = logicAction.logic switch
                         {

@@ -150,20 +150,20 @@ namespace NeoCompose.Unity.Editor
             foreach (string valueId in EnumerateProjectValueIds(projectData))
             {
                 object? resolved = resolveMethod.Invoke(project, new object[] { valueId });
-                if (resolved is not NeoGeneratedCustomValue custom) continue;
-                string key = custom.valueId ?? valueId;
+                if (resolved is not NeoGeneratedClassValue classValue) continue;
+                string key = classValue.valueId ?? valueId;
                 if (!synchronized.Add(key)) continue;
 
-                InvokeOnDidSynchronize(custom);
+                InvokeOnDidSynchronize(classValue);
             }
         }
 
-        private static void InvokeOnDidSynchronize(NeoGeneratedCustomValue custom)
+        private static void InvokeOnDidSynchronize(NeoGeneratedClassValue classValue)
         {
-            MethodInfo? method = custom.GetType().GetMethod(
+            MethodInfo? method = classValue.GetType().GetMethod(
                 "OnDidSynchronize",
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            method?.Invoke(custom, Array.Empty<object>());
+            method?.Invoke(classValue, Array.Empty<object>());
         }
 
         private static void SynchronizeGeneratedTileAssets(
@@ -186,8 +186,8 @@ namespace NeoCompose.Unity.Editor
             foreach (string tileValueId in tileValueIds.OrderBy(id => id, StringComparer.Ordinal))
             {
                 object? resolved = resolveMethod.Invoke(project, new object[] { tileValueId });
-                if (resolved is not NeoGeneratedCustomValue custom) continue;
-                var generatedTile = NeoTileAssetFactory.CreateTransientTileBase(custom);
+                if (resolved is not NeoGeneratedClassValue classValue) continue;
+                var generatedTile = NeoTileAssetFactory.CreateTransientTileBase(classValue);
                 if (generatedTile == null) continue;
 
                 string assetPath = GeneratedTileAssetPath(tileValueId, generatedTile);
@@ -203,9 +203,9 @@ namespace NeoCompose.Unity.Editor
                 TileBase persistedTile = PersistGeneratedTileAsset(assetPath, generatedTile);
                 assetDatabase.SetTileAsset(
                     tileValueId,
-                    custom.typeId,
+                    classValue.classId,
                     assetPath,
-                    GeneratedTileContentHash(projectData, tileValueId, custom),
+                    GeneratedTileContentHash(projectData, tileValueId, classValue),
                     persistedTile);
             }
 
@@ -224,15 +224,15 @@ namespace NeoCompose.Unity.Editor
             var seen = new HashSet<string>();
             foreach (var row in projectData.values.Values)
             {
-                if (row is not ObjectAttributeValue placement) continue;
+                if (row is not ObjectMemberValue placement) continue;
                 if (string.IsNullOrEmpty(placement.containerId)) continue;
-                if (string.IsNullOrEmpty(placement.typeId)) continue;
+                if (string.IsNullOrEmpty(placement.classId)) continue;
                 if (placement.value == null) continue;
-                string? tileKey = FindTileSchemaKey(projectData, placement.typeId!);
+                string? tileKey = FindTileSchemaKey(projectData, placement.classId!);
                 if (tileKey == null) continue;
                 if (!placement.value.TryGetValue(tileKey, out string tileLookupId)) continue;
-                if (!projectData.values.TryGetValue(tileLookupId, out AttributeValue lookupRow)) continue;
-                if (lookupRow is not ArrayAttributeValue lookupArray || lookupArray.value == null) continue;
+                if (!projectData.values.TryGetValue(tileLookupId, out MemberValue lookupRow)) continue;
+                if (lookupRow is not ArrayMemberValue lookupArray || lookupArray.value == null) continue;
                 foreach (var tileValueId in lookupArray.value)
                 {
                     if (string.IsNullOrWhiteSpace(tileValueId)) continue;
@@ -243,16 +243,16 @@ namespace NeoCompose.Unity.Editor
 
         private static readonly string[] TileSchemaKeyCandidates = { "Tile", "tileValue", "tileValueId" };
 
-        private static string? FindTileSchemaKey(ProjectData projectData, string typeId)
+        private static string? FindTileSchemaKey(ProjectData projectData, string classId)
         {
-            if (!projectData.types.TryGetValue(typeId, out CustomType type) || type == null) return null;
+            if (!projectData.classes.TryGetValue(classId, out NeoSchemaClass schemaClass) || schemaClass == null) return null;
             IList<MergedSchemaEntry> merged;
             try
             {
-                merged = CustomTypeInheritance.MergeSchemas(
-                    CustomTypeInheritance.ResolveChain(
-                        typeId,
-                        id => projectData.types.TryGetValue(id, out CustomType match) ? match : null));
+                merged = NeoSchemaClassInheritance.MergeSchemas(
+                    NeoSchemaClassInheritance.ResolveChain(
+                        classId,
+                        id => projectData.classes.TryGetValue(id, out NeoSchemaClass match) ? match : null));
             }
             catch (CircularInheritanceError)
             {
@@ -342,15 +342,15 @@ namespace NeoCompose.Unity.Editor
         private static string GeneratedTileContentHash(
             ProjectData projectData,
             string tileValueId,
-            NeoGeneratedCustomValue custom)
+            NeoGeneratedClassValue classValue)
         {
             string updatedAt = projectData.values.TryGetValue(tileValueId, out var row)
                 ? row.updatedAt.ToString()
                 : "";
-            string tileKind = NeoTileAssetFactory.TryResolveSmartTile(custom, out _)
+            string tileKind = NeoTileAssetFactory.TryResolveSmartTile(classValue, out _)
                 ? "rule"
                 : "tile";
-            return $"{custom.typeId ?? ""}:{updatedAt}:{tileKind}";
+            return $"{classValue.classId ?? ""}:{updatedAt}:{tileKind}";
         }
 
         private static string SanitizeAssetFileName(string value)

@@ -52,25 +52,25 @@ namespace NeoCompose.Runtime
         /// subscription is disposed.
         /// </summary>
         public static IDisposable Watch<TCollection>(
-            NeoAttribute node,
+            NeoMember node,
             NeoClient client,
             TCollection collection,
             Action<TCollection, NeoChangeSource> handler)
         {
             if (handler is null) throw new ArgumentNullException(nameof(handler));
-            void Handle(NeoAttribute changed) => handler(collection, client.CurrentChangeSource);
+            void Handle(NeoMember changed) => handler(collection, client.CurrentChangeSource);
             node.OnChanged += Handle;
             return new NeoDisposableSubscription(() => node.OnChanged -= Handle);
         }
 
         public static IDisposable WatchList<T>(
-            NeoAttributeList node,
+            NeoMemberList node,
             NeoClient client,
             NeoReadOnlyList<T> collection,
             Action<NeoReadOnlyList<T>, NeoListChangedArgs, NeoChangeSource> handler)
         {
             if (handler is null) throw new ArgumentNullException(nameof(handler));
-            void Handle(NeoAttribute changed) =>
+            void Handle(NeoMember changed) =>
                 handler(
                     collection,
                     node.ActiveListChange ?? NeoListChangedArgs.Unknown,
@@ -83,13 +83,13 @@ namespace NeoCompose.Runtime
     public class NeoReadOnlyList<T> : IReadOnlyList<T>
     {
         protected readonly NeoClient client;
-        protected NeoAttributeList node;
-        protected readonly Func<NeoClient, NeoAttribute, T> createItem;
+        protected NeoMemberList node;
+        protected readonly Func<NeoClient, NeoMember, T> createItem;
 
         public NeoReadOnlyList(
             NeoClient client,
-            NeoAttributeList node,
-            Func<NeoClient, NeoAttribute, T> createItem)
+            NeoMemberList node,
+            Func<NeoClient, NeoMember, T> createItem)
         {
             this.client = client;
             this.node = node;
@@ -124,10 +124,10 @@ namespace NeoCompose.Runtime
             get
             {
                 if (valueId is null) throw new ArgumentNullException(nameof(valueId));
-                if (!node.TryGetChildById(valueId, out NeoAttribute? child))
+                if (!node.TryGetChildById(valueId, out NeoMember? child))
                 {
                     throw new KeyNotFoundException(
-                        $"Value '{valueId}' is not a member of List attribute '{node.attribute.id}'.");
+                        $"Value '{valueId}' is not a member of List member '{node.member.id}'.");
                 }
                 return createItem(client, child);
             }
@@ -138,7 +138,7 @@ namespace NeoCompose.Runtime
             [MaybeNullWhen(false)] out T item)
         {
             if (valueId is null) throw new ArgumentNullException(nameof(valueId));
-            if (node.TryGetChildById(valueId, out NeoAttribute? child))
+            if (node.TryGetChildById(valueId, out NeoMember? child))
             {
                 item = createItem(client, child);
                 return true;
@@ -168,15 +168,15 @@ namespace NeoCompose.Runtime
 
     public class NeoList<T> : NeoReadOnlyList<T>, IList<T>
     {
-        private readonly Func<NeoAttributeListWritable> getWritableNode;
+        private readonly Func<NeoMemberListWritable> getWritableNode;
         private readonly Func<T, NeoValueWritePayload?> serializeItem;
         private readonly Action? beforeWrite;
         private readonly Func<bool>? isReadOnly;
 
         public NeoList(
             NeoClient client,
-            NeoAttributeListWritable node,
-            Func<NeoClient, NeoAttribute, T> createItem,
+            NeoMemberListWritable node,
+            Func<NeoClient, NeoMember, T> createItem,
             Func<T, NeoValueWritePayload?> serializeItem)
             : this(client, node, () => node, createItem, serializeItem)
         {
@@ -184,9 +184,9 @@ namespace NeoCompose.Runtime
 
         public NeoList(
             NeoClient client,
-            NeoAttributeList node,
-            Func<NeoAttributeListWritable> getWritableNode,
-            Func<NeoClient, NeoAttribute, T> createItem,
+            NeoMemberList node,
+            Func<NeoMemberListWritable> getWritableNode,
+            Func<NeoClient, NeoMember, T> createItem,
             Func<T, NeoValueWritePayload?> serializeItem,
             Action? beforeWrite = null,
             Func<bool>? isReadOnly = null)
@@ -198,7 +198,7 @@ namespace NeoCompose.Runtime
             this.isReadOnly = isReadOnly;
         }
 
-        private NeoAttributeListWritable RequireWritableNode()
+        private NeoMemberListWritable RequireWritableNode()
         {
             beforeWrite?.Invoke();
             var writableNode = getWritableNode();
@@ -271,13 +271,13 @@ namespace NeoCompose.Runtime
           INeoGeneratedConstructorDictionary
     {
         protected readonly NeoClient client;
-        protected NeoAttributeDictionary node;
-        protected readonly Func<NeoClient, NeoAttribute, T> createItem;
+        protected NeoMemberDictionary node;
+        protected readonly Func<NeoClient, NeoMember, T> createItem;
 
         public NeoReadOnlyDictionary(
             NeoClient client,
-            NeoAttributeDictionary node,
-            Func<NeoClient, NeoAttribute, T> createItem)
+            NeoMemberDictionary node,
+            Func<NeoClient, NeoMember, T> createItem)
         {
             this.client = client;
             this.node = node;
@@ -348,7 +348,7 @@ namespace NeoCompose.Runtime
 
         public bool TryGetValue(string key, out T value)
         {
-            if (node.TryGet<NeoAttribute>(key, out NeoAttribute? child))
+            if (node.TryGet<NeoMember>(key, out NeoMember? child))
             {
                 value = createItem(client, child);
                 return true;
@@ -374,15 +374,15 @@ namespace NeoCompose.Runtime
 
     public class NeoDictionary<T> : NeoReadOnlyDictionary<T>, IDictionary<string, T>
     {
-        private readonly Func<NeoAttributeDictionaryWritable> getWritableNode;
+        private readonly Func<NeoMemberDictionaryWritable> getWritableNode;
         private readonly Func<T, NeoValueWritePayload?> serializeItem;
         private readonly Action? beforeWrite;
         private readonly Func<bool>? isReadOnly;
 
         public NeoDictionary(
             NeoClient client,
-            NeoAttributeDictionaryWritable node,
-            Func<NeoClient, NeoAttribute, T> createItem,
+            NeoMemberDictionaryWritable node,
+            Func<NeoClient, NeoMember, T> createItem,
             Func<T, NeoValueWritePayload?> serializeItem)
             : this(client, node, () => node, createItem, serializeItem)
         {
@@ -390,9 +390,9 @@ namespace NeoCompose.Runtime
 
         public NeoDictionary(
             NeoClient client,
-            NeoAttributeDictionary node,
-            Func<NeoAttributeDictionaryWritable> getWritableNode,
-            Func<NeoClient, NeoAttribute, T> createItem,
+            NeoMemberDictionary node,
+            Func<NeoMemberDictionaryWritable> getWritableNode,
+            Func<NeoClient, NeoMember, T> createItem,
             Func<T, NeoValueWritePayload?> serializeItem,
             Action? beforeWrite = null,
             Func<bool>? isReadOnly = null)
@@ -404,7 +404,7 @@ namespace NeoCompose.Runtime
             this.isReadOnly = isReadOnly;
         }
 
-        private NeoAttributeDictionaryWritable RequireWritableNode()
+        private NeoMemberDictionaryWritable RequireWritableNode()
         {
             beforeWrite?.Invoke();
             var writableNode = getWritableNode();
@@ -485,8 +485,8 @@ namespace NeoCompose.Runtime
     }
 
     /// <summary>
-    /// Read-only view over an enum-keyed Dictionary attribute
-    /// (specs/dictionary-key-types.md §9). Same-name two-arity sibling of
+    /// Read-only view over an enum-keyed Dictionary member
+    /// (specs/dictionary-key-classes.md §9). Same-name two-arity sibling of
     /// <see cref="NeoReadOnlyDictionary{T}"/> (the
     /// <c>System.Collections.Generic</c> arity precedent):
     /// <typeparamref name="TKey"/> is a generated enum wrapper class and
@@ -509,8 +509,8 @@ namespace NeoCompose.Runtime
 
         public NeoReadOnlyDictionary(
             NeoClient client,
-            NeoAttributeDictionary node,
-            Func<NeoClient, NeoAttribute, TValue> createItem,
+            NeoMemberDictionary node,
+            Func<NeoClient, NeoMember, TValue> createItem,
             Func<string, TKey> fromOptionId,
             Func<TKey, string> toOptionId)
             : this(
@@ -606,8 +606,8 @@ namespace NeoCompose.Runtime
 
         public NeoDictionary(
             NeoClient client,
-            NeoAttributeDictionaryWritable node,
-            Func<NeoClient, NeoAttribute, TValue> createItem,
+            NeoMemberDictionaryWritable node,
+            Func<NeoClient, NeoMember, TValue> createItem,
             Func<TValue, NeoValueWritePayload?> serializeItem,
             Func<string, TKey> fromOptionId,
             Func<TKey, string> toOptionId)
@@ -620,9 +620,9 @@ namespace NeoCompose.Runtime
 
         public NeoDictionary(
             NeoClient client,
-            NeoAttributeDictionary node,
-            Func<NeoAttributeDictionaryWritable> getWritableNode,
-            Func<NeoClient, NeoAttribute, TValue> createItem,
+            NeoMemberDictionary node,
+            Func<NeoMemberDictionaryWritable> getWritableNode,
+            Func<NeoClient, NeoMember, TValue> createItem,
             Func<TValue, NeoValueWritePayload?> serializeItem,
             Func<string, TKey> fromOptionId,
             Func<TKey, string> toOptionId,
@@ -703,13 +703,13 @@ namespace NeoCompose.Runtime
     public class NeoReadOnlyLookupSet<T> : IReadOnlyCollection<T>
     {
         protected readonly NeoClient client;
-        protected NeoAttributeLookup node;
-        private readonly Func<NeoAttribute, T> createItem;
+        protected NeoMemberLookup node;
+        private readonly Func<NeoMember, T> createItem;
 
         public NeoReadOnlyLookupSet(
             NeoClient client,
-            NeoAttributeLookup node,
-            Func<NeoAttribute, T> createItem)
+            NeoMemberLookup node,
+            Func<NeoMember, T> createItem)
         {
             this.client = client;
             this.node = node;
@@ -759,23 +759,23 @@ namespace NeoCompose.Runtime
 
     public class NeoLookupSet<T> : NeoReadOnlyLookupSet<T>, ICollection<T>
     {
-        private readonly Func<NeoAttributeLookupWritable> getWritableNode;
+        private readonly Func<NeoMemberLookupWritable> getWritableNode;
         private readonly Action? beforeWrite;
         private readonly Func<bool>? isReadOnly;
 
         public NeoLookupSet(
             NeoClient client,
-            NeoAttributeLookupWritable node,
-            Func<NeoAttribute, T> createItem)
+            NeoMemberLookupWritable node,
+            Func<NeoMember, T> createItem)
             : this(client, node, () => node, createItem)
         {
         }
 
         public NeoLookupSet(
             NeoClient client,
-            NeoAttributeLookup node,
-            Func<NeoAttributeLookupWritable> getWritableNode,
-            Func<NeoAttribute, T> createItem,
+            NeoMemberLookup node,
+            Func<NeoMemberLookupWritable> getWritableNode,
+            Func<NeoMember, T> createItem,
             Action? beforeWrite = null,
             Func<bool>? isReadOnly = null)
             : base(client, node, createItem)
@@ -785,7 +785,7 @@ namespace NeoCompose.Runtime
             this.isReadOnly = isReadOnly;
         }
 
-        private NeoAttributeLookupWritable RequireWritableNode()
+        private NeoMemberLookupWritable RequireWritableNode()
         {
             beforeWrite?.Invoke();
             var writableNode = getWritableNode();
@@ -837,9 +837,9 @@ namespace NeoCompose.Runtime
     public class NeoReadOnlyDialogueReferenceSet : IReadOnlyCollection<NeoDialogueReference>
     {
         protected readonly NeoClient client;
-        protected NeoAttributeDialogueLookup node;
+        protected NeoMemberDialogueLookup node;
 
-        public NeoReadOnlyDialogueReferenceSet(NeoClient client, NeoAttributeDialogueLookup node)
+        public NeoReadOnlyDialogueReferenceSet(NeoClient client, NeoMemberDialogueLookup node)
         {
             this.client = client;
             this.node = node;
@@ -884,21 +884,21 @@ namespace NeoCompose.Runtime
     public class NeoDialogueReferenceSet
         : NeoReadOnlyDialogueReferenceSet, ICollection<NeoDialogueReference>
     {
-        private readonly Func<NeoAttributeDialogueLookupWritable> getWritableNode;
+        private readonly Func<NeoMemberDialogueLookupWritable> getWritableNode;
         private readonly Action? beforeWrite;
         private readonly Func<bool>? isReadOnly;
 
         public NeoDialogueReferenceSet(
             NeoClient client,
-            NeoAttributeDialogueLookupWritable node)
+            NeoMemberDialogueLookupWritable node)
             : this(client, node, () => node)
         {
         }
 
         public NeoDialogueReferenceSet(
             NeoClient client,
-            NeoAttributeDialogueLookup node,
-            Func<NeoAttributeDialogueLookupWritable> getWritableNode,
+            NeoMemberDialogueLookup node,
+            Func<NeoMemberDialogueLookupWritable> getWritableNode,
             Action? beforeWrite = null,
             Func<bool>? isReadOnly = null)
             : base(client, node)
@@ -908,7 +908,7 @@ namespace NeoCompose.Runtime
             this.isReadOnly = isReadOnly;
         }
 
-        private NeoAttributeDialogueLookupWritable RequireWritableNode()
+        private NeoMemberDialogueLookupWritable RequireWritableNode()
         {
             beforeWrite?.Invoke();
             var writableNode = getWritableNode();

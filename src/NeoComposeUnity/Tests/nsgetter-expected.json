@@ -1,20 +1,20 @@
 [
   {
-    "attributeId": "4692c174-eae9-49bb-8ad6-ca78161d15e9",
+    "memberId": "4692c174-eae9-49bb-8ad6-ca78161d15e9",
     "thisValueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
     "ok": true,
     "value": "Hello world!!! NPC: James, item: Wood Pickaxe",
     "error": null
   },
   {
-    "attributeId": "1b34eb13-ef37-45db-9ddc-7da0698ce4e0",
+    "memberId": "1b34eb13-ef37-45db-9ddc-7da0698ce4e0",
     "thisValueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
     "ok": true,
     "value": true,
     "error": null
   },
   {
-    "attributeId": "9bc07de0-fd37-4469-81dc-10d04d00a52b",
+    "memberId": "9bc07de0-fd37-4469-81dc-10d04d00a52b",
     "thisValueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
     "ok": true,
     "value": [
@@ -25,7 +25,7 @@
     "error": null
   },
   {
-    "attributeId": "6f36eba5-353f-48f4-871c-42a6cd72bcd8",
+    "memberId": "6f36eba5-353f-48f4-871c-42a6cd72bcd8",
     "thisValueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
     "ok": true,
     "value": {
@@ -40,7 +40,7 @@
     "error": null
   },
   {
-    "attributeId": "42f3f813-b0e5-4561-a96b-a7216e3ccef0",
+    "memberId": "42f3f813-b0e5-4561-a96b-a7216e3ccef0",
     "thisValueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
     "ok": true,
     "value": [
@@ -49,7 +49,7 @@
     "error": null
   },
   {
-    "attributeId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
+    "memberId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
     "thisValueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
     "ok": true,
     "value": {
@@ -64,112 +64,112 @@
     "error": null
   },
   {
-    "attributeId": "c81d2773-032d-4354-8e9e-3fede8bbcddb",
+    "memberId": "c81d2773-032d-4354-8e9e-3fede8bbcddb",
     "thisValueId": "0035f636-4921-45d5-bb14-84e27964dc29",
     "ok": true,
     "value": true,
     "error": null
   },
   {
-    "attributeId": "c81d2773-032d-4354-8e9e-3fede8bbcddb",
+    "memberId": "c81d2773-032d-4354-8e9e-3fede8bbcddb",
     "thisValueId": "464256b4-2019-4514-87b4-92dc1de78744",
     "ok": true,
     "value": true,
     "error": null
   },
   {
-    "attributeId": "c81d2773-032d-4354-8e9e-3fede8bbcddb",
+    "memberId": "c81d2773-032d-4354-8e9e-3fede8bbcddb",
     "thisValueId": "v-elem-champion-earth",
     "ok": true,
     "value": true,
     "error": null
   },
   {
-    "attributeId": "4c424986-db70-4a7c-9ef9-3f4d1ade01e0",
+    "memberId": "4c424986-db70-4a7c-9ef9-3f4d1ade01e0",
     "thisValueId": "0035f636-4921-45d5-bb14-84e27964dc29",
     "ok": true,
     "value": true,
     "error": null
   },
   {
-    "attributeId": "4c424986-db70-4a7c-9ef9-3f4d1ade01e0",
+    "memberId": "4c424986-db70-4a7c-9ef9-3f4d1ade01e0",
     "thisValueId": "464256b4-2019-4514-87b4-92dc1de78744",
     "ok": true,
     "value": true,
     "error": null
   },
   {
-    "attributeId": "4c424986-db70-4a7c-9ef9-3f4d1ade01e0",
+    "memberId": "4c424986-db70-4a7c-9ef9-3f4d1ade01e0",
     "thisValueId": "v-elem-champion-earth",
     "ok": true,
     "value": false,
     "error": null
   },
   {
-    "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
+    "memberId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
     "thisValueId": "c5850374-8b91-471d-8e0c-90b835af9618",
     "ok": false,
     "value": null,
     "error": "Not implemented exception"
   },
   {
-    "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
+    "memberId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
     "thisValueId": "5a8b9cab-182d-4522-a3e9-74ed133eec4e",
     "ok": false,
     "value": null,
     "error": "Not implemented exception"
   },
   {
-    "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
+    "memberId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
     "thisValueId": "61388deb-ebfb-46c4-9593-36a82002d1a8",
     "ok": false,
     "value": null,
     "error": "Not implemented exception"
   },
   {
-    "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
+    "memberId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
     "thisValueId": "e78c39e5-a931-4280-8ac8-6325a2229537",
     "ok": false,
     "value": null,
     "error": "Not implemented exception"
   },
   {
-    "attributeId": "75cb8c0c-3cbe-4902-a94e-5c237da24d40",
+    "memberId": "75cb8c0c-3cbe-4902-a94e-5c237da24d40",
     "thisValueId": "c5850374-8b91-471d-8e0c-90b835af9618",
     "ok": true,
     "value": "Wood Pickaxe",
     "error": null
   },
   {
-    "attributeId": "75cb8c0c-3cbe-4902-a94e-5c237da24d40",
+    "memberId": "75cb8c0c-3cbe-4902-a94e-5c237da24d40",
     "thisValueId": "5a8b9cab-182d-4522-a3e9-74ed133eec4e",
     "ok": true,
     "value": "Stone Pickaxe",
     "error": null
   },
   {
-    "attributeId": "75cb8c0c-3cbe-4902-a94e-5c237da24d40",
+    "memberId": "75cb8c0c-3cbe-4902-a94e-5c237da24d40",
     "thisValueId": "61388deb-ebfb-46c4-9593-36a82002d1a8",
     "ok": true,
     "value": "Wood Hoe",
     "error": null
   },
   {
-    "attributeId": "85f60d99-54c7-4ff4-97a5-4d888911a963",
+    "memberId": "85f60d99-54c7-4ff4-97a5-4d888911a963",
     "thisValueId": "e78c39e5-a931-4280-8ac8-6325a2229537",
     "ok": true,
     "value": "[Plant] Seed",
     "error": null
   },
   {
-    "attributeId": "attr-elem-fire-damage-get",
+    "memberId": "member-elem-fire-damage-get",
     "thisValueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
     "ok": true,
     "value": 42,
     "error": null
   },
   {
-    "attributeId": "attr-elem-selected-damage-get",
+    "memberId": "member-elem-selected-damage-get",
     "thisValueId": "e5b02003-d505-46a7-95fb-c11f1a412b61",
     "ok": true,
     "value": 20,

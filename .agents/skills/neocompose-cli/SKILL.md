@@ -1,8 +1,8 @@
 ---
 name: neocompose-cli
 description: >-
-  Edit and synchronize a Neo Compose format-v2 schema as real C# 11 plus
-  tracked NeoScript sidecars. Use for custom types, interfaces, attributes,
+  Edit and synchronize a Neo Compose format-v3 schema as real C# 11 plus
+  tracked NeoScript sidecars. Use for classes, interfaces, members,
   enums, templates, localization, schema-aware NeoScript, or batch content
   edits. The working copy is a neo/ directory; run `neo` from the published
   package or `node cli/bin/neo.mjs` in the web repository.
@@ -12,7 +12,7 @@ description: >-
 
 A `neo/` working copy is a Git-like checkout of one Neo Compose project
 version. C# and NeoScript are peer authoring surfaces beside the web UI; the
-server remains the shared source of truth. The current contract is format v2
+server remains the shared source of truth. The current contract is format v3
 and is documented in `specs/schema-as-code-cli.md`.
 
 ## Non-negotiable workflow
@@ -34,7 +34,7 @@ hide in an opaque JSON carrier.
 ## Setup and format requirement
 
 ```sh
-npm i -g @neocompose/cli
+npm i -g @neocompose/cli@0.3.0
 neo login [--api <url>] [--profile editor|release] [--save-project <id>]
 neo init --project <id> [--version <id>] [--dir neo]
 neo doctor
@@ -44,8 +44,9 @@ Repository development uses `node cli/bin/neo.mjs`. Agents should always pass
 explicit flags/IDs. Human terminals may show pickers and confirms; non-TTY/CI
 use fails with an actionable missing-flag diagnostic rather than blocking.
 
-`neo.json` must contain `formatVersion: 2`. A missing or different marker is
-unsupported. Preserve any source you need, then create a fresh v2 working copy:
+`neo.json` must contain `formatVersion: 3`. Format 2 and every other marker are
+unsupported. There is no upgrader or compatibility reader. Preserve any source
+you need, then refresh a format-3 working copy from the authoritative server:
 
 ```sh
 neo init --project <id> [--version <id>] [--dir neo]
@@ -75,14 +76,14 @@ in `neo.json` in this mode.
 neo/
   neo.json
   NeoCompose.Schema.csproj        # netstandard2.1, C# 11, IDE-only
-  Types/                          # custom classes
+  Classes/                        # schema classes
   Interfaces/                     # interface declarations
   Enums/
   Root.cs                         # [NeoRegistry] roots and loose members
   Templates/                      # typed texture/audio settings
   Localization.cs                 # typed localization settings
   LocalizationStatuses/*.cs      # typed localization workflow statuses
-  Scripts/<Type>/<Member>.neo     # computed properties and NeoScript methods
+  Scripts/<Class>/<Member>.neo    # computed properties and NeoScript methods
   Migrations/*.neo
   .neo/
     state.json                    # bases/CAS hashes; never hand-edit
@@ -107,7 +108,7 @@ Native C# carries native meaning:
   ordering attribute is present.
 - Method parameters and return type are the function signature.
   `Task`/`Task<T>` means deferred execution.
-- A C# `static` property or method is type-owned. Stored static properties use
+- A C# `static` property or method is class-owned. Stored static properties use
   one replaceable binding and are excluded from instance construction;
   receiver kind cannot be changed in place.
 - Concrete `[NeoScript]`/`[NeoFunction]` methods are C# 11 partial
@@ -126,19 +127,19 @@ public enum ItemType
     Food,
 }
 
-[NeoType("type-inventory-item", AllowedStorage = NeoAllowedStorage.Immutable)]
+[NeoSchemaClass("class-inventory-item", AllowedStorage = NeoAllowedStorage.Immutable)]
 [NeoSchemaOrder(nameof(Name), nameof(Type), nameof(Tags), nameof(UsePrimary))]
 public abstract partial class InventoryItem<
     [NeoId("generic-stack")] TStack>
     where TStack : class
 {
-    [NeoMember("attribute-name"), NeoText(SearchKey = true)]
+    [NeoMember("member-name"), NeoText(SearchKey = true)]
     public virtual string Name { get; init; } = "";
 
-    [NeoMember("attribute-type")]
+    [NeoMember("member-type")]
     public abstract ItemType Type { get; init; }
 
-    [NeoMember("attribute-tags"), NeoList(Kind = NeoListKind.Unordered)]
+    [NeoMember("member-tags"), NeoList(Kind = NeoListKind.Unordered)]
     [NeoEntries(nameof(TagEntries))]
     public virtual IReadOnlyList<string> Tags { get; init; } = new List<string>();
 
@@ -158,7 +159,7 @@ public abstract partial class InventoryItem<
 }
 ```
 
-Stable IDs are visible in `[NeoType]`, `[NeoInterface]`, `[NeoEnum]`,
+Stable IDs are visible in `[NeoSchemaClass]`, `[NeoInterface]`, `[NeoEnum]`,
 `[NeoEnumOption]`, `[NeoId]`, and `[NeoMember]`. Omit a nullable positional ID
 only when creating a record; a successful push assigns it and canonically
 rewrites the source. Once assigned, preserve it through renames.
@@ -195,7 +196,7 @@ rules, automatic transitions, and system restrictions. Keep the order in
 ## NeoScript sidecars
 
 Scripted member bodies live at exactly
-`Scripts/<DeclaringType>/<Member>.neo`.
+`Scripts/<DeclaringClass>/<Member>.neo`.
 
 A computed property uses one complete contextual file. The outer signature
 matches the linked C# declaration's semantic result (`Task<T>` functions use
@@ -233,7 +234,7 @@ diagnostics. A sidecar for an abstract member is also invalid. The stable C#
 member ID lets canonical renames move the file safely; include C# and sidecar
 renames in the same reviewed change.
 
-Canonical C# places `// NeoScript: Scripts/<Type>/<Member>.neo` above the
+Canonical C# places `// NeoScript: Scripts/<Class>/<Member>.neo` above the
 linked declaration. Go-to-definition, references, and rename use the Roslyn
 source identity plus stable member ID to navigate between C# and `.neo`.
 
@@ -248,8 +249,8 @@ setters, Functions, and migrations; the resolved target's Immutable, Save,
 Session, or runtime ownership—not the body kind—decides whether the write is
 legal. The non-code Condition builder remains a restricted read form.
 
-Concrete, closed, writable Custom types expose the same public constructor
-shape as generated C#. Use `new Type(required, optional, ...)`; required
+Concrete, closed, writable classes expose the same public constructor
+shape as generated C#. Use `new ClassName(required, optional, ...)`; required
 parameters come first, optional parameters follow in generated-code order,
 and `null` skips an optional positional slot. Arguments remain positional;
 editor parameter-name hints are previews, not named-argument syntax.
@@ -257,17 +258,17 @@ Constructor graphs begin as parentless Session values. They survive only when
 attached, returned, or otherwise escaped from the invocation; abandoned
 graphs are reclaimed.
 
-Static members use a type receiver (`GameRules.EncounterCount`), while
+Static members use a class receiver (`GameRules.EncounterCount`), while
 instance members use a value receiver. Stored static members resolve through
-their authored/Save/Session binding layer and are never copied into Custom
+their authored/Save/Session binding layer and are never copied into class
 instances.
 
 ```sh
 neo script check --all
 neo script check --this Outpost --returns string 'return $"{this.Name}!";'
-neo script check --mode setter --attribute ComputedName 'root.Session.Name = value;'
-neo script check --mode nsfunction --attribute Outpost.RefreshUnlock 'return this.Level > 0;'
-neo script compile --mode nsfunction --attribute Outpost.RefreshUnlock 'return this.Level > 0;'
+neo script check --mode setter --member ComputedName 'root.Session.Name = value;'
+neo script check --mode nsfunction --member Outpost.RefreshUnlock 'return this.Level > 0;'
+neo script compile --mode nsfunction --member Outpost.RefreshUnlock 'return this.Level > 0;'
 neo script eval --returns string 'return root.Assets.Outposts[0].FullDisplayText;'
 neo script eval --function Outpost.RefreshUnlock --this-value <id> --args '[3]'
 neo script apply --mode action '...'
@@ -300,12 +301,12 @@ schema source files:
 ```sh
 neo records query [--kind <recordKind>]
 neo records get <kind> <id>
-neo values list [attributeId]
+neo values list [memberId]
 neo values get <valueId>
 neo values set <valueId> '<raw-json-value>'
-neo values bind <staticAttributeId> <valueId>
-neo values unbind <staticAttributeId>
-neo values create '<raw-json-value>' [--type <customTypeId>] --bind <staticAttributeId>
+neo values bind <staticMemberId> <valueId>
+neo values unbind <staticMemberId>
+neo values create '<raw-json-value>' [--class <classId>] --bind <staticMemberId>
 neo loc locales
 neo loc list
 neo loc set <textId> <locale> "text"
@@ -315,8 +316,8 @@ Write verbs accept a JSON-array batch on stdin or `--file`; use one batch when
 edits must be atomic. A `values set` payload is the raw value, not
 `{"value": ...}`. `values bind` and `unbind` edit only a stored static
 member's authored binding; `create --bind` can atomically create and bind a
-complete Custom/collection graph supplied as one batch. For collection rows
-use `values add-entry` on the live container value; an attribute's default
+complete class/collection graph supplied as one batch. For collection rows
+use `values add-entry` on the live container value; a member's default
 container ID may not be an instance's container.
 
 ### Dialogue authoring
@@ -343,7 +344,7 @@ neo branch switch <nameOrId>
 neo merge <branch> [--dry-run] [--migrate]
 neo release cut [--bump major|minor|patch] [--dry-run]
 
-neo migrate new <name> --target <Type>
+neo migrate new <name> --target <Class>
 neo migrate list
 neo migrate check
 neo migrate run [--dry-run] [--skip-invalid]
@@ -365,7 +366,7 @@ to an environment adapter.
 
 Monaco's existing highlighting, comments/interpolation, bracket behavior,
 protected scaffolds, context-aware completion/hover, and accurate diagnostics
-are a release-blocking compatibility floor. V2 adds recovery completion,
+are a release-blocking compatibility floor. The shared service includes recovery completion,
 signature help, C# and script definitions, references, rename, document
 symbols, semantic tokens, quick fixes, formatting, richer diagnostics,
 contextual ranking, and incremental analysis. Project updates must refresh
@@ -380,9 +381,11 @@ marketplace publication is separate.
 
 - The Node CLI talks directly to Convex through typed `api.*` calls and uses
   the same session-gated CAS commit path as the web app.
-- `SchemaManifestV2` is the only C# source/document boundary. The contract
-  registry classifies authored, derived, and volatile fields; derived server
-  fields come from the pulled base and absent/null equivalents normalize.
+- `SchemaManifestV3` is the only C# source/document boundary. It uses `classes`,
+  `members`, `"class"`, `"member"`, `classId`, `memberId`, and `MemberKind`.
+  The contract registry classifies authored, derived, and volatile fields;
+  derived server fields come from the pulled base and absent/null equivalents
+  normalize.
 - The npm package bundles the Roslyn app, dependencies, SDK, analyzer, and
   generator under `dist/tooling`; it does not bundle a runtime.
 - The schema compiler does static analysis only. Never execute an authored

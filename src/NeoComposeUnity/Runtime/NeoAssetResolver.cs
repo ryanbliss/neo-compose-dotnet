@@ -42,7 +42,7 @@ namespace NeoCompose.Runtime
             NeoAssetDatabase? database,
             Sprite sprite,
             string? expectedTemplateId = null,
-            string? attributeName = null)
+            string? memberName = null)
         {
             database ??= NeoAssetDatabase.LoadDefault();
             var sliceIndex = -1;
@@ -52,7 +52,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException("Sprite is not tracked by the Neo Compose asset database.");
             }
 
-            ValidateTemplate(entry, expectedTemplateId, attributeName ?? "Sprite attribute", "Sprite");
+            ValidateTemplate(entry, expectedTemplateId, memberName ?? "Sprite member", "Sprite");
             return new SpriteValue { fileId = entry.FileId, sliceIndex = sliceIndex };
         }
 
@@ -60,7 +60,7 @@ namespace NeoCompose.Runtime
             NeoAssetDatabase? database,
             AudioClip audioClip,
             string? expectedTemplateId = null,
-            string? attributeName = null)
+            string? memberName = null)
         {
             database ??= NeoAssetDatabase.LoadDefault();
             var entry = database?.TryGetEntryForAudioClip(audioClip);
@@ -69,7 +69,7 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException("AudioClip is not tracked by the Neo Compose asset database.");
             }
 
-            ValidateTemplate(entry, expectedTemplateId, attributeName ?? "Audio attribute", "AudioClip");
+            ValidateTemplate(entry, expectedTemplateId, memberName ?? "Audio member", "AudioClip");
             return new FileValue { fileId = entry.FileId };
         }
 
@@ -99,7 +99,7 @@ namespace NeoCompose.Runtime
         private static void ValidateTemplate(
             NeoAssetDatabaseEntry entry,
             string? expectedTemplateId,
-            string attributeName,
+            string memberName,
             string assetKind)
         {
             if (expectedTemplateId == null || entry.TemplateId == expectedTemplateId) return;
@@ -109,7 +109,7 @@ namespace NeoCompose.Runtime
                 ? entry.FileId
                 : entry.FileName;
             throw new InvalidOperationException(
-                $"{assetKind} '{fileName}' does not match the Unity template required by '{attributeName}'. " +
+                $"{assetKind} '{fileName}' does not match the Unity template required by '{memberName}'. " +
                 $"Expected template id '{expectedTemplateId}', actual template id '{actualTemplate}'.");
         }
     }

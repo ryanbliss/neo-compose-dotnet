@@ -11,7 +11,7 @@ namespace NeoCompose.Tests
 {
     /// <summary>
     /// The <see cref="NeoDecimalValues"/> boundary funnel
-    /// (specs/decimal-attribute.md §6.2): invariant-culture parse/format,
+    /// (specs/decimal-member.md §6.2): invariant-culture parse/format,
     /// scale preservation, negative-zero normalization, and the four distinct
     /// single-condition failures.
     /// </summary>

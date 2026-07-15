@@ -147,7 +147,7 @@ namespace NeoCompose.Tests
             config.SelectProject("project-1", "Project One");
             config.targetReleaseChannelId = "development";
             config.versionId = "version-1";
-            config.generatedTypesDirectory = "Assets/CustomTypes";
+            config.generatedTypesDirectory = "Assets/NeoSchemaClasses";
             config.projectJsonDirectory = "Assets/CustomJson";
             config.localizationResourcesDirectory = "Assets/Resources/CustomLocalization";
             config.localizationStreamingAssetsDirectory = "Assets/StreamingAssets/CustomLocalization";
@@ -165,7 +165,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual("", config.projectName);
             Assert.AreEqual("", config.targetReleaseChannelId);
             Assert.AreEqual("", config.versionId);
-            Assert.AreEqual("Assets/CustomTypes", config.generatedTypesDirectory);
+            Assert.AreEqual("Assets/NeoSchemaClasses", config.generatedTypesDirectory);
             Assert.AreEqual("Assets/CustomJson", config.projectJsonDirectory);
             Assert.AreEqual("Assets/Resources/CustomLocalization", config.localizationResourcesDirectory);
             Assert.AreEqual("Assets/StreamingAssets/CustomLocalization", config.localizationStreamingAssetsDirectory);
@@ -362,7 +362,7 @@ namespace NeoCompose.Tests
         [Test]
         public void GeneratedTypesSupport_ValuePayload_ReadsProvider()
         {
-            var payload = new NeoValuePayload("value", "type-id");
+            var payload = new NeoValuePayload("value", "class-id");
 
             Assert.AreSame(
                 payload,
@@ -547,14 +547,14 @@ namespace NeoCompose.Tests
     ""_id"": ""project-1"",
     ""id"": ""project-1"",
     ""name"": ""Project One"",
-    ""rootAssetsAttributeId"": ""assets-root"",
-    ""rootSaveFileAttributeId"": ""save-root"",
+    ""rootAssetsMemberId"": ""assets-root"",
+    ""rootSaveFileMemberId"": ""save-root"",
     ""createdAt"": ""1970-01-01T00:00:00.000Z"",
     ""updatedAt"": ""1970-01-01T00:00:00.000Z""
   },
-  ""attributes"": {},
+  ""members"": {},
   ""values"": {},
-  ""types"": {},
+  ""classes"": {},
   ""enums"": {},
   ""files"": {
     ""file-1"": {
@@ -675,14 +675,14 @@ namespace NeoCompose.Tests
     ""_id"": ""project-1"",
     ""id"": ""project-1"",
     ""name"": ""Project One"",
-    ""rootAssetsAttributeId"": ""assets-root"",
-    ""rootSaveFileAttributeId"": ""save-root"",
+    ""rootAssetsMemberId"": ""assets-root"",
+    ""rootSaveFileMemberId"": ""save-root"",
     ""createdAt"": ""1970-01-01T00:00:00.000Z"",
     ""updatedAt"": ""1970-01-01T00:00:00.000Z""
   },
-  ""attributes"": {},
+  ""members"": {},
   ""values"": {},
-  ""types"": {},
+  ""classes"": {},
   ""enums"": {},
   ""files"": {
     ""file-1"": {
@@ -799,14 +799,14 @@ namespace NeoCompose.Tests
     ""_id"": ""project-1"",
     ""id"": ""project-1"",
     ""name"": ""Project One"",
-    ""rootAssetsAttributeId"": ""assets-root"",
-    ""rootSaveFileAttributeId"": ""save-root"",
+    ""rootAssetsMemberId"": ""assets-root"",
+    ""rootSaveFileMemberId"": ""save-root"",
     ""createdAt"": ""1970-01-01T00:00:00.000Z"",
     ""updatedAt"": ""1970-01-01T00:00:00.000Z""
   },
-  ""attributes"": {},
+  ""members"": {},
   ""values"": {},
-  ""types"": {},
+  ""classes"": {},
   ""enums"": {},
   ""files"": {
     ""file-1"": {
@@ -1154,7 +1154,7 @@ namespace NeoCompose.Tests
             api.exportResponse.diagnostics.Add(new NeoComposeCodegenDiagnostic
             {
                 severity = "error",
-                path = "types.bad",
+                path = "classes.bad",
                 message = "Bad generated type.",
             });
             var assets = new FakeAssetService();
@@ -1267,14 +1267,14 @@ namespace NeoCompose.Tests
     ""_id"": ""project-1"",
     ""id"": ""project-1"",
     ""name"": ""Project One"",
-    ""rootAssetsAttributeId"": ""assets-root"",
-    ""rootSaveFileAttributeId"": ""save-root"",
+    ""rootAssetsMemberId"": ""assets-root"",
+    ""rootSaveFileMemberId"": ""save-root"",
     ""createdAt"": ""1970-01-01T00:00:00.000Z"",
     ""updatedAt"": ""1970-01-01T00:00:00.000Z""
   },
-  ""attributes"": {},
+  ""members"": {},
   ""values"": {},
-  ""types"": {},
+  ""classes"": {},
   ""enums"": {},
   ""files"": {
 " + filesJson + @"

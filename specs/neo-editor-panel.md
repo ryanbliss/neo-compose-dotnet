@@ -7,7 +7,7 @@ The SDK's [Editor](../src/NeoComposeUnity/Editor) package should expose a new wi
 1. Searches projects using the `/api/projects` projects api (in `neo-compose`, which exposess next.js rest endpoints). Package should have an env variable for API base path, currently set to `localhost:3000`.
 2. Once project is selected, cache the `projectId` in a neo configuration file in the project. Dev should be able to move the file around their project, but ideally it would default to the same `Resources` directory as `project.json` since future runtime scenarios may need it.
 3. If project is already selected, hide the project search in panel, show the title of the project, and allow them to remove it.
-4. Show a "Synchronize" button, which would pull the project's `project.json` file and `NeoGeneratedTypes.cs`. Have the default path be `Assets/Scripts/Neo` for types and `Assets/Resources/Neo` for the json (create dir(s) if does not exist on click), but allow them to override the directories (path would get written to neo config file). You may need to make a new API endpoint to pull both the `project.json` and `NeoGeneratedTypes.cs` file strings (e.g., `/project/[projectId]/export`).
+4. Show a "Synchronize" button, which would pull the project's `project.json` file and `NeoGeneratedTypes.cs`. Have the default path be `Assets/Scripts/Neo` for classes and `Assets/Resources/Neo` for the json (create dir(s) if does not exist on click), but allow them to override the directories (path would get written to neo config file). You may need to make a new API endpoint to pull both the `project.json` and `NeoGeneratedTypes.cs` file strings (e.g., `/project/[projectId]/export`).
 5. If assets already exist at that directory path when they click "Synchronize", replace the existing files (with a warning confirmation dialog).
 
 ## Full spec
@@ -74,7 +74,7 @@ export interface IProjectUnityEditorExportResponse {
 
 The endpoint should:
 
-- Load the project, attributes, types, values, and enums using the same database helpers used by the project layout.
+- Load the project, members, classes, values, and enums using the same database helpers used by the project layout.
 - Build the same `IProjectUnityExport` shape as `toUnityExport(...)`. Prefer extracting a shared plain-data export helper so the endpoint does not need browser/view-model state.
 - Pretty-print `projectJson` with four-space indentation.
 - Call `generateUnityTypes(...)` and return its `code` as `generatedTypes`.
@@ -342,7 +342,7 @@ Verification policy:
    - Open the Unity sample.
    - Select a project.
    - Synchronize into the default directories.
-   - Confirm Unity imports generated types and `project.json`.
+   - Confirm Unity imports generated classes and `project.json`.
 
 ### Risks and notes
 

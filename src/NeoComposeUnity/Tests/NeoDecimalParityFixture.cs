@@ -3,7 +3,7 @@
 //
 // VENDORED — DO NOT HAND-EDIT.
 // Source of record: neo-compose/src/models/decimal/decimal-parity-fixture.json
-// (specs/decimal-attribute.md §8). This is a verbatim copy embedded as a
+// (specs/decimal-member.md §8). This is a verbatim copy embedded as a
 // C# constant so the Unity Test Runner can consume the cross-runtime decimal
 // parity vectors without asset-loading. Re-vendor this file whenever the web
 // fixture regenerates (regenerate the web fixture, then copy it here).
@@ -19,7 +19,7 @@ namespace NeoCompose.Tests
     public static class NeoDecimalParityFixture
     {
         public const string Json = @"{
-  ""$comment"": ""Cross-runtime decimal parity fixture (specs/decimal-attribute.md \u00a78). Generated against Python's decimal module as an independent oracle (IEEE 754-2008 decimal, ROUND_HALF_EVEN). Consumed by src/models/decimal/decimal-math.test.ts (web) and NeoDecimalMathTests (neo-compose-dotnet, vendored copy). Regenerate rather than hand-edit."",
+  ""$comment"": ""Cross-runtime decimal parity fixture (specs/decimal-member.md \u00a78). Generated against Python's decimal module as an independent oracle (IEEE 754-2008 decimal, ROUND_HALF_EVEN). Consumed by src/models/decimal/decimal-math.test.ts (web) and NeoDecimalMathTests (neo-compose-dotnet, vendored copy). Regenerate rather than hand-edit."",
   ""vectors"": [
     {
       ""op"": ""add"",

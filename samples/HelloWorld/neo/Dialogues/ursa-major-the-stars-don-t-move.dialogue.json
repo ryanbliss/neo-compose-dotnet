@@ -1,5 +1,5 @@
 {
- "id": "ac84d92f-7d6a-42cb-ab60-cf3934c4a665",
+ "id": "40383b6c-50e8-44ca-aa91-d633efe861ce",
  "name": "Ursa Major: the stars don't move",
  "description": null,
  "linkedValueId": "b81df7d3-be41-4685-9111-3cdc1821e693",
@@ -9,7 +9,7 @@
   "relativeOrder": 0,
   "occurrenceLimit": 1
  },
- "when": "return (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes) && !root.Save.Quest.EvidenceArchive;",
+ "when": "return !root.Save.Quest.EvidenceArchive && (root.Save.Quest.Stage == QuestStage.threePaths || root.Save.Quest.Stage == QuestStage.followTheWakes);",
  "start": "u1",
  "nodes": {
   "u4": {

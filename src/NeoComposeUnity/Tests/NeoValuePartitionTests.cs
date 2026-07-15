@@ -15,10 +15,10 @@ using UnityEngine;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// Storage partitions (specs/list-attribute-and-tilegrid-scaling.md §6):
+    /// Storage partitions (specs/list-member-and-tilegrid-scaling.md §6):
     /// project.json ships non-main value rows under
     /// <c>valuePartitions[mapKey]</c>, lazily parsed; a world grid's
-    /// <c>world:&lt;gridTypeId&gt;</c> placement partition auto-loads on grid
+    /// <c>world:&lt;gridClassId&gt;</c> placement partition auto-loads on grid
     /// content access (the grid root + light metadata stay in main, so the
     /// type id the key derives from is resolvable before the placement subtree
     /// loads); overlay writes inherit the partition stamp; commits split the
@@ -26,11 +26,11 @@ namespace NeoCompose.Tests
     /// </summary>
     public class NeoValuePartitionTests
     {
-        private const string GridTypeId = "grid-type";
-        private const string TileTypeId = "tile-type";
-        private const string TileInstanceTypeId = "tile-instance-type";
-        private const string TileLayerLinkTypeId = "tile-layer-link-type";
-        private const string WorldPartitionKey = "world:" + GridTypeId;
+        private const string GridClassId = "grid-class";
+        private const string TileClassId = "tile-class";
+        private const string TileInstanceClassId = "tile-instance-class";
+        private const string TileLayerLinkClassId = "tile-layer-link-class";
+        private const string WorldPartitionKey = "world:" + GridClassId;
         private const string TilesListValueId = "background-link-tiles";
 
         // ------------------------------------------------------------------
@@ -112,7 +112,7 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
 
             var primitive = ResolvePrimitive(client);
-            var tiles = primitive.GetTiles("background-layer", TileTypeId);
+            var tiles = primitive.GetTiles("background-layer", TileClassId);
 
             Assert.IsTrue(client.IsValuePartitionLoaded(WorldPartitionKey));
             Assert.AreEqual(1, tiles.Count);
@@ -124,14 +124,14 @@ namespace NeoCompose.Tests
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
             var primitive = ResolvePrimitive(client);
-            Assert.AreEqual(1, primitive.GetTiles("background-layer", TileTypeId).Count);
+            Assert.AreEqual(1, primitive.GetTiles("background-layer", TileClassId).Count);
 
             client.UnloadValuePartition(WorldPartitionKey);
             Assert.IsFalse(client.IsValuePartitionLoaded(WorldPartitionKey));
 
             // The same primitive keeps working: the query path re-ensures the
             // partition and rebuilds the spatial index.
-            Assert.AreEqual(1, primitive.GetTiles("background-layer", TileTypeId).Count);
+            Assert.AreEqual(1, primitive.GetTiles("background-layer", TileClassId).Count);
             Assert.IsTrue(client.IsValuePartitionLoaded(WorldPartitionKey));
         }
 
@@ -204,10 +204,10 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
             client.LoadValuePartition(WorldPartitionKey);
 
-            client.SetSaveValue(new ObjectAttributeValue
+            client.SetSaveValue(new ObjectMemberValue
             {
                 id = "painted-1",
-                typeId = TileInstanceTypeId,
+                classId = TileInstanceClassId,
                 containerId = TilesListValueId,
                 value = new Dictionary<string, string>(),
             });
@@ -236,7 +236,7 @@ namespace NeoCompose.Tests
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildPartitionedProjectData());
 
-            client.SetSaveValue(new StringAttributeValue
+            client.SetSaveValue(new StringMemberValue
             {
                 id = "plain-save-row",
                 value = "hello",
@@ -265,9 +265,9 @@ namespace NeoCompose.Tests
         [Test]
         public void Split_UnstampedOverlay_PassesThroughZeroCopy()
         {
-            var merged = NeoSaveValues.FromTypedValues(new Dictionary<string, AttributeValue>
+            var merged = NeoSaveValues.FromTypedValues(new Dictionary<string, MemberValue>
             {
-                ["row-a"] = new StringAttributeValue { id = "row-a", value = "x" },
+                ["row-a"] = new StringMemberValue { id = "row-a", value = "x" },
             });
 
             var (mainValues, partitions) = NeoSaveValuePartitions.Split(merged);
@@ -279,10 +279,10 @@ namespace NeoCompose.Tests
         [Test]
         public void Split_RoutesRowsByStamp()
         {
-            var merged = NeoSaveValues.FromTypedValues(new Dictionary<string, AttributeValue>
+            var merged = NeoSaveValues.FromTypedValues(new Dictionary<string, MemberValue>
             {
-                ["row-a"] = new StringAttributeValue { id = "row-a", value = "x" },
-                ["row-b"] = new ObjectAttributeValue
+                ["row-a"] = new StringMemberValue { id = "row-a", value = "x" },
+                ["row-b"] = new ObjectMemberValue
                 {
                     id = "row-b",
                     mapKey = WorldPartitionKey,
@@ -342,29 +342,29 @@ namespace NeoCompose.Tests
         /// the tile type; queries otherwise mirror production wiring.</summary>
         private static NeoReadOnlyTileGridPrimitive ResolvePrimitive(NeoClient client)
         {
-            var readOnlyFactories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+            var readOnlyFactories = new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
-                [TileTypeId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
+                [TileClassId] = (resolvedClient, node) => new TestTile(resolvedClient, node),
             };
             return NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
                 "town-grid",
                 readOnlyFactories,
-                new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>());
+                new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>());
         }
 
-        private sealed class TestTile : NeoGeneratedCustomValue
+        private sealed class TestTile : NeoGeneratedClassValue
         {
-            public TestTile(NeoClient client, NeoAttributeCustom node)
-                : base(client, node, TileTypeId)
+            public TestTile(NeoClient client, NeoMemberClass node)
+                : base(client, node, TileClassId)
             {
             }
         }
 
         /// <summary>
         /// A grid whose <c>Children</c> placement subtree ships in
-        /// <c>valuePartitions["world:grid-type"]</c> (keyed on the grid's
-        /// concrete type id): Children list → tile layer link → unordered
+        /// <c>valuePartitions["world:grid-class"]</c> (keyed on the grid's
+        /// concrete class id): Children list → tile layer link → unordered
         /// Tiles list ← one placement (Cell + Tile lookup). The grid root row
         /// itself lives in the MAIN partition (unstamped), so its type id — the
         /// partition key — is resolvable before the placement subtree loads.
@@ -373,50 +373,50 @@ namespace NeoCompose.Tests
         /// </summary>
         private static ProjectData BuildPartitionedProjectData()
         {
-            var rootType = new CustomType
+            var rootClass = new NeoSchemaClass
             {
-                id = "root-type",
+                id = "root-class",
                 projectId = "project-a",
                 name = "Root",
                 schema = new Dictionary<string, string>(),
             };
-            var gridType = new CustomType
+            var gridClass = new NeoSchemaClass
             {
-                id = GridTypeId,
+                id = GridClassId,
                 projectId = "project-a",
                 name = "Grid",
                 schema = new Dictionary<string, string>
                 {
-                    ["Children"] = "grid-children-attribute",
+                    ["Children"] = "grid-children-member",
                 },
             };
-            var tileType = new CustomType
+            var tileClass = new NeoSchemaClass
             {
-                id = TileTypeId,
+                id = TileClassId,
                 projectId = "project-a",
                 name = "Tile",
                 schema = new Dictionary<string, string>(),
             };
-            var tileInstanceType = new CustomType
+            var tileInstanceClass = new NeoSchemaClass
             {
-                id = TileInstanceTypeId,
+                id = TileInstanceClassId,
                 projectId = "project-a",
                 name = "Tile Instance",
                 schema = new Dictionary<string, string>
                 {
-                    ["Cell"] = "tile-instance-cell-attribute",
-                    ["Tile"] = "tile-instance-tile-attribute",
+                    ["Cell"] = "tile-instance-cell-member",
+                    ["Tile"] = "tile-instance-tile-member",
                 },
             };
-            var tileLayerLinkType = new CustomType
+            var tileLayerLinkClass = new NeoSchemaClass
             {
-                id = TileLayerLinkTypeId,
+                id = TileLayerLinkClassId,
                 projectId = "project-a",
                 name = "Tile Layer Link",
                 schema = new Dictionary<string, string>
                 {
-                    ["TileLayer"] = "tile-layer-link-layer-attribute",
-                    ["Tiles"] = "tile-layer-link-tiles-attribute",
+                    ["TileLayer"] = "tile-layer-link-layer-member",
+                    ["Tiles"] = "tile-layer-link-tiles-member",
                 },
             };
 
@@ -426,7 +426,7 @@ namespace NeoCompose.Tests
                     "town-grid-children", null, new JArray("background-link")),
                 ["background-link"] = PartitionRow(
                     "background-link",
-                    TileLayerLinkTypeId,
+                    TileLayerLinkClassId,
                     new JObject
                     {
                         ["TileLayer"] = "background-link-layer",
@@ -437,7 +437,7 @@ namespace NeoCompose.Tests
                 [TilesListValueId] = PartitionRow(TilesListValueId, null, new JArray()),
                 ["floor-1"] = PartitionRow(
                     "floor-1",
-                    TileInstanceTypeId,
+                    TileInstanceClassId,
                     new JObject
                     {
                         ["Cell"] = "floor-1-cell",
@@ -457,104 +457,104 @@ namespace NeoCompose.Tests
                     id = "project-a",
                     _id = "project-a",
                     name = "Partition Test",
-                    rootAssetsAttributeId = "root-assets",
-                    rootSaveFileAttributeId = "root-save",
-                    rootSessionAttributeId = "root-session",
+                    rootAssetsMemberId = "root-assets",
+                    rootSaveFileMemberId = "root-save",
+                    rootSessionMemberId = "root-session",
                 },
-                attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
+                members = new Dictionary<string, NeoCompose.Runtime.Json.Member>
                 {
-                    ["root-assets"] = RootAttribute("root-assets", "root-assets-value", rootType.id),
-                    ["root-save"] = RootAttribute("root-save", "root-save-value", rootType.id),
-                    ["root-session"] = RootAttribute("root-session", "root-session-value", rootType.id),
-                    ["grid-children-attribute"] = new ListAttribute
+                    ["root-assets"] = RootMember("root-assets", "root-assets-value", rootClass.id),
+                    ["root-save"] = RootMember("root-save", "root-save-value", rootClass.id),
+                    ["root-session"] = RootMember("root-session", "root-session-value", rootClass.id),
+                    ["grid-children-member"] = new ListMember
                     {
-                        id = "grid-children-attribute",
+                        id = "grid-children-member",
                         projectId = "project-a",
                         name = "Children",
-                        type = AttributeType.List,
-                        entryAttributeId = "grid-child-entry-attribute",
+                        kind = MemberKind.List,
+                        entryMemberId = "grid-child-entry-member",
                     },
-                    ["grid-child-entry-attribute"] = new CustomAttribute
+                    ["grid-child-entry-member"] = new ClassMember
                     {
-                        id = "grid-child-entry-attribute",
+                        id = "grid-child-entry-member",
                         projectId = "project-a",
                         name = "Child",
-                        type = AttributeType.Custom,
-                        customTypeId = TileLayerLinkTypeId,
+                        kind = MemberKind.Class,
+                        classId = TileLayerLinkClassId,
                     },
-                    ["tile-instance-cell-attribute"] = new Vector2IntAttribute
+                    ["tile-instance-cell-member"] = new Vector2IntMember
                     {
-                        id = "tile-instance-cell-attribute",
+                        id = "tile-instance-cell-member",
                         projectId = "project-a",
                         name = "Cell",
-                        type = AttributeType.Vector2Int,
+                        kind = MemberKind.Vector2Int,
                     },
-                    ["tile-instance-tile-attribute"] = new LookupAttribute
+                    ["tile-instance-tile-member"] = new LookupMember
                     {
-                        id = "tile-instance-tile-attribute",
+                        id = "tile-instance-tile-member",
                         projectId = "project-a",
                         name = "Tile",
-                        type = AttributeType.Lookup,
-                        collectionAttributeId = "tile-layer-link-tiles-attribute",
+                        kind = MemberKind.Lookup,
+                        collectionMemberId = "tile-layer-link-tiles-member",
                     },
-                    ["tile-layer-link-layer-attribute"] = new LookupAttribute
+                    ["tile-layer-link-layer-member"] = new LookupMember
                     {
-                        id = "tile-layer-link-layer-attribute",
+                        id = "tile-layer-link-layer-member",
                         projectId = "project-a",
                         name = "TileLayer",
-                        type = AttributeType.Lookup,
-                        collectionAttributeId = "grid-children-attribute",
+                        kind = MemberKind.Lookup,
+                        collectionMemberId = "grid-children-member",
                     },
-                    ["tile-layer-link-tiles-attribute"] = new ListAttribute
+                    ["tile-layer-link-tiles-member"] = new ListMember
                     {
-                        id = "tile-layer-link-tiles-attribute",
+                        id = "tile-layer-link-tiles-member",
                         projectId = "project-a",
                         name = "Tiles",
-                        type = AttributeType.List,
-                        entryAttributeId = "tile-layer-link-tile-entry-attribute",
+                        kind = MemberKind.List,
+                        entryMemberId = "tile-layer-link-tile-entry-member",
                         listKind = NeoListKinds.Unordered,
                         storageKey = WorldPartitionKey,
                     },
-                    ["tile-layer-link-tile-entry-attribute"] = new CustomAttribute
+                    ["tile-layer-link-tile-entry-member"] = new ClassMember
                     {
-                        id = "tile-layer-link-tile-entry-attribute",
+                        id = "tile-layer-link-tile-entry-member",
                         projectId = "project-a",
                         name = "Tile",
-                        type = AttributeType.Custom,
-                        customTypeId = TileInstanceTypeId,
+                        kind = MemberKind.Class,
+                        classId = TileInstanceClassId,
                     },
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    ["root-assets-value"] = ObjectValue("root-assets-value", rootType.id),
-                    ["root-save-value"] = ObjectValue("root-save-value", rootType.id),
-                    ["root-session-value"] = ObjectValue("root-session-value", rootType.id),
+                    ["root-assets-value"] = ObjectValue("root-assets-value", rootClass.id),
+                    ["root-save-value"] = ObjectValue("root-save-value", rootClass.id),
+                    ["root-session-value"] = ObjectValue("root-session-value", rootClass.id),
                     // The grid ROOT + its light metadata live in the main
                     // partition (unstamped): only the Children placement subtree
                     // is partitioned, and the partition key derives from this
-                    // row's typeId.
-                    ["town-grid"] = new ObjectAttributeValue
+                    // row's classId.
+                    ["town-grid"] = new ObjectMemberValue
                     {
                         id = "town-grid",
-                        typeId = GridTypeId,
+                        classId = GridClassId,
                         value = new Dictionary<string, string>
                         {
                             ["Children"] = "town-grid-children",
                         },
                     },
-                    ["floor-tile"] = ObjectValue("floor-tile", TileTypeId),
+                    ["floor-tile"] = ObjectValue("floor-tile", TileClassId),
                 },
                 valuePartitions = new Dictionary<string, JToken>
                 {
                     [WorldPartitionKey] = partition,
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    [rootType.id] = rootType,
-                    [GridTypeId] = gridType,
-                    [TileTypeId] = tileType,
-                    [TileInstanceTypeId] = tileInstanceType,
-                    [TileLayerLinkTypeId] = tileLayerLinkType,
+                    [rootClass.id] = rootClass,
+                    [GridClassId] = gridClass,
+                    [TileClassId] = tileClass,
+                    [TileInstanceClassId] = tileInstanceClass,
+                    [TileLayerLinkClassId] = tileLayerLinkClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
@@ -562,7 +562,7 @@ namespace NeoCompose.Tests
 
         private static JObject PartitionRow(
             string id,
-            string? typeId,
+            string? classId,
             JToken value,
             string? containerId = null)
         {
@@ -574,34 +574,34 @@ namespace NeoCompose.Tests
                 ["mapKey"] = WorldPartitionKey,
                 ["value"] = value,
             };
-            if (typeId is not null) row["typeId"] = typeId;
+            if (classId is not null) row["classId"] = classId;
             if (containerId is not null) row["containerId"] = containerId;
             return row;
         }
 
-        private static CustomAttribute RootAttribute(
+        private static ClassMember RootMember(
             string id,
             string valueId,
-            string customTypeId)
+            string classId)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = "project-a",
                 name = id,
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
                 valueId = valueId,
-                customTypeId = customTypeId,
+                classId = classId,
             };
         }
 
-        private static ObjectAttributeValue ObjectValue(string id, string typeId)
+        private static ObjectMemberValue ObjectValue(string id, string classId)
         {
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = typeId,
+                classId = classId,
                 value = new Dictionary<string, string>(),
             };
         }

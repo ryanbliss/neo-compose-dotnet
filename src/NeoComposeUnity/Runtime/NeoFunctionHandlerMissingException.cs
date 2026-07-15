@@ -9,7 +9,7 @@ namespace NeoCompose.Runtime
 {
     /// <summary>
     /// Thrown when generated C# code invokes a Neo Compose Function
-    /// attribute before a developer-provided FunctionHandler has been
+    /// member before a developer-provided FunctionHandler has been
     /// attached to the generated value wrapper.
     /// </summary>
     public sealed class NeoFunctionHandlerMissingException : InvalidOperationException

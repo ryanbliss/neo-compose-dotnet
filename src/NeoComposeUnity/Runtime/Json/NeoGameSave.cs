@@ -43,7 +43,7 @@ namespace NeoCompose.Runtime.Json
         public NeoSaveValues values = NeoSaveValues.Empty;
 
         /// <summary>
-        /// Sparse static-member binding overrides keyed by attribute id.
+        /// Sparse static-member binding overrides keyed by member id.
         /// Missing keys inherit authored bindings; present null values are
         /// explicit tombstones. The target rows stay in <see cref="values"/>.
         /// </summary>
@@ -51,12 +51,11 @@ namespace NeoCompose.Runtime.Json
 
         /// <summary>
         /// Storage-partition presentation of the overlay
-        /// (specs/list-attribute-and-tilegrid-scaling.md §6): the same rows as
+        /// (specs/list-member-and-tilegrid-scaling.md §6): the same rows as
         /// <see cref="values"/> split by their <c>mapKey</c> stamp, keyed by
-        /// partition key. <see cref="values"/> remains the MERGED overlay (all
-        /// partitions — backward compatible) and is what the SDK loads from;
-        /// this sibling is informational on read and null on wires that
-        /// predate partitions.
+        /// partition key. <see cref="values"/> remains the merged overlay and
+        /// is what the SDK loads from; this sibling is informational on read
+        /// and null when there are no non-main partitions.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public Dictionary<string, NeoSaveValues>? valuePartitions;
@@ -78,7 +77,7 @@ namespace NeoCompose.Runtime.Json
         /// materialize <see cref="values"/> into typed rows, leaving them opaque on
         /// failure.
         /// </summary>
-        public bool TryDeserializeValues(out Dictionary<string, AttributeValue> deserialized) =>
+        public bool TryDeserializeValues(out Dictionary<string, MemberValue> deserialized) =>
             values.TryDeserialize(out deserialized);
     }
 
@@ -88,6 +87,7 @@ namespace NeoCompose.Runtime.Json
     /// snapshot's content is inlined; <see cref="snapshotHash"/> drives optimistic
     /// concurrency and conflict detection.
     /// </summary>
+    [JsonConverter(typeof(Schema8SaveEnvelopeConverter<RemoteGameSave>))]
     public sealed class RemoteGameSave : NeoGameSaveBase
     {
         /// <summary>Opaque server document id.</summary>
@@ -142,6 +142,7 @@ namespace NeoCompose.Runtime.Json
     /// save has been synchronized at least once (a from-scratch local save is
     /// local-only until its first commit).
     /// </summary>
+    [JsonConverter(typeof(Schema8SaveEnvelopeConverter<LocalGameSave>))]
     public sealed class LocalGameSave : NeoGameSaveBase
     {
         /// <summary>Stable client-generated save id; the primary local key.</summary>

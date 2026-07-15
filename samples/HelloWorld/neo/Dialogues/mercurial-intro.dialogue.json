@@ -1,5 +1,5 @@
 {
- "id": "71478d85-4586-4ca8-8b95-226a391a9a5f",
+ "id": "3e45ea6f-e8ad-4fcf-938d-808b36cf92ae",
  "name": "Mercurial intro",
  "description": null,
  "linkedValueId": "88cacaa9-25d2-4cfd-bd10-55db71139608",
@@ -47,7 +47,7 @@
             }
            },
            "pointer": {
-            "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+            "memberId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
             "receiver": {
              "kind": "instance",
              "pointer": {
@@ -192,7 +192,7 @@
             }
            },
            "pointer": {
-            "attributeId": "f66fba24-44d4-467c-98ac-4db1539910df",
+            "memberId": "f66fba24-44d4-467c-98ac-4db1539910df",
             "receiver": {
              "kind": "instance",
              "pointer": {

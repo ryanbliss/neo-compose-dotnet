@@ -24,14 +24,14 @@ namespace NeoCompose.Runtime.Json
         public List<string> restoredToAuthored = new();
 
         /// <summary>
-        /// Static-member binding upserts keyed by attribute id. Values are
+        /// Static-member binding upserts keyed by member id. Values are
         /// target value ids or null tombstones.
         /// </summary>
         public Dictionary<string, string?> staticBindings = new();
 
         /// <summary>
         /// Static-member bindings to delete from the sparse overlay so the
-        /// authored <c>attribute.valueId</c> is visible again.
+        /// authored <c>member.valueId</c> is visible again.
         /// </summary>
         public List<string> restoredStaticBindingsToAuthored = new();
 

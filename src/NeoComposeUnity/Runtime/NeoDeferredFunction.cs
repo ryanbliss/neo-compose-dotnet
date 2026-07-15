@@ -16,13 +16,13 @@ namespace NeoCompose.Runtime
         public CancellationToken CancellationToken => state.CancellationToken;
 
         internal NeoDeferredFunctionBase(
-            string attributeId,
+            string memberId,
             string functionName,
             Action<object?> complete,
             Action<Exception> fail,
             Action<string>? dispose = null)
             : this(new NeoDeferredFunctionState(
-                attributeId,
+                memberId,
                 functionName,
                 complete,
                 fail,
@@ -35,7 +35,7 @@ namespace NeoCompose.Runtime
             this.state = state;
         }
 
-        public string AttributeId => state.AttributeId;
+        public string MemberId => state.MemberId;
         public string FunctionName => state.FunctionName;
 
         public void Fail(Exception exception)
@@ -67,20 +67,20 @@ namespace NeoCompose.Runtime
         private bool disposed;
 
         internal NeoDeferredFunctionState(
-            string attributeId,
+            string memberId,
             string functionName,
             Action<object?> complete,
             Action<Exception> fail,
             Action<string>? dispose = null)
         {
-            AttributeId = attributeId;
+            MemberId = memberId;
             FunctionName = functionName;
             this.complete = complete;
             this.fail = fail;
             this.dispose = dispose;
         }
 
-        public string AttributeId { get; }
+        public string MemberId { get; }
         public string FunctionName { get; }
         public bool Pending => pending && !disposed;
         public CancellationToken CancellationToken => cancellation.Token;
@@ -127,12 +127,12 @@ namespace NeoCompose.Runtime
     public sealed class NeoDeferredFunction : NeoDeferredFunctionBase
     {
         internal NeoDeferredFunction(
-            string attributeId,
+            string memberId,
             string functionName,
             Action<object?> complete,
             Action<Exception> fail,
             Action<string>? dispose = null)
-            : base(attributeId, functionName, complete, fail, dispose)
+            : base(memberId, functionName, complete, fail, dispose)
         {
         }
 
@@ -150,12 +150,12 @@ namespace NeoCompose.Runtime
     public sealed class NeoDeferredFunction<T> : NeoDeferredFunctionBase
     {
         internal NeoDeferredFunction(
-            string attributeId,
+            string memberId,
             string functionName,
             Action<object?> complete,
             Action<Exception> fail,
             Action<string>? dispose = null)
-            : base(attributeId, functionName, complete, fail, dispose)
+            : base(memberId, functionName, complete, fail, dispose)
         {
         }
 

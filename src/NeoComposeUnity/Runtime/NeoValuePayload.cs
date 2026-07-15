@@ -11,22 +11,22 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// Payload envelope for generated code that needs to create a new
     /// save-side value row while also carrying metadata that does not live
-    /// inside the raw value payload, especially Custom value <c>typeId</c>.
+    /// inside the raw value payload, especially Class value <c>classId</c>.
     /// </summary>
     public sealed class NeoValuePayload
     {
         public object? value { get; }
-        public string? typeId { get; }
-        public IReadOnlyList<AttributeValue> valueRows { get; }
+        public string? classId { get; }
+        public IReadOnlyList<MemberValue> valueRows { get; }
 
         public NeoValuePayload(
             object? value,
-            string? typeId = null,
-            IReadOnlyList<AttributeValue>? valueRows = null)
+            string? classId = null,
+            IReadOnlyList<MemberValue>? valueRows = null)
         {
             this.value = value;
-            this.typeId = typeId;
-            this.valueRows = valueRows ?? new List<AttributeValue>();
+            this.classId = classId;
+            this.valueRows = valueRows ?? new List<MemberValue>();
         }
     }
 }

@@ -15,11 +15,11 @@ namespace NeoCompose.Runtime
     /// </summary>
     public interface INeoClient : IDisposable
     {
-        NeoAttributeCustom AssetsRoot { get; }
+        NeoMemberClass AssetsRoot { get; }
 
-        NeoAttributeCustomWritable SaveRoot { get; }
+        NeoMemberClassWritable SaveRoot { get; }
 
-        NeoAttributeCustomWritable SessionRoot { get; }
+        NeoMemberClassWritable SessionRoot { get; }
 
         NeoLocalization Localization { get; }
 

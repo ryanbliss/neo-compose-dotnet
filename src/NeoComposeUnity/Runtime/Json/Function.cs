@@ -29,21 +29,21 @@ namespace NeoCompose.Runtime.Json
     // Mirrors TS-side INSFunctionCollection*Info family.
 
     /// <summary>
-    /// Info for the intrinsic Custom.Clone operation. The exact constructed
-    /// Custom type is carried on the wire so this never masquerades as a
-    /// schema Function attribute.
+    /// Info for the intrinsic Class.Clone operation. The exact constructed
+    /// Class is carried on the wire so this never masquerades as a
+    /// schema Function member.
     /// </summary>
-    public class FunctionCustomCloneInfo
+    public class FunctionClassCloneInfo
     {
         public Pointer receiverPointer = null!;
-        public CustomTypeInfo customTypeInfo = null!;
+        public ClassTypeInfo classTypeInfo = null!;
     }
 
-    /// <summary>One explicitly supplied field of a Custom constructor.</summary>
-    public class FunctionCustomConstructorField
+    /// <summary>One explicitly supplied field of a Class constructor.</summary>
+    public class FunctionClassConstructorField
     {
         public string schemaKey = null!;
-        public string attributeId = null!;
+        public string memberId = null!;
         public Pointer valuePointer = null!;
     }
 
@@ -51,12 +51,12 @@ namespace NeoCompose.Runtime.Json
     /// Constructor intrinsic payload. Argument ordering/default decisions are
     /// already compiled into <see cref="fields"/> by the shared language
     /// package; the runtime materializes only those explicit values and lets
-    /// normal Custom defaults fill required omissions.
+    /// normal Class defaults fill required omissions.
     /// </summary>
-    public class FunctionCustomConstructorInfo
+    public class FunctionClassConstructorInfo
     {
-        public CustomTypeInfo customTypeInfo = null!;
-        public FunctionCustomConstructorField[] fields = null!;
+        public ClassTypeInfo classTypeInfo = null!;
+        public FunctionClassConstructorField[] fields = null!;
     }
 
     /// <summary>
@@ -115,12 +115,12 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// Info for a declared List index lookup. The schema provenance is
     /// carried in IR so runtime evaluation does not depend on generated
-    /// wrapper types.
+    /// wrapper classes.
     /// </summary>
     public class FunctionListIndexInfo
     {
         public Pointer collectionPointer = null!;
-        public string listAttributeId = null!;
+        public string listMemberId = null!;
         public string schemaKey = null!;
         public bool unique;
         /// <summary>One of <see cref="ListIndexKeyKind"/>.</summary>
@@ -149,7 +149,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public class FunctionVectorConstructorInfo
     {
-        public AttributeType vectorType;
+        public MemberKind vectorType;
         public Pointer[] componentPointers = null!;
     }
 
@@ -169,7 +169,7 @@ namespace NeoCompose.Runtime.Json
 
     /// <summary>
     /// Info shape for <c>decimalOp</c>: a method-call-style decimal builtin
-    /// (specs/decimal-attribute.md decision 7). Mirrors TS-side
+    /// (specs/decimal-member.md decision 7). Mirrors TS-side
     /// <c>INSFunctionDecimalOpInfo</c>.
     /// </summary>
     public class FunctionDecimalOpInfo
@@ -189,14 +189,14 @@ namespace NeoCompose.Runtime.Json
 
     // ---------- Per-function variants ----------
 
-    public class CustomCloneFunction : Function
+    public class ClassCloneFunction : Function
     {
-        public FunctionCustomCloneInfo info = null!;
+        public FunctionClassCloneInfo info = null!;
     }
 
-    public class CustomConstructorFunction : Function
+    public class ClassConstructorFunction : Function
     {
-        public FunctionCustomConstructorInfo info = null!;
+        public FunctionClassConstructorInfo info = null!;
     }
 
     public class SelectFunction : Function
@@ -265,8 +265,8 @@ namespace NeoCompose.Runtime.Json
         {
             switch (discriminator.Value<string>())
             {
-                case FunctionKind.CustomClone: return typeof(CustomCloneFunction);
-                case FunctionKind.CustomConstructor: return typeof(CustomConstructorFunction);
+                case FunctionKind.ClassClone: return typeof(ClassCloneFunction);
+                case FunctionKind.ClassConstructor: return typeof(ClassConstructorFunction);
                 case FunctionKind.Select: return typeof(SelectFunction);
                 case FunctionKind.First: return typeof(FirstFunction);
                 case FunctionKind.FirstOrDefault: return typeof(FirstOrDefaultFunction);

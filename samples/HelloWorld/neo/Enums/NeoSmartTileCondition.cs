@@ -16,8 +16,8 @@ public enum NeoSmartTileCondition
     This,
     [NeoEnumOption("NotThis", Text = "7dcfeadc-d448-478d-82ae-33ebbdd62c7a")]
     NotThis,
-    [NeoEnumOption("InheritsFromType", Text = "ce735446-bbb5-4f10-ab06-5f43e7be9ff0")]
-    InheritsFromType,
-    [NeoEnumOption("NotInheritsFromType", Text = "d305c446-c6f3-4f07-83d4-8388d6695a4c")]
-    NotInheritsFromType,
+    [NeoEnumOption("InheritsFromClass", Text = "ce735446-bbb5-4f10-ab06-5f43e7be9ff0")]
+    InheritsFromClass,
+    [NeoEnumOption("NotInheritsFromClass", Text = "d305c446-c6f3-4f07-83d4-8388d6695a4c")]
+    NotInheritsFromClass,
 }

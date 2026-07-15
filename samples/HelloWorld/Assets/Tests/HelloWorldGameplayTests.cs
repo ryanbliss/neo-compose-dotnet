@@ -697,7 +697,13 @@ namespace HelloWorld.Assets.Tests
             {
                 var detail = result.Error?.ToString() ?? "(no error)";
                 foreach (var warning in result.Warnings) detail += $" | {warning.Message}";
-                Assert.Fail($"{outpost.Name}: a visit dialogue should trigger (preferFirst={preferFirstOption}) — {detail}");
+                Assert.Fail(
+                    $"{outpost.Name}: a visit dialogue should trigger " +
+                    $"(preferFirst={preferFirstOption}, valueId={outpost.valueId}, " +
+                    $"visitCount={outpost.Save.VisitCount}, stage={neo.Save.Quest.Stage}, " +
+                    $"archive={neo.Save.Quest.EvidenceArchive}, " +
+                    $"ledger={neo.Save.Quest.EvidenceLedger}, " +
+                    $"faith={neo.Save.Quest.EvidenceFaith}) — {detail}");
             }
             WalkDialogue(result.Dialogue, outpost.Name, preferFirstOption);
         }

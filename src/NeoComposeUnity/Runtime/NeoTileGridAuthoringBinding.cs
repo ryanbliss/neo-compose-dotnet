@@ -22,7 +22,7 @@ namespace NeoCompose.Runtime
     {
         public string projectId = "";
         public string versionId = "";
-        public string attributeId = "";
+        public string memberId = "";
         public string valueId = "";
         public new NeoTileGridRenderer? renderer;
         public bool refreshOnEnable = true;
