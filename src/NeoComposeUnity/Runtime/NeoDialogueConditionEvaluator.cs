@@ -82,13 +82,13 @@ namespace NeoCompose.Runtime
         {
             var root = new Dictionary<string, object?>(3)
             {
-                ["Assets"] = client.assets.value is ObjectAttributeValue assets
+                ["Assets"] = client.assets.value is ObjectMemberValue assets
                     ? NSGetterEvaluator.UnwrapRow(assets, ctx, NeoValueOwnership.Asset)
                     : null,
-                ["Save"] = client.save.value is ObjectAttributeValue save
+                ["Save"] = client.save.value is ObjectMemberValue save
                     ? NSGetterEvaluator.UnwrapRow(save, ctx, NeoValueOwnership.Save)
                     : null,
-                ["Session"] = client.session.value is ObjectAttributeValue session
+                ["Session"] = client.session.value is ObjectMemberValue session
                     ? NSGetterEvaluator.UnwrapRow(session, ctx, NeoValueOwnership.Session)
                     : null,
             };

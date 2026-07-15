@@ -62,7 +62,7 @@
                         }
                       },
                       "pointer": {
-                        "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                        "memberId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
                         "receiver": {
                           "kind": "instance",
                           "pointer": {
@@ -106,7 +106,7 @@
               {
                 "call": {
                   "args": [],
-                  "attributeId": "cab850e3-cf8c-42b3-a70b-f0066089e6fb",
+                  "memberId": "cab850e3-cf8c-42b3-a70b-f0066089e6fb",
                   "receiver": {
                     "kind": "instance",
                     "pointer": {
@@ -177,7 +177,7 @@
                         }
                       },
                       "pointer": {
-                        "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                        "memberId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
                         "receiver": {
                           "kind": "instance",
                           "pointer": {
@@ -223,7 +223,7 @@
                       }
                     }
                   ],
-                  "attributeId": "e549555b-9276-48d8-be33-156972520d31",
+                  "memberId": "e549555b-9276-48d8-be33-156972520d31",
                   "receiver": {
                     "kind": "instance",
                     "pointer": {
@@ -438,7 +438,7 @@
                         "typeInfo": {
                           "required": true,
                           "type": 7,
-                          "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
+                          "classId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
                         },
                         "value": null
                       }
@@ -446,7 +446,7 @@
                     "typeInfo": {
                       "required": true,
                       "type": 7,
-                      "typeId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
+                      "classId": "60c25a92-cb01-46f7-b5cf-c9d950586116"
                     }
                   },
                   {
@@ -457,7 +457,7 @@
                         "typeInfo": {
                           "required": true,
                           "type": 7,
-                          "typeId": "__root__"
+                          "classId": "__root__"
                         },
                         "value": null
                       }
@@ -465,7 +465,7 @@
                     "typeInfo": {
                       "required": true,
                       "type": 7,
-                      "typeId": "__root__"
+                      "classId": "__root__"
                     }
                   },
                   {
@@ -476,7 +476,7 @@
                         "typeInfo": {
                           "required": true,
                           "type": 7,
-                          "typeId": "__dialogue_context__"
+                          "classId": "__dialogue_context__"
                         },
                         "value": null
                       }
@@ -484,7 +484,7 @@
                     "typeInfo": {
                       "required": true,
                       "type": 7,
-                      "typeId": "__dialogue_context__"
+                      "classId": "__dialogue_context__"
                     }
                   }
                 ],
@@ -539,7 +539,7 @@
                         }
                       },
                       "pointer": {
-                        "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
+                        "memberId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
                         "receiver": {
                           "kind": "instance",
                           "pointer": {

@@ -12,7 +12,7 @@ namespace NeoCompose.Tests
 {
     /// <summary>
     /// Newtonsoft.Json round-trip coverage for <see cref="ProjectData"/>
-    /// and the full IR tree rooted on <see cref="Attribute.getter"/>.
+    /// and the full IR tree rooted on <see cref="Member.getter"/>.
     ///
     /// Two fixtures back the suite:
     ///
@@ -52,15 +52,15 @@ namespace NeoCompose.Tests
         {
             var typeInfo = new PrimitiveTypeInfo
             {
-                type = AttributeType.Int,
+                type = MemberKind.Int,
                 required = true,
             };
-            var source = new NSPropertyAttribute
+            var source = new NSPropertyMember
             {
                 id = "property-with-setter",
                 projectId = "project",
                 name = "Score",
-                type = AttributeType.NSProperty,
+                kind = MemberKind.NSProperty,
                 isStatic = true,
                 code = "return root.Save.Score;",
                 returnTypeInfo = typeInfo,
@@ -99,7 +99,7 @@ namespace NeoCompose.Tests
                     },
                     typeInfo = new PrimitiveTypeInfo
                     {
-                        type = AttributeType.Null,
+                        type = MemberKind.Null,
                         required = true,
                     },
                 },
@@ -108,8 +108,8 @@ namespace NeoCompose.Tests
             };
 
             string json = JsonConvert.SerializeObject(source);
-            var roundTripped = (NSPropertyAttribute)JsonConvert
-                .DeserializeObject<Attribute>(json)!;
+            var roundTripped = (NSPropertyMember)JsonConvert
+                .DeserializeObject<Member>(json)!;
 
             Assert.AreEqual(source.setterCode, roundTripped.setterCode);
             Assert.IsTrue(roundTripped.isStatic);
@@ -120,7 +120,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void WriteTarget_RuntimeWritabilityAndSchemaSevenVocabularyRoundTrip()
+        public void WriteTarget_RuntimeWritabilityAndSchemaEightVocabularyRoundTrip()
         {
             var source = new WriteTarget
             {
@@ -131,7 +131,7 @@ namespace NeoCompose.Tests
                 },
                 typeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.Int,
+                    type = MemberKind.Int,
                     required = true,
                 },
                 writability = WritabilityKind.Runtime,
@@ -147,14 +147,14 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Attribute_MissingIsStaticIsRejected()
+        public void Member_MissingIsStaticIsRejected()
         {
-            var source = new IntAttribute
+            var source = new IntMember
             {
-                id = "legacy-member",
+                id = "member-missing-static",
                 projectId = "project",
                 name = "Count",
-                type = AttributeType.Int,
+                kind = MemberKind.Int,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -162,22 +162,272 @@ namespace NeoCompose.Tests
             json.Remove("isStatic");
 
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<Attribute>(json.ToString()));
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
 
             Assert.That(
                 error!.Message,
-                Does.Contain("Missing required field 'isStatic' on IntAttribute."));
+                Does.Contain("Missing required field 'isStatic' on IntMember."));
         }
 
         [Test]
-        public void Attribute_NonBooleanIsStaticIsRejected()
+        public void Member_OldTypeDiscriminatorIsRejectedWithoutAlias()
         {
-            var source = new IntAttribute
+            const string json = @"{
+  ""id"": ""member-count"",
+  ""projectId"": ""project"",
+  ""name"": ""Count"",
+  ""type"": 2,
+  ""isStatic"": false,
+  ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+  ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("removed field 'type'; schema 8 requires 'kind'"));
+        }
+
+        [Test]
+        public void MemberValue_OldTypeIdIsRejectedWithoutAlias()
+        {
+            const string json = @"{
+  ""id"": ""value-profile"",
+  ""projectId"": ""project"",
+  ""value"": {},
+  ""typeId"": ""class-profile"",
+  ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+  ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<MemberValue>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("removed field 'typeId'; schema 8 requires 'classId'"));
+        }
+
+        [Test]
+        public void Member_OldCustomTypeIdIsRejectedWithoutAlias()
+        {
+            const string json = @"{
+  ""id"": ""member-profile"",
+  ""projectId"": ""project"",
+  ""name"": ""Profile"",
+  ""kind"": 7,
+  ""customTypeId"": ""class-profile"",
+  ""isStatic"": false,
+  ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+  ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Member>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("removed field 'customTypeId'; schema 8 requires 'classId'"));
+        }
+
+        [Test]
+        public void TypeInfo_OldTypeIdIsRejectedWithoutAlias()
+        {
+            const string json = @"{
+  ""type"": 7,
+  ""required"": true,
+  ""typeId"": ""class-profile""
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<TypeInfo>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("removed field 'typeId'; schema 8 requires 'classId'"));
+        }
+
+        [Test]
+        public void GenericBinding_OldAttributeIdIsRejectedWithoutAlias()
+        {
+            const string json = @"{
+  ""kind"": ""member"",
+  ""attributeId"": ""member-entry""
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<GenericBinding>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("removed field 'attributeId'; schema 8 requires 'memberId'"));
+        }
+
+        [Test]
+        public void ProjectData_OldMemberTypeIsRejectedEvenWhenKindIsPresent()
+        {
+            const string json = @"{
+  ""project"": {},
+  ""members"": {
+    ""member-count"": {
+      ""id"": ""member-count"",
+      ""projectId"": ""project"",
+      ""name"": ""Count"",
+      ""kind"": 2,
+      ""type"": 2,
+      ""isStatic"": false
+    }
+  },
+  ""values"": {},
+  ""classes"": {},
+  ""enums"": {}
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<ProjectData>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("removed field 'type'; schema 8 requires 'kind'"));
+        }
+
+        [TestCase("extendsTypeId", "extendsClassId")]
+        [TestCase("ownerTypeId", "ownerClassId")]
+        [TestCase("receiverTypeId", "receiverClassId")]
+        [TestCase("analyzerRootTypeId", "analyzerRootClassId")]
+        [TestCase("schemaClassId", "classId")]
+        [TestCase("entryAttributeId", "entryMemberId")]
+        [TestCase("collectionAttributeId", "collectionMemberId")]
+        [TestCase("ownerAttributeId", "ownerMemberId")]
+        [TestCase("valueAttributeId", "valueMemberId")]
+        [TestCase("attributeType", "memberKind")]
+        public void ProjectData_NestedOldReferenceFieldIsRejected(
+            string removedField,
+            string replacementField)
+        {
+            var json = JObject.Parse(@"{
+  ""project"": {},
+  ""members"": {},
+  ""values"": {},
+  ""classes"": {
+    ""class-profile"": {
+      ""id"": ""class-profile"",
+      ""projectId"": ""project"",
+      ""name"": ""Profile"",
+      ""schema"": {}
+    }
+  },
+  ""enums"": {}
+}");
+            json["classes"]!["class-profile"]![removedField] = "legacy-id";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<ProjectData>(json.ToString()));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain(
+                    $"removed field '{removedField}'; schema 8 requires '{replacementField}'"));
+        }
+
+        [Test]
+        public void ProjectData_OldTopLevelCollectionsAreRejectedWithoutAlias()
+        {
+            const string json = @"{
+  ""project"": {},
+  ""attributes"": {},
+  ""values"": {},
+  ""classes"": {},
+  ""enums"": {}
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<ProjectData>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("removed field 'attributes'; schema 8 requires 'members'"));
+        }
+
+        [Test]
+        public void ProjectData_UserValueKeysThatMatchOldFieldsRemainOpaque()
+        {
+            const string json = @"{
+  ""project"": {},
+  ""members"": {},
+  ""values"": {
+    ""value-profile"": {
+      ""id"": ""value-profile"",
+      ""projectId"": ""project"",
+      ""value"": {
+        ""attributeId"": ""authored dictionary key"",
+        ""typeId"": ""another authored dictionary key""
+      },
+      ""createdAt"": ""1970-01-01T00:00:00.000Z"",
+      ""updatedAt"": ""1970-01-01T00:00:00.000Z""
+    }
+  },
+  ""classes"": {},
+  ""enums"": {},
+  ""futureExportField"": true
+}";
+
+            var projectData = JsonConvert.DeserializeObject<ProjectData>(json)!;
+            var value = (ObjectMemberValue)projectData.values["value-profile"];
+
+            Assert.AreEqual(
+                "authored dictionary key",
+                value.value!["attributeId"]);
+            Assert.AreEqual(
+                "another authored dictionary key",
+                value.value["typeId"]);
+        }
+
+        [Test]
+        public void ProjectData_AuthoredSchemaKeysThatMatchOldFieldsRemainKeys()
+        {
+            const string json = @"{
+  ""project"": {},
+  ""members"": {},
+  ""values"": {},
+  ""classes"": {
+    ""class-profile"": {
+      ""id"": ""class-profile"",
+      ""projectId"": ""project"",
+      ""name"": ""Profile"",
+      ""schema"": {
+        ""attributeId"": ""member-attribute-id"",
+        ""customTypeId"": ""member-custom-type-id""
+      }
+    }
+  },
+  ""enums"": {},
+  ""futureExportObject"": {
+    ""attributeId"": ""unrelated future field""
+  }
+}";
+
+            var projectData = JsonConvert.DeserializeObject<ProjectData>(json)!;
+
+            Assert.AreEqual(
+                "member-attribute-id",
+                projectData.classes["class-profile"].schema["attributeId"]);
+            Assert.AreEqual(
+                "member-custom-type-id",
+                projectData.classes["class-profile"].schema["customTypeId"]);
+        }
+
+        [Test]
+        public void Member_NonBooleanIsStaticIsRejected()
+        {
+            var source = new IntMember
             {
                 id = "invalid-member",
                 projectId = "project",
                 name = "Count",
-                type = AttributeType.Int,
+                kind = MemberKind.Int,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -185,40 +435,40 @@ namespace NeoCompose.Tests
             json["isStatic"] = "false";
 
             var error = Assert.Throws<JsonSerializationException>(() =>
-                JsonConvert.DeserializeObject<Attribute>(json.ToString()));
+                JsonConvert.DeserializeObject<Member>(json.ToString()));
 
             Assert.That(
                 error!.Message,
-                Does.Contain("Field 'isStatic' on IntAttribute must be a boolean."));
+                Does.Contain("Field 'isStatic' on IntMember must be a boolean."));
         }
 
         [Test]
-        public void TypeInfo_GenericAndConstructedCustomArgumentsRoundTrip()
+        public void TypeInfo_GenericAndConstructedClassArgumentsRoundTrip()
         {
-            var source = new CustomTypeInfo
+            var source = new ClassTypeInfo
             {
-                type = AttributeType.Custom,
+                type = MemberKind.Class,
                 required = true,
-                typeId = "type-box",
+                classId = "class-box",
                 typeArguments = new Dictionary<string, TypeInfo>
                 {
                     ["param-t"] = new GenericTypeInfo
                     {
-                        type = AttributeType.Generic,
+                        type = MemberKind.Generic,
                         required = true,
-                        ownerTypeId = "type-owner",
+                        ownerClassId = "class-owner",
                         genericParamId = "param-t",
                     },
                 },
             };
 
-            var roundTripped = (CustomTypeInfo)JsonConvert.DeserializeObject<TypeInfo>(
+            var roundTripped = (ClassTypeInfo)JsonConvert.DeserializeObject<TypeInfo>(
                 JsonConvert.SerializeObject(source))!;
 
-            Assert.AreEqual("type-box", roundTripped.typeId);
+            Assert.AreEqual("class-box", roundTripped.classId);
             Assert.IsNotNull(roundTripped.typeArguments);
             var generic = (GenericTypeInfo)roundTripped.typeArguments!["param-t"];
-            Assert.AreEqual("type-owner", generic.ownerTypeId);
+            Assert.AreEqual("class-owner", generic.ownerClassId);
             Assert.AreEqual("param-t", generic.genericParamId);
         }
 
@@ -227,7 +477,7 @@ namespace NeoCompose.Tests
         {
             var source = new InterfaceTypeInfo
             {
-                type = AttributeType.Interface,
+                type = MemberKind.Interface,
                 required = true,
                 interfaceId = "interface-entity",
             };
@@ -235,7 +485,7 @@ namespace NeoCompose.Tests
             var roundTripped = (InterfaceTypeInfo)JsonConvert.DeserializeObject<TypeInfo>(
                 JsonConvert.SerializeObject(source))!;
 
-            Assert.AreEqual(AttributeType.Interface, roundTripped.type);
+            Assert.AreEqual(MemberKind.Interface, roundTripped.type);
             Assert.IsTrue(roundTripped.required);
             Assert.AreEqual("interface-entity", roundTripped.interfaceId);
         }
@@ -243,7 +493,7 @@ namespace NeoCompose.Tests
         [Test]
         public void InterfaceExport_RoundTripsMembersTypeInfoAndImplementsList()
         {
-            Assert.AreEqual(22, (int)AttributeType.Interface);
+            Assert.AreEqual(22, (int)MemberKind.Interface);
 
             var source = new ProjectData
             {
@@ -261,7 +511,7 @@ namespace NeoCompose.Tests
                                 kind = "property",
                                 typeInfo = new PrimitiveTypeInfo
                                 {
-                                    type = AttributeType.Int,
+                                    type = MemberKind.Int,
                                     required = true,
                                 },
                                 settable = true,
@@ -271,7 +521,7 @@ namespace NeoCompose.Tests
                                 kind = "function",
                                 returnTypeInfo = new InterfaceTypeInfo
                                 {
-                                    type = AttributeType.Interface,
+                                    type = MemberKind.Interface,
                                     required = false,
                                     interfaceId = "interface-damageable",
                                 },
@@ -280,7 +530,7 @@ namespace NeoCompose.Tests
                                     new FunctionArgumentTypeInfo
                                     {
                                         name = "candidate",
-                                        type = AttributeType.Interface,
+                                        type = MemberKind.Interface,
                                         required = true,
                                         interfaceId = "interface-damageable",
                                     },
@@ -294,11 +544,11 @@ namespace NeoCompose.Tests
                         updatedAt = 2000d,
                     },
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    ["type-enemy"] = new CustomType
+                    ["class-enemy"] = new NeoSchemaClass
                     {
-                        id = "type-enemy",
+                        id = "class-enemy",
                         projectId = "project",
                         name = "Enemy",
                         schema = new Dictionary<string, string>(),
@@ -328,7 +578,7 @@ namespace NeoCompose.Tests
                 function.argumentTypes![0].interfaceId);
             CollectionAssert.AreEqual(
                 new[] { "interface-damageable" },
-                roundTripped.types["type-enemy"].implementsInterfaceIds);
+                roundTripped.classes["class-enemy"].implementsInterfaceIds);
         }
 
         [Test]
@@ -336,9 +586,9 @@ namespace NeoCompose.Tests
         {
             var export = Deserialize(@"{
   ""project"": {},
-  ""attributes"": {},
+  ""members"": {},
   ""values"": {},
-  ""types"": {},
+  ""classes"": {},
   ""enums"": {}
 }");
 
@@ -365,7 +615,7 @@ namespace NeoCompose.Tests
       ""name"": ""value"",
       ""type"": 21,
       ""required"": true,
-      ""ownerTypeId"": ""type-owner"",
+      ""ownerClassId"": ""class-owner"",
       ""genericParamId"": ""param-t""
     }
   ],
@@ -378,45 +628,45 @@ namespace NeoCompose.Tests
         {
             var concrete = (CallFunctionPointer)JsonConvert.DeserializeObject<Pointer>(@"{
   ""type"": ""callFunction"",
-  ""attributeId"": ""attribute-function"",
+  ""memberId"": ""member-function"",
   ""callSiteId"": ""call-1"",
-  ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
+  ""receiver"": { ""kind"": ""instance"", ""pointer"": { ""type"": ""reference"", ""valueId"": ""value"" } },
   ""args"": []
 }")!;
-            Assert.AreEqual("attribute-function", concrete.attributeId);
+            Assert.AreEqual("member-function", concrete.memberId);
             Assert.IsNull(concrete.memberKey);
 
             var dynamicMember = (CallFunctionPointer)JsonConvert.DeserializeObject<Pointer>(@"{
   ""type"": ""callFunction"",
   ""memberKey"": ""TakeDamage"",
   ""callSiteId"": ""call-2"",
-  ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
+  ""receiver"": { ""kind"": ""instance"", ""pointer"": { ""type"": ""reference"", ""valueId"": ""value"" } },
   ""args"": []
 }")!;
-            Assert.IsNull(dynamicMember.attributeId);
+            Assert.IsNull(dynamicMember.memberId);
             Assert.AreEqual("TakeDamage", dynamicMember.memberKey);
 
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<Pointer>(@"{
   ""type"": ""callFunction"",
-  ""attributeId"": ""attribute-function"",
+  ""memberId"": ""member-function"",
   ""memberKey"": ""TakeDamage"",
   ""callSiteId"": ""call-3"",
-  ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
+  ""receiver"": { ""kind"": ""instance"", ""pointer"": { ""type"": ""reference"", ""valueId"": ""value"" } },
   ""args"": []
 }"));
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<CallFunctionPointer>(@"{
   ""type"": ""callFunction"",
   ""callSiteId"": ""call-4"",
-  ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
+  ""receiver"": { ""kind"": ""instance"", ""pointer"": { ""type"": ""reference"", ""valueId"": ""value"" } },
   ""args"": []
 }"));
             Assert.Throws<JsonSerializationException>(() =>
                 JsonConvert.DeserializeObject<CallFunctionPointer>(@"{
   ""type"": ""callFunction"",
-  ""attributeId"": ""attribute-function"",
-  ""thisPointer"": { ""type"": ""reference"", ""valueId"": ""value"" },
+  ""memberId"": ""member-function"",
+  ""receiver"": { ""kind"": ""instance"", ""pointer"": { ""type"": ""reference"", ""valueId"": ""value"" } },
   ""args"": []
 }"));
         }
@@ -432,14 +682,14 @@ namespace NeoCompose.Tests
 
             Assert.IsNotNull(export);
             Assert.IsNotNull(export.project);
-            Assert.IsNotNull(export.attributes);
+            Assert.IsNotNull(export.members);
             Assert.IsNotNull(export.values);
-            Assert.IsNotNull(export.types);
+            Assert.IsNotNull(export.classes);
             Assert.IsNotNull(export.enums);
             Assert.IsNotNull(export.dialogues);
             Assert.IsNotNull(export.dialogueGroups);
             Assert.IsNotNull(export.priorityGroups);
-            Assert.Greater(export.attributes.Count, 0);
+            Assert.Greater(export.members.Count, 0);
         }
 
         [Test]
@@ -448,7 +698,7 @@ namespace NeoCompose.Tests
             var export = Deserialize(LoadFixture("synth-example.json"));
 
             Assert.AreEqual(0d, export.project.createdAt.EpochMilliseconds);
-            Assert.AreEqual(0d, export.attributes["attr-name"].updatedAt.EpochMilliseconds);
+            Assert.AreEqual(0d, export.members["member-name"].updatedAt.EpochMilliseconds);
             Assert.AreEqual(0d, export.values["v-num"].createdAt.EpochMilliseconds);
 
             var serialized = JObject.Parse(JsonConvert.SerializeObject(export.project));
@@ -465,14 +715,14 @@ namespace NeoCompose.Tests
     ""_id"": ""project-a"",
     ""id"": ""project-a"",
     ""name"": ""Older Export"",
-    ""rootAssetsAttributeId"": ""assets-root"",
-    ""rootSaveFileAttributeId"": ""save-root"",
+    ""rootAssetsMemberId"": ""assets-root"",
+    ""rootSaveFileMemberId"": ""save-root"",
     ""createdAt"": ""1970-01-01T00:00:00.000Z"",
     ""updatedAt"": ""1970-01-01T00:00:00.000Z""
   },
-  ""attributes"": {},
+  ""members"": {},
   ""values"": {},
-  ""types"": {},
+  ""classes"": {},
   ""enums"": {}
 }";
             var export = Deserialize(json);
@@ -503,14 +753,14 @@ namespace NeoCompose.Tests
     ""_id"": ""project-a"",
     ""id"": ""project-a"",
     ""name"": ""Legacy Export"",
-    ""rootAssetsAttributeId"": ""assets-root"",
-    ""rootSaveFileAttributeId"": ""save-root"",
+    ""rootAssetsMemberId"": ""assets-root"",
+    ""rootSaveFileMemberId"": ""save-root"",
     ""createdAt"": ""1970-01-01T00:00:00.000Z"",
     ""updatedAt"": ""1970-01-01T00:00:00.000Z""
   },
-  ""attributes"": {},
+  ""members"": {},
   ""values"": {},
-  ""types"": {},
+  ""classes"": {},
   ""enums"": {},
   ""tileGridContents"": {
     ""town-grid"": { ""schemaVersion"": 1, ""regions"": [] }
@@ -533,17 +783,17 @@ namespace NeoCompose.Tests
     ""_id"": ""project-a"",
     ""id"": ""project-a"",
     ""name"": ""Versioned Export"",
-    ""rootAssetsAttributeId"": ""assets-root"",
-    ""rootSaveFileAttributeId"": ""save-root"",
+    ""rootAssetsMemberId"": ""assets-root"",
+    ""rootSaveFileMemberId"": ""save-root"",
     ""createdAt"": ""1970-01-01T00:00:00.000Z"",
     ""updatedAt"": ""1970-01-01T00:00:00.000Z""
   },
-  ""attributes"": {
-    ""attr-a"": {
-      ""id"": ""attr-a"",
+  ""members"": {
+    ""member-a"": {
+      ""id"": ""member-a"",
       ""projectId"": ""project-a"",
       ""name"": ""Title"",
-      ""type"": 4,
+      ""kind"": 4,
       ""locked"": false,
       ""required"": true,
       ""isStatic"": false,
@@ -560,19 +810,19 @@ namespace NeoCompose.Tests
       ""updatedAt"": ""1970-01-01T00:00:00.000Z""
     }
   },
-  ""types"": {},
+  ""classes"": {},
   ""enums"": {},
   ""files"": {}
 }";
 
             var export = Deserialize(json);
 
-            Assert.IsNotNull(export.attributes["attr-a"]);
+            Assert.IsNotNull(export.members["member-a"]);
             Assert.IsNotNull(export.values["value-a"]);
         }
 
         [Test]
-        public void FileAttributeExport_DeserializesFileMetadataTemplatesAndValues()
+        public void FileMemberExport_DeserializesFileMetadataTemplatesAndValues()
         {
             var json = @"
 {
@@ -580,18 +830,18 @@ namespace NeoCompose.Tests
     ""_id"": ""project-a"",
     ""id"": ""project-a"",
     ""name"": ""Files"",
-    ""rootAssetsAttributeId"": ""assets-root"",
-    ""rootSaveFileAttributeId"": ""save-root"",
+    ""rootAssetsMemberId"": ""assets-root"",
+    ""rootSaveFileMemberId"": ""save-root"",
     ""createdAt"": ""1970-01-01T00:00:00.000Z"",
     ""updatedAt"": ""1970-01-01T00:00:00.000Z""
   },
-  ""attributes"": {
-    ""sprite-attr"": {
-      ""_id"": ""sprite-attr"",
-      ""id"": ""sprite-attr"",
+  ""members"": {
+    ""sprite-member"": {
+      ""_id"": ""sprite-member"",
+      ""id"": ""sprite-member"",
       ""projectId"": ""project-a"",
       ""name"": ""Portrait"",
-      ""type"": 11,
+      ""kind"": 11,
       ""locked"": false,
       ""required"": true,
       ""isStatic"": false,
@@ -601,12 +851,12 @@ namespace NeoCompose.Tests
       ""createdAt"": ""1970-01-01T00:00:00.000Z"",
       ""updatedAt"": ""1970-01-01T00:00:00.000Z""
     },
-    ""audio-attr"": {
-      ""_id"": ""audio-attr"",
-      ""id"": ""audio-attr"",
+    ""audio-member"": {
+      ""_id"": ""audio-member"",
+      ""id"": ""audio-member"",
       ""projectId"": ""project-a"",
       ""name"": ""Voice"",
-      ""type"": 12,
+      ""kind"": 12,
       ""locked"": false,
       ""required"": false,
       ""isStatic"": false,
@@ -633,7 +883,7 @@ namespace NeoCompose.Tests
       ""updatedAt"": ""1970-01-01T00:00:00.000Z""
     }
   },
-  ""types"": {},
+  ""classes"": {},
   ""enums"": {},
   ""files"": {
     ""file-1"": {
@@ -726,20 +976,20 @@ namespace NeoCompose.Tests
 }";
             var export = Deserialize(json);
 
-            var spriteAttr = (SpriteAttribute)export.attributes["sprite-attr"];
-            var spriteDefault = (SpriteAttributeValueBase)spriteAttr.defaultValue!;
-            Assert.AreEqual(AttributeType.Sprite, spriteAttr.type);
-            Assert.AreEqual("texture-template-1", spriteAttr.templateId);
+            var spriteMember = (SpriteMember)export.members["sprite-member"];
+            var spriteDefault = (SpriteMemberValueBase)spriteMember.defaultValue!;
+            Assert.AreEqual(MemberKind.Sprite, spriteMember.kind);
+            Assert.AreEqual("texture-template-1", spriteMember.templateId);
             Assert.AreEqual("file-1", spriteDefault.value!.fileId);
             Assert.AreEqual(2, spriteDefault.value.sliceIndex);
-            Assert.IsInstanceOf<SpriteAttributeValue>(export.values["sprite-value"]);
+            Assert.IsInstanceOf<SpriteMemberValue>(export.values["sprite-value"]);
 
-            var audioAttr = (AudioAttribute)export.attributes["audio-attr"];
-            var audioDefault = (FileAttributeValueBase)audioAttr.defaultValue!;
-            Assert.AreEqual(AttributeType.Audio, audioAttr.type);
-            Assert.AreEqual("audio-template-1", audioAttr.templateId);
+            var audioMember = (AudioMember)export.members["audio-member"];
+            var audioDefault = (FileMemberValueBase)audioMember.defaultValue!;
+            Assert.AreEqual(MemberKind.Audio, audioMember.kind);
+            Assert.AreEqual("audio-template-1", audioMember.templateId);
             Assert.AreEqual("file-2", audioDefault.value!.fileId);
-            Assert.IsInstanceOf<FileAttributeValue>(export.values["audio-value"]);
+            Assert.IsInstanceOf<FileMemberValue>(export.values["audio-value"]);
 
             Assert.AreEqual("portrait.png", export.files["file-1"].name);
             Assert.AreEqual("texture-template-1", export.files["file-1"].unityTextureSettings!.templateId);
@@ -756,14 +1006,14 @@ namespace NeoCompose.Tests
     ""_id"": ""project-a"",
     ""id"": ""project-a"",
     ""name"": ""Dialogue Project"",
-    ""rootAssetsAttributeId"": ""assets-root"",
-    ""rootSaveFileAttributeId"": ""save-root"",
+    ""rootAssetsMemberId"": ""assets-root"",
+    ""rootSaveFileMemberId"": ""save-root"",
     ""createdAt"": ""1970-01-01T00:00:00.000Z"",
     ""updatedAt"": ""1970-01-01T00:00:00.000Z""
   },
-  ""attributes"": {},
+  ""members"": {},
   ""enums"": {},
-  ""types"": {},
+  ""classes"": {},
   ""values"": {},
   ""dialogues"": {
     ""dialogue-a"": {
@@ -901,7 +1151,7 @@ namespace NeoCompose.Tests
         ""dialogueGroupSettings"": {
           ""dialogueGroupId"": ""group-a"",
           ""lookupValueId"": ""npc-value"",
-          ""priority"": { ""priorityTypeId"": ""urgent"", ""relativeOrder"": 1 }
+          ""priority"": { ""priorityOptionId"": ""urgent"", ""relativeOrder"": 1 }
         }
       },
       ""primaryLinkedValueId"": ""npc-value"",
@@ -919,7 +1169,7 @@ namespace NeoCompose.Tests
       ""parentDialogueGroupId"": null,
       ""conditions"": [],
       ""priorityGroupIdOverride"": ""priority-a"",
-      ""collectionAttributeId"": ""npcs-attribute"",
+      ""collectionMemberId"": ""npcs-member"",
       ""collectionValueId"": ""npcs-value"",
       ""createdAt"": ""1970-01-01T00:00:00.000Z"",
       ""updatedAt"": ""1970-01-01T00:00:00.000Z""
@@ -956,7 +1206,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(0, textNode.optionSettings.options[0].settings!.selectableConditions!.Length);
 
             var actionsNode = (DialogueActionsNode)dialogue.nodes["actions-a"];
-            var action = (DialogueLogicEditAttributeAction)actionsNode.actions[0];
+            var action = (DialogueLogicEditMemberAction)actionsNode.actions[0];
             var logic = (CodeLogicAction)action.logic;
             Assert.AreEqual("Save.Score += 1;", logic.code);
             Assert.IsInstanceOf<AssignInstruction>(logic.action.instructions[0]);
@@ -969,7 +1219,7 @@ namespace NeoCompose.Tests
             Assert.IsNotNull(returnInstruction.pointer);
 
             var group = (LookupDialogueGroup)export.dialogueGroups["group-a"];
-            Assert.AreEqual("npcs-attribute", group.collectionAttributeId);
+            Assert.AreEqual("npcs-member", group.collectionMemberId);
             Assert.AreEqual("npcs-value", group.collectionValueId);
 
             var priority = export.priorityGroups["priority-a"];
@@ -1016,83 +1266,83 @@ namespace NeoCompose.Tests
             var export = Deserialize(LoadFixture("synth-example.json"));
             Assert.AreEqual("Test Project", export.project.name);
             Assert.IsNotEmpty(export.project.id);
-            Assert.IsNotEmpty(export.project.rootAssetsAttributeId);
-            Assert.IsNotEmpty(export.project.rootSaveFileAttributeId);
+            Assert.IsNotEmpty(export.project.rootAssetsMemberId);
+            Assert.IsNotEmpty(export.project.rootSaveFileMemberId);
         }
 
         [Test]
-        public void SynthFixture_StringAttribute_DefaultValueIsString()
+        public void SynthFixture_StringMember_DefaultValueIsString()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
             // Cast to the concrete typed subclass — `defaultValue`
-            // lives on Attribute<TValue>, so the typed view is
-            // `AttributeValueBase<string?>?` directly.
-            var name = (StringAttribute)export.attributes["attr-name"];
-            Assert.AreEqual(AttributeType.String, name.type);
+            // lives on Member<TValue>, so the typed view is
+            // `MemberValueBase<string?>?` directly.
+            var name = (StringMember)export.members["member-name"];
+            Assert.AreEqual(MemberKind.String, name.kind);
             // Context dispatch resolves the typed subclass directly.
-            var def = (StringAttributeValueBase)name.defaultValue!;
+            var def = (StringMemberValueBase)name.defaultValue!;
             Assert.AreEqual("Hero", def.value);
         }
 
         [Test]
-        public void SynthFixture_IntAttribute_DefaultValueIsInt()
+        public void SynthFixture_IntMember_DefaultValueIsInt()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var health = (IntAttribute)export.attributes["attr-health"];
-            // Int and Float share AttributeValueBase<double?>;
-            // disambiguate via the parent attribute's type when needed.
-            var def = (NumberAttributeValueBase)health.defaultValue!;
+            var health = (IntMember)export.members["member-health"];
+            // Int and Float share MemberValueBase<double?>;
+            // disambiguate via the parent member's kind when needed.
+            var def = (NumberMemberValueBase)health.defaultValue!;
             Assert.AreEqual(100, (int)def.value!.Value);
         }
 
         [Test]
-        public void SynthFixture_FloatAttribute_DefaultValueIsFloat()
+        public void SynthFixture_FloatMember_DefaultValueIsFloat()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var speed = (FloatAttribute)export.attributes["attr-speed"];
-            var def = (NumberAttributeValueBase)speed.defaultValue!;
+            var speed = (FloatMember)export.members["member-speed"];
+            var def = (NumberMemberValueBase)speed.defaultValue!;
             Assert.AreEqual(7.5f, (float)def.value!.Value, 0.0001f);
         }
 
         [Test]
-        public void SynthFixture_BoolAttribute_DefaultValueIsBool()
+        public void SynthFixture_BoolMember_DefaultValueIsBool()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var alive = (BoolAttribute)export.attributes["attr-isalive"];
-            var def = (BoolAttributeValueBase)alive.defaultValue!;
+            var alive = (BoolMember)export.members["member-isalive"];
+            var def = (BoolMemberValueBase)alive.defaultValue!;
             Assert.AreEqual(true, def.value);
         }
 
         [Test]
-        public void SynthFixture_DictionaryAttribute_DefaultValueIsRecord()
+        public void SynthFixture_DictionaryMember_DefaultValueIsRecord()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var inv = (DictionaryAttribute)export.attributes["attr-inventory"];
-            var def = (ObjectAttributeValueBase)inv.defaultValue!;
+            var inv = (DictionaryMember)export.members["member-inventory"];
+            var def = (ObjectMemberValueBase)inv.defaultValue!;
             Assert.AreEqual("v-sword", def.value!["sword"]);
             Assert.AreEqual("v-shield", def.value["shield"]);
-            Assert.AreEqual("attr-name", inv.entryAttributeId);
+            Assert.AreEqual("member-name", inv.entryMemberId);
         }
 
         [Test]
-        public void SynthFixture_ListAttribute_DefaultValueIsStringArray()
+        public void SynthFixture_ListMember_DefaultValueIsStringArray()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var tags = (ListAttribute)export.attributes["attr-tags"];
-            var def = (ArrayAttributeValueBase)tags.defaultValue!;
+            var tags = (ListMember)export.members["member-tags"];
+            var def = (ArrayMemberValueBase)tags.defaultValue!;
             CollectionAssert.AreEqual(new[] { "v-a", "v-b" }, def.value);
-            Assert.AreEqual("attr-name", tags.entryAttributeId);
+            Assert.AreEqual("member-name", tags.entryMemberId);
         }
 
         [Test]
         public void SynthFixture_NSGetterReturnTypeInfo_IsCollectionTypeInfo()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = (NSPropertyAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyMember)export.members["member-score"];
             // The synth fixture's Score returns Int, so returnTypeInfo is
             // PrimitiveTypeInfo. Subclass assertion via `is`.
             Assert.IsInstanceOf<PrimitiveTypeInfo>(score.returnTypeInfo);
-            Assert.AreEqual(AttributeType.Int, score.returnTypeInfo.type);
+            Assert.AreEqual(MemberKind.Int, score.returnTypeInfo.type);
             Assert.IsTrue(score.returnTypeInfo.required);
         }
 
@@ -1100,7 +1350,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterCompiledIR_DispatchesAllInstructionKinds()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = (NSPropertyAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyMember)export.members["member-score"];
             var getter = score.getter;
             Assert.IsNotNull(getter);
             Assert.IsNotEmpty(getter.instructions);
@@ -1130,7 +1380,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesArithmeticOperationPointer()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = (NSPropertyAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyMember)export.members["member-score"];
 
             // First instruction: `local int x = 1 + 2;`
             var firstVar = ((VariableInstruction)score.getter.instructions[0]).variable;
@@ -1144,7 +1394,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesForceUnwrapCoalesceKeyOfChain()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = (NSPropertyAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyMember)export.members["member-score"];
 
             // Second instruction's pointer chain:
             // forceUnwrap(coalesce(keyOf, "Unknown"))
@@ -1166,7 +1416,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesFunctionAndListLiteralChain()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var score = (NSPropertyAttribute)export.attributes["attr-score"];
+            var score = (NSPropertyMember)export.members["member-score"];
 
             // Inside the if branch:
             //   return [1, 2, 3].Where((n) => n != 0).Count();
@@ -1194,7 +1444,7 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesStringifyAndDictLiteral()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var manifest = (NSPropertyAttribute)export.attributes["attr-manifest"];
+            var manifest = (NSPropertyMember)export.members["member-manifest"];
             var ret = (ReturnInstruction)manifest.getter.instructions[0];
             var stringify = (StringifyPointer)ret.pointer;
             var dictLit = (DictLiteralPointer)stringify.pointer;
@@ -1207,55 +1457,55 @@ namespace NeoCompose.Tests
         public void SynthFixture_NSGetterIR_PreservesCallGetterAndToBool()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var active = (NSPropertyAttribute)export.attributes["attr-active"];
+            var active = (NSPropertyMember)export.members["member-active"];
             var ret = (ReturnInstruction)active.getter.instructions[0];
             var toBool = (ToBoolPointer)ret.pointer;
             var callGetter = (CallGetterPointer)toBool.pointer;
-            Assert.AreEqual("attr-score", callGetter.attributeId);
+            Assert.AreEqual("member-score", callGetter.memberId);
             // `optional` is `bool?` — absent on the wire means "non-optional";
             // GetValueOrDefault collapses absent / explicit-false to false.
             Assert.IsFalse(callGetter.optional.GetValueOrDefault());
-            Assert.IsInstanceOf<VariablePointer>(callGetter.thisPointer);
+            Assert.IsInstanceOf<VariablePointer>(callGetter.receiver.pointer);
         }
 
         [Test]
-        public void SynthFixture_AttributeValues_CoverAllValueShapes()
+        public void SynthFixture_MemberValues_CoverAllValueShapes()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
             var values = export.values;
 
             // Each value dispatches to a polymorphic subclass via
-            // AttributeValueConverter — typed `value` fields drop the
+            // MemberValueConverter — typed `value` fields drop the
             // JToken hop. Per-subclass `value` is nullable (a
-            // not-required attribute admits a null payload), so unwrap
+            // not-required member admits a null payload), so unwrap
             // via .Value for value-typed payloads.
-            Assert.AreEqual(42, (int)((NumberAttributeValue)values["v-num"]).value!.Value);
-            Assert.AreEqual("hello", ((StringAttributeValue)values["v-str"]).value);
-            Assert.AreEqual(true, ((BoolAttributeValue)values["v-flag"]).value);
+            Assert.AreEqual(42, (int)((NumberMemberValue)values["v-num"]).value!.Value);
+            Assert.AreEqual("hello", ((StringMemberValue)values["v-str"]).value);
+            Assert.AreEqual(true, ((BoolMemberValue)values["v-flag"]).value);
             Assert.AreEqual(
                 3.14f,
-                (float)((NumberAttributeValue)values["v-float"]).value!.Value,
+                (float)((NumberMemberValue)values["v-float"]).value!.Value,
                 0.0001f);
 
-            var listVal = (ArrayAttributeValue)values["v-list"];
+            var listVal = (ArrayMemberValue)values["v-list"];
             CollectionAssert.AreEqual(new[] { "wood", "stone" }, listVal.value);
 
-            var dictVal = (ObjectAttributeValue)values["v-dict"];
+            var dictVal = (ObjectMemberValue)values["v-dict"];
             Assert.AreEqual("v-name", dictVal.value!["Name"]);
-            Assert.AreEqual("type-hero", dictVal.typeId);
+            Assert.AreEqual("class-hero", dictVal.classId);
 
-            // Null wire shape (or absent value field) → NullAttributeValue.
-            Assert.IsInstanceOf<NullAttributeValue>(values["v-null"]);
+            // Null wire shape (or absent value field) → NullMemberValue.
+            Assert.IsInstanceOf<NullMemberValue>(values["v-null"]);
         }
 
         [Test]
-        public void SynthFixture_CustomTypeSchema_DeserializesAsDictionary()
+        public void SynthFixture_NeoSchemaClassSchema_DeserializesAsDictionary()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            var hero = export.types["type-hero"];
+            var hero = export.classes["class-hero"];
             Assert.AreEqual("Hero", hero.name);
-            Assert.AreEqual("attr-name", hero.schema["Name"]);
-            Assert.AreEqual("attr-health", hero.schema["Health"]);
+            Assert.AreEqual("member-name", hero.schema["Name"]);
+            Assert.AreEqual("member-health", hero.schema["Health"]);
         }
 
         [Test]
@@ -1281,23 +1531,23 @@ namespace NeoCompose.Tests
             var export = Deserialize(LoadFixture("project-example.json"));
             Assert.IsNotNull(export);
             Assert.AreEqual("Test", export.project.name);
-            Assert.Greater(export.attributes.Count, 0);
+            Assert.Greater(export.members.Count, 0);
             Assert.Greater(export.values.Count, 0);
-            Assert.Greater(export.types.Count, 0);
+            Assert.Greater(export.classes.Count, 0);
         }
 
         [Test]
-        public void RealWorldFixture_NSPropertyAttributes_HaveCompiledGetters()
+        public void RealWorldFixture_NSPropertyMembers_HaveCompiledGetters()
         {
             var export = Deserialize(LoadFixture("project-example.json"));
             int nsGetterCount = 0;
             // C# 7+ pattern-match each Dictionary value against the
-            // NSPropertyAttribute subclass — the converter dispatch made
+            // NSPropertyMember subclass — the converter dispatch made
             // this typed, so iterating the typed projection beats
             // re-reading the discriminator + casting at every site.
-            foreach (var pair in export.attributes)
+            foreach (var pair in export.members)
             {
-                if (!(pair.Value is NSPropertyAttribute nsGetter)) continue;
+                if (!(pair.Value is NSPropertyMember nsGetter)) continue;
                 nsGetterCount++;
                 Assert.IsNotNull(
                     nsGetter.getter,
@@ -1328,9 +1578,9 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(first.project.id, second.project.id);
             Assert.AreEqual(first.project.name, second.project.name);
-            Assert.AreEqual(first.attributes.Count, second.attributes.Count);
+            Assert.AreEqual(first.members.Count, second.members.Count);
             Assert.AreEqual(first.values.Count, second.values.Count);
-            Assert.AreEqual(first.types.Count, second.types.Count);
+            Assert.AreEqual(first.classes.Count, second.classes.Count);
             Assert.AreEqual(first.enums.Count, second.enums.Count);
         }
 
@@ -1338,10 +1588,10 @@ namespace NeoCompose.Tests
         // Null-value paths.
         //
         // The shape-dispatch converter routes wire `value: null` to a
-        // *Null* concrete (NullAttributeValue / NullAttributeValueBase),
+        // *Null* concrete (NullMemberValue / NullMemberValueBase),
         // never to a typed subclass with a null payload. The typed
-        // subclasses' `value` properties are still nullable for type-
-        // system honesty (the domain admits null when an attribute is
+        // subclasses' `value` properties are still nullable for class-
+        // system honesty (the domain admits null when a member is
         // not required, and you can construct a typed instance with
         // `value = null` in C# code), but on the wire null is always a
         // Null* concrete. These tests pin both behaviors down so future
@@ -1363,28 +1613,28 @@ namespace NeoCompose.Tests
             // it reads as null. Either way: no NullReferenceException,
             // no InvalidOperationException, no "force-unwrap of
             // default" landmine.
-            Assert.IsFalse(new BoolAttributeValueBase().value.HasValue);
-            Assert.IsFalse(new NumberAttributeValueBase().value.HasValue);
-            Assert.IsNull(new StringAttributeValueBase().value);
-            Assert.IsNull(new ArrayAttributeValueBase().value);
-            Assert.IsNull(new ObjectAttributeValueBase().value);
+            Assert.IsFalse(new BoolMemberValueBase().value.HasValue);
+            Assert.IsFalse(new NumberMemberValueBase().value.HasValue);
+            Assert.IsNull(new StringMemberValueBase().value);
+            Assert.IsNull(new ArrayMemberValueBase().value);
+            Assert.IsNull(new ObjectMemberValueBase().value);
 
             // Same on the stored-row side — confirms the parallel
-            // AttributeValue<TValue> intermediate also default-inits
+            // MemberValue<TValue> intermediate also default-inits
             // cleanly.
-            Assert.IsFalse(new BoolAttributeValue().value.HasValue);
-            Assert.IsFalse(new NumberAttributeValue().value.HasValue);
-            Assert.IsNull(new StringAttributeValue().value);
-            Assert.IsNull(new ArrayAttributeValue().value);
-            Assert.IsNull(new ObjectAttributeValue().value);
+            Assert.IsFalse(new BoolMemberValue().value.HasValue);
+            Assert.IsFalse(new NumberMemberValue().value.HasValue);
+            Assert.IsNull(new StringMemberValue().value);
+            Assert.IsNull(new ArrayMemberValue().value);
+            Assert.IsNull(new ObjectMemberValue().value);
         }
 
         [Test]
-        public void NullValueOnWire_DispatchesToNullAttributeValue_AndPopulatesMetadata()
+        public void NullValueOnWire_DispatchesToNullMemberValue_AndPopulatesMetadata()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
             var v = export.values["v-null"];
-            Assert.IsInstanceOf<NullAttributeValue>(v);
+            Assert.IsInstanceOf<NullMemberValue>(v);
             // Metadata still flows through Populate even when the shape
             // dispatches to the Null subclass — id / timestamps were
             // present on the wire, so they must be present on the
@@ -1395,44 +1645,44 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Attribute_AbsentDefaultValue_FieldIsNull()
+        public void Member_AbsentDefaultValue_FieldIsNull()
         {
             var export = Deserialize(LoadFixture("synth-example.json"));
-            // attr-score is an NSProperty — the synth fixture doesn't
+            // member-score is an NSProperty — the synth fixture doesn't
             // emit a defaultValue for it. Cast first because
-            // `defaultValue` lives on the typed Attribute<TValue>.
-            var score = (NSPropertyAttribute)export.attributes["attr-score"];
+            // `defaultValue` lives on the typed Member<TValue>.
+            var score = (NSPropertyMember)export.members["member-score"];
             Assert.IsNull(score.defaultValue);
         }
 
         [Test]
-        public void Attribute_DefaultValueWithWireNullValue_DispatchesToTypedConcrete()
+        public void Member_DefaultValueWithWireNullValue_DispatchesToTypedConcrete()
         {
-            // Context-aware dispatch: a typed StringAttribute (TValue =
+            // Context-aware dispatch: a typed StringMember (TValue =
             // string?) with wire `defaultValue: { value: null }` should
-            // produce a StringAttributeValueBase carrying value=null —
-            // NOT a NullAttributeValueBase. The converter resolves the
+            // produce a StringMemberValueBase carrying value=null —
+            // NOT a NullMemberValueBase. The converter resolves the
             // concrete from the field's closed-generic type, ignoring
-            // the wire's null shape. This preserves type-system
+            // the wire's null shape. This preserves class-system
             // identity even when the payload is missing.
             const string json = @"{
-                ""_id"": ""attr-x"",
-                ""id"": ""attr-x"",
+                ""_id"": ""member-x"",
+                ""id"": ""member-x"",
                 ""projectId"": ""p"",
                 ""name"": ""X"",
-                ""type"": 3,
+                ""kind"": 3,
                 ""locked"": false,
                 ""required"": false,
                 ""isStatic"": false,
-                ""defaultValue"": { ""value"": null, ""typeId"": ""carrier-type"" },
+                ""defaultValue"": { ""value"": null, ""classId"": ""carrier-class"" },
                 ""createdAt"": ""1970-01-01T00:00:00.000Z"",
                 ""updatedAt"": ""1970-01-01T00:00:00.000Z""
             }";
-            var attr = (StringAttribute)JsonConvert.DeserializeObject<Attribute>(json)!;
-            Assert.IsInstanceOf<StringAttributeValueBase>(attr.defaultValue);
-            var def = (StringAttributeValueBase)attr.defaultValue!;
+            var member = (StringMember)JsonConvert.DeserializeObject<Member>(json)!;
+            Assert.IsInstanceOf<StringMemberValueBase>(member.defaultValue);
+            var def = (StringMemberValueBase)member.defaultValue!;
             Assert.IsNull(def.value);
-            Assert.AreEqual("carrier-type", def.typeId);
+            Assert.AreEqual("carrier-class", def.classId);
         }
 
         [Test]
@@ -1443,7 +1693,7 @@ namespace NeoCompose.Tests
             // `"value": null`, and on read the converter shape-dispatches
             // that to a Null* concrete — NOT a typed subclass with null
             // payload. Metadata still survives the round-trip.
-            var src = new StringAttributeValue
+            var src = new StringMemberValue
             {
                 id = "v-x",
                 createdAt = "1970-01-01T00:00:00.000Z",
@@ -1451,21 +1701,21 @@ namespace NeoCompose.Tests
                 value = null,
             };
             var json = JsonConvert.SerializeObject(src);
-            var deser = JsonConvert.DeserializeObject<AttributeValue>(json);
-            Assert.IsInstanceOf<NullAttributeValue>(deser);
+            var deser = JsonConvert.DeserializeObject<MemberValue>(json);
+            Assert.IsInstanceOf<NullMemberValue>(deser);
             Assert.AreEqual("v-x", deser.id);
         }
 
         [Test]
         public void GenericInterface_BridgesEmbeddedAndStoredForms()
         {
-            // IAttributeValueBase<TValue> is the contract that lets one
+            // IMemberValueBase<TValue> is the contract that lets one
             // helper reach into either a defaultValue carrier or a
             // values-map row for the same shape. Confirms typed get +
             // set work on both sides, including assigning null.
-            IAttributeValueBase<double?> carrier =
-                new NumberAttributeValueBase { value = 42.0 };
-            IAttributeValueBase<double?> row = new NumberAttributeValue
+            IMemberValueBase<double?> carrier =
+                new NumberMemberValueBase { value = 42.0 };
+            IMemberValueBase<double?> row = new NumberMemberValue
             {
                 id = "v",
                 createdAt = "x",

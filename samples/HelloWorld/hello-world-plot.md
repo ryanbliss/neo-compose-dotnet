@@ -223,7 +223,7 @@ generalizes: an `AnimationInfo` per planet using sprite-sheet slices.
 
 ## 9. Implementation order
 
-1. Schema: `Quest` type + save field, ending/stage enums, `NextHint` getter.
+1. Schema: `Quest` class + save member, ending/stage enums, `NextHint` getter.
 2. Travel clock + item effects in `HelloWorldGameplay` (sample C#, tested).
 3. Act-two dialogues per outpost (visit-phase, conditioned, three paths).
 4. Vault + finale dialogues, endings wiring, save-wipe ending support.

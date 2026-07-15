@@ -12,7 +12,7 @@ using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using JsonAttribute = NeoCompose.Runtime.Json.Attribute;
+using JsonMember = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Tests
 {
@@ -31,7 +31,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(
                 5,
                 NeoGeneratedTypesSupport.ReadInt(
-                    binding.GetRequiredNode<NeoAttributeInt>()));
+                    binding.GetRequiredNode<NeoMemberInt>()));
 
             binding.SetValue(NeoGeneratedTypesSupport.Value(9));
 
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 "static-count-authored",
-                out NumberAttributeValue? shadow));
+                out NumberMemberValue? shadow));
             Assert.AreEqual(9, shadow!.value);
             Assert.Throws<ArgumentNullException>(() => binding.Clear());
         }
@@ -48,7 +48,7 @@ namespace NeoCompose.Tests
         public void OptionalSaveScalar_MaterializesBindingPersistsAndBecomesCollectableAfterClear()
         {
             NeoClient client = BuildClient();
-            client.LoadValuePartition("scores:rules-type");
+            client.LoadValuePartition("scores:rules-class");
             NeoStaticBinding binding = NeoGeneratedTypesSupport.StaticBinding(
                 client,
                 "static-score",
@@ -61,8 +61,8 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 valueId,
-                out NumberAttributeValue? storedScore));
-            Assert.AreEqual("scores:rules-type", storedScore!.mapKey);
+                out NumberMemberValue? storedScore));
+            Assert.AreEqual("scores:rules-class", storedScore!.mapKey);
             CollectionAssert.DoesNotContain(client.FindUnlinkedSaveValueIds(), valueId);
 
             ProjectSaveData saved = JsonConvert.DeserializeObject<ProjectSaveData>(
@@ -73,7 +73,7 @@ namespace NeoCompose.Tests
             Assert.IsNull(binding.ValueId);
             CollectionAssert.Contains(client.FindUnlinkedSaveValueIds(), valueId);
             Assert.GreaterOrEqual(client.RunGarbageCollector(), 1);
-            Assert.IsFalse(client.TryGetValue(valueId, out AttributeValue? _));
+            Assert.IsFalse(client.TryGetValue(valueId, out MemberValue? _));
 
             saved = JsonConvert.DeserializeObject<ProjectSaveData>(
                 client.SerializeSaveData())!;
@@ -92,13 +92,13 @@ namespace NeoCompose.Tests
                 "static-names",
                 NeoValueOwnership.Session);
 
-            NeoAttributeListWritable empty =
-                binding.GetNodeOrEmpty<NeoAttributeListWritable>();
+            NeoMemberListWritable empty =
+                binding.GetNodeOrEmpty<NeoMemberListWritable>();
             Assert.AreEqual(0, empty.Count);
             Assert.IsNull(binding.ValueId, "an empty read must not create a zombie row");
 
-            NeoAttributeListWritable writable =
-                binding.GetOrCreateWritableNode<NeoAttributeListWritable>(
+            NeoMemberListWritable writable =
+                binding.GetOrCreateWritableNode<NeoMemberListWritable>(
                     Array.Empty<string>());
             writable.AddSerialized(NeoGeneratedTypesSupport.Value("Ada"));
 
@@ -106,52 +106,52 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1, writable.Count);
             Assert.AreEqual(
                 "Ada",
-                ((NeoAttributeString)writable[0]).value?.value);
+                ((NeoMemberString)writable[0]).value?.value);
         }
 
         [Test]
-        public void TypeSchemaProjection_ExcludesStaticMembersFromInstances()
+        public void ClassSchemaProjection_ExcludesStaticMembersFromInstances()
         {
             NeoClient client = BuildClient();
-            IList<CustomType> chain = CustomTypeInheritance.ResolveChain(
-                "rules-type",
-                id => client.TryGetType(id, out CustomType? type) ? type : null);
+            IList<NeoSchemaClass> chain = NeoSchemaClassInheritance.ResolveChain(
+                "rules-class",
+                id => client.TryGetClass(id, out NeoSchemaClass? schemaClass) ? schemaClass : null);
 
             Assert.That(
-                CustomTypeInheritance.MergeInstanceSchema(
+                NeoSchemaClassInheritance.MergeInstanceSchema(
                     chain,
-                    id => client.TryGetAttribute(id, out JsonAttribute? attr)
-                        ? attr
+                    id => client.TryGetMember(id, out JsonMember? member)
+                        ? member
                         : null),
                 Is.Empty);
             Assert.That(
-                CustomTypeInheritance.MergeStaticMembers(
+                NeoSchemaClassInheritance.MergeStaticMembers(
                     chain,
-                    id => client.TryGetAttribute(id, out JsonAttribute? attr)
-                        ? attr
+                    id => client.TryGetMember(id, out JsonMember? member)
+                        ? member
                         : null),
                 Has.Count.EqualTo(3));
         }
 
         [Test]
-        public void AttributeStorageKey_RoundTripsCanonicalWireName()
+        public void MemberStorageKey_RoundTripsCanonicalWireName()
         {
-            var source = new ListAttribute
+            var source = new ListMember
             {
                 id = "partitioned-list",
                 projectId = "static-project",
                 name = "Partitioned",
-                type = AttributeType.List,
-                entryAttributeId = "name-entry",
-                storageKey = "values:$parentType",
+                kind = MemberKind.List,
+                entryMemberId = "name-entry",
+                storageKey = "values:$parentClass",
             };
 
             string json = JsonConvert.SerializeObject(source);
-            StringAssert.Contains("\"storageKey\":\"values:$parentType\"", json);
+            StringAssert.Contains("\"storageKey\":\"values:$parentClass\"", json);
             StringAssert.DoesNotContain("storageMap", json);
-            JsonAttribute roundTrip = JsonConvert.DeserializeObject<JsonAttribute>(json)!;
+            JsonMember roundTrip = JsonConvert.DeserializeObject<JsonMember>(json)!;
 
-            Assert.AreEqual("values:$parentType", roundTrip.storageKey);
+            Assert.AreEqual("values:$parentClass", roundTrip.storageKey);
         }
 
         [Test]
@@ -162,14 +162,14 @@ namespace NeoCompose.Tests
             var staticCount = new StaticMemberPointer
             {
                 type = PointerKind.StaticMember,
-                attributeId = "static-count",
+                memberId = "static-count",
             };
             var getter = new FunctionWithReturnType
             {
                 parameters = Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.Int,
+                    type = MemberKind.Int,
                     required = true,
                 },
                 instructions = new Instruction[]
@@ -182,7 +182,7 @@ namespace NeoCompose.Tests
                             pointer = staticCount,
                             typeInfo = new PrimitiveTypeInfo
                             {
-                                type = AttributeType.Int,
+                                type = MemberKind.Int,
                                 required = true,
                             },
                             writability = WritabilityKind.Runtime,
@@ -202,7 +202,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 "static-count-authored",
-                out NumberAttributeValue? value));
+                out NumberMemberValue? value));
             Assert.AreEqual(14, value!.value);
         }
 
@@ -218,11 +218,11 @@ namespace NeoCompose.Tests
             var staticCount = new StaticMemberPointer
             {
                 type = PointerKind.StaticMember,
-                attributeId = "static-count",
+                memberId = "static-count",
             };
             var intType = new PrimitiveTypeInfo
             {
-                type = AttributeType.Int,
+                type = MemberKind.Int,
                 required = true,
             };
             bool select = callbackKind == FunctionKind.Select;
@@ -233,7 +233,7 @@ namespace NeoCompose.Tests
                     ? intType
                     : new PrimitiveTypeInfo
                     {
-                        type = AttributeType.Bool,
+                        type = MemberKind.Bool,
                         required = true,
                     },
                 instructions = new Instruction[]
@@ -262,7 +262,7 @@ namespace NeoCompose.Tests
                 type = PointerKind.ListLiteral,
                 typeInfo = new CollectionTypeInfo
                 {
-                    type = AttributeType.List,
+                    type = MemberKind.List,
                     required = true,
                     entryTypeInfo = intType,
                 },
@@ -346,12 +346,12 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 "static-count-authored",
-                out NumberAttributeValue? value));
+                out NumberMemberValue? value));
             Assert.AreEqual(27, value!.value);
         }
 
         [Test]
-        public void CustomConstructor_ReturnValueEscapesAndOptionalNullIsOmitted()
+        public void ClassConstructor_ReturnValueEscapesAndOptionalNullIsOmitted()
         {
             NeoClient client = BuildClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
@@ -366,7 +366,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 valueId!,
-                out ObjectAttributeValue? row));
+                out ObjectMemberValue? row));
             Assert.IsTrue(row!.value!.TryGetValue("Name", out string nameValueId));
             Assert.IsFalse(row.value.ContainsKey("Title"));
             Assert.IsTrue(row.value.TryGetValue("Level", out string levelValueId));
@@ -375,34 +375,34 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 nameValueId,
-                out StringAttributeValue? name));
+                out StringMemberValue? name));
             Assert.AreEqual("Ada", name!.value);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 levelValueId,
-                out NumberAttributeValue? level));
+                out NumberMemberValue? level));
             Assert.AreEqual(3, level!.value);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 tagsValueId,
-                out ArrayAttributeValue? tags));
-            Assert.AreEqual("profile:profile-type", tags!.mapKey);
+                out ArrayMemberValue? tags));
+            Assert.AreEqual("profile:profile-class", tags!.mapKey);
             Assert.That(tags.value, Has.Length.EqualTo(1));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 tags.value![0],
-                out StringAttributeValue? tag));
+                out StringMemberValue? tag));
             Assert.AreEqual("starter", tag!.value);
-            Assert.AreEqual("profile:profile-type", tag.mapKey);
+            Assert.AreEqual("profile:profile-class", tag.mapKey);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 statsValueId,
-                out ObjectAttributeValue? stats));
+                out ObjectMemberValue? stats));
             Assert.IsTrue(stats!.value!.TryGetValue("wins", out string winsId));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 winsId,
-                out NumberAttributeValue? wins));
+                out NumberMemberValue? wins));
             Assert.AreEqual(4, wins!.value);
         }
 
@@ -410,52 +410,52 @@ namespace NeoCompose.Tests
         public void GeneratedConstructorMaterializer_PreservesNullableCollectionShape()
         {
             NeoClient client = BuildClient();
-            var attributes =
-                (Dictionary<string, JsonAttribute>)client.attributes;
+            var members =
+                (Dictionary<string, JsonMember>)client.members;
             var profileSchema =
-                ((Dictionary<string, CustomType>)client.types)["profile-type"]
+                ((Dictionary<string, NeoSchemaClass>)client.classes)["profile-class"]
                     .schema!;
-            var nestedStatsEntry = new DictionaryAttribute
+            var nestedStatsEntry = new DictionaryMember
             {
                 id = "profile-nested-stats-entry",
                 projectId = "static-project",
                 name = "Nested Stats Entry",
-                type = AttributeType.Dictionary,
+                kind = MemberKind.Dictionary,
                 required = false,
-                entryAttributeId = "profile-stat-entry",
+                entryMemberId = "profile-stat-entry",
             };
-            var nestedStats = new ListAttribute
+            var nestedStats = new ListMember
             {
                 id = "profile-nested-stats",
                 projectId = "static-project",
                 name = "Nested Stats",
-                type = AttributeType.List,
+                kind = MemberKind.List,
                 required = false,
-                entryAttributeId = nestedStatsEntry.id,
+                entryMemberId = nestedStatsEntry.id,
             };
-            var enumEntry = new EnumAttribute
+            var enumEntry = new EnumMember
             {
                 id = "profile-enum-entry",
                 projectId = "static-project",
                 name = "Choice",
-                type = AttributeType.Enum,
+                kind = MemberKind.Enum,
                 required = false,
                 enumId = "profile-enum",
                 multiselect = false,
             };
-            var enumEntries = new ListAttribute
+            var enumEntries = new ListMember
             {
                 id = "profile-enum-entries",
                 projectId = "static-project",
                 name = "Choices",
-                type = AttributeType.List,
+                kind = MemberKind.List,
                 required = false,
-                entryAttributeId = enumEntry.id,
+                entryMemberId = enumEntry.id,
             };
-            attributes[nestedStatsEntry.id] = nestedStatsEntry;
-            attributes[nestedStats.id] = nestedStats;
-            attributes[enumEntry.id] = enumEntry;
-            attributes[enumEntries.id] = enumEntries;
+            members[nestedStatsEntry.id] = nestedStatsEntry;
+            members[nestedStats.id] = nestedStats;
+            members[enumEntry.id] = enumEntry;
+            members[enumEntries.id] = enumEntries;
             ((Dictionary<string, NeoCompose.Runtime.Json.Enum>)client.enums)[
                 "profile-enum"] = new NeoCompose.Runtime.Json.Enum
                 {
@@ -471,10 +471,10 @@ namespace NeoCompose.Tests
             profileSchema["NestedStats"] = nestedStats.id;
             profileSchema["Choices"] = enumEntries.id;
 
-            NeoAttributeCustomWritable profile =
-                NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            NeoMemberClassWritable profile =
+                NeoGeneratedTypesSupport.CreateWritableClassValue(
                     client,
-                    "profile-type",
+                    "profile-class",
                     new NeoGeneratedConstructorValue(
                         "Name",
                         "profile-name",
@@ -517,76 +517,76 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 tagsId,
-                out ArrayAttributeValue? tags));
+                out ArrayMemberValue? tags));
             Assert.That(tags!.value, Has.Length.EqualTo(2));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 tags.value![0],
-                out StringAttributeValue? emptyTag));
+                out StringMemberValue? emptyTag));
             Assert.IsNull(emptyTag!.value);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 tags.value[1],
-                out StringAttributeValue? readyTag));
+                out StringMemberValue? readyTag));
             Assert.AreEqual("ready", readyTag!.value);
 
             string statsId = profile.value.value["Stats"];
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 statsId,
-                out ObjectAttributeValue? stats));
+                out ObjectMemberValue? stats));
             CollectionAssert.AreEquivalent(
                 new[] { "empty", "wins" },
                 stats!.value!.Keys);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 stats.value["empty"],
-                out NumberAttributeValue? emptyStat));
+                out NumberMemberValue? emptyStat));
             Assert.IsNull(emptyStat!.value);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 stats.value["wins"],
-                out NumberAttributeValue? wins));
+                out NumberMemberValue? wins));
             Assert.AreEqual(7, wins!.value);
 
             string nestedStatsId = profile.value.value["NestedStats"];
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 nestedStatsId,
-                out ArrayAttributeValue? nestedStatsRow));
+                out ArrayMemberValue? nestedStatsRow));
             Assert.That(nestedStatsRow!.value, Has.Length.EqualTo(2));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 nestedStatsRow.value![0],
-                out ObjectAttributeValue? genericDictionaryRow));
+                out ObjectMemberValue? genericDictionaryRow));
             Assert.IsTrue(genericDictionaryRow!.value!.ContainsKey("empty"));
             Assert.IsTrue(genericDictionaryRow.value.ContainsKey("losses"));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 genericDictionaryRow.value["empty"],
-                out NumberAttributeValue? nestedEmpty));
+                out NumberMemberValue? nestedEmpty));
             Assert.IsNull(nestedEmpty!.value);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 nestedStatsRow.value[1],
-                out ObjectAttributeValue? nullDictionaryRow));
+                out ObjectMemberValue? nullDictionaryRow));
             Assert.IsNull(nullDictionaryRow!.value);
 
             string choicesId = profile.value.value["Choices"];
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 choicesId,
-                out ArrayAttributeValue? choicesRow));
+                out ArrayMemberValue? choicesRow));
             Assert.That(choicesRow!.value, Has.Length.EqualTo(2));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 choicesRow.value![0],
-                out ArrayAttributeValue? nullEnumRow));
+                out ArrayMemberValue? nullEnumRow));
             Assert.IsNull(nullEnumRow!.value);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 choicesRow.value[1],
-                out ArrayAttributeValue? enumRow));
+                out ArrayMemberValue? enumRow));
             CollectionAssert.AreEqual(
                 new[] { "ready" },
                 enumRow!.value);
@@ -596,28 +596,28 @@ namespace NeoCompose.Tests
         public void GeneratedConstructorMaterializer_UnorderedListUsesContainerMembership()
         {
             NeoClient client = BuildClient();
-            var attributes =
-                (Dictionary<string, JsonAttribute>)client.attributes;
+            var members =
+                (Dictionary<string, JsonMember>)client.members;
             var profileSchema =
-                ((Dictionary<string, CustomType>)client.types)["profile-type"]
+                ((Dictionary<string, NeoSchemaClass>)client.classes)["profile-class"]
                     .schema!;
-            var unorderedTags = new ListAttribute
+            var unorderedTags = new ListMember
             {
                 id = "profile-unordered-tags",
                 projectId = "static-project",
                 name = "Unordered Tags",
-                type = AttributeType.List,
+                kind = MemberKind.List,
                 required = false,
-                entryAttributeId = "profile-tag-entry",
+                entryMemberId = "profile-tag-entry",
                 listKind = NeoListKinds.Unordered,
             };
-            attributes[unorderedTags.id] = unorderedTags;
+            members[unorderedTags.id] = unorderedTags;
             profileSchema["UnorderedTags"] = unorderedTags.id;
 
-            NeoAttributeCustomWritable profile =
-                NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            NeoMemberClassWritable profile =
+                NeoGeneratedTypesSupport.CreateWritableClassValue(
                     client,
-                    "profile-type",
+                    "profile-class",
                     new NeoGeneratedConstructorValue(
                         "Name",
                         "profile-name",
@@ -635,14 +635,14 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 orderedListId,
-                out ArrayAttributeValue? orderedList));
+                out ArrayMemberValue? orderedList));
             Assert.That(orderedList!.value, Has.Length.EqualTo(2));
             foreach (string orderedEntryId in orderedList.value!)
             {
                 Assert.IsTrue(client.TryGetValue(
                     NeoValueOwnership.Session,
                     orderedEntryId,
-                    out StringAttributeValue? orderedEntry));
+                    out StringMemberValue? orderedEntry));
                 Assert.IsNull(orderedEntry!.containerId);
             }
 
@@ -650,7 +650,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 unorderedListId,
-                out ArrayAttributeValue? unorderedList));
+                out ArrayMemberValue? unorderedList));
             CollectionAssert.IsEmpty(unorderedList!.value!);
             var unorderedValues = new List<string?>();
             foreach (string unorderedEntryId in
@@ -659,7 +659,7 @@ namespace NeoCompose.Tests
                 Assert.IsTrue(client.TryGetValue(
                     NeoValueOwnership.Session,
                     unorderedEntryId,
-                    out StringAttributeValue? unorderedEntry));
+                    out StringMemberValue? unorderedEntry));
                 Assert.AreEqual(unorderedListId, unorderedEntry!.containerId);
                 unorderedValues.Add(unorderedEntry.value);
             }
@@ -669,43 +669,43 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedConstructorMaterializer_UnorderedCustomMemberAttachesByIdentity()
+        public void GeneratedConstructorMaterializer_UnorderedClassMemberAttachesByIdentity()
         {
             NeoClient client = BuildClient();
-            var attributes =
-                (Dictionary<string, JsonAttribute>)client.attributes;
+            var members =
+                (Dictionary<string, JsonMember>)client.members;
             var profileSchema =
-                ((Dictionary<string, CustomType>)client.types)["profile-type"]
+                ((Dictionary<string, NeoSchemaClass>)client.classes)["profile-class"]
                     .schema!;
-            var childEntry = new CustomAttribute
+            var childEntry = new ClassMember
             {
                 id = "profile-child-entry",
                 projectId = "static-project",
                 name = "Child",
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
-                customTypeId = "owned-child-type",
+                classId = "owned-child-class",
             };
-            var children = new ListAttribute
+            var children = new ListMember
             {
                 id = "profile-children",
                 projectId = "static-project",
                 name = "Children",
-                type = AttributeType.List,
+                kind = MemberKind.List,
                 required = false,
-                entryAttributeId = childEntry.id,
+                entryMemberId = childEntry.id,
                 listKind = NeoListKinds.Unordered,
             };
-            attributes[childEntry.id] = childEntry;
-            attributes[children.id] = children;
+            members[childEntry.id] = childEntry;
+            members[children.id] = children;
             profileSchema["Children"] = children.id;
-            NeoAttributeCustomWritable child = CreateOwnedChild(client, "member");
+            NeoMemberClassWritable child = CreateOwnedChild(client, "member");
             string childId = child.value!.id;
 
-            NeoAttributeCustomWritable profile =
-                NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            NeoMemberClassWritable profile =
+                NeoGeneratedTypesSupport.CreateWritableClassValue(
                     client,
-                    "profile-type",
+                    "profile-class",
                     new NeoGeneratedConstructorValue(
                         "Name",
                         "profile-name",
@@ -719,7 +719,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 listId,
-                out ArrayAttributeValue? list));
+                out ArrayMemberValue? list));
             CollectionAssert.IsEmpty(list!.value!);
             CollectionAssert.AreEqual(
                 new[] { childId },
@@ -727,32 +727,32 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 childId,
-                out ObjectAttributeValue? attachedChild));
+                out ObjectMemberValue? attachedChild));
             Assert.AreEqual(listId, attachedChild!.containerId);
         }
 
         [Test]
-        public void CustomConstructor_RuntimeMismatchStillEvaluatesLaterArguments()
+        public void ClassConstructor_RuntimeMismatchStillEvaluatesLaterArguments()
         {
             NeoClient client = BuildClient();
             bool laterArgumentEvaluated = false;
-            var effect = new FunctionAttribute
+            var effect = new FunctionMember
             {
                 id = "static-constructor-effect",
                 projectId = "static-project",
                 name = "Constructor Effect",
-                type = AttributeType.Function,
+                kind = MemberKind.Function,
                 required = false,
                 isStatic = true,
                 returnTypeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.String,
+                    type = MemberKind.String,
                     required = true,
                 },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                 deferred = false,
             };
-            ((Dictionary<string, JsonAttribute>)client.attributes)[effect.id] =
+            ((Dictionary<string, JsonMember>)client.members)[effect.id] =
                 effect;
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
@@ -766,35 +766,35 @@ namespace NeoCompose.Tests
             var constructor = new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new CustomConstructorFunction
+                function = new ClassConstructorFunction
                 {
-                    type = FunctionKind.CustomConstructor,
-                    info = new FunctionCustomConstructorInfo
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
                     {
-                        customTypeInfo = ProfileType(),
+                        classTypeInfo = ProfileType(),
                         fields = new[]
                         {
-                            new FunctionCustomConstructorField
+                            new FunctionClassConstructorField
                             {
                                 schemaKey = "Name",
-                                attributeId = "profile-name",
+                                memberId = "profile-name",
                                 // Wrong at runtime, but pointer evaluation is
                                 // still side-effect free and does not validate
                                 // the materialized row yet.
                                 valuePointer = IntPointer(42),
                             },
-                            new FunctionCustomConstructorField
+                            new FunctionClassConstructorField
                             {
                                 schemaKey = "Title",
-                                attributeId = "profile-title",
+                                memberId = "profile-title",
                                 valuePointer = new CallFunctionPointer
                                 {
                                     type = PointerKind.CallFunction,
-                                    attributeId = effect.id,
+                                    memberId = effect.id,
                                     receiver = new CallReceiver
                                     {
                                         kind = CallReceiverKind.Static,
-                                        attributeId = effect.id,
+                                        memberId = effect.id,
                                     },
                                     args = Array.Empty<Pointer>(),
                                     callSiteId = "constructor-later-effect",
@@ -819,7 +819,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_ReturnedNestedCollectionEscapesWholeAllocationGroup()
+        public void ClassConstructor_ReturnedNestedCollectionEscapesWholeAllocationGroup()
         {
             NeoClient client = BuildClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
@@ -828,11 +828,11 @@ namespace NeoCompose.Tests
                 parameters = Array.Empty<Variable>(),
                 typeInfo = new CollectionTypeInfo
                 {
-                    type = AttributeType.List,
+                    type = MemberKind.List,
                     required = true,
                     entryTypeInfo = new PrimitiveTypeInfo
                     {
-                        type = AttributeType.String,
+                        type = MemberKind.String,
                         required = true,
                     },
                 },
@@ -860,15 +860,15 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 tagsId,
-                out ArrayAttributeValue? _));
+                out ArrayMemberValue? _));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 profileId!,
-                out ObjectAttributeValue? _));
+                out ObjectMemberValue? _));
         }
 
         [Test]
-        public void CustomConstructor_ReturnedNestedCustomEscapesOuterAllocationGroup()
+        public void ClassConstructor_ReturnedNestedClassEscapesOuterAllocationGroup()
         {
             NeoClient client = BuildClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
@@ -900,27 +900,27 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 childId,
-                out ObjectAttributeValue? _));
+                out ObjectMemberValue? _));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 parentId!,
-                out ObjectAttributeValue? _));
+                out ObjectMemberValue? _));
         }
 
         [Test]
-        public void CustomConstructor_MissingRequiredFieldIsRejected()
+        public void ClassConstructor_MissingRequiredFieldIsRejected()
         {
             NeoClient client = BuildClient();
             var pointer = new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new CustomConstructorFunction
+                function = new ClassConstructorFunction
                 {
-                    type = FunctionKind.CustomConstructor,
-                    info = new FunctionCustomConstructorInfo
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
                     {
-                        customTypeInfo = ProfileType(),
-                        fields = Array.Empty<FunctionCustomConstructorField>(),
+                        classTypeInfo = ProfileType(),
+                        fields = Array.Empty<FunctionClassConstructorField>(),
                     },
                 },
             };
@@ -934,31 +934,31 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_DuplicateFieldIsRejectedWithoutPublishingRows()
+        public void ClassConstructor_DuplicateFieldIsRejectedWithoutPublishingRows()
         {
             NeoClient client = BuildClient();
             int before = client.sessionValues.Count;
             var pointer = new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new CustomConstructorFunction
+                function = new ClassConstructorFunction
                 {
-                    type = FunctionKind.CustomConstructor,
-                    info = new FunctionCustomConstructorInfo
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
                     {
-                        customTypeInfo = ProfileType(),
+                        classTypeInfo = ProfileType(),
                         fields = new[]
                         {
-                            new FunctionCustomConstructorField
+                            new FunctionClassConstructorField
                             {
                                 schemaKey = "Name",
-                                attributeId = "profile-name",
+                                memberId = "profile-name",
                                 valuePointer = StringPointer("Ada"),
                             },
-                            new FunctionCustomConstructorField
+                            new FunctionClassConstructorField
                             {
                                 schemaKey = "Name",
-                                attributeId = "profile-name",
+                                memberId = "profile-name",
                                 valuePointer = StringPointer("Grace"),
                             },
                         },
@@ -976,7 +976,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_StaleMetadataFailsBeforeArgumentSideEffects()
+        public void ClassConstructor_StaleMetadataFailsBeforeArgumentSideEffects()
         {
             NeoClient client = BuildClient();
             int calls = 0;
@@ -992,32 +992,32 @@ namespace NeoCompose.Tests
             var pointer = new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new CustomConstructorFunction
+                function = new ClassConstructorFunction
                 {
-                    type = FunctionKind.CustomConstructor,
-                    info = new FunctionCustomConstructorInfo
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
                     {
-                        customTypeInfo = ProfileType(),
+                        classTypeInfo = ProfileType(),
                         fields = new[]
                         {
-                            new FunctionCustomConstructorField
+                            new FunctionClassConstructorField
                             {
                                 schemaKey = "Name",
-                                attributeId = "profile-name",
+                                memberId = "profile-name",
                                 valuePointer = StringPointer("Ada"),
                             },
-                            new FunctionCustomConstructorField
+                            new FunctionClassConstructorField
                             {
                                 schemaKey = "LegacyTitle",
-                                attributeId = "profile-title",
+                                memberId = "profile-title",
                                 valuePointer = new CallFunctionPointer
                                 {
                                     type = PointerKind.CallFunction,
-                                    attributeId = "static-consume",
+                                    memberId = "static-consume",
                                     receiver = new CallReceiver
                                     {
                                         kind = CallReceiverKind.Static,
-                                        attributeId = "static-consume",
+                                        memberId = "static-consume",
                                     },
                                     args = new Pointer[]
                                     {
@@ -1043,10 +1043,10 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_ImmutableOnlyTypeIsRejectedWithoutPublishingRows()
+        public void ClassConstructor_ImmutableOnlyClassIsRejectedWithoutPublishingRows()
         {
             NeoClient client = BuildClient();
-            ((Dictionary<string, CustomType>)client.types)["profile-type"]
+            ((Dictionary<string, NeoSchemaClass>)client.classes)["profile-class"]
                 .allowedStorage = "immutable";
             int before = client.sessionValues.Count;
 
@@ -1057,7 +1057,7 @@ namespace NeoCompose.Tests
                         includeOptionalNull: false)),
                     new NSGetterEvaluator.Context(client, null, null)))!;
 
-            StringAssert.Contains("immutable-only Custom type 'Profile'", error.Message);
+            StringAssert.Contains("immutable-only class 'Profile'", error.Message);
             Assert.AreEqual(before, client.sessionValues.Count);
         }
 
@@ -1066,23 +1066,23 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
             int before = client.sessionValues.Count;
-            var wrongShape = new NumberAttributeValue
+            var wrongShape = new NumberMemberValue
             {
                 id = "wrong-profile-name-shape",
                 value = 17,
             };
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-                NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                NeoGeneratedTypesSupport.CreateWritableClassValue(
                     client,
-                    "profile-type",
+                    "profile-class",
                     new Dictionary<string, string>
                     {
                         ["Name"] = wrongShape.id,
                     },
-                    new AttributeValue[] { wrongShape }))!;
+                    new MemberValue[] { wrongShape }))!;
 
-            StringAssert.Contains("incompatible with schema attribute 'profile-name'", error.Message);
+            StringAssert.Contains("incompatible with schema member 'profile-name'", error.Message);
             Assert.AreEqual(before, client.sessionValues.Count);
             Assert.IsFalse(client.HasWritableValue(
                 NeoValueOwnership.Session,
@@ -1094,26 +1094,26 @@ namespace NeoCompose.Tests
         {
             NeoClient client = BuildClient();
             int before = client.sessionValues.Count;
-            var name = new StringAttributeValue
+            var name = new StringMemberValue
             {
                 id = "reachable-profile-name",
                 value = "Ada",
             };
-            var orphan = new StringAttributeValue
+            var orphan = new StringMemberValue
             {
                 id = "orphan-constructor-row",
                 value = "unreachable",
             };
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
-                NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                NeoGeneratedTypesSupport.CreateWritableClassValue(
                     client,
-                    "profile-type",
+                    "profile-class",
                     new Dictionary<string, string>
                     {
                         ["Name"] = name.id,
                     },
-                    new AttributeValue[] { name, orphan }))!;
+                    new MemberValue[] { name, orphan }))!;
 
             StringAssert.Contains("orphan staged row 'orphan-constructor-row'", error.Message);
             Assert.AreEqual(before, client.sessionValues.Count);
@@ -1126,7 +1126,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_NestedCustomAttachesParentlessSessionIdentity()
+        public void ClassConstructor_NestedClassAttachesParentlessSessionIdentity()
         {
             NeoClient client = BuildClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
@@ -1134,18 +1134,18 @@ namespace NeoCompose.Tests
             var parentConstructor = new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new CustomConstructorFunction
+                function = new ClassConstructorFunction
                 {
-                    type = FunctionKind.CustomConstructor,
-                    info = new FunctionCustomConstructorInfo
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
                     {
-                        customTypeInfo = OwnedParentType(),
+                        classTypeInfo = OwnedParentClass(),
                         fields = new[]
                         {
-                            new FunctionCustomConstructorField
+                            new FunctionClassConstructorField
                             {
                                 schemaKey = "Child",
-                                attributeId = "owned-parent-child",
+                                memberId = "owned-parent-child",
                                 valuePointer = childConstructor,
                             },
                         },
@@ -1155,7 +1155,7 @@ namespace NeoCompose.Tests
             var getter = new FunctionWithReturnType
             {
                 parameters = Array.Empty<Variable>(),
-                typeInfo = OwnedParentType(),
+                typeInfo = OwnedParentClass(),
                 instructions = new Instruction[]
                 {
                     new ReturnInstruction
@@ -1171,13 +1171,13 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 parentId,
-                out ObjectAttributeValue? parent),
+                out ObjectMemberValue? parent),
                 $"Returned parent '{parentId}' was collected; Session rows: {string.Join(", ", client.sessionValues.Keys)}");
             string childId = parent!.value!["Child"];
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 childId,
-                out ObjectAttributeValue? child),
+                out ObjectMemberValue? child),
                 $"Nested child '{childId}' was collected; Session rows: {string.Join(", ", client.sessionValues.Keys)}");
             Assert.AreEqual("nested", ReadOwnedChildValue(client, child!));
         }
@@ -1186,10 +1186,10 @@ namespace NeoCompose.Tests
         public void GeneratedConstructor_ParentlessSessionAttachesIdentityButSecondParentRequiresClone()
         {
             NeoClient client = BuildClient();
-            NeoAttributeCustomWritable child = CreateOwnedChild(client, "shared");
+            NeoMemberClassWritable child = CreateOwnedChild(client, "shared");
             string childId = child.value!.id;
 
-            NeoAttributeCustomWritable firstParent = CreateOwnedParent(
+            NeoMemberClassWritable firstParent = CreateOwnedParent(
                 client,
                 childId);
             Assert.AreEqual(childId, firstParent.value!.value!["Child"]);
@@ -1207,7 +1207,7 @@ namespace NeoCompose.Tests
         public void GeneratedConstructor_SessionStaticBindingCountsAsAnOwnedParent()
         {
             NeoClient client = BuildClient();
-            NeoAttributeCustomWritable child = CreateOwnedChild(client, "static");
+            NeoMemberClassWritable child = CreateOwnedChild(client, "static");
             string childId = child.value!.id;
             RegisterOwnedChildStatic(
                 client,
@@ -1250,7 +1250,7 @@ namespace NeoCompose.Tests
                 NeoValueOwnership.Save,
                 childId);
 
-            NeoAttributeCustomWritable parent = CreateOwnedParent(client, childId);
+            NeoMemberClassWritable parent = CreateOwnedParent(client, childId);
 
             string importedChildId = parent.value!.value!["Child"];
             Assert.AreNotEqual(childId, importedChildId);
@@ -1260,13 +1260,13 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 importedChildId,
-                out ObjectAttributeValue? importedChild));
+                out ObjectMemberValue? importedChild));
             Assert.AreEqual("save-static", ReadOwnedChildValue(client, importedChild!));
             Assert.AreNotEqual(valueId, importedChild!.value!["Value"]);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 childId,
-                out ObjectAttributeValue? source));
+                out ObjectMemberValue? source));
             Assert.IsNotNull(source);
             Assert.IsTrue(client.TryResolveStaticBinding(
                 "static-owned-child-save",
@@ -1292,7 +1292,7 @@ namespace NeoCompose.Tests
                 valueId,
                 sourceOwnership.ToString());
 
-            NeoAttributeCustomWritable parent = CreateOwnedParent(client, childId);
+            NeoMemberClassWritable parent = CreateOwnedParent(client, childId);
 
             string importedChildId = parent.value!.value!["Child"];
             Assert.AreNotEqual(childId, importedChildId);
@@ -1302,7 +1302,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 importedChildId,
-                out ObjectAttributeValue? importedChild));
+                out ObjectMemberValue? importedChild));
             Assert.AreNotEqual(valueId, importedChild!.value!["Value"]);
             Assert.AreEqual(
                 sourceOwnership.ToString(),
@@ -1310,7 +1310,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 sourceOwnership,
                 childId,
-                out ObjectAttributeValue? sourceChild));
+                out ObjectMemberValue? sourceChild));
             Assert.IsNotNull(sourceChild);
         }
 
@@ -1335,7 +1335,7 @@ namespace NeoCompose.Tests
                 NeoValueOwnership.Save,
                 sourceChildId);
 
-            NeoAttributeCustomWritable stagedParent = CreateOwnedParent(
+            NeoMemberClassWritable stagedParent = CreateOwnedParent(
                 client,
                 sourceChildId);
             string stagedParentId = stagedParent.value!.id;
@@ -1352,19 +1352,19 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 savedParentId,
-                out ObjectAttributeValue? savedParent));
+                out ObjectMemberValue? savedParent));
             string savedChildId = savedParent!.value!["Child"];
             Assert.AreEqual(stagedChildId, savedChildId);
             Assert.AreNotEqual(sourceChildId, savedChildId);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 savedChildId,
-                out ObjectAttributeValue? savedChild));
+                out ObjectMemberValue? savedChild));
             Assert.AreNotEqual(sourceValueId, savedChild!.value!["Value"]);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 sourceChildId,
-                out ObjectAttributeValue? sourceChild));
+                out ObjectMemberValue? sourceChild));
             Assert.AreEqual(sourceValueId, sourceChild!.value!["Value"]);
             Assert.IsTrue(client.TryFindOwnedParent(
                 NeoValueOwnership.Save,
@@ -1407,10 +1407,10 @@ namespace NeoCompose.Tests
                 "session-copy");
             client.SetWritableValue(
                 NeoValueOwnership.Session,
-                new ObjectAttributeValue
+                new ObjectMemberValue
                 {
                     id = parentId,
-                    typeId = "owned-parent-type",
+                    classId = "owned-parent-class",
                     value = new Dictionary<string, string>
                     {
                         ["Child"] = childId,
@@ -1427,13 +1427,13 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 importedParentId,
-                out ObjectAttributeValue? importedParent));
+                out ObjectMemberValue? importedParent));
             string importedChildId = importedParent!.value!["Child"];
             Assert.AreNotEqual(childId, importedChildId);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 importedChildId,
-                out ObjectAttributeValue? importedChild));
+                out ObjectMemberValue? importedChild));
             Assert.AreEqual("session-copy", ReadOwnedChildValue(
                 client,
                 importedChild!,
@@ -1441,7 +1441,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 childId,
-                out ObjectAttributeValue? sourceChild));
+                out ObjectMemberValue? sourceChild));
             Assert.AreEqual(childValueId, sourceChild!.value!["Value"]);
         }
 
@@ -1449,11 +1449,11 @@ namespace NeoCompose.Tests
         public void ImportValueReference_ParentedSessionDescendantClonesInsteadOfMoving()
         {
             NeoClient client = BuildClient();
-            NeoAttributeCustomWritable child = CreateOwnedChild(
+            NeoMemberClassWritable child = CreateOwnedChild(
                 client,
                 "session-child");
             string childId = child.value!.id;
-            NeoAttributeCustomWritable parent = CreateOwnedParent(client, childId);
+            NeoMemberClassWritable parent = CreateOwnedParent(client, childId);
             string parentId = parent.value!.id;
 
             string importedChildId = client.ImportValueReference(
@@ -1471,14 +1471,14 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 childId,
-                out ObjectAttributeValue? retainedChild));
+                out ObjectMemberValue? retainedChild));
             Assert.AreEqual("session-child", ReadOwnedChildValue(
                 client,
                 retainedChild!));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 importedChildId,
-                out ObjectAttributeValue? importedChild));
+                out ObjectMemberValue? importedChild));
             Assert.AreEqual("session-child", ReadOwnedChildValue(
                 client,
                 importedChild!,
@@ -1486,7 +1486,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_SameStableIdUsesExactSourceOwnership()
+        public void ClassConstructor_SameStableIdUsesExactSourceOwnership()
         {
             NeoClient client = BuildClient();
             const string sharedChildId = "shared-store-child";
@@ -1505,7 +1505,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 sharedChildId,
-                out ObjectAttributeValue? saveChild));
+                out ObjectMemberValue? saveChild));
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             object? exactSaveReference = NSGetterEvaluator.UnwrapRow(
                 saveChild!,
@@ -1515,7 +1515,7 @@ namespace NeoCompose.Tests
             var getter = new FunctionWithReturnType
             {
                 parameters = Array.Empty<Variable>(),
-                typeInfo = OwnedParentType(),
+                typeInfo = OwnedParentClass(),
                 instructions = new Instruction[]
                 {
                     new ReturnInstruction
@@ -1537,18 +1537,18 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 parentId,
-                out ObjectAttributeValue? constructedParent));
+                out ObjectMemberValue? constructedParent));
             string importedChildId = constructedParent!.value!["Child"];
             Assert.AreNotEqual(sharedChildId, importedChildId);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 importedChildId,
-                out ObjectAttributeValue? importedChild));
+                out ObjectMemberValue? importedChild));
             Assert.AreEqual("save", ReadOwnedChildValue(client, importedChild!));
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 sharedChildId,
-                out ObjectAttributeValue? sessionChild));
+                out ObjectMemberValue? sessionChild));
             Assert.AreEqual("session", ReadOwnedChildValue(client, sessionChild!));
         }
 
@@ -1556,12 +1556,12 @@ namespace NeoCompose.Tests
         public void CloneOwnedValueReference_CycleAfterPublishedSiblingRollsBackAtomically()
         {
             NeoClient client = BuildClient();
-            var attributes =
-                (Dictionary<string, JsonAttribute>)client.attributes;
-            var types = (Dictionary<string, CustomType>)client.types;
-            var rootType = new CustomType
+            var members =
+                (Dictionary<string, JsonMember>)client.members;
+            var classes = (Dictionary<string, NeoSchemaClass>)client.classes;
+            var rootClass = new NeoSchemaClass
             {
-                id = "atomic-root-type",
+                id = "atomic-root-class",
                 projectId = "static-project",
                 name = "AtomicRoot",
                 schema = new Dictionary<string, string>
@@ -1570,37 +1570,37 @@ namespace NeoCompose.Tests
                     ["Loop"] = "atomic-loop-child",
                 },
             };
-            var goodAttribute = new CustomAttribute
+            var goodMember = new ClassMember
             {
                 id = "atomic-good-child",
                 projectId = "static-project",
                 name = "Good",
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
-                customTypeId = "owned-child-type",
+                classId = "owned-child-class",
             };
-            var loopAttribute = new CustomAttribute
+            var loopMember = new ClassMember
             {
                 id = "atomic-loop-child",
                 projectId = "static-project",
                 name = "Loop",
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
-                customTypeId = rootType.id,
+                classId = rootClass.id,
             };
-            var rootAttribute = new CustomAttribute
+            var rootMember = new ClassMember
             {
                 id = "atomic-root",
                 projectId = "static-project",
                 name = "Atomic Root",
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
-                customTypeId = rootType.id,
+                classId = rootClass.id,
             };
-            attributes[goodAttribute.id] = goodAttribute;
-            attributes[loopAttribute.id] = loopAttribute;
-            attributes[rootAttribute.id] = rootAttribute;
-            types[rootType.id] = rootType;
+            members[goodMember.id] = goodMember;
+            members[loopMember.id] = loopMember;
+            members[rootMember.id] = rootMember;
+            classes[rootClass.id] = rootClass;
             SeedOwnedChild(
                 client,
                 NeoValueOwnership.Save,
@@ -1609,10 +1609,10 @@ namespace NeoCompose.Tests
                 "published-before-cycle");
             client.SetWritableValue(
                 NeoValueOwnership.Save,
-                new ObjectAttributeValue
+                new ObjectMemberValue
                 {
                     id = "atomic-root-row",
-                    typeId = rootType.id,
+                    classId = rootClass.id,
                     value = new Dictionary<string, string>
                     {
                         ["Good"] = "atomic-good-row",
@@ -1626,7 +1626,7 @@ namespace NeoCompose.Tests
                     NeoValueOwnership.Session,
                     NeoValueOwnership.Save,
                     "atomic-root-row",
-                    rootAttribute))!;
+                    rootMember))!;
 
             StringAssert.Contains("cycle", error.Message);
             CollectionAssert.AreEquivalent(before, client.sessionValues.Keys);
@@ -1647,7 +1647,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 valueId,
-                out StringAttributeValue? sourceValue));
+                out StringMemberValue? sourceValue));
             sourceValue!.mapKey = "unexpected-partition";
             client.SetWritableValue(NeoValueOwnership.Save, sourceValue);
             var before = new HashSet<string>(client.sessionValues.Keys);
@@ -1660,57 +1660,57 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedConstructor_IncompatibleCustomRuntimeTypeIsRejectedAtomically()
+        public void GeneratedConstructor_IncompatibleRuntimeClassIsRejectedAtomically()
         {
             NeoClient client = BuildClient();
-            var wrong = new ObjectAttributeValue
+            var wrong = new ObjectMemberValue
             {
-                id = "wrong-custom-runtime-type",
-                typeId = "profile-type",
+                id = "wrong-class-runtime",
+                classId = "profile-class",
                 value = new Dictionary<string, string>(),
             };
-            ((Dictionary<string, AttributeValue>)client.values)[wrong.id] = wrong;
+            ((Dictionary<string, MemberValue>)client.values)[wrong.id] = wrong;
             int before = client.sessionValues.Count;
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
                 CreateOwnedParent(client, wrong.id))!;
 
-            StringAssert.Contains("expects 'owned-child-type'", error.Message);
-            StringAssert.Contains("runtime type 'profile-type'", error.Message);
+            StringAssert.Contains("expects 'owned-child-class'", error.Message);
+            StringAssert.Contains("runtime class 'profile-class'", error.Message);
             Assert.AreEqual(before, client.sessionValues.Count);
         }
 
         [Test]
-        public void CustomConstructor_ClosedNamedGenericSubstitutesAndStampsCollections()
+        public void ClassConstructor_ClosedNamedGenericSubstitutesAndStampsCollections()
         {
             NeoClient client = BuildClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
-            CustomTypeInfo resultType = ClosedStringBoxType();
+            ClassTypeInfo resultType = ClosedStringBoxType();
             var constructor = new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new CustomConstructorFunction
+                function = new ClassConstructorFunction
                 {
-                    type = FunctionKind.CustomConstructor,
-                    info = new FunctionCustomConstructorInfo
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
                     {
-                        customTypeInfo = resultType,
+                        classTypeInfo = resultType,
                         fields = new[]
                         {
-                            new FunctionCustomConstructorField
+                            new FunctionClassConstructorField
                             {
                                 schemaKey = "Values",
-                                attributeId = "generic-values",
+                                memberId = "generic-values",
                                 valuePointer = new ListLiteralPointer
                                 {
                                     type = PointerKind.ListLiteral,
                                     typeInfo = new CollectionTypeInfo
                                     {
-                                        type = AttributeType.List,
+                                        type = MemberKind.List,
                                         required = true,
                                         entryTypeInfo = new PrimitiveTypeInfo
                                         {
-                                            type = AttributeType.String,
+                                            type = MemberKind.String,
                                             required = true,
                                         },
                                     },
@@ -1744,13 +1744,13 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 rootId,
-                out ObjectAttributeValue? root));
-            Assert.AreEqual("string-box-type", root!.typeId);
+                out ObjectMemberValue? root));
+            Assert.AreEqual("string-box-class", root!.classId);
             string valuesId = root.value!["Values"];
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 valuesId,
-                out ArrayAttributeValue? values));
+                out ArrayMemberValue? values));
             Assert.AreEqual(
                 "generic-string-binding",
                 values!.genericBindings!["generic-param"]);
@@ -1758,26 +1758,26 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 values.value![0],
-                out StringAttributeValue? first));
+                out StringMemberValue? first));
             Assert.AreEqual("one", first!.value);
         }
 
         [Test]
-        public void CustomConstructor_OpenGenericFamilyIsRejected()
+        public void ClassConstructor_OpenGenericFamilyIsRejected()
         {
             NeoClient client = BuildClient();
-            CustomTypeInfo openType = ClosedStringBoxType();
-            openType.typeId = "generic-box-type";
+            ClassTypeInfo openType = ClosedStringBoxType();
+            openType.classId = "generic-box-class";
             var constructor = new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new CustomConstructorFunction
+                function = new ClassConstructorFunction
                 {
-                    type = FunctionKind.CustomConstructor,
-                    info = new FunctionCustomConstructorInfo
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
                     {
-                        customTypeInfo = openType,
-                        fields = Array.Empty<FunctionCustomConstructorField>(),
+                        classTypeInfo = openType,
+                        fields = Array.Empty<FunctionClassConstructorField>(),
                     },
                 },
             };
@@ -1799,11 +1799,11 @@ namespace NeoCompose.Tests
                     },
                     new NSGetterEvaluator.Context(client, null, null)))!;
 
-            StringAssert.Contains("Cannot construct open generic Custom type 'GenericBox'", error.Message);
+            StringAssert.Contains("Cannot construct open generic class 'GenericBox'", error.Message);
         }
 
         [Test]
-        public void CustomConstructor_UnescapedLocalIsCollectedAtTerminal()
+        public void ClassConstructor_UnescapedLocalIsCollectedAtTerminal()
         {
             NeoClient client = BuildClient();
             int rowsBefore = client.sessionValues.Count;
@@ -1833,7 +1833,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_AssignedToStaticParentSurvivesTerminalCleanup()
+        public void ClassConstructor_AssignedToStaticParentSurvivesTerminalCleanup()
         {
             NeoClient client = BuildClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
@@ -1852,7 +1852,7 @@ namespace NeoCompose.Tests
                         pointer = new StaticMemberPointer
                         {
                             type = PointerKind.StaticMember,
-                            attributeId = "static-profile",
+                            memberId = "static-profile",
                         },
                         typeInfo = ProfileType(),
                         writability = WritabilityKind.Runtime,
@@ -1880,16 +1880,16 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 binding.ValueId!,
-                out ObjectAttributeValue? _));
+                out ObjectMemberValue? _));
         }
 
         [Test]
-        public void CustomConstructor_AssignedBelowExternalParentlessSessionValueSurvivesCleanup()
+        public void ClassConstructor_AssignedBelowExternalParentlessSessionValueSurvivesCleanup()
         {
             NeoClient client = BuildClient();
-            NeoAttributeCustomWritable oldChild = CreateOwnedChild(client, "old");
+            NeoMemberClassWritable oldChild = CreateOwnedChild(client, "old");
             string oldChildId = oldChild.value!.id;
-            NeoAttributeCustomWritable host = CreateOwnedParent(
+            NeoMemberClassWritable host = CreateOwnedParent(
                 client,
                 oldChildId);
             string hostId = host.value!.id;
@@ -1930,7 +1930,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 hostId,
-                out ObjectAttributeValue? storedHost));
+                out ObjectMemberValue? storedHost));
             string attachedChildId = storedHost!.value!["Child"];
             Assert.AreNotEqual(oldChildId, attachedChildId);
             Assert.IsTrue(client.TryFindOwnedParent(
@@ -1941,12 +1941,12 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 attachedChildId,
-                out ObjectAttributeValue? attachedChild));
+                out ObjectMemberValue? attachedChild));
             Assert.AreEqual("new", ReadOwnedChildValue(client, attachedChild!));
         }
 
         [Test]
-        public void CustomConstructor_PromotionRetargetsLocalAliasesToSaveRows()
+        public void ClassConstructor_PromotionRetargetsLocalAliasesToSaveRows()
         {
             NeoClient client = BuildClient();
             var ctx = new NSGetterEvaluator.Context(client, null, null);
@@ -1985,7 +1985,7 @@ namespace NeoCompose.Tests
                             pointer = new StaticMemberPointer
                             {
                                 type = PointerKind.StaticMember,
-                                attributeId = "static-profile-save",
+                                memberId = "static-profile-save",
                             },
                             typeInfo = ProfileType(),
                             writability = WritabilityKind.Save,
@@ -2011,7 +2011,7 @@ namespace NeoCompose.Tests
                                 "Name"),
                             typeInfo = new PrimitiveTypeInfo
                             {
-                                type = AttributeType.String,
+                                type = MemberKind.String,
                                 required = true,
                             },
                             writability = WritabilityKind.Runtime,
@@ -2044,12 +2044,12 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 rootId,
-                out ObjectAttributeValue? savedProfile));
+                out ObjectMemberValue? savedProfile));
             string nameId = savedProfile!.value!["Name"];
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 nameId,
-                out StringAttributeValue? savedName));
+                out StringMemberValue? savedName));
             Assert.AreEqual("Grace", savedName!.value);
             Assert.IsFalse(ctx.rowCacheKeysByRow.ContainsKey(
                 $"{NeoValueOwnership.Session}:{rootId}"));
@@ -2058,7 +2058,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_ThrowPathCollectsUnescapedGraph()
+        public void ClassConstructor_ThrowPathCollectsUnescapedGraph()
         {
             NeoClient client = BuildClient();
             int rowsBefore = client.sessionValues.Count;
@@ -2089,15 +2089,15 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_InvalidNSFunctionReturnIsCollectedBeforeEscape()
+        public void ClassConstructor_InvalidNSFunctionReturnIsCollectedBeforeEscape()
         {
             NeoClient client = BuildClient();
-            NSFunctionAttribute function = StaticScriptFunction(
+            NSFunctionMember function = StaticScriptFunction(
                 "static-invalid-constructor-return",
                 deferred: false,
                 new PrimitiveTypeInfo
                 {
-                    type = AttributeType.Int,
+                    type = MemberKind.Int,
                     required = true,
                 },
                 new ReturnInstruction
@@ -2107,14 +2107,14 @@ namespace NeoCompose.Tests
                         "Ada",
                         includeOptionalNull: false),
                 });
-            ((Dictionary<string, JsonAttribute>)client.attributes)[function.id] =
+            ((Dictionary<string, JsonMember>)client.members)[function.id] =
                 function;
-            ((Dictionary<string, CustomType>)client.types)["profile-type"]
+            ((Dictionary<string, NeoSchemaClass>)client.classes)["profile-class"]
                 .schema![function.id] = function.id;
             int rowsBefore = client.sessionValues.Count;
 
             Assert.Throws<InvalidOperationException>(() =>
-                new NeoAttributeNSFunction(client, function, null)
+                new NeoMemberNSFunction(client, function, null)
                     .InvokeStatic(Array.Empty<object?>()));
 
             Assert.AreEqual(
@@ -2124,7 +2124,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_InvalidDeferredNSFunctionReturnIsCollected()
+        public void ClassConstructor_InvalidDeferredNSFunctionReturnIsCollected()
         {
             NeoClient client = BuildClient();
             NeoDeferredFunction<string>? pending = null;
@@ -2140,12 +2140,12 @@ namespace NeoCompose.Tests
             Variable profile = ProfileVariable(
                 "profile-invalid-deferred-return",
                 "Ada");
-            NSFunctionAttribute function = StaticScriptFunction(
+            NSFunctionMember function = StaticScriptFunction(
                 "static-invalid-deferred-constructor-return",
                 deferred: true,
                 new PrimitiveTypeInfo
                 {
-                    type = AttributeType.Int,
+                    type = MemberKind.Int,
                     required = true,
                 },
                 new VariableInstruction
@@ -2159,11 +2159,11 @@ namespace NeoCompose.Tests
                     call = new CallFunctionPointer
                     {
                         type = PointerKind.CallFunction,
-                        attributeId = "static-wait",
+                        memberId = "static-wait",
                         receiver = new CallReceiver
                         {
                             kind = CallReceiverKind.Static,
-                            attributeId = "static-wait",
+                            memberId = "static-wait",
                         },
                         args = Array.Empty<Pointer>(),
                         callSiteId = "invalid-return-wait",
@@ -2178,14 +2178,14 @@ namespace NeoCompose.Tests
                         variableId = profile.id,
                     },
                 });
-            ((Dictionary<string, JsonAttribute>)client.attributes)[function.id] =
+            ((Dictionary<string, JsonMember>)client.members)[function.id] =
                 function;
-            ((Dictionary<string, CustomType>)client.types)["profile-type"]
+            ((Dictionary<string, NeoSchemaClass>)client.classes)["profile-class"]
                 .schema![function.id] = function.id;
             int rowsBefore = client.sessionValues.Count;
 
             Task<object?> invocation =
-                new NeoAttributeNSFunction(client, function, null)
+                new NeoMemberNSFunction(client, function, null)
                     .InvokeStaticAsync(Array.Empty<object?>());
 
             Assert.IsNotNull(pending);
@@ -2200,7 +2200,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_CorruptVoidActionReturnIsCollected()
+        public void ClassConstructor_CorruptVoidActionReturnIsCollected()
         {
             NeoClient client = BuildClient();
             int rowsBefore = client.sessionValues.Count;
@@ -2209,7 +2209,7 @@ namespace NeoCompose.Tests
                 parameters = Array.Empty<Variable>(),
                 typeInfo = new VoidTypeInfo
                 {
-                    type = AttributeType.Void,
+                    type = MemberKind.Void,
                     required = true,
                 },
                 instructions = new Instruction[]
@@ -2235,7 +2235,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomConstructor_DeferredFailureCollectsUnescapedGraph()
+        public void ClassConstructor_DeferredFailureCollectsUnescapedGraph()
         {
             NeoClient client = BuildClient();
             NeoDeferredFunction<string>? pending = null;
@@ -2262,11 +2262,11 @@ namespace NeoCompose.Tests
                     pointer = new CallFunctionPointer
                     {
                         type = PointerKind.CallFunction,
-                        attributeId = "static-wait",
+                        memberId = "static-wait",
                         receiver = new CallReceiver
                         {
                             kind = CallReceiverKind.Static,
-                            attributeId = "static-wait",
+                            memberId = "static-wait",
                         },
                         args = Array.Empty<Pointer>(),
                         callSiteId = "constructor-wait",
@@ -2292,7 +2292,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 constructedId,
-                out AttributeValue? _));
+                out MemberValue? _));
             Exception? observed = null;
             execution.WhenDeferredSettled(
                 _ => Assert.Fail("Expected deferred failure."),
@@ -2304,11 +2304,11 @@ namespace NeoCompose.Tests
             Assert.IsFalse(client.TryGetValue(
                 NeoValueOwnership.Session,
                 constructedId,
-                out AttributeValue? _));
+                out MemberValue? _));
         }
 
         [Test]
-        public void CustomConstructor_DeferredDialogueDisposalCollectsWithoutResuming()
+        public void ClassConstructor_DeferredDialogueDisposalCollectsWithoutResuming()
         {
             NeoClient client = BuildClient();
             NeoDeferredFunction<string>? pending = null;
@@ -2335,11 +2335,11 @@ namespace NeoCompose.Tests
                     pointer = new CallFunctionPointer
                     {
                         type = PointerKind.CallFunction,
-                        attributeId = "static-wait",
+                        memberId = "static-wait",
                         receiver = new CallReceiver
                         {
                             kind = CallReceiverKind.Static,
-                            attributeId = "static-wait",
+                            memberId = "static-wait",
                         },
                         args = Array.Empty<Pointer>(),
                         callSiteId = "constructor-dispose-wait",
@@ -2365,7 +2365,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 constructedId,
-                out AttributeValue? _));
+                out MemberValue? _));
             bool resumed = false;
             bool failed = false;
             execution.WhenDeferredSettled(
@@ -2379,11 +2379,11 @@ namespace NeoCompose.Tests
             Assert.IsFalse(client.TryGetValue(
                 NeoValueOwnership.Session,
                 constructedId,
-                out AttributeValue? _));
+                out MemberValue? _));
         }
 
         [Test]
-        public void CustomConstructor_ImmediateFunctionArgumentRemainsTracked()
+        public void ClassConstructor_ImmediateFunctionArgumentRemainsTracked()
         {
             NeoClient client = BuildClient();
             object? received = null;
@@ -2408,11 +2408,11 @@ namespace NeoCompose.Tests
                     pointer = new CallFunctionPointer
                     {
                         type = PointerKind.CallFunction,
-                        attributeId = "static-consume",
+                        memberId = "static-consume",
                         receiver = new CallReceiver
                         {
                             kind = CallReceiverKind.Static,
-                            attributeId = "static-consume",
+                            memberId = "static-consume",
                         },
                         args = new Pointer[]
                         {
@@ -2428,11 +2428,11 @@ namespace NeoCompose.Tests
             Assert.IsFalse(client.TryGetValue(
                 NeoValueOwnership.Session,
                 receivedId!,
-                out ObjectAttributeValue? _));
+                out ObjectMemberValue? _));
             Assert.IsNull(NSGetterEvaluator.FindRowIdByReference(received, ctx));
             Assert.IsFalse(ctx.rowCacheKeysByRow.ContainsKey(
                 $"{NeoValueOwnership.Session}:{receivedId}"));
-            foreach (NeoAttribute node in client.nodes.Values)
+            foreach (NeoMember node in client.nodes.Values)
             {
                 Assert.AreNotEqual(receivedId, node.overrideValueId);
                 Assert.AreNotEqual(receivedId, node.value?.id);
@@ -2441,16 +2441,16 @@ namespace NeoCompose.Tests
 
         private static NeoClient BuildClient()
         {
-            var rootType = new CustomType
+            var rootClass = new NeoSchemaClass
             {
-                id = "root-type",
+                id = "root-class",
                 projectId = "static-project",
                 name = "Root",
                 schema = new Dictionary<string, string>(),
             };
-            var rulesType = new CustomType
+            var rulesClass = new NeoSchemaClass
             {
-                id = "rules-type",
+                id = "rules-class",
                 projectId = "static-project",
                 name = "Rules",
                 schema = new Dictionary<string, string>
@@ -2464,9 +2464,9 @@ namespace NeoCompose.Tests
             // schema order. Constructor IR follows generated C# order instead:
             // required parameters first, then optional parameters defaulted to
             // null.
-            var profileType = new CustomType
+            var profileClass = new NeoSchemaClass
             {
-                id = "profile-type",
+                id = "profile-class",
                 projectId = "static-project",
                 name = "Profile",
                 schema = new Dictionary<string, string>
@@ -2482,9 +2482,9 @@ namespace NeoCompose.Tests
                     ["Consume"] = "static-consume",
                 },
             };
-            var genericBoxType = new CustomType
+            var genericBoxClass = new NeoSchemaClass
             {
-                id = "generic-box-type",
+                id = "generic-box-class",
                 projectId = "static-project",
                 name = "GenericBox",
                 schema = new Dictionary<string, string>
@@ -2500,25 +2500,25 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            var stringBoxType = new CustomType
+            var stringBoxClass = new NeoSchemaClass
             {
-                id = "string-box-type",
+                id = "string-box-class",
                 projectId = "static-project",
                 name = "StringBox",
                 schema = new Dictionary<string, string>(),
-                extendsTypeId = genericBoxType.id,
+                extendsClassId = genericBoxClass.id,
                 extendsGenericBindings = new Dictionary<string, GenericBinding>
                 {
                     ["generic-param"] = new GenericBinding
                     {
-                        kind = NeoGenericBindingKinds.Attribute,
-                        attributeId = "generic-string-binding",
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = "generic-string-binding",
                     },
                 },
             };
-            var ownedChildType = new CustomType
+            var ownedChildClass = new NeoSchemaClass
             {
-                id = "owned-child-type",
+                id = "owned-child-class",
                 projectId = "static-project",
                 name = "OwnedChild",
                 schema = new Dictionary<string, string>
@@ -2526,9 +2526,9 @@ namespace NeoCompose.Tests
                     ["Value"] = "owned-child-value",
                 },
             };
-            var ownedParentType = new CustomType
+            var ownedParentClass = new NeoSchemaClass
             {
-                id = "owned-parent-type",
+                id = "owned-parent-class",
                 projectId = "static-project",
                 name = "OwnedParent",
                 schema = new Dictionary<string, string>
@@ -2536,141 +2536,141 @@ namespace NeoCompose.Tests
                     ["Child"] = "owned-parent-child",
                 },
             };
-            var rootAssets = RootAttribute(
+            var rootAssets = RootMember(
                 "root-assets",
                 "Assets",
                 "immutable",
                 "value-assets");
-            var rootSave = RootAttribute(
+            var rootSave = RootMember(
                 "root-save",
                 "Save",
                 "save",
                 "value-save");
-            var rootSession = RootAttribute(
+            var rootSession = RootMember(
                 "root-session",
                 "Session",
                 "session",
                 "value-session");
-            var count = new IntAttribute
+            var count = new IntMember
             {
                 id = "static-count",
                 projectId = "static-project",
                 name = "Count",
-                type = AttributeType.Int,
+                kind = MemberKind.Int,
                 required = true,
                 isStatic = true,
                 isVirtual = false,
                 storage = "session",
                 valueId = "static-count-authored",
             };
-            var score = new IntAttribute
+            var score = new IntMember
             {
                 id = "static-score",
                 projectId = "static-project",
                 name = "Score",
-                type = AttributeType.Int,
+                kind = MemberKind.Int,
                 required = false,
                 isStatic = true,
                 isVirtual = false,
                 storage = "save",
-                storageKey = "scores:$parentType",
+                storageKey = "scores:$parentClass",
             };
-            var entry = new StringAttribute
+            var entry = new StringMember
             {
                 id = "name-entry",
                 projectId = "static-project",
                 name = "Name",
-                type = AttributeType.String,
+                kind = MemberKind.String,
                 required = true,
                 isStatic = false,
                 localizable = false,
             };
-            var names = new ListAttribute
+            var names = new ListMember
             {
                 id = "static-names",
                 projectId = "static-project",
                 name = "Names",
-                type = AttributeType.List,
+                kind = MemberKind.List,
                 required = false,
                 isStatic = true,
                 isVirtual = false,
                 storage = "session",
-                entryAttributeId = entry.id,
+                entryMemberId = entry.id,
             };
-            var profileName = new StringAttribute
+            var profileName = new StringMember
             {
                 id = "profile-name",
                 projectId = "static-project",
                 name = "Name",
-                type = AttributeType.String,
+                kind = MemberKind.String,
                 required = true,
                 isStatic = false,
                 localizable = false,
             };
-            var profileTitle = new StringAttribute
+            var profileTitle = new StringMember
             {
                 id = "profile-title",
                 projectId = "static-project",
                 name = "Title",
-                type = AttributeType.String,
+                kind = MemberKind.String,
                 required = false,
                 isStatic = false,
                 localizable = false,
             };
-            var profileLevel = new IntAttribute
+            var profileLevel = new IntMember
             {
                 id = "profile-level",
                 projectId = "static-project",
                 name = "Level",
-                type = AttributeType.Int,
+                kind = MemberKind.Int,
                 required = true,
                 isStatic = false,
-                defaultValue = new NumberAttributeValueBase { value = 3 },
+                defaultValue = new NumberMemberValueBase { value = 3 },
             };
-            var profileTagEntry = new StringAttribute
+            var profileTagEntry = new StringMember
             {
                 id = "profile-tag-entry",
                 projectId = "static-project",
                 name = "Tag",
-                type = AttributeType.String,
+                kind = MemberKind.String,
                 required = false,
                 isStatic = false,
                 localizable = false,
             };
-            var profileTags = new ListAttribute
+            var profileTags = new ListMember
             {
                 id = "profile-tags",
                 projectId = "static-project",
                 name = "Tags",
-                type = AttributeType.List,
+                kind = MemberKind.List,
                 required = true,
                 isStatic = false,
-                entryAttributeId = profileTagEntry.id,
-                storageKey = "profile:$parentType",
-                defaultValue = new ArrayAttributeValueBase
+                entryMemberId = profileTagEntry.id,
+                storageKey = "profile:$parentClass",
+                defaultValue = new ArrayMemberValueBase
                 {
                     value = new[] { "profile-tag-default" },
                 },
             };
-            var profileStatEntry = new IntAttribute
+            var profileStatEntry = new IntMember
             {
                 id = "profile-stat-entry",
                 projectId = "static-project",
                 name = "Stat",
-                type = AttributeType.Int,
+                kind = MemberKind.Int,
                 required = false,
                 isStatic = false,
             };
-            var profileStats = new DictionaryAttribute
+            var profileStats = new DictionaryMember
             {
                 id = "profile-stats",
                 projectId = "static-project",
                 name = "Stats",
-                type = AttributeType.Dictionary,
+                kind = MemberKind.Dictionary,
                 required = true,
                 isStatic = false,
-                entryAttributeId = profileStatEntry.id,
-                defaultValue = new ObjectAttributeValueBase
+                entryMemberId = profileStatEntry.id,
+                defaultValue = new ObjectMemberValueBase
                 {
                     value = new Dictionary<string, string>
                     {
@@ -2678,59 +2678,59 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            var staticProfile = new CustomAttribute
+            var staticProfile = new ClassMember
             {
                 id = "static-profile",
                 projectId = "static-project",
                 name = "Current",
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = false,
                 isStatic = true,
                 isVirtual = false,
                 storage = "session",
-                customTypeId = profileType.id,
+                classId = profileClass.id,
             };
-            var staticSaveProfile = new CustomAttribute
+            var staticSaveProfile = new ClassMember
             {
                 id = "static-profile-save",
                 projectId = "static-project",
                 name = "Saved",
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = false,
                 isStatic = true,
                 isVirtual = false,
                 storage = "save",
-                customTypeId = profileType.id,
+                classId = profileClass.id,
             };
-            var staticWait = new FunctionAttribute
+            var staticWait = new FunctionMember
             {
                 id = "static-wait",
                 projectId = "static-project",
                 name = "Wait",
-                type = AttributeType.Function,
+                kind = MemberKind.Function,
                 required = false,
                 isStatic = true,
                 isVirtual = false,
                 returnTypeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.String,
+                    type = MemberKind.String,
                     required = true,
                 },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
                 deferred = true,
             };
-            var staticConsume = new FunctionAttribute
+            var staticConsume = new FunctionMember
             {
                 id = "static-consume",
                 projectId = "static-project",
                 name = "Consume",
-                type = AttributeType.Function,
+                kind = MemberKind.Function,
                 required = false,
                 isStatic = true,
                 isVirtual = false,
                 returnTypeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.String,
+                    type = MemberKind.String,
                     required = true,
                 },
                 argumentTypes = new[]
@@ -2738,57 +2738,57 @@ namespace NeoCompose.Tests
                     new FunctionArgumentTypeInfo
                     {
                         name = "Profile",
-                        type = AttributeType.Custom,
+                        type = MemberKind.Class,
                         required = true,
-                        typeId = profileType.id,
+                        classId = profileClass.id,
                     },
                 },
                 deferred = false,
             };
-            var genericEntry = new GenericAttribute
+            var genericEntry = new GenericMember
             {
                 id = "generic-entry",
                 projectId = "static-project",
                 name = "Entry",
-                type = AttributeType.Generic,
+                kind = MemberKind.Generic,
                 required = true,
                 genericParamId = "generic-param",
             };
-            var genericValues = new ListAttribute
+            var genericValues = new ListMember
             {
                 id = "generic-values",
                 projectId = "static-project",
                 name = "Values",
-                type = AttributeType.List,
+                kind = MemberKind.List,
                 required = true,
-                entryAttributeId = genericEntry.id,
+                entryMemberId = genericEntry.id,
             };
-            var genericStringBinding = new StringAttribute
+            var genericStringBinding = new StringMember
             {
                 id = "generic-string-binding",
                 projectId = "static-project",
                 name = "String Binding",
-                type = AttributeType.String,
+                kind = MemberKind.String,
                 required = true,
                 localizable = false,
             };
-            var ownedChildValue = new StringAttribute
+            var ownedChildValue = new StringMember
             {
                 id = "owned-child-value",
                 projectId = "static-project",
                 name = "Value",
-                type = AttributeType.String,
+                kind = MemberKind.String,
                 required = true,
                 localizable = false,
             };
-            var ownedParentChild = new CustomAttribute
+            var ownedParentChild = new ClassMember
             {
                 id = "owned-parent-child",
                 projectId = "static-project",
                 name = "Child",
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
-                customTypeId = ownedChildType.id,
+                classId = ownedChildClass.id,
             };
             var data = new ProjectData
             {
@@ -2796,11 +2796,11 @@ namespace NeoCompose.Tests
                 {
                     id = "static-project",
                     name = "Static Tests",
-                    rootAssetsAttributeId = rootAssets.id,
-                    rootSaveFileAttributeId = rootSave.id,
-                    rootSessionAttributeId = rootSession.id,
+                    rootAssetsMemberId = rootAssets.id,
+                    rootSaveFileMemberId = rootSave.id,
+                    rootSessionMemberId = rootSession.id,
                 },
-                attributes = new Dictionary<string, JsonAttribute>
+                members = new Dictionary<string, JsonMember>
                 {
                     [rootAssets.id] = rootAssets,
                     [rootSave.id] = rootSave,
@@ -2826,22 +2826,22 @@ namespace NeoCompose.Tests
                     [ownedChildValue.id] = ownedChildValue,
                     [ownedParentChild.id] = ownedParentChild,
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    ["value-assets"] = ObjectValue("value-assets", rootType.id),
-                    ["value-save"] = ObjectValue("value-save", rootType.id),
-                    ["value-session"] = ObjectValue("value-session", rootType.id),
-                    ["static-count-authored"] = new NumberAttributeValue
+                    ["value-assets"] = ObjectValue("value-assets", rootClass.id),
+                    ["value-save"] = ObjectValue("value-save", rootClass.id),
+                    ["value-session"] = ObjectValue("value-session", rootClass.id),
+                    ["static-count-authored"] = new NumberMemberValue
                     {
                         id = "static-count-authored",
                         value = 5,
                     },
-                    ["profile-tag-default"] = new StringAttributeValue
+                    ["profile-tag-default"] = new StringMemberValue
                     {
                         id = "profile-tag-default",
                         value = "starter",
                     },
-                    ["profile-stat-default"] = new NumberAttributeValue
+                    ["profile-stat-default"] = new NumberMemberValue
                     {
                         id = "profile-stat-default",
                         value = 4,
@@ -2849,17 +2849,17 @@ namespace NeoCompose.Tests
                 },
                 valuePartitions = new Dictionary<string, JToken>
                 {
-                    ["scores:rules-type"] = new JObject(),
+                    ["scores:rules-class"] = new JObject(),
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    [rootType.id] = rootType,
-                    [rulesType.id] = rulesType,
-                    [profileType.id] = profileType,
-                    [genericBoxType.id] = genericBoxType,
-                    [stringBoxType.id] = stringBoxType,
-                    [ownedChildType.id] = ownedChildType,
-                    [ownedParentType.id] = ownedParentType,
+                    [rootClass.id] = rootClass,
+                    [rulesClass.id] = rulesClass,
+                    [profileClass.id] = profileClass,
+                    [genericBoxClass.id] = genericBoxClass,
+                    [stringBoxClass.id] = stringBoxClass,
+                    [ownedChildClass.id] = ownedChildClass,
+                    [ownedParentClass.id] = ownedParentClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
@@ -2891,25 +2891,25 @@ namespace NeoCompose.Tests
                 parameters = Array.Empty<Variable>(),
                 typeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.String,
+                    type = MemberKind.String,
                     required = true,
                 },
                 instructions = instructions,
             };
         }
 
-        private static NSFunctionAttribute StaticScriptFunction(
+        private static NSFunctionMember StaticScriptFunction(
             string id,
             bool deferred,
             TypeInfo returnType,
             params Instruction[] instructions)
         {
-            return new NSFunctionAttribute
+            return new NSFunctionMember
             {
                 id = id,
                 projectId = "static-project",
                 name = id,
-                type = AttributeType.NSFunction,
+                kind = MemberKind.NSFunction,
                 required = false,
                 isStatic = true,
                 code = "compiled test function",
@@ -2923,11 +2923,11 @@ namespace NeoCompose.Tests
                         new Variable
                         {
                             id = "__root__",
-                            typeInfo = new CustomTypeInfo
+                            typeInfo = new ClassTypeInfo
                             {
-                                type = AttributeType.Custom,
+                                type = MemberKind.Class,
                                 required = true,
-                                typeId = "root-type",
+                                classId = "root-class",
                             },
                             pointer = new VariablePointer
                             {
@@ -2956,74 +2956,74 @@ namespace NeoCompose.Tests
             string name,
             bool includeOptionalNull)
         {
-            var fields = new List<FunctionCustomConstructorField>
+            var fields = new List<FunctionClassConstructorField>
             {
                 // Required-first order matches generated public C# constructors
                 // even though the schema above stores Title first.
-                new FunctionCustomConstructorField
+                new FunctionClassConstructorField
                 {
                     schemaKey = "Name",
-                    attributeId = "profile-name",
+                    memberId = "profile-name",
                     valuePointer = StringPointer(name),
                 },
             };
             if (includeOptionalNull)
             {
-                fields.Add(new FunctionCustomConstructorField
+                fields.Add(new FunctionClassConstructorField
                 {
                     schemaKey = "Title",
-                    attributeId = "profile-title",
+                    memberId = "profile-title",
                     valuePointer = NullPointer(),
                 });
-                fields.Add(new FunctionCustomConstructorField
+                fields.Add(new FunctionClassConstructorField
                 {
                     schemaKey = "Level",
-                    attributeId = "profile-level",
+                    memberId = "profile-level",
                     valuePointer = NullPointer(),
                 });
             }
             return new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new CustomConstructorFunction
+                function = new ClassConstructorFunction
                 {
-                    type = FunctionKind.CustomConstructor,
-                    info = new FunctionCustomConstructorInfo
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
                     {
-                        customTypeInfo = ProfileType(),
+                        classTypeInfo = ProfileType(),
                         fields = fields.ToArray(),
                     },
                 },
             };
         }
 
-        private static CustomTypeInfo ProfileType()
+        private static ClassTypeInfo ProfileType()
         {
-            return new CustomTypeInfo
+            return new ClassTypeInfo
             {
-                type = AttributeType.Custom,
+                type = MemberKind.Class,
                 required = true,
-                typeId = "profile-type",
+                classId = "profile-class",
             };
         }
 
-        private static CustomTypeInfo OwnedChildType()
+        private static ClassTypeInfo OwnedChildType()
         {
-            return new CustomTypeInfo
+            return new ClassTypeInfo
             {
-                type = AttributeType.Custom,
+                type = MemberKind.Class,
                 required = true,
-                typeId = "owned-child-type",
+                classId = "owned-child-class",
             };
         }
 
-        private static CustomTypeInfo OwnedParentType()
+        private static ClassTypeInfo OwnedParentClass()
         {
-            return new CustomTypeInfo
+            return new ClassTypeInfo
             {
-                type = AttributeType.Custom,
+                type = MemberKind.Class,
                 required = true,
-                typeId = "owned-parent-type",
+                classId = "owned-parent-class",
             };
         }
 
@@ -3032,18 +3032,18 @@ namespace NeoCompose.Tests
             return new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new CustomConstructorFunction
+                function = new ClassConstructorFunction
                 {
-                    type = FunctionKind.CustomConstructor,
-                    info = new FunctionCustomConstructorInfo
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
                     {
-                        customTypeInfo = OwnedChildType(),
+                        classTypeInfo = OwnedChildType(),
                         fields = new[]
                         {
-                            new FunctionCustomConstructorField
+                            new FunctionClassConstructorField
                             {
                                 schemaKey = "Value",
-                                attributeId = "owned-child-value",
+                                memberId = "owned-child-value",
                                 valuePointer = StringPointer(value),
                             },
                         },
@@ -3057,18 +3057,18 @@ namespace NeoCompose.Tests
             return new FunctionPointer
             {
                 type = PointerKind.Function,
-                function = new CustomConstructorFunction
+                function = new ClassConstructorFunction
                 {
-                    type = FunctionKind.CustomConstructor,
-                    info = new FunctionCustomConstructorInfo
+                    type = FunctionKind.ClassConstructor,
+                    info = new FunctionClassConstructorInfo
                     {
-                        customTypeInfo = OwnedParentType(),
+                        classTypeInfo = OwnedParentClass(),
                         fields = new[]
                         {
-                            new FunctionCustomConstructorField
+                            new FunctionClassConstructorField
                             {
                                 schemaKey = "Child",
-                                attributeId = "owned-parent-child",
+                                memberId = "owned-parent-child",
                                 valuePointer = child,
                             },
                         },
@@ -3090,37 +3090,37 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static NeoAttributeCustomWritable CreateOwnedChild(
+        private static NeoMemberClassWritable CreateOwnedChild(
             NeoClient client,
             string value)
         {
-            var valueRow = new StringAttributeValue
+            var valueRow = new StringMemberValue
             {
                 id = Guid.NewGuid().ToString(),
                 value = value,
             };
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "owned-child-type",
+                "owned-child-class",
                 new Dictionary<string, string>
                 {
                     ["Value"] = valueRow.id,
                 },
-                new AttributeValue[] { valueRow });
+                new MemberValue[] { valueRow });
         }
 
-        private static NeoAttributeCustomWritable CreateOwnedParent(
+        private static NeoMemberClassWritable CreateOwnedParent(
             NeoClient client,
             string childId)
         {
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "owned-parent-type",
+                "owned-parent-class",
                 new Dictionary<string, string>
                 {
                     ["Child"] = childId,
                 },
-                Array.Empty<AttributeValue>());
+                Array.Empty<MemberValue>());
         }
 
         private static void SeedOwnedChild(
@@ -3130,15 +3130,15 @@ namespace NeoCompose.Tests
             string valueId,
             string value)
         {
-            var valueRow = new StringAttributeValue
+            var valueRow = new StringMemberValue
             {
                 id = valueId,
                 value = value,
             };
-            var childRow = new ObjectAttributeValue
+            var childRow = new ObjectMemberValue
             {
                 id = childId,
-                typeId = "owned-child-type",
+                classId = "owned-child-class",
                 value = new Dictionary<string, string>
                 {
                     ["Value"] = valueId,
@@ -3146,7 +3146,7 @@ namespace NeoCompose.Tests
             };
             if (ownership == NeoValueOwnership.Asset)
             {
-                var values = (Dictionary<string, AttributeValue>)client.values;
+                var values = (Dictionary<string, MemberValue>)client.values;
                 values[valueId] = valueRow;
                 values[childId] = childRow;
                 return;
@@ -3157,52 +3157,52 @@ namespace NeoCompose.Tests
 
         private static void RegisterOwnedChildStatic(
             NeoClient client,
-            string attributeId,
+            string memberId,
             NeoValueOwnership ownership)
         {
-            var attribute = new CustomAttribute
+            var member = new ClassMember
             {
-                id = attributeId,
+                id = memberId,
                 projectId = "static-project",
-                name = attributeId,
-                type = AttributeType.Custom,
+                name = memberId,
+                kind = MemberKind.Class,
                 required = false,
                 isStatic = true,
                 storage = ownership == NeoValueOwnership.Session
                     ? "session"
                     : "save",
-                customTypeId = "owned-child-type",
+                classId = "owned-child-class",
             };
-            ((Dictionary<string, JsonAttribute>)client.attributes)[attributeId] = attribute;
-            ((Dictionary<string, CustomType>)client.types)["rules-type"]
-                .schema![attributeId] = attributeId;
+            ((Dictionary<string, JsonMember>)client.members)[memberId] = member;
+            ((Dictionary<string, NeoSchemaClass>)client.classes)["rules-class"]
+                .schema![memberId] = memberId;
         }
 
         private static string? ReadOwnedChildValue(
             NeoClient client,
-            ObjectAttributeValue child,
+            ObjectMemberValue child,
             NeoValueOwnership ownership = NeoValueOwnership.Session)
         {
             string valueId = child.value!["Value"];
             Assert.IsTrue(client.TryGetValue(
                 ownership,
                 valueId,
-                out StringAttributeValue? value));
+                out StringMemberValue? value));
             return value!.value;
         }
 
-        private static CustomTypeInfo ClosedStringBoxType()
+        private static ClassTypeInfo ClosedStringBoxType()
         {
-            return new CustomTypeInfo
+            return new ClassTypeInfo
             {
-                type = AttributeType.Custom,
+                type = MemberKind.Class,
                 required = true,
-                typeId = "string-box-type",
+                classId = "string-box-class",
                 typeArguments = new Dictionary<string, TypeInfo>
                 {
                     ["generic-param"] = new PrimitiveTypeInfo
                     {
-                        type = AttributeType.String,
+                        type = MemberKind.String,
                         required = true,
                     },
                 },
@@ -3218,7 +3218,7 @@ namespace NeoCompose.Tests
                 {
                     typeInfo = new PrimitiveTypeInfo
                     {
-                        type = AttributeType.String,
+                        type = MemberKind.String,
                         required = true,
                     },
                     value = JToken.FromObject(value),
@@ -3235,7 +3235,7 @@ namespace NeoCompose.Tests
                 {
                     typeInfo = new PrimitiveTypeInfo
                     {
-                        type = AttributeType.Null,
+                        type = MemberKind.Null,
                         required = false,
                     },
                     value = JValue.CreateNull(),
@@ -3252,7 +3252,7 @@ namespace NeoCompose.Tests
                 {
                     typeInfo = new PrimitiveTypeInfo
                     {
-                        type = AttributeType.Bool,
+                        type = MemberKind.Bool,
                         required = true,
                     },
                     value = JToken.FromObject(value),
@@ -3269,7 +3269,7 @@ namespace NeoCompose.Tests
                 {
                     typeInfo = new PrimitiveTypeInfo
                     {
-                        type = AttributeType.Int,
+                        type = MemberKind.Int,
                         required = true,
                     },
                     value = JToken.FromObject(value),
@@ -3293,31 +3293,31 @@ namespace NeoCompose.Tests
             throw new AssertionException("Expected one constructed Session root.");
         }
 
-        private static CustomAttribute RootAttribute(
+        private static ClassMember RootMember(
             string id,
             string name,
             string storage,
             string valueId)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = "static-project",
                 name = name,
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
-                customTypeId = "root-type",
+                classId = "root-class",
                 storage = storage,
                 valueId = valueId,
             };
         }
 
-        private static ObjectAttributeValue ObjectValue(string id, string typeId)
+        private static ObjectMemberValue ObjectValue(string id, string classId)
         {
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = typeId,
+                classId = classId,
                 value = new Dictionary<string, string>(),
             };
         }
@@ -3329,13 +3329,13 @@ namespace NeoCompose.Tests
             {
                 string payload = pair.Value switch
                 {
-                    StringAttributeValue text => text.value ?? "<null>",
-                    NumberAttributeValue number =>
+                    StringMemberValue text => text.value ?? "<null>",
+                    NumberMemberValue number =>
                         number.value?.ToString() ?? "<null>",
-                    ObjectAttributeValue obj => obj.value is null
+                    ObjectMemberValue obj => obj.value is null
                         ? "<null>"
                         : string.Join("|", obj.value.Keys),
-                    ArrayAttributeValue array => array.value is null
+                    ArrayMemberValue array => array.value is null
                         ? "<null>"
                         : string.Join("|", array.value),
                     _ => "",
@@ -3347,7 +3347,7 @@ namespace NeoCompose.Tests
                         ? parentId ?? "<null>"
                         : "<none>";
                 descriptions.Add(
-                    $"{pair.Key}:{pair.Value.GetType().Name}:{pair.Value.typeId}:{payload}:parent={parent}");
+                    $"{pair.Key}:{pair.Value.GetType().Name}:{pair.Value.classId}:{payload}:parent={parent}");
             }
             return string.Join(", ", descriptions);
         }

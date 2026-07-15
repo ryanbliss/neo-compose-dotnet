@@ -78,19 +78,19 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ToRuleTile_RegistersCustomNeighborForInheritsFromType()
+        public void ToRuleTile_RegistersCustomNeighborForInheritsFromClass()
         {
             var rule = new FakeSmartTileRule();
             rule.Neighbors.Add(new FakeSmartTileNeighbor
             {
                 Cell = new Vector2Int(1, 0),
-                Condition = NeoSmartTileOptionIds.ConditionInheritsFromType,
+                Condition = NeoSmartTileOptionIds.ConditionInheritsFromClass,
                 TileValueId = "base-tile",
             });
             rule.Neighbors.Add(new FakeSmartTileNeighbor
             {
                 Cell = new Vector2Int(-1, 0),
-                Condition = NeoSmartTileOptionIds.ConditionNotInheritsFromType,
+                Condition = NeoSmartTileOptionIds.ConditionNotInheritsFromClass,
                 TileValueId = "other-tile",
             });
             var smartTile = SmartTileWithRules(rule);
@@ -109,12 +109,12 @@ namespace NeoCompose.Tests
 
             Assert.AreEqual(2, matcher.Observed.Count);
             var inheritsNeighbor = matcher.Observed[0];
-            Assert.AreEqual(NeoSmartTileNeighborKind.InheritsFromType, inheritsNeighbor.Kind);
+            Assert.AreEqual(NeoSmartTileNeighborKind.InheritsFromClass, inheritsNeighbor.Kind);
             Assert.AreEqual("base-tile", inheritsNeighbor.TileValueId);
             Assert.AreEqual(new Vector3Int(1, 0, 0), inheritsNeighbor.Offset);
             var notInheritsNeighbor = matcher.Observed[1];
             Assert.AreEqual(
-                NeoSmartTileNeighborKind.NotInheritsFromType,
+                NeoSmartTileNeighborKind.NotInheritsFromClass,
                 notInheritsNeighbor.Kind);
             Assert.AreEqual("other-tile", notInheritsNeighbor.TileValueId);
             Assert.AreEqual(new Vector3Int(-1, 0, 0), notInheritsNeighbor.Offset);
@@ -268,19 +268,21 @@ namespace NeoCompose.Tests
             Assert.AreEqual(1.75f, tile.m_TilingRules[0].m_MaxAnimationSpeed);
         }
 
-        [Test]
-        public void ToRuleTile_UnknownConditionOptionIdThrows()
+        [TestCase("SortOfThis")]
+        [TestCase("InheritsFromType")]
+        [TestCase("NotInheritsFromType")]
+        public void ToRuleTile_UnsupportedConditionOptionIdThrows(string optionId)
         {
             var rule = new FakeSmartTileRule();
             rule.Neighbors.Add(new FakeSmartTileNeighbor
             {
                 Cell = Vector2Int.zero,
-                Condition = "SortOfThis",
+                Condition = optionId,
             });
             var smartTile = SmartTileWithRules(rule);
 
             var error = Assert.Throws<ArgumentException>(() => Convert(smartTile));
-            StringAssert.Contains("SortOfThis", error!.Message);
+            StringAssert.Contains(optionId, error!.Message);
             StringAssert.Contains("Condition", error.Message);
         }
 
@@ -315,7 +317,7 @@ namespace NeoCompose.Tests
             rule.Neighbors.Add(new FakeSmartTileNeighbor
             {
                 Cell = new Vector2Int(1, -1),
-                Condition = NeoSmartTileOptionIds.ConditionInheritsFromType,
+                Condition = NeoSmartTileOptionIds.ConditionInheritsFromClass,
             });
             var smartTile = SmartTileWithRules(rule);
 
@@ -323,7 +325,7 @@ namespace NeoCompose.Tests
             StringAssert.Contains("rule 0", error!.Message);
             StringAssert.Contains("(1, -1)", error.Message);
             StringAssert.Contains(
-                NeoSmartTileOptionIds.ConditionInheritsFromType,
+                NeoSmartTileOptionIds.ConditionInheritsFromClass,
                 error.Message);
         }
 

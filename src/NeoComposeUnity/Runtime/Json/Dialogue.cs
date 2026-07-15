@@ -199,7 +199,7 @@ namespace NeoCompose.Runtime.Json
 
     public enum DialogueActionType
     {
-        EditAttribute = 0,
+        EditMember = 0,
         Pause = 1,
     }
 
@@ -210,7 +210,7 @@ namespace NeoCompose.Runtime.Json
         public DialogueActionType type;
     }
 
-    public class DialogueLogicEditAttributeAction : DialogueAction
+    public class DialogueLogicEditMemberAction : DialogueAction
     {
         public LogicAction logic = null!;
     }
@@ -227,7 +227,7 @@ namespace NeoCompose.Runtime.Json
         {
             switch ((DialogueActionType)discriminator.Value<int>())
             {
-                case DialogueActionType.EditAttribute: return typeof(DialogueLogicEditAttributeAction);
+                case DialogueActionType.EditMember: return typeof(DialogueLogicEditMemberAction);
                 case DialogueActionType.Pause: return typeof(DialoguePauseAction);
                 default: return null;
             }
@@ -292,7 +292,7 @@ namespace NeoCompose.Runtime.Json
 
     public class DialogueGroupPrioritySettings
     {
-        public string? priorityTypeId;
+        public string? priorityOptionId;
         public int? relativeOrder;
     }
 

@@ -18,39 +18,39 @@ namespace NeoCompose.StaticCompileFixture
         internal static StaticCompileSmokeNeo RequireInstance() => Instance ?? throw new InvalidOperationException("StaticCompileSmokeNeo.Instance has not been initialized.");
 
         public NeoClient Client { get; }
-        public NeoAttributeCustom AssetsRoot => Client.AssetsRoot;
-        public NeoAttributeCustomWritable SaveRoot => Client.SaveRoot;
-        public NeoAttributeCustomWritable SessionRoot => Client.SessionRoot;
+        public NeoMemberClass AssetsRoot => Client.AssetsRoot;
+        public NeoMemberClassWritable SaveRoot => Client.SaveRoot;
+        public NeoMemberClassWritable SessionRoot => Client.SessionRoot;
         public NeoLocalization Localization => Client.Localization;
         public IReadOnlySmokeRoot Assets { get; }
         public SmokeRoot Save { get; }
         public SmokeRoot Session { get; }
         public NeoDialogues Dialogues { get; }
 
-        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> DialogueReadOnlyValueFactories =
-            new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> DialogueReadOnlyValueFactories =
+            new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
-                ["static-smoke-item-type"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeItem.Create(client, node),
-                ["static-smoke-root-type"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeRoot.Create(client, node),
-                ["static-smoke-rules-type"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeRules.Create(client, node),
+                ["static-smoke-item-class"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeItem.Create(client, node),
+                ["static-smoke-root-class"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeRoot.Create(client, node),
+                ["static-smoke-rules-class"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeRules.Create(client, node),
             };
 
-        internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> NeoReadOnlyValueFactories =>
+        internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> NeoReadOnlyValueFactories =>
             DialogueReadOnlyValueFactories;
 
-        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory> DialogueWritableValueFactories =
-            new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>
+        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> DialogueWritableValueFactories =
+            new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
             {
-                ["static-smoke-item-type"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeItem.CreateWritable(client, node),
-                ["static-smoke-root-type"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeRoot.CreateWritable(client, node),
-                ["static-smoke-rules-type"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeRules.CreateWritable(client, node),
+                ["static-smoke-item-class"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeItem.CreateWritable(client, node),
+                ["static-smoke-root-class"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeRoot.CreateWritable(client, node),
+                ["static-smoke-rules-class"] = (client, node) => global::NeoCompose.StaticCompileFixture.SmokeRules.CreateWritable(client, node),
             };
 
-        internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory> NeoWritableValueFactories =>
+        internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> NeoWritableValueFactories =>
             DialogueWritableValueFactories;
 
         internal object? ResolveDialogueValue(string valueId) =>
-            NeoGeneratedTypesSupport.ResolveCustomValue(
+            NeoGeneratedTypesSupport.ResolveClassValue(
                 Client,
                 valueId,
                 DialogueReadOnlyValueFactories,
@@ -144,10 +144,10 @@ namespace NeoCompose.StaticCompileFixture
         bool TryWritable(out SmokeRoot writable);
     }
 
-    public partial class SmokeRoot : NeoGeneratedCustomValue, IReadOnlySmokeRoot
+    public partial class SmokeRoot : NeoGeneratedClassValue, IReadOnlySmokeRoot
     {
-        internal SmokeRoot(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "static-smoke-root-type", isReadOnly, inheritedStorageOwnership)
+        internal SmokeRoot(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "static-smoke-root-class", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -156,30 +156,30 @@ namespace NeoCompose.StaticCompileFixture
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode()
+        private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = StaticCompileSmokeNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "static-smoke-root-type");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "static-smoke-root-class");
         }
 
-        internal static SmokeRoot Create(NeoClient client, NeoAttributeCustom node)
+        internal static SmokeRoot Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SmokeRoot>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SmokeRoot>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new SmokeRoot(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static SmokeRoot CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static SmokeRoot CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SmokeRoot>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SmokeRoot>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new SmokeRoot(client, node, false, node.ownership),
                 };
@@ -188,7 +188,7 @@ namespace NeoCompose.StaticCompileFixture
 
         public SmokeRoot Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlySmokeRoot IReadOnlySmokeRoot.Clone()
@@ -261,10 +261,10 @@ namespace NeoCompose.StaticCompileFixture
         bool TryWritable(out SmokeItem writable);
     }
 
-    public partial class SmokeItem : NeoGeneratedCustomValue, IReadOnlySmokeItem
+    public partial class SmokeItem : NeoGeneratedClassValue, IReadOnlySmokeItem
     {
-        internal SmokeItem(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "static-smoke-item-type", isReadOnly, inheritedStorageOwnership)
+        internal SmokeItem(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "static-smoke-item-class", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -273,30 +273,30 @@ namespace NeoCompose.StaticCompileFixture
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode()
+        private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = StaticCompileSmokeNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "static-smoke-item-type");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "static-smoke-item-class");
         }
 
-        internal static SmokeItem Create(NeoClient client, NeoAttributeCustom node)
+        internal static SmokeItem Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SmokeItem>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SmokeItem>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new SmokeItem(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static SmokeItem CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static SmokeItem CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SmokeItem>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SmokeItem>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new SmokeItem(client, node, false, node.ownership),
                 };
@@ -305,7 +305,7 @@ namespace NeoCompose.StaticCompileFixture
 
         public SmokeItem Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlySmokeItem IReadOnlySmokeItem.Clone()
@@ -384,10 +384,10 @@ namespace NeoCompose.StaticCompileFixture
         bool TryWritable(out SmokeRules writable);
     }
 
-    public partial class SmokeRules : NeoGeneratedCustomValue, IReadOnlySmokeRules
+    public partial class SmokeRules : NeoGeneratedClassValue, IReadOnlySmokeRules
     {
-        internal SmokeRules(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "static-smoke-rules-type", isReadOnly, inheritedStorageOwnership)
+        internal SmokeRules(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "static-smoke-rules-class", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -397,8 +397,8 @@ namespace NeoCompose.StaticCompileFixture
             {
                 var client = StaticCompileSmokeNeo.RequireInstance().Client;
                 var binding = NeoGeneratedTypesSupport.StaticBinding(client, "static-smoke-count", NeoValueOwnership.Session);
-                var child = binding.GetRequiredNode<NeoAttributeInt>();
-                return NeoGeneratedTypesSupport.ReadInt((NeoAttributeInt)child) ?? throw new InvalidOperationException("Required int 'Global Count' has no value.");
+                var child = binding.GetRequiredNode<NeoMemberInt>();
+                return NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child) ?? throw new InvalidOperationException("Required int 'Global Count' has no value.");
             }
             set
             {
@@ -414,8 +414,8 @@ namespace NeoCompose.StaticCompileFixture
             {
                 var client = StaticCompileSmokeNeo.RequireInstance().Client;
                 var binding = NeoGeneratedTypesSupport.StaticBinding(client, "static-smoke-motto", NeoValueOwnership.Asset);
-                var child = binding.GetRequiredNode<NeoAttributeString>();
-                return ((NeoAttributeString)child).value?.value ?? throw new InvalidOperationException("Required string 'Motto' has no value.");
+                var child = binding.GetRequiredNode<NeoMemberString>();
+                return ((NeoMemberString)child).value?.value ?? throw new InvalidOperationException("Required string 'Motto' has no value.");
             }
         }
 
@@ -425,8 +425,8 @@ namespace NeoCompose.StaticCompileFixture
             {
                 var client = StaticCompileSmokeNeo.RequireInstance().Client;
                 var binding = NeoGeneratedTypesSupport.StaticBinding(client, "static-smoke-names", NeoValueOwnership.Save);
-                var child = binding.GetNodeOrEmpty<NeoAttributeListWritable>();
-                return new NeoList<string>(client, child, () => binding.GetOrCreateWritableNode<NeoAttributeListWritable>(Array.Empty<string>()), (client, child) => ((NeoAttributeString)child).value?.value ?? throw new InvalidOperationException("Required string 'Entry' has no value."), item => NeoGeneratedTypesSupport.Value(item));
+                var child = binding.GetNodeOrEmpty<NeoMemberListWritable>();
+                return new NeoList<string>(client, child, () => binding.GetOrCreateWritableNode<NeoMemberListWritable>(Array.Empty<string>()), (client, child) => ((NeoMemberString)child).value?.value ?? throw new InvalidOperationException("Required string 'Entry' has no value."), item => NeoGeneratedTypesSupport.Value(item));
             }
         }
 
@@ -436,8 +436,8 @@ namespace NeoCompose.StaticCompileFixture
             {
                 var client = StaticCompileSmokeNeo.RequireInstance().Client;
                 var binding = NeoGeneratedTypesSupport.StaticBinding(client, "static-smoke-current", NeoValueOwnership.Session);
-                if (!binding.TryGetNode<NeoAttributeCustomWritable>(out var child) || child is null) return null;
-                return ((NeoAttributeCustom)child).value is null ? null : global::NeoCompose.StaticCompileFixture.SmokeItem.CreateWritable(client, (NeoAttributeCustomWritable)child);
+                if (!binding.TryGetNode<NeoMemberClassWritable>(out var child) || child is null) return null;
+                return ((NeoMemberClass)child).value is null ? null : global::NeoCompose.StaticCompileFixture.SmokeItem.CreateWritable(client, (NeoMemberClassWritable)child);
             }
             set
             {
@@ -465,7 +465,7 @@ namespace NeoCompose.StaticCompileFixture
         public static int Calculate(int amount)
         {
             var client = StaticCompileSmokeNeo.RequireInstance().Client;
-            var node = new NeoAttributeNSFunction(client, "static-smoke-calculate", null, NeoValueOwnership.Session);
+            var node = new NeoMemberNSFunction(client, "static-smoke-calculate", null, NeoValueOwnership.Session);
             var result = node.InvokeStatic(new object?[] { amount });
             return Convert.ToInt32(result);
         }
@@ -477,30 +477,30 @@ namespace NeoCompose.StaticCompileFixture
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode()
+        private static NeoMemberClassWritable CreateFactoryNode()
         {
             var client = StaticCompileSmokeNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "static-smoke-rules-type");
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(client, "static-smoke-rules-class");
         }
 
-        internal static SmokeRules Create(NeoClient client, NeoAttributeCustom node)
+        internal static SmokeRules Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SmokeRules>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SmokeRules>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new SmokeRules(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static SmokeRules CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static SmokeRules CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SmokeRules>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SmokeRules>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new SmokeRules(client, node, false, node.ownership),
                 };
@@ -509,7 +509,7 @@ namespace NeoCompose.StaticCompileFixture
 
         public SmokeRules Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlySmokeRules IReadOnlySmokeRules.Clone()

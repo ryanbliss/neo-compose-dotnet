@@ -116,7 +116,7 @@ namespace NeoCompose.Tests
             // Envelope carries the save and the replaceSnapshot flag.
             StringAssert.Contains("\"replaceSnapshot\":true", http.sends[0].body);
             StringAssert.Contains("\"save\":", http.sends[0].body);
-            StringAssert.Contains("\"staticBindings\":{\"attr-current\":\"v-runtime\"}", http.sends[0].body);
+            StringAssert.Contains("\"staticBindings\":{\"member-current\":\"v-runtime\"}", http.sends[0].body);
             StringAssert.DoesNotContain("\"tileGridDeltas\"", http.sends[0].body);
         }
 
@@ -182,7 +182,7 @@ namespace NeoCompose.Tests
                 values = NeoSaveValues.Empty,
                 staticBindings = new Dictionary<string, string?>
                 {
-                    ["attr-current"] = "v-runtime",
+                    ["member-current"] = "v-runtime",
                 },
             };
 

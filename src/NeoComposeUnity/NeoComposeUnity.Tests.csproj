@@ -70,7 +70,7 @@
   <ItemGroup>
     <!-- NUnit symbols for IntelliSense. Unity supplies `nunit.framework.dll`
          from the `com.unity.ext.nunit` package at runtime; this NuGet ref is
-         only used by the IDE to resolve `NUnit.Framework` types. The version
+         only used by the IDE to resolve `NUnit.Framework` classes. The version
          tracks the Unity Test Framework (which ships NUnit 3.x). -->
     <PackageReference Include="NUnit" Version="3.13.3" />
     <!-- Newtonsoft.Json is referenced transitively via the

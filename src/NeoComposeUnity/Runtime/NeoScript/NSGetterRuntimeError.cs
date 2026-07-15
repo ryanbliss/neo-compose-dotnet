@@ -14,13 +14,13 @@ namespace NeoCompose.Runtime.NeoScript
     ///   <item><description>a referenced schema key has no entry at runtime</description></item>
     ///   <item><description>an <see cref="Json.ReferencePointer"/>'s
     ///   <c>valueId</c> dereferences a missing
-    ///   <see cref="Json.AttributeValue"/> row</description></item>
+    ///   <see cref="Json.MemberValue"/> row</description></item>
     ///   <item><description>a <c>throw</c> instruction is reached</description></item>
     ///   <item><description>arithmetic / comparison sees a non-numeric operand</description></item>
     ///   <item><description>a force-unwrap (<c>!</c>) hits null</description></item>
     /// </list></para>
     ///
-    /// <para>Caught by <see cref="NeoAttributeNSProperty.Compute"/> and
+    /// <para>Caught by <see cref="NeoMemberNSProperty.Compute"/> and
     /// surfaced as the <see cref="NSGetterResult.error"/> string. Other
     /// unexpected runtime errors propagate as the generic
     /// <see cref="System.Exception"/> they're thrown as.</para>

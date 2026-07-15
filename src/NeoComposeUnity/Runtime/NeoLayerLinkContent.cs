@@ -292,7 +292,7 @@ namespace NeoCompose.Runtime
             string layerId = ReadTargetLayerId(link, "TileLayer");
             var order = 0;
 
-            void Project(Vector2Int projectedCell, string instanceId, NeoGeneratedCustomValue tileValue)
+            void Project(Vector2Int projectedCell, string instanceId, NeoGeneratedClassValue tileValue)
             {
                 byCell[projectedCell] = new NeoResolvedTileInstance(
                     instanceId,
@@ -305,7 +305,7 @@ namespace NeoCompose.Runtime
                     sourceId);
             }
 
-            if (TryGetValueRow(link, out var client, out ObjectAttributeValue? linkRow))
+            if (TryGetValueRow(link, out var client, out ObjectMemberValue? linkRow))
             {
                 var origin = ReadRowOrigin(client!, linkRow!);
                 var wrapperItems = SnapshotWrapperTileItems(link);
@@ -324,7 +324,7 @@ namespace NeoCompose.Runtime
                     var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(
                         ReadOptionalProperty(tileInstance, "Cell"));
                     if (cell == null) continue;
-                    if (ReadOptionalProperty(tileInstance, "Tile") is not NeoGeneratedCustomValue tileValue)
+                    if (ReadOptionalProperty(tileInstance, "Tile") is not NeoGeneratedClassValue tileValue)
                     {
                         continue;
                     }
@@ -344,20 +344,20 @@ namespace NeoCompose.Runtime
 
         private readonly struct WrapperTileItem
         {
-            public WrapperTileItem(Vector2Int cell, NeoGeneratedCustomValue tile)
+            public WrapperTileItem(Vector2Int cell, NeoGeneratedClassValue tile)
             {
                 Cell = cell;
                 Tile = tile;
             }
 
             public Vector2Int Cell { get; }
-            public NeoGeneratedCustomValue Tile { get; }
+            public NeoGeneratedClassValue Tile { get; }
         }
 
         /// <summary>
         /// The wrapper's tile instances keyed by value id — used to resolve
         /// typed tile values for the row-listed members (rows alone can't
-        /// resolve generated types without the project's factories).
+        /// resolve generated classes without the project's factories).
         /// </summary>
         private static Dictionary<string, WrapperTileItem> SnapshotWrapperTileItems(
             INeoTileLayerLinkValue link)
@@ -370,7 +370,7 @@ namespace NeoCompose.Runtime
                 var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(
                     ReadOptionalProperty(tileInstance, "Cell"));
                 if (cell == null) continue;
-                if (ReadOptionalProperty(tileInstance, "Tile") is not NeoGeneratedCustomValue tileValue)
+                if (ReadOptionalProperty(tileInstance, "Tile") is not NeoGeneratedClassValue tileValue)
                 {
                     continue;
                 }
@@ -396,7 +396,7 @@ namespace NeoCompose.Runtime
             var origin = ReadLinkOrigin(link);
             var order = 0;
 
-            void Project(NeoGeneratedCustomValue generatedObject)
+            void Project(NeoGeneratedClassValue generatedObject)
             {
                 var localPosition = NeoGeneratedTypesSupport.ReadVector3Value(
                     ReadOptionalProperty(generatedObject, "Position")) ?? Vector3.zero;
@@ -415,13 +415,13 @@ namespace NeoCompose.Runtime
                     order++));
             }
 
-            if (TryGetValueRow(link, out var client, out ObjectAttributeValue? linkRow))
+            if (TryGetValueRow(link, out var client, out ObjectMemberValue? linkRow))
             {
                 origin = ReadRowOrigin(client!, linkRow!);
-                var wrapperObjects = new Dictionary<string, NeoGeneratedCustomValue>();
+                var wrapperObjects = new Dictionary<string, NeoGeneratedClassValue>();
                 foreach (var objectValue in ReadEnumerableProperty(link, "Objects"))
                 {
-                    if (objectValue is not NeoGeneratedCustomValue generatedObject) continue;
+                    if (objectValue is not NeoGeneratedClassValue generatedObject) continue;
                     if (string.IsNullOrEmpty(generatedObject.valueId)) continue;
                     wrapperObjects[generatedObject.valueId!] = generatedObject;
                 }
@@ -436,7 +436,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (var objectValue in ReadEnumerableProperty(link, "Objects"))
                 {
-                    if (objectValue is not NeoGeneratedCustomValue generatedObject) continue;
+                    if (objectValue is not NeoGeneratedClassValue generatedObject) continue;
                     Project(generatedObject);
                 }
             }
@@ -479,11 +479,11 @@ namespace NeoCompose.Runtime
         private static bool TryGetValueRow(
             INeoValueReference link,
             out NeoClient? client,
-            out ObjectAttributeValue? linkRow)
+            out ObjectMemberValue? linkRow)
         {
             client = null;
             linkRow = null;
-            if (link is not NeoGeneratedCustomValue generated) return false;
+            if (link is not NeoGeneratedClassValue generated) return false;
             if (string.IsNullOrEmpty(generated.valueId)) return false;
             client = generated.Client;
             return client.TryGetValue(generated.valueId, out linkRow) && linkRow?.value is not null;
@@ -491,12 +491,12 @@ namespace NeoCompose.Runtime
 
         private static IReadOnlyList<string> ReadRowListIds(
             NeoClient client,
-            ObjectAttributeValue linkRow,
+            ObjectMemberValue linkRow,
             string schemaKey)
         {
             if (linkRow.value is null ||
                 !linkRow.value.TryGetValue(schemaKey, out string listValueId) ||
-                !client.TryGetValue(listValueId, out ArrayAttributeValue? listRow) ||
+                !client.TryGetValue(listValueId, out ArrayMemberValue? listRow) ||
                 listRow?.value is null)
             {
                 return Array.Empty<string>();
@@ -516,11 +516,11 @@ namespace NeoCompose.Runtime
             return ids;
         }
 
-        private static Vector2Int ReadRowOrigin(NeoClient client, ObjectAttributeValue linkRow)
+        private static Vector2Int ReadRowOrigin(NeoClient client, ObjectMemberValue linkRow)
         {
             if (linkRow.value is null ||
                 !linkRow.value.TryGetValue("Position", out string positionValueId) ||
-                !client.TryGetValue(positionValueId, out Vector3AttributeValue? positionRow) ||
+                !client.TryGetValue(positionValueId, out Vector3MemberValue? positionRow) ||
                 positionRow?.value is null)
             {
                 return Vector2Int.zero;
@@ -533,10 +533,10 @@ namespace NeoCompose.Runtime
 
         private static Vector2Int? ReadRowCell(NeoClient client, string tileInstanceValueId)
         {
-            if (!client.TryGetValue(tileInstanceValueId, out ObjectAttributeValue? instanceRow) ||
+            if (!client.TryGetValue(tileInstanceValueId, out ObjectMemberValue? instanceRow) ||
                 instanceRow?.value is null ||
                 !instanceRow.value.TryGetValue("Cell", out string cellValueId) ||
-                !client.TryGetValue(cellValueId, out Vector2AttributeValue? cellRow) ||
+                !client.TryGetValue(cellValueId, out Vector2MemberValue? cellRow) ||
                 cellRow?.value is null)
             {
                 return null;

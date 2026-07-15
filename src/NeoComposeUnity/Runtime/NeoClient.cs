@@ -29,12 +29,12 @@ namespace NeoCompose.Runtime
             object? receiver,
             object?[] args,
             NeoDeferredFunctionBase deferred);
-        public NeoAttributeCustom assets { get; protected set; }
-        public NeoAttributeCustomWritable save { get; protected set; }
-        public NeoAttributeCustomWritable session { get; protected set; }
-        public NeoAttributeCustom AssetsRoot => assets;
-        public NeoAttributeCustomWritable SaveRoot => save;
-        public NeoAttributeCustomWritable SessionRoot => session;
+        public NeoMemberClass assets { get; protected set; }
+        public NeoMemberClassWritable save { get; protected set; }
+        public NeoMemberClassWritable session { get; protected set; }
+        public NeoMemberClass AssetsRoot => assets;
+        public NeoMemberClassWritable SaveRoot => save;
+        public NeoMemberClassWritable SessionRoot => session;
         public NeoLocalization Localization { get; }
 
         /// <summary>
@@ -57,18 +57,18 @@ namespace NeoCompose.Runtime
         public NeoAuthentication? Authentication => (loader as NeoSaveSynchronizer)?.Authentication;
 
         /// <summary>
-        /// Flat registry of every constructed <see cref="NeoAttribute"/>,
+        /// Flat registry of every constructed <see cref="NeoMember"/>,
         /// keyed by <see cref="MakeNodeKey"/>. Each
-        /// <see cref="NeoAttribute"/> registers itself at the end of
+        /// <see cref="NeoMember"/> registers itself at the end of
         /// construction so consumers (and the
-        /// <see cref="NeoAttribute.Create"/> /
-        /// <see cref="NeoAttribute.CreateWritable"/> factories) can look up
+        /// <see cref="NeoMember.Create"/> /
+        /// <see cref="NeoMember.CreateWritable"/> factories) can look up
         /// existing instances and reuse them rather than constructing
         /// duplicates that share the same wire identity.
         /// </summary>
-        internal IReadOnlyDictionary<string, NeoAttribute> nodes => nodesInternal;
-        private readonly Dictionary<string, NeoAttribute> nodesInternal = new();
-        private readonly Dictionary<string, NeoGeneratedCustomValue> generatedValuesInternal = new();
+        internal IReadOnlyDictionary<string, NeoMember> nodes => nodesInternal;
+        private readonly Dictionary<string, NeoMember> nodesInternal = new();
+        private readonly Dictionary<string, NeoGeneratedClassValue> generatedValuesInternal = new();
         private readonly HashSet<NeoDialogue> activeDialogues = new();
         private readonly HashSet<NeoDeferredFunctionBase> activeDirectDeferredFunctions = new();
         private readonly object activeDirectDeferredFunctionsLock = new();
@@ -77,12 +77,12 @@ namespace NeoCompose.Runtime
         private bool isDisposed;
 
         internal bool TryGetResolvedNSFunction(
-            string attributeId,
+            string memberId,
             [NotNullWhen(true)] out NeoResolvedNSFunction? function)
         {
             lock (resolvedNSFunctionsLock)
             {
-                return resolvedNSFunctions.TryGetValue(attributeId, out function);
+                return resolvedNSFunctions.TryGetValue(memberId, out function);
             }
         }
 
@@ -92,12 +92,12 @@ namespace NeoCompose.Runtime
             lock (resolvedNSFunctionsLock)
             {
                 if (resolvedNSFunctions.TryGetValue(
-                        function.AttributeId,
+                        function.MemberId,
                         out NeoResolvedNSFunction existing))
                 {
                     return existing;
                 }
-                resolvedNSFunctions[function.AttributeId] = function;
+                resolvedNSFunctions[function.MemberId] = function;
                 return function;
             }
         }
@@ -106,13 +106,13 @@ namespace NeoCompose.Runtime
         /// Read-only views over the underlying project + save maps.
         /// Exposed for evaluators / inspectors that need to enumerate
         /// the full set rather than fetch one-at-a-time via
-        /// <see cref="TryGetAttribute{T}"/> et al. The returned
+        /// <see cref="TryGetMember{T}"/> et al. The returned
         /// dictionaries are the same instances the client reads from
         /// internally — mutations through these views propagate.
         /// </summary>
-        internal IReadOnlyDictionary<string, Attribute> attributes => data.attributes;
-        internal IReadOnlyDictionary<string, AttributeValue> values => data.values;
-        internal IReadOnlyDictionary<string, CustomType> types => data.types;
+        internal IReadOnlyDictionary<string, Member> members => data.members;
+        internal IReadOnlyDictionary<string, MemberValue> values => data.values;
+        internal IReadOnlyDictionary<string, NeoSchemaClass> classes => data.classes;
         internal IReadOnlyDictionary<string, Interface> interfaces => data.interfaces;
         internal IReadOnlyDictionary<string, Enum> enums => data.enums;
         internal IReadOnlyDictionary<string, Dialogue> dialogues => data.dialogues;
@@ -131,8 +131,8 @@ namespace NeoCompose.Runtime
             DialoguesApi = api;
         }
         internal IReadOnlyDictionary<string, PriorityGroup> priorityGroups => data.priorityGroups;
-        internal IReadOnlyDictionary<string, AttributeValue> saveValues => saveData.values;
-        internal IReadOnlyDictionary<string, AttributeValue> sessionValues => sessionData.values;
+        internal IReadOnlyDictionary<string, MemberValue> saveValues => saveData.values;
+        internal IReadOnlyDictionary<string, MemberValue> sessionValues => sessionData.values;
         internal Project project => data.project;
         internal ProjectData ProjectDataForRuntime => data;
         internal bool IsDisposed => isDisposed;
@@ -147,7 +147,7 @@ namespace NeoCompose.Runtime
         internal event System.Action<string>? OnSaveValueChanged;
         internal event System.Action<NeoValueOwnership, string>? OnWritableValueChanged;
         /// <summary>
-        /// Fired when the attribute-id keyed target of a Save/Session static
+        /// Fired when the member-id keyed target of a Save/Session static
         /// member changes. Value-row mutations continue to use
         /// <see cref="OnWritableValueChanged"/>; this event covers rebinding,
         /// clearing, and restoring the authored target.
@@ -302,24 +302,25 @@ namespace NeoCompose.Runtime
             this.loader = loader ?? throw new System.ArgumentNullException(nameof(loader));
             this.data = loader.Schema;
             ValidateExportSchemaVersion(data.metadata);
+            ValidateClassMemberPayload(data);
             ValidateNoLegacyTileGridContents(data);
             AdoptStampedMainValueRows();
             SaveOptions = saveOptions ?? new NeoSaveOptions();
             this.assetDatabase = assetDatabase;
             Localization = localization ?? NeoLocalization.CreateEmpty(data.localization);
-            ValidateRootCustomAttribute(data.project.rootAssetsAttributeId, nameof(Project.rootAssetsAttributeId));
-            ValidateRootCustomAttribute(data.project.rootSaveFileAttributeId, nameof(Project.rootSaveFileAttributeId));
-            ValidateRootCustomAttribute(data.project.rootSessionAttributeId, nameof(Project.rootSessionAttributeId));
-            ValidateCallableAttributes();
+            ValidateRootClassMember(data.project.rootAssetsMemberId, nameof(Project.rootAssetsMemberId));
+            ValidateRootClassMember(data.project.rootSaveFileMemberId, nameof(Project.rootSaveFileMemberId));
+            ValidateRootClassMember(data.project.rootSessionMemberId, nameof(Project.rootSessionMemberId));
+            ValidateCallableMembers();
             LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
             BuildMembershipIndex();
             BuildAuthoredOwnershipMap();
             InitializeSaveDefaults();
             InitializeSessionDefaults();
-            assets = new(this, data.project.rootAssetsAttributeId, null);
-            save = new(this, data.project.rootSaveFileAttributeId, null, NeoValueOwnership.Save);
-            session = new(this, data.project.rootSessionAttributeId, null, NeoValueOwnership.Session);
+            assets = new(this, data.project.rootAssetsMemberId, null);
+            save = new(this, data.project.rootSaveFileMemberId, null, NeoValueOwnership.Save);
+            session = new(this, data.project.rootSessionMemberId, null, NeoValueOwnership.Session);
             if (loader is INeoLiveContentSource liveSource)
             {
                 liveContentSource = liveSource;
@@ -364,28 +365,28 @@ namespace NeoCompose.Runtime
             OnStaticBindingChanged = null;
         }
 
-        internal bool TryGetAttribute<TAttribute>(string id, [NotNullWhen(true)] out TAttribute? attribute) where TAttribute : Attribute
+        internal bool TryGetMember<TMember>(string id, [NotNullWhen(true)] out TMember? member) where TMember : Member
         {
-            if (data.attributes.TryGetValue(id, out Attribute idMatch))
+            if (data.members.TryGetValue(id, out Member idMatch))
             {
-                if (idMatch is TAttribute match)
+                if (idMatch is TMember match)
                 {
-                    attribute = match;
+                    member = match;
                     return true;
                 }
             }
-            attribute = null;
+            member = null;
             return false;
         }
 
-        internal bool TryGetType(string id, [NotNullWhen(true)] out CustomType? type)
+        internal bool TryGetClass(string id, [NotNullWhen(true)] out NeoSchemaClass? schemaClass)
         {
-            if (data.types.TryGetValue(id, out CustomType idMatch))
+            if (data.classes.TryGetValue(id, out NeoSchemaClass idMatch))
             {
-                type = idMatch;
+                schemaClass = idMatch;
                 return true;
             }
-            type = null;
+            schemaClass = null;
             return false;
         }
 
@@ -402,9 +403,9 @@ namespace NeoCompose.Runtime
             return false;
         }
 
-        internal bool TryGetValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : AttributeValue
+        internal bool TryGetValue<TValue>(string id, [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
-            if (sessionData.values.TryGetValue(id, out AttributeValue sessionIdMatch))
+            if (sessionData.values.TryGetValue(id, out MemberValue sessionIdMatch))
             {
                 if (sessionIdMatch is TValue match)
                 {
@@ -412,7 +413,7 @@ namespace NeoCompose.Runtime
                     return true;
                 }
             }
-            if (saveData.values.TryGetValue(id, out AttributeValue saveIdMatch))
+            if (saveData.values.TryGetValue(id, out MemberValue saveIdMatch))
             {
                 if (saveIdMatch is TValue match)
                 {
@@ -420,7 +421,7 @@ namespace NeoCompose.Runtime
                     return true;
                 }
             }
-            if (data.values.TryGetValue(id, out AttributeValue idMatch))
+            if (data.values.TryGetValue(id, out MemberValue idMatch))
             {
                 if (idMatch is TValue match)
                 {
@@ -435,13 +436,13 @@ namespace NeoCompose.Runtime
         internal bool TryGetValue<TValue>(
             NeoValueOwnership ownership,
             string id,
-            [NotNullWhen(true)] out TValue? value) where TValue : AttributeValue
+            [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
             value = null;
             switch (ownership)
             {
                 case NeoValueOwnership.Session:
-                    if (sessionData.values.TryGetValue(id, out AttributeValue sessionMatch))
+                    if (sessionData.values.TryGetValue(id, out MemberValue sessionMatch))
                     {
                         if (sessionMatch is TValue typedSession)
                         {
@@ -452,7 +453,7 @@ namespace NeoCompose.Runtime
                     }
                     break;
                 case NeoValueOwnership.Save:
-                    if (saveData.values.TryGetValue(id, out AttributeValue saveMatch))
+                    if (saveData.values.TryGetValue(id, out MemberValue saveMatch))
                     {
                         if (saveMatch is TValue typedSave)
                         {
@@ -468,7 +469,7 @@ namespace NeoCompose.Runtime
                     throw new System.InvalidOperationException(
                         $"Unknown value ownership '{ownership}'.");
             }
-            if (data.values.TryGetValue(id, out AttributeValue assetMatch)
+            if (data.values.TryGetValue(id, out MemberValue assetMatch)
                 && assetMatch is TValue typedAsset)
             {
                 value = typedAsset;
@@ -478,9 +479,9 @@ namespace NeoCompose.Runtime
         }
 
         // Authored ownership is the per-value effective storage
-        // (specs/attribute-storage.md §2): every authored value id maps to the
+        // (specs/member-storage.md §2): every authored value id maps to the
         // writable graph it belongs to, resolved positionally from the three
-        // stamped roots with each attribute's declared storage (resolved
+        // stamped roots with each member's declared storage (resolved
         // through the extends chain) overriding the inherited context. A
         // *sparse* overlay can therefore answer "is this value writable
         // here?" before the value has been shadowed into the writable store
@@ -492,18 +493,18 @@ namespace NeoCompose.Runtime
         private void BuildAuthoredOwnershipMap()
         {
             var visited = new HashSet<string>();
-            MarkAuthoredOwnership(data.project.rootAssetsAttributeId, NeoValueOwnership.Asset, visited);
-            MarkAuthoredOwnership(data.project.rootSaveFileAttributeId, NeoValueOwnership.Save, visited);
-            MarkAuthoredOwnership(data.project.rootSessionAttributeId, NeoValueOwnership.Session, visited);
-            foreach (Attribute attribute in data.attributes.Values)
+            MarkAuthoredOwnership(data.project.rootAssetsMemberId, NeoValueOwnership.Asset, visited);
+            MarkAuthoredOwnership(data.project.rootSaveFileMemberId, NeoValueOwnership.Save, visited);
+            MarkAuthoredOwnership(data.project.rootSessionMemberId, NeoValueOwnership.Session, visited);
+            foreach (Member member in data.members.Values)
             {
-                if (attribute.valueId is null) continue;
-                if (attribute.isStatic)
+                if (member.valueId is null) continue;
+                if (member.isStatic)
                 {
                     WalkAuthoredOwnership(
-                        attribute.valueId,
-                        attribute,
-                        ResolveStaticOwnership(attribute),
+                        member.valueId,
+                        member,
+                        ResolveStaticOwnership(member),
                         visited);
                     continue;
                 }
@@ -511,173 +512,173 @@ namespace NeoCompose.Runtime
                 // A schema member's authored default can be absent from its
                 // containing object row and therefore unreachable from the
                 // three root maps above. Walk it as an Asset-context root so
-                // explicit attribute storage and concrete Custom-type storage
+                // explicit member storage and concrete Class storage
                 // can establish a fixed writable subtree. Pure inherited
                 // defaults remain Asset here and are still classified from
                 // their actual Save/Session placement when that path exists.
                 WalkAuthoredOwnership(
-                    attribute.valueId,
-                    attribute,
+                    member.valueId,
+                    member,
                     NeoValueOwnership.Asset,
                     visited);
             }
         }
 
         private void MarkAuthoredOwnership(
-            string rootAttributeId,
+            string rootMemberId,
             NeoValueOwnership ownership,
             HashSet<string> visited)
         {
-            if (!data.attributes.TryGetValue(rootAttributeId, out Attribute rootAttribute)
-                || rootAttribute.valueId is null)
+            if (!data.members.TryGetValue(rootMemberId, out Member rootMember)
+                || rootMember.valueId is null)
             {
                 return;
             }
-            WalkAuthoredOwnership(rootAttribute.valueId, rootAttribute, ownership, visited);
+            WalkAuthoredOwnership(rootMember.valueId, rootMember, ownership, visited);
         }
 
         private void WalkAuthoredOwnership(
             string valueId,
-            Attribute? attribute,
+            Member? member,
             NeoValueOwnership inherited,
             HashSet<string> visited)
         {
             NeoValueOwnership effective =
-                (attribute is null ? null : DeclaredOwnership(attribute)) ?? inherited;
-            if (!data.values.TryGetValue(valueId, out AttributeValue row)) return;
-            if (row is ObjectAttributeValue obj
-                && obj.typeId is string runtimeTypeId
-                && TryResolveCustomTypeAllowedOwnership(runtimeTypeId, out NeoValueOwnership typeOwnership))
+                (member is null ? null : DeclaredOwnership(member)) ?? inherited;
+            if (!data.values.TryGetValue(valueId, out MemberValue row)) return;
+            if (row is ObjectMemberValue obj
+                && obj.classId is string runtimeClassId
+                && TryResolveSchemaClassAllowedOwnership(runtimeClassId, out NeoValueOwnership typeOwnership))
             {
                 effective = typeOwnership;
             }
-            string visitKey = $"{effective}:{attribute?.id ?? ""}:{valueId}";
+            string visitKey = $"{effective}:{member?.id ?? ""}:{valueId}";
             if (!visited.Add(visitKey)) return;
             if (effective != NeoValueOwnership.Asset)
             {
                 authoredOwnership[valueId] = effective;
             }
-            foreach (var child in EnumerateOwnedChildLinks(row, attribute))
+            foreach (var child in EnumerateOwnedChildLinks(row, member))
             {
-                WalkAuthoredOwnership(child.valueId, child.attribute, effective, visited);
+                WalkAuthoredOwnership(child.valueId, child.member, effective, visited);
             }
         }
 
-        internal bool TryResolveCustomTypeAllowedOwnership(
-            string typeId,
+        internal bool TryResolveSchemaClassAllowedOwnership(
+            string classId,
             out NeoValueOwnership ownership)
         {
-            string? cursor = typeId;
+            string? cursor = classId;
             for (int hops = 0; cursor is not null && hops < 16; hops++)
             {
-                if (!data.types.TryGetValue(cursor, out CustomType type)) break;
-                NeoValueOwnership? declared = NeoAttributeStorageResolution.ToOwnership(
-                    NeoAttributeStorageResolution.Parse(type.allowedStorage));
+                if (!data.classes.TryGetValue(cursor, out NeoSchemaClass schemaClass)) break;
+                NeoValueOwnership? declared = NeoMemberStorageResolution.ToOwnership(
+                    NeoMemberStorageResolution.Parse(schemaClass.allowedStorage));
                 if (declared is not null)
                 {
                     ownership = declared.Value;
                     return true;
                 }
-                cursor = type.extendsTypeId;
+                cursor = schemaClass.extendsClassId;
             }
             ownership = NeoValueOwnership.Asset;
             return false;
         }
 
         /// <summary>
-        /// Declared storage of an attribute resolved through its
-        /// <see cref="Attribute.extendsAttributeId"/> chain (capped) —
-        /// mirrors the TS-side <c>declaredAttributeStorage</c>.
+        /// Declared storage of a member resolved through its
+        /// <see cref="Member.extendsMemberId"/> chain (capped) —
+        /// mirrors the TS-side <c>declaredMemberStorage</c>.
         /// </summary>
-        internal NeoAttributeStorage DeclaredStorage(Attribute attribute)
+        internal NeoMemberStorage DeclaredStorage(Member member)
         {
-            Attribute? cursor = attribute;
+            Member? cursor = member;
             for (int hops = 0; cursor is not null && hops < 16; hops++)
             {
-                var declared = NeoAttributeStorageResolution.Parse(cursor.storage);
-                if (declared != NeoAttributeStorage.Inherit) return declared;
-                if (cursor.extendsAttributeId is null) return NeoAttributeStorage.Inherit;
-                data.attributes.TryGetValue(cursor.extendsAttributeId, out cursor);
+                var declared = NeoMemberStorageResolution.Parse(cursor.storage);
+                if (declared != NeoMemberStorage.Inherit) return declared;
+                if (cursor.extendsMemberId is null) return NeoMemberStorage.Inherit;
+                data.members.TryGetValue(cursor.extendsMemberId, out cursor);
             }
-            return NeoAttributeStorage.Inherit;
+            return NeoMemberStorage.Inherit;
         }
 
         /// <summary>
         /// Ownership a declared storage stamp forces, or null when the
-        /// attribute inherits its placement parent's ownership.
+        /// member inherits its placement parent's ownership.
         /// </summary>
-        internal NeoValueOwnership? DeclaredOwnership(Attribute attribute)
+        internal NeoValueOwnership? DeclaredOwnership(Member member)
         {
-            return NeoAttributeStorageResolution.ToOwnership(DeclaredStorage(attribute));
+            return NeoMemberStorageResolution.ToOwnership(DeclaredStorage(member));
         }
 
         /// <summary>
-        /// Resolves an attribute's canonical storage-partition declaration
+        /// Resolves a member's canonical storage-partition declaration
         /// through its override chain. Unlike runtime storage ownership, an
         /// explicit <c>"inherit"</c> is itself a declaration and therefore
         /// stops override-chain lookup.
         /// </summary>
-        internal string DeclaredStorageKey(Attribute attribute)
+        internal string DeclaredStorageKey(Member member)
         {
-            Attribute? cursor = attribute;
+            Member? cursor = member;
             for (int hops = 0; cursor is not null && hops < 16; hops++)
             {
                 if (cursor.storageKey is not null)
                 {
                     return NormalizeStorageKey(cursor.storageKey);
                 }
-                if (cursor.extendsAttributeId is null) break;
-                data.attributes.TryGetValue(cursor.extendsAttributeId, out cursor);
+                if (cursor.extendsMemberId is null) break;
+                data.members.TryGetValue(cursor.extendsMemberId, out cursor);
             }
             return "inherit";
         }
 
         /// <summary>
         /// Resolves the partition stamp for a newly created value at one
-        /// schema placement boundary. <c>$parentType</c> uses the concrete
-        /// runtime type of the placement parent; static members pass their
-        /// declaring Custom type as that parent.
+        /// schema placement boundary. <c>$parentClass</c> uses the concrete
+        /// runtime class of the placement parent; static members pass their
+        /// declaring class as that parent.
         /// </summary>
         internal string? ResolveCreatedValueMapKey(
-            Attribute attribute,
+            Member member,
             string? parentMapKey,
-            string? parentTypeId)
+            string? parentClassId)
         {
-            string declaration = DeclaredStorageKey(attribute);
+            string declaration = DeclaredStorageKey(member);
             if (declaration == "inherit") return NormalizeMapKey(parentMapKey);
             if (declaration == "main") return null;
-            const string parentTypeToken = "$parentType";
-            if (declaration.Contains(parentTypeToken))
+            const string parentClassToken = "$parentClass";
+            if (declaration.Contains(parentClassToken))
             {
-                if (string.IsNullOrEmpty(parentTypeId))
+                if (string.IsNullOrEmpty(parentClassId))
                 {
                     throw new System.InvalidOperationException(
-                        $"Storage key '{declaration}' on attribute '{attribute.name}' references {parentTypeToken}, but its placement parent has no runtime typeId.");
+                        $"Storage key '{declaration}' on member '{member.name}' references {parentClassToken}, but its placement parent has no runtime classId.");
                 }
-                declaration = declaration.Replace(parentTypeToken, parentTypeId);
+                declaration = declaration.Replace(parentClassToken, parentClassId);
             }
             return NormalizeMapKey(declaration);
         }
 
-        internal string? ResolveStaticMapKey(Attribute attribute)
+        internal string? ResolveStaticMapKey(Member member)
         {
-            if (!attribute.isStatic)
+            if (!member.isStatic)
             {
                 throw new System.InvalidOperationException(
-                    $"Attribute '{attribute.id}' is not a static Custom-type member.");
+                    $"Member '{member.id}' is not a static Class member.");
             }
-            SchemaPlacement? placement = CustomTypeInheritance.FindSchemaPlacement(
-                attribute.id,
-                data.types.Values);
+            SchemaPlacement? placement = NeoSchemaClassInheritance.FindSchemaPlacement(
+                member.id,
+                data.classes.Values);
             if (placement is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Static attribute '{attribute.id}' has no declaring Custom type.");
+                    $"Static member '{member.id}' has no declaring Class.");
             }
             return ResolveCreatedValueMapKey(
-                attribute,
+                member,
                 parentMapKey: null,
-                parentTypeId: placement.ownerType.id);
+                parentClassId: placement.ownerClass.id);
         }
 
         private static string NormalizeStorageKey(string? declaration)
@@ -686,7 +687,7 @@ namespace NeoCompose.Runtime
             if (declaration == "all")
             {
                 throw new System.InvalidOperationException(
-                    "Storage key 'all' is reserved for partition-scoped reads and cannot be declared on an attribute.");
+                    "Storage key 'all' is reserved for partition-scoped reads and cannot be declared on a member.");
             }
             return declaration!;
         }
@@ -699,34 +700,34 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Resolves the independent storage anchor of a type-owned member.
+        /// Resolves the independent storage anchor of a class-owned member.
         /// Unlike an instance field, a static declaration has no placement
-        /// parent: explicit member storage wins, then the declaring type's
-        /// inherited <c>allowedStorage</c>, and an unconstrained type defaults
+        /// parent: explicit member storage wins, then the declaring class's
+        /// inherited <c>allowedStorage</c>, and an unconstrained class defaults
         /// to Session.
         /// </summary>
-        internal NeoValueOwnership ResolveStaticOwnership(Attribute attribute)
+        internal NeoValueOwnership ResolveStaticOwnership(Member member)
         {
-            if (!attribute.isStatic)
+            if (!member.isStatic)
             {
                 throw new System.InvalidOperationException(
-                    $"Attribute '{attribute.id}' is not a static Custom-type member.");
+                    $"Member '{member.id}' is not a static Class member.");
             }
-            if (DeclaredOwnership(attribute) is NeoValueOwnership declared)
+            if (DeclaredOwnership(member) is NeoValueOwnership declared)
             {
                 return declared;
             }
 
-            SchemaPlacement? placement = CustomTypeInheritance.FindSchemaPlacement(
-                attribute.id,
-                data.types.Values);
+            SchemaPlacement? placement = NeoSchemaClassInheritance.FindSchemaPlacement(
+                member.id,
+                data.classes.Values);
             if (placement is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Static attribute '{attribute.id}' has no declaring Custom type.");
+                    $"Static member '{member.id}' has no declaring Class.");
             }
-            if (TryResolveCustomTypeAllowedOwnership(
-                    placement.ownerType.id,
+            if (TryResolveSchemaClassAllowedOwnership(
+                    placement.ownerClass.id,
                     out NeoValueOwnership allowed))
             {
                 return allowed;
@@ -734,88 +735,88 @@ namespace NeoCompose.Runtime
             return NeoValueOwnership.Session;
         }
 
-        internal NeoValueOwnership ResolveStaticOwnership(string attributeId)
+        internal NeoValueOwnership ResolveStaticOwnership(string memberId)
         {
-            if (!TryGetAttribute(attributeId, out Attribute? attribute))
+            if (!TryGetMember(memberId, out Member? member))
             {
                 throw new System.ArgumentException(
-                    $"No attribute exists for static binding '{attributeId}'.",
-                    nameof(attributeId));
+                    $"No member exists for static binding '{memberId}'.",
+                    nameof(memberId));
             }
-            return ResolveStaticOwnership(attribute);
+            return ResolveStaticOwnership(member);
         }
 
         /// <summary>
         /// Resolves a static member's active target. Missing overlay entries
-        /// inherit <see cref="Attribute.valueId"/>; a present null entry is an
+        /// inherit <see cref="Member.valueId"/>; a present null entry is an
         /// explicit unset tombstone.
         /// </summary>
         internal bool TryResolveStaticBinding(
-            string attributeId,
-            [NotNullWhen(true)] out Attribute? attribute,
+            string memberId,
+            [NotNullWhen(true)] out Member? member,
             out NeoValueOwnership ownership,
             [NotNullWhen(true)] out string? valueId)
         {
-            if (!TryGetAttribute(attributeId, out attribute))
+            if (!TryGetMember(memberId, out member))
             {
                 ownership = NeoValueOwnership.Asset;
                 valueId = null;
                 return false;
             }
-            ownership = ResolveStaticOwnership(attribute);
+            ownership = ResolveStaticOwnership(member);
             if (ownership == NeoValueOwnership.Asset)
             {
-                valueId = attribute.valueId;
+                valueId = member.valueId;
                 return valueId is not null;
             }
             Dictionary<string, string?> bindings = GetWritableStore(ownership).staticBindings;
-            if (bindings.TryGetValue(attribute.id, out string? overlaid))
+            if (bindings.TryGetValue(member.id, out string? overlaid))
             {
                 valueId = overlaid;
                 return valueId is not null;
             }
-            valueId = attribute.valueId;
+            valueId = member.valueId;
             return valueId is not null;
         }
 
         internal void SetStaticBinding(
-            string attributeId,
+            string memberId,
             NeoValueOwnership ownership,
             string? valueId)
         {
-            if (!TryGetAttribute(attributeId, out Attribute? attribute))
+            if (!TryGetMember(memberId, out Member? member))
             {
                 throw new System.ArgumentException(
-                    $"No attribute exists for static binding '{attributeId}'.",
-                    nameof(attributeId));
+                    $"No member exists for static binding '{memberId}'.",
+                    nameof(memberId));
             }
-            NeoValueOwnership resolvedOwnership = ResolveStaticOwnership(attribute);
+            NeoValueOwnership resolvedOwnership = ResolveStaticOwnership(member);
             if (resolvedOwnership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' is Immutable and cannot be rebound at runtime.");
+                    $"Static member '{member.name}' is Immutable and cannot be rebound at runtime.");
             }
             if (ownership != resolvedOwnership)
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' belongs to {resolvedOwnership} storage, not {ownership}.");
+                    $"Static member '{member.name}' belongs to {resolvedOwnership} storage, not {ownership}.");
             }
-            if (valueId is null && attribute.required)
+            if (valueId is null && member.required)
             {
                 throw new System.ArgumentNullException(
                     nameof(valueId),
-                    $"Required static member '{attribute.name}' cannot be cleared.");
+                    $"Required static member '{member.name}' cannot be cleared.");
             }
 
             ProjectSaveData store = GetWritableStore(ownership);
-            if (store.staticBindings.TryGetValue(attributeId, out string? current)
+            if (store.staticBindings.TryGetValue(memberId, out string? current)
                 && current == valueId)
             {
                 return;
             }
-            store.staticBindings[attributeId] = valueId;
+            store.staticBindings[memberId] = valueId;
             TouchWritableStoreUpdatedAt(ownership);
-            OnStaticBindingChanged?.Invoke(ownership, attributeId);
+            OnStaticBindingChanged?.Invoke(ownership, memberId);
             if (ownership == NeoValueOwnership.Save)
             {
                 ScheduleLiveAutoCommit();
@@ -823,16 +824,16 @@ namespace NeoCompose.Runtime
         }
 
         internal bool RestoreStaticBinding(
-            string attributeId,
+            string memberId,
             NeoValueOwnership ownership)
         {
-            if (!TryGetAttribute(attributeId, out Attribute? attribute))
+            if (!TryGetMember(memberId, out Member? member))
             {
                 throw new System.ArgumentException(
-                    $"No attribute exists for static binding '{attributeId}'.",
-                    nameof(attributeId));
+                    $"No member exists for static binding '{memberId}'.",
+                    nameof(memberId));
             }
-            NeoValueOwnership resolvedOwnership = ResolveStaticOwnership(attribute);
+            NeoValueOwnership resolvedOwnership = ResolveStaticOwnership(member);
             if (resolvedOwnership == NeoValueOwnership.Asset)
             {
                 return false;
@@ -840,12 +841,12 @@ namespace NeoCompose.Runtime
             if (ownership != resolvedOwnership)
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' belongs to {resolvedOwnership} storage, not {ownership}.");
+                    $"Static member '{member.name}' belongs to {resolvedOwnership} storage, not {ownership}.");
             }
             ProjectSaveData store = GetWritableStore(ownership);
-            if (!store.staticBindings.Remove(attributeId)) return false;
+            if (!store.staticBindings.Remove(memberId)) return false;
             TouchWritableStoreUpdatedAt(ownership);
-            OnStaticBindingChanged?.Invoke(ownership, attributeId);
+            OnStaticBindingChanged?.Invoke(ownership, memberId);
             if (ownership == NeoValueOwnership.Save)
             {
                 ScheduleLiveAutoCommit();
@@ -855,27 +856,41 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            const int minimumSupportedVersion = 7;
-            const int currentVersion = 7;
+            const int requiredVersion = 8;
 
-            // Version 7 adds writable getter/constructor/static-member
-            // contracts and replaces the old asset/static storage vocabulary.
-            // Final readers intentionally require the coordinated migration
-            // instead of retaining aliases for schema-6 IR.
+            // Schema 8 is the coordinated Class/Member wire cutover. There is
+            // deliberately no schema-7 reader or field-alias layer.
             if (metadata is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export metadata is missing (this SDK requires schema version {minimumSupportedVersion} or newer and supports through {currentVersion}). Re-export the project from the current web app.");
+                    $"Project export metadata is missing (this SDK requires schema version {requiredVersion}). Re-export the project from the current web app.");
             }
-            if (metadata.schemaVersion < minimumSupportedVersion)
+            if (metadata.schemaVersion != requiredVersion)
+            {
+                string action = metadata.schemaVersion < requiredVersion
+                    ? "Re-export the project from the current web app."
+                    : "Update the NeoCompose SDK.";
+                throw new System.InvalidOperationException(
+                    $"Project export schema version {metadata.schemaVersion} is unsupported; this SDK accepts only schema version {requiredVersion}. {action}");
+            }
+        }
+
+        private static void ValidateClassMemberPayload(ProjectData data)
+        {
+            if (data.classes is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} is older than this SDK supports (this SDK requires at least {minimumSupportedVersion}). Re-export the project from the current web app.");
+                    "Project export is missing the required 'classes' collection. Re-export the project with the schema-8 Class/Member contract.");
             }
-            if (metadata.schemaVersion > currentVersion)
+            if (data.members is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} is newer than this SDK supports ({currentVersion}). Update the NeoCompose SDK.");
+                    "Project export is missing the required 'members' collection. Re-export the project with the schema-8 Class/Member contract.");
+            }
+            if (data.values is null)
+            {
+                throw new System.InvalidOperationException(
+                    "Project export is missing the required 'values' collection. Re-export the project with the schema-8 Class/Member contract.");
             }
         }
 
@@ -979,21 +994,21 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Test/seed helper: shadow a save value at its stable id. Value ids are
         /// stable instance identities, so seeding a value is just a write at its
-        /// own id; <paramref name="attributeId"/> is retained for call-site
+        /// own id; <paramref name="memberId"/> is retained for call-site
         /// readability but no longer maps through an override table.
         /// </summary>
-        internal void AddSaveValue<TAttributeValue>(string attributeId, TAttributeValue value) where TAttributeValue : AttributeValue
+        internal void AddSaveValue<TMemberValue>(string memberId, TMemberValue value) where TMemberValue : MemberValue
         {
-            _ = attributeId;
+            _ = memberId;
             SetWritableValue(NeoValueOwnership.Save, value);
         }
 
-        internal void SetSaveValue<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
+        internal void SetSaveValue<TMemberValue>(TMemberValue value) where TMemberValue : MemberValue
         {
             SetWritableValue(NeoValueOwnership.Save, value);
         }
 
-        internal void SetSaveValueSilently<TAttributeValue>(TAttributeValue value) where TAttributeValue : AttributeValue
+        internal void SetSaveValueSilently<TMemberValue>(TMemberValue value) where TMemberValue : MemberValue
         {
             SetWritableValueSilently(NeoValueOwnership.Save, value);
         }
@@ -1001,7 +1016,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Stable-id overlay resolution for a writable (Save/Session) node: the
         /// ownership store's row when present — a removal tombstone
-        /// (<see cref="AttributeValue.IsRemoved"/>) resolves as <b>unset</b>
+        /// (<see cref="MemberValue.IsRemoved"/>) resolves as <b>unset</b>
         /// (returns false, never falling through) — otherwise the authored asset
         /// default. This is the shadow rule <c>save.values[id] ?? authored</c>
         /// shared with the web overlay, and is what lets a save stay sparse:
@@ -1010,20 +1025,20 @@ namespace NeoCompose.Runtime
         internal bool TryGetOverlaidValue<TValue>(
             NeoValueOwnership ownership,
             string id,
-            [NotNullWhen(true)] out TValue? value) where TValue : AttributeValue
+            [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
             value = null;
             if (ownership != NeoValueOwnership.Asset)
             {
                 var store = GetWritableStore(ownership);
-                if (store.values.TryGetValue(id, out AttributeValue overlaid))
+                if (store.values.TryGetValue(id, out MemberValue overlaid))
                 {
                     if (overlaid.IsRemoved) return false; // explicit unset; no fallthrough
                     value = overlaid as TValue;
                     return value is not null;
                 }
             }
-            if (data.values.TryGetValue(id, out AttributeValue assetRow))
+            if (data.values.TryGetValue(id, out MemberValue assetRow))
             {
                 value = assetRow as TValue;
                 return value is not null;
@@ -1036,7 +1051,7 @@ namespace NeoCompose.Runtime
         /// writable <c>Set</c> can mutate + shadow it without touching the shared
         /// authored asset object it may have resolved through.
         /// </summary>
-        internal AttributeValue CloneRowForWrite(AttributeValue row) => CloneValueRow(row);
+        internal MemberValue CloneRowForWrite(MemberValue row) => CloneValueRow(row);
 
         /// <summary>
         /// Ensures the value at <paramref name="id"/> is present in the
@@ -1053,7 +1068,7 @@ namespace NeoCompose.Runtime
             if (ownership == NeoValueOwnership.Asset) return false;
             var store = GetWritableStore(ownership);
             if (store.values.ContainsKey(id)) return true;
-            if (!TryGetOverlaidValue(ownership, id, out AttributeValue? resolved)) return false;
+            if (!TryGetOverlaidValue(ownership, id, out MemberValue? resolved)) return false;
             SetWritableValueSilently(ownership, CloneValueRow(resolved));
             return true;
         }
@@ -1081,7 +1096,7 @@ namespace NeoCompose.Runtime
             // Minimal marker — no payload, no child links. Resolution only checks
             // `mark`, so the stored value is genuinely null and the removed value's
             // children are no longer referenced through it.
-            var tombstone = new NullAttributeValue
+            var tombstone = new NullMemberValue
             {
                 id = id,
                 createdAt = nowIso,
@@ -1101,23 +1116,23 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void WriteRemovalTombstone(NeoValueOwnership ownership, string id)
         {
-            var formerChildren = new List<(string valueId, Attribute? attribute)>();
-            if (TryGetOverlaidValue(ownership, id, out AttributeValue? replaced))
+            var formerChildren = new List<(string valueId, Member? member)>();
+            if (TryGetOverlaidValue(ownership, id, out MemberValue? replaced))
             {
-                Attribute? sourceAttribute = TryInferAttributeForValueId(
+                Member? sourceMember = TryInferMemberForValueId(
                     id,
-                    out Attribute? inferredAttribute)
-                        ? inferredAttribute
+                    out Member? inferredMember)
+                        ? inferredMember
                         : null;
-                formerChildren.AddRange(EnumerateOwnedChildLinks(replaced, sourceAttribute));
-                if (sourceAttribute is ListAttribute list && IsUnorderedList(list))
+                formerChildren.AddRange(EnumerateOwnedChildLinks(replaced, sourceMember));
+                if (sourceMember is ListMember list && IsUnorderedList(list))
                 {
-                    Attribute? entryAttribute = TryResolveCollectionEntryAttribute(sourceAttribute);
-                    if (entryAttribute is not null)
+                    Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
+                    if (entryMember is not null)
                     {
                         foreach (string memberId in EnumerateContainerMemberValueIds(ownership, id))
                         {
-                            formerChildren.Add((memberId, entryAttribute));
+                            formerChildren.Add((memberId, entryMember));
                         }
                     }
                 }
@@ -1130,7 +1145,7 @@ namespace NeoCompose.Runtime
             foreach (var child in formerChildren)
             {
                 NeoValueOwnership childOwnership =
-                    (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
+                    (child.member is null ? null : DeclaredOwnership(child.member)) ?? ownership;
                 if (childOwnership == NeoValueOwnership.Asset) continue;
                 if (!reachableByOwnership.TryGetValue(childOwnership, out var reachable))
                 {
@@ -1141,7 +1156,7 @@ namespace NeoCompose.Runtime
                     childOwnership,
                     child.valueId,
                     reachable,
-                    child.attribute,
+                    child.member,
                     new HashSet<string>(),
                     new HashSet<string>());
             }
@@ -1173,9 +1188,9 @@ namespace NeoCompose.Runtime
             return true;
         }
 
-        internal void SetWritableValue<TAttributeValue>(
+        internal void SetWritableValue<TMemberValue>(
             NeoValueOwnership ownership,
-            TAttributeValue value) where TAttributeValue : AttributeValue
+            TMemberValue value) where TMemberValue : MemberValue
         {
             StampMapKeyForWrite(ownership, value);
             GetWritableStore(ownership).values[value.id] = value;
@@ -1189,9 +1204,9 @@ namespace NeoCompose.Runtime
             }
         }
 
-        internal void SetWritableValueSilently<TAttributeValue>(
+        internal void SetWritableValueSilently<TMemberValue>(
             NeoValueOwnership ownership,
-            TAttributeValue value) where TAttributeValue : AttributeValue
+            TMemberValue value) where TMemberValue : MemberValue
         {
             StampMapKeyForWrite(ownership, value);
             GetWritableStore(ownership).values[value.id] = value;
@@ -1265,7 +1280,7 @@ namespace NeoCompose.Runtime
                 if (TryFindOwnedParent(targetOwnership, sourceValueId, out string? parentValueId))
                 {
                     throw new System.InvalidOperationException(
-                        $"Custom value '{sourceValueId}' is already owned by parent value '{parentValueId}' and cannot be assigned to another parent. Use .Clone() to create an independent Custom value before assigning it.");
+                        $"Class value '{sourceValueId}' is already owned by parent value '{parentValueId}' and cannot be assigned to another parent. Use .Clone() to create an independent Class value before assigning it.");
                 }
                 return sourceValueId;
             }
@@ -1281,18 +1296,18 @@ namespace NeoCompose.Runtime
                     targetOwnership,
                     sourceOwnership,
                     sourceValueId,
-                    TryInferAttributeForValueId(sourceValueId, out Attribute? collisionAttribute)
-                        ? collisionAttribute
+                    TryInferMemberForValueId(sourceValueId, out Member? collisionMember)
+                        ? collisionMember
                         : null);
             }
             if (sourceOwnership == NeoValueOwnership.Session
                 && targetOwnership == NeoValueOwnership.Save
                 && !BuildReachableWritableValueIds(NeoValueOwnership.Session).Contains(sourceValueId))
             {
-                Attribute? sourceAttribute = TryInferAttributeForValueId(
+                Member? sourceMember = TryInferMemberForValueId(
                     sourceValueId,
-                    out Attribute? inferredSourceAttribute)
-                        ? inferredSourceAttribute
+                    out Member? inferredSourceMember)
+                        ? inferredSourceMember
                         : null;
                 // Parentless runtime Session aggregates are deliberately not
                 // global reachability roots. Their authoritative owned edges
@@ -1309,7 +1324,7 @@ namespace NeoCompose.Runtime
                         targetOwnership,
                         sourceOwnership,
                         sourceValueId,
-                        sourceAttribute);
+                        sourceMember);
                 }
                 // A parentless Session graph is normally moved into Save with
                 // stable ids so live aliases can be retargeted. If any owned
@@ -1320,21 +1335,21 @@ namespace NeoCompose.Runtime
                         sourceOwnership,
                         targetOwnership,
                         sourceValueId,
-                        sourceAttribute,
+                        sourceMember,
                         new HashSet<string>()))
                 {
                     return CloneOwnedValueReferenceForNewParent(
                         targetOwnership,
                         sourceOwnership,
                         sourceValueId,
-                        sourceAttribute);
+                        sourceMember);
                 }
                 PromoteValueGraph(
                     NeoValueOwnership.Session,
                     NeoValueOwnership.Save,
                     sourceValueId,
                     new HashSet<string>(),
-                    sourceAttribute);
+                    sourceMember);
                 sourceMoved = true;
                 return sourceValueId;
             }
@@ -1342,8 +1357,8 @@ namespace NeoCompose.Runtime
                 targetOwnership,
                 sourceValueId,
                 new Dictionary<string, string>(),
-                TryInferAttributeForValueId(sourceValueId, out Attribute? inferredAttribute)
-                    ? inferredAttribute
+                TryInferMemberForValueId(sourceValueId, out Member? inferredMember)
+                    ? inferredMember
                 : null);
         }
 
@@ -1356,7 +1371,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership targetOwnership,
             NeoValueOwnership sourceOwnership,
             string sourceValueId,
-            Attribute? sourceAttribute)
+            Member? sourceMember)
         {
             if (targetOwnership == NeoValueOwnership.Asset)
             {
@@ -1367,11 +1382,11 @@ namespace NeoCompose.Runtime
                 targetOwnership,
                 sourceOwnership,
                 sourceValueId,
-                sourceAttribute);
+                sourceMember);
         }
 
         /// <summary>
-        /// Creates a complete, parentless copy of an owned Custom value graph
+        /// Creates a complete, parentless copy of an owned Class value graph
         /// in Session storage. Unlike sparse overlay import, every owned row
         /// receives a fresh id. Lookup selections remain references.
         /// </summary>
@@ -1379,27 +1394,27 @@ namespace NeoCompose.Runtime
             string sourceValueId,
             NeoValueOwnership? sourceOwnership = null)
         {
-            ObjectAttributeValue? sourceRow;
+            ObjectMemberValue? sourceRow;
             bool foundSource = sourceOwnership is NeoValueOwnership exactOwnership
                 ? TryGetValue(exactOwnership, sourceValueId, out sourceRow)
                 : TryGetValue(sourceValueId, out sourceRow);
             if (string.IsNullOrEmpty(sourceValueId) || !foundSource || sourceRow is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Cannot clone Custom value '{sourceValueId}': its object value row does not exist.");
+                    $"Cannot clone Class value '{sourceValueId}': its object value row does not exist.");
             }
 
-            Attribute? sourceAttribute = TryInferAttributeForValueId(sourceValueId, out Attribute? inferred)
+            Member? sourceMember = TryInferMemberForValueId(sourceValueId, out Member? inferred)
                 ? inferred
                 : null;
-            string? sourceTypeId = sourceRow.typeId
-                ?? (sourceAttribute as CustomAttribute)?.customTypeId;
-            if (!string.IsNullOrEmpty(sourceTypeId)
-                && TryResolveCustomTypeAllowedOwnership(sourceTypeId!, out var allowedOwnership)
+            string? sourceClassId = sourceRow.classId
+                ?? (sourceMember as ClassMember)?.classId;
+            if (!string.IsNullOrEmpty(sourceClassId)
+                && TryResolveSchemaClassAllowedOwnership(sourceClassId!, out var allowedOwnership)
                 && allowedOwnership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException(
-                    $"Cannot clone Custom value '{sourceValueId}' of immutable-only type '{sourceTypeId}'. Immutable Custom types cannot produce writable clones.");
+                    $"Cannot clone Class value '{sourceValueId}' of immutable-only class '{sourceClassId}'. Immutable Classes cannot produce writable clones.");
             }
             return CloneOwnedValueGraphWithFreshIdsAtomic(
                 NeoValueOwnership.Session,
@@ -1407,14 +1422,14 @@ namespace NeoCompose.Runtime
                     ? inferredSourceOwnership
                     : NeoValueOwnership.Asset),
                 sourceRow.id,
-                sourceAttribute);
+                sourceMember);
         }
 
         private string CloneOwnedValueGraphWithFreshIdsAtomic(
             NeoValueOwnership targetOwnership,
             NeoValueOwnership sourceOwnership,
             string sourceValueId,
-            Attribute? sourceAttribute)
+            Member? sourceMember)
         {
             var createdValueIds = new HashSet<string>();
             try
@@ -1423,7 +1438,7 @@ namespace NeoCompose.Runtime
                     targetOwnership,
                     sourceOwnership,
                     sourceValueId,
-                    sourceAttribute,
+                    sourceMember,
                     new HashSet<string>(),
                     clonedContainerId: null,
                     createdValueIds);
@@ -1449,7 +1464,7 @@ namespace NeoCompose.Runtime
             NeoValueOwnership targetOwnership,
             NeoValueOwnership sourceOwnership,
             string sourceValueId,
-            Attribute? sourceAttribute,
+            Member? sourceMember,
             HashSet<string> path,
             string? clonedContainerId,
             HashSet<string> createdValueIds)
@@ -1461,35 +1476,35 @@ namespace NeoCompose.Runtime
             }
             try
             {
-                if (!TryGetValue(sourceOwnership, sourceValueId, out AttributeValue? sourceRow))
+                if (!TryGetValue(sourceOwnership, sourceValueId, out MemberValue? sourceRow))
                 {
                     throw new System.InvalidOperationException(
                         $"Cannot clone value graph: owned value row '{sourceValueId}' does not exist.");
                 }
 
-                AttributeValue clone = CloneValueRow(sourceRow);
+                MemberValue clone = CloneValueRow(sourceRow);
                 clone.id = System.Guid.NewGuid().ToString();
                 clone.containerId = clonedContainerId;
 
                 switch (clone)
                 {
-                    case ObjectAttributeValue obj when obj.value is not null:
+                    case ObjectMemberValue obj when obj.value is not null:
                     {
                         var remapped = new Dictionary<string, string>();
                         foreach (var pair in obj.value)
                         {
-                            Attribute? childAttribute =
-                                TryResolveOwnedChildAttribute(sourceRow, sourceAttribute, pair.Key);
-                            remapped[pair.Key] = childAttribute is not null
+                            Member? childMember =
+                                TryResolveOwnedChildMember(sourceRow, sourceMember, pair.Key);
+                            remapped[pair.Key] = childMember is not null
                                 && TryGetValue(
-                                    DeclaredOwnership(childAttribute) ?? sourceOwnership,
+                                    DeclaredOwnership(childMember) ?? sourceOwnership,
                                     pair.Value,
-                                    out AttributeValue? _)
+                                    out MemberValue? _)
                                     ? CloneOwnedValueGraphWithFreshIds(
                                         targetOwnership,
-                                        DeclaredOwnership(childAttribute) ?? sourceOwnership,
+                                        DeclaredOwnership(childMember) ?? sourceOwnership,
                                         pair.Value,
-                                        childAttribute,
+                                        childMember,
                                         path,
                                         null,
                                         createdValueIds)
@@ -1498,24 +1513,24 @@ namespace NeoCompose.Runtime
                         obj.value = remapped;
                         break;
                     }
-                    case ArrayAttributeValue arr when arr.value is not null:
+                    case ArrayMemberValue arr when arr.value is not null:
                     {
                         // A Lookup row owns the row itself but its selections
                         // are reference edges and must retain their target ids.
-                        if (sourceAttribute is LookupAttribute) break;
-                        Attribute? entryAttribute = TryResolveCollectionEntryAttribute(sourceAttribute);
-                        if (entryAttribute is null) break;
+                        if (sourceMember is LookupMember) break;
+                        Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
+                        if (entryMember is null) break;
                         var remapped = new string[arr.value.Length];
                         for (int i = 0; i < arr.value.Length; i++)
                         {
                             NeoValueOwnership entryOwnership =
-                                DeclaredOwnership(entryAttribute) ?? sourceOwnership;
-                            remapped[i] = TryGetValue(entryOwnership, arr.value[i], out AttributeValue? _)
+                                DeclaredOwnership(entryMember) ?? sourceOwnership;
+                            remapped[i] = TryGetValue(entryOwnership, arr.value[i], out MemberValue? _)
                                 ? CloneOwnedValueGraphWithFreshIds(
                                     targetOwnership,
                                     entryOwnership,
                                     arr.value[i],
-                                    entryAttribute,
+                                    entryMember,
                                     path,
                                     null,
                                     createdValueIds)
@@ -1531,14 +1546,14 @@ namespace NeoCompose.Runtime
 
                 // Unordered list membership is stored on the member rows,
                 // rather than as ids in the list's (empty) array payload.
-                if (sourceAttribute is ListAttribute list
+                if (sourceMember is ListMember list
                     && IsUnorderedList(list))
                 {
-                    Attribute? entryAttribute = TryResolveCollectionEntryAttribute(sourceAttribute);
-                    if (entryAttribute is not null)
+                    Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
+                    if (entryMember is not null)
                     {
                         NeoValueOwnership entryOwnership =
-                            DeclaredOwnership(entryAttribute) ?? sourceOwnership;
+                            DeclaredOwnership(entryMember) ?? sourceOwnership;
                         foreach (string memberId in EnumerateContainerMemberValueIds(
                             sourceOwnership,
                             sourceValueId))
@@ -1547,7 +1562,7 @@ namespace NeoCompose.Runtime
                                 targetOwnership,
                                 entryOwnership,
                                 memberId,
-                                entryAttribute,
+                                entryMember,
                                 path,
                                 clone.id,
                                 createdValueIds);
@@ -1586,7 +1601,7 @@ namespace NeoCompose.Runtime
             {
                 yield break;
             }
-            if (!data.values.TryGetValue(containerId, out AttributeValue authoredContainer)
+            if (!data.values.TryGetValue(containerId, out MemberValue authoredContainer)
                 || EffectiveAuthoredOwnership(containerId, authoredContainer) != sourceOwnership)
             {
                 yield break;
@@ -1614,10 +1629,10 @@ namespace NeoCompose.Runtime
         {
             // Unordered-list ownership is an immutable membership stamp on
             // the child row itself.
-            AttributeValue? child = null;
+            MemberValue? child = null;
             var childStore = GetWritableStore(childOwnership);
             if (!childStore.values.TryGetValue(childValueId, out child)
-                && data.values.TryGetValue(childValueId, out AttributeValue authoredChild)
+                && data.values.TryGetValue(childValueId, out MemberValue authoredChild)
                 && EffectiveAuthoredOwnership(childValueId, authoredChild) == childOwnership)
             {
                 child = authoredChild;
@@ -1632,23 +1647,23 @@ namespace NeoCompose.Runtime
             foreach (var candidate in EnumerateEffectiveParentRows())
             {
                 string candidateId = candidate.valueId;
-                AttributeValue parent = candidate.row;
-                // Attribute inference walks schema/value paths and is materially
+                MemberValue parent = candidate.row;
+                // Member inference walks schema/value paths and is materially
                 // more expensive than inspecting a row payload. Almost every row
                 // is irrelevant to a particular child, so reject those first.
                 // We still resolve the schema for an actual payload match below,
-                // which is what distinguishes owned Custom/List/Dictionary edges
+                // which is what distinguishes owned Class/List/Dictionary edges
                 // from lookup/reference edges.
                 if (!DirectlyReferencesValueId(parent, childValueId)) continue;
-                Attribute? parentAttribute = TryInferAttributeForValueId(
+                Member? parentMember = TryInferMemberForValueId(
                     candidateId,
-                    out Attribute? inferredParent)
+                    out Member? inferredParent)
                         ? inferredParent
                         : null;
-                foreach (var ownedChild in EnumerateOwnedChildLinks(parent, parentAttribute))
+                foreach (var ownedChild in EnumerateOwnedChildLinks(parent, parentMember))
                 {
                     NeoValueOwnership edgeOwnership =
-                        DeclaredOwnership(ownedChild.attribute!) ?? candidate.ownership;
+                        DeclaredOwnership(ownedChild.member!) ?? candidate.ownership;
                     if (edgeOwnership == childOwnership
                         && ownedChild.valueId == childValueId)
                     {
@@ -1658,9 +1673,9 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            // Attribute valueIds are also owning roots, including schema
+            // Member valueIds are also owning roots, including schema
             // placements whose wrappers have never been instantiated.
-            foreach (Attribute candidate in data.attributes.Values)
+            foreach (Member candidate in data.members.Values)
             {
                 if (candidate.valueId != childValueId) continue;
                 NeoValueOwnership effective;
@@ -1668,7 +1683,7 @@ namespace NeoCompose.Runtime
                 {
                     effective = declared;
                 }
-                else if (data.values.TryGetValue(childValueId, out AttributeValue authoredRoot))
+                else if (data.values.TryGetValue(childValueId, out MemberValue authoredRoot))
                 {
                     effective = EffectiveAuthoredOwnership(childValueId, authoredRoot);
                 }
@@ -1678,17 +1693,17 @@ namespace NeoCompose.Runtime
                 }
                 if (effective == childOwnership)
                 {
-                    parentValueId = $"attribute:{candidate.id}";
+                    parentValueId = $"member:{candidate.id}";
                     return true;
                 }
             }
 
-            // Type-owned members are independent owning roots. Their active
-            // Save/Session overlay binding may differ from attribute.valueId,
+            // Class-owned members are independent owning roots. Their active
+            // Save/Session overlay binding may differ from member.valueId,
             // so it participates in strict-tree ownership like an ordinary
-            // attribute root. Without this check a constructor could attach a
+            // member root. Without this check a constructor could attach a
             // Session-static aggregate beneath a second parent.
-            foreach (Attribute candidate in data.attributes.Values)
+            foreach (Member candidate in data.members.Values)
             {
                 if (!candidate.isStatic
                     || !TryResolveStaticBinding(
@@ -1710,21 +1725,21 @@ namespace NeoCompose.Runtime
         }
 
         private static bool DirectlyReferencesValueId(
-            AttributeValue parent,
+            MemberValue parent,
             string childValueId)
         {
             switch (parent)
             {
-                case ObjectAttributeValue obj when obj.value is not null:
+                case ObjectMemberValue obj when obj.value is not null:
                     return obj.value.ContainsValue(childValueId);
-                case ArrayAttributeValue arr when arr.value is not null:
+                case ArrayMemberValue arr when arr.value is not null:
                     return System.Array.IndexOf(arr.value, childValueId) >= 0;
                 default:
                     return false;
             }
         }
 
-        private IEnumerable<(string valueId, AttributeValue row, NeoValueOwnership ownership)>
+        private IEnumerable<(string valueId, MemberValue row, NeoValueOwnership ownership)>
             EnumerateEffectiveParentRows()
         {
             // Inspect each writable overlay independently. The same stable id
@@ -1755,15 +1770,15 @@ namespace NeoCompose.Runtime
 
         private NeoValueOwnership EffectiveAuthoredOwnership(
             string valueId,
-            AttributeValue row)
+            MemberValue row)
         {
             if (authoredOwnership.TryGetValue(valueId, out NeoValueOwnership ownership))
             {
                 return ownership;
             }
-            if (row is ObjectAttributeValue obj
-                && obj.typeId is string runtimeTypeId
-                && TryResolveCustomTypeAllowedOwnership(runtimeTypeId, out ownership))
+            if (row is ObjectMemberValue obj
+                && obj.classId is string runtimeClassId
+                && TryResolveSchemaClassAllowedOwnership(runtimeClassId, out ownership))
             {
                 return ownership;
             }
@@ -1775,26 +1790,26 @@ namespace NeoCompose.Runtime
             NeoValueOwnership targetOwnership,
             string valueId,
             HashSet<string> visited,
-            Attribute? sourceAttribute = null)
+            Member? sourceMember = null)
         {
             if (!visited.Add(valueId)) return;
             var sourceStore = GetWritableStore(sourceOwnership);
             var targetStore = GetWritableStore(targetOwnership);
-            if (!sourceStore.values.TryGetValue(valueId, out AttributeValue? row)) return;
+            if (!sourceStore.values.TryGetValue(valueId, out MemberValue? row)) return;
 
             targetStore.values[valueId] = row;
             IndexStoreWrite(targetOwnership, row);
-            foreach (var child in EnumerateOwnedChildLinks(row, sourceAttribute))
+            foreach (var child in EnumerateOwnedChildLinks(row, sourceMember))
             {
                 NeoValueOwnership childOwnership =
-                    DeclaredOwnership(child.attribute!) ?? sourceOwnership;
+                    DeclaredOwnership(child.member!) ?? sourceOwnership;
                 if (childOwnership != sourceOwnership) continue;
                 PromoteValueGraph(
                     sourceOwnership,
                     targetOwnership,
                     child.valueId,
                     visited,
-                    child.attribute);
+                    child.member);
             }
             sourceStore.values.Remove(valueId);
             IndexStoreRemove(sourceOwnership, valueId);
@@ -1807,13 +1822,13 @@ namespace NeoCompose.Runtime
             NeoValueOwnership sourceOwnership,
             NeoValueOwnership targetOwnership,
             string valueId,
-            Attribute? sourceAttribute,
+            Member? sourceMember,
             HashSet<string> visited)
         {
             if (!visited.Add(valueId)) return false;
             ProjectSaveData targetStore = GetWritableStore(targetOwnership);
             if (targetStore.values.ContainsKey(valueId)
-                || data.values.TryGetValue(valueId, out AttributeValue authored)
+                || data.values.TryGetValue(valueId, out MemberValue authored)
                     && EffectiveAuthoredOwnership(valueId, authored) == targetOwnership
                 || TryFindOwnedParent(targetOwnership, valueId, out _))
             {
@@ -1822,31 +1837,31 @@ namespace NeoCompose.Runtime
             if (!TryGetValue(
                     sourceOwnership,
                     valueId,
-                    out AttributeValue? sourceRow))
+                    out MemberValue? sourceRow))
             {
                 return false;
             }
             foreach (var child in EnumerateOwnedChildLinks(
-                sourceRow!, sourceAttribute))
+                sourceRow!, sourceMember))
             {
                 NeoValueOwnership childOwnership =
-                    DeclaredOwnership(child.attribute!) ?? sourceOwnership;
+                    DeclaredOwnership(child.member!) ?? sourceOwnership;
                 if (childOwnership != sourceOwnership) continue;
                 if (OwnedValueGraphCollidesWithOwnership(
                     sourceOwnership,
                     targetOwnership,
                     child.valueId,
-                    child.attribute,
+                    child.member,
                     visited))
                 {
                     return true;
                 }
             }
-            if (sourceAttribute is ListAttribute list
+            if (sourceMember is ListMember list
                 && IsUnorderedList(list)
-                && TryResolveCollectionEntryAttribute(sourceAttribute)
-                    is Attribute entryAttribute
-                && (DeclaredOwnership(entryAttribute) ?? sourceOwnership)
+                && TryResolveCollectionEntryMember(sourceMember)
+                    is Member entryMember
+                && (DeclaredOwnership(entryMember) ?? sourceOwnership)
                     == sourceOwnership)
             {
                 foreach (string memberId in EnumerateContainerMemberValueIds(
@@ -1857,7 +1872,7 @@ namespace NeoCompose.Runtime
                         sourceOwnership,
                         targetOwnership,
                         memberId,
-                        entryAttribute,
+                        entryMember,
                         visited))
                     {
                         return true;
@@ -1871,10 +1886,10 @@ namespace NeoCompose.Runtime
             NeoValueOwnership targetOwnership,
             string sourceValueId,
             Dictionary<string, string> remappedIds,
-            Attribute? sourceAttribute = null)
+            Member? sourceMember = null)
         {
             if (remappedIds.TryGetValue(sourceValueId, out string existingId)) return existingId;
-            if (!TryGetValue(sourceValueId, out AttributeValue? sourceRow))
+            if (!TryGetValue(sourceValueId, out MemberValue? sourceRow))
             {
                 return sourceValueId;
             }
@@ -1887,32 +1902,32 @@ namespace NeoCompose.Runtime
 
             switch (clone)
             {
-                case ObjectAttributeValue obj when obj.value is not null:
+                case ObjectMemberValue obj when obj.value is not null:
                 {
                     var remapped = new Dictionary<string, string>();
                     foreach (var pair in obj.value)
                     {
-                        Attribute? childAttribute = TryResolveOwnedChildAttribute(sourceRow, sourceAttribute, pair.Key);
-                        remapped[pair.Key] = childAttribute is not null && TryGetValue(pair.Value, out AttributeValue? _)
-                            ? CloneValueGraphToOwnership(targetOwnership, pair.Value, remappedIds, childAttribute)
+                        Member? childMember = TryResolveOwnedChildMember(sourceRow, sourceMember, pair.Key);
+                        remapped[pair.Key] = childMember is not null && TryGetValue(pair.Value, out MemberValue? _)
+                            ? CloneValueGraphToOwnership(targetOwnership, pair.Value, remappedIds, childMember)
                             : pair.Value;
                     }
                     obj.value = remapped;
                     break;
                 }
-                case ArrayAttributeValue arr when arr.value is not null:
+                case ArrayMemberValue arr when arr.value is not null:
                 {
-                    if (sourceAttribute is LookupAttribute)
+                    if (sourceMember is LookupMember)
                     {
                         break;
                     }
-                    Attribute? entryAttribute = TryResolveCollectionEntryAttribute(sourceAttribute);
+                    Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
                     var remapped = new string[arr.value.Length];
                     for (int i = 0; i < arr.value.Length; i++)
                     {
                         string childId = arr.value[i];
-                        remapped[i] = entryAttribute is not null && TryGetValue(childId, out AttributeValue? _)
-                            ? CloneValueGraphToOwnership(targetOwnership, childId, remappedIds, entryAttribute)
+                        remapped[i] = entryMember is not null && TryGetValue(childId, out MemberValue? _)
+                            ? CloneValueGraphToOwnership(targetOwnership, childId, remappedIds, entryMember)
                             : childId;
                     }
                     arr.value = remapped;
@@ -1924,115 +1939,115 @@ namespace NeoCompose.Runtime
             return clone.id;
         }
 
-        private IEnumerable<(string valueId, Attribute? attribute)> EnumerateOwnedChildLinks(
-            AttributeValue row,
-            Attribute? sourceAttribute)
+        private IEnumerable<(string valueId, Member? member)> EnumerateOwnedChildLinks(
+            MemberValue row,
+            Member? sourceMember)
         {
             switch (row)
             {
-                case ObjectAttributeValue obj when obj.value is not null:
+                case ObjectMemberValue obj when obj.value is not null:
                     foreach (var pair in obj.value)
                     {
-                        Attribute? childAttribute = TryResolveOwnedChildAttribute(row, sourceAttribute, pair.Key);
-                        if (childAttribute is not null)
+                        Member? childMember = TryResolveOwnedChildMember(row, sourceMember, pair.Key);
+                        if (childMember is not null)
                         {
-                            yield return (pair.Value, childAttribute);
+                            yield return (pair.Value, childMember);
                         }
                     }
                     break;
-                case ArrayAttributeValue arr when arr.value is not null:
-                    if (sourceAttribute is LookupAttribute)
+                case ArrayMemberValue arr when arr.value is not null:
+                    if (sourceMember is LookupMember)
                     {
                         yield break;
                     }
-                    Attribute? entryAttribute = TryResolveCollectionEntryAttribute(sourceAttribute);
-                    if (entryAttribute is null)
+                    Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
+                    if (entryMember is null)
                     {
                         yield break;
                     }
                     foreach (var childId in arr.value)
                     {
-                        yield return (childId, entryAttribute);
+                        yield return (childId, entryMember);
                     }
                     break;
             }
         }
 
-        private Attribute? TryResolveOwnedChildAttribute(
-            AttributeValue row,
-            Attribute? sourceAttribute,
+        private Member? TryResolveOwnedChildMember(
+            MemberValue row,
+            Member? sourceMember,
             string key)
         {
-            if (sourceAttribute is DictionaryAttribute dictionary)
+            if (sourceMember is DictionaryMember dictionary)
             {
-                return TryGetAttribute(dictionary.entryAttributeId, out Attribute? entryAttribute)
-                    ? entryAttribute
+                return TryGetMember(dictionary.entryMemberId, out Member? entryMember)
+                    ? entryMember
                     : null;
             }
 
-            string? customTypeId = (row as ObjectAttributeValue)?.typeId;
-            if (string.IsNullOrEmpty(customTypeId) && sourceAttribute is CustomAttribute custom)
+            string? classId = (row as ObjectMemberValue)?.classId;
+            if (string.IsNullOrEmpty(classId) && sourceMember is ClassMember classMember)
             {
-                customTypeId = custom.customTypeId;
+                classId = classMember.classId;
             }
-            if (string.IsNullOrEmpty(customTypeId)) return null;
-            if (!TryResolveMergedSchemaAttribute(customTypeId!, key, out Attribute? childAttribute))
+            if (string.IsNullOrEmpty(classId)) return null;
+            if (!TryResolveMergedSchemaMember(classId!, key, out Member? childMember))
             {
                 return null;
             }
-            return childAttribute;
+            return childMember;
         }
 
-        private Attribute? TryResolveCollectionEntryAttribute(Attribute? collectionAttribute)
+        private Member? TryResolveCollectionEntryMember(Member? collectionMember)
         {
-            string? entryAttributeId = collectionAttribute switch
+            string? entryMemberId = collectionMember switch
             {
-                ListAttribute list => list.entryAttributeId,
-                DictionaryAttribute dictionary => dictionary.entryAttributeId,
+                ListMember list => list.entryMemberId,
+                DictionaryMember dictionary => dictionary.entryMemberId,
                 _ => null,
             };
-            return !string.IsNullOrEmpty(entryAttributeId)
-                && TryGetAttribute(entryAttributeId!, out Attribute? entryAttribute)
-                    ? entryAttribute
+            return !string.IsNullOrEmpty(entryMemberId)
+                && TryGetMember(entryMemberId!, out Member? entryMember)
+                    ? entryMember
                     : null;
         }
 
-        private bool TryResolveMergedSchemaAttribute(
-            string customTypeId,
+        private bool TryResolveMergedSchemaMember(
+            string classId,
             string key,
-            [NotNullWhen(true)] out Attribute? attribute)
+            [NotNullWhen(true)] out Member? member)
         {
-            attribute = null;
-            var merged = CustomTypeInheritance.MergeInstanceSchema(
-                CustomTypeInheritance.ResolveChain(
-                    customTypeId,
-                    id => TryGetType(id, out CustomType? match) ? match : null),
-                id => TryGetAttribute(id, out Attribute? child)
+            member = null;
+            var merged = NeoSchemaClassInheritance.MergeInstanceSchema(
+                NeoSchemaClassInheritance.ResolveChain(
+                    classId,
+                    id => TryGetClass(id, out NeoSchemaClass? match) ? match : null),
+                id => TryGetMember(id, out Member? child)
                     ? child
                     : null);
             foreach (var entry in merged)
             {
                 if (entry.schemaKey == key
-                    && TryGetAttribute(entry.attributeId, out Attribute? childAttribute))
+                    && TryGetMember(entry.memberId, out Member? childMember))
                 {
-                    attribute = childAttribute;
+                    member = childMember;
                     return true;
                 }
             }
             return false;
         }
 
-        internal bool TryInferAttributeForValueId(
+        internal bool TryInferMemberForValueId(
             string valueId,
-            [NotNullWhen(true)] out Attribute? attribute)
+            [NotNullWhen(true)] out Member? member)
         {
-            return TryInferAttributeForValueId(valueId, new HashSet<string>(), out attribute);
+            return TryInferMemberForValueId(valueId, new HashSet<string>(), out member);
         }
 
-        private bool TryInferAttributeForValueId(
+        private bool TryInferMemberForValueId(
             string valueId,
             HashSet<string> visitingValueIds,
-            [NotNullWhen(true)] out Attribute? attribute)
+            [NotNullWhen(true)] out Member? member)
         {
             // Value data is expected to be a tree, but inference also runs while
             // validating/importing hand-built or partially-mutated graphs. Keep
@@ -2042,22 +2057,22 @@ namespace NeoCompose.Runtime
             // search through a sibling branch.
             if (!visitingValueIds.Add(valueId))
             {
-                attribute = null;
+                member = null;
                 return false;
             }
 
-            foreach (var candidate in data.attributes.Values)
+            foreach (var candidate in data.members.Values)
             {
                 if (candidate.valueId == valueId)
                 {
-                    attribute = candidate;
+                    member = candidate;
                     return true;
                 }
             }
 
             foreach (var parent in EnumerateAllValueRows())
             {
-                if (parent.Value is not ObjectAttributeValue objectValue
+                if (parent.Value is not ObjectMemberValue objectValue
                     || objectValue.value == null)
                 {
                     continue;
@@ -2066,24 +2081,24 @@ namespace NeoCompose.Runtime
                 foreach (var pair in objectValue.value)
                 {
                     if (pair.Value != valueId) continue;
-                    if (TryInferAttributeForValueId(
+                    if (TryInferMemberForValueId(
                             parent.Key,
                             new HashSet<string>(visitingValueIds),
-                            out Attribute? parentAttribute)
-                        && TryResolveCollectionEntryAttribute(parentAttribute) is Attribute parentEntryAttribute)
+                            out Member? parentMember)
+                        && TryResolveCollectionEntryMember(parentMember) is Member parentEntryMember)
                     {
-                        attribute = parentEntryAttribute;
+                        member = parentEntryMember;
                         return true;
                     }
 
-                    if (TryInferCustomTypeIdForValueId(
+                    if (TryInferNeoSchemaClassIdForValueId(
                             parent.Key,
                             new HashSet<string>(visitingValueIds),
-                            out string? parentTypeId)
-                        && !string.IsNullOrEmpty(parentTypeId)
-                        && TryResolveMergedSchemaAttribute(parentTypeId!, pair.Key, out Attribute? childAttribute))
+                            out string? parentClassId)
+                        && !string.IsNullOrEmpty(parentClassId)
+                        && TryResolveMergedSchemaMember(parentClassId!, pair.Key, out Member? childMember))
                     {
-                        attribute = childAttribute;
+                        member = childMember;
                         return true;
                     }
                 }
@@ -2091,120 +2106,120 @@ namespace NeoCompose.Runtime
 
             foreach (var parent in EnumerateAllValueRows())
             {
-                if (parent.Value is ArrayAttributeValue arrayValue
+                if (parent.Value is ArrayMemberValue arrayValue
                     && arrayValue.value != null
                     && System.Array.IndexOf(arrayValue.value, valueId) >= 0
-                    && TryInferAttributeForValueId(
+                    && TryInferMemberForValueId(
                         parent.Key,
                         new HashSet<string>(visitingValueIds),
-                        out Attribute? collectionAttribute)
-                    && TryResolveCollectionEntryAttribute(collectionAttribute) is Attribute entryAttribute)
+                        out Member? collectionMember)
+                    && TryResolveCollectionEntryMember(collectionMember) is Member entryMember)
                 {
-                    attribute = entryAttribute;
+                    member = entryMember;
                     return true;
                 }
 
-                if (parent.Value is ObjectAttributeValue dictionaryValue
+                if (parent.Value is ObjectMemberValue dictionaryValue
                     && dictionaryValue.value != null
                     && dictionaryValue.value.ContainsValue(valueId)
-                    && TryInferAttributeForValueId(
+                    && TryInferMemberForValueId(
                         parent.Key,
                         new HashSet<string>(visitingValueIds),
-                        out collectionAttribute)
-                    && TryResolveCollectionEntryAttribute(collectionAttribute) is Attribute dictionaryEntryAttribute)
+                        out collectionMember)
+                    && TryResolveCollectionEntryMember(collectionMember) is Member dictionaryEntryMember)
                 {
-                    attribute = dictionaryEntryAttribute;
+                    member = dictionaryEntryMember;
                     return true;
                 }
             }
 
-            attribute = null;
+            member = null;
             return false;
         }
 
-        private bool TryInferCustomTypeIdForValueId(
+        private bool TryInferNeoSchemaClassIdForValueId(
             string valueId,
             HashSet<string> visitingValueIds,
-            [NotNullWhen(true)] out string? typeId)
+            [NotNullWhen(true)] out string? classId)
         {
             if (!visitingValueIds.Add(valueId))
             {
-                typeId = null;
+                classId = null;
                 return false;
             }
-            if (TryGetValue(valueId, out ObjectAttributeValue? value)
-                && !string.IsNullOrEmpty(value.typeId))
+            if (TryGetValue(valueId, out ObjectMemberValue? value)
+                && !string.IsNullOrEmpty(value.classId))
             {
-                typeId = value.typeId;
+                classId = value.classId;
                 return true;
             }
-            // Attribute inference owns the visit marker for this same node.
+            // Member inference owns the visit marker for this same node.
             // Keep ancestor markers, but let that traversal add valueId once;
             // otherwise the shared defensive path set would reject the first
             // legitimate inference step as though it were a cycle.
             visitingValueIds.Remove(valueId);
-            if (TryInferAttributeForValueId(
+            if (TryInferMemberForValueId(
                     valueId,
                     visitingValueIds,
-                    out Attribute? attribute)
-                && attribute is CustomAttribute customAttribute
-                && !string.IsNullOrEmpty(customAttribute.customTypeId))
+                    out Member? member)
+                && member is ClassMember classMember
+                && !string.IsNullOrEmpty(classMember.classId))
             {
-                typeId = customAttribute.customTypeId;
+                classId = classMember.classId;
                 return true;
             }
-            typeId = null;
+            classId = null;
             return false;
         }
 
-        private bool TryInferDirectAttributeForValueId(
+        private bool TryInferDirectMemberForValueId(
             string valueId,
-            [NotNullWhen(true)] out Attribute? attribute)
+            [NotNullWhen(true)] out Member? member)
         {
-            foreach (var candidate in data.attributes.Values)
+            foreach (var candidate in data.members.Values)
             {
                 if (candidate.valueId == valueId)
                 {
-                    attribute = candidate;
+                    member = candidate;
                     return true;
                 }
             }
-            attribute = null;
+            member = null;
             return false;
         }
 
-        private IEnumerable<KeyValuePair<string, AttributeValue>> EnumerateAllValueRows()
+        private IEnumerable<KeyValuePair<string, MemberValue>> EnumerateAllValueRows()
         {
             foreach (var pair in sessionData.values) yield return pair;
             foreach (var pair in saveData.values) yield return pair;
             foreach (var pair in data.values) yield return pair;
         }
 
-        private static AttributeValue CloneValueRow(AttributeValue row)
+        private static MemberValue CloneValueRow(MemberValue row)
         {
-            AttributeValue clone = row switch
+            MemberValue clone = row switch
             {
-                NullAttributeValue n => new NullAttributeValue { value = n.value },
-                BoolAttributeValue b => new BoolAttributeValue { value = b.value },
-                NumberAttributeValue n => new NumberAttributeValue { value = n.value },
-                StringAttributeValue s => new StringAttributeValue
+                NullMemberValue n => new NullMemberValue { value = n.value },
+                BoolMemberValue b => new BoolMemberValue { value = b.value },
+                NumberMemberValue n => new NumberMemberValue { value = n.value },
+                StringMemberValue s => new StringMemberValue
                 {
                     value = s.value,
                     neoLocalizationMode = s.neoLocalizationMode,
                 },
-                ArrayAttributeValue a => new ArrayAttributeValue
+                ArrayMemberValue a => new ArrayMemberValue
                 {
                     value = a.value == null ? null : (string[])a.value.Clone(),
                 },
-                ObjectAttributeValue o => new ObjectAttributeValue
+                ObjectMemberValue o => new ObjectMemberValue
                 {
                     value = o.value == null ? null : new Dictionary<string, string>(o.value),
                 },
-                FileAttributeValue f => new FileAttributeValue
+                FileMemberValue f => new FileMemberValue
                 {
                     value = f.value == null ? null : new FileValue { fileId = f.value.fileId },
                 },
-                SpriteAttributeValue s => new SpriteAttributeValue
+                SpriteMemberValue s => new SpriteMemberValue
                 {
                     value = s.value == null
                         ? null
@@ -2214,7 +2229,7 @@ namespace NeoCompose.Runtime
                             sliceIndex = s.value.sliceIndex,
                         },
                 },
-                Vector2AttributeValue v => new Vector2AttributeValue
+                Vector2MemberValue v => new Vector2MemberValue
                 {
                     value = v.value == null
                         ? null
@@ -2224,7 +2239,7 @@ namespace NeoCompose.Runtime
                             y = v.value.y,
                         },
                 },
-                Vector3AttributeValue v => new Vector3AttributeValue
+                Vector3MemberValue v => new Vector3MemberValue
                 {
                     value = v.value == null
                         ? null
@@ -2235,7 +2250,7 @@ namespace NeoCompose.Runtime
                             z = v.value.z,
                         },
                 },
-                ColorAttributeValue c => new ColorAttributeValue
+                ColorMemberValue c => new ColorMemberValue
                 {
                     value = c.value == null
                         ? null
@@ -2253,7 +2268,7 @@ namespace NeoCompose.Runtime
             clone.id = row.id;
             clone.createdAt = row.createdAt;
             clone.updatedAt = row.updatedAt;
-            clone.typeId = row.typeId;
+            clone.classId = row.classId;
             // containerId is immutable membership identity: a clone-on-write
             // shadow of a member row stays a member of the same container.
             clone.containerId = row.containerId;
@@ -2261,7 +2276,7 @@ namespace NeoCompose.Runtime
             // partition-stamped row stays in the same storage partition.
             clone.mapKey = row.mapKey;
             // genericBindings is immutable creation-time context
-            // (specs/custom-type-generics.md Decision 9): a shadow of a
+            // (specs/class-generics.md Decision 9): a shadow of a
             // stamped collection row keeps its entry-substitution stamp.
             clone.genericBindings = row.genericBindings is null
                 ? null
@@ -2274,8 +2289,8 @@ namespace NeoCompose.Runtime
         /// Recursively deletes <paramref name="valueId"/> and every value
         /// reached by an authoritative owned edge from
         /// <see cref="ProjectSaveData.values"/>. Walks
-        /// <see cref="ObjectAttributeValue"/> Custom/Dictionary records and
-        /// <see cref="ArrayAttributeValue"/> Lists. Lookup selections and
+        /// <see cref="ObjectMemberValue"/> Class/Dictionary records and
+        /// <see cref="ArrayMemberValue"/> Lists. Lookup selections and
         /// other reference-style links are intentionally not followed.
         ///
         /// <para>Used by collection <c>*Writable</c> Remove operations to
@@ -2298,13 +2313,13 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId)
         {
-            Attribute? sourceAttribute = TryInferAttributeForValueId(valueId, out Attribute? inferred)
+            Member? sourceMember = TryInferMemberForValueId(valueId, out Member? inferred)
                 ? inferred
                 : null;
             RemoveWritableValueAndDescendantsCore(
                 ownership,
                 valueId,
-                sourceAttribute,
+                sourceMember,
                 new HashSet<string>(),
                 removed: null);
         }
@@ -2312,12 +2327,12 @@ namespace NeoCompose.Runtime
         internal void RemoveWritableValueAndDescendants(
             NeoValueOwnership ownership,
             string valueId,
-            Attribute? sourceAttribute)
+            Member? sourceMember)
         {
             RemoveWritableValueAndDescendantsCore(
                 ownership,
                 valueId,
-                sourceAttribute,
+                sourceMember,
                 new HashSet<string>(),
                 removed: null);
         }
@@ -2334,16 +2349,16 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId)
         {
-            Attribute? sourceAttribute = TryInferAttributeForValueId(
+            Member? sourceMember = TryInferMemberForValueId(
                 valueId,
-                out Attribute? inferred)
+                out Member? inferred)
                     ? inferred
                     : null;
             var removed = new HashSet<string>();
             RemoveWritableValueAndDescendantsCore(
                 ownership,
                 valueId,
-                sourceAttribute,
+                sourceMember,
                 new HashSet<string>(),
                 removed);
             return removed;
@@ -2352,43 +2367,43 @@ namespace NeoCompose.Runtime
         private void RemoveWritableValueAndDescendantsCore(
             NeoValueOwnership ownership,
             string valueId,
-            Attribute? sourceAttribute,
+            Member? sourceMember,
             HashSet<string> visited,
             HashSet<string>? removed)
         {
             if (!visited.Add(valueId)) return;
             var store = GetWritableStore(ownership);
-            if (!store.values.TryGetValue(valueId, out AttributeValue val)) return;
+            if (!store.values.TryGetValue(valueId, out MemberValue val)) return;
 
             // Follow only authoritative owned edges. Lookup selections and
             // other reference payloads deliberately survive deletion. A
             // defensive visited set prevents malformed cyclic data from
             // overflowing the stack while retaining bottom-up removal.
-            foreach (var child in EnumerateOwnedChildLinks(val, sourceAttribute))
+            foreach (var child in EnumerateOwnedChildLinks(val, sourceMember))
             {
                 NeoValueOwnership childOwnership =
-                    (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
+                    (child.member is null ? null : DeclaredOwnership(child.member)) ?? ownership;
                 if (childOwnership != ownership) continue;
                 RemoveWritableValueAndDescendantsCore(
                     ownership,
                     child.valueId,
-                    child.attribute,
+                    child.member,
                     visited,
                     removed);
             }
-            if (sourceAttribute is ListAttribute list && IsUnorderedList(list))
+            if (sourceMember is ListMember list && IsUnorderedList(list))
             {
-                Attribute? entryAttribute = TryResolveCollectionEntryAttribute(sourceAttribute);
+                Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
                 NeoValueOwnership entryOwnership =
-                    (entryAttribute is null ? null : DeclaredOwnership(entryAttribute)) ?? ownership;
-                if (entryAttribute is not null && entryOwnership == ownership)
+                    (entryMember is null ? null : DeclaredOwnership(entryMember)) ?? ownership;
+                if (entryMember is not null && entryOwnership == ownership)
                 {
                     foreach (string memberId in EnumerateContainerMemberValueIds(ownership, valueId))
                     {
                         RemoveWritableValueAndDescendantsCore(
                             ownership,
                             memberId,
-                            entryAttribute,
+                            entryMember,
                             visited,
                             removed);
                     }
@@ -2441,14 +2456,14 @@ namespace NeoCompose.Runtime
             HashSet<string> reachable,
             HashSet<string> removed)
         {
-            Attribute? sourceAttribute = TryInferAttributeForValueId(valueId, out Attribute? inferred)
+            Member? sourceMember = TryInferMemberForValueId(valueId, out Member? inferred)
                 ? inferred
                 : null;
             RemoveWritableValueAndDescendantsIfUnlinked(
                 ownership,
                 valueId,
                 reachable,
-                sourceAttribute,
+                sourceMember,
                 new HashSet<string>(),
                 removed);
         }
@@ -2456,14 +2471,14 @@ namespace NeoCompose.Runtime
         internal IReadOnlyCollection<string> RemoveWritableValueAndDescendantsIfUnlinked(
             NeoValueOwnership ownership,
             string valueId,
-            Attribute? sourceAttribute)
+            Member? sourceMember)
         {
             var removed = new HashSet<string>();
             RemoveWritableValueAndDescendantsIfUnlinked(
                 ownership,
                 valueId,
                 BuildReachableWritableValueIds(ownership),
-                sourceAttribute,
+                sourceMember,
                 new HashSet<string>(),
                 removed);
             return removed;
@@ -2473,34 +2488,34 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId,
             HashSet<string> reachable,
-            Attribute? sourceAttribute,
+            Member? sourceMember,
             HashSet<string> visited,
             HashSet<string> removed)
         {
             if (reachable.Contains(valueId)) return;
             if (!visited.Add(valueId)) return;
             var store = GetWritableStore(ownership);
-            if (!store.values.TryGetValue(valueId, out AttributeValue val)) return;
+            if (!store.values.TryGetValue(valueId, out MemberValue val)) return;
 
-            foreach (var child in EnumerateOwnedChildLinks(val, sourceAttribute))
+            foreach (var child in EnumerateOwnedChildLinks(val, sourceMember))
             {
                 NeoValueOwnership childOwnership =
-                    (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
+                    (child.member is null ? null : DeclaredOwnership(child.member)) ?? ownership;
                 if (childOwnership != ownership) continue;
                 RemoveWritableValueAndDescendantsIfUnlinked(
                     ownership,
                     child.valueId,
                     reachable,
-                    child.attribute,
+                    child.member,
                     visited,
                     removed);
             }
-            if (sourceAttribute is ListAttribute list && IsUnorderedList(list))
+            if (sourceMember is ListMember list && IsUnorderedList(list))
             {
-                Attribute? entryAttribute = TryResolveCollectionEntryAttribute(sourceAttribute);
+                Member? entryMember = TryResolveCollectionEntryMember(sourceMember);
                 NeoValueOwnership entryOwnership =
-                    (entryAttribute is null ? null : DeclaredOwnership(entryAttribute)) ?? ownership;
-                if (entryAttribute is not null && entryOwnership == ownership)
+                    (entryMember is null ? null : DeclaredOwnership(entryMember)) ?? ownership;
+                if (entryMember is not null && entryOwnership == ownership)
                 {
                     foreach (string memberId in EnumerateContainerMemberValueIds(ownership, valueId))
                     {
@@ -2508,7 +2523,7 @@ namespace NeoCompose.Runtime
                             ownership,
                             memberId,
                             reachable,
-                            entryAttribute,
+                            entryMember,
                             visited,
                             removed);
                     }
@@ -2536,11 +2551,11 @@ namespace NeoCompose.Runtime
         internal bool TryGetWritableValue<TValue>(
             NeoValueOwnership ownership,
             string id,
-            [NotNullWhen(true)] out TValue? value) where TValue : AttributeValue
+            [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
             value = null;
             if (ownership == NeoValueOwnership.Asset) return false;
-            if (!GetWritableStore(ownership).values.TryGetValue(id, out AttributeValue row))
+            if (!GetWritableStore(ownership).values.TryGetValue(id, out MemberValue row))
             {
                 return false;
             }
@@ -2564,7 +2579,7 @@ namespace NeoCompose.Runtime
         }
 
         // -----------------------------------------------------------------
-        // Unordered-list membership index (specs/list-attribute-and-tilegrid
+        // Unordered-list membership index (specs/list-member-and-tilegrid
         // -scaling.md §1.2/§3.3). Membership of an unordered list value is
         // the set of live rows whose `containerId` names it. The index is
         // layered like the value overlay: authored rows (data.values) plus
@@ -2635,7 +2650,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Index maintenance chokepoint for a store write at <c>value.id</c>.</summary>
-        private void IndexStoreWrite(NeoValueOwnership ownership, AttributeValue value)
+        private void IndexStoreWrite(NeoValueOwnership ownership, MemberValue value)
         {
             var (byContainer, byRow) = MembershipMaps(ownership);
             if (byRow.TryGetValue(value.id, out string previousContainerId)
@@ -2666,7 +2681,7 @@ namespace NeoCompose.Runtime
         }
 
         // -----------------------------------------------------------------
-        // Storage partitions (specs/list-attribute-and-tilegrid-scaling.md
+        // Storage partitions (specs/list-member-and-tilegrid-scaling.md
         // §6). A partition is a named subset of the authored values map that
         // ships under `project.json`'s `valuePartitions[mapKey]` and stays
         // raw JSON until loaded. Loading materializes the partition's rows
@@ -2674,7 +2689,7 @@ namespace NeoCompose.Runtime
         // ownership); unloading removes exactly those rows again.
         //
         // A world grid keys its partition on its CONCRETE grid type id —
-        // `world:<gridTypeId>` — and the partition covers ONLY the grid's
+        // `world:<gridClassId>` — and the partition covers ONLY the grid's
         // `Children` placement subtree. The grid root row and its light
         // metadata (CellSize, PixelsPerUnit, DisplayName, and the palette
         // reference lookups Tiles/TileLayers/Objects/ObjectLayers) stay in
@@ -2712,32 +2727,32 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Auto-load hook for the tile grid resolution path: loads the grid's
-        /// <c>world:&lt;gridTypeId&gt;</c> placement partition when the export
+        /// <c>world:&lt;gridClassId&gt;</c> placement partition when the export
         /// ships one and it isn't loaded yet. The grid root row lives in the
-        /// main partition, so its concrete type id — the partition key — is
+        /// main partition, so its concrete class id — the partition key — is
         /// resolvable before the placement subtree loads. No-op when the bound
         /// value id resolves no row yet (a deep placement node binding before
-        /// its own partition is merged), carries no type id, or names a grid
+        /// its own partition is merged), carries no class id, or names a grid
         /// whose content is authored in the main partition, so the public
         /// GetTile/etc. surface works unchanged either way.
         /// </summary>
         internal void EnsureWorldPartitionLoaded(string gridValueId)
         {
-            string? gridTypeId = ResolveEffectiveRow(gridValueId)?.typeId;
-            if (string.IsNullOrEmpty(gridTypeId)) return;
-            string mapKey = MakeWorldPartitionKey(gridTypeId!);
+            string? gridClassId = ResolveEffectiveRow(gridValueId)?.classId;
+            if (string.IsNullOrEmpty(gridClassId)) return;
+            string mapKey = MakeWorldPartitionKey(gridClassId!);
             if (loadedPartitionRowIds.ContainsKey(mapKey)) return;
             if (!HasValuePartition(mapKey)) return;
             LoadValuePartition(mapKey);
         }
 
         /// <summary>The partition key a world grid's placement subtree is
-        /// stamped with — derived from the grid's concrete type id.</summary>
-        public static string MakeWorldPartitionKey(string gridTypeId) => $"world:{gridTypeId}";
+        /// stamped with — derived from the grid's concrete class id.</summary>
+        public static string MakeWorldPartitionKey(string gridClassId) => $"world:{gridClassId}";
 
         /// <summary>
         /// Materializes the partition's raw rows into typed
-        /// <see cref="AttributeValue"/>s and merges them into the authored
+        /// <see cref="MemberValue"/>s and merges them into the authored
         /// values map, updating the membership index incrementally and
         /// invalidating derived indexes. Idempotent — loading a loaded
         /// partition is a no-op. Throws when the export has no such
@@ -2765,7 +2780,7 @@ namespace NeoCompose.Runtime
                     $"Value partition '{mapKey}' is not a JSON object of value rows (got {token.Type}).");
             }
 
-            var rows = partitionObject.ToObject<Dictionary<string, AttributeValue>>();
+            var rows = partitionObject.ToObject<Dictionary<string, MemberValue>>();
             if (rows is null)
             {
                 throw new System.InvalidOperationException(
@@ -2775,7 +2790,7 @@ namespace NeoCompose.Runtime
             var rowIds = new HashSet<string>();
             foreach (var pair in rows)
             {
-                AttributeValue row = pair.Value;
+                MemberValue row = pair.Value;
                 if (row.id != pair.Key)
                 {
                     throw new System.InvalidOperationException(
@@ -2808,7 +2823,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Removes a loaded partition's authored rows and the derived
-        /// index entries / attribute wrappers touching them. Throws when the
+        /// index entries / member wrappers touching them. Throws when the
         /// partition isn't loaded, and when a save/session overlay still
         /// shadows a row in the partition — unloading with pending overlay
         /// writes is a caller bug (commit or discard them first).
@@ -2861,15 +2876,15 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Disposes every registered <see cref="NeoAttribute"/> wrapper (and
-        /// generated custom value) bound to one of the partition rows being
+        /// Disposes every registered <see cref="NeoMember"/> wrapper (and
+        /// generated class value) bound to one of the partition rows being
         /// unloaded, so no live wrapper keeps referencing a removed row.
         /// </summary>
         internal void DisposeWrappersTouchingRows(IEnumerable<string> rowIds)
         {
             HashSet<string> rowIdSet = rowIds as HashSet<string>
                 ?? new HashSet<string>(rowIds);
-            var staleNodes = new List<NeoAttribute>();
+            var staleNodes = new List<NeoMember>();
             foreach (var node in nodesInternal.Values)
             {
                 bool touches =
@@ -2877,7 +2892,7 @@ namespace NeoCompose.Runtime
                     || (node.overrideValueId is not null && rowIdSet.Contains(node.overrideValueId));
                 if (touches) staleNodes.Add(node);
             }
-            var staleGenerated = new List<NeoGeneratedCustomValue>();
+            var staleGenerated = new List<NeoGeneratedClassValue>();
             foreach (var generated in generatedValuesInternal.Values)
             {
                 if (generated.valueId is not null && rowIdSet.Contains(generated.valueId))
@@ -2903,16 +2918,16 @@ namespace NeoCompose.Runtime
         /// member rows live in their container's partition). Rows that
         /// resolve no stamp are main-partition and stay unstamped.
         /// </summary>
-        private void StampMapKeyForWrite(NeoValueOwnership ownership, AttributeValue value)
+        private void StampMapKeyForWrite(NeoValueOwnership ownership, MemberValue value)
         {
             if (!string.IsNullOrEmpty(value.mapKey)) return;
-            if (data.values.TryGetValue(value.id, out AttributeValue authored))
+            if (data.values.TryGetValue(value.id, out MemberValue authored))
             {
                 value.mapKey = authored.mapKey;
                 return;
             }
             if (ownership == NeoValueOwnership.Session
-                && saveData.values.TryGetValue(value.id, out AttributeValue saveRow)
+                && saveData.values.TryGetValue(value.id, out MemberValue saveRow)
                 && !string.IsNullOrEmpty(saveRow.mapKey))
             {
                 value.mapKey = saveRow.mapKey;
@@ -2924,7 +2939,7 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Resolves the container the row at <paramref name="valueId"/>
-        /// belongs to (its stamped <see cref="AttributeValue.containerId"/>),
+        /// belongs to (its stamped <see cref="MemberValue.containerId"/>),
         /// looking across all layers — including through overlay tombstones,
         /// which carry no containerId themselves but subtract an authored or
         /// lower-layer member.
@@ -2965,7 +2980,7 @@ namespace NeoCompose.Runtime
             var containerRow = ResolveEffectiveRow(containerValueId);
             if (containerRow is null) return System.Array.Empty<string>();
             if (containerRow.IsRemoved) return System.Array.Empty<string>();
-            if (containerRow is not ArrayAttributeValue arrayRow) return System.Array.Empty<string>();
+            if (containerRow is not ArrayMemberValue arrayRow) return System.Array.Empty<string>();
             if (arrayRow.value is null) return System.Array.Empty<string>();
 
             var members = new List<string>();
@@ -2997,11 +3012,11 @@ namespace NeoCompose.Runtime
         /// <summary>Raw overlay resolution (session → save → authored) WITHOUT
         /// tombstone fallthrough — a tombstone row is returned as-is so callers
         /// can distinguish "explicitly removed" from "absent".</summary>
-        internal AttributeValue? ResolveEffectiveRow(string valueId)
+        internal MemberValue? ResolveEffectiveRow(string valueId)
         {
-            if (sessionData.values.TryGetValue(valueId, out AttributeValue sessionRow)) return sessionRow;
-            if (saveData.values.TryGetValue(valueId, out AttributeValue saveRow)) return saveRow;
-            if (data.values.TryGetValue(valueId, out AttributeValue authoredRow)) return authoredRow;
+            if (sessionData.values.TryGetValue(valueId, out MemberValue sessionRow)) return sessionRow;
+            if (saveData.values.TryGetValue(valueId, out MemberValue saveRow)) return saveRow;
+            if (data.values.TryGetValue(valueId, out MemberValue authoredRow)) return authoredRow;
             return null;
         }
 
@@ -3061,49 +3076,49 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Resolves whether <paramref name="attribute"/> declares the
-        /// unordered list kind, walking the <see cref="Attribute.extendsAttributeId"/>
-        /// override chain like other inherited attribute fields.
+        /// Resolves whether <paramref name="member"/> declares the
+        /// unordered list kind, walking the <see cref="Member.extendsMemberId"/>
+        /// override chain like other inherited member fields.
         /// </summary>
-        internal bool IsUnorderedList(ListAttribute attribute)
+        internal bool IsUnorderedList(ListMember member)
         {
-            Attribute? cursor = attribute;
+            Member? cursor = member;
             for (int hops = 0; cursor is not null && hops < 16; hops++)
             {
-                if (cursor is ListAttribute list && !string.IsNullOrEmpty(list.listKind))
+                if (cursor is ListMember list && !string.IsNullOrEmpty(list.listKind))
                 {
                     return list.listKind == NeoListKinds.Unordered;
                 }
-                if (cursor.extendsAttributeId is null) return false;
-                data.attributes.TryGetValue(cursor.extendsAttributeId, out cursor);
+                if (cursor.extendsMemberId is null) return false;
+                data.members.TryGetValue(cursor.extendsMemberId, out cursor);
             }
             return false;
         }
 
         internal bool TryResolveLookupCollectionValueId(
-            string collectionAttributeId,
+            string collectionMemberId,
             string? collectionValueId,
             [NotNullWhen(true)] out string? valueId)
         {
             valueId = null;
-            if (!TryGetAttribute(collectionAttributeId, out Attribute? collectionAttribute))
+            if (!TryGetMember(collectionMemberId, out Member? collectionMember))
             {
                 return false;
             }
 
-            valueId = ResolveLookupCollectionValueId(collectionAttribute, collectionValueId);
+            valueId = ResolveLookupCollectionValueId(collectionMember, collectionValueId);
             return valueId is not null;
         }
 
         private string? ResolveLookupCollectionValueId(
-            Attribute collectionAttribute,
+            Member collectionMember,
             string? collectionValueId)
         {
             if (collectionValueId is not null) return collectionValueId;
-            if (collectionAttribute.isStatic)
+            if (collectionMember.isStatic)
             {
                 return TryResolveStaticBinding(
-                    collectionAttribute.id,
+                    collectionMember.id,
                     out _,
                     out _,
                     out string? staticValueId)
@@ -3114,24 +3129,24 @@ namespace NeoCompose.Runtime
             // (a save/session shadows that id in place), so there is no
             // override-map hop — fall through to the schema binding /
             // authored valueId.
-            if (TryFindBoundValueIdForAttribute(collectionAttribute.id, out string? boundValueId))
+            if (TryFindBoundValueIdForMember(collectionMember.id, out string? boundValueId))
             {
                 return boundValueId;
             }
-            return collectionAttribute.valueId;
+            return collectionMember.valueId;
         }
 
-        private bool TryFindBoundValueIdForAttribute(
-            string attributeId,
+        private bool TryFindBoundValueIdForMember(
+            string memberId,
             [NotNullWhen(true)] out string? valueId)
         {
             valueId = null;
             var schemaKeys = new HashSet<string>();
-            foreach (var type in data.types.Values)
+            foreach (var schemaClass in data.classes.Values)
             {
-                foreach (var pair in type.schema)
+                foreach (var pair in schemaClass.schema)
                 {
-                    if (pair.Value == attributeId)
+                    if (pair.Value == memberId)
                     {
                         schemaKeys.Add(pair.Key);
                     }
@@ -3161,13 +3176,13 @@ namespace NeoCompose.Runtime
         }
 
         private static void AddBoundValueCandidates(
-            IEnumerable<AttributeValue> rows,
+            IEnumerable<MemberValue> rows,
             HashSet<string> schemaKeys,
             List<string> candidates)
         {
             foreach (var row in rows)
             {
-                if (row is not ObjectAttributeValue obj || obj.value is null) continue;
+                if (row is not ObjectMemberValue obj || obj.value is null) continue;
                 foreach (var key in schemaKeys)
                 {
                     if (obj.value.TryGetValue(key, out string childValueId)
@@ -3180,72 +3195,72 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Looks up a previously-registered <see cref="NeoAttribute"/>
-        /// by attribute id (and optional override-value id). Returns
+        /// Looks up a previously-registered <see cref="NeoMember"/>
+        /// by member id (and optional override-value id). Returns
         /// false when nothing is registered for the composed key.
         /// Callers typically reach for
-        /// <see cref="NeoAttribute.Create"/> /
-        /// <see cref="NeoAttribute.CreateWritable"/> instead — those check
+        /// <see cref="NeoMember.Create"/> /
+        /// <see cref="NeoMember.CreateWritable"/> instead — those check
         /// here automatically before constructing.
         /// </summary>
         internal bool TryGetNode(
-            string attributeId,
+            string memberId,
             string? overrideValueId,
             NeoValueOwnership ownership,
-            [NotNullWhen(true)] out NeoAttribute? node)
+            [NotNullWhen(true)] out NeoMember? node)
         {
-            string key = MakeNodeKey(attributeId, overrideValueId, ownership);
+            string key = MakeNodeKey(memberId, overrideValueId, ownership);
             return nodesInternal.TryGetValue(key, out node);
         }
 
-        internal bool TryGetNode(string attributeId, string? overrideValueId, [NotNullWhen(true)] out NeoAttribute? node)
+        internal bool TryGetNode(string memberId, string? overrideValueId, [NotNullWhen(true)] out NeoMember? node)
         {
-            return TryGetNode(attributeId, overrideValueId, NeoValueOwnership.Asset, out node);
+            return TryGetNode(memberId, overrideValueId, NeoValueOwnership.Asset, out node);
         }
 
         /// <summary>
         /// Adds <paramref name="node"/> to the flat registry under the
         /// composed key (computed from the node's own
-        /// <see cref="NeoAttribute.attribute"/>.id and
-        /// <see cref="NeoAttribute.overrideValueId"/>). Called by the
-        /// <see cref="NeoAttribute"/> base ctor at the end of
+        /// <see cref="NeoMember.member"/>.id and
+        /// <see cref="NeoMember.overrideValueId"/>). Called by the
+        /// <see cref="NeoMember"/> base ctor at the end of
         /// construction; callers shouldn't need to call directly.
-        /// Last-write-wins — direct <c>new NeoAttributeXyz(…)</c>
+        /// Last-write-wins — direct <c>new NeoMemberXyz(…)</c>
         /// construction overrides any previously-cached instance for
         /// the same key.
         /// </summary>
-        internal void RegisterNode(NeoAttribute node)
+        internal void RegisterNode(NeoMember node)
         {
-            string key = MakeNodeKey(node.attribute.id, node.overrideValueId, node.ownership);
+            string key = MakeNodeKey(node.member.id, node.overrideValueId, node.ownership);
             nodesInternal[key] = node;
         }
 
         /// <summary>
         /// Removes <paramref name="node"/> from the registry. Called
-        /// by <see cref="NeoAttribute.Dispose"/>; idempotent — a key
+        /// by <see cref="NeoMember.Dispose"/>; idempotent — a key
         /// that's already absent (or that points at a different
         /// instance, e.g. a same-key replacement) is left alone.
         /// </summary>
-        internal void UnregisterNode(NeoAttribute node)
+        internal void UnregisterNode(NeoMember node)
         {
-            string key = MakeNodeKey(node.attribute.id, node.overrideValueId, node.ownership);
+            string key = MakeNodeKey(node.member.id, node.overrideValueId, node.ownership);
             // Only remove if the registered instance is the one we're
             // unregistering — guards against the "I disposed an
             // instance that was already replaced in the registry by a
             // newer ctor call for the same key" race.
-            if (nodesInternal.TryGetValue(key, out NeoAttribute existing) && existing == node)
+            if (nodesInternal.TryGetValue(key, out NeoMember existing) && existing == node)
             {
                 nodesInternal.Remove(key);
             }
         }
 
-        internal TGenerated GetOrCreateGeneratedCustomValue<TGenerated>(
-            NeoAttributeCustom node,
+        internal TGenerated GetOrCreateGeneratedClassValue<TGenerated>(
+            NeoMemberClass node,
             System.Func<TGenerated> create)
-            where TGenerated : NeoGeneratedCustomValue
+            where TGenerated : NeoGeneratedClassValue
         {
-            string key = MakeNodeKey(node.attribute.id, node.overrideValueId, node.ownership);
-            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedCustomValue existing))
+            string key = MakeNodeKey(node.member.id, node.overrideValueId, node.ownership);
+            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedClassValue existing))
             {
                 if (existing is TGenerated match) return match;
                 existing.Dispose();
@@ -3256,12 +3271,12 @@ namespace NeoCompose.Runtime
             return generated;
         }
 
-        internal void RegisterGeneratedCustomValue(
-            NeoGeneratedCustomValue generated,
-            NeoAttributeCustom node)
+        internal void RegisterGeneratedClassValue(
+            NeoGeneratedClassValue generated,
+            NeoMemberClass node)
         {
-            string key = MakeNodeKey(node.attribute.id, node.overrideValueId, node.ownership);
-            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedCustomValue existing)
+            string key = MakeNodeKey(node.member.id, node.overrideValueId, node.ownership);
+            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedClassValue existing)
                 && !ReferenceEquals(existing, generated))
             {
                 existing.Dispose();
@@ -3269,10 +3284,10 @@ namespace NeoCompose.Runtime
             generatedValuesInternal[key] = generated;
         }
 
-        internal void UnregisterGeneratedCustomValue(NeoGeneratedCustomValue generated, NeoAttributeCustom node)
+        internal void UnregisterGeneratedClassValue(NeoGeneratedClassValue generated, NeoMemberClass node)
         {
-            string key = MakeNodeKey(node.attribute.id, node.overrideValueId, node.ownership);
-            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedCustomValue existing)
+            string key = MakeNodeKey(node.member.id, node.overrideValueId, node.ownership);
+            if (generatedValuesInternal.TryGetValue(key, out NeoGeneratedClassValue existing)
                 && ReferenceEquals(existing, generated))
             {
                 generatedValuesInternal.Remove(key);
@@ -3292,28 +3307,28 @@ namespace NeoCompose.Runtime
         }
 
         internal object? InvokeNativeFunction(
-            string attributeId,
+            string memberId,
             object? receiver,
             object?[] args)
         {
-            FunctionAttribute attribute = PrepareNativeFunctionInvocation(
-                attributeId,
+            FunctionMember member = PrepareNativeFunctionInvocation(
+                memberId,
                 args,
                 expectedDeferred: false,
                 out object?[] preparedArgs);
-            ValidateNativeFunctionReceiver(attribute, receiver);
+            ValidateNativeFunctionReceiver(member, receiver);
             if (nativeFunctionInvokers is null)
             {
                 throw new NeoScript.NSGetterRuntimeError(
                     "Native Function invocation requires constructing the generated ProjectNeo client wrapper before evaluating NeoScript.");
             }
-            if (!nativeFunctionInvokers.TryGetValue(attributeId, out var invoker))
+            if (!nativeFunctionInvokers.TryGetValue(memberId, out var invoker))
             {
                 throw new NeoScript.NSGetterRuntimeError(
-                    $"No native Function invoker is registered for attribute '{attributeId}'.");
+                    $"No native Function invoker is registered for member '{memberId}'.");
             }
             return NormalizeNativeFunctionReturn(
-                attribute.returnTypeInfo,
+                member.returnTypeInfo,
                 invoker(this, receiver, preparedArgs));
         }
 
@@ -3322,7 +3337,7 @@ namespace NeoCompose.Runtime
         /// completes when its handler calls <see cref="NeoDeferredFunction.Complete"/>.
         /// </summary>
         public Task InvokeDeferredNativeFunction(
-            string attributeId,
+            string memberId,
             object? receiver,
             object?[] args)
         {
@@ -3332,7 +3347,7 @@ namespace NeoCompose.Runtime
             try
             {
                 deferred = StartDeferredNativeFunctionCore(
-                    attributeId,
+                    memberId,
                     receiver,
                     args,
                     complete: value =>
@@ -3367,7 +3382,7 @@ namespace NeoCompose.Runtime
         /// C# and returns its eventual typed result.
         /// </summary>
         public Task<T> InvokeDeferredNativeFunction<T>(
-            string attributeId,
+            string memberId,
             object? receiver,
             object?[] args)
         {
@@ -3377,7 +3392,7 @@ namespace NeoCompose.Runtime
             try
             {
                 deferred = StartDeferredNativeFunctionCore(
-                    attributeId,
+                    memberId,
                     receiver,
                     args,
                     complete: value =>
@@ -3395,7 +3410,7 @@ namespace NeoCompose.Runtime
                         }
                         completion.TrySetException(
                             new NeoDeferredFunctionRuntimeError(
-                                $"Deferred Function '{attributeId}' completed with {value.GetType().Name}, expected {typeof(T).Name}."));
+                                $"Deferred Function '{memberId}' completed with {value.GetType().Name}, expected {typeof(T).Name}."));
                     },
                     fail: exception =>
                     {
@@ -3420,7 +3435,7 @@ namespace NeoCompose.Runtime
         }
 
         internal NeoDeferredFunctionBase StartDeferredNativeFunction(
-            string attributeId,
+            string memberId,
             object? receiver,
             object?[] args,
             System.Action<object?> complete,
@@ -3429,7 +3444,7 @@ namespace NeoCompose.Runtime
             System.Action<string>? dispose = null)
         {
             return StartDeferredNativeFunctionCore(
-                attributeId,
+                memberId,
                 receiver,
                 args,
                 complete,
@@ -3441,7 +3456,7 @@ namespace NeoCompose.Runtime
         }
 
         private NeoDeferredFunctionBase StartDeferredNativeFunctionCore(
-            string attributeId,
+            string memberId,
             object? receiver,
             object?[] args,
             System.Action<object?> complete,
@@ -3451,29 +3466,29 @@ namespace NeoCompose.Runtime
             bool normalizeReturnValue,
             bool captureInvokerException)
         {
-            FunctionAttribute attribute = PrepareNativeFunctionInvocation(
-                attributeId,
+            FunctionMember member = PrepareNativeFunctionInvocation(
+                memberId,
                 args,
                 expectedDeferred: true,
                 out object?[] preparedArgs);
-            ValidateNativeFunctionReceiver(attribute, receiver);
+            ValidateNativeFunctionReceiver(member, receiver);
             if (deferredNativeFunctionInvokers is null)
             {
                 throw new NeoScript.NSGetterRuntimeError(
                     "Deferred native Function invocation requires constructing the generated ProjectNeo client wrapper before evaluating NeoScript.");
             }
-            if (!deferredNativeFunctionInvokers.TryGetValue(attributeId, out var invoker))
+            if (!deferredNativeFunctionInvokers.TryGetValue(memberId, out var invoker))
             {
                 throw new NeoScript.NSGetterRuntimeError(
-                    $"No deferred native Function invoker is registered for attribute '{attributeId}'.");
+                    $"No deferred native Function invoker is registered for member '{memberId}'.");
             }
 
             System.Action<object?> completeResult = normalizeReturnValue
-                ? value => complete(NormalizeNativeFunctionReturn(attribute.returnTypeInfo, value))
+                ? value => complete(NormalizeNativeFunctionReturn(member.returnTypeInfo, value))
                 : complete;
-            NeoDeferredFunctionBase deferred = attribute.returnTypeInfo is VoidTypeInfo
-                ? new NeoDeferredFunction(attributeId, attribute.name, completeResult, fail, dispose)
-                : CreateTypedDeferredFunction(attribute, completeResult, fail, dispose);
+            NeoDeferredFunctionBase deferred = member.returnTypeInfo is VoidTypeInfo
+                ? new NeoDeferredFunction(memberId, member.name, completeResult, fail, dispose)
+                : CreateTypedDeferredFunction(member, completeResult, fail, dispose);
             try
             {
                 invoker(this, receiver, preparedArgs, deferred);
@@ -3497,40 +3512,40 @@ namespace NeoCompose.Runtime
         }
 
         private static void ValidateNativeFunctionReceiver(
-            FunctionAttribute attribute,
+            FunctionMember member,
             object? receiver)
         {
-            if (attribute.isStatic)
+            if (member.isStatic)
             {
                 if (receiver is not null)
                 {
                     throw new NeoScript.NSGetterRuntimeError(
-                        $"Static Function '{attribute.name}' must be invoked without an instance receiver.");
+                        $"Static Function '{member.name}' must be invoked without an instance receiver.");
                 }
                 return;
             }
             if (receiver is null)
             {
                 throw new NeoScript.NSGetterRuntimeError(
-                    $"Cannot invoke instance Function '{attribute.name}' on a null receiver.");
+                    $"Cannot invoke instance Function '{member.name}' on a null receiver.");
             }
         }
 
-        private FunctionAttribute PrepareNativeFunctionInvocation(
-            string attributeId,
+        private FunctionMember PrepareNativeFunctionInvocation(
+            string memberId,
             object?[]? args,
             bool expectedDeferred,
             out object?[] preparedArgs)
         {
-            if (!TryResolveFunctionAttribute(attributeId, out FunctionAttribute? signature))
+            if (!TryResolveFunctionMember(memberId, out FunctionMember? signature))
             {
                 throw new NeoScript.NSGetterRuntimeError(
-                    $"Function '{attributeId}' has no effective native signature; its override chain or compiled call IR is stale/corrupt.");
+                    $"Function '{memberId}' has no effective native signature; its override chain or compiled call IR is stale/corrupt.");
             }
 
-            string functionName = data.attributes.TryGetValue(
-                    attributeId, out Attribute? effectiveAttribute)
-                ? effectiveAttribute.name
+            string functionName = data.members.TryGetValue(
+                    memberId, out Member? effectiveMember)
+                ? effectiveMember.name
                 : signature.name;
             bool actualDeferred = signature.deferred == true;
             if (actualDeferred != expectedDeferred)
@@ -3538,7 +3553,7 @@ namespace NeoCompose.Runtime
                 string expected = expectedDeferred ? "deferred" : "immediate";
                 string actual = actualDeferred ? "deferred" : "immediate";
                 string message =
-                    $"Function '{functionName}' ({attributeId}) deferred-mode mismatch: " +
+                    $"Function '{functionName}' ({memberId}) deferred-mode mismatch: " +
                     $"the call path requires {expected}, but its effective signature is {actual}; " +
                     "compiled call IR is stale/corrupt.";
                 if (actualDeferred)
@@ -3552,7 +3567,7 @@ namespace NeoCompose.Runtime
             if (sourceArgs.Length != signature.argumentTypes.Length)
             {
                 throw new NeoScript.NSGetterRuntimeError(
-                    $"Function '{functionName}' ({attributeId}) expects " +
+                    $"Function '{functionName}' ({memberId}) expects " +
                     $"{signature.argumentTypes.Length} arguments but received {sourceArgs.Length}; " +
                     "compiled call IR or caller is stale/corrupt.");
             }
@@ -3568,7 +3583,7 @@ namespace NeoCompose.Runtime
             {
                 FunctionArgumentTypeInfo argument = signature.argumentTypes[i];
                 string subject =
-                    $"argument {i} '{argument.name}' of Function '{functionName}' ({attributeId})";
+                    $"argument {i} '{argument.name}' of Function '{functionName}' ({memberId})";
                 try
                 {
                     NeoScriptValueMarshaller.ValidateRuntimeValue(
@@ -3588,7 +3603,7 @@ namespace NeoCompose.Runtime
                 catch (System.Exception exception)
                 {
                     throw new NeoScript.NSGetterRuntimeError(
-                        $"Function '{functionName}' ({attributeId}) argument {i} " +
+                        $"Function '{functionName}' ({memberId}) argument {i} " +
                         $"'{argument.name}' is incompatible with declared {argument.type}; " +
                         "compiled call IR or caller is stale/corrupt: " +
                         exception.Message);
@@ -3605,11 +3620,11 @@ namespace NeoCompose.Runtime
             if (value is null) return null;
             switch (typeInfo.type)
             {
-                case AttributeType.Int:
+                case MemberKind.Int:
                     return System.Convert.ToInt32(value);
-                case AttributeType.Float:
+                case MemberKind.Float:
                     return System.Convert.ToDouble(value);
-                case AttributeType.Decimal:
+                case MemberKind.Decimal:
                     if (value is decimal decimalValue)
                     {
                         return NeoDecimalValues.Format(decimalValue);
@@ -3621,7 +3636,7 @@ namespace NeoCompose.Runtime
                             subject);
                     }
                     return value;
-                case AttributeType.Enum:
+                case MemberKind.Enum:
                 {
                     string[] optionIds = NormalizeNativeFunctionEnumArgument(
                         value,
@@ -3633,11 +3648,11 @@ namespace NeoCompose.Runtime
                     }
                     return optionIds;
                 }
-                case AttributeType.Sprite:
+                case MemberKind.Sprite:
                     return value is Sprite sprite
                         ? NeoGeneratedTypesSupport.SpriteValue(this, sprite)
                         : value;
-                case AttributeType.Audio:
+                case MemberKind.Audio:
                     return value is AudioClip audio
                         ? NeoGeneratedTypesSupport.AudioValue(this, audio)
                         : value;
@@ -3709,7 +3724,7 @@ namespace NeoCompose.Runtime
             if (returnTypeInfo is VoidTypeInfo) return null;
             switch (returnTypeInfo.type)
             {
-                case AttributeType.Vector2:
+                case MemberKind.Vector2:
                 {
                     Vector2? vector = NeoGeneratedTypesSupport.ReadVector2Value(value);
                     return NormalizeVectorResult(
@@ -3718,7 +3733,7 @@ namespace NeoCompose.Runtime
                         vector,
                         v => NeoVectorValues.FromVector2(v));
                 }
-                case AttributeType.Vector2Int:
+                case MemberKind.Vector2Int:
                 {
                     Vector2Int? vector = NeoGeneratedTypesSupport.ReadVector2IntValue(value);
                     return NormalizeVectorResult(
@@ -3727,7 +3742,7 @@ namespace NeoCompose.Runtime
                         vector,
                         v => NeoVectorValues.FromVector2Int(v));
                 }
-                case AttributeType.Vector3:
+                case MemberKind.Vector3:
                 {
                     Vector3? vector = NeoGeneratedTypesSupport.ReadVector3Value(value);
                     return NormalizeVectorResult(
@@ -3736,7 +3751,7 @@ namespace NeoCompose.Runtime
                         vector,
                         v => NeoVectorValues.FromVector3(v));
                 }
-                case AttributeType.Vector3Int:
+                case MemberKind.Vector3Int:
                 {
                     Vector3Int? vector = NeoGeneratedTypesSupport.ReadVector3IntValue(value);
                     return NormalizeVectorResult(
@@ -3745,7 +3760,7 @@ namespace NeoCompose.Runtime
                         vector,
                         v => NeoVectorValues.FromVector3Int(v));
                 }
-                case AttributeType.Color:
+                case MemberKind.Color:
                 {
                     Color? color = NeoGeneratedTypesSupport.ReadColorValue(value);
                     return NormalizeVectorResult(
@@ -3754,10 +3769,10 @@ namespace NeoCompose.Runtime
                         color,
                         c => NeoColorValues.FromColor(c));
                 }
-                case AttributeType.Decimal:
+                case MemberKind.Decimal:
                 {
                     // Decimal values travel through the evaluator as canonical
-                    // strings (specs/decimal-attribute.md §6.4); a native
+                    // strings (specs/decimal-member.md §6.4); a native
                     // Function returning `decimal` normalizes to that form.
                     if (value is decimal decimalValue)
                     {
@@ -3772,7 +3787,7 @@ namespace NeoCompose.Runtime
                         return null;
                     }
                     throw new NeoDeferredFunctionRuntimeError(
-                        $"Native Function returned a value that could not be converted to {AttributeType.Decimal}.");
+                        $"Native Function returned a value that could not be converted to {MemberKind.Decimal}.");
                 }
                 default:
                     return value;
@@ -3793,65 +3808,65 @@ namespace NeoCompose.Runtime
                 $"Native Function returned a value that could not be converted to {typeName}.");
         }
 
-        internal bool IsNativeFunctionDeferred(string attributeId)
+        internal bool IsNativeFunctionDeferred(string memberId)
         {
-            return TryResolveFunctionAttribute(attributeId, out var attribute)
-                && attribute.deferred == true;
+            return TryResolveFunctionMember(memberId, out var member)
+                && member.deferred == true;
         }
 
         private NeoDeferredFunctionBase CreateTypedDeferredFunction(
-            FunctionAttribute attribute,
+            FunctionMember member,
             System.Action<object?> complete,
             System.Action<System.Exception> fail,
             System.Action<string>? dispose = null)
         {
-            return attribute.returnTypeInfo.type switch
+            return member.returnTypeInfo.type switch
             {
-                AttributeType.Bool => new NeoDeferredFunction<bool>(attribute.id, attribute.name, complete, fail, dispose),
-                AttributeType.Int => new NeoDeferredFunction<int>(attribute.id, attribute.name, complete, fail, dispose),
-                AttributeType.Float => new NeoDeferredFunction<float>(attribute.id, attribute.name, complete, fail, dispose),
-                AttributeType.String => new NeoDeferredFunction<string?>(attribute.id, attribute.name, complete, fail, dispose),
-                AttributeType.Vector2 => new NeoDeferredFunction<Vector2>(attribute.id, attribute.name, complete, fail, dispose),
-                AttributeType.Vector2Int => new NeoDeferredFunction<Vector2Int>(attribute.id, attribute.name, complete, fail, dispose),
-                AttributeType.Vector3 => new NeoDeferredFunction<Vector3>(attribute.id, attribute.name, complete, fail, dispose),
-                AttributeType.Vector3Int => new NeoDeferredFunction<Vector3Int>(attribute.id, attribute.name, complete, fail, dispose),
-                AttributeType.Color => new NeoDeferredFunction<Color>(attribute.id, attribute.name, complete, fail, dispose),
-                AttributeType.Decimal => new NeoDeferredFunction<decimal>(attribute.id, attribute.name, complete, fail, dispose),
-                _ => new NeoDeferredFunction<object?>(attribute.id, attribute.name, complete, fail, dispose),
+                MemberKind.Bool => new NeoDeferredFunction<bool>(member.id, member.name, complete, fail, dispose),
+                MemberKind.Int => new NeoDeferredFunction<int>(member.id, member.name, complete, fail, dispose),
+                MemberKind.Float => new NeoDeferredFunction<float>(member.id, member.name, complete, fail, dispose),
+                MemberKind.String => new NeoDeferredFunction<string?>(member.id, member.name, complete, fail, dispose),
+                MemberKind.Vector2 => new NeoDeferredFunction<Vector2>(member.id, member.name, complete, fail, dispose),
+                MemberKind.Vector2Int => new NeoDeferredFunction<Vector2Int>(member.id, member.name, complete, fail, dispose),
+                MemberKind.Vector3 => new NeoDeferredFunction<Vector3>(member.id, member.name, complete, fail, dispose),
+                MemberKind.Vector3Int => new NeoDeferredFunction<Vector3Int>(member.id, member.name, complete, fail, dispose),
+                MemberKind.Color => new NeoDeferredFunction<Color>(member.id, member.name, complete, fail, dispose),
+                MemberKind.Decimal => new NeoDeferredFunction<decimal>(member.id, member.name, complete, fail, dispose),
+                _ => new NeoDeferredFunction<object?>(member.id, member.name, complete, fail, dispose),
             };
         }
 
-        internal bool TryResolveFunctionAttribute(
-            string attributeId,
-            [NotNullWhen(true)] out FunctionAttribute? attribute)
+        internal bool TryResolveFunctionMember(
+            string memberId,
+            [NotNullWhen(true)] out FunctionMember? member)
         {
             var visited = new HashSet<string>();
-            string? currentId = attributeId;
+            string? currentId = memberId;
             while (!string.IsNullOrEmpty(currentId) && visited.Add(currentId))
             {
-                if (!data.attributes.TryGetValue(currentId!, out Attribute? current))
+                if (!data.members.TryGetValue(currentId!, out Member? current))
                 {
                     break;
                 }
-                if (current is FunctionAttribute function
+                if (current is FunctionMember function
                     && function.returnTypeInfo is not null
                     && function.argumentTypes is not null
                     && function.deferred.HasValue)
                 {
-                    attribute = function;
+                    member = function;
                     return true;
                 }
-                currentId = current.extendsAttributeId;
+                currentId = current.extendsMemberId;
             }
-            attribute = null;
+            member = null;
             return false;
         }
 
-        private void ValidateCallableAttributes()
+        private void ValidateCallableMembers()
         {
-            foreach (var pair in data.attributes)
+            foreach (var pair in data.members)
             {
-                if (pair.Value is FunctionAttribute function)
+                if (pair.Value is FunctionMember function)
                 {
                     ValidateCallableSignature(
                         function,
@@ -3862,7 +3877,7 @@ namespace NeoCompose.Runtime
                         rejectOverrideFields: false);
                     continue;
                 }
-                if (pair.Value is not NSFunctionAttribute nsFunction) continue;
+                if (pair.Value is not NSFunctionMember nsFunction) continue;
                 ValidateCallableSignature(
                     nsFunction,
                     nsFunction.returnTypeInfo,
@@ -3870,19 +3885,19 @@ namespace NeoCompose.Runtime
                     nsFunction.deferred,
                     "NSFunction",
                     rejectOverrideFields: true);
-                ValidateNSFunctionAttribute(nsFunction);
+                ValidateNSFunctionMember(nsFunction);
             }
         }
 
         private static void ValidateCallableSignature(
-            Attribute attribute,
+            Member member,
             Json.TypeInfo? returnTypeInfo,
             FunctionArgumentTypeInfo[]? argumentTypes,
             bool? deferred,
             string kind,
             bool rejectOverrideFields)
         {
-            bool isOverride = !string.IsNullOrEmpty(attribute.extendsAttributeId);
+            bool isOverride = !string.IsNullOrEmpty(member.extendsMemberId);
             if (isOverride)
             {
                 if (rejectOverrideFields
@@ -3891,76 +3906,76 @@ namespace NeoCompose.Runtime
                     || deferred.HasValue))
                 {
                     throw new System.InvalidOperationException(
-                        $"{kind} override '{attribute.id}' must inherit returnTypeInfo, argumentTypes, and deferred from its declaration.");
+                        $"{kind} override '{member.id}' must inherit returnTypeInfo, argumentTypes, and deferred from its declaration.");
                 }
                 return;
             }
             if (returnTypeInfo is null)
             {
                 throw new System.InvalidOperationException(
-                    $"{kind} attribute '{attribute.id}' is missing returnTypeInfo.");
+                    $"{kind} member '{member.id}' is missing returnTypeInfo.");
             }
             if (argumentTypes is null)
             {
                 throw new System.InvalidOperationException(
-                    $"{kind} attribute '{attribute.id}' is missing argumentTypes.");
+                    $"{kind} member '{member.id}' is missing argumentTypes.");
             }
             if (!deferred.HasValue)
             {
                 throw new System.InvalidOperationException(
-                    $"{kind} attribute '{attribute.id}' is missing deferred.");
+                    $"{kind} member '{member.id}' is missing deferred.");
             }
         }
 
-        private void ValidateNSFunctionAttribute(NSFunctionAttribute attribute)
+        private void ValidateNSFunctionMember(NSFunctionMember member)
         {
-            if (attribute.required
-                || attribute.defaultValue is not null
-                || !string.IsNullOrEmpty(attribute.valueId)
-                || !string.IsNullOrEmpty(attribute.storage))
+            if (member.required
+                || member.defaultValue is not null
+                || !string.IsNullOrEmpty(member.valueId)
+                || !string.IsNullOrEmpty(member.storage))
             {
                 throw new System.InvalidOperationException(
-                    $"NSFunction attribute '{attribute.id}' is value-less and cannot declare required/default/value/storage fields.");
+                    $"NSFunction member '{member.id}' is value-less and cannot declare required/default/value/storage fields.");
             }
-            bool hasLocalCodeField = attribute.code is not null;
-            bool hasLocalAction = attribute.action is not null;
+            bool hasLocalCodeField = member.code is not null;
+            bool hasLocalAction = member.action is not null;
             if (hasLocalCodeField != hasLocalAction)
             {
                 throw new System.InvalidOperationException(
-                    $"NSFunction attribute '{attribute.id}' must export its local code and compiled action together.");
+                    $"NSFunction member '{member.id}' must export its local code and compiled action together.");
             }
-            if (hasLocalCodeField && string.IsNullOrWhiteSpace(attribute.code))
+            if (hasLocalCodeField && string.IsNullOrWhiteSpace(member.code))
             {
                 throw new System.InvalidOperationException(
-                    $"NSFunction attribute '{attribute.id}' local code must not be empty.");
+                    $"NSFunction member '{member.id}' local code must not be empty.");
             }
-            if (attribute.isAbstract == true) return;
+            if (member.isAbstract == true) return;
 
-            if (string.IsNullOrEmpty(attribute.extendsAttributeId)
+            if (string.IsNullOrEmpty(member.extendsMemberId)
                 && !hasLocalCodeField)
             {
                 throw new System.InvalidOperationException(
-                    $"Concrete NSFunction declaration '{attribute.id}' is missing code and compiled action.");
+                    $"Concrete NSFunction declaration '{member.id}' is missing code and compiled action.");
             }
 
-            NSFunctionAttribute? signature = ResolveNSFunctionSignature(attribute.id);
-            FunctionWithReturnType? action = ResolveNSFunctionAction(attribute.id);
+            NSFunctionMember? signature = ResolveNSFunctionSignature(member.id);
+            FunctionWithReturnType? action = ResolveNSFunctionAction(member.id);
             if (signature is null || action is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Concrete NSFunction attribute '{attribute.id}' is missing its compiled action or inherited signature.");
+                    $"Concrete NSFunction member '{member.id}' is missing its compiled action or inherited signature.");
             }
             int expectedParameters = signature.argumentTypes.Length + 2;
             if (action.parameters is null || action.parameters.Length != expectedParameters)
             {
                 throw new System.InvalidOperationException(
-                    $"NSFunction attribute '{attribute.id}' compiled action has {action.parameters?.Length ?? 0} parameters; expected {expectedParameters} (__this__, __root__, and {signature.argumentTypes.Length} arguments).");
+                    $"NSFunction member '{member.id}' compiled action has {action.parameters?.Length ?? 0} parameters; expected {expectedParameters} (__this__, __root__, and {signature.argumentTypes.Length} arguments).");
             }
             if (action.parameters[0].id != "__this__"
                 || action.parameters[1].id != "__root__")
             {
                 throw new System.InvalidOperationException(
-                    $"NSFunction attribute '{attribute.id}' compiled action must begin with __this__ and __root__ parameters.");
+                    $"NSFunction member '{member.id}' compiled action must begin with __this__ and __root__ parameters.");
             }
             for (int i = 0; i < signature.argumentTypes.Length; i++)
             {
@@ -3968,50 +3983,50 @@ namespace NeoCompose.Runtime
                 if (action.parameters[i + 2].id != expectedId)
                 {
                     throw new System.InvalidOperationException(
-                        $"NSFunction attribute '{attribute.id}' compiled argument {i} must use parameter id '{expectedId}'.");
+                        $"NSFunction member '{member.id}' compiled argument {i} must use parameter id '{expectedId}'.");
                 }
                 if (!TypeInfoMatches(
                         signature.argumentTypes[i],
                         action.parameters[i + 2].typeInfo))
                 {
                     throw new System.InvalidOperationException(
-                        $"NSFunction attribute '{attribute.id}' compiled argument {i} type does not match its declared signature.");
+                        $"NSFunction member '{member.id}' compiled argument {i} type does not match its declared signature.");
                 }
             }
             bool validReturn = signature.returnTypeInfo is VoidTypeInfo
-                ? action.typeInfo?.type == AttributeType.Null
+                ? action.typeInfo?.type == MemberKind.Null
                     && action.typeInfo.required
                 : TypeInfoMatches(signature.returnTypeInfo, action.typeInfo);
             if (!validReturn)
             {
                 throw new System.InvalidOperationException(
-                    $"NSFunction attribute '{attribute.id}' compiled action return type does not match its declared return type.");
+                    $"NSFunction member '{member.id}' compiled action return type does not match its declared return type.");
             }
         }
 
-        private NSFunctionAttribute? ResolveNSFunctionSignature(string attributeId)
+        private NSFunctionMember? ResolveNSFunctionSignature(string memberId)
         {
-            return CustomTypeInheritance.WalkExtendsAttributeChain(
-                attributeId,
-                id => data.attributes.TryGetValue(id, out Attribute? value) ? value : null,
-                current => current is NSFunctionAttribute function
+            return NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                memberId,
+                id => data.members.TryGetValue(id, out Member? value) ? value : null,
+                current => current is NSFunctionMember function
                     && function.returnTypeInfo is not null
                     && function.argumentTypes is not null
                     && function.deferred.HasValue
                         ? function
                         : null,
-                requireType: AttributeType.NSFunction);
+                requireKind: MemberKind.NSFunction);
         }
 
-        private FunctionWithReturnType? ResolveNSFunctionAction(string attributeId)
+        private FunctionWithReturnType? ResolveNSFunctionAction(string memberId)
         {
-            return CustomTypeInheritance.WalkExtendsAttributeChain(
-                attributeId,
-                id => data.attributes.TryGetValue(id, out Attribute? value) ? value : null,
-                current => current is NSFunctionAttribute function
+            return NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                memberId,
+                id => data.members.TryGetValue(id, out Member? value) ? value : null,
+                current => current is NSFunctionMember function
                     ? function.action
                     : null,
-                requireType: AttributeType.NSFunction);
+                requireKind: MemberKind.NSFunction);
         }
 
         private static bool TypeInfoMatches(Json.TypeInfo? left, Json.TypeInfo? right)
@@ -4021,23 +4036,23 @@ namespace NeoCompose.Runtime
             return (left, right) switch
             {
                 (FunctionArgumentTypeInfo a, FunctionArgumentTypeInfo b) =>
-                    a.typeId == b.typeId
+                    a.classId == b.classId
                     && a.interfaceId == b.interfaceId
                     && a.enumId == b.enumId
-                    && a.ownerTypeId == b.ownerTypeId
+                    && a.ownerClassId == b.ownerClassId
                     && a.genericParamId == b.genericParamId
-                    && a.collectionAttributeId == b.collectionAttributeId
+                    && a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
                     && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo)
                     && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
-                (CustomTypeInfo a, CustomTypeInfo b) =>
-                    a.typeId == b.typeId
+                (ClassTypeInfo a, ClassTypeInfo b) =>
+                    a.classId == b.classId
                     && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
-                (FunctionArgumentTypeInfo a, CustomTypeInfo b) =>
-                    a.typeId == b.typeId
+                (FunctionArgumentTypeInfo a, ClassTypeInfo b) =>
+                    a.classId == b.classId
                     && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
-                (CustomTypeInfo a, FunctionArgumentTypeInfo b) =>
-                    a.typeId == b.typeId
+                (ClassTypeInfo a, FunctionArgumentTypeInfo b) =>
+                    a.classId == b.classId
                     && TypeArgumentsMatch(a.typeArguments, b.typeArguments),
                 (InterfaceTypeInfo a, InterfaceTypeInfo b) => a.interfaceId == b.interfaceId,
                 (FunctionArgumentTypeInfo a, InterfaceTypeInfo b) =>
@@ -4050,13 +4065,13 @@ namespace NeoCompose.Runtime
                 (EnumTypeInfo a, FunctionArgumentTypeInfo b) =>
                     a.enumId == b.enumId,
                 (GenericTypeInfo a, GenericTypeInfo b) =>
-                    a.ownerTypeId == b.ownerTypeId
+                    a.ownerClassId == b.ownerClassId
                     && a.genericParamId == b.genericParamId,
                 (FunctionArgumentTypeInfo a, GenericTypeInfo b) =>
-                    a.ownerTypeId == b.ownerTypeId
+                    a.ownerClassId == b.ownerClassId
                     && a.genericParamId == b.genericParamId,
                 (GenericTypeInfo a, FunctionArgumentTypeInfo b) =>
-                    a.ownerTypeId == b.ownerTypeId
+                    a.ownerClassId == b.ownerClassId
                     && a.genericParamId == b.genericParamId,
                 (CollectionTypeInfo a, CollectionTypeInfo b) =>
                     TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
@@ -4065,15 +4080,15 @@ namespace NeoCompose.Runtime
                 (CollectionTypeInfo a, FunctionArgumentTypeInfo b) =>
                     TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
                 (LookupTypeInfo a, LookupTypeInfo b) =>
-                    a.collectionAttributeId == b.collectionAttributeId
+                    a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
                     && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
                 (FunctionArgumentTypeInfo a, LookupTypeInfo b) =>
-                    a.collectionAttributeId == b.collectionAttributeId
+                    a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
                     && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
                 (LookupTypeInfo a, FunctionArgumentTypeInfo b) =>
-                    a.collectionAttributeId == b.collectionAttributeId
+                    a.collectionMemberId == b.collectionMemberId
                     && a.collectionValueId == b.collectionValueId
                     && TypeInfoMatches(a.entryTypeInfo, b.entryTypeInfo),
                 _ => true,
@@ -4098,14 +4113,14 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Composes the registry key from an attribute id and an
+        /// Composes the registry key from a member id and an
         /// optional override-value id. Format mirrors the user-facing
         /// spec:
-        ///   - <c>attributeId</c> when no override
-        ///   - <c>$"{attributeId}_{overrideValueId}"</c> when an override is set
+        ///   - <c>memberId</c> when no override
+        ///   - <c>$"{memberId}_{overrideValueId}"</c> when an override is set
         /// </summary>
         internal static string MakeNodeKey(
-            string attributeId,
+            string memberId,
             string? overrideValueId,
             NeoValueOwnership ownership = NeoValueOwnership.Asset)
         {
@@ -4117,8 +4132,8 @@ namespace NeoCompose.Runtime
                 _ => "unknown",
             };
             return string.IsNullOrEmpty(overrideValueId)
-                ? $"{prefix}:{attributeId}"
-                : $"{prefix}:{attributeId}_{overrideValueId}";
+                ? $"{prefix}:{memberId}"
+                : $"{prefix}:{memberId}_{overrideValueId}";
         }
 
         internal bool TryGetEnum<TEnum>(string id, [NotNullWhen(true)] out TEnum? enumInfo) where TEnum : Enum
@@ -4163,8 +4178,8 @@ namespace NeoCompose.Runtime
 
         protected string BuildNewSaveName()
         {
-            string? custom = SaveOptions.BuildSaveName?.Invoke();
-            return string.IsNullOrWhiteSpace(custom) ? BuildDefaultSaveName() : custom!;
+            string? configuredName = SaveOptions.BuildSaveName?.Invoke();
+            return string.IsNullOrWhiteSpace(configuredName) ? BuildDefaultSaveName() : configuredName!;
         }
 
         private static string BuildDefaultSaveName()
@@ -4200,22 +4215,22 @@ namespace NeoCompose.Runtime
 
         private void InitializeSaveDefaults() { }
 
-        private void ValidateRootCustomAttribute(string attributeId, string projectFieldName)
+        private void ValidateRootClassMember(string memberId, string projectFieldName)
         {
-            if (string.IsNullOrEmpty(attributeId))
+            if (string.IsNullOrEmpty(memberId))
             {
                 throw new System.InvalidOperationException(
                     $"Project field '{projectFieldName}' is required.");
             }
-            if (!data.attributes.TryGetValue(attributeId, out Attribute? attribute))
+            if (!data.members.TryGetValue(memberId, out Member? member))
             {
                 throw new System.InvalidOperationException(
-                    $"Project field '{projectFieldName}' references missing attribute '{attributeId}'.");
+                    $"Project field '{projectFieldName}' references missing member '{memberId}'.");
             }
-            if (attribute is not CustomAttribute)
+            if (member is not ClassMember)
             {
                 throw new System.InvalidOperationException(
-                    $"Project field '{projectFieldName}' must reference a Custom attribute, but '{attributeId}' is {attribute.GetType().Name}.");
+                    $"Project field '{projectFieldName}' must reference a Class member, but '{memberId}' is {member.GetType().Name}.");
             }
         }
 
@@ -4300,15 +4315,15 @@ namespace NeoCompose.Runtime
                 // absent (authored fallback) distinct from present-null
                 // (explicit unset), and invalidate static wrappers even when
                 // no value row changed in this live patch.
-                var staticAttributeIds = new HashSet<string>(saveData.staticBindings.Keys);
-                staticAttributeIds.UnionWith(incoming.staticBindings.Keys);
-                foreach (string attributeId in staticAttributeIds)
+                var staticMemberIds = new HashSet<string>(saveData.staticBindings.Keys);
+                staticMemberIds.UnionWith(incoming.staticBindings.Keys);
+                foreach (string memberId in staticMemberIds)
                 {
                     bool hadBefore = saveData.staticBindings.TryGetValue(
-                        attributeId,
+                        memberId,
                         out string? before);
                     bool hasAfter = incoming.staticBindings.TryGetValue(
-                        attributeId,
+                        memberId,
                         out string? after);
                     if (hadBefore == hasAfter && (!hadBefore || before == after))
                     {
@@ -4316,15 +4331,15 @@ namespace NeoCompose.Runtime
                     }
                     if (hasAfter)
                     {
-                        saveData.staticBindings[attributeId] = after;
+                        saveData.staticBindings[memberId] = after;
                     }
                     else
                     {
-                        saveData.staticBindings.Remove(attributeId);
+                        saveData.staticBindings.Remove(memberId);
                     }
                     OnStaticBindingChanged?.Invoke(
                         NeoValueOwnership.Save,
-                        attributeId);
+                        memberId);
                 }
             }
             finally
@@ -4408,30 +4423,30 @@ namespace NeoCompose.Runtime
         private HashSet<string> BuildReachableWritableValueIds(NeoValueOwnership ownership)
         {
             // Sparse stable-id overlay: reachability is rooted at the save/session
-            // root attribute's authored value id (a write shadows that id in
+            // root member's authored value id (a write shadows that id in
             // place), then walks the overlaid graph. There is no override map.
             var reachable = new HashSet<string>();
-            string rootAttributeId = ownership == NeoValueOwnership.Save
-                ? data.project.rootSaveFileAttributeId
-                : data.project.rootSessionAttributeId;
-            if (data.attributes.TryGetValue(rootAttributeId, out Attribute rootAttribute)
-                && rootAttribute.valueId is not null)
+            string rootMemberId = ownership == NeoValueOwnership.Save
+                ? data.project.rootSaveFileMemberId
+                : data.project.rootSessionMemberId;
+            if (data.members.TryGetValue(rootMemberId, out Member rootMember)
+                && rootMember.valueId is not null)
             {
-                MarkReachableValue(ownership, rootAttribute.valueId, reachable);
+                MarkReachableValue(ownership, rootMember.valueId, reachable);
             }
-            // Type-owned members are independent roots. Resolve through the
+            // Class-owned members are independent roots. Resolve through the
             // selected Save/Session binding layer so a rebound graph remains
             // live while an overwritten or tombstoned target becomes eligible
             // for ordinary orphan collection.
-            foreach (Attribute staticAttribute in data.attributes.Values)
+            foreach (Member staticMember in data.members.Values)
             {
-                if (!staticAttribute.isStatic
-                    || ResolveStaticOwnership(staticAttribute) != ownership)
+                if (!staticMember.isStatic
+                    || ResolveStaticOwnership(staticMember) != ownership)
                 {
                     continue;
                 }
                 if (TryResolveStaticBinding(
-                        staticAttribute.id,
+                        staticMember.id,
                         out _,
                         out _,
                         out string? staticValueId))
@@ -4440,7 +4455,7 @@ namespace NeoCompose.Runtime
                         ownership,
                         staticValueId,
                         reachable,
-                        staticAttribute);
+                        staticMember);
                 }
             }
             foreach (var pair in authoredOwnership)
@@ -4452,9 +4467,9 @@ namespace NeoCompose.Runtime
             }
             foreach (var row in data.values.Values)
             {
-                if (row is ObjectAttributeValue obj
-                    && obj.typeId is string runtimeTypeId
-                    && TryResolveCustomTypeAllowedOwnership(runtimeTypeId, out NeoValueOwnership typeOwnership)
+                if (row is ObjectMemberValue obj
+                    && obj.classId is string runtimeClassId
+                    && TryResolveSchemaClassAllowedOwnership(runtimeClassId, out NeoValueOwnership typeOwnership)
                     && typeOwnership == ownership)
                 {
                     MarkReachableValue(ownership, row.id, reachable);
@@ -4505,7 +4520,7 @@ namespace NeoCompose.Runtime
                     continue;
                 }
                 bool containerPresent =
-                    TryGetOverlaidValue(ownership, containerId, out ArrayAttributeValue? containerRow)
+                    TryGetOverlaidValue(ownership, containerId, out ArrayMemberValue? containerRow)
                     && containerRow.value is not null;
 
                 foreach (var memberId in EnumerateContainerMemberIds(
@@ -4514,7 +4529,7 @@ namespace NeoCompose.Runtime
                     containerId))
                 {
                     bool isTombstone =
-                        store.values.TryGetValue(memberId, out AttributeValue overlayRow)
+                        store.values.TryGetValue(memberId, out MemberValue overlayRow)
                         && overlayRow.IsRemoved;
                     if (isTombstone)
                     {
@@ -4546,7 +4561,7 @@ namespace NeoCompose.Runtime
             {
                 foreach (var id in authoredMembers)
                 {
-                    if (store.values.TryGetValue(id, out AttributeValue overlayRow))
+                    if (store.values.TryGetValue(id, out MemberValue overlayRow))
                     {
                         // A removal marker remains reachable containment state
                         // for this authored membership. Any live overlay row
@@ -4571,35 +4586,35 @@ namespace NeoCompose.Runtime
             NeoValueOwnership ownership,
             string valueId,
             HashSet<string> reachable,
-            Attribute? sourceAttribute = null,
+            Member? sourceMember = null,
             Queue<string>? newlyReachable = null)
         {
             var store = GetWritableStore(ownership);
-            var pending = new Queue<(string valueId, Attribute? attribute)>();
-            pending.Enqueue((valueId, sourceAttribute));
+            var pending = new Queue<(string valueId, Member? member)>();
+            pending.Enqueue((valueId, sourceMember));
             while (pending.Count > 0)
             {
                 var current = pending.Dequeue();
                 if (!reachable.Add(current.valueId)) continue;
                 newlyReachable?.Enqueue(current.valueId);
-                if (!store.values.TryGetValue(current.valueId, out AttributeValue? val)
+                if (!store.values.TryGetValue(current.valueId, out MemberValue? val)
                     && !data.values.TryGetValue(current.valueId, out val))
                 {
                     continue;
                 }
-                Attribute? currentAttribute = current.attribute;
-                currentAttribute ??= TryInferAttributeForValueId(
+                Member? currentMember = current.member;
+                currentMember ??= TryInferMemberForValueId(
                     current.valueId,
-                    out Attribute? inferredAttribute)
-                        ? inferredAttribute
+                    out Member? inferredMember)
+                        ? inferredMember
                         : null;
-                foreach (var child in EnumerateOwnedChildLinks(val, currentAttribute))
+                foreach (var child in EnumerateOwnedChildLinks(val, currentMember))
                 {
                     NeoValueOwnership childOwnership =
-                        (child.attribute is null ? null : DeclaredOwnership(child.attribute)) ?? ownership;
+                        (child.member is null ? null : DeclaredOwnership(child.member)) ?? ownership;
                     if (childOwnership == ownership)
                     {
-                        pending.Enqueue((child.valueId, child.attribute));
+                        pending.Enqueue((child.valueId, child.member));
                     }
                 }
             }

@@ -17,17 +17,17 @@ during development.
 ## Schema authoring
 
 The tracked `neo/` directory is this sample's Neo Schema Authoring v2
-workspace. `neo/neo.json` declares `formatVersion: 2`, and
+workspace. `neo/neo.json` declares `formatVersion: 3`, and
 `neo/NeoCompose.Schema.csproj` gives editors a real C# 11 project targeting
 `netstandard2.1` for complete C# and Neo schema IntelliSense.
 
 - Types, inheritance, overrides, nullability, defaults, ordering, and
-  function signatures are authored as native C# under `neo/Types/`,
+  function signatures are authored as native C# under `neo/Classes/`,
   `neo/Interfaces/`, and `neo/Enums/`.
 - Root-level and otherwise loose members are authored in the `[NeoRegistry]`
   declaration at `neo/Root.cs`.
-- Stable server identities remain explicit through `[NeoType]`,
-  `[NeoMember]`, and the other typed Neo attributes.
+- Stable server identities remain explicit through `[NeoSchemaClass]`,
+  `[NeoMember]`, and the other typed Neo members.
 - Computed-property and NeoScript functions are tracked as complete contextual
   `.neo` documents under `neo/Scripts/<DeclaringType>/<Member>.neo`. Their
   outer signature mirrors C# and includes `<DeclaringType> this, Root root`;

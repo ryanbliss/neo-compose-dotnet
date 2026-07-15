@@ -13,7 +13,7 @@ using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-using JsonAttribute = NeoCompose.Runtime.Json.Attribute;
+using JsonMember = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Tests
 {
@@ -22,8 +22,8 @@ namespace NeoCompose.Tests
         [Test]
         public void Set_WritesThroughSaveTarget()
         {
-            var client = BuildClient(out NSPropertyAttribute property);
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var client = BuildClient(out NSPropertyMember property);
+            var node = new NeoMemberNSProperty(client, property, null);
 
             NSSetterResult result = node.Set("value-receiver", 42);
 
@@ -32,15 +32,15 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "value-target",
-                out NumberAttributeValue? target));
+                out NumberMemberValue? target));
             Assert.AreEqual(42, target!.value);
         }
 
         [Test]
         public void Set_WithoutReceiverReturnsErrorAndLogsOnce()
         {
-            var client = BuildClient(out NSPropertyAttribute property);
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var client = BuildClient(out NSPropertyMember property);
+            var node = new NeoMemberNSProperty(client, property, null);
             LogAssert.Expect(
                 LogType.Error,
                 new Regex("Cannot invoke setter on a null receiver"));
@@ -72,9 +72,9 @@ namespace NeoCompose.Tests
                 pointer = ValueVariable(),
             });
             var client = BuildClient(
-                out NSPropertyAttribute property,
+                out NSPropertyMember property,
                 baseSetter: illegalSetter);
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var node = new NeoMemberNSProperty(client, property, null);
             LogAssert.Expect(
                 LogType.Error,
                 new Regex("value-receiver.*not save-owned"));
@@ -117,7 +117,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "value-target",
-                out NumberAttributeValue? target));
+                out NumberMemberValue? target));
             Assert.AreEqual(31, target!.value);
         }
 
@@ -152,7 +152,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Session,
                 "value-session-target",
-                out NumberAttributeValue? target));
+                out NumberMemberValue? target));
             Assert.AreEqual(47, target!.value);
         }
 
@@ -185,13 +185,13 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Set_DispatchesMostDerivedSetterByRuntimeType()
+        public void Set_DispatchesMostDerivedSetterByRuntimeClass()
         {
             var client = BuildClient(
-                out NSPropertyAttribute baseProperty,
+                out NSPropertyMember baseProperty,
                 baseSetter: SetterWritingTarget(NumberLiteral(1)),
                 derivedSetter: SetterWritingTarget(ValueVariable()));
-            var node = new NeoAttributeNSProperty(client, baseProperty, null);
+            var node = new NeoMemberNSProperty(client, baseProperty, null);
 
             NSSetterResult result = node.Set("value-derived-receiver", 73);
 
@@ -199,7 +199,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "value-target",
-                out NumberAttributeValue? target));
+                out NumberMemberValue? target));
             Assert.AreEqual(73, target!.value);
         }
 
@@ -207,17 +207,17 @@ namespace NeoCompose.Tests
         public void Set_NormalizesRepresentativeGeneratedValueFamiliesThroughOneBoundary()
         {
             AssertNormalized(
-                new PrimitiveTypeInfo { type = AttributeType.Bool, required = true },
+                new PrimitiveTypeInfo { type = MemberKind.Bool, required = true },
                 true,
                 captured => Assert.AreEqual(true, captured));
             AssertNormalized(
-                new PrimitiveTypeInfo { type = AttributeType.Decimal, required = true },
+                new PrimitiveTypeInfo { type = MemberKind.Decimal, required = true },
                 12.5m,
                 captured => Assert.AreEqual("12.5", captured));
             AssertNormalized(
                 new EnumTypeInfo
                 {
-                    type = AttributeType.Enum,
+                    type = MemberKind.Enum,
                     required = true,
                     enumId = "enum-test",
                 },
@@ -226,22 +226,22 @@ namespace NeoCompose.Tests
                     new[] { "option-a" },
                     (string[])captured!));
             AssertNormalized(
-                new CustomTypeInfo
+                new ClassTypeInfo
                 {
-                    type = AttributeType.Custom,
+                    type = MemberKind.Class,
                     required = true,
-                    typeId = "type-receiver",
+                    classId = "class-receiver",
                 },
                 new TestValueReference("value-receiver"),
                 captured => Assert.IsInstanceOf<IDictionary<string, object?>>(captured));
             AssertNormalized(
-                new PrimitiveTypeInfo { type = AttributeType.Vector2, required = true },
+                new PrimitiveTypeInfo { type = MemberKind.Vector2, required = true },
                 new Vector2(1.25f, -2.5f),
                 captured => Assert.AreEqual(
                     new Vector2(1.25f, -2.5f),
                     NeoGeneratedTypesSupport.ReadVector2Value(captured)));
             AssertNormalized(
-                new PrimitiveTypeInfo { type = AttributeType.Color, required = true },
+                new PrimitiveTypeInfo { type = MemberKind.Color, required = true },
                 new Color(0.1f, 0.2f, 0.3f, 0.4f),
                 captured => Assert.AreEqual(
                     new Color(0.1f, 0.2f, 0.3f, 0.4f),
@@ -249,7 +249,7 @@ namespace NeoCompose.Tests
             AssertNormalized(
                 new CollectionTypeInfo
                 {
-                    type = AttributeType.List,
+                    type = MemberKind.List,
                     required = true,
                     entryTypeInfo = IntType(),
                 },
@@ -260,11 +260,11 @@ namespace NeoCompose.Tests
             AssertNormalized(
                 new CollectionTypeInfo
                 {
-                    type = AttributeType.Dictionary,
+                    type = MemberKind.Dictionary,
                     required = true,
                     entryTypeInfo = new PrimitiveTypeInfo
                     {
-                        type = AttributeType.String,
+                        type = MemberKind.String,
                         required = false,
                     },
                 },
@@ -275,15 +275,15 @@ namespace NeoCompose.Tests
             AssertNormalized(
                 new LookupTypeInfo
                 {
-                    type = AttributeType.Lookup,
+                    type = MemberKind.Lookup,
                     required = true,
-                    entryTypeInfo = new CustomTypeInfo
+                    entryTypeInfo = new ClassTypeInfo
                     {
-                        type = AttributeType.Custom,
+                        type = MemberKind.Class,
                         required = true,
-                        typeId = "type-receiver",
+                        classId = "class-receiver",
                     },
-                    collectionAttributeId = "attribute-receiver-value",
+                    collectionMemberId = "member-receiver-value",
                 },
                 new[] { new TestValueReference("value-receiver") },
                 captured =>
@@ -295,15 +295,15 @@ namespace NeoCompose.Tests
             AssertNormalized(
                 new GenericTypeInfo
                 {
-                    type = AttributeType.Generic,
+                    type = MemberKind.Generic,
                     required = true,
-                    ownerTypeId = "type-generic",
+                    ownerClassId = "class-generic",
                     genericParamId = "param-t",
                 },
                 "generic-value",
                 captured => Assert.AreEqual("generic-value", captured));
             AssertNormalized(
-                new PrimitiveTypeInfo { type = AttributeType.String, required = false },
+                new PrimitiveTypeInfo { type = MemberKind.String, required = false },
                 null,
                 captured => Assert.IsNull(captured));
         }
@@ -311,11 +311,11 @@ namespace NeoCompose.Tests
         [Test]
         public void ActionAssignment_InvokesPropertySetter()
         {
-            var client = BuildClient(out NSPropertyAttribute property);
+            var client = BuildClient(out NSPropertyMember property);
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Asset,
                 "value-receiver",
-                out ObjectAttributeValue? receiverRow));
+                out ObjectMemberValue? receiverRow));
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             var root = RuntimeRoot(client, ctx);
             ctx = ctx.WithRoot(root);
@@ -331,8 +331,8 @@ namespace NeoCompose.Tests
                     pointer = new CallGetterPointer
                     {
                         type = PointerKind.CallGetter,
-                        attributeId = property.id,
-                        thisPointer = ThisVariable(),
+                        memberId = property.id,
+                        receiver = CallReceiver.Instance(ThisVariable()),
                     },
                     typeInfo = IntType(),
                     writability = WritabilityKind.Setter,
@@ -356,15 +356,15 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "value-target",
-                out NumberAttributeValue? target));
+                out NumberMemberValue? target));
             Assert.AreEqual(64, target!.value);
         }
 
         [Test]
         public void ActionCompoundAssignment_ReadsGetterThenInvokesSetter()
         {
-            var client = BuildClient(out NSPropertyAttribute property);
-            client.SetSaveValue(new NumberAttributeValue
+            var client = BuildClient(out NSPropertyMember property);
+            client.SetSaveValue(new NumberMemberValue
             {
                 id = "value-target",
                 value = 10,
@@ -374,7 +374,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Asset,
                 "value-receiver",
-                out ObjectAttributeValue? receiverRow));
+                out ObjectMemberValue? receiverRow));
             var ctx = new NSGetterEvaluator.Context(client, null, null);
             var root = RuntimeRoot(client, ctx);
             ctx = ctx.WithRoot(root);
@@ -385,8 +385,8 @@ namespace NeoCompose.Tests
             var callProperty = new CallGetterPointer
             {
                 type = PointerKind.CallGetter,
-                attributeId = property.id,
-                thisPointer = ThisVariable(),
+                memberId = property.id,
+                receiver = CallReceiver.Instance(ThisVariable()),
             };
             var action = Function(new AssignInstruction
             {
@@ -419,7 +419,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "value-target",
-                out NumberAttributeValue? target));
+                out NumberMemberValue? target));
             Assert.AreEqual(16, target!.value);
         }
 
@@ -435,8 +435,8 @@ namespace NeoCompose.Tests
                         pointer = new CallGetterPointer
                         {
                             type = PointerKind.CallGetter,
-                            attributeId = "attribute-property",
-                            thisPointer = ThisVariable(),
+                            memberId = "member-property",
+                            receiver = CallReceiver.Instance(ThisVariable()),
                         },
                         typeInfo = IntType(),
                         writability = WritabilityKind.Setter,
@@ -445,9 +445,9 @@ namespace NeoCompose.Tests
                     pointer = ValueVariable(),
                 });
             var client = BuildClient(
-                out NSPropertyAttribute property,
+                out NSPropertyMember property,
                 baseSetter: recursiveSetter);
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var node = new NeoMemberNSProperty(client, property, null);
             LogAssert.Expect(
                 LogType.Error,
                 new Regex("Circular setter call: 'Computed'.*", RegexOptions.Singleline));
@@ -463,19 +463,19 @@ namespace NeoCompose.Tests
         public void Set_DeferredFunctionCompletesInlineWithoutPendingWarning()
         {
             var client = BuildClient(
-                out NSPropertyAttribute property,
+                out NSPropertyMember property,
                 baseSetter: SetterCallingDeferredThenWritingTarget());
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attribute-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, deferred) =>
                         NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
                                 "DeferredSetterFunction")
                             .Complete(),
                 });
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var node = new NeoMemberNSProperty(client, property, null);
 
             NSSetterResult result = node.Set("value-receiver", 17);
 
@@ -484,7 +484,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "value-target",
-                out NumberAttributeValue? target));
+                out NumberMemberValue? target));
             Assert.AreEqual(17, target!.value);
         }
 
@@ -492,19 +492,19 @@ namespace NeoCompose.Tests
         public void Set_DeferredFunctionFailsInlineWithoutPendingWarning()
         {
             var client = BuildClient(
-                out NSPropertyAttribute property,
+                out NSPropertyMember property,
                 baseSetter: SetterCallingDeferredThenWritingTarget());
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attribute-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, deferred) =>
                         NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
                                 "DeferredSetterFunction")
                             .Fail(new InvalidOperationException("inline boom")),
                 });
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var node = new NeoMemberNSProperty(client, property, null);
             LogAssert.Expect(LogType.Error, new Regex("inline boom"));
 
             NSSetterResult result = node.Set("value-receiver", 17);
@@ -518,23 +518,23 @@ namespace NeoCompose.Tests
         public void Set_DeferredFunctionReturnsPendingWarnsOnceAndResumes()
         {
             var client = BuildClient(
-                out NSPropertyAttribute property,
+                out NSPropertyMember property,
                 baseSetter: SetterCallingDeferredThenWritingTarget());
             NeoDeferredFunction? pending = null;
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attribute-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
                                 "DeferredSetterFunction"),
                 });
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var node = new NeoMemberNSProperty(client, property, null);
             LogAssert.Expect(
                 LogType.Warning,
                 new Regex(
-                    "Computed.*attribute-property.*DeferredSetterFunction.*attribute-deferred.*did not call Complete/Fail inline",
+                    "Computed.*member-property.*DeferredSetterFunction.*member-deferred.*did not call Complete/Fail inline",
                     RegexOptions.Singleline));
 
             NSSetterResult result = node.Set("value-receiver", 29);
@@ -545,7 +545,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "value-target",
-                out NumberAttributeValue? before));
+                out NumberMemberValue? before));
             Assert.AreEqual(0, before!.value);
 
             pending!.Complete();
@@ -553,7 +553,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "value-target",
-                out NumberAttributeValue? after));
+                out NumberMemberValue? after));
             Assert.AreEqual(29, after!.value);
         }
 
@@ -561,19 +561,19 @@ namespace NeoCompose.Tests
         public void Set_NeverCompletingDeferredFunctionWarnsOnceAndStaysPending()
         {
             var client = BuildClient(
-                out NSPropertyAttribute property,
+                out NSPropertyMember property,
                 baseSetter: SetterCallingDeferredThenWritingTarget());
             NeoDeferredFunction? pending = null;
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attribute-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
                                 "DeferredSetterFunction"),
                 });
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var node = new NeoMemberNSProperty(client, property, null);
             LogAssert.Expect(LogType.Warning, new Regex("did not call Complete/Fail inline"));
 
             NSSetterResult result = node.Set("value-receiver", 41);
@@ -589,19 +589,19 @@ namespace NeoCompose.Tests
         public void Set_DeferredFailureLogsExactlyOneTerminalError()
         {
             var client = BuildClient(
-                out NSPropertyAttribute property,
+                out NSPropertyMember property,
                 baseSetter: SetterCallingDeferredThenWritingTarget());
             NeoDeferredFunction? pending = null;
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attribute-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
                                 "DeferredSetterFunction"),
                 });
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var node = new NeoMemberNSProperty(client, property, null);
             LogAssert.Expect(LogType.Warning, new Regex("did not call Complete/Fail inline"));
             NSSetterResult result = node.Set("value-receiver", 31);
             Assert.IsTrue(result.pending);
@@ -614,7 +614,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "value-target",
-                out NumberAttributeValue? target));
+                out NumberMemberValue? target));
             Assert.AreEqual(0, target!.value);
         }
 
@@ -629,19 +629,19 @@ namespace NeoCompose.Tests
                     pointer = StringLiteral("after resume boom"),
                 });
             var client = BuildClient(
-                out NSPropertyAttribute property,
+                out NSPropertyMember property,
                 baseSetter: setter);
             NeoDeferredFunction? pending = null;
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
-                    ["attribute-deferred"] = (_, _, _, deferred) =>
+                    ["member-deferred"] = (_, _, _, deferred) =>
                         pending = NeoGeneratedTypesSupport
                             .ResolveDeferredFunction<NeoDeferredFunction>(
                                 deferred,
                                 "DeferredSetterFunction"),
                 });
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var node = new NeoMemberNSProperty(client, property, null);
             LogAssert.Expect(LogType.Warning, new Regex("did not call Complete/Fail inline"));
             NSSetterResult result = node.Set("value-receiver", 31);
             Assert.IsTrue(result.pending);
@@ -659,19 +659,19 @@ namespace NeoCompose.Tests
         {
             object? captured = null;
             var client = BuildClient(
-                out NSPropertyAttribute property,
+                out NSPropertyMember property,
                 baseSetter: SetterCallingCaptureFunction(),
                 propertyType: typeInfo);
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
                 {
-                    ["attribute-capture"] = (_, _, args) =>
+                    ["member-capture"] = (_, _, args) =>
                     {
                         captured = args[0];
                         return null;
                     },
                 });
-            var node = new NeoAttributeNSProperty(client, property, null);
+            var node = new NeoMemberNSProperty(client, property, null);
 
             NSSetterResult result = node.Set("value-receiver", input);
 
@@ -681,65 +681,65 @@ namespace NeoCompose.Tests
         }
 
         private static NeoClient BuildClient(
-            out NSPropertyAttribute baseProperty,
+            out NSPropertyMember baseProperty,
             FunctionWithReturnType? baseSetter = null,
             FunctionWithReturnType? derivedSetter = null,
             TypeInfo? propertyType = null)
         {
             baseSetter ??= SetterWritingTarget(ValueVariable());
             propertyType ??= IntType();
-            var rootAssets = CustomAttribute(
-                "attribute-root-assets",
+            var rootAssets = ClassMember(
+                "member-root-assets",
                 "Assets",
-                "type-root",
+                "class-root",
                 "value-assets");
-            var rootSave = CustomAttribute(
-                "attribute-root-save",
+            var rootSave = ClassMember(
+                "member-root-save",
                 "Save",
-                "type-root",
+                "class-root",
                 "value-save",
                 "save");
-            var rootSession = CustomAttribute(
-                "attribute-root-session",
+            var rootSession = ClassMember(
+                "member-root-session",
                 "Session",
-                "type-root",
+                "class-root",
                 "value-session",
                 "session");
-            var receiverAttribute = CustomAttribute(
-                "attribute-receiver-value",
+            var receiverMember = ClassMember(
+                "member-receiver-value",
                 "Receiver",
-                "type-receiver",
+                "class-receiver",
                 "value-receiver");
-            var targetAttribute = new IntAttribute
+            var targetMember = new IntMember
             {
-                id = "attribute-target",
+                id = "member-target",
                 projectId = "project-setter",
                 name = "Target",
-                type = AttributeType.Int,
+                kind = MemberKind.Int,
                 valueId = "value-target",
                 createdAt = "x",
                 updatedAt = "x",
             };
             baseProperty = Property(
-                "attribute-property",
+                "member-property",
                 "Computed",
                 baseSetter,
                 returnTypeInfo: propertyType);
             var derivedProperty = Property(
-                "attribute-derived-property",
+                "member-derived-property",
                 "Computed",
                 derivedSetter,
                 baseProperty.id,
                 propertyType);
-            var captureFunction = new FunctionAttribute
+            var captureFunction = new FunctionMember
             {
-                id = "attribute-capture",
+                id = "member-capture",
                 projectId = "project-setter",
                 name = "CaptureSetterValue",
-                type = AttributeType.Function,
+                kind = MemberKind.Function,
                 returnTypeInfo = new VoidTypeInfo
                 {
-                    type = AttributeType.Void,
+                    type = MemberKind.Void,
                     required = true,
                 },
                 argumentTypes = new[]
@@ -750,15 +750,15 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var deferredFunction = new FunctionAttribute
+            var deferredFunction = new FunctionMember
             {
-                id = "attribute-deferred",
+                id = "member-deferred",
                 projectId = "project-setter",
                 name = "DeferredSetterFunction",
-                type = AttributeType.Function,
+                kind = MemberKind.Function,
                 returnTypeInfo = new VoidTypeInfo
                 {
-                    type = AttributeType.Void,
+                    type = MemberKind.Void,
                     required = true,
                 },
                 argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
@@ -773,95 +773,95 @@ namespace NeoCompose.Tests
                 {
                     id = "project-setter",
                     name = "Setter Tests",
-                    rootAssetsAttributeId = rootAssets.id,
-                    rootSaveFileAttributeId = rootSave.id,
-                    rootSessionAttributeId = rootSession.id,
+                    rootAssetsMemberId = rootAssets.id,
+                    rootSaveFileMemberId = rootSave.id,
+                    rootSessionMemberId = rootSession.id,
                     createdAt = "x",
                     updatedAt = "x",
                 },
-                attributes = new Dictionary<string, JsonAttribute>
+                members = new Dictionary<string, JsonMember>
                 {
                     [rootAssets.id] = rootAssets,
                     [rootSave.id] = rootSave,
                     [rootSession.id] = rootSession,
-                    [receiverAttribute.id] = receiverAttribute,
-                    [targetAttribute.id] = targetAttribute,
+                    [receiverMember.id] = receiverMember,
+                    [targetMember.id] = targetMember,
                     [baseProperty.id] = baseProperty,
                     [derivedProperty.id] = derivedProperty,
                     [captureFunction.id] = captureFunction,
                     [deferredFunction.id] = deferredFunction,
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    ["value-assets"] = ObjectValue("value-assets", "type-root"),
+                    ["value-assets"] = ObjectValue("value-assets", "class-root"),
                     ["value-save"] = ObjectValue(
                         "value-save",
-                        "type-root",
+                        "class-root",
                         ("Target", "value-target")),
                     ["value-session"] = ObjectValue(
                         "value-session",
-                        "type-root",
+                        "class-root",
                         ("Target", "value-session-target")),
-                    ["value-target"] = new NumberAttributeValue
+                    ["value-target"] = new NumberMemberValue
                     {
                         id = "value-target",
                         value = 0,
                         createdAt = "x",
                         updatedAt = "x",
                     },
-                    ["value-session-target"] = new NumberAttributeValue
+                    ["value-session-target"] = new NumberMemberValue
                     {
                         id = "value-session-target",
                         value = 0,
                         createdAt = "x",
                         updatedAt = "x",
                     },
-                    ["value-receiver"] = ObjectValue("value-receiver", "type-receiver"),
+                    ["value-receiver"] = ObjectValue("value-receiver", "class-receiver"),
                     ["value-derived-receiver"] = ObjectValue(
                         "value-derived-receiver",
-                        "type-derived-receiver"),
+                        "class-derived-receiver"),
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    ["type-root"] = CustomType(
-                        "type-root",
+                    ["class-root"] = NeoSchemaClass(
+                        "class-root",
                         "Root",
-                        ("Target", targetAttribute.id)),
-                    ["type-receiver"] = CustomType(
-                        "type-receiver",
+                        ("Target", targetMember.id)),
+                    ["class-receiver"] = NeoSchemaClass(
+                        "class-receiver",
                         "Receiver",
                         ("Computed", baseProperty.id)),
-                    ["type-derived-receiver"] = CustomType(
-                        "type-derived-receiver",
+                    ["class-derived-receiver"] = NeoSchemaClass(
+                        "class-derived-receiver",
                         "DerivedReceiver",
                         ("Computed", derivedProperty.id),
-                        extendsTypeId: "type-receiver"),
+                        extendsClassId: "class-receiver"),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
             return NeoTestSaveStack.ClientFromSchema(data);
         }
 
-        private static NSPropertyAttribute Property(
+        private static NSPropertyMember Property(
             string id,
             string name,
             FunctionWithReturnType? setter,
-            string? extendsAttributeId = null,
+            string? extendsMemberId = null,
             TypeInfo? returnTypeInfo = null)
         {
             returnTypeInfo ??= IntType();
-            return new NSPropertyAttribute
+            return new NSPropertyMember
             {
                 id = id,
                 projectId = "project-setter",
                 name = name,
-                type = AttributeType.NSProperty,
+                kind = MemberKind.NSProperty,
                 code = "return 0;",
                 getter = GetterFunction(),
                 returnTypeInfo = returnTypeInfo,
                 setterCode = setter is null ? null : "root.Save.Target = value;",
                 setter = setter,
-                extendsAttributeId = extendsAttributeId,
+                extendsMemberId = extendsMemberId,
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -887,7 +887,7 @@ namespace NeoCompose.Tests
                 name = name,
                 type = typeInfo.type,
                 required = typeInfo.required,
-                typeId = (typeInfo as CustomTypeInfo)?.typeId,
+                classId = (typeInfo as ClassTypeInfo)?.classId,
                 interfaceId = (typeInfo as InterfaceTypeInfo)?.interfaceId,
                 enumId = (typeInfo as EnumTypeInfo)?.enumId,
                 entryTypeInfo = typeInfo switch
@@ -896,11 +896,11 @@ namespace NeoCompose.Tests
                     LookupTypeInfo lookup => lookup.entryTypeInfo,
                     _ => null,
                 },
-                collectionAttributeId = (typeInfo as LookupTypeInfo)?.collectionAttributeId,
+                collectionMemberId = (typeInfo as LookupTypeInfo)?.collectionMemberId,
                 collectionValueId = (typeInfo as LookupTypeInfo)?.collectionValueId,
-                ownerTypeId = (typeInfo as GenericTypeInfo)?.ownerTypeId,
+                ownerClassId = (typeInfo as GenericTypeInfo)?.ownerClassId,
                 genericParamId = (typeInfo as GenericTypeInfo)?.genericParamId,
-                typeArguments = (typeInfo as CustomTypeInfo)?.typeArguments,
+                typeArguments = (typeInfo as ClassTypeInfo)?.typeArguments,
             };
         }
 
@@ -925,8 +925,8 @@ namespace NeoCompose.Tests
                 call = new CallFunctionPointer
                 {
                     type = PointerKind.CallFunction,
-                    attributeId = "attribute-capture",
-                    thisPointer = ThisVariable(),
+                    memberId = "member-capture",
+                    receiver = CallReceiver.Instance(ThisVariable()),
                     args = new Pointer[] { ValueVariable() },
                     callSiteId = "capture-setter-value",
                 },
@@ -939,8 +939,8 @@ namespace NeoCompose.Tests
             call = new CallFunctionPointer
             {
                 type = PointerKind.CallFunction,
-                attributeId = "attribute-deferred",
-                thisPointer = ThisVariable(),
+                memberId = "member-deferred",
+                receiver = CallReceiver.Instance(ThisVariable()),
                 args = Array.Empty<Pointer>(),
                 callSiteId = "deferred-setter-call",
             },
@@ -965,7 +965,7 @@ namespace NeoCompose.Tests
                 instructions = instructions,
                 typeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.Null,
+                    type = MemberKind.Null,
                     required = true,
                 },
             };
@@ -986,7 +986,7 @@ namespace NeoCompose.Tests
 
         private static PrimitiveTypeInfo IntType() => new()
         {
-            type = AttributeType.Int,
+            type = MemberKind.Int,
             required = true,
         };
 
@@ -1041,7 +1041,7 @@ namespace NeoCompose.Tests
             {
                 typeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.String,
+                    type = MemberKind.String,
                     required = true,
                 },
                 value = JToken.FromObject(value),
@@ -1058,20 +1058,20 @@ namespace NeoCompose.Tests
             },
         };
 
-        private static CustomAttribute CustomAttribute(
+        private static ClassMember ClassMember(
             string id,
             string name,
-            string typeId,
+            string classId,
             string valueId,
             string? storage = null)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = "project-setter",
                 name = name,
-                type = AttributeType.Custom,
-                customTypeId = typeId,
+                kind = MemberKind.Class,
+                classId = classId,
                 valueId = valueId,
                 storage = storage,
                 createdAt = "x",
@@ -1079,38 +1079,38 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static CustomType CustomType(
+        private static NeoSchemaClass NeoSchemaClass(
             string id,
             string name,
-            (string key, string attributeId) schema,
-            string? extendsTypeId = null)
+            (string key, string memberId) schema,
+            string? extendsClassId = null)
         {
-            return new CustomType
+            return new NeoSchemaClass
             {
                 id = id,
                 projectId = "project-setter",
                 name = name,
                 schema = new Dictionary<string, string>
                 {
-                    [schema.key] = schema.attributeId,
+                    [schema.key] = schema.memberId,
                 },
-                extendsTypeId = extendsTypeId,
+                extendsClassId = extendsClassId,
                 createdAt = "x",
                 updatedAt = "x",
             };
         }
 
-        private static ObjectAttributeValue ObjectValue(
+        private static ObjectMemberValue ObjectValue(
             string id,
-            string typeId,
+            string classId,
             params (string key, string valueId)[] entries)
         {
             var value = new Dictionary<string, string>();
             foreach (var entry in entries) value[entry.key] = entry.valueId;
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = typeId,
+                classId = classId,
                 value = value,
                 createdAt = "x",
                 updatedAt = "x",
@@ -1123,19 +1123,19 @@ namespace NeoCompose.Tests
         {
             return new Dictionary<string, object?>
             {
-                ["Assets"] = client.assets.value is ObjectAttributeValue assets
+                ["Assets"] = client.assets.value is ObjectMemberValue assets
                     ? NSGetterEvaluator.UnwrapRow(
                         assets,
                         ctx,
                         NeoValueOwnership.Asset)
                     : null,
-                ["Save"] = client.save.value is ObjectAttributeValue save
+                ["Save"] = client.save.value is ObjectMemberValue save
                     ? NSGetterEvaluator.UnwrapRow(
                         save,
                         ctx,
                         NeoValueOwnership.Save)
                     : null,
-                ["Session"] = client.session.value is ObjectAttributeValue session
+                ["Session"] = client.session.value is ObjectMemberValue session
                     ? NSGetterEvaluator.UnwrapRow(
                         session,
                         ctx,

@@ -12,46 +12,46 @@ using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using JsonAttribute = NeoCompose.Runtime.Json.Attribute;
+using JsonMember = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Tests
 {
     public class NSFunctionRuntimeTests
     {
         [Test]
-        public void AttributeDto_UsesOrdinal23AndGeneralFunctionCallIr()
+        public void MemberDto_UsesOrdinal23AndGeneralFunctionCallIr()
         {
             const string json = @"{
-                'id':'fn','projectId':'project-function','name':'Compute','type':23,'isStatic':false,
+                'id':'fn','projectId':'project-function','name':'Compute','kind':23,'isStatic':false,
                 'code':'return RequiredLevel;','returnTypeInfo':{'type':2,'required':true},
                 'argumentTypes':[{'name':'RequiredLevel','type':2,'required':true}],
                 'deferred':false,'createdAt':'x','updatedAt':'x',
                 'action':{
                     'parameters':[
-                        {'id':'__this__','typeInfo':{'type':7,'required':true,'typeId':'receiver-type'},'pointer':{'type':'variable','variableId':'__this__'}},
-                        {'id':'__root__','typeInfo':{'type':7,'required':true,'typeId':'root-type'},'pointer':{'type':'variable','variableId':'__root__'}},
+                        {'id':'__this__','typeInfo':{'type':7,'required':true,'classId':'receiver-class'},'pointer':{'type':'variable','variableId':'__this__'}},
+                        {'id':'__root__','typeInfo':{'type':7,'required':true,'classId':'root-class'},'pointer':{'type':'variable','variableId':'__root__'}},
                         {'id':'__arg_0__','typeInfo':{'type':2,'required':true},'pointer':{'type':'variable','variableId':'__arg_0__'}}
                     ],
-                    'instructions':[{'type':'return','pointer':{'type':'callFunction','attributeId':'other','thisPointer':{'type':'variable','variableId':'__this__'},'args':[],'callSiteId':'call-0'}}],
+                    'instructions':[{'type':'return','pointer':{'type':'callFunction','memberId':'other','receiver':{'kind':'instance','pointer':{'type':'variable','variableId':'__this__'}},'args':[],'callSiteId':'call-0'}}],
                     'typeInfo':{'type':2,'required':true}
                 }
             }";
 
-            JsonAttribute attribute = JsonConvert.DeserializeObject<JsonAttribute>(json)!;
+            JsonMember member = JsonConvert.DeserializeObject<JsonMember>(json)!;
 
-            var function = (NSFunctionAttribute)attribute;
-            Assert.AreEqual((AttributeType)23, function.type);
+            var function = (NSFunctionMember)member;
+            Assert.AreEqual((MemberKind)23, function.kind);
             Assert.AreEqual("RequiredLevel", function.argumentTypes[0].name);
             var call = (CallFunctionPointer)((ReturnInstruction)function.action.instructions[0]).pointer!;
             Assert.AreEqual("call-0", call.callSiteId);
-            StringAssert.Contains("\"type\":23", JsonConvert.SerializeObject(attribute));
+            StringAssert.Contains("\"kind\":23", JsonConvert.SerializeObject(member));
         }
 
         [Test]
         public void Invoke_BindsTypedArgumentsAndReturnsValue()
         {
-            FunctionArgumentTypeInfo argument = Argument("RequiredLevel", AttributeType.Int);
-            NSFunctionAttribute function = ScriptFunction(
+            FunctionArgumentTypeInfo argument = Argument("RequiredLevel", MemberKind.Int);
+            NSFunctionMember function = ScriptFunction(
                 "fn-identity",
                 "Identity",
                 deferred: false,
@@ -67,8 +67,8 @@ namespace NeoCompose.Tests
                     }));
             NeoClient client = BuildClient(
                 new[] { function },
-                ReceiverType(("Identity", function.id)));
-            var node = new NeoAttributeNSFunction(client, function, null);
+                ReceiverClass(("Identity", function.id)));
+            var node = new NeoMemberNSFunction(client, function, null);
 
             object? result = node.Invoke("receiver-value", new object?[] { 9 });
 
@@ -90,8 +90,8 @@ namespace NeoCompose.Tests
         {
             FunctionArgumentTypeInfo floatArgument = Argument(
                 "FloatValue",
-                AttributeType.Float);
-            NSFunctionAttribute floatArgumentFunction = ScriptFunction(
+                MemberKind.Float);
+            NSFunctionMember floatArgumentFunction = ScriptFunction(
                 "fn-finite-float-argument",
                 "FiniteFloatArgument",
                 deferred: false,
@@ -103,8 +103,8 @@ namespace NeoCompose.Tests
                     Return(Number(1))));
             FunctionArgumentTypeInfo intArgument = Argument(
                 "IntValue",
-                AttributeType.Int);
-            NSFunctionAttribute intArgumentFunction = ScriptFunction(
+                MemberKind.Int);
+            NSFunctionMember intArgumentFunction = ScriptFunction(
                 "fn-finite-int-argument",
                 "FiniteIntArgument",
                 deferred: false,
@@ -121,21 +121,21 @@ namespace NeoCompose.Tests
                 double.PositiveInfinity,
                 double.NegativeInfinity,
             };
-            var functions = new List<JsonAttribute>
+            var functions = new List<JsonMember>
             {
                 floatArgumentFunction,
                 intArgumentFunction,
             };
-            var members = new List<(string key, string attributeId)>
+            var members = new List<(string key, string memberId)>
             {
                 (floatArgumentFunction.name, floatArgumentFunction.id),
                 (intArgumentFunction.name, intArgumentFunction.id),
             };
-            var floatReturns = new List<NSFunctionAttribute>();
-            var intReturns = new List<NSFunctionAttribute>();
+            var floatReturns = new List<NSFunctionMember>();
+            var intReturns = new List<NSFunctionMember>();
             for (int i = 0; i < nonFinite.Length; i++)
             {
-                NSFunctionAttribute floatReturn = ScriptFunction(
+                NSFunctionMember floatReturn = ScriptFunction(
                     $"fn-non-finite-float-return-{i}",
                     $"NonFiniteFloatReturn{i}",
                     deferred: false,
@@ -145,7 +145,7 @@ namespace NeoCompose.Tests
                         FloatType(),
                         Array.Empty<FunctionArgumentTypeInfo>(),
                         Return(Floating(nonFinite[i], FloatType()))));
-                NSFunctionAttribute intReturn = ScriptFunction(
+                NSFunctionMember intReturn = ScriptFunction(
                     $"fn-non-finite-int-return-{i}",
                     $"NonFiniteIntReturn{i}",
                     deferred: false,
@@ -164,36 +164,36 @@ namespace NeoCompose.Tests
             }
             NeoClient client = BuildClient(
                 functions.ToArray(),
-                ReceiverType(members.ToArray()));
+                ReceiverClass(members.ToArray()));
 
             foreach (double value in nonFinite)
             {
                 Assert.Throws<NSGetterRuntimeError>(() =>
-                    new NeoAttributeNSFunction(
+                    new NeoMemberNSFunction(
                         client,
                         floatArgumentFunction,
                         null).Invoke(
                             "receiver-value",
                             new object?[] { value }));
                 Assert.Throws<NSGetterRuntimeError>(() =>
-                    new NeoAttributeNSFunction(
+                    new NeoMemberNSFunction(
                         client,
                         intArgumentFunction,
                         null).Invoke(
                             "receiver-value",
                             new object?[] { value }));
             }
-            foreach (NSFunctionAttribute function in floatReturns)
+            foreach (NSFunctionMember function in floatReturns)
             {
                 Assert.Throws<InvalidOperationException>(() =>
-                    new NeoAttributeNSFunction(client, function, null).Invoke(
+                    new NeoMemberNSFunction(client, function, null).Invoke(
                         "receiver-value",
                         Array.Empty<object?>()));
             }
-            foreach (NSFunctionAttribute function in intReturns)
+            foreach (NSFunctionMember function in intReturns)
             {
                 Assert.Throws<InvalidOperationException>(() =>
-                    new NeoAttributeNSFunction(client, function, null).Invoke(
+                    new NeoMemberNSFunction(client, function, null).Invoke(
                         "receiver-value",
                         Array.Empty<object?>()));
             }
@@ -205,15 +205,15 @@ namespace NeoCompose.Tests
             const string enumId = "enum-required-level";
             var returnType = new EnumTypeInfo
             {
-                type = AttributeType.Enum,
+                type = MemberKind.Enum,
                 required = true,
                 enumId = enumId,
             };
             FunctionArgumentTypeInfo argument = Argument(
                 "RequiredLevel",
-                AttributeType.Enum);
+                MemberKind.Enum);
             argument.enumId = enumId;
-            NSFunctionAttribute function = ScriptFunction(
+            NSFunctionMember function = ScriptFunction(
                 "fn-enum-identity",
                 "EnumIdentity",
                 deferred: false,
@@ -224,9 +224,9 @@ namespace NeoCompose.Tests
                     new[] { argument },
                     Return(Variable("__arg_0__"))));
             NeoClient client = BuildClient(
-                new JsonAttribute[] { function },
-                ReceiverType(("EnumIdentity", function.id)));
-            var node = new NeoAttributeNSFunction(client, function, null);
+                new JsonMember[] { function },
+                ReceiverClass(("EnumIdentity", function.id)));
+            var node = new NeoMemberNSFunction(client, function, null);
 
             object? result = node.Invoke(
                 "receiver-value",
@@ -241,13 +241,13 @@ namespace NeoCompose.Tests
         {
             var dialogueType = new PrimitiveTypeInfo
             {
-                type = AttributeType.DialogueLookup,
+                type = MemberKind.DialogueLookup,
                 required = true,
             };
             FunctionArgumentTypeInfo dialogueArgument = Argument(
                 "Dialogue",
-                AttributeType.DialogueLookup);
-            NSFunctionAttribute singleFunction = ScriptFunction(
+                MemberKind.DialogueLookup);
+            NSFunctionMember singleFunction = ScriptFunction(
                 "fn-dialogue-identity",
                 "DialogueIdentity",
                 deferred: false,
@@ -260,20 +260,20 @@ namespace NeoCompose.Tests
 
             var stringType = new PrimitiveTypeInfo
             {
-                type = AttributeType.String,
+                type = MemberKind.String,
                 required = true,
             };
             var dialogueListType = new CollectionTypeInfo
             {
-                type = AttributeType.List,
+                type = MemberKind.List,
                 required = true,
                 entryTypeInfo = stringType,
             };
             FunctionArgumentTypeInfo dialogueListArgument = Argument(
                 "Dialogues",
-                AttributeType.List);
+                MemberKind.List);
             dialogueListArgument.entryTypeInfo = stringType;
-            NSFunctionAttribute listFunction = ScriptFunction(
+            NSFunctionMember listFunction = ScriptFunction(
                 "fn-dialogue-list-identity",
                 "DialogueListIdentity",
                 deferred: false,
@@ -285,12 +285,12 @@ namespace NeoCompose.Tests
                     Return(Variable("__arg_0__"))));
 
             NeoClient client = BuildClient(
-                new JsonAttribute[] { singleFunction, listFunction },
-                ReceiverType(
+                new JsonMember[] { singleFunction, listFunction },
+                ReceiverClass(
                     ("DialogueIdentity", singleFunction.id),
                     ("DialogueListIdentity", listFunction.id)));
 
-            object? singleResult = new NeoAttributeNSFunction(
+            object? singleResult = new NeoMemberNSFunction(
                 client,
                 singleFunction,
                 null).Invoke(
@@ -300,7 +300,7 @@ namespace NeoCompose.Tests
                 new[] { "dialogue-1" },
                 (object?[])singleResult!);
 
-            object? listResult = new NeoAttributeNSFunction(
+            object? listResult = new NeoMemberNSFunction(
                 client,
                 listFunction,
                 null).Invoke(
@@ -318,11 +318,11 @@ namespace NeoCompose.Tests
                 (object?[])listResult!);
 
             Assert.Throws<NSGetterRuntimeError>(() =>
-                new NeoAttributeNSFunction(client, singleFunction, null).Invoke(
+                new NeoMemberNSFunction(client, singleFunction, null).Invoke(
                     "receiver-value",
                     new object?[] { "dialogue-1" }));
             Assert.Throws<NSGetterRuntimeError>(() =>
-                new NeoAttributeNSFunction(client, singleFunction, null).Invoke(
+                new NeoMemberNSFunction(client, singleFunction, null).Invoke(
                     "receiver-value",
                     new object?[]
                     {
@@ -333,27 +333,27 @@ namespace NeoCompose.Tests
                         },
                     }));
 
-            FunctionAttribute deserialized =
-                JsonConvert.DeserializeObject<FunctionAttribute>(
-                    "{'type':13,'isStatic':false,'returnTypeInfo':{'type':18,'required':true}}")!;
+            FunctionMember deserialized =
+                JsonConvert.DeserializeObject<FunctionMember>(
+                    "{'kind':13,'isStatic':false,'returnTypeInfo':{'type':18,'required':true}}")!;
             Assert.AreEqual(
-                AttributeType.DialogueLookup,
+                MemberKind.DialogueLookup,
                 deserialized.returnTypeInfo.type);
         }
 
         [Test]
         public void Invoke_MarshalsReceiverGenericDecimalReturn()
         {
-            const string genericTypeId = "generic-decimal-receiver-type";
+            const string genericClassId = "generic-decimal-receiver-class";
             const string genericParamId = "generic-decimal-receiver-param";
             var returnType = new GenericTypeInfo
             {
-                type = AttributeType.Generic,
+                type = MemberKind.Generic,
                 required = true,
-                ownerTypeId = genericTypeId,
+                ownerClassId = genericClassId,
                 genericParamId = genericParamId,
             };
-            NSFunctionAttribute function = ScriptFunction(
+            NSFunctionMember function = ScriptFunction(
                 "fn-generic-decimal-return",
                 "GenericDecimalReturn",
                 deferred: false,
@@ -363,19 +363,19 @@ namespace NeoCompose.Tests
                     returnType,
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Number(7))));
-            var binding = new DecimalAttribute
+            var binding = new DecimalMember
             {
-                id = "attr-generic-decimal-binding",
+                id = "member-generic-decimal-binding",
                 projectId = ProjectId,
                 name = "Generic Decimal Binding",
-                type = AttributeType.Decimal,
+                kind = MemberKind.Decimal,
                 required = true,
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var genericType = new CustomType
+            var genericClass = new NeoSchemaClass
             {
-                id = genericTypeId,
+                id = genericClassId,
                 projectId = ProjectId,
                 name = "GenericDecimalReceiver",
                 schema = new Dictionary<string, string>
@@ -389,30 +389,30 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var concreteType = new CustomType
+            var concreteClass = new NeoSchemaClass
             {
-                id = "receiver-type",
+                id = "receiver-class",
                 projectId = ProjectId,
                 name = "ConcreteDecimalReceiver",
                 schema = new Dictionary<string, string>(),
-                extendsTypeId = genericType.id,
+                extendsClassId = genericClass.id,
                 extendsGenericBindings = new Dictionary<string, GenericBinding>
                 {
                     [genericParamId] = new()
                     {
-                        kind = NeoGenericBindingKinds.Attribute,
-                        attributeId = binding.id,
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = binding.id,
                     },
                 },
                 createdAt = "x",
                 updatedAt = "x",
             };
             NeoClient client = BuildClient(
-                new JsonAttribute[] { function, binding },
-                concreteType,
-                new[] { genericType });
+                new JsonMember[] { function, binding },
+                concreteClass,
+                new[] { genericClass });
 
-            object? result = new NeoAttributeNSFunction(
+            object? result = new NeoMemberNSFunction(
                 client,
                 function,
                 null).Invoke(
@@ -423,40 +423,40 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Invoke_RejectsWrongNominalCustomAndNestedListReturnValues()
+        public void Invoke_RejectsWrongNominalClassAndNestedListReturnValues()
         {
-            var expectedType = new CustomType
+            var expectedClass = new NeoSchemaClass
             {
-                id = "expected-return-type",
+                id = "expected-return-class",
                 projectId = ProjectId,
                 name = "ExpectedReturn",
                 schema = new Dictionary<string, string>(),
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var customReturnType = new CustomTypeInfo
+            var classReturnType = new ClassTypeInfo
             {
-                type = AttributeType.Custom,
+                type = MemberKind.Class,
                 required = true,
-                typeId = expectedType.id,
+                classId = expectedClass.id,
             };
-            NSFunctionAttribute wrongCustom = ScriptFunction(
-                "fn-wrong-custom-return",
-                "WrongCustomReturn",
+            NSFunctionMember wrongClass = ScriptFunction(
+                "fn-wrong-class-return",
+                "WrongClassReturn",
                 deferred: false,
-                customReturnType,
+                classReturnType,
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 Action(
-                    customReturnType,
+                    classReturnType,
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Variable("__this__"))));
             var listReturnType = new CollectionTypeInfo
             {
-                type = AttributeType.List,
+                type = MemberKind.List,
                 required = true,
                 entryTypeInfo = IntType(),
             };
-            NSFunctionAttribute wrongList = ScriptFunction(
+            NSFunctionMember wrongList = ScriptFunction(
                 "fn-wrong-list-return",
                 "WrongListReturn",
                 deferred: false,
@@ -475,23 +475,23 @@ namespace NeoCompose.Tests
                         },
                     })));
             NeoClient client = BuildClient(
-                new JsonAttribute[] { wrongCustom, wrongList },
-                ReceiverType(
-                    (wrongCustom.name, wrongCustom.id),
+                new JsonMember[] { wrongClass, wrongList },
+                ReceiverClass(
+                    (wrongClass.name, wrongClass.id),
                     (wrongList.name, wrongList.id)),
-                new[] { expectedType });
+                new[] { expectedClass });
 
-            InvalidOperationException customError =
+            InvalidOperationException classError =
                 Assert.Throws<InvalidOperationException>(() =>
-                    new NeoAttributeNSFunction(
+                    new NeoMemberNSFunction(
                         client,
-                        wrongCustom,
+                        wrongClass,
                         null).Invoke(
                             "receiver-value",
                             Array.Empty<object?>()))!;
-            StringAssert.Contains("expected-return-type", customError.Message);
+            StringAssert.Contains("expected-return-class", classError.Message);
             Assert.Throws<InvalidOperationException>(() =>
-                new NeoAttributeNSFunction(
+                new NeoMemberNSFunction(
                     client,
                     wrongList,
                     null).Invoke(
@@ -502,25 +502,25 @@ namespace NeoCompose.Tests
         [Test]
         public void Invoke_SubstitutesGenericSignatureFromConcreteReceiver()
         {
-            const string genericTypeId = "generic-receiver-type";
+            const string genericClassId = "generic-receiver-class";
             const string genericParamId = "generic-receiver-param";
             const string enumId = "enum-generic-level";
             var returnType = new GenericTypeInfo
             {
-                type = AttributeType.Generic,
+                type = MemberKind.Generic,
                 required = true,
-                ownerTypeId = genericTypeId,
+                ownerClassId = genericClassId,
                 genericParamId = genericParamId,
             };
             var argument = new FunctionArgumentTypeInfo
             {
                 name = "Value",
-                type = AttributeType.Generic,
+                type = MemberKind.Generic,
                 required = true,
-                ownerTypeId = genericTypeId,
+                ownerClassId = genericClassId,
                 genericParamId = genericParamId,
             };
-            NSFunctionAttribute function = ScriptFunction(
+            NSFunctionMember function = ScriptFunction(
                 "fn-generic-identity",
                 "GenericIdentity",
                 deferred: false,
@@ -530,20 +530,20 @@ namespace NeoCompose.Tests
                     returnType,
                     new[] { argument },
                     Return(Variable("__arg_0__"))));
-            var binding = new EnumAttribute
+            var binding = new EnumMember
             {
-                id = "attr-generic-enum-binding",
+                id = "member-generic-enum-binding",
                 projectId = ProjectId,
                 name = "Generic Enum Binding",
-                type = AttributeType.Enum,
+                kind = MemberKind.Enum,
                 enumId = enumId,
                 required = true,
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var genericType = new CustomType
+            var genericClass = new NeoSchemaClass
             {
-                id = genericTypeId,
+                id = genericClassId,
                 projectId = ProjectId,
                 name = "GenericReceiver",
                 schema = new Dictionary<string, string>
@@ -561,28 +561,28 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var concreteType = new CustomType
+            var concreteClass = new NeoSchemaClass
             {
-                id = "receiver-type",
+                id = "receiver-class",
                 projectId = ProjectId,
                 name = "ConcreteReceiver",
                 schema = new Dictionary<string, string>(),
-                extendsTypeId = genericType.id,
+                extendsClassId = genericClass.id,
                 extendsGenericBindings = new Dictionary<string, GenericBinding>
                 {
                     [genericParamId] = new()
                     {
-                        kind = NeoGenericBindingKinds.Attribute,
-                        attributeId = binding.id,
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = binding.id,
                     },
                 },
                 createdAt = "x",
                 updatedAt = "x",
             };
             NeoClient client = BuildClient(
-                new JsonAttribute[] { function, binding },
-                concreteType,
-                new[] { genericType });
+                new JsonMember[] { function, binding },
+                concreteClass,
+                new[] { genericClass });
             var ctx = new NSGetterEvaluator.Context(
                 client,
                 thisValue: null,
@@ -591,7 +591,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Asset,
                 "receiver-value",
-                out AttributeValue? receiverRow));
+                out MemberValue? receiverRow));
             object receiver = NSGetterEvaluator.UnwrapRow(
                 receiverRow!,
                 ctx,
@@ -612,7 +612,7 @@ namespace NeoCompose.Tests
                     resolvedFunction);
             Assert.AreSame(firstEnv, secondEnv);
             Assert.AreEqual(1, ctx.genericEnvironmentCache.Count);
-            var node = new NeoAttributeNSFunction(client, function, null);
+            var node = new NeoMemberNSFunction(client, function, null);
 
             object? result = node.Invoke(
                 "receiver-value",
@@ -625,31 +625,31 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GenericSignatureSubstitution_ClosesConstructedCustomAndNestedCollectionTypes()
+        public void GenericSignatureSubstitution_ClosesConstructedClassAndNestedCollectionTypes()
         {
             const string functionParamId = "function-param";
             const string forwardedParamId = "forwarded-param";
             const string boxParamId = "box-param";
             const string enumId = "enum-constructed-generic";
-            var enumBinding = new EnumAttribute
+            var enumBinding = new EnumMember
             {
-                id = "attr-constructed-enum-binding",
+                id = "member-constructed-enum-binding",
                 projectId = ProjectId,
                 name = "Constructed Enum Binding",
-                type = AttributeType.Enum,
+                kind = MemberKind.Enum,
                 enumId = enumId,
                 required = true,
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var customBinding = new CustomAttribute
+            var classBinding = new ClassMember
             {
-                id = "attr-constructed-custom-binding",
+                id = "member-constructed-class-binding",
                 projectId = ProjectId,
                 name = "Constructed Box Binding",
-                type = AttributeType.Custom,
-                customTypeId = "box-type",
-                customTypeArguments = new Dictionary<string, GenericBinding>
+                kind = MemberKind.Class,
+                classId = "box-class",
+                classArguments = new Dictionary<string, GenericBinding>
                 {
                     [boxParamId] = new GenericBinding
                     {
@@ -661,9 +661,9 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var boxType = new CustomType
+            var boxClass = new NeoSchemaClass
             {
-                id = "box-type",
+                id = "box-class",
                 projectId = ProjectId,
                 name = "Box",
                 schema = new Dictionary<string, string>(),
@@ -675,26 +675,26 @@ namespace NeoCompose.Tests
                 updatedAt = "x",
             };
             NeoClient client = BuildClient(
-                new JsonAttribute[] { enumBinding, customBinding },
-                ReceiverType(),
-                new[] { boxType });
+                new JsonMember[] { enumBinding, classBinding },
+                ReceiverClass(),
+                new[] { boxClass });
             var env = new Dictionary<string, NeoGenericEnvEntry>
             {
-                [functionParamId] = NeoGenericEnvEntry.Bound(customBinding.id),
+                [functionParamId] = NeoGenericEnvEntry.Bound(classBinding.id),
                 [forwardedParamId] = NeoGenericEnvEntry.Bound(enumBinding.id),
             };
 
-            var direct = (CustomTypeInfo)NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
+            var direct = (ClassTypeInfo)NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
                 client,
                 new GenericTypeInfo
                 {
-                    type = AttributeType.Generic,
+                    type = MemberKind.Generic,
                     required = true,
                     genericParamId = functionParamId,
                 },
                 env);
 
-            Assert.AreEqual(customBinding.customTypeId, direct.typeId);
+            Assert.AreEqual(classBinding.classId, direct.classId);
             Assert.IsNotNull(direct.typeArguments);
             var directEnum = (EnumTypeInfo)direct.typeArguments![boxParamId];
             Assert.AreEqual(enumId, directEnum.enumId);
@@ -703,18 +703,18 @@ namespace NeoCompose.Tests
                 client,
                 new CollectionTypeInfo
                 {
-                    type = AttributeType.List,
+                    type = MemberKind.List,
                     required = true,
-                    entryTypeInfo = new CustomTypeInfo
+                    entryTypeInfo = new ClassTypeInfo
                     {
-                        type = AttributeType.Custom,
+                        type = MemberKind.Class,
                         required = true,
-                        typeId = boxType.id,
+                        classId = boxClass.id,
                         typeArguments = new Dictionary<string, TypeInfo>
                         {
                             [boxParamId] = new GenericTypeInfo
                             {
-                                type = AttributeType.Generic,
+                                type = MemberKind.Generic,
                                 required = true,
                                 genericParamId = forwardedParamId,
                             },
@@ -723,8 +723,8 @@ namespace NeoCompose.Tests
                 },
                 env);
 
-            var nestedCustom = (CustomTypeInfo)nested.entryTypeInfo;
-            var nestedEnum = (EnumTypeInfo)nestedCustom.typeArguments![boxParamId];
+            var nestedClass = (ClassTypeInfo)nested.entryTypeInfo;
+            var nestedEnum = (EnumTypeInfo)nestedClass.typeArguments![boxParamId];
             Assert.AreEqual(enumId, nestedEnum.enumId);
         }
 
@@ -733,35 +733,35 @@ namespace NeoCompose.Tests
         {
             const string functionParamId = "function-param-cycle";
             const string boxParamId = "box-param-cycle";
-            var cyclicBinding = new CustomAttribute
+            var cyclicBinding = new ClassMember
             {
-                id = "attr-cyclic-custom-binding",
+                id = "member-cyclic-class-binding",
                 projectId = ProjectId,
                 name = "Cyclic Box Binding",
-                type = AttributeType.Custom,
-                customTypeId = "cyclic-box-type",
+                kind = MemberKind.Class,
+                classId = "cyclic-box-class",
                 required = true,
                 createdAt = "x",
                 updatedAt = "x",
             };
-            cyclicBinding.customTypeArguments = new Dictionary<string, GenericBinding>
+            cyclicBinding.classArguments = new Dictionary<string, GenericBinding>
             {
                 [boxParamId] = new GenericBinding
                 {
-                    kind = NeoGenericBindingKinds.Attribute,
-                    attributeId = cyclicBinding.id,
+                    kind = NeoGenericBindingKinds.Member,
+                    memberId = cyclicBinding.id,
                 },
             };
             NeoClient client = BuildClient(
-                new JsonAttribute[] { cyclicBinding },
-                ReceiverType());
+                new JsonMember[] { cyclicBinding },
+                ReceiverClass());
 
             NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
                 NeoNSFunctionRuntime.ResolveInvocationTypeInfo(
                     client,
                     new GenericTypeInfo
                     {
-                        type = AttributeType.Generic,
+                        type = MemberKind.Generic,
                         required = true,
                         genericParamId = functionParamId,
                     },
@@ -771,7 +771,7 @@ namespace NeoCompose.Tests
                             cyclicBinding.id),
                     }))!;
 
-            StringAssert.Contains("binding attribute cycle", error.Message);
+            StringAssert.Contains("binding member cycle", error.Message);
             StringAssert.Contains(cyclicBinding.id, error.Message);
         }
 
@@ -780,13 +780,13 @@ namespace NeoCompose.Tests
         {
             var spriteType = new PrimitiveTypeInfo
             {
-                type = AttributeType.Sprite,
+                type = MemberKind.Sprite,
                 required = true,
             };
             FunctionArgumentTypeInfo spriteArgument = Argument(
                 "Portrait",
-                AttributeType.Sprite);
-            NSFunctionAttribute spriteFunction = ScriptFunction(
+                MemberKind.Sprite);
+            NSFunctionMember spriteFunction = ScriptFunction(
                 "fn-sprite-identity",
                 "SpriteIdentity",
                 deferred: false,
@@ -799,13 +799,13 @@ namespace NeoCompose.Tests
 
             var audioType = new PrimitiveTypeInfo
             {
-                type = AttributeType.Audio,
+                type = MemberKind.Audio,
                 required = true,
             };
             FunctionArgumentTypeInfo audioArgument = Argument(
                 "Voice",
-                AttributeType.Audio);
-            NSFunctionAttribute audioFunction = ScriptFunction(
+                MemberKind.Audio);
+            NSFunctionMember audioFunction = ScriptFunction(
                 "fn-audio-identity",
                 "AudioIdentity",
                 deferred: false,
@@ -817,12 +817,12 @@ namespace NeoCompose.Tests
                     Return(Variable("__arg_0__"))));
 
             NeoClient client = BuildClient(
-                new JsonAttribute[] { spriteFunction, audioFunction },
-                ReceiverType(
+                new JsonMember[] { spriteFunction, audioFunction },
+                ReceiverClass(
                     ("SpriteIdentity", spriteFunction.id),
                     ("AudioIdentity", audioFunction.id)));
 
-            object? spriteResult = new NeoAttributeNSFunction(
+            object? spriteResult = new NeoMemberNSFunction(
                 client,
                 spriteFunction,
                 null).Invoke(
@@ -835,7 +835,7 @@ namespace NeoCompose.Tests
                             sliceIndex = 2,
                         },
                     });
-            object? audioResult = new NeoAttributeNSFunction(
+            object? audioResult = new NeoMemberNSFunction(
                 client,
                 audioFunction,
                 null).Invoke(
@@ -858,7 +858,7 @@ namespace NeoCompose.Tests
         [Test]
         public void Invoke_NestedImmediateNSFunctionDispatchesThroughGeneralCallPointer()
         {
-            NSFunctionAttribute inner = ScriptFunction(
+            NSFunctionMember inner = ScriptFunction(
                 "fn-inner",
                 "Inner",
                 deferred: false,
@@ -868,7 +868,7 @@ namespace NeoCompose.Tests
                     IntType(),
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Number(7))));
-            NSFunctionAttribute outer = ScriptFunction(
+            NSFunctionMember outer = ScriptFunction(
                 "fn-outer",
                 "Outer",
                 deferred: false,
@@ -879,9 +879,9 @@ namespace NeoCompose.Tests
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Call(inner.id, "nested-inner"))));
             NeoClient client = BuildClient(
-                new JsonAttribute[] { inner, outer },
-                ReceiverType(("Inner", inner.id), ("Outer", outer.id)));
-            var node = new NeoAttributeNSFunction(client, outer, null);
+                new JsonMember[] { inner, outer },
+                ReceiverClass(("Inner", inner.id), ("Outer", outer.id)));
+            var node = new NeoMemberNSFunction(client, outer, null);
 
             Assert.AreEqual(7L, Convert.ToInt64(
                 node.Invoke("receiver-value", Array.Empty<object?>())));
@@ -890,7 +890,7 @@ namespace NeoCompose.Tests
         [Test]
         public void Invoke_RecursiveNSFunctionStopsAtNamedDepthLimit()
         {
-            NSFunctionAttribute recursive = ScriptFunction(
+            NSFunctionMember recursive = ScriptFunction(
                 "fn-recursive",
                 "RecurseForever",
                 false,
@@ -905,9 +905,9 @@ namespace NeoCompose.Tests
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 Return(Call(recursive.id, "recursive-call")));
             NeoClient client = BuildClient(
-                new JsonAttribute[] { recursive },
-                ReceiverType(("RecurseForever", recursive.id)));
-            var node = new NeoAttributeNSFunction(client, recursive, null);
+                new JsonMember[] { recursive },
+                ReceiverClass(("RecurseForever", recursive.id)));
+            var node = new NeoMemberNSFunction(client, recursive, null);
 
             NSGetterRuntimeError error = Assert.Throws<NSGetterRuntimeError>(() =>
                 node.Invoke("receiver-value", Array.Empty<object?>()))!;
@@ -919,12 +919,12 @@ namespace NeoCompose.Tests
         [Test]
         public void Invoke_RepeatedCallSiteInCollectionLambdaUsesDistinctDynamicFrames()
         {
-            FunctionArgumentTypeInfo nativeArgument = Argument("Value", AttributeType.Int);
-            FunctionAttribute native = NativeFunction("fn-map", "MapValue", deferred: false);
+            FunctionArgumentTypeInfo nativeArgument = Argument("Value", MemberKind.Int);
+            FunctionMember native = NativeFunction("fn-map", "MapValue", deferred: false);
             native.argumentTypes = new[] { nativeArgument };
             var listType = new CollectionTypeInfo
             {
-                type = AttributeType.List,
+                type = MemberKind.List,
                 required = true,
                 entryTypeInfo = IntType(),
             };
@@ -936,8 +936,8 @@ namespace NeoCompose.Tests
                     Return(new CallFunctionPointer
                     {
                         type = PointerKind.CallFunction,
-                        attributeId = native.id,
-                        thisPointer = Variable("__this__"),
+                        memberId = native.id,
+                        receiver = CallReceiver.Instance(Variable("__this__")),
                         args = new Pointer[] { Variable("entry") },
                         callSiteId = "map-each",
                     }),
@@ -962,7 +962,7 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            NSFunctionAttribute function = ScriptFunction(
+            NSFunctionMember function = ScriptFunction(
                 "fn-select",
                 "SelectValues",
                 deferred: false,
@@ -973,8 +973,8 @@ namespace NeoCompose.Tests
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(select)));
             NeoClient client = BuildClient(
-                new JsonAttribute[] { native, function },
-                ReceiverType(("MapValue", native.id), ("SelectValues", function.id)));
+                new JsonMember[] { native, function },
+                ReceiverClass(("MapValue", native.id), ("SelectValues", function.id)));
             int invocationCount = 0;
             client.RegisterNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
@@ -985,7 +985,7 @@ namespace NeoCompose.Tests
                         return args[0];
                     },
                 });
-            var node = new NeoAttributeNSFunction(client, function, null);
+            var node = new NeoMemberNSFunction(client, function, null);
 
             var result = (object?[])node.Invoke(
                 "receiver-value",
@@ -999,7 +999,7 @@ namespace NeoCompose.Tests
         [Test]
         public void Invoke_BaseMemberUsesDerivedNSFunctionBodyAndInheritedSignature()
         {
-            NSFunctionAttribute baseFunction = ScriptFunction(
+            NSFunctionMember baseFunction = ScriptFunction(
                 "fn-base",
                 "Compute",
                 deferred: false,
@@ -1009,14 +1009,14 @@ namespace NeoCompose.Tests
                     IntType(),
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Number(1))));
-            NSFunctionAttribute overrideFunction = new()
+            NSFunctionMember overrideFunction = new()
             {
                 id = "fn-derived",
                 projectId = ProjectId,
                 name = "Compute",
-                type = AttributeType.NSFunction,
+                kind = MemberKind.NSFunction,
                 code = "return 2;",
-                extendsAttributeId = baseFunction.id,
+                extendsMemberId = baseFunction.id,
                 returnTypeInfo = null!,
                 argumentTypes = null!,
                 deferred = null,
@@ -1027,18 +1027,18 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var baseType = ReceiverType(("Compute", baseFunction.id));
-            var derivedType = ReceiverType(("Compute", overrideFunction.id));
-            derivedType.id = "derived-receiver-type";
-            derivedType.name = "DerivedReceiver";
-            derivedType.extendsTypeId = baseType.id;
-            var derivedValue = ObjectValue("derived-receiver-value", derivedType.id);
+            var baseClass = ReceiverClass(("Compute", baseFunction.id));
+            var derivedClass = ReceiverClass(("Compute", overrideFunction.id));
+            derivedClass.id = "derived-receiver-class";
+            derivedClass.name = "DerivedReceiver";
+            derivedClass.extendsClassId = baseClass.id;
+            var derivedValue = ObjectValue("derived-receiver-value", derivedClass.id);
             NeoClient client = BuildClient(
-                new JsonAttribute[] { baseFunction, overrideFunction },
-                baseType,
-                new[] { derivedType },
-                new AttributeValue[] { derivedValue });
-            var node = new NeoAttributeNSFunction(client, baseFunction, null);
+                new JsonMember[] { baseFunction, overrideFunction },
+                baseClass,
+                new[] { derivedClass },
+                new MemberValue[] { derivedValue });
+            var node = new NeoMemberNSFunction(client, baseFunction, null);
 
             Assert.AreEqual(2L, Convert.ToInt64(
                 node.Invoke(derivedValue.id, Array.Empty<object?>())));
@@ -1047,8 +1047,8 @@ namespace NeoCompose.Tests
         [Test]
         public void Invoke_MutationBodyReturnsTheUpdatedSaveValue()
         {
-            FunctionArgumentTypeInfo argument = Argument("RequiredLevel", AttributeType.Int);
-            NSFunctionAttribute function = ScriptFunction(
+            FunctionArgumentTypeInfo argument = Argument("RequiredLevel", MemberKind.Int);
+            NSFunctionMember function = ScriptFunction(
                 "fn-mutate",
                 "SetLevel",
                 deferred: false,
@@ -1071,7 +1071,7 @@ namespace NeoCompose.Tests
                     },
                     Return(RootLevel())));
             NeoClient client = BuildMutationClient(function);
-            var node = new NeoAttributeNSFunction(client, function, null);
+            var node = new NeoMemberNSFunction(client, function, null);
 
             object? result = node.Invoke(
                 "receiver-value",
@@ -1081,14 +1081,14 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "save-level-value",
-                out NumberAttributeValue? level));
+                out NumberMemberValue? level));
             Assert.AreEqual(12d, level!.value);
         }
 
         [Test]
         public void Invoke_ReadYourWritesRefreshesPreviouslyReadMember()
         {
-            NSFunctionAttribute function = ScriptFunction(
+            NSFunctionMember function = ScriptFunction(
                 "fn-toggle-flag",
                 "ToggleFlag",
                 deferred: false,
@@ -1111,7 +1111,7 @@ namespace NeoCompose.Tests
                     },
                     Return(ThisFlag())));
             NeoClient client = BuildBooleanMutationClient(function, nested: false);
-            var node = new NeoAttributeNSFunction(
+            var node = new NeoMemberNSFunction(
                 client,
                 function,
                 null,
@@ -1125,14 +1125,14 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "save-flag-value",
-                out BoolAttributeValue? flag));
+                out BoolMemberValue? flag));
             Assert.AreEqual(false, flag!.value);
         }
 
         [Test]
-        public void Invoke_ReadYourWritesRefreshesNestedCustomMember()
+        public void Invoke_ReadYourWritesRefreshesNestedClassMember()
         {
-            NSFunctionAttribute function = ScriptFunction(
+            NSFunctionMember function = ScriptFunction(
                 "fn-toggle-nested-flag",
                 "ToggleNestedFlag",
                 deferred: false,
@@ -1155,7 +1155,7 @@ namespace NeoCompose.Tests
                     },
                     Return(ThisNestedFlag())));
             NeoClient client = BuildBooleanMutationClient(function, nested: true);
-            var node = new NeoAttributeNSFunction(
+            var node = new NeoMemberNSFunction(
                 client,
                 function,
                 null,
@@ -1169,17 +1169,17 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValue(
                 NeoValueOwnership.Save,
                 "save-flag-value",
-                out BoolAttributeValue? flag));
+                out BoolMemberValue? flag));
             Assert.AreEqual(false, flag!.value);
         }
 
         [Test]
         public void InvokeAsync_TwoDeferredCallsResumeLeftToRightExactlyOnce()
         {
-            FunctionAttribute native = NativeFunction("fn-native", "Fetch", deferred: true);
+            FunctionMember native = NativeFunction("fn-native", "Fetch", deferred: true);
             Pointer first = Call(native.id, "fetch-first");
             Pointer second = Call(native.id, "fetch-second");
-            NSFunctionAttribute function = ScriptFunction(
+            NSFunctionMember function = ScriptFunction(
                 "fn-deferred-script",
                 "ComputeLater",
                 deferred: true,
@@ -1190,8 +1190,8 @@ namespace NeoCompose.Tests
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Add(first, second))));
             NeoClient client = BuildClient(
-                new JsonAttribute[] { native, function },
-                ReceiverType(("Fetch", native.id), ("ComputeLater", function.id)));
+                new JsonMember[] { native, function },
+                ReceiverClass(("Fetch", native.id), ("ComputeLater", function.id)));
             int invocationCount = 0;
             NeoDeferredFunction<int>? firstPending = null;
             NeoDeferredFunction<int>? secondPending = null;
@@ -1208,7 +1208,7 @@ namespace NeoCompose.Tests
                         else secondPending = typed;
                     },
                 });
-            var node = new NeoAttributeNSFunction(client, function, null);
+            var node = new NeoMemberNSFunction(client, function, null);
 
             Task<object?> task = node.InvokeAsync(
                 "receiver-value",
@@ -1230,8 +1230,8 @@ namespace NeoCompose.Tests
         [Test]
         public void InvokeAsync_NestedDeferredNSFunctionResumesOuterTask()
         {
-            FunctionAttribute native = NativeFunction("fn-native", "Fetch", deferred: true);
-            NSFunctionAttribute inner = ScriptFunction(
+            FunctionMember native = NativeFunction("fn-native", "Fetch", deferred: true);
+            NSFunctionMember inner = ScriptFunction(
                 "fn-inner-deferred",
                 "InnerDeferred",
                 deferred: true,
@@ -1241,7 +1241,7 @@ namespace NeoCompose.Tests
                     IntType(),
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Call(native.id, "nested-native"))));
-            NSFunctionAttribute outer = ScriptFunction(
+            NSFunctionMember outer = ScriptFunction(
                 "fn-outer-deferred",
                 "OuterDeferred",
                 deferred: true,
@@ -1252,8 +1252,8 @@ namespace NeoCompose.Tests
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Call(inner.id, "nested-script"))));
             NeoClient client = BuildClient(
-                new JsonAttribute[] { native, inner, outer },
-                ReceiverType(
+                new JsonMember[] { native, inner, outer },
+                ReceiverClass(
                     ("Fetch", native.id),
                     ("InnerDeferred", inner.id),
                     ("OuterDeferred", outer.id)));
@@ -1267,7 +1267,7 @@ namespace NeoCompose.Tests
                                 deferred,
                                 native.name),
                 });
-            var node = new NeoAttributeNSFunction(client, outer, null);
+            var node = new NeoMemberNSFunction(client, outer, null);
 
             Task<object?> task = node.InvokeAsync(
                 "receiver-value",
@@ -1282,8 +1282,8 @@ namespace NeoCompose.Tests
         [Test]
         public void InvokeAsync_NestedDeferredNSFunctionInlineCompletionReturnsCompletedTask()
         {
-            FunctionAttribute native = NativeFunction("fn-native", "Fetch", deferred: true);
-            NSFunctionAttribute inner = ScriptFunction(
+            FunctionMember native = NativeFunction("fn-native", "Fetch", deferred: true);
+            NSFunctionMember inner = ScriptFunction(
                 "fn-inner-inline",
                 "InnerInline",
                 deferred: true,
@@ -1293,7 +1293,7 @@ namespace NeoCompose.Tests
                     IntType(),
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Call(native.id, "inline-native"))));
-            NSFunctionAttribute outer = ScriptFunction(
+            NSFunctionMember outer = ScriptFunction(
                 "fn-outer-inline",
                 "OuterInline",
                 deferred: true,
@@ -1304,8 +1304,8 @@ namespace NeoCompose.Tests
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Call(inner.id, "inline-script"))));
             NeoClient client = BuildClient(
-                new JsonAttribute[] { native, inner, outer },
-                ReceiverType(
+                new JsonMember[] { native, inner, outer },
+                ReceiverClass(
                     ("Fetch", native.id),
                     ("InnerInline", inner.id),
                     ("OuterInline", outer.id)));
@@ -1319,7 +1319,7 @@ namespace NeoCompose.Tests
                                 native.name)
                             .Complete(43),
                 });
-            var node = new NeoAttributeNSFunction(client, outer, null);
+            var node = new NeoMemberNSFunction(client, outer, null);
 
             Task<object?> task = node.InvokeAsync(
                 "receiver-value",
@@ -1332,8 +1332,8 @@ namespace NeoCompose.Tests
         [Test]
         public void Invoke_ImmediateNSFunctionRejectsDeferredNativeModeBeforeInvoker()
         {
-            FunctionAttribute native = NativeFunction("fn-native", "Fetch", deferred: true);
-            NSFunctionAttribute function = ScriptFunction(
+            FunctionMember native = NativeFunction("fn-native", "Fetch", deferred: true);
+            NSFunctionMember function = ScriptFunction(
                 "fn-invalid-mode",
                 "InvalidMode",
                 deferred: false,
@@ -1344,15 +1344,15 @@ namespace NeoCompose.Tests
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Call(native.id, "invalid-deferred-call"))));
             NeoClient client = BuildClient(
-                new JsonAttribute[] { native, function },
-                ReceiverType(("Fetch", native.id), ("InvalidMode", function.id)));
+                new JsonMember[] { native, function },
+                ReceiverClass(("Fetch", native.id), ("InvalidMode", function.id)));
             int invocationCount = 0;
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
                 {
                     [native.id] = (_, _, _, _) => invocationCount++,
                 });
-            var node = new NeoAttributeNSFunction(client, function, null);
+            var node = new NeoMemberNSFunction(client, function, null);
 
             NeoDeferredFunctionRuntimeError error =
                 Assert.Throws<NeoDeferredFunctionRuntimeError>(() =>
@@ -1366,13 +1366,13 @@ namespace NeoCompose.Tests
         [Test]
         public void DirectDeferredNativeCallRejectsImmediateEffectiveSignature()
         {
-            FunctionAttribute native = NativeFunction(
+            FunctionMember native = NativeFunction(
                 "fn-immediate-native",
                 "ImmediateNative",
                 deferred: false);
             NeoClient client = BuildClient(
-                new JsonAttribute[] { native },
-                ReceiverType(("ImmediateNative", native.id)));
+                new JsonMember[] { native },
+                ReceiverClass(("ImmediateNative", native.id)));
             int invocationCount = 0;
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
@@ -1396,8 +1396,8 @@ namespace NeoCompose.Tests
         [Test]
         public void InvokeAsync_ClientDisposeCancelsPendingContinuation()
         {
-            FunctionAttribute native = NativeFunction("fn-native", "Fetch", deferred: true);
-            NSFunctionAttribute function = ScriptFunction(
+            FunctionMember native = NativeFunction("fn-native", "Fetch", deferred: true);
+            NSFunctionMember function = ScriptFunction(
                 "fn-deferred-script",
                 "ComputeLater",
                 deferred: true,
@@ -1408,8 +1408,8 @@ namespace NeoCompose.Tests
                     Array.Empty<FunctionArgumentTypeInfo>(),
                     Return(Call(native.id, "fetch"))));
             NeoClient client = BuildClient(
-                new JsonAttribute[] { native, function },
-                ReceiverType(("Fetch", native.id), ("ComputeLater", function.id)));
+                new JsonMember[] { native, function },
+                ReceiverClass(("Fetch", native.id), ("ComputeLater", function.id)));
             NeoDeferredFunction<int>? pending = null;
             client.RegisterDeferredNativeFunctionInvokers(
                 new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
@@ -1419,7 +1419,7 @@ namespace NeoCompose.Tests
                             deferred,
                             native.name),
                 });
-            var node = new NeoAttributeNSFunction(client, function, null);
+            var node = new NeoMemberNSFunction(client, function, null);
             Task<object?> task = node.InvokeAsync(
                 "receiver-value",
                 Array.Empty<object?>());
@@ -1435,26 +1435,26 @@ namespace NeoCompose.Tests
         [Test]
         public void Construction_RejectsNSFunctionOverrideThatRepeatsSignature()
         {
-            NSFunctionAttribute baseFunction = ScriptFunction(
+            NSFunctionMember baseFunction = ScriptFunction(
                 "fn-base",
                 "Compute",
                 false,
                 IntType(),
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(1))));
-            NSFunctionAttribute invalidOverride = ScriptFunction(
+            NSFunctionMember invalidOverride = ScriptFunction(
                 "fn-invalid",
                 "Compute",
                 false,
                 IntType(),
                 Array.Empty<FunctionArgumentTypeInfo>(),
                 Action(IntType(), Array.Empty<FunctionArgumentTypeInfo>(), Return(Number(2))));
-            invalidOverride.extendsAttributeId = baseFunction.id;
+            invalidOverride.extendsMemberId = baseFunction.id;
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
                 BuildClient(
-                    new JsonAttribute[] { baseFunction, invalidOverride },
-                    ReceiverType(("Compute", baseFunction.id))))!;
+                    new JsonMember[] { baseFunction, invalidOverride },
+                    ReceiverClass(("Compute", baseFunction.id))))!;
 
             StringAssert.Contains("must inherit returnTypeInfo", error.Message);
         }
@@ -1462,7 +1462,7 @@ namespace NeoCompose.Tests
         [Test]
         public void Construction_RejectsEmptyLocalCode()
         {
-            NSFunctionAttribute function = ScriptFunction(
+            NSFunctionMember function = ScriptFunction(
                 "fn-empty",
                 "Empty",
                 false,
@@ -1476,8 +1476,8 @@ namespace NeoCompose.Tests
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
                 BuildClient(
-                    new JsonAttribute[] { function },
-                    ReceiverType(("Empty", function.id))))!;
+                    new JsonMember[] { function },
+                    ReceiverClass(("Empty", function.id))))!;
 
             StringAssert.Contains("local code must not be empty", error.Message);
         }
@@ -1485,11 +1485,11 @@ namespace NeoCompose.Tests
         [Test]
         public void Construction_RejectsStaleStructuredArgumentType()
         {
-            FunctionArgumentTypeInfo declared = Argument("Target", AttributeType.Custom);
-            declared.typeId = "custom-a";
-            FunctionArgumentTypeInfo compiled = Argument("Target", AttributeType.Custom);
-            compiled.typeId = "custom-b";
-            NSFunctionAttribute function = ScriptFunction(
+            FunctionArgumentTypeInfo declared = Argument("Target", MemberKind.Class);
+            declared.classId = "class-a";
+            FunctionArgumentTypeInfo compiled = Argument("Target", MemberKind.Class);
+            compiled.classId = "class-b";
+            NSFunctionMember function = ScriptFunction(
                 "fn-stale-argument",
                 "StaleArgument",
                 false,
@@ -1502,8 +1502,8 @@ namespace NeoCompose.Tests
 
             InvalidOperationException error = Assert.Throws<InvalidOperationException>(() =>
                 BuildClient(
-                    new JsonAttribute[] { function },
-                    ReceiverType(("StaleArgument", function.id))))!;
+                    new JsonMember[] { function },
+                    ReceiverClass(("StaleArgument", function.id))))!;
 
             StringAssert.Contains("argument 0 type does not match", error.Message);
         }
@@ -1511,50 +1511,53 @@ namespace NeoCompose.Tests
         private const string ProjectId = "project-function";
 
         private static NeoClient BuildClient(
-            JsonAttribute[] callables,
-            CustomType receiverType,
-            CustomType[]? additionalTypes = null,
-            AttributeValue[]? additionalValues = null)
+            JsonMember[] callables,
+            NeoSchemaClass receiverClass,
+            NeoSchemaClass[]? additionalClasses = null,
+            MemberValue[]? additionalValues = null)
         {
-            CustomAttribute assets = RootAttribute("root-assets", "Assets", "root-assets-value");
-            CustomAttribute save = RootAttribute("root-save", "Save", "root-save-value", "save");
-            CustomAttribute session = RootAttribute("root-session", "Session", "root-session-value", "session");
-            var attributes = new Dictionary<string, JsonAttribute>
+            ClassMember assets = RootMember("root-assets", "Assets", "root-assets-value");
+            ClassMember save = RootMember("root-save", "Save", "root-save-value", "save");
+            ClassMember session = RootMember("root-session", "Session", "root-session-value", "session");
+            var members = new Dictionary<string, JsonMember>
             {
                 [assets.id] = assets,
                 [save.id] = save,
                 [session.id] = session,
             };
-            foreach (JsonAttribute callable in callables) attributes[callable.id] = callable;
+            foreach (JsonMember callable in callables) members[callable.id] = callable;
 
-            var types = new Dictionary<string, CustomType>
+            var classes = new Dictionary<string, NeoSchemaClass>
             {
-                ["root-type"] = new CustomType
+                ["root-class"] = new NeoSchemaClass
                 {
-                    id = "root-type",
+                    id = "root-class",
                     projectId = ProjectId,
                     name = "Root",
                     schema = new Dictionary<string, string>(),
                     createdAt = "x",
                     updatedAt = "x",
                 },
-                [receiverType.id] = receiverType,
+                [receiverClass.id] = receiverClass,
             };
-            if (additionalTypes is not null)
+            if (additionalClasses is not null)
             {
-                foreach (CustomType type in additionalTypes) types[type.id] = type;
+                foreach (NeoSchemaClass schemaClass in additionalClasses)
+                {
+                    classes[schemaClass.id] = schemaClass;
+                }
             }
 
-            var values = new Dictionary<string, AttributeValue>
+            var values = new Dictionary<string, MemberValue>
             {
-                [assets.valueId!] = ObjectValue(assets.valueId!, "root-type"),
-                [save.valueId!] = ObjectValue(save.valueId!, "root-type"),
-                [session.valueId!] = ObjectValue(session.valueId!, "root-type"),
-                ["receiver-value"] = ObjectValue("receiver-value", receiverType.id),
+                [assets.valueId!] = ObjectValue(assets.valueId!, "root-class"),
+                [save.valueId!] = ObjectValue(save.valueId!, "root-class"),
+                [session.valueId!] = ObjectValue(session.valueId!, "root-class"),
+                ["receiver-value"] = ObjectValue("receiver-value", receiverClass.id),
             };
             if (additionalValues is not null)
             {
-                foreach (AttributeValue value in additionalValues) values[value.id] = value;
+                foreach (MemberValue value in additionalValues) values[value.id] = value;
             }
 
             return NeoTestSaveStack.ClientFromSchema(new ProjectData
@@ -1563,48 +1566,48 @@ namespace NeoCompose.Tests
                 {
                     id = ProjectId,
                     name = "NSFunction Tests",
-                    rootAssetsAttributeId = assets.id,
-                    rootSaveFileAttributeId = save.id,
-                    rootSessionAttributeId = session.id,
+                    rootAssetsMemberId = assets.id,
+                    rootSaveFileMemberId = save.id,
+                    rootSessionMemberId = session.id,
                     createdAt = "x",
                     updatedAt = "x",
                 },
-                attributes = attributes,
+                members = members,
                 values = values,
-                types = types,
+                classes = classes,
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             });
         }
 
-        private static NeoClient BuildMutationClient(NSFunctionAttribute function)
+        private static NeoClient BuildMutationClient(NSFunctionMember function)
         {
-            CustomAttribute assets = RootAttribute("root-assets", "Assets", "root-assets-value");
-            CustomAttribute save = new()
+            ClassMember assets = RootMember("root-assets", "Assets", "root-assets-value");
+            ClassMember save = new()
             {
                 id = "root-save",
                 projectId = ProjectId,
                 name = "Save",
-                type = AttributeType.Custom,
-                customTypeId = "save-root-type",
+                kind = MemberKind.Class,
+                classId = "save-root-class",
                 valueId = "root-save-value",
                 storage = "save",
                 createdAt = "x",
                 updatedAt = "x",
             };
-            CustomAttribute session = RootAttribute("root-session", "Session", "root-session-value", "session");
-            var levelAttribute = new IntAttribute
+            ClassMember session = RootMember("root-session", "Session", "root-session-value", "session");
+            var levelMember = new IntMember
             {
                 id = "save-level",
                 projectId = ProjectId,
                 name = "Level",
-                type = AttributeType.Int,
+                kind = MemberKind.Int,
                 valueId = "save-level-value",
                 required = true,
                 createdAt = "x",
                 updatedAt = "x",
             };
-            ObjectAttributeValue saveValue = ObjectValue(save.valueId!, "save-root-type");
-            saveValue.value!["Level"] = levelAttribute.valueId!;
+            ObjectMemberValue saveValue = ObjectValue(save.valueId!, "save-root-class");
+            saveValue.value!["Level"] = levelMember.valueId!;
 
             return NeoTestSaveStack.ClientFromSchema(new ProjectData
             {
@@ -1612,129 +1615,129 @@ namespace NeoCompose.Tests
                 {
                     id = ProjectId,
                     name = "NSFunction Mutation Test",
-                    rootAssetsAttributeId = assets.id,
-                    rootSaveFileAttributeId = save.id,
-                    rootSessionAttributeId = session.id,
+                    rootAssetsMemberId = assets.id,
+                    rootSaveFileMemberId = save.id,
+                    rootSessionMemberId = session.id,
                     createdAt = "x",
                     updatedAt = "x",
                 },
-                attributes = new Dictionary<string, JsonAttribute>
+                members = new Dictionary<string, JsonMember>
                 {
                     [assets.id] = assets,
                     [save.id] = save,
                     [session.id] = session,
-                    [levelAttribute.id] = levelAttribute,
+                    [levelMember.id] = levelMember,
                     [function.id] = function,
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    [assets.valueId!] = ObjectValue(assets.valueId!, "root-type"),
+                    [assets.valueId!] = ObjectValue(assets.valueId!, "root-class"),
                     [save.valueId!] = saveValue,
-                    [session.valueId!] = ObjectValue(session.valueId!, "root-type"),
-                    ["receiver-value"] = ObjectValue("receiver-value", "receiver-type"),
-                    [levelAttribute.valueId!] = new NumberAttributeValue
+                    [session.valueId!] = ObjectValue(session.valueId!, "root-class"),
+                    ["receiver-value"] = ObjectValue("receiver-value", "receiver-class"),
+                    [levelMember.valueId!] = new NumberMemberValue
                     {
-                        id = levelAttribute.valueId!,
+                        id = levelMember.valueId!,
                         value = 1,
                         createdAt = "x",
                         updatedAt = "x",
                     },
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    ["root-type"] = new CustomType
+                    ["root-class"] = new NeoSchemaClass
                     {
-                        id = "root-type",
+                        id = "root-class",
                         projectId = ProjectId,
                         name = "Root",
                         schema = new Dictionary<string, string>(),
                         createdAt = "x",
                         updatedAt = "x",
                     },
-                    ["save-root-type"] = new CustomType
+                    ["save-root-class"] = new NeoSchemaClass
                     {
-                        id = "save-root-type",
+                        id = "save-root-class",
                         projectId = ProjectId,
                         name = "SaveRoot",
                         schema = new Dictionary<string, string>
                         {
-                            ["Level"] = levelAttribute.id,
+                            ["Level"] = levelMember.id,
                         },
                         createdAt = "x",
                         updatedAt = "x",
                     },
-                    ["receiver-type"] = ReceiverType(("SetLevel", function.id)),
+                    ["receiver-class"] = ReceiverClass(("SetLevel", function.id)),
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             });
         }
 
         private static NeoClient BuildBooleanMutationClient(
-            NSFunctionAttribute function,
+            NSFunctionMember function,
             bool nested)
         {
-            CustomAttribute assets = RootAttribute(
+            ClassMember assets = RootMember(
                 "root-assets",
                 "Assets",
                 "root-assets-value");
-            CustomAttribute save = new()
+            ClassMember save = new()
             {
                 id = "root-save",
                 projectId = ProjectId,
                 name = "Save",
-                type = AttributeType.Custom,
-                customTypeId = "save-root-type",
+                kind = MemberKind.Class,
+                classId = "save-root-class",
                 valueId = "root-save-value",
                 storage = "save",
                 createdAt = "x",
                 updatedAt = "x",
             };
-            CustomAttribute session = RootAttribute(
+            ClassMember session = RootMember(
                 "root-session",
                 "Session",
                 "root-session-value",
                 "session");
-            var flagAttribute = new BoolAttribute
+            var flagMember = new BoolMember
             {
                 id = "save-flag",
                 projectId = ProjectId,
                 name = "Flag",
-                type = AttributeType.Bool,
+                kind = MemberKind.Bool,
                 valueId = "save-flag-value",
                 required = true,
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var attributes = new Dictionary<string, JsonAttribute>
+            var members = new Dictionary<string, JsonMember>
             {
                 [assets.id] = assets,
                 [save.id] = save,
                 [session.id] = session,
-                [flagAttribute.id] = flagAttribute,
+                [flagMember.id] = flagMember,
                 [function.id] = function,
             };
             var saveSchema = new Dictionary<string, string>
             {
                 [function.name] = function.id,
             };
-            var values = new Dictionary<string, AttributeValue>
+            var values = new Dictionary<string, MemberValue>
             {
-                [assets.valueId!] = ObjectValue(assets.valueId!, "root-type"),
-                [save.valueId!] = ObjectValue(save.valueId!, "save-root-type"),
-                [session.valueId!] = ObjectValue(session.valueId!, "root-type"),
-                [flagAttribute.valueId!] = new BoolAttributeValue
+                [assets.valueId!] = ObjectValue(assets.valueId!, "root-class"),
+                [save.valueId!] = ObjectValue(save.valueId!, "save-root-class"),
+                [session.valueId!] = ObjectValue(session.valueId!, "root-class"),
+                [flagMember.valueId!] = new BoolMemberValue
                 {
-                    id = flagAttribute.valueId!,
+                    id = flagMember.valueId!,
                     value = true,
                     createdAt = "x",
                     updatedAt = "x",
                 },
             };
-            var types = new Dictionary<string, CustomType>
+            var classes = new Dictionary<string, NeoSchemaClass>
             {
-                ["root-type"] = new CustomType
+                ["root-class"] = new NeoSchemaClass
                 {
-                    id = "root-type",
+                    id = "root-class",
                     projectId = ProjectId,
                     name = "Root",
                     schema = new Dictionary<string, string>(),
@@ -1742,37 +1745,37 @@ namespace NeoCompose.Tests
                     updatedAt = "x",
                 },
             };
-            ObjectAttributeValue saveValue = (ObjectAttributeValue)values[save.valueId!];
+            ObjectMemberValue saveValue = (ObjectMemberValue)values[save.valueId!];
             if (nested)
             {
-                var childAttribute = new CustomAttribute
+                var childMember = new ClassMember
                 {
                     id = "save-child",
                     projectId = ProjectId,
                     name = "Child",
-                    type = AttributeType.Custom,
-                    customTypeId = "save-child-type",
+                    kind = MemberKind.Class,
+                    classId = "save-child-class",
                     valueId = "save-child-value",
                     required = true,
                     createdAt = "x",
                     updatedAt = "x",
                 };
-                attributes[childAttribute.id] = childAttribute;
-                saveSchema[childAttribute.name] = childAttribute.id;
-                saveValue.value![childAttribute.name] = childAttribute.valueId!;
-                ObjectAttributeValue childValue = ObjectValue(
-                    childAttribute.valueId!,
-                    childAttribute.customTypeId);
-                childValue.value![flagAttribute.name] = flagAttribute.valueId!;
+                members[childMember.id] = childMember;
+                saveSchema[childMember.name] = childMember.id;
+                saveValue.value![childMember.name] = childMember.valueId!;
+                ObjectMemberValue childValue = ObjectValue(
+                    childMember.valueId!,
+                    childMember.classId);
+                childValue.value![flagMember.name] = flagMember.valueId!;
                 values[childValue.id] = childValue;
-                types["save-child-type"] = new CustomType
+                classes["save-child-class"] = new NeoSchemaClass
                 {
-                    id = "save-child-type",
+                    id = "save-child-class",
                     projectId = ProjectId,
                     name = "SaveChild",
                     schema = new Dictionary<string, string>
                     {
-                        [flagAttribute.name] = flagAttribute.id,
+                        [flagMember.name] = flagMember.id,
                     },
                     createdAt = "x",
                     updatedAt = "x",
@@ -1780,12 +1783,12 @@ namespace NeoCompose.Tests
             }
             else
             {
-                saveSchema[flagAttribute.name] = flagAttribute.id;
-                saveValue.value![flagAttribute.name] = flagAttribute.valueId!;
+                saveSchema[flagMember.name] = flagMember.id;
+                saveValue.value![flagMember.name] = flagMember.valueId!;
             }
-            types["save-root-type"] = new CustomType
+            classes["save-root-class"] = new NeoSchemaClass
             {
-                id = "save-root-type",
+                id = "save-root-class",
                 projectId = ProjectId,
                 name = "SaveRoot",
                 schema = saveSchema,
@@ -1799,20 +1802,20 @@ namespace NeoCompose.Tests
                 {
                     id = ProjectId,
                     name = "NSFunction Boolean Mutation Test",
-                    rootAssetsAttributeId = assets.id,
-                    rootSaveFileAttributeId = save.id,
-                    rootSessionAttributeId = session.id,
+                    rootAssetsMemberId = assets.id,
+                    rootSaveFileMemberId = save.id,
+                    rootSessionMemberId = session.id,
                     createdAt = "x",
                     updatedAt = "x",
                 },
-                attributes = attributes,
+                members = members,
                 values = values,
-                types = types,
+                classes = classes,
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             });
         }
 
-        private static CustomAttribute RootAttribute(
+        private static ClassMember RootMember(
             string id,
             string name,
             string valueId,
@@ -1821,22 +1824,22 @@ namespace NeoCompose.Tests
             id = id,
             projectId = ProjectId,
             name = name,
-            type = AttributeType.Custom,
-            customTypeId = "root-type",
+            kind = MemberKind.Class,
+            classId = "root-class",
             valueId = valueId,
             storage = storage,
             createdAt = "x",
             updatedAt = "x",
         };
 
-        private static CustomType ReceiverType(
-            params (string key, string attributeId)[] members)
+        private static NeoSchemaClass ReceiverClass(
+            params (string key, string memberId)[] members)
         {
             var schema = new Dictionary<string, string>();
-            foreach (var member in members) schema[member.key] = member.attributeId;
-            return new CustomType
+            foreach (var member in members) schema[member.key] = member.memberId;
+            return new NeoSchemaClass
             {
-                id = "receiver-type",
+                id = "receiver-class",
                 projectId = ProjectId,
                 name = "Receiver",
                 schema = schema,
@@ -1845,7 +1848,7 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static NSFunctionAttribute ScriptFunction(
+        private static NSFunctionMember ScriptFunction(
             string id,
             string name,
             bool deferred,
@@ -1856,7 +1859,7 @@ namespace NeoCompose.Tests
             id = id,
             projectId = ProjectId,
             name = name,
-            type = AttributeType.NSFunction,
+            kind = MemberKind.NSFunction,
             code = "compiled test function",
             returnTypeInfo = returnType,
             argumentTypes = arguments,
@@ -1866,7 +1869,7 @@ namespace NeoCompose.Tests
             updatedAt = "x",
         };
 
-        private static FunctionAttribute NativeFunction(
+        private static FunctionMember NativeFunction(
             string id,
             string name,
             bool deferred) => new()
@@ -1874,7 +1877,7 @@ namespace NeoCompose.Tests
             id = id,
             projectId = ProjectId,
             name = name,
-            type = AttributeType.Function,
+            kind = MemberKind.Function,
             returnTypeInfo = IntType(),
             argumentTypes = Array.Empty<FunctionArgumentTypeInfo>(),
             deferred = deferred,
@@ -1890,19 +1893,19 @@ namespace NeoCompose.Tests
             var parameters = new Variable[arguments.Length + 2];
             parameters[0] = Parameter(
                 "__this__",
-                new CustomTypeInfo
+                new ClassTypeInfo
                 {
-                    type = AttributeType.Custom,
+                    type = MemberKind.Class,
                     required = true,
-                    typeId = "receiver-type",
+                    classId = "receiver-class",
                 });
             parameters[1] = Parameter(
                 "__root__",
-                new CustomTypeInfo
+                new ClassTypeInfo
                 {
-                    type = AttributeType.Custom,
+                    type = MemberKind.Class,
                     required = true,
-                    typeId = "root-type",
+                    classId = "root-class",
                 });
             for (int i = 0; i < arguments.Length; i++)
             {
@@ -1925,7 +1928,7 @@ namespace NeoCompose.Tests
 
         private static FunctionArgumentTypeInfo Argument(
             string name,
-            AttributeType type,
+            MemberKind type,
             bool required = true) => new()
         {
             name = name,
@@ -1935,19 +1938,19 @@ namespace NeoCompose.Tests
 
         private static PrimitiveTypeInfo IntType() => new()
         {
-            type = AttributeType.Int,
+            type = MemberKind.Int,
             required = true,
         };
 
         private static PrimitiveTypeInfo BoolType() => new()
         {
-            type = AttributeType.Bool,
+            type = MemberKind.Bool,
             required = true,
         };
 
         private static PrimitiveTypeInfo FloatType() => new()
         {
-            type = AttributeType.Float,
+            type = MemberKind.Float,
             required = true,
         };
 
@@ -2000,7 +2003,7 @@ namespace NeoCompose.Tests
             {
                 typeInfo = new PrimitiveTypeInfo
                 {
-                    type = AttributeType.String,
+                    type = MemberKind.String,
                     required = true,
                 },
                 value = JToken.FromObject(value),
@@ -2026,11 +2029,11 @@ namespace NeoCompose.Tests
         private static KeyOfPointer ThisNestedFlag() =>
             Key(Key(Variable("__this__"), "Child"), "Flag");
 
-        private static CallFunctionPointer Call(string attributeId, string callSiteId) => new()
+        private static CallFunctionPointer Call(string memberId, string callSiteId) => new()
         {
             type = PointerKind.CallFunction,
-            attributeId = attributeId,
-            thisPointer = Variable("__this__"),
+            memberId = memberId,
+            receiver = CallReceiver.Instance(Variable("__this__")),
             args = Array.Empty<Pointer>(),
             callSiteId = callSiteId,
         };
@@ -2067,12 +2070,12 @@ namespace NeoCompose.Tests
             },
         };
 
-        private static ObjectAttributeValue ObjectValue(
+        private static ObjectMemberValue ObjectValue(
             string id,
-            string typeId) => new()
+            string classId) => new()
         {
             id = id,
-            typeId = typeId,
+            classId = classId,
             value = new Dictionary<string, string>(),
             createdAt = "x",
             updatedAt = "x",

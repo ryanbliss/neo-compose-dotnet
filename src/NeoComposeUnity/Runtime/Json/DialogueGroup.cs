@@ -34,7 +34,7 @@ namespace NeoCompose.Runtime.Json
 
     public class LookupDialogueGroup : DialogueGroup
     {
-        public string collectionAttributeId = null!;
+        public string collectionMemberId = null!;
         public string? collectionValueId;
     }
 

@@ -83,7 +83,7 @@ namespace HelloWorld.Assets.Scripts
         public string StatusText { get; private set; } = string.Empty;
 
         /// <summary>
-        /// The placed spawn object's generated value. Its Position attribute
+        /// The placed spawn object's generated value. Its Position member
         /// overrides storage to Session, so gameplay moves the player by
         /// assigning it — the renderer mirrors the write onto the SDK-spawned
         /// GameObject.
@@ -389,7 +389,7 @@ namespace HelloWorld.Assets.Scripts
         // Takes the resolved DialogueLookup reference off an interactable and
         // triggers it by id through the host. The dialogue ids are no longer
         // hardcoded here — they live on the objects/tiles as DialogueLookup
-        // attributes and arrive as generated NeoDialogueReferences.
+        // members and arrive as generated NeoDialogueReferences.
         private void TriggerLandingDialogue(NeoDialogueReference reference, Action onFinish)
         {
             if (host.TryTriggerDialogue(reference, onFinish))

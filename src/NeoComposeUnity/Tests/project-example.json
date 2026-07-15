@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 7,
+    "schemaVersion": 8,
     "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
     "versionId": "version-1",
     "semver": {
@@ -16,16 +16,16 @@
     "name": "Test",
     "createdAt": "2026-04-22T04:37:21.148Z",
     "updatedAt": "2026-04-22T04:37:21.148Z",
-    "rootAssetsAttributeId": "1f3e5850-4b17-481b-a1b8-989368744da1",
-    "rootSaveFileAttributeId": "97f1760a-972a-469b-8ceb-67800332deb2",
-    "rootSessionAttributeId": "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a"
+    "rootAssetsMemberId": "1f3e5850-4b17-481b-a1b8-989368744da1",
+    "rootSaveFileMemberId": "97f1760a-972a-469b-8ceb-67800332deb2",
+    "rootSessionMemberId": "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a"
   },
-  "attributes": {
+  "members": {
     "1f3e5850-4b17-481b-a1b8-989368744da1": {
       "_id": "69e8508019f7c06f14880283",
-      "customTypeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c",
+      "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c",
       "name": "Assets",
-      "type": 7,
+      "kind": 7,
       "locked": true,
       "required": true,
       "isStatic": false,
@@ -40,9 +40,9 @@
     },
     "97f1760a-972a-469b-8ceb-67800332deb2": {
       "_id": "69e8508119f7c06f14880285",
-      "customTypeId": "eef03495-48c4-4760-8b4c-dc41b6d9e589",
+      "classId": "eef03495-48c4-4760-8b4c-dc41b6d9e589",
       "name": "Save",
-      "type": 7,
+      "kind": 7,
       "locked": true,
       "required": true,
       "isStatic": false,
@@ -57,9 +57,9 @@
     },
     "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a": {
       "_id": "0d5f42dd-f6c9-4d54-84dd-b69cb9ef7b3a",
-      "customTypeId": "eef03495-48c4-4760-8b4c-dc41b6d9e589",
+      "classId": "eef03495-48c4-4760-8b4c-dc41b6d9e589",
       "name": "Session",
-      "type": 7,
+      "kind": 7,
       "locked": true,
       "required": true,
       "isStatic": false,
@@ -81,7 +81,7 @@
       "defaultValue": {
         "value": ""
       },
-      "type": 3,
+      "kind": 3,
       "id": "9f54fe67-67b9-4fc9-b6e8-9001f3569613",
       "valueId": "4181a582-2a2e-4b47-ab17-b85f308a6d54",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -97,7 +97,7 @@
       "defaultValue": {
         "value": ""
       },
-      "type": 3,
+      "kind": 3,
       "id": "7b457726-cc42-4c38-83bc-ec8f4d3baa65",
       "valueId": "e2303093-430f-4323-b4df-76a89ce2a583",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -113,7 +113,7 @@
       "defaultValue": {
         "value": 0
       },
-      "type": 2,
+      "kind": 2,
       "id": "d0c95142-c80b-4922-9a96-ed95aab7963e",
       "valueId": "44e04694-489b-4d55-9a09-7c79b6f33503",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -129,7 +129,7 @@
       "defaultValue": {
         "value": true
       },
-      "type": 1,
+      "kind": 1,
       "id": "bcc25069-6ddc-4b7d-8135-9f8306a64782",
       "valueId": "d53bf090-7216-49a7-a5cb-8baf6d6f70c2",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -145,8 +145,8 @@
       "defaultValue": {
         "value": {}
       },
-      "type": 7,
-      "customTypeId": "3d29df51-e11b-47c5-a139-d93e6315f2bb",
+      "kind": 7,
+      "classId": "3d29df51-e11b-47c5-a139-d93e6315f2bb",
       "id": "d70c80cf-3c6b-47d6-a375-bcb5db521670",
       "valueId": "282f098e-3c0a-4edd-8d81-92e06d107b48",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -162,8 +162,8 @@
       "defaultValue": {
         "value": []
       },
-      "type": 6,
-      "entryAttributeId": "d70c80cf-3c6b-47d6-a375-bcb5db521670",
+      "kind": 6,
+      "entryMemberId": "d70c80cf-3c6b-47d6-a375-bcb5db521670",
       "id": "b9a9848a-fe80-4be6-80e3-f1f440959572",
       "valueId": "efe458b7-64db-403f-9dad-1abeba5ae226",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -179,7 +179,7 @@
       "defaultValue": {
         "value": ""
       },
-      "type": 3,
+      "kind": 3,
       "id": "0f163f4e-0d27-48d0-9fde-7ee884aa6708",
       "valueId": "346ed1da-4952-4da9-a53b-af7088c26b9e",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -195,7 +195,7 @@
       "defaultValue": {
         "value": 18
       },
-      "type": 2,
+      "kind": 2,
       "id": "52e741de-f518-4176-989b-2fbdc6a5ddbb",
       "valueId": "b80cf04d-d8be-4077-91f4-315f569657b0",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -211,7 +211,7 @@
       "defaultValue": {
         "value": false
       },
-      "type": 1,
+      "kind": 1,
       "id": "5813f00c-4002-4ca1-9a73-b3a3c5c0d498",
       "valueId": "c9780fd0-318a-4e88-9de2-de51cbbe9330",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -227,7 +227,7 @@
       "defaultValue": {
         "value": ""
       },
-      "type": 3,
+      "kind": 3,
       "id": "d3788116-a26c-4966-b605-98241aefcae6",
       "valueId": "4e423c2f-b6c7-45bc-940b-a2d6f3a97cea",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -243,7 +243,7 @@
       "defaultValue": {
         "value": ""
       },
-      "type": 3,
+      "kind": 3,
       "id": "0f4de3bc-65eb-462d-ba32-225ebbb088f1",
       "valueId": "7e440695-1c39-4492-8042-85dadcf75033",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -259,8 +259,8 @@
       "defaultValue": {
         "value": {}
       },
-      "type": 5,
-      "entryAttributeId": "0f4de3bc-65eb-462d-ba32-225ebbb088f1",
+      "kind": 5,
+      "entryMemberId": "0f4de3bc-65eb-462d-ba32-225ebbb088f1",
       "id": "bafdf6df-22df-43fd-92e0-31c9d0201316",
       "valueId": "99466d75-e516-4b9b-86bf-fdbae178cb5d",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -278,7 +278,7 @@
           "A"
         ]
       },
-      "type": 8,
+      "kind": 8,
       "enumId": "3b2883b6-a8ac-4946-8b84-233612c23111",
       "multiselect": false,
       "id": "15585361-6fe5-4a9b-803f-02d08bde68de",
@@ -286,7 +286,7 @@
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": {},
       "updatedAt": "2026-04-29T19:32:04.562Z",
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "7e4bca19-1083-4702-be96-ef8fa3e1f0ab": {
       "_id": "69e9397a7e9cf57d65201d3d",
@@ -297,7 +297,7 @@
       "defaultValue": {
         "value": []
       },
-      "type": 8,
+      "kind": 8,
       "enumId": "3b2883b6-a8ac-4946-8b84-233612c23111",
       "multiselect": true,
       "id": "7e4bca19-1083-4702-be96-ef8fa3e1f0ab",
@@ -315,8 +315,8 @@
       "defaultValue": {
         "value": {}
       },
-      "type": 7,
-      "customTypeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003",
+      "kind": 7,
+      "classId": "a822fc0e-e07b-41b6-be3a-b47e409d1003",
       "id": "ec4dea9f-a8b2-4a0e-9765-ccc6449c7e34",
       "valueId": "7e365fca-f9ca-4ac9-b671-72081178e717",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -332,8 +332,8 @@
       "defaultValue": {
         "value": []
       },
-      "type": 6,
-      "entryAttributeId": "ec4dea9f-a8b2-4a0e-9765-ccc6449c7e34",
+      "kind": 6,
+      "entryMemberId": "ec4dea9f-a8b2-4a0e-9765-ccc6449c7e34",
       "id": "6947e152-b4f1-409b-afa2-e178107a1b34",
       "valueId": "54ad90ed-0b58-401e-9abb-75198448099f",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -349,7 +349,7 @@
       "defaultValue": {
         "value": false
       },
-      "type": 1,
+      "kind": 1,
       "id": "7edda04d-3cf6-4169-8a65-34d9105f7246",
       "valueId": "264a16f9-a8b9-4b1c-ad89-0425dcfb83f5",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -365,7 +365,7 @@
       "defaultValue": {
         "value": 10
       },
-      "type": 2,
+      "kind": 2,
       "minValue": 0,
       "id": "d0638e14-7a56-4559-b380-a3a8a323cbbc",
       "valueId": "d8872f22-86d3-44ed-bb8b-0b15ecc5412f",
@@ -382,8 +382,8 @@
       "defaultValue": {
         "value": {}
       },
-      "type": 7,
-      "customTypeId": "3d29df51-e11b-47c5-a139-d93e6315f2bb",
+      "kind": 7,
+      "classId": "3d29df51-e11b-47c5-a139-d93e6315f2bb",
       "id": "80cf65c0-cc63-4e63-8615-1408fc6bc7dc",
       "valueId": "2df44813-951c-4c10-8001-04f3caa90dd1",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -399,14 +399,14 @@
       "defaultValue": {
         "value": {}
       },
-      "type": 5,
-      "entryAttributeId": "80cf65c0-cc63-4e63-8615-1408fc6bc7dc",
+      "kind": 5,
+      "entryMemberId": "80cf65c0-cc63-4e63-8615-1408fc6bc7dc",
       "id": "bee397c8-7196-4d38-864e-7258169ef49f",
       "valueId": "cd7bcc12-ada2-4282-8282-c70f6097f9a5",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-24T00:01:59.714Z",
       "updatedAt": "2026-04-30T00:49:41.623Z",
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "3fff8afc-a46e-49ec-a72f-836e464225c9": {
       "_id": "69ebd40addf5588456b399e6",
@@ -417,8 +417,8 @@
       "defaultValue": {
         "value": []
       },
-      "type": 9,
-      "collectionAttributeId": "6947e152-b4f1-409b-afa2-e178107a1b34",
+      "kind": 9,
+      "collectionMemberId": "6947e152-b4f1-409b-afa2-e178107a1b34",
       "multiselect": false,
       "id": "3fff8afc-a46e-49ec-a72f-836e464225c9",
       "valueId": "023c0e26-4d5e-4cdd-8d59-62f62248ab56",
@@ -428,15 +428,15 @@
     },
     "437a8aff-785d-4efc-8203-cb6b6148f654": {
       "_id": "69ebd8c3ddf5588456b399e9",
-      "name": "DictionaryCustomLookup",
+      "name": "DictionaryClassLookup",
       "locked": false,
       "required": true,
       "isStatic": false,
       "defaultValue": {
         "value": []
       },
-      "type": 9,
-      "collectionAttributeId": "bee397c8-7196-4d38-864e-7258169ef49f",
+      "kind": 9,
+      "collectionMemberId": "bee397c8-7196-4d38-864e-7258169ef49f",
       "multiselect": false,
       "id": "437a8aff-785d-4efc-8203-cb6b6148f654",
       "valueId": "71e9d1c7-e211-4f64-8152-b6fb312fb7a1",
@@ -453,7 +453,7 @@
       "defaultValue": {
         "value": ""
       },
-      "type": 3,
+      "kind": 3,
       "id": "28fc798c-3ebe-4875-8bf6-1f0bb7d8018b",
       "valueId": "91425f2a-554d-4e1f-a736-47e15c239042",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -469,8 +469,8 @@
       "defaultValue": {
         "value": []
       },
-      "type": 6,
-      "entryAttributeId": "28fc798c-3ebe-4875-8bf6-1f0bb7d8018b",
+      "kind": 6,
+      "entryMemberId": "28fc798c-3ebe-4875-8bf6-1f0bb7d8018b",
       "id": "d73f1a94-5263-4884-82b5-8f04b677db00",
       "valueId": "ae3c3c4d-b18d-44bf-8fde-dcd2751af917",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -486,7 +486,7 @@
       "defaultValue": {
         "value": ""
       },
-      "type": 3,
+      "kind": 3,
       "id": "1ea5f6ce-7a39-4d1d-898c-f60902d5639f",
       "valueId": "0cd3051c-cdbb-46ff-a4c1-b3f51bc3290e",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -499,7 +499,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "    string itemName = this.ItemGetOptional?.Name ?? \"Unknown\";\n    string label = $\"Hello world!!! NPC: {this.NPCs.First().Name}, item: {itemName}\";\n    return label;",
       "returnTypeInfo": {
         "type": 3,
@@ -512,7 +512,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+              "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
             },
             "pointer": {
               "type": "value",
@@ -520,7 +520,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+                  "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
                 },
                 "value": null
               }
@@ -531,7 +531,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -539,7 +539,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -559,12 +559,12 @@
                 "type": "coalesce",
                 "left": {
                   "type": "callGetter",
-                  "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
+                  "memberId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
                   "receiver": {
                     "kind": "instance",
                     "pointer": {
                       "type": "callGetter",
-                      "attributeId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
+                      "memberId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
                       "receiver": {
                         "kind": "instance",
                         "pointer": {
@@ -694,7 +694,7 @@
       "createdAt": "2026-04-28T18:58:29.831Z",
       "updatedAt": "2026-04-30T01:29:22.487Z",
       "defaultValue": null,
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "1b34eb13-ef37-45db-9ddc-7da0698ce4e0": {
       "_id": "69f114a7c643b8264fd6dfea",
@@ -702,7 +702,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "    NPC npc = this.NPCs[\"James\"];\n    if (npc.Age >= 18) {\n        return npc.CanRomance;\n    }\n    return false;",
       "returnTypeInfo": {
         "type": 1,
@@ -715,7 +715,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+              "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
             },
             "pointer": {
               "type": "value",
@@ -723,7 +723,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+                  "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
                 },
                 "value": null
               }
@@ -734,7 +734,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -742,7 +742,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -757,7 +757,7 @@
               "typeInfo": {
                 "type": 7,
                 "required": true,
-                "typeId": "3d29df51-e11b-47c5-a139-d93e6315f2bb"
+                "classId": "3d29df51-e11b-47c5-a139-d93e6315f2bb"
               },
               "pointer": {
                 "type": "keyOf",
@@ -908,7 +908,7 @@
       "createdAt": "2026-04-28T20:12:23.683Z",
       "updatedAt": "2026-04-30T00:51:12.909Z",
       "defaultValue": null,
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "9bc07de0-fd37-4469-81dc-10d04d00a52b": {
       "_id": "69f116a2c643b8264fd6dfeb",
@@ -916,7 +916,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "    return root.Assets.InventoryItems.Where((item) => { return item is ToolItem; })\n        .Select((item) => {\n            return item.Name;\n        });",
       "returnTypeInfo": {
         "type": 6,
@@ -933,7 +933,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+              "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
             },
             "pointer": {
               "type": "value",
@@ -941,7 +941,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+                  "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
                 },
                 "value": null
               }
@@ -952,7 +952,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -960,7 +960,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -1021,7 +1021,7 @@
                               "typeInfo": {
                                 "type": 7,
                                 "required": true,
-                                "typeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
+                                "classId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
                               },
                               "pointer": {
                                 "type": "variable",
@@ -1041,7 +1041,7 @@
                                 "checkType": {
                                   "type": 7,
                                   "required": true,
-                                  "typeId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4"
+                                  "classId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4"
                                 }
                               }
                             }
@@ -1061,7 +1061,7 @@
                         "typeInfo": {
                           "type": 7,
                           "required": true,
-                          "typeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
+                          "classId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
                         },
                         "pointer": {
                           "type": "variable",
@@ -1074,7 +1074,7 @@
                         "type": "return",
                         "pointer": {
                           "type": "callGetter",
-                          "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
+                          "memberId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
                           "receiver": {
                             "kind": "instance",
                             "pointer": {
@@ -1109,7 +1109,7 @@
       "createdAt": "2026-04-28T20:20:50.767Z",
       "updatedAt": "2026-04-29T22:04:57.364Z",
       "defaultValue": null,
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "6f36eba5-353f-48f4-871c-42a6cd72bcd8": {
       "_id": "69f11f20c643b8264fd6dfec",
@@ -1117,12 +1117,12 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "    InventoryItem? item = this.ItemGetOptional;\n    if (!item) {\n        throw $\"item is unexpectedly null!\";\n    }\n    return item;",
       "returnTypeInfo": {
         "type": 7,
         "required": true,
-        "typeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
+        "classId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
       },
       "getter": {
         "parameters": [
@@ -1131,7 +1131,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+              "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
             },
             "pointer": {
               "type": "value",
@@ -1139,7 +1139,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+                  "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
                 },
                 "value": null
               }
@@ -1150,7 +1150,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -1158,7 +1158,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -1173,11 +1173,11 @@
               "typeInfo": {
                 "type": 7,
                 "required": false,
-                "typeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
+                "classId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
               },
               "pointer": {
                 "type": "callGetter",
-                "attributeId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
+                "memberId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
                 "receiver": {
                   "kind": "instance",
                   "pointer": {
@@ -1267,7 +1267,7 @@
         "typeInfo": {
           "type": 7,
           "required": true,
-          "typeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
+          "classId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
         }
       },
       "id": "6f36eba5-353f-48f4-871c-42a6cd72bcd8",
@@ -1275,7 +1275,7 @@
       "createdAt": "2026-04-28T20:57:04.145Z",
       "updatedAt": "2026-04-30T20:58:29.784Z",
       "defaultValue": null,
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "42f3f813-b0e5-4561-a96b-a7216e3ccef0": {
       "_id": "69f12321c643b8264fd6dfee",
@@ -1283,7 +1283,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "\treturn this.Combo;",
       "returnTypeInfo": {
         "type": 8,
@@ -1297,7 +1297,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+              "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
             },
             "pointer": {
               "type": "value",
@@ -1305,7 +1305,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+                  "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
                 },
                 "value": null
               }
@@ -1316,7 +1316,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -1324,7 +1324,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -1366,7 +1366,7 @@
       "createdAt": {},
       "updatedAt": "2026-04-29T19:32:04.679Z",
       "defaultValue": null,
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b": {
       "_id": "69f13c18c643b8264fd6dfef",
@@ -1374,12 +1374,12 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "\tstring query = this.Name;\n    return root.Assets.InventoryItems.Find((check) => {\n        return check.Name == query;\n    });",
       "returnTypeInfo": {
         "type": 7,
         "required": false,
-        "typeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
+        "classId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
       },
       "getter": {
         "parameters": [
@@ -1388,7 +1388,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+              "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
             },
             "pointer": {
               "type": "value",
@@ -1396,7 +1396,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+                  "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
                 },
                 "value": null
               }
@@ -1407,7 +1407,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -1415,7 +1415,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -1500,7 +1500,7 @@
                         "typeInfo": {
                           "type": 7,
                           "required": true,
-                          "typeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
+                          "classId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
                         },
                         "pointer": {
                           "type": "variable",
@@ -1520,7 +1520,7 @@
                                 "type": "equalTo",
                                 "operand1": {
                                   "type": "callGetter",
-                                  "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
+                                  "memberId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
                                   "receiver": {
                                     "kind": "instance",
                                     "pointer": {
@@ -1553,7 +1553,7 @@
         "typeInfo": {
           "type": 7,
           "required": false,
-          "typeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
+          "classId": "a822fc0e-e07b-41b6-be3a-b47e409d1003"
         }
       },
       "id": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
@@ -1561,7 +1561,7 @@
       "createdAt": "2026-04-28T23:00:40.389Z",
       "updatedAt": "2026-04-29T22:04:20.651Z",
       "defaultValue": null,
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "c81d2773-032d-4354-8e9e-3fede8bbcddb": {
       "_id": "69f14544c643b8264fd6dff0",
@@ -1569,7 +1569,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "\treturn this.Age >= 18;",
       "returnTypeInfo": {
         "type": 1,
@@ -1582,7 +1582,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "3d29df51-e11b-47c5-a139-d93e6315f2bb"
+              "classId": "3d29df51-e11b-47c5-a139-d93e6315f2bb"
             },
             "pointer": {
               "type": "value",
@@ -1590,7 +1590,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "3d29df51-e11b-47c5-a139-d93e6315f2bb"
+                  "classId": "3d29df51-e11b-47c5-a139-d93e6315f2bb"
                 },
                 "value": null
               }
@@ -1601,7 +1601,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -1609,7 +1609,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -1672,7 +1672,7 @@
       "createdAt": "2026-04-28T23:39:48.326Z",
       "updatedAt": "2026-04-28T23:40:23.066Z",
       "defaultValue": null,
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "f8da8237-148c-4173-b907-21b7b70bf7f9": {
       "_id": "69f14634c643b8264fd6dff3",
@@ -1683,8 +1683,8 @@
       "defaultValue": {
         "value": {}
       },
-      "type": 7,
-      "customTypeId": "258c072c-6679-46b3-98f9-59d13f106803",
+      "kind": 7,
+      "classId": "258c072c-6679-46b3-98f9-59d13f106803",
       "id": "f8da8237-148c-4173-b907-21b7b70bf7f9",
       "valueId": "220414fe-de14-43ba-b29c-09309d7e0985",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -1700,7 +1700,7 @@
       "defaultValue": {
         "value": 1
       },
-      "type": 2,
+      "kind": 2,
       "minValue": 1,
       "maxValue": 28,
       "id": "f66f7114-3a49-47cb-a1dc-621f0f641c0e",
@@ -1720,7 +1720,7 @@
           "Spring"
         ]
       },
-      "type": 8,
+      "kind": 8,
       "enumId": "a3bf3055-4d46-4905-956e-2e21292094f9",
       "multiselect": false,
       "id": "4f178bca-5b13-4e8f-b650-e92af7ef6177",
@@ -1738,8 +1738,8 @@
       "defaultValue": {
         "value": {}
       },
-      "type": 7,
-      "customTypeId": "258c072c-6679-46b3-98f9-59d13f106803",
+      "kind": 7,
+      "classId": "258c072c-6679-46b3-98f9-59d13f106803",
       "id": "d3aac711-02c6-4d41-b6ed-b405ab661c04",
       "valueId": "dd0c05cd-7c8b-4fe7-adc8-d1a7285bbef1",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -1752,7 +1752,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "\treturn this.Birthday.Day == root.Save.GameTime.Day\n\t\t&& this.Birthday.Season == root.Save.GameTime.Season;",
       "returnTypeInfo": {
         "type": 1,
@@ -1765,7 +1765,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "3d29df51-e11b-47c5-a139-d93e6315f2bb"
+              "classId": "3d29df51-e11b-47c5-a139-d93e6315f2bb"
             },
             "pointer": {
               "type": "value",
@@ -1773,7 +1773,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "3d29df51-e11b-47c5-a139-d93e6315f2bb"
+                  "classId": "3d29df51-e11b-47c5-a139-d93e6315f2bb"
                 },
                 "value": null
               }
@@ -1784,7 +1784,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -1792,7 +1792,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -2044,7 +2044,7 @@
       "createdAt": "2026-04-28T23:46:57.637Z",
       "updatedAt": "2026-04-28T23:48:09.820Z",
       "defaultValue": null,
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "d25f7fe4-3598-4406-8d48-c8497f1554c5": {
       "_id": "69f1854e6c90927cb4cae514",
@@ -2055,13 +2055,13 @@
       "defaultValue": {
         "value": "[Tool]"
       },
-      "type": 3,
+      "kind": 3,
       "id": "d25f7fe4-3598-4406-8d48-c8497f1554c5",
       "valueId": "427cd112-bdce-4251-9cdd-a6ad33260616",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-04-29T04:13:02.567Z",
       "updatedAt": "2026-04-30T22:47:39.501Z",
-      "extendsAttributeId": null
+      "extendsMemberId": null
     },
     "411fa900-1172-4cc4-98e3-c8bf63aff4f1": {
       "_id": "69f187a46c90927cb4cae516",
@@ -2069,7 +2069,7 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "\tthrow \"Not implemented exception\";",
       "returnTypeInfo": {
         "type": 3,
@@ -2099,7 +2099,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -2107,7 +2107,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -2145,13 +2145,13 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "\treturn $\"{this.Material} {this.ToolName}\";",
       "returnTypeInfo": {
         "type": 3,
         "required": true
       },
-      "extendsAttributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
+      "extendsMemberId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
       "getter": {
         "parameters": [
           {
@@ -2159,7 +2159,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4"
+              "classId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4"
             },
             "pointer": {
               "type": "value",
@@ -2167,7 +2167,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4"
+                  "classId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4"
                 },
                 "value": null
               }
@@ -2178,7 +2178,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -2186,7 +2186,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -2287,7 +2287,7 @@
           "wood"
         ]
       },
-      "type": 8,
+      "kind": 8,
       "enumId": "a474257e-a686-46ba-ab6b-d8060c36f90e",
       "multiselect": false,
       "id": "6f334ec8-0a0c-4398-9216-ba679540cc40",
@@ -2305,8 +2305,8 @@
       "defaultValue": {
         "value": "Pickaxe"
       },
-      "type": 3,
-      "extendsAttributeId": "d25f7fe4-3598-4406-8d48-c8497f1554c5",
+      "kind": 3,
+      "extendsMemberId": "d25f7fe4-3598-4406-8d48-c8497f1554c5",
       "id": "1bb9222a-63ab-40da-b282-a2ad9d2fde65",
       "valueId": "da5b6344-4801-45c6-b375-f0608999a1f6",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -2322,8 +2322,8 @@
       "defaultValue": {
         "value": "Hoe"
       },
-      "type": 3,
-      "extendsAttributeId": "d25f7fe4-3598-4406-8d48-c8497f1554c5",
+      "kind": 3,
+      "extendsMemberId": "d25f7fe4-3598-4406-8d48-c8497f1554c5",
       "id": "360189ef-f0ff-40c6-94d8-e0bdead1c4cf",
       "valueId": "c8f15cad-ff16-46ba-b4b2-db0e8998bbc1",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -2339,7 +2339,7 @@
       "defaultValue": {
         "value": "[Plant] Seed"
       },
-      "type": 3,
+      "kind": 3,
       "id": "58ea30b4-dd12-4d15-b1e1-95e2820c02f2",
       "valueId": "e2330f9b-1640-4248-b1ae-1e7e034b5373",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
@@ -2352,13 +2352,13 @@
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "\treturn this.SeedName;",
       "returnTypeInfo": {
         "type": 3,
         "required": true
       },
-      "extendsAttributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
+      "extendsMemberId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
       "getter": {
         "parameters": [
           {
@@ -2366,7 +2366,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "7937c71b-4c80-4a73-b63c-81135751f504"
+              "classId": "7937c71b-4c80-4a73-b63c-81135751f504"
             },
             "pointer": {
               "type": "value",
@@ -2374,7 +2374,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "7937c71b-4c80-4a73-b63c-81135751f504"
+                  "classId": "7937c71b-4c80-4a73-b63c-81135751f504"
                 },
                 "value": null
               }
@@ -2385,7 +2385,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -2393,7 +2393,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -2444,7 +2444,7 @@
       "defaultValue": {
         "value": 0
       },
-      "type": 2,
+      "kind": 2,
       "minValue": 0,
       "id": "0cd67be2-e40f-4f89-926e-6b0675ee9a51",
       "valueId": "6e2e5aa2-081d-4bed-85e7-762992e29cf2",
@@ -2452,8 +2452,8 @@
       "createdAt": "2026-04-30T23:05:05.314Z",
       "updatedAt": "2026-04-30T23:05:05.314Z"
     },
-    "attr-elem-damage-entry": {
-      "_id": "attr-elem-damage-entry",
+    "member-elem-damage-entry": {
+      "_id": "member-elem-damage-entry",
       "name": "Element Damage Entry",
       "locked": false,
       "required": true,
@@ -2462,14 +2462,14 @@
         "value": 0
       },
       "valueId": "v-elem-damage-entry-default",
-      "type": 2,
-      "id": "attr-elem-damage-entry",
+      "kind": 2,
+      "id": "member-elem-damage-entry",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
     },
-    "attr-elem-damage": {
-      "_id": "attr-elem-damage",
+    "member-elem-damage": {
+      "_id": "member-elem-damage",
       "name": "ElementDamage",
       "locked": false,
       "required": true,
@@ -2477,18 +2477,18 @@
       "defaultValue": {
         "value": {}
       },
-      "entryAttributeId": "attr-elem-damage-entry",
+      "entryMemberId": "member-elem-damage-entry",
       "keyKind": "enum",
       "keyEnumId": "enum-element",
       "valueId": "v-elem-damage-default",
-      "type": 5,
-      "id": "attr-elem-damage",
+      "kind": 5,
+      "id": "member-elem-damage",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
     },
-    "attr-elem-stats-entry": {
-      "_id": "attr-elem-stats-entry",
+    "member-elem-stats-entry": {
+      "_id": "member-elem-stats-entry",
       "name": "Element Stat Entry",
       "locked": false,
       "required": true,
@@ -2497,14 +2497,14 @@
         "value": 0
       },
       "valueId": "v-elem-stats-entry-default",
-      "type": 2,
-      "id": "attr-elem-stats-entry",
+      "kind": 2,
+      "id": "member-elem-stats-entry",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
     },
-    "attr-elem-stats": {
-      "_id": "attr-elem-stats",
+    "member-elem-stats": {
+      "_id": "member-elem-stats",
       "name": "ElementStats",
       "locked": false,
       "required": true,
@@ -2512,18 +2512,18 @@
       "defaultValue": {
         "value": {}
       },
-      "entryAttributeId": "attr-elem-stats-entry",
+      "entryMemberId": "member-elem-stats-entry",
       "keyKind": "enum",
       "keyEnumId": "enum-element",
       "valueId": "v-elem-stats-default",
-      "type": 5,
-      "id": "attr-elem-stats",
+      "kind": 5,
+      "id": "member-elem-stats",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
     },
-    "attr-selected-element": {
-      "_id": "attr-selected-element",
+    "member-selected-element": {
+      "_id": "member-selected-element",
       "name": "SelectedElement",
       "locked": false,
       "required": true,
@@ -2536,14 +2536,14 @@
       "enumId": "enum-element",
       "multiselect": false,
       "valueId": "v-selected-element-default",
-      "type": 8,
-      "id": "attr-selected-element",
+      "kind": 8,
+      "id": "member-selected-element",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
     },
-    "attr-elem-bonus-entry": {
-      "_id": "attr-elem-bonus-entry",
+    "member-elem-bonus-entry": {
+      "_id": "member-elem-bonus-entry",
       "name": "Element Bonus Entry",
       "locked": false,
       "required": true,
@@ -2552,14 +2552,14 @@
         "value": 0
       },
       "valueId": "v-elem-bonus-entry-default",
-      "type": 2,
-      "id": "attr-elem-bonus-entry",
+      "kind": 2,
+      "id": "member-elem-bonus-entry",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
     },
-    "attr-elem-bonus": {
-      "_id": "attr-elem-bonus",
+    "member-elem-bonus": {
+      "_id": "member-elem-bonus",
       "name": "ElementBonus",
       "locked": false,
       "required": true,
@@ -2567,18 +2567,18 @@
       "defaultValue": {
         "value": {}
       },
-      "entryAttributeId": "attr-elem-bonus-entry",
+      "entryMemberId": "member-elem-bonus-entry",
       "keyKind": "enum",
       "keyEnumId": "enum-element",
       "valueId": "v-elem-bonus-default",
-      "type": 5,
-      "id": "attr-elem-bonus",
+      "kind": 5,
+      "id": "member-elem-bonus",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
     },
-    "attr-elem-champion-entry": {
-      "_id": "attr-elem-champion-entry",
+    "member-elem-champion-entry": {
+      "_id": "member-elem-champion-entry",
       "name": "Element Champion",
       "locked": false,
       "required": true,
@@ -2586,16 +2586,16 @@
       "defaultValue": {
         "value": {}
       },
-      "customTypeId": "3d29df51-e11b-47c5-a139-d93e6315f2bb",
+      "classId": "3d29df51-e11b-47c5-a139-d93e6315f2bb",
       "valueId": "v-elem-champion-entry-default",
-      "type": 7,
-      "id": "attr-elem-champion-entry",
+      "kind": 7,
+      "id": "member-elem-champion-entry",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
     },
-    "attr-elem-champions": {
-      "_id": "attr-elem-champions",
+    "member-elem-champions": {
+      "_id": "member-elem-champions",
       "name": "ElementChampions",
       "locked": false,
       "required": true,
@@ -2603,23 +2603,23 @@
       "defaultValue": {
         "value": {}
       },
-      "entryAttributeId": "attr-elem-champion-entry",
+      "entryMemberId": "member-elem-champion-entry",
       "keyKind": "enum",
       "keyEnumId": "enum-element",
       "valueId": "v-elem-champions-default",
-      "type": 5,
-      "id": "attr-elem-champions",
+      "kind": 5,
+      "id": "member-elem-champions",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
     },
-    "attr-elem-fire-damage-get": {
-      "_id": "attr-elem-fire-damage-get",
+    "member-elem-fire-damage-get": {
+      "_id": "member-elem-fire-damage-get",
       "name": "FireDamageGet",
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "\treturn this.ElementDamage[Element.fire] + root.Save.ElementStats[Element.fire];",
       "returnTypeInfo": {
         "type": 2,
@@ -2632,7 +2632,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+              "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
             },
             "pointer": {
               "type": "value",
@@ -2640,7 +2640,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+                  "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
                 },
                 "value": null
               }
@@ -2651,7 +2651,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -2659,7 +2659,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -2770,18 +2770,18 @@
           "required": true
         }
       },
-      "id": "attr-elem-fire-damage-get",
+      "id": "member-elem-fire-damage-get",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
     },
-    "attr-elem-selected-damage-get": {
-      "_id": "attr-elem-selected-damage-get",
+    "member-elem-selected-damage-get": {
+      "_id": "member-elem-selected-damage-get",
       "name": "SelectedDamageGet",
       "locked": false,
       "required": false,
       "isStatic": false,
-      "type": 10,
+      "kind": 10,
       "code": "\treturn this.ElementDamage[this.SelectedElement];",
       "returnTypeInfo": {
         "type": 2,
@@ -2794,7 +2794,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+              "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
             },
             "pointer": {
               "type": "value",
@@ -2802,7 +2802,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
+                  "classId": "bf93d6db-269d-4c37-96a4-9f9c6a52694c"
                 },
                 "value": null
               }
@@ -2813,7 +2813,7 @@
             "typeInfo": {
               "type": 7,
               "required": true,
-              "typeId": "__root__"
+              "classId": "__root__"
             },
             "pointer": {
               "type": "value",
@@ -2821,7 +2821,7 @@
                 "typeInfo": {
                   "type": 7,
                   "required": true,
-                  "typeId": "__root__"
+                  "classId": "__root__"
                 },
                 "value": null
               }
@@ -2896,7 +2896,7 @@
           "required": true
         }
       },
-      "id": "attr-elem-selected-damage-get",
+      "id": "member-elem-selected-damage-get",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z"
@@ -3012,7 +3012,7 @@
       ]
     }
   },
-  "types": {
+  "classes": {
     "bf93d6db-269d-4c37-96a4-9f9c6a52694c": {
       "_id": "69e8508019f7c06f14880280",
       "id": "bf93d6db-269d-4c37-96a4-9f9c6a52694c",
@@ -3025,22 +3025,22 @@
         "InventoryItems": "6947e152-b4f1-409b-afa2-e178107a1b34",
         "NPCs": "bee397c8-7196-4d38-864e-7258169ef49f",
         "ItemLookup": "3fff8afc-a46e-49ec-a72f-836e464225c9",
-        "DictionaryCustomLookup": "437a8aff-785d-4efc-8203-cb6b6148f654",
+        "DictionaryClassLookup": "437a8aff-785d-4efc-8203-cb6b6148f654",
         "TextGet": "4692c174-eae9-49bb-8ad6-ca78161d15e9",
         "BoolGet": "1b34eb13-ef37-45db-9ddc-7da0698ce4e0",
         "ListGet": "9bc07de0-fd37-4469-81dc-10d04d00a52b",
         "ItemGet": "6f36eba5-353f-48f4-871c-42a6cd72bcd8",
         "ComboGet": "42f3f813-b0e5-4561-a96b-a7216e3ccef0",
         "ItemGetOptional": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
-        "ElementDamage": "attr-elem-damage",
-        "SelectedElement": "attr-selected-element",
-        "ElementChampions": "attr-elem-champions",
-        "FireDamageGet": "attr-elem-fire-damage-get",
-        "SelectedDamageGet": "attr-elem-selected-damage-get"
+        "ElementDamage": "member-elem-damage",
+        "SelectedElement": "member-selected-element",
+        "ElementChampions": "member-elem-champions",
+        "FireDamageGet": "member-elem-fire-damage-get",
+        "SelectedDamageGet": "member-elem-selected-damage-get"
       },
-      "extendsTypeId": null,
+      "extendsClassId": null,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": true,
+      "hiddenInMemberSelector": true,
       "createdAt": "2026-04-22T04:37:20.682Z",
       "updatedAt": "2026-04-30T00:49:59.169Z",
       "isAbstract": false
@@ -3051,11 +3051,11 @@
       "name": "Save",
       "schema": {
         "GameTime": "f8da8237-148c-4173-b907-21b7b70bf7f9",
-        "ElementStats": "attr-elem-stats"
+        "ElementStats": "member-elem-stats"
       },
-      "extendsTypeId": null,
+      "extendsClassId": null,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": true,
+      "hiddenInMemberSelector": true,
       "createdAt": "2026-04-22T04:37:20.683Z",
       "updatedAt": "2026-04-28T23:43:48.858Z",
       "isAbstract": false
@@ -3063,16 +3063,16 @@
     "316ef1ad-9c13-4330-949f-df6eb4a8d612": {
       "_id": "69e850fb19f7c06f1488028a",
       "id": "316ef1ad-9c13-4330-949f-df6eb4a8d612",
-      "name": "Custom",
+      "name": "Class",
       "schema": {
         "Name": "7b457726-cc42-4c38-83bc-ec8f4d3baa65",
         "Moneys": "d0c95142-c80b-4922-9a96-ed95aab7963e",
         "Enabled": "bcc25069-6ddc-4b7d-8135-9f8306a64782",
         "NPCs": "b9a9848a-fe80-4be6-80e3-f1f440959572"
       },
-      "extendsTypeId": null,
+      "extendsClassId": null,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-22T04:39:23.326Z",
       "updatedAt": "2026-04-25T02:28:49.124Z",
       "isAbstract": false
@@ -3091,9 +3091,9 @@
         "Birthday": "d3aac711-02c6-4d41-b6ed-b405ab661c04",
         "isBirthday": "4c424986-db70-4a7c-9ef9-3f4d1ade01e0"
       },
-      "extendsTypeId": null,
+      "extendsClassId": null,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-22T04:52:28.715Z",
       "updatedAt": "2026-04-28T23:46:57.741Z",
       "isAbstract": false
@@ -3101,11 +3101,11 @@
     "f5e97059-a204-4308-b0af-73092a6883fd": {
       "_id": "69e99141eb4037f909be505b",
       "id": "f5e97059-a204-4308-b0af-73092a6883fd",
-      "name": "CustomExtended",
+      "name": "ClassExtended",
       "schema": {},
-      "extendsTypeId": "316ef1ad-9c13-4330-949f-df6eb4a8d612",
+      "extendsClassId": "316ef1ad-9c13-4330-949f-df6eb4a8d612",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T03:25:53.358Z",
       "updatedAt": "2026-04-23T03:25:53.358Z",
       "isAbstract": false
@@ -3118,10 +3118,10 @@
         "Name": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
         "Value": "0cd67be2-e40f-4f89-926e-6b0675ee9a51"
       },
-      "extendsTypeId": null,
+      "extendsClassId": null,
       "isAbstract": true,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T06:54:30.804Z",
       "updatedAt": "2026-04-30T23:05:05.418Z"
     },
@@ -3134,10 +3134,10 @@
         "Name": "75cb8c0c-3cbe-4902-a94e-5c237da24d40",
         "Material": "6f334ec8-0a0c-4398-9216-ba679540cc40"
       },
-      "extendsTypeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003",
+      "extendsClassId": "a822fc0e-e07b-41b6-be3a-b47e409d1003",
       "isAbstract": true,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T07:14:39.644Z",
       "updatedAt": "2026-04-29T07:43:28.069Z"
     },
@@ -3151,10 +3151,10 @@
         "SeedName": "58ea30b4-dd12-4d15-b1e1-95e2820c02f2",
         "Name": "85f60d99-54c7-4ff4-97a5-4d888911a963"
       },
-      "extendsTypeId": "a822fc0e-e07b-41b6-be3a-b47e409d1003",
+      "extendsClassId": "a822fc0e-e07b-41b6-be3a-b47e409d1003",
       "isAbstract": false,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T07:18:02.390Z",
       "updatedAt": "2026-04-29T05:00:38.137Z"
     },
@@ -3166,10 +3166,10 @@
         "Damage": "d0638e14-7a56-4559-b380-a3a8a323cbbc",
         "ToolName": "1bb9222a-63ab-40da-b282-a2ad9d2fde65"
       },
-      "extendsTypeId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4",
+      "extendsClassId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4",
       "isAbstract": false,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T07:22:40.135Z",
       "updatedAt": "2026-04-29T04:59:07.941Z"
     },
@@ -3180,10 +3180,10 @@
       "schema": {
         "ToolName": "360189ef-f0ff-40c6-94d8-e0bdead1c4cf"
       },
-      "extendsTypeId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4",
+      "extendsClassId": "2074e0c9-0cfe-4261-9c89-d2b9ec011fd4",
       "isAbstract": false,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-23T22:33:19.415Z",
       "updatedAt": "2026-04-29T04:59:21.942Z"
     },
@@ -3194,12 +3194,12 @@
       "schema": {
         "Day": "f66f7114-3a49-47cb-a1dc-621f0f641c0e",
         "Season": "4f178bca-5b13-4e8f-b650-e92af7ef6177",
-        "ElementBonus": "attr-elem-bonus"
+        "ElementBonus": "member-elem-bonus"
       },
-      "extendsTypeId": null,
+      "extendsClassId": null,
       "isAbstract": false,
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
-      "hiddenInAttributeSelector": false,
+      "hiddenInMemberSelector": false,
       "createdAt": "2026-04-28T23:43:48.574Z",
       "updatedAt": "2026-04-28T23:45:24.626Z"
     }
@@ -3217,7 +3217,7 @@
         "InventoryItems": "75dcb52d-54ff-422e-a174-6fd5a72a9152",
         "NPCs": "d248d3cc-ef02-4307-8cea-63bf431bb433",
         "ItemLookup": "75fb01eb-d375-4ba1-8e99-fb01f590f9f6",
-        "DictionaryCustomLookup": "3c5c21ca-baae-4d83-9884-af4ce64a6a75",
+        "DictionaryClassLookup": "3c5c21ca-baae-4d83-9884-af4ce64a6a75",
         "DeletePending": "74491606-2ac3-4781-8f70-f1e037a7c899",
         "ElementDamage": "v-elem-damage",
         "SelectedElement": "v-selected-element",
@@ -3413,7 +3413,7 @@
       "_id": "69e9bda7eb4037f909be505f",
       "id": "013318be-fedd-4d28-b262-a1ac78c48f8d",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T06:35:19.343Z",
       "updatedAt": "2026-04-23T06:35:19.343Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3422,7 +3422,7 @@
       "_id": "69e9c226eb4037f909be5061",
       "id": "7e365fca-f9ca-4ac9-b671-72081178e717",
       "value": {},
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T06:54:30.910Z",
       "updatedAt": "2026-04-23T06:54:30.910Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3431,7 +3431,7 @@
       "_id": "69e9c227eb4037f909be5063",
       "id": "54ad90ed-0b58-401e-9abb-75198448099f",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T06:54:31.014Z",
       "updatedAt": "2026-04-23T06:54:31.014Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3445,7 +3445,7 @@
         "61388deb-ebfb-46c4-9593-36a82002d1a8",
         "e78c39e5-a931-4280-8ac8-6325a2229537"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T06:54:31.323Z",
       "updatedAt": "2026-04-29T21:57:42.951Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3454,7 +3454,7 @@
       "_id": "69e9c6dfeb4037f909be506d",
       "id": "9f4dbb79-da88-4817-a9a4-e62f99086933",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:14:39.801Z",
       "updatedAt": "2026-04-23T07:14:39.801Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3463,7 +3463,7 @@
       "_id": "69e9c6e0eb4037f909be5070",
       "id": "9ab7fe26-8190-4da5-aeb3-d32ec197b8ec",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:14:40.270Z",
       "updatedAt": "2026-04-23T07:14:40.270Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3472,7 +3472,7 @@
       "_id": "69e9c732eb4037f909be5076",
       "id": "06c9925f-501d-485b-a009-04f58170d8ac",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:16:02.326Z",
       "updatedAt": "2026-04-23T07:16:02.326Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3481,7 +3481,7 @@
       "_id": "69e9c7aaeb4037f909be507c",
       "id": "e5029b9c-f835-4b19-a09b-bd4ce4d4ad17",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:18:02.542Z",
       "updatedAt": "2026-04-23T07:18:02.542Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3490,7 +3490,7 @@
       "_id": "69e9c7aaeb4037f909be507f",
       "id": "308b3cd2-e32f-4f40-862d-f1812389c9ab",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:18:02.987Z",
       "updatedAt": "2026-04-23T07:18:02.987Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3499,7 +3499,7 @@
       "_id": "69e9c7c3eb4037f909be5081",
       "id": "264a16f9-a8b9-4b1c-ad89-0425dcfb83f5",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:18:27.390Z",
       "updatedAt": "2026-04-23T07:18:27.390Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3508,7 +3508,7 @@
       "_id": "69e9c7c9eb4037f909be5085",
       "id": "e80d3e98-6c7c-4ea3-b2ea-ba114bb8a575",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:18:33.989Z",
       "updatedAt": "2026-04-23T07:18:33.989Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3517,7 +3517,7 @@
       "_id": "69e9c80beb4037f909be5087",
       "id": "ba3208d8-eeb5-40b8-9dce-dfad6d8a3772",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:19:39.664Z",
       "updatedAt": "2026-04-23T07:19:39.664Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3526,7 +3526,7 @@
       "_id": "69e9c8c0eb4037f909be508a",
       "id": "c7e737c8-a270-42a9-970c-14a707073c27",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:22:40.384Z",
       "updatedAt": "2026-04-23T07:22:40.384Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3535,7 +3535,7 @@
       "_id": "69e9c8c0eb4037f909be508b",
       "id": "90eaf54d-13e4-480c-a4d2-b98e0aeeb34b",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:22:40.486Z",
       "updatedAt": "2026-04-23T07:22:40.486Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3544,7 +3544,7 @@
       "_id": "69e9c8c0eb4037f909be508e",
       "id": "c5fbff30-70cf-4d6b-ba16-19df5d5706be",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:22:40.937Z",
       "updatedAt": "2026-04-23T07:22:40.937Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3553,7 +3553,7 @@
       "_id": "69e9c8c1eb4037f909be508f",
       "id": "1418c05d-dabc-47d5-8fe4-4ed76bd15357",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:22:41.039Z",
       "updatedAt": "2026-04-23T07:22:41.039Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3562,7 +3562,7 @@
       "_id": "69e9c8c1eb4037f909be5090",
       "id": "3b7cef89-52dc-486b-982f-d2ae1dec372b",
       "value": 1,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:22:41.142Z",
       "updatedAt": "2026-04-23T22:37:14.991Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3571,7 +3571,7 @@
       "_id": "69e9c989eb4037f909be5097",
       "id": "d6a504d9-8876-462b-8860-5a0efea33905",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:26:01.809Z",
       "updatedAt": "2026-04-23T07:26:01.809Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3580,7 +3580,7 @@
       "_id": "69e9c989eb4037f909be5098",
       "id": "0f52d368-60c6-4db7-aa90-47eb0d83975a",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:26:01.908Z",
       "updatedAt": "2026-04-23T07:26:01.908Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3589,7 +3589,7 @@
       "_id": "69e9c98aeb4037f909be5099",
       "id": "e29bb696-4e85-4163-a014-eb23999a77f7",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:26:02.006Z",
       "updatedAt": "2026-04-23T07:26:02.006Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3598,7 +3598,7 @@
       "_id": "69e9cff6eb4037f909be509f",
       "id": "0ce32fc7-238f-4eb5-83ad-50d3d926404f",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:53:26.464Z",
       "updatedAt": "2026-04-23T07:53:26.464Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3607,7 +3607,7 @@
       "_id": "69e9cff6eb4037f909be50a0",
       "id": "57bfb7c0-e38b-405c-853a-5926ae14dfb7",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:53:26.563Z",
       "updatedAt": "2026-04-23T07:53:26.563Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3618,7 +3618,7 @@
       "value": [
         "wood"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T07:53:26.661Z",
       "updatedAt": "2026-04-23T07:54:19.695Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3627,7 +3627,7 @@
       "_id": "69ea6ebee1f9696262bb38c5",
       "id": "e8f9ab50-a23e-40a9-92f7-7f50f57df7fc",
       "value": "Wood Pickaxe",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:10:54.509Z",
       "updatedAt": "2026-04-23T19:11:11.650Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3636,7 +3636,7 @@
       "_id": "69ea6ebee1f9696262bb38c6",
       "id": "557f5b40-859f-4fc5-a649-c58c01b00d0b",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:10:54.617Z",
       "updatedAt": "2026-04-23T19:10:54.617Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3645,7 +3645,7 @@
       "_id": "69ea6ebee1f9696262bb38c7",
       "id": "ccbe8724-a261-402b-abc8-4ae3360ce1ce",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:10:54.720Z",
       "updatedAt": "2026-04-23T19:10:54.720Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3656,7 +3656,7 @@
       "value": [
         "wood"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:10:54.822Z",
       "updatedAt": "2026-04-30T22:12:42.456Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3673,7 +3673,7 @@
         "ToolName": "9e23f857-38c0-48ab-9170-632c854f74d0",
         "Value": "5cdbdb54-2f7c-4c62-ad45-d4132b1a9a4e"
       },
-      "typeId": "614bd62f-7765-4294-88b6-385240f1aa73",
+      "classId": "614bd62f-7765-4294-88b6-385240f1aa73",
       "createdAt": "2026-04-23T19:10:54.873Z",
       "updatedAt": "2026-04-30T23:05:11.256Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3682,7 +3682,7 @@
       "_id": "69ea6f03e1f9696262bb38ca",
       "id": "d8872f22-86d3-44ed-bb8b-0b15ecc5412f",
       "value": 10,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:12:03.289Z",
       "updatedAt": "2026-04-23T19:12:03.289Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3691,7 +3691,7 @@
       "_id": "69ea6f41e1f9696262bb38cd",
       "id": "64e04357-7c62-41f5-b60a-45277fc2d538",
       "value": 10,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:13:05.041Z",
       "updatedAt": "2026-04-23T19:13:05.041Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3700,7 +3700,7 @@
       "_id": "69ea76bae1f9696262bb38cf",
       "id": "b2b4b9a1-bb88-4619-9628-62209661855e",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:44:58.762Z",
       "updatedAt": "2026-04-23T19:44:58.762Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3709,7 +3709,7 @@
       "_id": "69ea778ce1f9696262bb38d2",
       "id": "5511d06f-c9fe-4100-ba6e-1dadcdf3351e",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:48:28.551Z",
       "updatedAt": "2026-04-23T19:48:28.551Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3718,7 +3718,7 @@
       "_id": "69ea77dae1f9696262bb38d5",
       "id": "054ee31e-b16d-45db-9918-8e87fbec1ca2",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:49:46.432Z",
       "updatedAt": "2026-04-23T19:49:46.432Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3727,7 +3727,7 @@
       "_id": "69ea7879e1f9696262bb38d8",
       "id": "635ba2ab-e694-40c3-816d-ba52b9caeb32",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:52:25.955Z",
       "updatedAt": "2026-04-23T19:52:25.955Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3736,7 +3736,7 @@
       "_id": "69ea78b8e1f9696262bb38db",
       "id": "2c31f306-1ab8-46aa-afe6-d7137dc13638",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:53:28.284Z",
       "updatedAt": "2026-04-23T19:53:28.284Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3745,7 +3745,7 @@
       "_id": "69ea78e3e1f9696262bb38de",
       "id": "3977cd8f-2997-4580-996e-8f3d4fc4eafa",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:54:11.836Z",
       "updatedAt": "2026-04-23T19:54:11.836Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3754,7 +3754,7 @@
       "_id": "69ea795ae1f9696262bb38e1",
       "id": "81656a58-7788-4fc7-80e0-18faba006223",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:56:10.898Z",
       "updatedAt": "2026-04-23T19:56:10.898Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3763,7 +3763,7 @@
       "_id": "69ea7989e1f9696262bb38e4",
       "id": "ba79b0cd-74ea-4def-995d-e986e84e8219",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:56:57.032Z",
       "updatedAt": "2026-04-23T19:56:57.032Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3772,7 +3772,7 @@
       "_id": "69ea79c4e1f9696262bb38e7",
       "id": "d770f6d0-a38c-4808-8083-e45f92af05a6",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:57:56.994Z",
       "updatedAt": "2026-04-23T19:57:56.994Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3781,7 +3781,7 @@
       "_id": "69ea79f7e1f9696262bb38ea",
       "id": "e716f3bf-e4b3-458b-8f81-3a330a313c8f",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T19:58:47.673Z",
       "updatedAt": "2026-04-23T19:58:47.673Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3790,7 +3790,7 @@
       "_id": "69ea7a61e1f9696262bb38ed",
       "id": "2bcb3352-d79d-4970-a86b-372fe72c5284",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T20:00:33.783Z",
       "updatedAt": "2026-04-23T20:00:33.783Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3799,7 +3799,7 @@
       "_id": "69ea7cc5e1f9696262bb38f0",
       "id": "7af385c7-3480-43c8-aaa3-5f5f06c2ad76",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T20:10:45.421Z",
       "updatedAt": "2026-04-23T20:10:45.421Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3808,7 +3808,7 @@
       "_id": "69ea7f09e1f9696262bb38f3",
       "id": "77ba5efe-f481-486d-a8f9-8fc56ddd98a8",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T20:20:25.837Z",
       "updatedAt": "2026-04-23T20:20:25.837Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3817,7 +3817,7 @@
       "_id": "69ea7f15e1f9696262bb38f6",
       "id": "cf827e9b-310a-4aae-be7f-65e7bb14279c",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T20:20:37.861Z",
       "updatedAt": "2026-04-23T20:20:37.861Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3826,7 +3826,7 @@
       "_id": "69ea837de1f9696262bb38f9",
       "id": "2393dfc6-b780-47c3-9f48-d03fc79b3b7d",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T20:39:25.897Z",
       "updatedAt": "2026-04-23T20:39:25.897Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3835,7 +3835,7 @@
       "_id": "69ea83cae1f9696262bb38fc",
       "id": "1eded12a-4036-40b6-9ace-09190c932c0a",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T20:40:42.899Z",
       "updatedAt": "2026-04-23T20:40:42.899Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3844,7 +3844,7 @@
       "_id": "69ea84b1e1f9696262bb38ff",
       "id": "4e3c0024-0dcd-46d1-bd2c-adedb23a1df5",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T20:44:33.621Z",
       "updatedAt": "2026-04-23T20:44:33.621Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3853,7 +3853,7 @@
       "_id": "69ea85c1e1f9696262bb3902",
       "id": "67091a3b-26b7-4e7e-bfb9-2ac9c5dbadfd",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T20:49:05.611Z",
       "updatedAt": "2026-04-23T20:49:05.611Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3862,7 +3862,7 @@
       "_id": "69ea88e2e1f9696262bb3905",
       "id": "61047a5a-ac1d-4a3c-98f8-567e539de36d",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T21:02:26.194Z",
       "updatedAt": "2026-04-23T21:02:26.194Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3871,7 +3871,7 @@
       "_id": "69ea8934e1f9696262bb3908",
       "id": "b266d969-6242-47c8-9042-3179ecce5502",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T21:03:48.602Z",
       "updatedAt": "2026-04-23T21:03:48.602Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3880,7 +3880,7 @@
       "_id": "69ea8b089eec24992ef9dd4c",
       "id": "781084f5-54ea-422e-8083-33bbb7f59542",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T21:11:36.627Z",
       "updatedAt": "2026-04-23T21:11:36.627Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3889,7 +3889,7 @@
       "_id": "69ea8b999eec24992ef9dd4f",
       "id": "4dcc022d-5017-4011-a654-02710d6da2a1",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T21:14:01.764Z",
       "updatedAt": "2026-04-23T21:14:01.764Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3898,7 +3898,7 @@
       "_id": "69ea8c8d9eec24992ef9dd52",
       "id": "fde02701-fc87-4400-985c-91746bb3918b",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T21:18:05.058Z",
       "updatedAt": "2026-04-23T21:18:05.058Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3907,7 +3907,7 @@
       "_id": "69ea8f9eddf5588456b399c1",
       "id": "eaa38c71-03f9-4512-932c-6b154d1e7b99",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T21:31:10.425Z",
       "updatedAt": "2026-04-23T21:31:10.425Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3916,7 +3916,7 @@
       "_id": "69ea91f7ddf5588456b399c3",
       "id": "bc46374b-ed65-4de0-89a4-484b9a0ff74c",
       "value": "Hi",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T21:41:11.702Z",
       "updatedAt": "2026-04-23T21:41:17.182Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3925,7 +3925,7 @@
       "_id": "69ea95a3ddf5588456b399c5",
       "id": "ee200a00-9b08-4563-9df5-1fcc5da75705",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T21:56:51.192Z",
       "updatedAt": "2026-04-23T21:56:51.192Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3934,7 +3934,7 @@
       "_id": "69ea9e2fddf5588456b399c8",
       "id": "77d002b3-af5f-48b8-972e-9c62017cd11d",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:33:19.572Z",
       "updatedAt": "2026-04-23T22:33:19.572Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3943,7 +3943,7 @@
       "_id": "69ea9e2fddf5588456b399c9",
       "id": "fb336b7e-3838-4214-8b32-72980968f8f6",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:33:19.673Z",
       "updatedAt": "2026-04-23T22:33:19.673Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3952,7 +3952,7 @@
       "_id": "69ea9e2fddf5588456b399ca",
       "id": "d44c2a59-0cd4-4d1a-8233-731d2e4b83a4",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:33:19.778Z",
       "updatedAt": "2026-04-23T22:33:19.778Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3961,7 +3961,7 @@
       "_id": "69ea9e30ddf5588456b399cd",
       "id": "1d962c24-c6b4-4328-9f90-d7f5934f1cb1",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:33:20.257Z",
       "updatedAt": "2026-04-23T22:33:20.257Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3970,7 +3970,7 @@
       "_id": "69ea9e30ddf5588456b399ce",
       "id": "1ba7f2e2-538d-444e-bd6c-66615ff2da79",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:33:20.359Z",
       "updatedAt": "2026-04-23T22:33:20.359Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3979,7 +3979,7 @@
       "_id": "69ea9e30ddf5588456b399cf",
       "id": "ffa658cc-49c2-48fe-bbfa-a0abc9dd27e4",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:33:20.467Z",
       "updatedAt": "2026-04-23T22:33:20.467Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3988,7 +3988,7 @@
       "_id": "69ea9f51ddf5588456b399d1",
       "id": "f282f89e-d11d-40ef-bbfc-826f5775b957",
       "value": "Stone Pickaxe",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:38:09.401Z",
       "updatedAt": "2026-04-23T22:38:51.207Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -3997,7 +3997,7 @@
       "_id": "69ea9f51ddf5588456b399d2",
       "id": "4ddab356-5dbb-48cc-9dd8-82cdb339ab4d",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:38:09.500Z",
       "updatedAt": "2026-04-23T22:38:09.500Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4006,7 +4006,7 @@
       "_id": "69ea9f51ddf5588456b399d3",
       "id": "0fa86fb6-3b49-4622-af6f-d9bcf5f32536",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:38:09.865Z",
       "updatedAt": "2026-04-23T22:38:09.865Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4017,7 +4017,7 @@
       "value": [
         "stone"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:38:09.965Z",
       "updatedAt": "2026-04-23T22:38:42.428Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4026,7 +4026,7 @@
       "_id": "69ea9f52ddf5588456b399d5",
       "id": "d2360367-055e-479a-9510-6333ce306941",
       "value": 10,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-23T22:38:10.066Z",
       "updatedAt": "2026-04-23T22:38:10.066Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4043,7 +4043,7 @@
         "ToolName": "f3698a99-5f75-407c-a58f-af77ab63b3de",
         "Value": "103406c3-f196-44b4-a492-b4642c17c666"
       },
-      "typeId": "614bd62f-7765-4294-88b6-385240f1aa73",
+      "classId": "614bd62f-7765-4294-88b6-385240f1aa73",
       "createdAt": "2026-04-23T22:38:10.118Z",
       "updatedAt": "2026-04-30T23:05:16.965Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4052,7 +4052,7 @@
       "_id": "69eab2f7ddf5588456b399d7",
       "id": "8ff5ac92-723b-48ed-b6c1-73d5bf1646a8",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:01:59.201Z",
       "updatedAt": "2026-04-24T00:01:59.201Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4061,7 +4061,7 @@
       "_id": "69eab2f7ddf5588456b399d8",
       "id": "961f9846-e356-4e58-89c9-72f5bd8b1fba",
       "value": 18,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:01:59.307Z",
       "updatedAt": "2026-04-24T00:01:59.307Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4070,7 +4070,7 @@
       "_id": "69eab2f7ddf5588456b399d9",
       "id": "be9178a4-5dfd-4517-ac08-cdea97daa6b6",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:01:59.409Z",
       "updatedAt": "2026-04-24T00:01:59.409Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4079,7 +4079,7 @@
       "_id": "69eab2f7ddf5588456b399da",
       "id": "d8e8fc19-15b9-4cf6-83cd-717982f83ecf",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:01:59.510Z",
       "updatedAt": "2026-04-24T00:01:59.510Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4093,7 +4093,7 @@
         "CanRomance": "be9178a4-5dfd-4517-ac08-cdea97daa6b6",
         "Extra": "d8e8fc19-15b9-4cf6-83cd-717982f83ecf"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:01:59.560Z",
       "updatedAt": "2026-04-24T00:01:59.560Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4102,7 +4102,7 @@
       "_id": "69eab2f7ddf5588456b399dd",
       "id": "cd7bcc12-ada2-4282-8282-c70f6097f9a5",
       "value": {},
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:01:59.663Z",
       "updatedAt": "2026-04-24T00:01:59.663Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4114,7 +4114,7 @@
         "James": "0035f636-4921-45d5-bb14-84e27964dc29",
         "Someone": "464256b4-2019-4514-87b4-92dc1de78744"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:01:59.968Z",
       "updatedAt": "2026-04-29T18:45:11.276Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4123,7 +4123,7 @@
       "_id": "69eab309ddf5588456b399e0",
       "id": "b70c9170-63d1-4946-bde4-1dc4bff6fae5",
       "value": "James",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:02:17.552Z",
       "updatedAt": "2026-04-24T00:02:47.347Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4132,7 +4132,7 @@
       "_id": "69eab309ddf5588456b399e1",
       "id": "82eeac94-e4d1-476b-a287-3c6a8a0176bc",
       "value": 18,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:02:17.652Z",
       "updatedAt": "2026-04-24T00:02:17.652Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4141,7 +4141,7 @@
       "_id": "69eab309ddf5588456b399e2",
       "id": "5c907f86-a0d3-49c7-93a7-ae7def740277",
       "value": true,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:02:17.754Z",
       "updatedAt": "2026-04-24T00:03:09.198Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4150,7 +4150,7 @@
       "_id": "69eab309ddf5588456b399e3",
       "id": "c602c4d7-a084-4c0f-b72e-8207274496a6",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:02:17.853Z",
       "updatedAt": "2026-04-24T00:02:17.853Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4166,7 +4166,7 @@
         "Birthday": "52ac05cb-8088-488e-ae84-cf064060e135",
         "SomeNPCList": "011bd063-27c3-4dad-b8b6-0d83f863258a"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T00:02:17.904Z",
       "updatedAt": "2026-04-29T04:04:13.503Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4175,7 +4175,7 @@
       "_id": "69ebd40addf5588456b399e5",
       "id": "023c0e26-4d5e-4cdd-8d59-62f62248ab56",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T20:35:22.661Z",
       "updatedAt": "2026-04-24T20:35:22.661Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4186,7 +4186,7 @@
       "value": [
         "61388deb-ebfb-46c4-9593-36a82002d1a8"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T20:35:23.013Z",
       "updatedAt": "2026-04-29T22:05:24.562Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4195,7 +4195,7 @@
       "_id": "69ebd8c3ddf5588456b399e8",
       "id": "71e9d1c7-e211-4f64-8152-b6fb312fb7a1",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T20:55:31.649Z",
       "updatedAt": "2026-04-24T20:55:31.649Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4206,7 +4206,7 @@
       "value": [
         "0035f636-4921-45d5-bb14-84e27964dc29"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T20:55:31.950Z",
       "updatedAt": "2026-04-24T21:37:43.442Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4215,7 +4215,7 @@
       "_id": "69ebda38ddf5588456b399f6",
       "id": "91425f2a-554d-4e1f-a736-47e15c239042",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T21:01:44.907Z",
       "updatedAt": "2026-04-24T21:01:44.907Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4224,7 +4224,7 @@
       "_id": "69ebda39ddf5588456b399f8",
       "id": "ae3c3c4d-b18d-44bf-8fde-dcd2751af917",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-24T21:01:45.009Z",
       "updatedAt": "2026-04-24T21:01:45.009Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4233,7 +4233,7 @@
       "_id": "69ec3eb2ddf5588456b39a02",
       "id": "c64fa0e0-ad3a-4d0e-806d-b3da21780898",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-25T04:10:26.231Z",
       "updatedAt": "2026-04-25T04:10:26.231Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4242,7 +4242,7 @@
       "_id": "69ec3eb2ddf5588456b39a03",
       "id": "0447289b-ed68-4fcb-b438-1073f71f72c9",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-25T04:10:26.329Z",
       "updatedAt": "2026-04-25T04:10:26.329Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4251,7 +4251,7 @@
       "_id": "69ec3febddf5588456b39a07",
       "id": "0cd3051c-cdbb-46ff-a4c1-b3f51bc3290e",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-25T04:15:39.992Z",
       "updatedAt": "2026-04-25T04:15:39.992Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4260,7 +4260,7 @@
       "_id": "69ec504500a5fa7a718304b3",
       "id": "1e1ef914-f5ac-49d1-a527-8587d7318ff2",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-25T05:25:25.795Z",
       "updatedAt": "2026-04-25T05:25:25.795Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4269,7 +4269,7 @@
       "_id": "69ec504500a5fa7a718304b4",
       "id": "4c9a1131-6ee6-4ea9-a4ba-01818023bacc",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-25T05:25:25.902Z",
       "updatedAt": "2026-04-25T05:25:25.902Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4278,7 +4278,7 @@
       "_id": "69f14634c643b8264fd6dff2",
       "id": "220414fe-de14-43ba-b29c-09309d7e0985",
       "value": {},
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-28T23:43:48.693Z",
       "updatedAt": "2026-04-28T23:43:48.693Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4291,7 +4291,7 @@
         "Season": "8af4a8d8-0360-4639-b5bf-e11f18609d75",
         "ElementBonus": "v-elem-bonus"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-28T23:43:49.080Z",
       "updatedAt": "2026-04-28T23:45:24.938Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4300,7 +4300,7 @@
       "_id": "69f1464ac643b8264fd6dff5",
       "id": "76b50623-4d1e-4268-9fb7-3bb8601f9cbe",
       "value": 1,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-28T23:44:10.514Z",
       "updatedAt": "2026-04-28T23:44:10.514Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4309,7 +4309,7 @@
       "_id": "69f1464bc643b8264fd6dff7",
       "id": "25a7a939-163e-458d-9211-45e74046788d",
       "value": 1,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-28T23:44:11.110Z",
       "updatedAt": "2026-04-29T00:00:38.505Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4320,7 +4320,7 @@
       "value": [
         "Spring"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-28T23:45:24.464Z",
       "updatedAt": "2026-04-28T23:45:24.464Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4331,7 +4331,7 @@
       "value": [
         "Spring"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-28T23:45:24.785Z",
       "updatedAt": "2026-04-29T00:00:32.056Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4340,7 +4340,7 @@
       "_id": "69f146b2c643b8264fd6dffc",
       "id": "efc8f8d7-45f7-4296-b0ca-65cc89b215ba",
       "value": 1,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-28T23:45:54.394Z",
       "updatedAt": "2026-04-28T23:45:54.394Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4351,7 +4351,7 @@
       "value": [
         "Spring"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-28T23:45:54.581Z",
       "updatedAt": "2026-04-28T23:45:54.581Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4363,7 +4363,7 @@
         "Day": "efc8f8d7-45f7-4296-b0ca-65cc89b215ba",
         "Season": "478a6451-843c-473a-b359-fc34036c6520"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-28T23:45:54.634Z",
       "updatedAt": "2026-04-28T23:45:54.634Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4372,7 +4372,7 @@
       "_id": "69f17ff56c90927cb4cae50e",
       "id": "3951f786-0b51-4867-9d54-c8cb9bc93fe2",
       "value": 1,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T03:50:13.146Z",
       "updatedAt": "2026-04-29T22:22:52.210Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4383,7 +4383,7 @@
       "value": [
         "Spring"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T03:50:13.263Z",
       "updatedAt": "2026-04-29T03:50:13.263Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4395,7 +4395,7 @@
         "Day": "3951f786-0b51-4867-9d54-c8cb9bc93fe2",
         "Season": "0ef89233-0ea0-4cf1-9a46-ab220cc468e7"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T03:50:13.322Z",
       "updatedAt": "2026-04-29T03:50:13.322Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4404,7 +4404,7 @@
       "_id": "69f1833d6c90927cb4cae512",
       "id": "011bd063-27c3-4dad-b8b6-0d83f863258a",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T04:04:13.336Z",
       "updatedAt": "2026-04-29T04:04:13.336Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4413,7 +4413,7 @@
       "_id": "69f1854e6c90927cb4cae513",
       "id": "427cd112-bdce-4251-9cdd-a6ad33260616",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T04:13:02.511Z",
       "updatedAt": "2026-04-29T04:13:02.511Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4424,7 +4424,7 @@
       "value": [
         "wood"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T04:38:30.990Z",
       "updatedAt": "2026-04-29T04:38:30.990Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4433,7 +4433,7 @@
       "_id": "69f1901b6c90927cb4cae51a",
       "id": "da5b6344-4801-45c6-b375-f0608999a1f6",
       "value": "Pickaxe",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T04:59:07.779Z",
       "updatedAt": "2026-04-29T04:59:07.779Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4442,7 +4442,7 @@
       "_id": "69f190296c90927cb4cae51c",
       "id": "c8f15cad-ff16-46ba-b4b2-db0e8998bbc1",
       "value": "Hoe",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T04:59:21.784Z",
       "updatedAt": "2026-04-29T04:59:21.784Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4451,7 +4451,7 @@
       "_id": "69f1906e6c90927cb4cae51e",
       "id": "e2330f9b-1640-4248-b1ae-1e7e034b5373",
       "value": "[Plant] Seed",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T05:00:30.495Z",
       "updatedAt": "2026-04-29T05:00:30.495Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4460,7 +4460,7 @@
       "_id": "69f194c06c90927cb4cae521",
       "id": "9e23f857-38c0-48ab-9170-632c854f74d0",
       "value": "Pickaxe",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T05:18:56.840Z",
       "updatedAt": "2026-04-29T05:18:56.840Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4469,7 +4469,7 @@
       "_id": "69f194db6c90927cb4cae522",
       "id": "b3ac7a54-d59f-43ad-bdbf-413ad44de6be",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T05:19:23.121Z",
       "updatedAt": "2026-04-29T05:19:23.121Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4478,7 +4478,7 @@
       "_id": "69f194e36c90927cb4cae523",
       "id": "2c06f6e4-da2a-4d08-9f49-021d5870cdaf",
       "value": "[Plant] Seed",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T05:19:31.365Z",
       "updatedAt": "2026-04-29T05:19:31.365Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4487,7 +4487,7 @@
       "_id": "69f194ef6c90927cb4cae524",
       "id": "f3698a99-5f75-407c-a58f-af77ab63b3de",
       "value": "Pickaxe",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T05:19:43.572Z",
       "updatedAt": "2026-04-29T05:19:43.572Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4496,7 +4496,7 @@
       "_id": "69f194fb6c90927cb4cae525",
       "id": "31790b76-dd56-4219-bcee-86d805788993",
       "value": "Hoe",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T05:19:55.755Z",
       "updatedAt": "2026-04-29T05:19:55.755Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4507,7 +4507,7 @@
       "value": [
         "wood"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T05:20:04.368Z",
       "updatedAt": "2026-04-29T05:20:04.368Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4516,7 +4516,7 @@
       "_id": "69f251b65fffc44afde9b007",
       "id": "1358c958-b2b4-4ace-9e14-451f4a7d3996",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T18:45:10.162Z",
       "updatedAt": "2026-04-29T18:45:10.162Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4525,7 +4525,7 @@
       "_id": "69f251b65fffc44afde9b008",
       "id": "53a0a841-7438-4fa2-b5ba-7303e1b3dfaf",
       "value": 18,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T18:45:10.276Z",
       "updatedAt": "2026-04-29T18:45:10.276Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4534,7 +4534,7 @@
       "_id": "69f251b65fffc44afde9b009",
       "id": "274746a5-d57e-44ef-b205-73cabd93d7ea",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T18:45:10.382Z",
       "updatedAt": "2026-04-29T18:45:10.382Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4543,7 +4543,7 @@
       "_id": "69f251b65fffc44afde9b00a",
       "id": "21d972eb-d038-4532-8dca-905078b62e98",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T18:45:10.497Z",
       "updatedAt": "2026-04-29T18:45:10.497Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4552,7 +4552,7 @@
       "_id": "69f251b65fffc44afde9b00b",
       "id": "5fa886e5-a069-4c3d-bd35-f45d54278723",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T18:45:10.603Z",
       "updatedAt": "2026-04-29T18:45:10.603Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4561,7 +4561,7 @@
       "_id": "69f251b65fffc44afde9b00c",
       "id": "2cb2de07-b58a-4615-b88f-80887873f7ce",
       "value": 1,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T18:45:10.871Z",
       "updatedAt": "2026-04-29T18:45:10.871Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4572,7 +4572,7 @@
       "value": [
         "Spring"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T18:45:10.975Z",
       "updatedAt": "2026-04-29T18:45:10.975Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4584,7 +4584,7 @@
         "Day": "2cb2de07-b58a-4615-b88f-80887873f7ce",
         "Season": "448188dc-93c4-4ae7-a4ae-7b8be7bfe664"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T18:45:11.028Z",
       "updatedAt": "2026-04-29T18:45:11.028Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4600,7 +4600,7 @@
         "SomeNPCList": "5fa886e5-a069-4c3d-bd35-f45d54278723",
         "Birthday": "7818edb9-3325-4efc-a97c-16a9d49f8942"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T18:45:11.126Z",
       "updatedAt": "2026-04-29T18:45:11.126Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4611,7 +4611,7 @@
       "value": [
         "option_1"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T21:08:39.397Z",
       "updatedAt": "2026-04-29T21:08:39.397Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4620,7 +4620,7 @@
       "_id": "69f274bc910077eca65d1764",
       "id": "81a123bf-7dc1-412e-a66b-81115835a88d",
       "value": "Hoe",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T21:14:36.452Z",
       "updatedAt": "2026-04-29T21:14:36.452Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4631,7 +4631,7 @@
       "value": [
         "wood"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T21:14:36.555Z",
       "updatedAt": "2026-04-29T21:14:36.555Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4644,7 +4644,7 @@
         "Material": "02912326-554e-4de9-923c-af86ef6908ea",
         "Value": "1c6cc50e-0134-42f3-8123-cbc6f23cdae6"
       },
-      "typeId": "c1cd87a9-4ec3-4894-874b-e427caf092ab",
+      "classId": "c1cd87a9-4ec3-4894-874b-e427caf092ab",
       "createdAt": "2026-04-29T21:14:36.607Z",
       "updatedAt": "2026-04-30T23:05:19.078Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4653,7 +4653,7 @@
       "_id": "69f27ed6910077eca65d1767",
       "id": "3756f4b1-9f2a-4192-837b-131007e7f73c",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T21:57:42.529Z",
       "updatedAt": "2026-04-29T21:57:42.529Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4662,7 +4662,7 @@
       "_id": "69f27ed6910077eca65d1768",
       "id": "9a2b4e7a-351d-44ba-9bcc-6502f48ddaa7",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T21:57:42.643Z",
       "updatedAt": "2026-04-29T21:57:42.643Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4671,7 +4671,7 @@
       "_id": "69f27ed6910077eca65d1769",
       "id": "f2c0f9b2-e195-4b94-b5b4-64ef90863cbf",
       "value": "[Plant] Seed",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-29T21:57:42.744Z",
       "updatedAt": "2026-04-29T21:57:42.744Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4685,7 +4685,7 @@
         "SeedName": "f2c0f9b2-e195-4b94-b5b4-64ef90863cbf",
         "Value": "fa78180f-f271-4986-848b-4f18897cc20c"
       },
-      "typeId": "7937c71b-4c80-4a73-b63c-81135751f504",
+      "classId": "7937c71b-4c80-4a73-b63c-81135751f504",
       "createdAt": "2026-04-29T21:57:42.794Z",
       "updatedAt": "2026-04-30T23:05:21.451Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4694,7 +4694,7 @@
       "_id": "69f3e021fb1d58e42309d3e4",
       "id": "6e2e5aa2-081d-4bed-85e7-762992e29cf2",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-30T23:05:05.242Z",
       "updatedAt": "2026-04-30T23:05:05.242Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4703,7 +4703,7 @@
       "_id": "69f3e027fb1d58e42309d3e6",
       "id": "5cdbdb54-2f7c-4c62-ad45-d4132b1a9a4e",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-30T23:05:11.106Z",
       "updatedAt": "2026-04-30T23:05:11.106Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4712,7 +4712,7 @@
       "_id": "69f3e02cfb1d58e42309d3e7",
       "id": "103406c3-f196-44b4-a492-b4642c17c666",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-30T23:05:16.817Z",
       "updatedAt": "2026-04-30T23:05:16.817Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4721,7 +4721,7 @@
       "_id": "69f3e02efb1d58e42309d3e8",
       "id": "1c6cc50e-0134-42f3-8123-cbc6f23cdae6",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-30T23:05:18.931Z",
       "updatedAt": "2026-04-30T23:05:18.931Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4730,7 +4730,7 @@
       "_id": "69f3e031fb1d58e42309d3e9",
       "id": "fa78180f-f271-4986-848b-4f18897cc20c",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-04-30T23:05:21.303Z",
       "updatedAt": "2026-04-30T23:05:21.303Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4739,7 +4739,7 @@
       "_id": "v-elem-damage-entry-default",
       "id": "v-elem-damage-entry-default",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4748,7 +4748,7 @@
       "_id": "v-elem-damage-default",
       "id": "v-elem-damage-default",
       "value": {},
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4757,7 +4757,7 @@
       "_id": "v-elem-stats-entry-default",
       "id": "v-elem-stats-entry-default",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4766,7 +4766,7 @@
       "_id": "v-elem-stats-default",
       "id": "v-elem-stats-default",
       "value": {},
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4777,7 +4777,7 @@
       "value": [
         "water"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4786,7 +4786,7 @@
       "_id": "v-elem-bonus-entry-default",
       "id": "v-elem-bonus-entry-default",
       "value": 0,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4795,7 +4795,7 @@
       "_id": "v-elem-bonus-default",
       "id": "v-elem-bonus-default",
       "value": {},
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4804,7 +4804,7 @@
       "_id": "v-elem-champion-entry-default",
       "id": "v-elem-champion-entry-default",
       "value": {},
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4813,7 +4813,7 @@
       "_id": "v-elem-champions-default",
       "id": "v-elem-champions-default",
       "value": {},
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4826,7 +4826,7 @@
         "water": "v-elem-damage-water",
         "storm": "v-elem-damage-storm"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4835,7 +4835,7 @@
       "_id": "v-elem-damage-fire",
       "id": "v-elem-damage-fire",
       "value": 30,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4844,7 +4844,7 @@
       "_id": "v-elem-damage-water",
       "id": "v-elem-damage-water",
       "value": 20,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4853,7 +4853,7 @@
       "_id": "v-elem-damage-storm",
       "id": "v-elem-damage-storm",
       "value": 99,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4864,7 +4864,7 @@
       "value": {
         "fire": "v-elem-stats-fire"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4873,7 +4873,7 @@
       "_id": "v-elem-stats-fire",
       "id": "v-elem-stats-fire",
       "value": 12,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4884,7 +4884,7 @@
       "value": [
         "water"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4895,7 +4895,7 @@
       "value": {
         "earth": "v-elem-bonus-earth"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4904,7 +4904,7 @@
       "_id": "v-elem-bonus-earth",
       "id": "v-elem-bonus-earth",
       "value": 5,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4915,7 +4915,7 @@
       "value": {
         "earth": "v-elem-champion-earth"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4931,7 +4931,7 @@
         "Birthday": "v-elem-champion-birthday",
         "SomeNPCList": "v-elem-champion-npclist"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4940,7 +4940,7 @@
       "_id": "v-elem-champion-name",
       "id": "v-elem-champion-name",
       "value": "Terra",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4949,7 +4949,7 @@
       "_id": "v-elem-champion-age",
       "id": "v-elem-champion-age",
       "value": 21,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4958,7 +4958,7 @@
       "_id": "v-elem-champion-canromance",
       "id": "v-elem-champion-canromance",
       "value": false,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4967,7 +4967,7 @@
       "_id": "v-elem-champion-extra",
       "id": "v-elem-champion-extra",
       "value": "",
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4979,7 +4979,7 @@
         "Day": "v-elem-champion-bday-day",
         "Season": "v-elem-champion-bday-season"
       },
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4988,7 +4988,7 @@
       "_id": "v-elem-champion-bday-day",
       "id": "v-elem-champion-bday-day",
       "value": 2,
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -4999,7 +4999,7 @@
       "value": [
         "Spring"
       ],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"
@@ -5008,7 +5008,7 @@
       "_id": "v-elem-champion-npclist",
       "id": "v-elem-champion-npclist",
       "value": [],
-      "typeId": null,
+      "classId": null,
       "createdAt": "2026-07-07T00:00:00.000Z",
       "updatedAt": "2026-07-07T00:00:00.000Z",
       "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020"

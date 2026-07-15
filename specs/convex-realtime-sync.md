@@ -30,7 +30,7 @@ Draft — for review. No implementation has started.
   the unofficial Convex .NET client.
 - A realtime provider seam in the core package (`NeoCompose.Unity`) that the
   Convex package plugs into via explicit registration — core never references
-  Convex types.
+  Convex classes.
 - Runtime integration: live save-list and save-head subscriptions feeding
   `NeoProjectStore`/`NeoSaveSynchronizer`, and a commit path that goes through
   the public `gameSaves.commit` Convex mutation when connected.
@@ -141,7 +141,7 @@ convex-dotnet-unity/                 separate repo, MIT, resolved via UPM git UR
     Convex.Client.asmdef             noEngineReferences, scoped precompiled refs
     csc.rsp / link.xml
     Convex.Client/                   trimmed, C#11-converted source (pinned commit)
-    Polyfills/                       init/required compiler attributes
+    Polyfills/                       init/required compiler members
     Plugins/                         bundled dependency DLLs (Rx, STJ, …)
 
 src/NeoComposeConvex/                this repo
@@ -223,7 +223,7 @@ a later phase.
 ## Core seam (`NeoCompose.Unity`)
 
 Core gains a provider interface plus DTO-level events. Core has zero Convex
-knowledge; everything is expressed in existing core types (`NeoSaveFileList`,
+knowledge; everything is expressed in existing core classes (`NeoSaveFileList`,
 `RemoteGameSave`, `NeoSaveCommitRequest`, `NeoCommitResult`).
 
 ```csharp
@@ -498,7 +498,7 @@ until phase 4, so they can land independently.
   enough to excise entirely (would shrink the DLL tail to Rx + STJ +
   Channels).
 - Name of the store-options registration property and the editor-side seam
-  type (settled in phases 4–5 against the real options types).
+  type (settled in phases 4–5 against the real options classes).
 - Whether the sync signal should also gate on the *selected* version vs. the
   channel head (depends on how the editor's update-availability UX evolves).
 

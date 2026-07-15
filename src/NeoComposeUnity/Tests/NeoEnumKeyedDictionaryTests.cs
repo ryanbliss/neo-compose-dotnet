@@ -9,12 +9,12 @@ using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
 using NUnit.Framework;
-using Attribute = NeoCompose.Runtime.Json.Attribute;
+using Member = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// specs/dictionary-key-types.md §9: two-arity enum-keyed dictionary
+    /// specs/dictionary-key-classes.md §9: two-arity enum-keyed dictionary
     /// wrappers + the <c>keyKind</c>/<c>keyEnumId</c> JSON read layer. The
     /// wrappers delegate to the same string-keyed storage as the
     /// single-arity pair; <see cref="ItemSlot"/> mirrors the generated enum
@@ -68,21 +68,21 @@ namespace NeoCompose.Tests
 
         private static ProjectData BuildProjectData()
         {
-            var rootType = new CustomType
+            var rootClass = new NeoSchemaClass
             {
-                id = "root-type",
+                id = "root-class",
                 projectId = "project-a",
                 name = "Root",
                 schema = new Dictionary<string, string>(),
             };
-            var saveRootType = new CustomType
+            var saveRootClass = new NeoSchemaClass
             {
-                id = "save-root-type",
+                id = "save-root-class",
                 projectId = "project-a",
                 name = "Save Root",
                 schema = new Dictionary<string, string>
                 {
-                    ["Inventory"] = "inventory-attribute",
+                    ["Inventory"] = "inventory-member",
                 },
             };
 
@@ -93,53 +93,53 @@ namespace NeoCompose.Tests
                     id = "project-a",
                     _id = "project-a",
                     name = "Enum-Keyed Dictionaries",
-                    rootAssetsAttributeId = "root-assets",
-                    rootSaveFileAttributeId = "root-save",
-                    rootSessionAttributeId = "root-session",
+                    rootAssetsMemberId = "root-assets",
+                    rootSaveFileMemberId = "root-save",
+                    rootSessionMemberId = "root-session",
                 },
-                attributes = new Dictionary<string, Attribute>
+                members = new Dictionary<string, Member>
                 {
-                    ["root-assets"] = RootAttribute("root-assets", "root-assets-value", rootType.id),
-                    ["root-save"] = RootAttribute("root-save", "root-save-value", saveRootType.id),
-                    ["root-session"] = RootAttribute("root-session", "root-session-value", rootType.id),
-                    ["inventory-attribute"] = new DictionaryAttribute
+                    ["root-assets"] = RootMember("root-assets", "root-assets-value", rootClass.id),
+                    ["root-save"] = RootMember("root-save", "root-save-value", saveRootClass.id),
+                    ["root-session"] = RootMember("root-session", "root-session-value", rootClass.id),
+                    ["inventory-member"] = new DictionaryMember
                     {
-                        id = "inventory-attribute",
+                        id = "inventory-member",
                         projectId = "project-a",
                         name = "Inventory",
-                        type = AttributeType.Dictionary,
-                        entryAttributeId = "entry-attribute",
+                        kind = MemberKind.Dictionary,
+                        entryMemberId = "entry-member",
                         keyKind = NeoDictionaryKeyKinds.Enum,
                         keyEnumId = EnumId,
                         required = true,
                     },
-                    ["entry-attribute"] = new StringAttribute
+                    ["entry-member"] = new StringMember
                     {
-                        id = "entry-attribute",
+                        id = "entry-member",
                         projectId = "project-a",
                         name = "Item Name",
-                        type = AttributeType.String,
+                        kind = MemberKind.String,
                         localizable = false,
                     },
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    ["root-assets-value"] = ObjectValue("root-assets-value", rootType.id, new()),
+                    ["root-assets-value"] = ObjectValue("root-assets-value", rootClass.id, new()),
                     ["root-save-value"] = ObjectValue(
                         "root-save-value",
-                        saveRootType.id,
+                        saveRootClass.id,
                         new Dictionary<string, string> { ["Inventory"] = InventoryValueId }),
-                    ["root-session-value"] = ObjectValue("root-session-value", rootType.id, new()),
-                    [InventoryValueId] = new ObjectAttributeValue
+                    ["root-session-value"] = ObjectValue("root-session-value", rootClass.id, new()),
+                    [InventoryValueId] = new ObjectMemberValue
                     {
                         id = InventoryValueId,
                         value = new Dictionary<string, string>(),
                     },
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    [rootType.id] = rootType,
-                    [saveRootType.id] = saveRootType,
+                    [rootClass.id] = rootClass,
+                    [saveRootClass.id] = saveRootClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>
                 {
@@ -158,42 +158,42 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static CustomAttribute RootAttribute(string id, string valueId, string customTypeId)
+        private static ClassMember RootMember(string id, string valueId, string classId)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = "project-a",
                 name = id,
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
                 valueId = valueId,
-                customTypeId = customTypeId,
+                classId = classId,
             };
         }
 
-        private static ObjectAttributeValue ObjectValue(
+        private static ObjectMemberValue ObjectValue(
             string id,
-            string typeId,
+            string classId,
             Dictionary<string, string> record)
         {
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = typeId,
+                classId = classId,
                 value = record,
             };
         }
 
         private static NeoDictionary<ItemSlot, string> CreateWritableInventory(
             NeoClient client,
-            out NeoAttributeDictionaryWritable node)
+            out NeoMemberDictionaryWritable node)
         {
-            node = client.save.Get<NeoAttributeDictionaryWritable>("Inventory");
+            node = client.save.Get<NeoMemberDictionaryWritable>("Inventory");
             return new NeoDictionary<ItemSlot, string>(
                 client,
                 node,
-                (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
+                (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 NeoGeneratedTypesSupport.Value,
                 ItemSlot.FromOptionId,
                 slot => slot.optionId);
@@ -225,9 +225,9 @@ namespace NeoCompose.Tests
             var saveRoot = client.save;
             var inventory = new NeoDictionary<ItemSlot, string>(
                 client,
-                saveRoot.Get<NeoAttributeDictionaryWritable>("Inventory"),
-                () => saveRoot.GetOrCreateCollection<NeoAttributeDictionaryWritable>("Inventory"),
-                (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
+                saveRoot.Get<NeoMemberDictionaryWritable>("Inventory"),
+                () => saveRoot.GetOrCreateCollection<NeoMemberDictionaryWritable>("Inventory"),
+                (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 item => NeoGeneratedTypesSupport.Value(item),
                 ItemSlot.FromOptionId,
                 key => key.optionId,
@@ -264,7 +264,7 @@ namespace NeoCompose.Tests
             var stringView = new NeoReadOnlyDictionary<string>(
                 client,
                 node,
-                (_, attr) => ((NeoAttributeString)attr).value?.value ?? "");
+                (_, member) => ((NeoMemberString)member).value?.value ?? "");
 
             inventory.Add(ItemSlot.Sword, "Excalibur");
 
@@ -303,7 +303,7 @@ namespace NeoCompose.Tests
             var stringWriter = new NeoDictionary<string>(
                 client,
                 node,
-                (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
+                (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 NeoGeneratedTypesSupport.Value);
             stringWriter.Add("dagger", "Carnwennan");
             inventory.Add(ItemSlot.Sword, "Excalibur");
@@ -337,71 +337,71 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         [Test]
-        public void DictionaryAttribute_KeyKindFields_DeserializeFromWire()
+        public void DictionaryMember_KeyKindFields_DeserializeFromWire()
         {
-            var attr = (DictionaryAttribute)JsonConvert.DeserializeObject<Attribute>(
+            var member = (DictionaryMember)JsonConvert.DeserializeObject<Member>(
                 @"{
-                    ""id"": ""attr-stats"",
+                    ""id"": ""member-stats"",
                     ""projectId"": ""p"",
                     ""name"": ""Stats"",
-                    ""type"": 5,
+                    ""kind"": 5,
                     ""locked"": false,
                     ""required"": false,
                     ""isStatic"": false,
                     ""createdAt"": 0,
                     ""updatedAt"": 0,
-                    ""entryAttributeId"": ""attr-entry"",
+                    ""entryMemberId"": ""member-entry"",
                     ""keyKind"": ""enum"",
                     ""keyEnumId"": ""enum-item-slot""
                 }")!;
 
-            Assert.AreEqual(NeoDictionaryKeyKinds.Enum, attr.keyKind);
-            Assert.AreEqual("enum-item-slot", attr.keyEnumId);
+            Assert.AreEqual(NeoDictionaryKeyKinds.Enum, member.keyKind);
+            Assert.AreEqual("enum-item-slot", member.keyEnumId);
         }
 
         [Test]
-        public void DictionaryAttribute_AbsentKeyKind_DefaultsToNullForReadCompat()
+        public void DictionaryMember_AbsentKeyKind_DefaultsToNullForReadCompat()
         {
             // Stale local exports predate the web-side backfill migration and
             // omit both fields; null keyKind reads as string-keyed.
-            var attr = (DictionaryAttribute)JsonConvert.DeserializeObject<Attribute>(
+            var member = (DictionaryMember)JsonConvert.DeserializeObject<Member>(
                 @"{
-                    ""id"": ""attr-stats"",
+                    ""id"": ""member-stats"",
                     ""projectId"": ""p"",
                     ""name"": ""Stats"",
-                    ""type"": 5,
+                    ""kind"": 5,
                     ""locked"": false,
                     ""required"": false,
                     ""isStatic"": false,
                     ""createdAt"": 0,
                     ""updatedAt"": 0,
-                    ""entryAttributeId"": ""attr-entry""
+                    ""entryMemberId"": ""member-entry""
                 }")!;
 
-            Assert.IsNull(attr.keyKind);
-            Assert.IsNull(attr.keyEnumId);
+            Assert.IsNull(member.keyKind);
+            Assert.IsNull(member.keyEnumId);
         }
 
         [Test]
-        public void DictionaryAttribute_StringKeyKind_DeserializesWithoutKeyEnumId()
+        public void DictionaryMember_StringKeyKind_DeserializesWithoutKeyEnumId()
         {
-            var attr = (DictionaryAttribute)JsonConvert.DeserializeObject<Attribute>(
+            var member = (DictionaryMember)JsonConvert.DeserializeObject<Member>(
                 @"{
-                    ""id"": ""attr-stats"",
+                    ""id"": ""member-stats"",
                     ""projectId"": ""p"",
                     ""name"": ""Stats"",
-                    ""type"": 5,
+                    ""kind"": 5,
                     ""locked"": false,
                     ""required"": false,
                     ""isStatic"": false,
                     ""createdAt"": 0,
                     ""updatedAt"": 0,
-                    ""entryAttributeId"": ""attr-entry"",
+                    ""entryMemberId"": ""member-entry"",
                     ""keyKind"": ""string""
                 }")!;
 
-            Assert.AreEqual(NeoDictionaryKeyKinds.String, attr.keyKind);
-            Assert.IsNull(attr.keyEnumId);
+            Assert.AreEqual(NeoDictionaryKeyKinds.String, member.keyKind);
+            Assert.IsNull(member.keyEnumId);
         }
     }
 }

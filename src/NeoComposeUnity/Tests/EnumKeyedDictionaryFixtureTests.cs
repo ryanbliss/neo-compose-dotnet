@@ -16,7 +16,7 @@ using Assets.Scripts.Neo;
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// specs/dictionary-key-types.md §13.3 — fixture-based validation of
+    /// specs/dictionary-key-classes.md §13.3 — fixture-based validation of
     /// enum-keyed dictionaries end to end. All typed access here goes through
     /// the real §13.2 codegen output: <c>NeoGeneratedTypes.cs</c> is emitted
     /// verbatim from <c>synth-example.json</c> by the web repo's
@@ -24,11 +24,11 @@ namespace NeoCompose.Tests
     /// so these tests consume exactly what codegen emits.
     ///
     /// <para>The §13.1 fixture shapes exercised (see the synth export
-    /// script's `attr-elem-*` records):
+    /// script's `member-elem-*` records):
     /// <c>Root.ElementStats</c> (Save storage, authored `fire` entry + the
     /// deliberately dangling `storm` key), <c>Root.ElementMultipliers</c>
     /// (Immutable storage), <c>Hero.ElementAffinity</c> (nested inside a
-    /// Custom type), and <c>Root.ElementChampions</c> (Custom-typed
+    /// Class), and <c>Root.ElementChampions</c> (Class-valued
     /// entries). The real-world <c>project-example.json</c> carries the
     /// mirror shapes plus the two enum-keyed NSGetters asserted at the
     /// bottom (and gated wholesale by <see cref="NSGetterParityTests"/>).</para>
@@ -105,23 +105,23 @@ namespace NeoCompose.Tests
         }
 
         // ------------------------------------------------------------------
-        // Nested-in-Custom + Custom-typed entries.
+        // Nested-in-Class + Class-valued entries.
         // ------------------------------------------------------------------
 
         [Test]
-        public void CustomTypedEntries_ReadAuthoredChampionAndNestedAffinity()
+        public void ClassValuedEntries_ReadAuthoredChampionAndNestedAffinity()
         {
             var app = LoadGeneratedClient(out _);
 
             var champion = app.Save.ElementChampions[Element.fire];
             Assert.AreEqual("Ignis", champion.Name);
-            // The dictionary nested inside the Hero custom type.
+            // The dictionary nested inside the Hero class.
             Assert.AreEqual("scorch", champion.ElementAffinity[Element.fire]);
             Assert.IsFalse(champion.ElementAffinity.ContainsKey(Element.ice));
         }
 
         [Test]
-        public void CustomTypedEntries_OverlayCreatedChampion_ReadsBackThroughEnumKey()
+        public void ClassValuedEntries_OverlayCreatedChampion_ReadsBackThroughEnumKey()
         {
             var app = LoadGeneratedClient(out _);
 
@@ -166,24 +166,24 @@ namespace NeoCompose.Tests
         public void KeyKindAbsentInJson_ReadsAsStringKeyedDictionary()
         {
             var json = JObject.Parse(LoadFixture("synth-example.json"));
-            var statsAttr = (JObject)json["attributes"]!["attr-elem-stats"]!;
-            Assert.IsTrue(statsAttr.Remove("keyKind"), "fixture should carry keyKind");
-            Assert.IsTrue(statsAttr.Remove("keyEnumId"), "fixture should carry keyEnumId");
+            var statsMember = (JObject)json["members"]!["member-elem-stats"]!;
+            Assert.IsTrue(statsMember.Remove("keyKind"), "fixture should carry keyKind");
+            Assert.IsTrue(statsMember.Remove("keyEnumId"), "fixture should carry keyEnumId");
 
             var client = NeoTestSaveStack.LoadClient(json.ToString());
-            if (!client.TryGetAttribute("attr-elem-stats", out DictionaryAttribute? attr))
+            if (!client.TryGetMember("member-elem-stats", out DictionaryMember? member))
             {
-                Assert.Fail("attr-elem-stats missing from the stripped fixture");
+                Assert.Fail("member-elem-stats missing from the stripped fixture");
             }
-            Assert.IsNull(attr!.keyKind);
-            Assert.IsNull(attr.keyEnumId);
+            Assert.IsNull(member!.keyKind);
+            Assert.IsNull(member.keyEnumId);
 
-            var node = client.save.Get<NeoAttributeDictionaryWritable>("ElementStats");
+            var node = client.save.Get<NeoMemberDictionaryWritable>("ElementStats");
             // Same entry factory shape the codegen output constructs with.
             var stringView = new NeoReadOnlyDictionary<int?>(
                 client,
                 node,
-                (_, child) => NeoGeneratedTypesSupport.ReadInt((NeoAttributeInt)child));
+                (_, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child));
             Assert.AreEqual(12, stringView["fire"]);
             Assert.AreEqual(99, stringView["storm"]);
         }
@@ -201,13 +201,13 @@ namespace NeoCompose.Tests
         public void ProjectExample_EnumLiteralKeyGetter_FoldsToStringPointer()
         {
             var client = NeoTestSaveStack.LoadClient(LoadFixture("project-example.json"));
-            if (!client.TryGetAttribute(
-                    "attr-elem-fire-damage-get", out NSPropertyAttribute? attr))
+            if (!client.TryGetMember(
+                    "member-elem-fire-damage-get", out NSPropertyMember? member))
             {
-                Assert.Fail("attr-elem-fire-damage-get missing from project-example.json");
+                Assert.Fail("member-elem-fire-damage-get missing from project-example.json");
             }
 
-            var node = new NeoAttributeNSProperty(client, attr!, null);
+            var node = new NeoMemberNSProperty(client, member!, null);
             var result = node.Compute(ProjectExampleAssetsRootValueId);
 
             Assert.IsTrue(result.ok, result.error);
@@ -219,13 +219,13 @@ namespace NeoCompose.Tests
         public void ProjectExample_RowBackedEnumKeyGetter_ReadsThroughIndexZeroKeyOf()
         {
             var client = NeoTestSaveStack.LoadClient(LoadFixture("project-example.json"));
-            if (!client.TryGetAttribute(
-                    "attr-elem-selected-damage-get", out NSPropertyAttribute? attr))
+            if (!client.TryGetMember(
+                    "member-elem-selected-damage-get", out NSPropertyMember? member))
             {
-                Assert.Fail("attr-elem-selected-damage-get missing from project-example.json");
+                Assert.Fail("member-elem-selected-damage-get missing from project-example.json");
             }
 
-            var node = new NeoAttributeNSProperty(client, attr!, null);
+            var node = new NeoMemberNSProperty(client, member!, null);
             var result = node.Compute(ProjectExampleAssetsRootValueId);
 
             Assert.IsTrue(result.ok, result.error);

@@ -41,15 +41,15 @@ namespace NeoCompose.Runtime
 
         internal void RetargetMovedReference(
             NeoClient client,
-            Attribute attribute,
+            Member member,
             string valueId,
             NeoValueOwnership ownership)
         {
             if (!isValueReference) return;
-            if (valueReference is not NeoGeneratedCustomValue generated) return;
+            if (valueReference is not NeoGeneratedClassValue generated) return;
             if (generated.IsReadOnly) return;
-            if (attribute is not CustomAttribute customAttribute) return;
-            generated.RetargetWritableReference(customAttribute, valueId, ownership);
+            if (member is not ClassMember classMember) return;
+            generated.RetargetWritableReference(classMember, valueId, ownership);
         }
     }
 }

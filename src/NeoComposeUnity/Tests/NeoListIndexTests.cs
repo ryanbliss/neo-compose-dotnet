@@ -12,7 +12,7 @@ using NeoCompose.Runtime.NeoScript;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
-using JsonAttribute = NeoCompose.Runtime.Json.Attribute;
+using JsonMember = NeoCompose.Runtime.Json.Member;
 using JsonEnum = NeoCompose.Runtime.Json.Enum;
 
 namespace NeoCompose.Tests
@@ -22,7 +22,7 @@ namespace NeoCompose.Tests
         [Test]
         public void ValueIdIndexer_IsLazy_AndMissingContractsAreUnambiguous()
         {
-            NeoAttributeListWritable node = LoadItems(4, out NeoClient client);
+            NeoMemberListWritable node = LoadItems(4, out NeoClient client);
             var items = Wrap(client, node);
 
             Assert.AreEqual(0, node.IndexDiagnostics.IdentityBuildCount);
@@ -41,7 +41,7 @@ namespace NeoCompose.Tests
         [Test]
         public void StringAndEnumIndexes_ReturnUniqueAndManyResults()
         {
-            NeoAttributeListWritable node = LoadItems(6, out NeoClient client);
+            NeoMemberListWritable node = LoadItems(6, out NeoClient client);
             var slug = new NeoUniqueListIndex<string, TestItem>(
                 client, node, "Slug", CreateItem);
             var category = new NeoMultiListIndex<string, TestItem>(
@@ -60,7 +60,7 @@ namespace NeoCompose.Tests
         [Test]
         public void TypedIndexes_AreReadOnlyDictionaries_AndSupportLinq()
         {
-            NeoAttributeListWritable node = LoadItems(6, out NeoClient client);
+            NeoMemberListWritable node = LoadItems(6, out NeoClient client);
             var slug = new NeoUniqueListIndex<string, TestItem>(
                 client, node, "Slug", CreateItem);
             var category = new NeoMultiListIndex<string, TestItem>(
@@ -88,7 +88,7 @@ namespace NeoCompose.Tests
         [Test]
         public void MaterializedIndexes_UpdateAfterIndexedFieldEditAndRemoval()
         {
-            NeoAttributeListWritable node = LoadItems(5, out NeoClient client);
+            NeoMemberListWritable node = LoadItems(5, out NeoClient client);
             var slug = new NeoUniqueListIndex<string, TestItem>(
                 client, node, "Slug", CreateItem);
             var category = new NeoMultiListIndex<string, TestItem>(
@@ -98,9 +98,9 @@ namespace NeoCompose.Tests
             Assert.AreEqual(3, category["even"].Count);
             long builds = node.IndexDiagnostics.DerivedBuildCount;
 
-            var item = (NeoAttributeCustomWritable)node[2];
-            item.Get<NeoAttributeStringWritable>("Slug").Set("renamed");
-            item.Get<NeoAttributeEnumWritable>("Category").Set(new[] { "odd" });
+            var item = (NeoMemberClassWritable)node[2];
+            item.Get<NeoMemberStringWritable>("Slug").Set("renamed");
+            item.Get<NeoMemberEnumWritable>("Category").Set(new[] { "odd" });
 
             Assert.IsNull(slug["slug-2"]);
             Assert.AreEqual("item-2", slug["renamed"]!.Id);
@@ -119,7 +119,7 @@ namespace NeoCompose.Tests
         [Test]
         public void UniqueCollision_InvalidatesWholeIndex_AndCanBeRepaired()
         {
-            NeoAttributeListWritable node = LoadItems(
+            NeoMemberListWritable node = LoadItems(
                 3,
                 out NeoClient client,
                 slugFor: i => i < 2 ? "duplicate" : "other");
@@ -130,8 +130,8 @@ namespace NeoCompose.Tests
                 () => _ = slug["other"]);
             StringAssert.Contains("duplicate", invalid!.Message);
 
-            ((NeoAttributeCustomWritable)node[1])
-                .Get<NeoAttributeStringWritable>("Slug")
+            ((NeoMemberClassWritable)node[1])
+                .Get<NeoMemberStringWritable>("Slug")
                 .Set("repaired");
 
             Assert.AreEqual("item-0", slug["duplicate"]!.Id);
@@ -142,7 +142,7 @@ namespace NeoCompose.Tests
         public void WarmLookup_OperationCountsProveConstantWorkAtHundredsOfItems()
         {
             const int itemCount = 500;
-            NeoAttributeListWritable node = LoadItems(itemCount, out NeoClient client);
+            NeoMemberListWritable node = LoadItems(itemCount, out NeoClient client);
             var items = Wrap(client, node);
             var slug = new NeoUniqueListIndex<string, TestItem>(
                 client, node, "Slug", CreateItem);
@@ -169,23 +169,23 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void ListIndexDefinition_DeserializesWithoutBreakingOldExports()
+        public void ListIndexDefinition_DeserializesWithAndWithoutIndexes()
         {
-            var indexed = JsonConvert.DeserializeObject<JsonAttribute>(
+            var indexed = JsonConvert.DeserializeObject<JsonMember>(
                 "{\"id\":\"items\",\"projectId\":\"p\",\"name\":\"Items\","
-                + "\"type\":6,\"isStatic\":false,\"entryAttributeId\":\"entry\","
+                + "\"kind\":6,\"isStatic\":false,\"entryMemberId\":\"entry\","
                 + "\"indexes\":[{\"schemaKey\":\"Slug\",\"unique\":true}]}"
-            ) as ListAttribute;
+            ) as ListMember;
             Assert.IsNotNull(indexed);
             Assert.AreEqual("Slug", indexed!.indexes![0].schemaKey);
             Assert.IsTrue(indexed.indexes[0].unique);
 
-            var legacy = JsonConvert.DeserializeObject<JsonAttribute>(
+            var withoutIndexes = JsonConvert.DeserializeObject<JsonMember>(
                 "{\"id\":\"items\",\"projectId\":\"p\",\"name\":\"Items\","
-                + "\"type\":6,\"isStatic\":false,\"entryAttributeId\":\"entry\"}"
-            ) as ListAttribute;
-            Assert.IsNotNull(legacy);
-            Assert.IsNull(legacy!.indexes);
+                + "\"kind\":6,\"isStatic\":false,\"entryMemberId\":\"entry\"}"
+            ) as ListMember;
+            Assert.IsNotNull(withoutIndexes);
+            Assert.IsNull(withoutIndexes!.indexes);
         }
 
         [Test]
@@ -229,7 +229,7 @@ namespace NeoCompose.Tests
                                 type = PointerKind.Reference,
                                 valueId = "items-value",
                             },
-                            listAttributeId = "items",
+                            listMemberId = "items",
                             schemaKey = "Slug",
                             unique = true,
                             keyKind = ListIndexKeyKind.String,
@@ -262,7 +262,7 @@ namespace NeoCompose.Tests
                                             type = PointerKind.Reference,
                                             valueId = "items-value",
                                         },
-                                        listAttributeId = "items",
+                                        listMemberId = "items",
                                         schemaKey = "Slug",
                                         unique = true,
                                         keyKind = ListIndexKeyKind.String,
@@ -284,14 +284,14 @@ namespace NeoCompose.Tests
             Function? function = JsonConvert.DeserializeObject<Function>(
                 "{\"type\":\"listIndex\",\"info\":{"
                 + "\"collectionPointer\":{\"type\":\"reference\",\"valueId\":\"list\"},"
-                + "\"listAttributeId\":\"items\",\"schemaKey\":\"Slug\","
+                + "\"listMemberId\":\"items\",\"schemaKey\":\"Slug\","
                 + "\"unique\":true,\"keyKind\":\"string\","
                 + "\"keyPointer\":{\"type\":\"value\",\"value\":{"
                 + "\"typeInfo\":{\"type\":3,\"required\":true},\"value\":\"wood\"}}}}"
             );
             var listIndex = function as ListIndexFunction;
             Assert.IsNotNull(listIndex);
-            Assert.AreEqual("items", listIndex!.info.listAttributeId);
+            Assert.AreEqual("items", listIndex!.info.listMemberId);
             Assert.AreEqual("Slug", listIndex.info.schemaKey);
             Assert.IsTrue(listIndex.info.unique);
         }
@@ -311,7 +311,7 @@ namespace NeoCompose.Tests
                 },
                 typeInfo = new UnknownTypeInfo
                 {
-                    type = AttributeType.Unknown,
+                    type = MemberKind.Unknown,
                     required = false,
                 },
             };
@@ -326,7 +326,7 @@ namespace NeoCompose.Tests
                 {
                     typeInfo = new PrimitiveTypeInfo
                     {
-                        type = AttributeType.String,
+                        type = MemberKind.String,
                         required = true,
                     },
                     value = new JValue(value),
@@ -334,7 +334,7 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static NeoList<TestItem> Wrap(NeoClient client, NeoAttributeListWritable node)
+        private static NeoList<TestItem> Wrap(NeoClient client, NeoMemberListWritable node)
         {
             return new NeoList<TestItem>(
                 client,
@@ -343,19 +343,19 @@ namespace NeoCompose.Tests
                 _ => throw new NotSupportedException("Test wrapper is read-only"));
         }
 
-        private static TestItem CreateItem(NeoClient _, NeoAttribute node) =>
-            new((NeoAttributeCustom)node);
+        private static TestItem CreateItem(NeoClient _, NeoMember node) =>
+            new((NeoMemberClass)node);
 
-        private static NeoAttributeListWritable LoadItems(
+        private static NeoMemberListWritable LoadItems(
             int count,
             out NeoClient client,
             Func<int, string>? slugFor = null)
         {
             client = NeoTestSaveStack.ClientFromSchema(BuildProjectData(count, slugFor));
-            var attribute = (ListAttribute)client.ProjectDataForRuntime.attributes["items"];
-            return (NeoAttributeListWritable)NeoAttribute.CreateWritable(
+            var member = (ListMember)client.ProjectDataForRuntime.members["items"];
+            return (NeoMemberListWritable)NeoMember.CreateWritable(
                 client,
-                attribute,
+                member,
                 null,
                 NeoValueOwnership.Save);
         }
@@ -365,16 +365,16 @@ namespace NeoCompose.Tests
             Func<int, string>? slugFor)
         {
             const string projectId = "list-index-tests";
-            var rootType = new CustomType
+            var rootClass = new NeoSchemaClass
             {
-                id = "root-type",
+                id = "root-class",
                 projectId = projectId,
                 name = "Root",
                 schema = new Dictionary<string, string>(),
             };
-            var itemType = new CustomType
+            var itemClass = new NeoSchemaClass
             {
-                id = "item-type",
+                id = "item-class",
                 projectId = projectId,
                 name = "Item",
                 schema = new Dictionary<string, string>
@@ -383,60 +383,60 @@ namespace NeoCompose.Tests
                     ["Category"] = "category",
                 },
             };
-            var attributes = new Dictionary<string, JsonAttribute>
+            var members = new Dictionary<string, JsonMember>
             {
-                ["root-assets"] = RootAttribute("root-assets", "root-assets-value", rootType.id),
-                ["root-save"] = RootAttribute("root-save", "root-save-value", rootType.id),
-                ["root-session"] = RootAttribute("root-session", "root-session-value", rootType.id),
-                ["items"] = new ListAttribute
+                ["root-assets"] = RootMember("root-assets", "root-assets-value", rootClass.id),
+                ["root-save"] = RootMember("root-save", "root-save-value", rootClass.id),
+                ["root-session"] = RootMember("root-session", "root-session-value", rootClass.id),
+                ["items"] = new ListMember
                 {
                     id = "items",
                     projectId = projectId,
                     name = "Items",
-                    type = AttributeType.List,
+                    kind = MemberKind.List,
                     required = true,
                     valueId = "items-value",
-                    entryAttributeId = "item-entry",
+                    entryMemberId = "item-entry",
                     indexes = new[]
                     {
                         new ListIndexDefinition { schemaKey = "Slug", unique = true },
                         new ListIndexDefinition { schemaKey = "Category", unique = false },
                     },
                 },
-                ["item-entry"] = new CustomAttribute
+                ["item-entry"] = new ClassMember
                 {
                     id = "item-entry",
                     projectId = projectId,
                     name = "Item",
-                    type = AttributeType.Custom,
+                    kind = MemberKind.Class,
                     required = true,
-                    customTypeId = itemType.id,
+                    classId = itemClass.id,
                 },
-                ["slug"] = new StringAttribute
+                ["slug"] = new StringMember
                 {
                     id = "slug",
                     projectId = projectId,
                     name = "Slug",
-                    type = AttributeType.String,
+                    kind = MemberKind.String,
                     required = true,
                     localizable = false,
                 },
-                ["category"] = new EnumAttribute
+                ["category"] = new EnumMember
                 {
                     id = "category",
                     projectId = projectId,
                     name = "Category",
-                    type = AttributeType.Enum,
+                    kind = MemberKind.Enum,
                     required = true,
                     enumId = "category-enum",
                     multiselect = false,
                 },
             };
-            var values = new Dictionary<string, AttributeValue>
+            var values = new Dictionary<string, MemberValue>
             {
-                ["root-assets-value"] = ObjectValue("root-assets-value", rootType.id, new()),
-                ["root-save-value"] = ObjectValue("root-save-value", rootType.id, new()),
-                ["root-session-value"] = ObjectValue("root-session-value", rootType.id, new()),
+                ["root-assets-value"] = ObjectValue("root-assets-value", rootClass.id, new()),
+                ["root-save-value"] = ObjectValue("root-save-value", rootClass.id, new()),
+                ["root-session-value"] = ObjectValue("root-session-value", rootClass.id, new()),
             };
             var ids = new string[count];
             for (int i = 0; i < count; i++)
@@ -445,24 +445,24 @@ namespace NeoCompose.Tests
                 string slugId = $"slug-value-{i}";
                 string categoryId = $"category-value-{i}";
                 ids[i] = id;
-                values[id] = ObjectValue(id, itemType.id, new Dictionary<string, string>
+                values[id] = ObjectValue(id, itemClass.id, new Dictionary<string, string>
                 {
                     ["Slug"] = slugId,
                     ["Category"] = categoryId,
                 });
-                values[slugId] = new StringAttributeValue
+                values[slugId] = new StringMemberValue
                 {
                     id = slugId,
                     value = slugFor?.Invoke(i) ?? $"slug-{i}",
                     neoLocalizationMode = NeoStringLocalizationMode.Literal,
                 };
-                values[categoryId] = new ArrayAttributeValue
+                values[categoryId] = new ArrayMemberValue
                 {
                     id = categoryId,
                     value = new[] { i % 2 == 0 ? "even" : "odd" },
                 };
             }
-            values["items-value"] = new ArrayAttributeValue
+            values["items-value"] = new ArrayMemberValue
             {
                 id = "items-value",
                 value = ids,
@@ -475,16 +475,16 @@ namespace NeoCompose.Tests
                     id = projectId,
                     _id = projectId,
                     name = "List Index Tests",
-                    rootAssetsAttributeId = "root-assets",
-                    rootSaveFileAttributeId = "root-save",
-                    rootSessionAttributeId = "root-session",
+                    rootAssetsMemberId = "root-assets",
+                    rootSaveFileMemberId = "root-save",
+                    rootSessionMemberId = "root-session",
                 },
-                attributes = attributes,
+                members = members,
                 values = values,
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    [rootType.id] = rootType,
-                    [itemType.id] = itemType,
+                    [rootClass.id] = rootClass,
+                    [itemClass.id] = itemClass,
                 },
                 enums = new Dictionary<string, JsonEnum>
                 {
@@ -504,44 +504,44 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static CustomAttribute RootAttribute(
+        private static ClassMember RootMember(
             string id,
             string valueId,
-            string customTypeId)
+            string classId)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = "list-index-tests",
                 name = id,
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
                 valueId = valueId,
-                customTypeId = customTypeId,
+                classId = classId,
             };
         }
 
-        private static ObjectAttributeValue ObjectValue(
+        private static ObjectMemberValue ObjectValue(
             string id,
-            string typeId,
+            string classId,
             Dictionary<string, string> record)
         {
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = typeId,
+                classId = classId,
                 value = record,
             };
         }
 
         private sealed class TestItem
         {
-            internal TestItem(NeoAttributeCustom node)
+            internal TestItem(NeoMemberClass node)
             {
                 Node = node;
             }
 
-            internal NeoAttributeCustom Node { get; }
+            internal NeoMemberClass Node { get; }
             internal string Id => Node.value!.id;
         }
     }

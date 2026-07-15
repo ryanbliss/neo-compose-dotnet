@@ -8,38 +8,38 @@ using NeoCompose.Runtime.Json;
 namespace NeoCompose.Runtime
 {
     /// <summary>
-    /// Runtime view of one type-owned Custom member. The stable identity is the
-    /// attribute id; <see cref="ValueId"/> is resolved live from the selected
+    /// Runtime view of one class-owned Class member. The stable identity is the
+    /// member id; <see cref="ValueId"/> is resolved live from the selected
     /// Save/Session binding map (or the authored fallback), so rebinding never
     /// requires replacing generated static API state.
     /// </summary>
     public sealed class NeoStaticBinding
     {
         private readonly NeoClient client;
-        private readonly Attribute attribute;
+        private readonly Member member;
 
         internal NeoStaticBinding(
             NeoClient client,
-            string attributeId,
+            string memberId,
             NeoValueOwnership expectedOwnership)
         {
             this.client = client ?? throw new System.ArgumentNullException(nameof(client));
-            if (!client.TryGetAttribute(attributeId, out Attribute? resolvedAttribute))
+            if (!client.TryGetMember(memberId, out Member? resolvedMember))
             {
                 throw new System.ArgumentException(
-                    $"No attribute exists for static binding '{attributeId}'.",
-                    nameof(attributeId));
+                    $"No member exists for static binding '{memberId}'.",
+                    nameof(memberId));
             }
-            attribute = resolvedAttribute;
-            Ownership = client.ResolveStaticOwnership(attribute);
+            member = resolvedMember;
+            Ownership = client.ResolveStaticOwnership(member);
             if (Ownership != expectedOwnership)
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' resolves to {Ownership} storage, but generated code expected {expectedOwnership}. Regenerate the Unity types from the current project schema.");
+                    $"Static member '{member.name}' resolves to {Ownership} storage, but generated code expected {expectedOwnership}. Regenerate the Unity classes from the current project schema.");
             }
         }
 
-        public string AttributeId => attribute.id;
+        public string MemberId => member.id;
         public NeoValueOwnership Ownership { get; }
 
         /// <summary>The currently selected target id, or null when unset.</summary>
@@ -49,7 +49,7 @@ namespace NeoCompose.Runtime
             {
                 client.EnsureNotDisposed();
                 client.TryResolveStaticBinding(
-                    attribute.id,
+                    member.id,
                     out _,
                     out _,
                     out string? valueId);
@@ -58,48 +58,48 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Resolves the current target as the requested attribute wrapper.
+        /// Resolves the current target as the requested member wrapper.
         /// Returns false for an ordinary optional/unset binding. A dangling
         /// target or a node-kind mismatch is reported as corrupt project/save
         /// data rather than being silently materialized.
         /// </summary>
         public bool TryGetNode<TNode>(
             [System.Diagnostics.CodeAnalysis.NotNullWhen(true)] out TNode? node)
-            where TNode : NeoAttribute
+            where TNode : NeoMember
         {
             node = null;
             client.EnsureNotDisposed();
             if (!client.TryResolveStaticBinding(
-                    attribute.id,
+                    member.id,
                     out _,
                     out _,
                     out string? valueId))
             {
                 return false;
             }
-            if (!client.TryGetOverlaidValue(Ownership, valueId, out AttributeValue? _))
+            if (!client.TryGetOverlaidValue(Ownership, valueId, out MemberValue? _))
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' is bound to missing value '{valueId}'.");
+                    $"Static member '{member.name}' is bound to missing value '{valueId}'.");
             }
-            NeoAttribute resolved = Ownership == NeoValueOwnership.Asset
-                ? NeoAttribute.Create(client, attribute, valueId)
-                : NeoAttribute.CreateWritable(client, attribute, valueId, Ownership);
+            NeoMember resolved = Ownership == NeoValueOwnership.Asset
+                ? NeoMember.Create(client, member, valueId)
+                : NeoMember.CreateWritable(client, member, valueId, Ownership);
             if (resolved is not TNode typed)
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' resolved {resolved.GetType().Name}; generated code expected {typeof(TNode).Name}.");
+                    $"Static member '{member.name}' resolved {resolved.GetType().Name}; generated code expected {typeof(TNode).Name}.");
             }
             node = typed;
             return true;
         }
 
         public TNode GetRequiredNode<TNode>()
-            where TNode : NeoAttribute
+            where TNode : NeoMember
         {
             if (TryGetNode(out TNode? node)) return node;
             throw new System.InvalidOperationException(
-                $"Required static member '{attribute.name}' has no bound value.");
+                $"Required static member '{member.name}' has no bound value.");
         }
 
         /// <summary>
@@ -110,21 +110,21 @@ namespace NeoCompose.Runtime
         /// when the first write actually occurs.
         /// </summary>
         public TNode GetNodeOrEmpty<TNode>()
-            where TNode : NeoAttribute
+            where TNode : NeoMember
         {
             if (TryGetNode(out TNode? node)) return node;
-            string syntheticValueId = $"__neo_unset_static:{attribute.id}";
-            NeoAttribute empty = Ownership == NeoValueOwnership.Asset
-                ? NeoAttribute.Create(client, attribute, syntheticValueId)
-                : NeoAttribute.CreateWritable(
+            string syntheticValueId = $"__neo_unset_static:{member.id}";
+            NeoMember empty = Ownership == NeoValueOwnership.Asset
+                ? NeoMember.Create(client, member, syntheticValueId)
+                : NeoMember.CreateWritable(
                     client,
-                    attribute,
+                    member,
                     syntheticValueId,
                     Ownership);
             if (empty is not TNode typed)
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' empty view resolved {empty.GetType().Name}; generated code expected {typeof(TNode).Name}.");
+                    $"Static member '{member.name}' empty view resolved {empty.GetType().Name}; generated code expected {typeof(TNode).Name}.");
             }
             return typed;
         }
@@ -136,7 +136,7 @@ namespace NeoCompose.Runtime
         /// container before applying the mutation.
         /// </summary>
         public TNode GetOrCreateWritableNode<TNode>(object? initialValue)
-            where TNode : NeoAttribute
+            where TNode : NeoMember
         {
             EnsureWritable();
             if (!TryGetNode(out TNode? node))
@@ -145,7 +145,7 @@ namespace NeoCompose.Runtime
                 if (!TryGetNode(out node))
                 {
                     throw new System.InvalidOperationException(
-                        $"Static member '{attribute.name}' could not materialize a writable value.");
+                        $"Static member '{member.name}' could not materialize a writable value.");
                 }
             }
             return node;
@@ -174,7 +174,7 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Rebinds a Custom static member to the incoming value's existing id.
+        /// Rebinds a Class static member to the incoming value's existing id.
         /// The value is never silently re-id'd or deep-copied merely because it
         /// became a static root.
         /// </summary>
@@ -195,18 +195,18 @@ namespace NeoCompose.Runtime
         public void Clear()
         {
             EnsureWritable();
-            client.SetStaticBinding(attribute.id, Ownership, null);
+            client.SetStaticBinding(member.id, Ownership, null);
         }
 
         /// <summary>
         /// Deletes the runtime binding entry so the authored
-        /// <see cref="Attribute.valueId"/> is visible again. This is distinct
+        /// <see cref="Member.valueId"/> is visible again. This is distinct
         /// from <see cref="Clear"/>.
         /// </summary>
         public bool RestoreAuthored()
         {
             EnsureWritable();
-            return client.RestoreStaticBinding(attribute.id, Ownership);
+            return client.RestoreStaticBinding(member.id, Ownership);
         }
 
         private void Materialize(object? initialValue)
@@ -219,9 +219,9 @@ namespace NeoCompose.Runtime
             string nowIso = System.DateTime.UtcNow.ToString("o");
             string valueId;
             string createdAt = nowIso;
-            AttributeValue? previous = null;
+            MemberValue? previous = null;
             if (client.TryResolveStaticBinding(
-                    attribute.id,
+                    member.id,
                     out _,
                     out _,
                     out string? currentValueId))
@@ -230,7 +230,7 @@ namespace NeoCompose.Runtime
                 if (!client.TryGetOverlaidValue(Ownership, valueId, out previous))
                 {
                     throw new System.InvalidOperationException(
-                        $"Static member '{attribute.name}' is bound to missing value '{valueId}'.");
+                        $"Static member '{member.name}' is bound to missing value '{valueId}'.");
                 }
                 createdAt = previous.createdAt;
             }
@@ -240,13 +240,13 @@ namespace NeoCompose.Runtime
             }
 
             client.SetWritablePayloadRows(Ownership, payload);
-            AttributeValue row = AttributeValueFactory.Create(
-                attribute,
+            MemberValue row = MemberValueFactory.Create(
+                member,
                 payload,
                 valueId,
                 createdAt,
                 nowIso);
-            string? declaredMapKey = client.ResolveStaticMapKey(attribute);
+            string? declaredMapKey = client.ResolveStaticMapKey(member);
             if (previous is not null)
             {
                 row.containerId = previous.containerId;
@@ -263,35 +263,35 @@ namespace NeoCompose.Runtime
             if (row.mapKey != declaredMapKey)
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' resolves to storage partition '{declaredMapKey ?? "main"}', but its existing value '{valueId}' is stamped '{row.mapKey ?? "main"}'.");
+                    $"Static member '{member.name}' resolves to storage partition '{declaredMapKey ?? "main"}', but its existing value '{valueId}' is stamped '{row.mapKey ?? "main"}'.");
             }
             client.SetWritableValue(Ownership, row);
             if (currentValueId is null)
             {
-                client.SetStaticBinding(attribute.id, Ownership, valueId);
+                client.SetStaticBinding(member.id, Ownership, valueId);
             }
         }
 
         private void BindValueReference(NeoValueWritePayload payload)
         {
-            if (attribute is not CustomAttribute customAttribute)
+            if (member is not ClassMember classMember)
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' is not Custom-typed and cannot bind a value reference.");
+                    $"Static member '{member.name}' is not Class-valued and cannot bind a value reference.");
             }
             string sourceValueId = payload.valueId
                 ?? throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' received a value reference without an id.");
-            if (!client.TryGetValue(sourceValueId, out ObjectAttributeValue? sourceRow))
+                    $"Static member '{member.name}' received a value reference without an id.");
+            if (!client.TryGetValue(sourceValueId, out ObjectMemberValue? sourceRow))
             {
                 throw new System.InvalidOperationException(
-                    $"Cannot bind static member '{attribute.name}' to missing Custom value '{sourceValueId}'.");
+                    $"Cannot bind static member '{member.name}' to missing Class value '{sourceValueId}'.");
             }
-            string actualTypeId = sourceRow.typeId ?? customAttribute.customTypeId;
-            if (!IsAssignableCustomType(actualTypeId, customAttribute.customTypeId))
+            string actualClassId = sourceRow.classId ?? classMember.classId;
+            if (!IsAssignableNeoSchemaClass(actualClassId, classMember.classId))
             {
                 throw new System.InvalidOperationException(
-                    $"Cannot bind static member '{attribute.name}' ({customAttribute.customTypeId}) to incompatible Custom value type '{actualTypeId}'.");
+                    $"Cannot bind static member '{member.name}' ({classMember.classId}) to incompatible runtime class '{actualClassId}'.");
             }
 
             string importedValueId = sourceValueId;
@@ -308,50 +308,50 @@ namespace NeoCompose.Runtime
                     out sourceMoved,
                     ValueId);
             }
-            string? expectedMapKey = client.ResolveStaticMapKey(attribute);
+            string? expectedMapKey = client.ResolveStaticMapKey(member);
             if (!client.TryGetValue(
                     Ownership,
                     importedValueId,
-                    out AttributeValue? importedRow))
+                    out MemberValue? importedRow))
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' imported missing value '{importedValueId}'.");
+                    $"Static member '{member.name}' imported missing value '{importedValueId}'.");
             }
             if (!string.IsNullOrEmpty(importedRow!.mapKey)
                 && importedRow.mapKey != expectedMapKey)
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' cannot bind value '{importedValueId}' from storage partition '{importedRow.mapKey}' to '{expectedMapKey ?? "main"}'.");
+                    $"Static member '{member.name}' cannot bind value '{importedValueId}' from storage partition '{importedRow.mapKey}' to '{expectedMapKey ?? "main"}'.");
             }
             if (importedRow.mapKey != expectedMapKey)
             {
-                AttributeValue stamped = client.CloneRowForWrite(importedRow);
+                MemberValue stamped = client.CloneRowForWrite(importedRow);
                 stamped.mapKey = expectedMapKey;
                 client.SetWritableValue(Ownership, stamped);
             }
-            client.SetStaticBinding(attribute.id, Ownership, importedValueId);
+            client.SetStaticBinding(member.id, Ownership, importedValueId);
             if (sourceMoved)
             {
                 payload.RetargetMovedReference(
                     client,
-                    attribute,
+                    member,
                     importedValueId,
                     Ownership);
             }
         }
 
-        private bool IsAssignableCustomType(string actualTypeId, string expectedTypeId)
+        private bool IsAssignableNeoSchemaClass(string actualClassId, string expectedClassId)
         {
-            if (actualTypeId == expectedTypeId) return true;
+            if (actualClassId == expectedClassId) return true;
             try
             {
-                foreach (CustomType type in CustomTypeInheritance.ResolveChain(
-                    actualTypeId,
-                    id => client.TryGetType(id, out CustomType? candidate)
+                foreach (NeoSchemaClass schemaClass in NeoSchemaClassInheritance.ResolveChain(
+                    actualClassId,
+                    id => client.TryGetClass(id, out NeoSchemaClass? candidate)
                         ? candidate
                         : null))
                 {
-                    if (type.id == expectedTypeId) return true;
+                    if (schemaClass.id == expectedClassId) return true;
                 }
             }
             catch (CircularInheritanceError)
@@ -367,7 +367,7 @@ namespace NeoCompose.Runtime
             if (Ownership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException(
-                    $"Static member '{attribute.name}' is Immutable and cannot be written at runtime.");
+                    $"Static member '{member.name}' is Immutable and cannot be written at runtime.");
             }
         }
     }

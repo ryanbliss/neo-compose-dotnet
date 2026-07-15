@@ -29,26 +29,26 @@ namespace NeoCompose.Tests
             return client;
         }
 
-        private static T RequireAttribute<T>(NeoClient client, string id) where T : Attribute
+        private static T RequireMember<T>(NeoClient client, string id) where T : Member
         {
-            if (!client.TryGetAttribute(id, out T? attr))
+            if (!client.TryGetMember(id, out T? member))
             {
-                Assert.Fail($"Fixture is missing attribute '{id}' of type {typeof(T).Name}");
+                Assert.Fail($"Fixture is missing member '{id}' of type {typeof(T).Name}");
                 throw new System.InvalidOperationException("unreachable");
             }
-            return attr;
+            return member;
         }
 
         [Test]
         public void NeoList_AddSetRemove_TracksUnderlyingSavedList()
         {
             var client = LoadClient(out _);
-            var tagsAttr = RequireAttribute<ListAttribute>(client, "attr-tags");
-            var tagsNode = (NeoAttributeListWritable)NeoAttribute.CreateWritable(client, tagsAttr, null);
+            var tagsMember = RequireMember<ListMember>(client, "member-tags");
+            var tagsNode = (NeoMemberListWritable)NeoMember.CreateWritable(client, tagsMember, null);
             var tags = new NeoList<string>(
                 client,
                 tagsNode,
-                (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
+                (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 NeoGeneratedTypesSupport.Value);
 
             int changed = 0;
@@ -73,12 +73,12 @@ namespace NeoCompose.Tests
         public void NeoList_Clear_ClearsBackingArrayOnceAndFiresOneBulkChange()
         {
             var client = LoadClient(out _);
-            var tagsAttr = RequireAttribute<ListAttribute>(client, "attr-tags");
-            var tagsNode = (NeoAttributeListWritable)NeoAttribute.CreateWritable(client, tagsAttr, null);
+            var tagsMember = RequireMember<ListMember>(client, "member-tags");
+            var tagsNode = (NeoMemberListWritable)NeoMember.CreateWritable(client, tagsMember, null);
             var tags = new NeoList<string>(
                 client,
                 tagsNode,
-                (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
+                (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 NeoGeneratedTypesSupport.Value);
 
             tags.Add("first");
@@ -111,15 +111,15 @@ namespace NeoCompose.Tests
         public void NeoDictionary_SetRemove_TracksUnderlyingSavedDictionary()
         {
             var client = LoadClient(out _);
-            var inventoryAttr = RequireAttribute<DictionaryAttribute>(client, "attr-inventory");
-            var inventoryNode = (NeoAttributeDictionaryWritable)NeoAttribute.CreateWritable(
+            var inventoryMember = RequireMember<DictionaryMember>(client, "member-inventory");
+            var inventoryNode = (NeoMemberDictionaryWritable)NeoMember.CreateWritable(
                 client,
-                inventoryAttr,
+                inventoryMember,
                 null);
             var inventory = new NeoDictionary<string>(
                 client,
                 inventoryNode,
-                (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
+                (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 NeoGeneratedTypesSupport.Value);
 
             int changed = 0;
@@ -142,23 +142,23 @@ namespace NeoCompose.Tests
         }
 
         // Builds a Save-owned writable inventory dictionary whose entries come
-        // ONLY from the authored default (`attr-inventory` = { sword, shield })
+        // ONLY from the authored default (`member-inventory` = { sword, shield })
         // with no bound value row yet. Save ownership routes writes to the save
         // store so persistence is observable via SerializeSaveData. Regression
         // surface for the clone-on-write seed: the first mutation must clone the
         // default map, not start empty.
         private static NeoDictionary<string> LoadDefaultOnlyInventory(NeoClient client)
         {
-            var inventoryAttr = RequireAttribute<DictionaryAttribute>(client, "attr-inventory");
-            var inventoryNode = (NeoAttributeDictionaryWritable)NeoAttribute.CreateWritable(
+            var inventoryMember = RequireMember<DictionaryMember>(client, "member-inventory");
+            var inventoryNode = (NeoMemberDictionaryWritable)NeoMember.CreateWritable(
                 client,
-                inventoryAttr,
+                inventoryMember,
                 null,
                 NeoValueOwnership.Save);
             return new NeoDictionary<string>(
                 client,
                 inventoryNode,
-                (_, attr) => ((NeoAttributeString)attr).value?.value ?? "",
+                (_, member) => ((NeoMemberString)member).value?.value ?? "",
                 NeoGeneratedTypesSupport.Value);
         }
 
@@ -229,12 +229,12 @@ namespace NeoCompose.Tests
         public void NeoLookupSet_AddRemoveClear_TracksUniqueLookupSelections()
         {
             var client = LoadClient(out _);
-            var choiceAttr = RequireAttribute<LookupAttribute>(client, "attr-choice");
+            var choiceMember = RequireMember<LookupMember>(client, "member-choice");
             // Stable-id overlay: pin the lookup to its target collection value by
             // id and shadow that value in the save store (the old override-map
-            // rebind of attr-tags is gone).
-            choiceAttr.collectionValueId = "v-tags-target";
-            client.SetSaveValue(new ArrayAttributeValue
+            // rebind of member-tags is gone).
+            choiceMember.collectionValueId = "v-tags-target";
+            client.SetSaveValue(new ArrayMemberValue
             {
                 id = "v-tags-target",
                 createdAt = "now",
@@ -242,9 +242,9 @@ namespace NeoCompose.Tests
                 value = new[] { "v-a", "v-b" },
             });
 
-            var choiceNode = (NeoAttributeLookupWritable)NeoAttribute.CreateWritable(
+            var choiceNode = (NeoMemberLookupWritable)NeoMember.CreateWritable(
                 client,
-                choiceAttr,
+                choiceMember,
                 null);
             var choices = new NeoLookupSet<NeoLookupSelection>(
                 client,
@@ -289,7 +289,7 @@ namespace NeoCompose.Tests
 
             int changed = 0;
             client.OnSaveValueChanged += _ => changed++;
-            client.SetSaveValue(new StringAttributeValue
+            client.SetSaveValue(new StringMemberValue
             {
                 id = "manual-save-value",
                 createdAt = "now",

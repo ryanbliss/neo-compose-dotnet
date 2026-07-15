@@ -36,15 +36,15 @@ namespace NeoCompose.Tests
             return app;
         }
 
-        private static T RequireAttribute<T>(NeoClient client, string id)
-            where T : Attribute
+        private static T RequireMember<T>(NeoClient client, string id)
+            where T : Member
         {
-            if (!client.TryGetAttribute(id, out T? attr))
+            if (!client.TryGetMember(id, out T? member))
             {
-                Assert.Fail($"Fixture is missing attribute '{id}' of type {typeof(T).Name}");
+                Assert.Fail($"Fixture is missing member '{id}' of type {typeof(T).Name}");
                 throw new System.InvalidOperationException("unreachable");
             }
-            return attr;
+            return member;
         }
 
         /// <summary>
@@ -287,10 +287,10 @@ namespace NeoCompose.Tests
         public void GeneratedInheritance_ReadsInheritedAndOwnedMembers()
         {
             var app = LoadGeneratedClient(out _);
-            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
+            var derivedMember = RequireMember<ClassMember>(app.Client, "member-derived");
+            var derivedNode = (NeoMemberClassWritable)NeoMember.CreateWritable(
                 app.Client,
-                derivedAttr,
+                derivedMember,
                 null,
                 NeoValueOwnership.Save);
 
@@ -310,10 +310,10 @@ namespace NeoCompose.Tests
         public void GeneratedSavedInheritance_SettersUpdateRuntimeValues()
         {
             var app = LoadGeneratedClient(out _);
-            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
+            var derivedMember = RequireMember<ClassMember>(app.Client, "member-derived");
+            var derivedNode = (NeoMemberClassWritable)NeoMember.CreateWritable(
                 app.Client,
-                derivedAttr,
+                derivedMember,
                 null,
                 NeoValueOwnership.Save);
 
@@ -328,13 +328,13 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedWrapper_DisposeUnsubscribesFromAttributeChanges()
+        public void GeneratedWrapper_DisposeUnsubscribesFromMemberChanges()
         {
             var app = LoadGeneratedClient(out _);
-            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
+            var derivedMember = RequireMember<ClassMember>(app.Client, "member-derived");
+            var derivedNode = (NeoMemberClassWritable)NeoMember.CreateWritable(
                 app.Client,
-                derivedAttr,
+                derivedMember,
                 null);
             var generated = Derived.CreateWritable(app.Client, derivedNode);
             int changes = 0;
@@ -354,10 +354,10 @@ namespace NeoCompose.Tests
         public void GeneratedWrapper_FieldOnChanged_ReceivesTypedValue()
         {
             var app = LoadGeneratedClient(out _);
-            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
+            var derivedMember = RequireMember<ClassMember>(app.Client, "member-derived");
+            var derivedNode = (NeoMemberClassWritable)NeoMember.CreateWritable(
                 app.Client,
-                derivedAttr,
+                derivedMember,
                 null);
             var generated = Derived.CreateWritable(app.Client, derivedNode);
             string? observed = null;
@@ -383,16 +383,16 @@ namespace NeoCompose.Tests
         public void GeneratedWrapper_GetLocalizedTextId_ReturnsTextIdForFieldTokens()
         {
             var app = LoadGeneratedClient(out _);
-            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
+            var derivedMember = RequireMember<ClassMember>(app.Client, "member-derived");
+            var derivedNode = (NeoMemberClassWritable)NeoMember.CreateWritable(
                 app.Client,
-                derivedAttr,
+                derivedMember,
                 null,
                 NeoValueOwnership.Save);
             var generated = Derived.CreateWritable(app.Client, derivedNode);
 
             generated.Name = "text-hero-name";
-            var nameNode = derivedNode.Get<NeoAttributeStringWritable>("Name");
+            var nameNode = derivedNode.Get<NeoMemberStringWritable>("Name");
             nameNode.value!.neoLocalizationMode = NeoStringLocalizationMode.TextId;
             app.Client.SetWritableValue(NeoValueOwnership.Save, nameNode.value);
 
@@ -412,10 +412,10 @@ namespace NeoCompose.Tests
         public void GeneratedWrapper_BatchOnChanged_ReportsChangedField()
         {
             var app = LoadGeneratedClient(out _);
-            var derivedAttr = RequireAttribute<CustomAttribute>(app.Client, "attr-derived");
-            var derivedNode = (NeoAttributeCustomWritable)NeoAttribute.CreateWritable(
+            var derivedMember = RequireMember<ClassMember>(app.Client, "member-derived");
+            var derivedNode = (NeoMemberClassWritable)NeoMember.CreateWritable(
                 app.Client,
-                derivedAttr,
+                derivedMember,
                 null);
             var generated = Derived.CreateWritable(app.Client, derivedNode);
             NeoChangedArgs<Derived.Fields>? observed = null;
@@ -430,7 +430,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedConstructor_AddsCustomListEntryReadableThroughGeneratedRoot()
+        public void GeneratedConstructor_AddsClassListEntryReadableThroughGeneratedRoot()
         {
             var app = LoadGeneratedClient(out _);
 
@@ -442,22 +442,22 @@ namespace NeoCompose.Tests
             Assert.AreEqual("Ada", hero!.Name);
             Assert.AreEqual(7, hero.Health);
 
-            var heroesNode = app.Client.save.Get<NeoAttributeListWritable>("Heroes");
-            var childNode = (NeoAttributeCustom)heroesNode[0];
+            var heroesNode = app.Client.save.Get<NeoMemberListWritable>("Heroes");
+            var childNode = (NeoMemberClass)heroesNode[0];
             Assert.IsNotNull(childNode.overrideValueId);
-            Assert.IsTrue(app.Client.TryGetValue<ObjectAttributeValue>(
+            Assert.IsTrue(app.Client.TryGetValue<ObjectMemberValue>(
                 childNode.overrideValueId!,
-                out ObjectAttributeValue? row));
-            Assert.AreEqual("type-hero", row!.typeId);
+                out ObjectMemberValue? row));
+            Assert.AreEqual("class-hero", row!.classId);
             Assert.IsTrue(app.SerializeSaveData().Contains("Ada"));
         }
 
         [Test]
-        public void GeneratedConstructor_UsesAttributeDefaultsForOmittedArguments()
+        public void GeneratedConstructor_UsesMemberDefaultsForOmittedArguments()
         {
             var app = LoadGeneratedClient(out _);
-            RequireAttribute<StringAttribute>(app.Client, "attr-name").required = true;
-            RequireAttribute<IntAttribute>(app.Client, "attr-health").required = true;
+            RequireMember<StringMember>(app.Client, "member-name").required = true;
+            RequireMember<IntMember>(app.Client, "member-health").required = true;
 
             var hero = new Hero();
 
@@ -484,7 +484,7 @@ namespace NeoCompose.Tests
                 GridCell: new NeoVector3Int(1, 2, 3),
                 Path: new[] { new NeoVector3(3, 4, 5) });
 
-            // Assignment convention (specs/color-attribute.md §6): wrappers
+            // Assignment convention (specs/color-member.md §6): wrappers
             // expose no component setters; a per-component update is a
             // whole-value reassignment through the generated setter.
             hero.Position = new Vector3(10, hero.Position.y, hero.Position.z);
@@ -535,38 +535,38 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedConstructor_RecursivelyCreatesNestedCustomDefaults()
+        public void GeneratedConstructor_RecursivelyCreatesNestedClassDefaults()
         {
             var app = LoadGeneratedClient(out _);
-            RequireAttribute<StringAttribute>(app.Client, "attr-name").required = true;
-            RequireAttribute<IntAttribute>(app.Client, "attr-health").required = true;
-            var heroAttribute = RequireAttribute<CustomAttribute>(app.Client, "attr-hero");
-            heroAttribute.required = true;
-            heroAttribute.defaultValue!.value = new Dictionary<string, string>();
-            var types = (Dictionary<string, CustomType>)app.Client.types;
-            types["type-default-holder"] = new CustomType
+            RequireMember<StringMember>(app.Client, "member-name").required = true;
+            RequireMember<IntMember>(app.Client, "member-health").required = true;
+            var heroMember = RequireMember<ClassMember>(app.Client, "member-hero");
+            heroMember.required = true;
+            heroMember.defaultValue!.value = new Dictionary<string, string>();
+            var classes = (Dictionary<string, NeoSchemaClass>)app.Client.classes;
+            classes["class-default-holder"] = new NeoSchemaClass
             {
-                id = "type-default-holder",
+                id = "class-default-holder",
                 name = "DefaultHolder",
-                schema = new Dictionary<string, string> { ["Hero"] = "attr-hero" },
+                schema = new Dictionary<string, string> { ["Hero"] = "member-hero" },
                 createdAt = "1970-01-01T00:00:00.000Z",
                 updatedAt = "1970-01-01T00:00:00.000Z",
             };
 
-            var holder = NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            var holder = NeoGeneratedTypesSupport.CreateWritableClassValue(
                 app.Client,
-                "type-default-holder",
+                "class-default-holder",
                 new Dictionary<string, string>(),
-                System.Array.Empty<AttributeValue>());
-            var hero = holder.Get<NeoAttributeCustomWritable>("Hero");
+                System.Array.Empty<MemberValue>());
+            var hero = holder.Get<NeoMemberClassWritable>("Hero");
 
             Assert.AreEqual(
                 "Hero",
-                hero.Get<NeoAttributeString>("Name").value?.value);
+                hero.Get<NeoMemberString>("Name").value?.value);
             Assert.AreEqual(
                 100,
                 NeoGeneratedTypesSupport.ReadInt(
-                    hero.Get<NeoAttributeInt>("Health")));
+                    hero.Get<NeoMemberInt>("Health")));
         }
 
         [Test]
@@ -580,7 +580,7 @@ namespace NeoCompose.Tests
                 NeoGeneratedTypesSupport.Value<object?>(null));
 
             var result = app.Save.Manifest;
-            var direct = app.Client.save.Get<NeoAttributeNSProperty>("Manifest").Compute();
+            var direct = app.Client.save.Get<NeoMemberNSProperty>("Manifest").Compute();
 
             Assert.IsTrue(direct.ok, direct.error);
             Assert.AreEqual(direct.value?.ToString(), result);
@@ -612,7 +612,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedCustomValues_ExposeReadOnlyStateAndGuardWrites()
+        public void GeneratedClassValues_ExposeReadOnlyStateAndGuardWrites()
         {
             var app = LoadGeneratedClient(out _);
 
@@ -944,7 +944,7 @@ namespace NeoCompose.Tests
             Assert.AreEqual(NeoValueOwnership.Session, initialOwnership);
             Assert.IsFalse(app.SerializeSaveData().Contains("Transient Hero"));
             Assert.AreEqual(0, app.RunGarbageCollector());
-            Assert.IsTrue(app.Client.TryGetValue<ObjectAttributeValue>(
+            Assert.IsTrue(app.Client.TryGetValue<ObjectMemberValue>(
                 transient.valueId!,
                 out _));
 
@@ -958,7 +958,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomAssignment_SameSessionStoreRequiresParentlessValueAndAllowsSelfRebind()
+        public void ClassAssignment_SameSessionStoreRequiresParentlessValueAndAllowsSelfRebind()
         {
             var app = LoadGeneratedClient(out _);
             var hero = new Hero(Name: "Session-owned", Health: 4);
@@ -978,7 +978,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CustomAssignment_SameSaveStoreRejectsSecondParent()
+        public void ClassAssignment_SameSaveStoreRejectsSecondParent()
         {
             var app = LoadGeneratedClient(out _);
             var hero = new Hero(Name: "Save-owned", Health: 7);
@@ -996,7 +996,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedCustomPropertySetter_EnforcesOwnershipAndPreservesUnparentedId()
+        public void GeneratedClassPropertySetter_EnforcesOwnershipAndPreservesUnparentedId()
         {
             var app = LoadGeneratedClient(out _);
             var source = new StorageB();
@@ -1013,7 +1013,7 @@ namespace NeoCompose.Tests
 
             Assert.DoesNotThrow(() => firstDestination.SaveChild = source);
             Assert.AreEqual(sourceId, firstDestination.SaveChild!.valueId);
-            Assert.IsTrue(app.Client.TryGetValue(sourceId, out ObjectAttributeValue? _));
+            Assert.IsTrue(app.Client.TryGetValue(sourceId, out ObjectMemberValue? _));
 
             var ex = Assert.Throws<System.InvalidOperationException>(
                 () => secondDestination.SaveChild = source)!;
@@ -1022,7 +1022,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void GeneratedClone_DeepCopiesOwnedCustomListAndDictionaryRows()
+        public void GeneratedClone_DeepCopiesOwnedClassListAndDictionaryRows()
         {
             var app = LoadGeneratedClient(out _);
             var source = new Hero(
@@ -1042,24 +1042,24 @@ namespace NeoCompose.Tests
             // Add a runtime-only Lookup field so the clone assertion covers
             // the crucial distinction between the owned Lookup row and its
             // reference-style target ids.
-            const string lookupAttributeId = "attr-clone-lookup";
+            const string lookupMemberId = "member-clone-lookup";
             const string lookupValueId = "value-clone-lookup";
-            var attributes = (Dictionary<string, Attribute>)app.Client.attributes;
-            attributes[lookupAttributeId] = new LookupAttribute
+            var members = (Dictionary<string, Member>)app.Client.members;
+            members[lookupMemberId] = new LookupMember
             {
-                id = lookupAttributeId,
+                id = lookupMemberId,
                 name = "CloneLookup",
-                type = AttributeType.Lookup,
-                collectionAttributeId = "attr-heroes",
+                kind = MemberKind.Lookup,
+                collectionMemberId = "member-heroes",
                 createdAt = "1970-01-01T00:00:00.000Z",
                 updatedAt = "1970-01-01T00:00:00.000Z",
             };
-            var types = (Dictionary<string, CustomType>)app.Client.types;
-            types["type-hero"].schema!["CloneLookup"] = lookupAttributeId;
-            Assert.IsTrue(app.Client.TryGetValue(source.valueId!, out ObjectAttributeValue? writableSourceRoot));
+            var classes = (Dictionary<string, NeoSchemaClass>)app.Client.classes;
+            classes["class-hero"].schema!["CloneLookup"] = lookupMemberId;
+            Assert.IsTrue(app.Client.TryGetValue(source.valueId!, out ObjectMemberValue? writableSourceRoot));
             writableSourceRoot!.value!["CloneLookup"] = lookupValueId;
             app.Client.SetWritableValue(NeoValueOwnership.Session, writableSourceRoot);
-            app.Client.SetWritableValue(NeoValueOwnership.Session, new ArrayAttributeValue
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ArrayMemberValue
             {
                 id = lookupValueId,
                 createdAt = "1970-01-01T00:00:00.000Z",
@@ -1072,8 +1072,8 @@ namespace NeoCompose.Tests
             Assert.IsTrue(app.Client.TryGetValueOwnership(clone.valueId!, out var cloneOwnership));
             Assert.AreEqual(NeoValueOwnership.Session, cloneOwnership);
 
-            Assert.IsTrue(app.Client.TryGetValue(source.valueId!, out ObjectAttributeValue? sourceRoot));
-            Assert.IsTrue(app.Client.TryGetValue(clone.valueId!, out ObjectAttributeValue? cloneRoot));
+            Assert.IsTrue(app.Client.TryGetValue(source.valueId!, out ObjectMemberValue? sourceRoot));
+            Assert.IsTrue(app.Client.TryGetValue(clone.valueId!, out ObjectMemberValue? cloneRoot));
             CollectionAssert.AreEquivalent(sourceRoot!.value!.Keys, cloneRoot!.value!.Keys);
             foreach (string key in sourceRoot.value.Keys)
             {
@@ -1085,8 +1085,8 @@ namespace NeoCompose.Tests
 
             string sourcePathId = sourceRoot.value["Path"];
             string clonePathId = cloneRoot.value["Path"];
-            Assert.IsTrue(app.Client.TryGetValue(sourcePathId, out ArrayAttributeValue? sourcePath));
-            Assert.IsTrue(app.Client.TryGetValue(clonePathId, out ArrayAttributeValue? clonePath));
+            Assert.IsTrue(app.Client.TryGetValue(sourcePathId, out ArrayMemberValue? sourcePath));
+            Assert.IsTrue(app.Client.TryGetValue(clonePathId, out ArrayMemberValue? clonePath));
             Assert.AreEqual(sourcePath!.value!.Length, clonePath!.value!.Length);
             for (int i = 0; i < sourcePath.value.Length; i++)
             {
@@ -1095,8 +1095,8 @@ namespace NeoCompose.Tests
 
             string sourceDictionaryId = sourceRoot.value["ElementAffinity"];
             string cloneDictionaryId = cloneRoot.value["ElementAffinity"];
-            Assert.IsTrue(app.Client.TryGetValue(sourceDictionaryId, out ObjectAttributeValue? sourceDictionary));
-            Assert.IsTrue(app.Client.TryGetValue(cloneDictionaryId, out ObjectAttributeValue? cloneDictionary));
+            Assert.IsTrue(app.Client.TryGetValue(sourceDictionaryId, out ObjectMemberValue? sourceDictionary));
+            Assert.IsTrue(app.Client.TryGetValue(cloneDictionaryId, out ObjectMemberValue? cloneDictionary));
             foreach (string key in sourceDictionary!.value!.Keys)
             {
                 Assert.AreNotEqual(sourceDictionary.value[key], cloneDictionary!.value![key]);
@@ -1104,7 +1104,7 @@ namespace NeoCompose.Tests
 
             string cloneLookupId = cloneRoot.value["CloneLookup"];
             Assert.AreNotEqual(lookupValueId, cloneLookupId);
-            Assert.IsTrue(app.Client.TryGetValue(cloneLookupId, out ArrayAttributeValue? cloneLookup));
+            Assert.IsTrue(app.Client.TryGetValue(cloneLookupId, out ArrayMemberValue? cloneLookup));
             CollectionAssert.AreEqual(
                 new[] { "asset-reference-a", "asset-reference-b" },
                 cloneLookup!.value,
@@ -1118,25 +1118,25 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void CloneValueReference_RejectsStaticOnlyRuntimeType()
+        public void CloneValueReference_RejectsStaticOnlyRuntimeClass()
         {
             var app = LoadGeneratedClient(out _);
-            const string typeId = "type-test-static-clone";
+            const string classId = "class-test-static-clone";
             const string valueId = "value-test-static-clone";
-            var types = (Dictionary<string, CustomType>)app.Client.types;
-            types[typeId] = new CustomType
+            var classes = (Dictionary<string, NeoSchemaClass>)app.Client.classes;
+            classes[classId] = new NeoSchemaClass
             {
-                id = typeId,
+                id = classId,
                 name = "StaticClone",
                 allowedStorage = "immutable",
                 schema = new Dictionary<string, string>(),
                 createdAt = "1970-01-01T00:00:00.000Z",
                 updatedAt = "1970-01-01T00:00:00.000Z",
             };
-            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectAttributeValue
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
             {
                 id = valueId,
-                typeId = typeId,
+                classId = classId,
                 createdAt = "1970-01-01T00:00:00.000Z",
                 updatedAt = "1970-01-01T00:00:00.000Z",
                 value = new Dictionary<string, string>(),
@@ -1152,55 +1152,55 @@ namespace NeoCompose.Tests
         public void OwnedParentDetection_InspectsSaveAndSessionRowsWithTheSameIdIndependently()
         {
             var app = LoadGeneratedClient(out _);
-            const string parentTypeId = "type-parent-detection-probe";
-            const string childAttributeId = "attr-parent-detection-child";
+            const string parentClassId = "class-parent-detection-probe";
+            const string childMemberId = "member-parent-detection-child";
             const string parentValueId = "value-parent-detection-shared";
             const string childValueId = "value-parent-detection-child";
             var now = "1970-01-01T00:00:00.000Z";
 
-            var attributes = (Dictionary<string, Attribute>)app.Client.attributes;
-            attributes[childAttributeId] = new CustomAttribute
+            var members = (Dictionary<string, Member>)app.Client.members;
+            members[childMemberId] = new ClassMember
             {
-                id = childAttributeId,
+                id = childMemberId,
                 name = "Child",
-                type = AttributeType.Custom,
-                customTypeId = "type-hero",
+                kind = MemberKind.Class,
+                classId = "class-hero",
                 storage = "save",
                 createdAt = now,
                 updatedAt = now,
             };
-            var types = (Dictionary<string, CustomType>)app.Client.types;
-            types[parentTypeId] = new CustomType
+            var classes = (Dictionary<string, NeoSchemaClass>)app.Client.classes;
+            classes[parentClassId] = new NeoSchemaClass
             {
-                id = parentTypeId,
+                id = parentClassId,
                 name = "ParentDetectionProbe",
-                schema = new Dictionary<string, string> { ["Child"] = childAttributeId },
+                schema = new Dictionary<string, string> { ["Child"] = childMemberId },
                 createdAt = now,
                 updatedAt = now,
             };
 
-            app.Client.SetWritableValue(NeoValueOwnership.Save, new ObjectAttributeValue
+            app.Client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
             {
                 id = childValueId,
-                typeId = "type-hero",
+                classId = "class-hero",
                 createdAt = now,
                 updatedAt = now,
                 value = new Dictionary<string, string>(),
             });
-            app.Client.SetWritableValue(NeoValueOwnership.Save, new ObjectAttributeValue
+            app.Client.SetWritableValue(NeoValueOwnership.Save, new ObjectMemberValue
             {
                 id = parentValueId,
-                typeId = parentTypeId,
+                classId = parentClassId,
                 createdAt = now,
                 updatedAt = now,
                 value = new Dictionary<string, string> { ["Child"] = childValueId },
             });
             // Global TryGetValue resolves this Session row first; it
             // intentionally has no child edge and must not hide the Save row.
-            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectAttributeValue
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
             {
                 id = parentValueId,
-                typeId = parentTypeId,
+                classId = parentClassId,
                 createdAt = now,
                 updatedAt = now,
                 value = new Dictionary<string, string>(),
@@ -1218,7 +1218,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(app.Client.TryGetValue(
                 NeoValueOwnership.Session,
                 clonedSaveParentId,
-                out ObjectAttributeValue? clonedSaveParent));
+                out ObjectMemberValue? clonedSaveParent));
             Assert.IsTrue(
                 clonedSaveParent!.value!.ContainsKey("Child"),
                 "explicit clone must use the requested Save row, not the same-id Session row");
@@ -1230,10 +1230,10 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
             string saveRootId = app.Client.save.value!.id;
-            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectAttributeValue
+            app.Client.SetWritableValue(NeoValueOwnership.Session, new ObjectMemberValue
             {
                 id = saveRootId,
-                typeId = app.Client.save.value!.typeId,
+                classId = app.Client.save.value!.classId,
                 createdAt = "1970-01-01T00:00:00.000Z",
                 updatedAt = "1970-01-01T00:00:00.000Z",
                 value = new Dictionary<string, string>(),
@@ -1243,7 +1243,7 @@ namespace NeoCompose.Tests
                 NeoValueOwnership.Save,
                 saveRootId,
                 out string? detectedParent));
-            StringAssert.StartsWith("attribute:", detectedParent);
+            StringAssert.StartsWith("member:", detectedParent);
         }
     }
 }

@@ -18,89 +18,89 @@ namespace Assets.Scripts.Neo
         internal static TestProjectNeo RequireInstance() => Instance ?? throw new InvalidOperationException("TestProjectNeo.Instance has not been initialized.");
 
         public NeoClient Client { get; }
-        public NeoAttributeCustom AssetsRoot => Client.AssetsRoot;
-        public NeoAttributeCustomWritable SaveRoot => Client.SaveRoot;
-        public NeoAttributeCustomWritable SessionRoot => Client.SessionRoot;
+        public NeoMemberClass AssetsRoot => Client.AssetsRoot;
+        public NeoMemberClassWritable SaveRoot => Client.SaveRoot;
+        public NeoMemberClassWritable SessionRoot => Client.SessionRoot;
         public NeoLocalization Localization => Client.Localization;
         public IReadOnlyRoot Assets { get; }
         public Root Save { get; }
         public Root Session { get; }
         public NeoDialogues Dialogues { get; }
 
-        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> DialogueReadOnlyValueFactories =
-            new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory>
+        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> DialogueReadOnlyValueFactories =
+            new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
             {
-                ["type-base"] = (client, node) => global::Assets.Scripts.Neo.Base.Create(client, node),
-                ["type-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, node),
-                ["type-contract-child"] = (client, node) => global::Assets.Scripts.Neo.ContractChild.Create(client, node),
-                ["type-contract-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractDeepChild.Create(client, node),
-                ["type-contract-explicit-child"] = (client, node) => global::Assets.Scripts.Neo.ContractExplicitChild.Create(client, node),
-                ["type-contract-null-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullChild.Create(client, node),
-                ["type-contract-null-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullDeepChild.Create(client, node),
-                ["type-derived"] = (client, node) => global::Assets.Scripts.Neo.Derived.Create(client, node),
-                ["type-dialogue-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, node),
-                ["type-generic-float-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatContract.Create(client, node),
-                ["type-generic-float-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatPayload.Create(client, node),
-                ["type-generic-function-hero-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFunctionHeroContract.Create(client, node),
-                ["type-generic-string-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericStringContract.Create(client, node),
-                ["type-generic-string-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericStringPayload.Create(client, node),
-                ["type-hero"] = (client, node) => global::Assets.Scripts.Neo.Hero.Create(client, node),
-                ["type-neo-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoMemory.Create(client, node),
-                ["type-override"] = (client, node) => global::Assets.Scripts.Neo.Override.Create(client, node),
-                ["type-root"] = (client, node) => global::Assets.Scripts.Neo.Root.Create(client, node),
-                ["type-sample-blocked-path"] = (client, node) => global::Assets.Scripts.Neo.SampleBlockedPath.Create(client, node),
-                ["type-sample-tile-instance"] = (client, node) => global::Assets.Scripts.Neo.SampleTileInstance.Create(client, node),
-                ["type-storage-a"] = (client, node) => global::Assets.Scripts.Neo.StorageA.Create(client, node),
-                ["type-storage-b"] = (client, node) => global::Assets.Scripts.Neo.StorageB.Create(client, node),
-                ["type-storage-c"] = (client, node) => global::Assets.Scripts.Neo.StorageC.Create(client, node),
-                ["type-storage-d"] = (client, node) => global::Assets.Scripts.Neo.StorageD.Create(client, node),
-                ["type-storage-e"] = (client, node) => global::Assets.Scripts.Neo.StorageE.Create(client, node),
-                ["type-storage-f"] = (client, node) => global::Assets.Scripts.Neo.StorageF.Create(client, node),
-                ["type-storage-g"] = (client, node) => global::Assets.Scripts.Neo.StorageG.Create(client, node),
-                ["type-text-node-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, node),
+                ["class-base"] = (client, node) => global::Assets.Scripts.Neo.Base.Create(client, node),
+                ["class-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, node),
+                ["class-contract-child"] = (client, node) => global::Assets.Scripts.Neo.ContractChild.Create(client, node),
+                ["class-contract-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractDeepChild.Create(client, node),
+                ["class-contract-explicit-child"] = (client, node) => global::Assets.Scripts.Neo.ContractExplicitChild.Create(client, node),
+                ["class-contract-null-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullChild.Create(client, node),
+                ["class-contract-null-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullDeepChild.Create(client, node),
+                ["class-derived"] = (client, node) => global::Assets.Scripts.Neo.Derived.Create(client, node),
+                ["class-dialogue-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, node),
+                ["class-generic-float-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatContract.Create(client, node),
+                ["class-generic-float-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatPayload.Create(client, node),
+                ["class-generic-function-hero-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFunctionHeroContract.Create(client, node),
+                ["class-generic-string-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericStringContract.Create(client, node),
+                ["class-generic-string-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericStringPayload.Create(client, node),
+                ["class-hero"] = (client, node) => global::Assets.Scripts.Neo.Hero.Create(client, node),
+                ["class-neo-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoMemory.Create(client, node),
+                ["class-override"] = (client, node) => global::Assets.Scripts.Neo.Override.Create(client, node),
+                ["class-root"] = (client, node) => global::Assets.Scripts.Neo.Root.Create(client, node),
+                ["class-sample-blocked-path"] = (client, node) => global::Assets.Scripts.Neo.SampleBlockedPath.Create(client, node),
+                ["class-sample-tile-instance"] = (client, node) => global::Assets.Scripts.Neo.SampleTileInstance.Create(client, node),
+                ["class-storage-a"] = (client, node) => global::Assets.Scripts.Neo.StorageA.Create(client, node),
+                ["class-storage-b"] = (client, node) => global::Assets.Scripts.Neo.StorageB.Create(client, node),
+                ["class-storage-c"] = (client, node) => global::Assets.Scripts.Neo.StorageC.Create(client, node),
+                ["class-storage-d"] = (client, node) => global::Assets.Scripts.Neo.StorageD.Create(client, node),
+                ["class-storage-e"] = (client, node) => global::Assets.Scripts.Neo.StorageE.Create(client, node),
+                ["class-storage-f"] = (client, node) => global::Assets.Scripts.Neo.StorageF.Create(client, node),
+                ["class-storage-g"] = (client, node) => global::Assets.Scripts.Neo.StorageG.Create(client, node),
+                ["class-text-node-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, node),
             };
 
-        internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyCustomFactory> NeoReadOnlyValueFactories =>
+        internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory> NeoReadOnlyValueFactories =>
             DialogueReadOnlyValueFactories;
 
-        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory> DialogueWritableValueFactories =
-            new Dictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory>
+        private static readonly IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> DialogueWritableValueFactories =
+            new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
             {
-                ["type-base"] = (client, node) => global::Assets.Scripts.Neo.Base.CreateWritable(client, node),
-                ["type-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, node),
-                ["type-contract-child"] = (client, node) => global::Assets.Scripts.Neo.ContractChild.CreateWritable(client, node),
-                ["type-contract-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractDeepChild.CreateWritable(client, node),
-                ["type-contract-explicit-child"] = (client, node) => global::Assets.Scripts.Neo.ContractExplicitChild.CreateWritable(client, node),
-                ["type-contract-null-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullChild.CreateWritable(client, node),
-                ["type-contract-null-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullDeepChild.CreateWritable(client, node),
-                ["type-derived"] = (client, node) => global::Assets.Scripts.Neo.Derived.CreateWritable(client, node),
-                ["type-dialogue-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, node),
-                ["type-generic-float-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatContract.CreateWritable(client, node),
-                ["type-generic-float-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatPayload.CreateWritable(client, node),
-                ["type-generic-function-hero-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFunctionHeroContract.CreateWritable(client, node),
-                ["type-generic-string-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericStringContract.CreateWritable(client, node),
-                ["type-generic-string-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericStringPayload.CreateWritable(client, node),
-                ["type-hero"] = (client, node) => global::Assets.Scripts.Neo.Hero.CreateWritable(client, node),
-                ["type-neo-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoMemory.CreateWritable(client, node),
-                ["type-override"] = (client, node) => global::Assets.Scripts.Neo.Override.CreateWritable(client, node),
-                ["type-root"] = (client, node) => global::Assets.Scripts.Neo.Root.CreateWritable(client, node),
-                ["type-sample-blocked-path"] = (client, node) => global::Assets.Scripts.Neo.SampleBlockedPath.CreateWritable(client, node),
-                ["type-sample-tile-instance"] = (client, node) => global::Assets.Scripts.Neo.SampleTileInstance.CreateWritable(client, node),
-                ["type-storage-a"] = (client, node) => global::Assets.Scripts.Neo.StorageA.CreateWritable(client, node),
-                ["type-storage-b"] = (client, node) => global::Assets.Scripts.Neo.StorageB.CreateWritable(client, node),
-                ["type-storage-c"] = (client, node) => global::Assets.Scripts.Neo.StorageC.CreateWritable(client, node),
-                ["type-storage-d"] = (client, node) => global::Assets.Scripts.Neo.StorageD.CreateWritable(client, node),
-                ["type-storage-e"] = (client, node) => global::Assets.Scripts.Neo.StorageE.CreateWritable(client, node),
-                ["type-storage-f"] = (client, node) => global::Assets.Scripts.Neo.StorageF.CreateWritable(client, node),
-                ["type-storage-g"] = (client, node) => global::Assets.Scripts.Neo.StorageG.CreateWritable(client, node),
-                ["type-text-node-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, node),
+                ["class-base"] = (client, node) => global::Assets.Scripts.Neo.Base.CreateWritable(client, node),
+                ["class-choice-log"] = (client, node) => global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, node),
+                ["class-contract-child"] = (client, node) => global::Assets.Scripts.Neo.ContractChild.CreateWritable(client, node),
+                ["class-contract-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractDeepChild.CreateWritable(client, node),
+                ["class-contract-explicit-child"] = (client, node) => global::Assets.Scripts.Neo.ContractExplicitChild.CreateWritable(client, node),
+                ["class-contract-null-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullChild.CreateWritable(client, node),
+                ["class-contract-null-deep-child"] = (client, node) => global::Assets.Scripts.Neo.ContractNullDeepChild.CreateWritable(client, node),
+                ["class-derived"] = (client, node) => global::Assets.Scripts.Neo.Derived.CreateWritable(client, node),
+                ["class-dialogue-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, node),
+                ["class-generic-float-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatContract.CreateWritable(client, node),
+                ["class-generic-float-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericFloatPayload.CreateWritable(client, node),
+                ["class-generic-function-hero-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericFunctionHeroContract.CreateWritable(client, node),
+                ["class-generic-string-contract"] = (client, node) => global::Assets.Scripts.Neo.GenericStringContract.CreateWritable(client, node),
+                ["class-generic-string-payload"] = (client, node) => global::Assets.Scripts.Neo.GenericStringPayload.CreateWritable(client, node),
+                ["class-hero"] = (client, node) => global::Assets.Scripts.Neo.Hero.CreateWritable(client, node),
+                ["class-neo-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoMemory.CreateWritable(client, node),
+                ["class-override"] = (client, node) => global::Assets.Scripts.Neo.Override.CreateWritable(client, node),
+                ["class-root"] = (client, node) => global::Assets.Scripts.Neo.Root.CreateWritable(client, node),
+                ["class-sample-blocked-path"] = (client, node) => global::Assets.Scripts.Neo.SampleBlockedPath.CreateWritable(client, node),
+                ["class-sample-tile-instance"] = (client, node) => global::Assets.Scripts.Neo.SampleTileInstance.CreateWritable(client, node),
+                ["class-storage-a"] = (client, node) => global::Assets.Scripts.Neo.StorageA.CreateWritable(client, node),
+                ["class-storage-b"] = (client, node) => global::Assets.Scripts.Neo.StorageB.CreateWritable(client, node),
+                ["class-storage-c"] = (client, node) => global::Assets.Scripts.Neo.StorageC.CreateWritable(client, node),
+                ["class-storage-d"] = (client, node) => global::Assets.Scripts.Neo.StorageD.CreateWritable(client, node),
+                ["class-storage-e"] = (client, node) => global::Assets.Scripts.Neo.StorageE.CreateWritable(client, node),
+                ["class-storage-f"] = (client, node) => global::Assets.Scripts.Neo.StorageF.CreateWritable(client, node),
+                ["class-storage-g"] = (client, node) => global::Assets.Scripts.Neo.StorageG.CreateWritable(client, node),
+                ["class-text-node-memory"] = (client, node) => global::Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, node),
             };
 
-        internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableCustomFactory> NeoWritableValueFactories =>
+        internal static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.WritableClassFactory> NeoWritableValueFactories =>
             DialogueWritableValueFactories;
 
         internal object? ResolveDialogueValue(string valueId) =>
-            NeoGeneratedTypesSupport.ResolveCustomValue(
+            NeoGeneratedTypesSupport.ResolveClassValue(
                 Client,
                 valueId,
                 DialogueReadOnlyValueFactories,
@@ -109,7 +109,7 @@ namespace Assets.Scripts.Neo
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoNativeFunctionInvoker> NativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoNativeFunctionInvoker>
             {
-                ["attr-move-to"] = (client, receiver, args) =>
+                ["member-move-to"] = (client, receiver, args) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<Hero>(
                     client,
@@ -117,12 +117,12 @@ namespace Assets.Scripts.Neo
                     DialogueReadOnlyValueFactories,
                     DialogueWritableValueFactories,
                     "MoveTo",
-                    "attr-move-to");
+                    "member-move-to");
                 var destination = NeoGeneratedTypesSupport.ReadVector3Value(args[0]) ?? throw new InvalidOperationException("Required Vector3 argument 'destination' could not be resolved.");
                 var cell = NeoGeneratedTypesSupport.ReadVector2IntValue(args[1]);
                 return target.MoveTo(destination, cell);
                 },
-                ["attr-contract-run"] = (client, receiver, args) =>
+                ["member-contract-run"] = (client, receiver, args) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ContractBase>(
                     client,
@@ -130,11 +130,11 @@ namespace Assets.Scripts.Neo
                     DialogueReadOnlyValueFactories,
                     DialogueWritableValueFactories,
                     "Run",
-                    "attr-contract-run");
+                    "member-contract-run");
                 var count = Convert.ToInt32(args[0]);
                 return target.Run(count);
                 },
-                ["attr-contract-run-sealed"] = (client, receiver, args) =>
+                ["member-contract-run-sealed"] = (client, receiver, args) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<ContractExplicitChild>(
                     client,
@@ -142,11 +142,11 @@ namespace Assets.Scripts.Neo
                     DialogueReadOnlyValueFactories,
                     DialogueWritableValueFactories,
                     "Run",
-                    "attr-contract-run-sealed");
+                    "member-contract-run-sealed");
                 var count = Convert.ToInt32(args[0]);
                 return target.Run(count);
                 },
-                ["attr-generic-contract-echo"] = (client, receiver, args) =>
+                ["member-generic-contract-echo"] = (client, receiver, args) =>
                 {
                 var untypedTarget = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<INeoValueReference>(
                     client,
@@ -154,7 +154,7 @@ namespace Assets.Scripts.Neo
                     DialogueReadOnlyValueFactories,
                     DialogueWritableValueFactories,
                     "Echo",
-                    "attr-generic-contract-echo");
+                    "member-generic-contract-echo");
                 if (untypedTarget is GenericContract<double> target1)
                 {
                     var value = Convert.ToDouble(args[0]);
@@ -165,9 +165,9 @@ namespace Assets.Scripts.Neo
                     var value = (string)args[0]!;
                     return target2.Echo(value);
                 }
-                throw new NSGetterRuntimeError("Cannot invoke Function 'Echo' (attr-generic-contract-echo) because the receiver does not match any closed generic construction.");
+                throw new NSGetterRuntimeError("Cannot invoke Function 'Echo' (member-generic-contract-echo) because the receiver does not match any closed generic construction.");
                 },
-                ["attr-generic-function-transform"] = (client, receiver, args) =>
+                ["member-generic-function-transform"] = (client, receiver, args) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<GenericFunctionContract<Hero>>(
                     client,
@@ -175,11 +175,11 @@ namespace Assets.Scripts.Neo
                     DialogueReadOnlyValueFactories,
                     DialogueWritableValueFactories,
                     "Transform",
-                    "attr-generic-function-transform");
-                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionCustomArgument<Hero>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
+                    "member-generic-function-transform");
+                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<Hero>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
                 return target.Transform(value);
                 },
-                ["attr-generic-function-transform-box"] = (client, receiver, args) =>
+                ["member-generic-function-transform-box"] = (client, receiver, args) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<GenericFunctionContract<Hero>>(
                     client,
@@ -187,8 +187,8 @@ namespace Assets.Scripts.Neo
                     DialogueReadOnlyValueFactories,
                     DialogueWritableValueFactories,
                     "TransformBox",
-                    "attr-generic-function-transform-box");
-                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionCustomArgument<IReadOnlyGenericFunctionBox<Hero>>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
+                    "member-generic-function-transform-box");
+                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<IReadOnlyGenericFunctionBox<Hero>>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
                 return target.TransformBox(value);
                 },
             };
@@ -196,7 +196,7 @@ namespace Assets.Scripts.Neo
         private static readonly IReadOnlyDictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker> DeferredNativeFunctionInvokers =
             new Dictionary<string, NeoClient.NeoDeferredNativeFunctionInvoker>
             {
-                ["attr-generic-contract-echo-later"] = (client, receiver, args, deferred) =>
+                ["member-generic-contract-echo-later"] = (client, receiver, args, deferred) =>
                 {
                 var untypedTarget = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<INeoValueReference>(
                     client,
@@ -204,7 +204,7 @@ namespace Assets.Scripts.Neo
                     DialogueReadOnlyValueFactories,
                     DialogueWritableValueFactories,
                     "EchoLater",
-                    "attr-generic-contract-echo-later");
+                    "member-generic-contract-echo-later");
                 if (untypedTarget is GenericContract<double> target1)
                 {
                     var value = Convert.ToDouble(args[0]);
@@ -229,9 +229,9 @@ namespace Assets.Scripts.Neo
                     target2.FunctionHandler.EchoLater(value, typedDeferred);
                     return;
                 }
-                throw new NSGetterRuntimeError("Cannot invoke Function 'EchoLater' (attr-generic-contract-echo-later) because the receiver does not match any closed generic construction.");
+                throw new NSGetterRuntimeError("Cannot invoke Function 'EchoLater' (member-generic-contract-echo-later) because the receiver does not match any closed generic construction.");
                 },
-                ["attr-generic-function-transform-later"] = (client, receiver, args, deferred) =>
+                ["member-generic-function-transform-later"] = (client, receiver, args, deferred) =>
                 {
                 var target = NeoGeneratedTypesSupport.ResolveNativeFunctionReceiver<GenericFunctionContract<Hero>>(
                     client,
@@ -239,8 +239,8 @@ namespace Assets.Scripts.Neo
                     DialogueReadOnlyValueFactories,
                     DialogueWritableValueFactories,
                     "TransformLater",
-                    "attr-generic-function-transform-later");
-                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionCustomArgument<Hero>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
+                    "member-generic-function-transform-later");
+                var value = NeoGeneratedTypesSupport.ResolveNativeFunctionClassArgument<Hero>(client, args[0], true, DialogueReadOnlyValueFactories, DialogueWritableValueFactories, "value");
                 if (target.FunctionHandler is null)
                 {
                     throw new NeoFunctionHandlerMissingException(
@@ -364,9 +364,9 @@ namespace Assets.Scripts.Neo
             {
                 ["ChoiceId"] = choiceIdValueId,
             };
-            var valueRows = new List<AttributeValue>
+            var valueRows = new List<MemberValue>
             {
-                new StringAttributeValue
+                new StringMemberValue
                 {
                     id = choiceIdValueId,
                     createdAt = createdAt,
@@ -376,9 +376,9 @@ namespace Assets.Scripts.Neo
             };
             ChoiceHistory.Add(NeoChoiceLog.CreateWritable(
                 client,
-                NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                NeoGeneratedTypesSupport.CreateWritableClassValue(
                     client,
-                    "type-choice-log",
+                    "class-choice-log",
                     value,
                     valueRows)));
         }
@@ -493,10 +493,10 @@ namespace Assets.Scripts.Neo
         NeoReadOnlyDictionary<Element, string?> ElementAffinity { get; }
     }
 
-    public partial class Hero : NeoGeneratedCustomValue, IReadOnlyHero
+    public partial class Hero : NeoGeneratedClassValue, IReadOnlyHero
     {
-        internal Hero(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-hero", isReadOnly, inheritedStorageOwnership)
+        internal Hero(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-hero", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -511,39 +511,39 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Health = null, NeoVector3? Position = null, NeoVector3Int? GridCell = null, IEnumerable<NeoVector3>? Path = null, IDictionary<string, string?>? ElementAffinity = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, int? Health = null, NeoVector3? Position = null, NeoVector3Int? GridCell = null, IEnumerable<NeoVector3>? Path = null, IDictionary<string, string?>? ElementAffinity = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-hero",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "attr-name", Name),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Health", "attr-health", Health),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "attr-position", Position),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("GridCell", "attr-grid-cell", GridCell),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Path", "attr-path", Path),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementAffinity", "attr-elem-affinity", ElementAffinity)
+                "class-hero",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "member-name", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Health", "member-health", Health),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "member-position", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("GridCell", "member-grid-cell", GridCell),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Path", "member-path", Path),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementAffinity", "member-elem-affinity", ElementAffinity)
             );
         }
 
-        internal static Hero Create(NeoClient client, NeoAttributeCustom node)
+        internal static Hero Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Hero>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Hero>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new Hero(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static Hero CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static Hero CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Hero>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Hero>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new Hero(client, node, false, node.ownership),
                 };
@@ -552,7 +552,7 @@ namespace Assets.Scripts.Neo
 
         public Hero Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyHero IReadOnlyHero.Clone()
@@ -574,7 +574,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").Text;
+                return node.Get<NeoMemberString>("Name").Text;
             }
             set
             {
@@ -587,7 +587,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Health"));
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Health"));
             }
             set
             {
@@ -600,7 +600,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoVector3(writableNode.Get<NeoAttributeVector3Writable>("Position"));
+                return new NeoVector3(writableNode.Get<NeoMemberVector3Writable>("Position"));
             }
             set
             {
@@ -613,7 +613,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyVector3(node.Get<NeoAttributeVector3>("Position"));
+                return new NeoReadOnlyVector3(node.Get<NeoMemberVector3>("Position"));
             }
         }
 
@@ -621,7 +621,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = writableNode.Get<NeoAttributeVector3IntWritable>("GridCell");
+                var child = writableNode.Get<NeoMemberVector3IntWritable>("GridCell");
                 return child.value is null ? null : new NeoVector3Int(child);
             }
             set
@@ -635,7 +635,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoAttributeVector3Int>("GridCell");
+                var child = node.Get<NeoMemberVector3Int>("GridCell");
                 return child.value is null ? null : new NeoReadOnlyVector3Int(child);
             }
         }
@@ -644,7 +644,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<NeoVector3>(client, writableNode.Get<NeoAttributeListWritable>("Path"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Path"), (client, child) => new NeoVector3((NeoAttributeVector3)child), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.Vector3Value(item.Value)), () => ThrowIfReadOnly("Hero.Path"), () => IsReadOnly);
+                return new NeoList<NeoVector3>(client, writableNode.Get<NeoMemberListWritable>("Path"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Path"), (client, child) => new NeoVector3((NeoMemberVector3)child), item => NeoGeneratedTypesSupport.Value(NeoGeneratedTypesSupport.Vector3Value(item.Value)), () => ThrowIfReadOnly("Hero.Path"), () => IsReadOnly);
             }
         }
 
@@ -652,7 +652,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<NeoReadOnlyVector3>(client, node.Get<NeoAttributeList>("Path"), (client, child) => new NeoReadOnlyVector3((NeoAttributeVector3)child));
+                return new NeoReadOnlyList<NeoReadOnlyVector3>(client, node.Get<NeoMemberList>("Path"), (client, child) => new NeoReadOnlyVector3((NeoMemberVector3)child));
             }
         }
 
@@ -661,7 +661,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<Element, string?>(client, writableNode.Get<NeoAttributeDictionaryWritable>("ElementAffinity"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("ElementAffinity"), (client, child) => ((NeoAttributeString)child).Text, item => NeoGeneratedTypesSupport.Value(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Hero.ElementAffinity"), () => IsReadOnly);
+                return new NeoDictionary<Element, string?>(client, writableNode.Get<NeoMemberDictionaryWritable>("ElementAffinity"), () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementAffinity"), (client, child) => ((NeoMemberString)child).Text, item => NeoGeneratedTypesSupport.Value(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Hero.ElementAffinity"), () => IsReadOnly);
             }
         }
 
@@ -669,7 +669,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyDictionary<Element, string?>(client, node.Get<NeoAttributeDictionary>("ElementAffinity"), (client, child) => ((NeoAttributeString)child).Text, Element.FromOptionId, key => key.optionId);
+                return new NeoReadOnlyDictionary<Element, string?>(client, node.Get<NeoMemberDictionary>("ElementAffinity"), (client, child) => ((NeoMemberString)child).Text, Element.FromOptionId, key => key.optionId);
             }
         }
 
@@ -705,7 +705,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+                [Fields.Name] = () => node.Get<NeoMemberString>("Name").TextId,
                 [Fields.Health] = () => null,
                 [Fields.Position] = () => null,
                 [Fields.GridCell] = () => null,
@@ -785,10 +785,10 @@ namespace Assets.Scripts.Neo
         NeoReadOnlyDictionary<Element, IReadOnlyHero> ElementChampions { get; }
     }
 
-    public partial class Root : NeoGeneratedCustomValue, IReadOnlyRoot
+    public partial class Root : NeoGeneratedClassValue, IReadOnlyRoot
     {
-        internal Root(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-root", isReadOnly, inheritedStorageOwnership)
+        internal Root(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-root", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -797,42 +797,42 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, int?>? ElementMultipliers = null, IDictionary<string, Hero>? ElementChampions = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, int?>? ElementMultipliers = null, IDictionary<string, Hero>? ElementChampions = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-root",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Heroes", "attr-heroes", Heroes),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Flag", "attr-isalive", Flag),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Score", "attr-root-score", Score),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("NeoMemory", "attr-neo-memory", NeoMemory),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SampleLayerGroup", "attr-sample-layer-group", SampleLayerGroup),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("StorageInherit", "attr-storage-a", StorageInherit),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementStats", "attr-elem-stats", ElementStats),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementMultipliers", "attr-elem-multipliers", ElementMultipliers),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementChampions", "attr-elem-champions", ElementChampions)
+                "class-root",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Heroes", "member-heroes", Heroes),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Flag", "member-isalive", Flag),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Score", "member-root-score", Score),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("NeoMemory", "member-neo-memory", NeoMemory),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SampleLayerGroup", "member-sample-layer-group", SampleLayerGroup),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("StorageInherit", "member-storage-a", StorageInherit),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementStats", "member-elem-stats", ElementStats),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementMultipliers", "member-elem-multipliers", ElementMultipliers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementChampions", "member-elem-champions", ElementChampions)
             );
         }
 
-        internal static Root Create(NeoClient client, NeoAttributeCustom node)
+        internal static Root Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Root>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Root>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new Root(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static Root CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static Root CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Root>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Root>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new Root(client, node, false, node.ownership),
                 };
@@ -841,7 +841,7 @@ namespace Assets.Scripts.Neo
 
         public Root Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyRoot IReadOnlyRoot.Clone()
@@ -863,7 +863,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<Hero?>(client, writableNode.Get<NeoAttributeListWritable>("Heroes"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Heroes"), (client, child) => ((NeoAttributeCustom)child).value is null ? null : child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("Root.Heroes"), () => IsReadOnly);
+                return new NeoList<Hero?>(client, writableNode.Get<NeoMemberListWritable>("Heroes"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Heroes"), (client, child) => ((NeoMemberClass)child).value is null ? null : child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("Root.Heroes"), () => IsReadOnly);
             }
         }
 
@@ -871,7 +871,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyHero?>(client, node.Get<NeoAttributeList>("Heroes"), (client, child) => ((NeoAttributeCustom)child).value is null ? null : global::Assets.Scripts.Neo.Hero.Create(client, (NeoAttributeCustom)child));
+                return new NeoReadOnlyList<IReadOnlyHero?>(client, node.Get<NeoMemberList>("Heroes"), (client, child) => ((NeoMemberClass)child).value is null ? null : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child));
             }
         }
 
@@ -879,7 +879,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoAttributeNSProperty>("Manifest").Compute(valueId!);
+                var result = writableNode.Get<NeoMemberNSProperty>("Manifest").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -889,13 +889,13 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoAttributeNSProperty>("Active").Compute(valueId!);
+                var result = writableNode.Get<NeoMemberNSProperty>("Active").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (bool)result.value!;
             }
             set
             {
-                var result = writableNode.Get<NeoAttributeNSProperty>("Active").Set(valueId!, value);
+                var result = writableNode.Get<NeoMemberNSProperty>("Active").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }
@@ -904,7 +904,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeBool>("Flag").value?.value;
+                return node.Get<NeoMemberBool>("Flag").value?.value;
             }
             set
             {
@@ -917,7 +917,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Score")) ?? throw new InvalidOperationException("Required int 'Score' has no value.");
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Score")) ?? throw new InvalidOperationException("Required int 'Score' has no value.");
             }
             set
             {
@@ -932,12 +932,12 @@ namespace Assets.Scripts.Neo
             {
                 if (IsReadOnly)
                 {
-                    var child = node.Get<NeoAttributeCustom>("NeoMemory");
+                    var child = node.Get<NeoMemberClass>("NeoMemory");
                     return global::Assets.Scripts.Neo.NeoMemory.Create(client, child);
                 }
                 else
                 {
-                    var child = writableNode.Get<NeoAttributeCustomWritable>("NeoMemory");
+                    var child = writableNode.Get<NeoMemberClassWritable>("NeoMemory");
                     return global::Assets.Scripts.Neo.NeoMemory.CreateWritable(client, child);
                 }
             }
@@ -952,7 +952,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return global::Assets.Scripts.Neo.NeoMemory.Create(client, node.Get<NeoAttributeCustom>("NeoMemory"));
+                return global::Assets.Scripts.Neo.NeoMemory.Create(client, node.Get<NeoMemberClass>("NeoMemory"));
             }
         }
 
@@ -962,12 +962,12 @@ namespace Assets.Scripts.Neo
             {
                 if (IsReadOnly)
                 {
-                    var child = node.Get<NeoAttributeCustom>("SampleLayerGroup");
+                    var child = node.Get<NeoMemberClass>("SampleLayerGroup");
                     return child.value?.value is null ? null : global::Assets.Scripts.Neo.SampleLayerGroupBase.Create(client, child);
                 }
                 else
                 {
-                    var child = writableNode.Get<NeoAttributeCustomWritable>("SampleLayerGroup");
+                    var child = writableNode.Get<NeoMemberClassWritable>("SampleLayerGroup");
                     return child.value?.value is null ? null : global::Assets.Scripts.Neo.SampleLayerGroupBase.CreateWritable(client, child);
                 }
             }
@@ -987,7 +987,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoAttributeCustom>("SampleLayerGroup");
+                var child = node.Get<NeoMemberClass>("SampleLayerGroup");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.SampleLayerGroupBase.Create(client, child);
             }
         }
@@ -998,12 +998,12 @@ namespace Assets.Scripts.Neo
             {
                 if (IsReadOnly)
                 {
-                    var child = node.Get<NeoAttributeCustom>("StorageInherit");
+                    var child = node.Get<NeoMemberClass>("StorageInherit");
                     return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageA.Create(client, child);
                 }
                 else
                 {
-                    var child = writableNode.Get<NeoAttributeCustomWritable>("StorageInherit");
+                    var child = writableNode.Get<NeoMemberClassWritable>("StorageInherit");
                     return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageA.CreateWritable(client, child);
                 }
             }
@@ -1023,7 +1023,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoAttributeCustom>("StorageInherit");
+                var child = node.Get<NeoMemberClass>("StorageInherit");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageA.Create(client, child);
             }
         }
@@ -1032,7 +1032,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<Element, int?>(client, writableNode.Get<NeoAttributeDictionaryWritable>("ElementStats"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("ElementStats"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoAttributeInt)child), item => NeoGeneratedTypesSupport.Value(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Root.ElementStats"), () => IsReadOnly);
+                return new NeoDictionary<Element, int?>(client, writableNode.Get<NeoMemberDictionaryWritable>("ElementStats"), () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementStats"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child), item => NeoGeneratedTypesSupport.Value(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Root.ElementStats"), () => IsReadOnly);
             }
         }
 
@@ -1040,7 +1040,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyDictionary<Element, int?>(client, node.Get<NeoAttributeDictionary>("ElementStats"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoAttributeInt)child), Element.FromOptionId, key => key.optionId);
+                return new NeoReadOnlyDictionary<Element, int?>(client, node.Get<NeoMemberDictionary>("ElementStats"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child), Element.FromOptionId, key => key.optionId);
             }
         }
 
@@ -1048,7 +1048,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyDictionary<Element, int?>(client, node.Get<NeoAttributeDictionary>("ElementMultipliers"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoAttributeInt)child), Element.FromOptionId, key => key.optionId);
+                return new NeoReadOnlyDictionary<Element, int?>(client, node.Get<NeoMemberDictionary>("ElementMultipliers"), (client, child) => NeoGeneratedTypesSupport.ReadInt((NeoMemberInt)child), Element.FromOptionId, key => key.optionId);
             }
         }
 
@@ -1056,7 +1056,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<Element, Hero>(client, writableNode.Get<NeoAttributeDictionaryWritable>("ElementChampions"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("ElementChampions"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Root.ElementChampions"), () => IsReadOnly);
+                return new NeoDictionary<Element, Hero>(client, writableNode.Get<NeoMemberDictionaryWritable>("ElementChampions"), () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("ElementChampions"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.Hero.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), Element.FromOptionId, key => key.optionId, () => ThrowIfReadOnly("Root.ElementChampions"), () => IsReadOnly);
             }
         }
 
@@ -1064,7 +1064,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyDictionary<Element, IReadOnlyHero>(client, node.Get<NeoAttributeDictionary>("ElementChampions"), (client, child) => global::Assets.Scripts.Neo.Hero.Create(client, (NeoAttributeCustom)child), Element.FromOptionId, key => key.optionId);
+                return new NeoReadOnlyDictionary<Element, IReadOnlyHero>(client, node.Get<NeoMemberDictionary>("ElementChampions"), (client, child) => global::Assets.Scripts.Neo.Hero.Create(client, (NeoMemberClass)child), Element.FromOptionId, key => key.optionId);
             }
         }
 
@@ -1171,10 +1171,10 @@ namespace Assets.Scripts.Neo
         IReadOnlySampleTileInstance ConstructSample();
     }
 
-    public partial class SampleTileInstance : NeoGeneratedCustomValue, IReadOnlySampleTileInstance
+    public partial class SampleTileInstance : NeoGeneratedClassValue, IReadOnlySampleTileInstance
     {
-        internal SampleTileInstance(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-sample-tile-instance", isReadOnly, inheritedStorageOwnership)
+        internal SampleTileInstance(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-sample-tile-instance", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -1183,34 +1183,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(int? Value = null)
+        private static NeoMemberClassWritable CreateFactoryNode(int? Value = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-sample-tile-instance",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-sample-tile-value", Value)
+                "class-sample-tile-instance",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "member-sample-tile-value", Value)
             );
         }
 
-        internal static SampleTileInstance Create(NeoClient client, NeoAttributeCustom node)
+        internal static SampleTileInstance Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SampleTileInstance>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileInstance>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new SampleTileInstance(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static SampleTileInstance CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static SampleTileInstance CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SampleTileInstance>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileInstance>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new SampleTileInstance(client, node, false, node.ownership),
                 };
@@ -1219,7 +1219,7 @@ namespace Assets.Scripts.Neo
 
         public SampleTileInstance Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlySampleTileInstance IReadOnlySampleTileInstance.Clone()
@@ -1241,7 +1241,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Value"));
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Value"));
             }
             set
             {
@@ -1254,8 +1254,8 @@ namespace Assets.Scripts.Neo
         public virtual IReadOnlySampleTileInstance ConstructSample()
         {
             if (valueId is null) throw new InvalidOperationException("Cannot invoke NSFunction 'ConstructSample' without a backing receiver value id.");
-            var result = writableNode.Get<NeoAttributeNSFunction>("ConstructSample").Invoke(valueId!, new object?[] { });
-            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyCustom(client, result, true, null, SampleTileInstance.CreateWritable);
+            var result = writableNode.Get<NeoMemberNSFunction>("ConstructSample").Invoke(valueId!, new object?[] { });
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyClass(client, result, true, null, SampleTileInstance.CreateWritable);
         }
 
         public sealed class Fields
@@ -1317,34 +1317,34 @@ namespace Assets.Scripts.Neo
         bool TryWritable(out SampleLayerGroupBase writable);
     }
 
-    public abstract partial class SampleLayerGroupBase : NeoGeneratedCustomValue, IReadOnlySampleLayerGroupBase
+    public abstract partial class SampleLayerGroupBase : NeoGeneratedClassValue, IReadOnlySampleLayerGroupBase
     {
-        internal SampleLayerGroupBase(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-sample-layer-group-base", isReadOnly, inheritedStorageOwnership)
+        internal SampleLayerGroupBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-sample-layer-group-base", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static SampleLayerGroupBase Create(NeoClient client, NeoAttributeCustom node)
+        internal static SampleLayerGroupBase Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SampleLayerGroupBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleLayerGroupBase>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-sample-blocked-path" => new SampleBlockedPath(client, node, false, NeoValueOwnership.Save),
+                    "class-sample-blocked-path" => new SampleBlockedPath(client, node, false, NeoValueOwnership.Save),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleLayerGroupBase' without a concrete client type id."),
                 };
             });
         }
 
-        internal static SampleLayerGroupBase CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static SampleLayerGroupBase CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SampleLayerGroupBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleLayerGroupBase>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-sample-blocked-path" => new SampleBlockedPath(client, node, false, node.ownership),
+                    "class-sample-blocked-path" => new SampleBlockedPath(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleLayerGroupBase' without a concrete client type id."),
                 };
             });
@@ -1352,7 +1352,7 @@ namespace Assets.Scripts.Neo
 
         public SampleLayerGroupBase Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlySampleLayerGroupBase IReadOnlySampleLayerGroupBase.Clone()
@@ -1429,32 +1429,32 @@ namespace Assets.Scripts.Neo
 
     public abstract partial class SampleTileLayerLink : SampleLayerGroupBase, IReadOnlySampleTileLayerLink
     {
-        internal SampleTileLayerLink(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal SampleTileLayerLink(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal new static SampleTileLayerLink Create(NeoClient client, NeoAttributeCustom node)
+        internal new static SampleTileLayerLink Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SampleTileLayerLink>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileLayerLink>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-sample-blocked-path" => new SampleBlockedPath(client, node, false, NeoValueOwnership.Save),
+                    "class-sample-blocked-path" => new SampleBlockedPath(client, node, false, NeoValueOwnership.Save),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleTileLayerLink' without a concrete client type id."),
                 };
             });
         }
 
-        internal new static SampleTileLayerLink CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static SampleTileLayerLink CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SampleTileLayerLink>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleTileLayerLink>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-sample-blocked-path" => new SampleBlockedPath(client, node, false, node.ownership),
+                    "class-sample-blocked-path" => new SampleBlockedPath(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'SampleTileLayerLink' without a concrete client type id."),
                 };
             });
@@ -1462,7 +1462,7 @@ namespace Assets.Scripts.Neo
 
         public new SampleTileLayerLink Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlySampleTileLayerLink IReadOnlySampleTileLayerLink.Clone()
@@ -1484,7 +1484,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<SampleTileInstance>(client, writableNode.Get<NeoAttributeListWritable>("Tiles"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Tiles"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.SampleTileInstance.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.SampleTileInstance.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("SampleTileLayerLink.Tiles"), () => IsReadOnly);
+                return new NeoList<SampleTileInstance>(client, writableNode.Get<NeoMemberListWritable>("Tiles"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Tiles"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.SampleTileInstance.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.SampleTileInstance.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("SampleTileLayerLink.Tiles"), () => IsReadOnly);
             }
         }
 
@@ -1492,7 +1492,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlySampleTileInstance>(client, node.Get<NeoAttributeList>("Tiles"), (client, child) => global::Assets.Scripts.Neo.SampleTileInstance.Create(client, (NeoAttributeCustom)child));
+                return new NeoReadOnlyList<IReadOnlySampleTileInstance>(client, node.Get<NeoMemberList>("Tiles"), (client, child) => global::Assets.Scripts.Neo.SampleTileInstance.Create(client, (NeoMemberClass)child));
             }
         }
 
@@ -1557,7 +1557,7 @@ namespace Assets.Scripts.Neo
 
     public partial class SampleBlockedPath : SampleTileLayerLink, IReadOnlySampleBlockedPath
     {
-        internal SampleBlockedPath(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal SampleBlockedPath(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -1567,34 +1567,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<SampleTileInstance>? Tiles = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IEnumerable<SampleTileInstance>? Tiles = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-sample-blocked-path",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "attr-sample-tiles", Tiles)
+                "class-sample-blocked-path",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "member-sample-tiles", Tiles)
             );
         }
 
-        internal new static SampleBlockedPath Create(NeoClient client, NeoAttributeCustom node)
+        internal new static SampleBlockedPath Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SampleBlockedPath>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleBlockedPath>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new SampleBlockedPath(client, node, false, NeoValueOwnership.Save),
                 };
             });
         }
 
-        internal new static SampleBlockedPath CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static SampleBlockedPath CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<SampleBlockedPath>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<SampleBlockedPath>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new SampleBlockedPath(client, node, false, node.ownership),
                 };
@@ -1603,7 +1603,7 @@ namespace Assets.Scripts.Neo
 
         public new SampleBlockedPath Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlySampleBlockedPath IReadOnlySampleBlockedPath.Clone()
@@ -1692,10 +1692,10 @@ namespace Assets.Scripts.Neo
         StorageB? SaveChild { get; }
     }
 
-    public partial class StorageA : NeoGeneratedCustomValue, IReadOnlyStorageA
+    public partial class StorageA : NeoGeneratedClassValue, IReadOnlyStorageA
     {
-        internal StorageA(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-storage-a", isReadOnly, inheritedStorageOwnership)
+        internal StorageA(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-storage-a", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -1704,35 +1704,35 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(int? Value = null, StorageB? SaveChild = null)
+        private static NeoMemberClassWritable CreateFactoryNode(int? Value = null, StorageB? SaveChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-storage-a",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-storage-a-value", Value),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SaveChild", "attr-storage-a-save-child", SaveChild)
+                "class-storage-a",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "member-storage-a-value", Value),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SaveChild", "member-storage-a-save-child", SaveChild)
             );
         }
 
-        internal static StorageA Create(NeoClient client, NeoAttributeCustom node)
+        internal static StorageA Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageA>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageA>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageA(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static StorageA CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static StorageA CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageA>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageA>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageA(client, node, false, node.ownership),
                 };
@@ -1741,7 +1741,7 @@ namespace Assets.Scripts.Neo
 
         public StorageA Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyStorageA IReadOnlyStorageA.Clone()
@@ -1763,7 +1763,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Value"));
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Value"));
             }
             set
             {
@@ -1776,7 +1776,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = writableNode.Get<NeoAttributeCustomWritable>("SaveChild");
+                var child = writableNode.Get<NeoMemberClassWritable>("SaveChild");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageB.CreateWritable(client, child);
             }
             set
@@ -1855,10 +1855,10 @@ namespace Assets.Scripts.Neo
         StorageC? InheritChild { get; }
     }
 
-    public partial class StorageB : NeoGeneratedCustomValue, IReadOnlyStorageB
+    public partial class StorageB : NeoGeneratedClassValue, IReadOnlyStorageB
     {
-        internal StorageB(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-storage-b", isReadOnly, inheritedStorageOwnership)
+        internal StorageB(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-storage-b", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -1867,34 +1867,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(StorageC? InheritChild = null)
+        private static NeoMemberClassWritable CreateFactoryNode(StorageC? InheritChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-storage-b",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("InheritChild", "attr-storage-b-inherit-child", InheritChild)
+                "class-storage-b",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("InheritChild", "member-storage-b-inherit-child", InheritChild)
             );
         }
 
-        internal static StorageB Create(NeoClient client, NeoAttributeCustom node)
+        internal static StorageB Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageB>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageB>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageB(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static StorageB CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static StorageB CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageB>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageB>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageB(client, node, false, node.ownership),
                 };
@@ -1903,7 +1903,7 @@ namespace Assets.Scripts.Neo
 
         public StorageB Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyStorageB IReadOnlyStorageB.Clone()
@@ -1925,7 +1925,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = writableNode.Get<NeoAttributeCustomWritable>("InheritChild");
+                var child = writableNode.Get<NeoMemberClassWritable>("InheritChild");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageC.CreateWritable(client, child);
             }
             set
@@ -2002,10 +2002,10 @@ namespace Assets.Scripts.Neo
         StorageD? SessionChild { get; }
     }
 
-    public partial class StorageC : NeoGeneratedCustomValue, IReadOnlyStorageC
+    public partial class StorageC : NeoGeneratedClassValue, IReadOnlyStorageC
     {
-        internal StorageC(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-storage-c", isReadOnly, inheritedStorageOwnership)
+        internal StorageC(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-storage-c", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -2014,35 +2014,35 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(int? Value = null, StorageD? SessionChild = null)
+        private static NeoMemberClassWritable CreateFactoryNode(int? Value = null, StorageD? SessionChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-storage-c",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-storage-c-value", Value),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SessionChild", "attr-storage-c-session-child", SessionChild)
+                "class-storage-c",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "member-storage-c-value", Value),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SessionChild", "member-storage-c-session-child", SessionChild)
             );
         }
 
-        internal static StorageC Create(NeoClient client, NeoAttributeCustom node)
+        internal static StorageC Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageC>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageC>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageC(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static StorageC CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static StorageC CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageC>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageC>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageC(client, node, false, node.ownership),
                 };
@@ -2051,7 +2051,7 @@ namespace Assets.Scripts.Neo
 
         public StorageC Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyStorageC IReadOnlyStorageC.Clone()
@@ -2073,7 +2073,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Value"));
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Value"));
             }
             set
             {
@@ -2085,7 +2085,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = writableNode.Get<NeoAttributeCustomWritable>("SessionChild");
+                var child = writableNode.Get<NeoMemberClassWritable>("SessionChild");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageD.CreateWritable(client, child);
             }
             set
@@ -2164,10 +2164,10 @@ namespace Assets.Scripts.Neo
         StorageE? InheritChild { get; }
     }
 
-    public partial class StorageD : NeoGeneratedCustomValue, IReadOnlyStorageD
+    public partial class StorageD : NeoGeneratedClassValue, IReadOnlyStorageD
     {
-        internal StorageD(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-storage-d", isReadOnly, inheritedStorageOwnership)
+        internal StorageD(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-storage-d", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -2176,34 +2176,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(StorageE? InheritChild = null)
+        private static NeoMemberClassWritable CreateFactoryNode(StorageE? InheritChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-storage-d",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("InheritChild", "attr-storage-d-inherit-child", InheritChild)
+                "class-storage-d",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("InheritChild", "member-storage-d-inherit-child", InheritChild)
             );
         }
 
-        internal static StorageD Create(NeoClient client, NeoAttributeCustom node)
+        internal static StorageD Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageD>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageD>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageD(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static StorageD CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static StorageD CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageD>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageD>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageD(client, node, false, node.ownership),
                 };
@@ -2212,7 +2212,7 @@ namespace Assets.Scripts.Neo
 
         public StorageD Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyStorageD IReadOnlyStorageD.Clone()
@@ -2234,7 +2234,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = writableNode.Get<NeoAttributeCustomWritable>("InheritChild");
+                var child = writableNode.Get<NeoMemberClassWritable>("InheritChild");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageE.CreateWritable(client, child);
             }
             set
@@ -2311,10 +2311,10 @@ namespace Assets.Scripts.Neo
         IReadOnlyStorageF? StaticChild { get; }
     }
 
-    public partial class StorageE : NeoGeneratedCustomValue, IReadOnlyStorageE
+    public partial class StorageE : NeoGeneratedClassValue, IReadOnlyStorageE
     {
-        internal StorageE(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-storage-e", isReadOnly, inheritedStorageOwnership)
+        internal StorageE(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-storage-e", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -2323,35 +2323,35 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(int? Value = null, StorageF? StaticChild = null)
+        private static NeoMemberClassWritable CreateFactoryNode(int? Value = null, StorageF? StaticChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-storage-e",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-storage-e-value", Value),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("StaticChild", "attr-storage-e-static-child", StaticChild)
+                "class-storage-e",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "member-storage-e-value", Value),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("StaticChild", "member-storage-e-static-child", StaticChild)
             );
         }
 
-        internal static StorageE Create(NeoClient client, NeoAttributeCustom node)
+        internal static StorageE Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageE>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageE>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageE(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static StorageE CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static StorageE CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageE>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageE>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageE(client, node, false, node.ownership),
                 };
@@ -2360,7 +2360,7 @@ namespace Assets.Scripts.Neo
 
         public StorageE Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyStorageE IReadOnlyStorageE.Clone()
@@ -2382,7 +2382,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Value"));
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Value"));
             }
             set
             {
@@ -2394,7 +2394,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoAttributeCustom>("StaticChild");
+                var child = node.Get<NeoMemberClass>("StaticChild");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageF.Create(client, child);
             }
         }
@@ -2464,10 +2464,10 @@ namespace Assets.Scripts.Neo
         IReadOnlyStorageG? InheritChild { get; }
     }
 
-    public partial class StorageF : NeoGeneratedCustomValue, IReadOnlyStorageF
+    public partial class StorageF : NeoGeneratedClassValue, IReadOnlyStorageF
     {
-        internal StorageF(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-storage-f", isReadOnly, inheritedStorageOwnership)
+        internal StorageF(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-storage-f", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -2476,34 +2476,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(StorageG? InheritChild = null)
+        private static NeoMemberClassWritable CreateFactoryNode(StorageG? InheritChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-storage-f",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("InheritChild", "attr-storage-f-inherit-child", InheritChild)
+                "class-storage-f",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("InheritChild", "member-storage-f-inherit-child", InheritChild)
             );
         }
 
-        internal static StorageF Create(NeoClient client, NeoAttributeCustom node)
+        internal static StorageF Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageF>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageF>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageF(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static StorageF CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static StorageF CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageF>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageF>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageF(client, node, false, node.ownership),
                 };
@@ -2512,7 +2512,7 @@ namespace Assets.Scripts.Neo
 
         public StorageF Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyStorageF IReadOnlyStorageF.Clone()
@@ -2534,7 +2534,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoAttributeCustom>("InheritChild");
+                var child = node.Get<NeoMemberClass>("InheritChild");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.StorageG.Create(client, child);
             }
         }
@@ -2600,10 +2600,10 @@ namespace Assets.Scripts.Neo
         int? Value { get; }
     }
 
-    public partial class StorageG : NeoGeneratedCustomValue, IReadOnlyStorageG
+    public partial class StorageG : NeoGeneratedClassValue, IReadOnlyStorageG
     {
-        internal StorageG(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-storage-g", isReadOnly, inheritedStorageOwnership)
+        internal StorageG(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-storage-g", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -2612,34 +2612,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(int? Value = null)
+        private static NeoMemberClassWritable CreateFactoryNode(int? Value = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-storage-g",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-storage-g-value", Value)
+                "class-storage-g",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "member-storage-g-value", Value)
             );
         }
 
-        internal static StorageG Create(NeoClient client, NeoAttributeCustom node)
+        internal static StorageG Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageG>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageG>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageG(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static StorageG CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static StorageG CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<StorageG>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<StorageG>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new StorageG(client, node, false, node.ownership),
                 };
@@ -2648,7 +2648,7 @@ namespace Assets.Scripts.Neo
 
         public StorageG Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyStorageG IReadOnlyStorageG.Clone()
@@ -2670,7 +2670,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Value"));
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Value"));
             }
         }
 
@@ -2735,10 +2735,10 @@ namespace Assets.Scripts.Neo
         string? Name { get; }
     }
 
-    public partial class Base : NeoGeneratedCustomValue, IReadOnlyBase
+    public partial class Base : NeoGeneratedClassValue, IReadOnlyBase
     {
-        internal Base(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-base", isReadOnly, inheritedStorageOwnership)
+        internal Base(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-base", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -2747,39 +2747,39 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-base",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "attr-name", Name)
+                "class-base",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "member-name", Name)
             );
         }
 
-        internal static Base Create(NeoClient client, NeoAttributeCustom node)
+        internal static Base Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Base>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Base>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-derived" => new Derived(client, node, true, NeoValueOwnership.Asset),
-                    "type-override" => new Override(client, node, true, NeoValueOwnership.Asset),
+                    "class-derived" => new Derived(client, node, true, NeoValueOwnership.Asset),
+                    "class-override" => new Override(client, node, true, NeoValueOwnership.Asset),
                     _ => new Base(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static Base CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static Base CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Base>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Base>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-derived" => new Derived(client, node, false, node.ownership),
-                    "type-override" => new Override(client, node, false, node.ownership),
+                    "class-derived" => new Derived(client, node, false, node.ownership),
+                    "class-override" => new Override(client, node, false, node.ownership),
                     _ => new Base(client, node, false, node.ownership),
                 };
             });
@@ -2787,7 +2787,7 @@ namespace Assets.Scripts.Neo
 
         public Base Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyBase IReadOnlyBase.Clone()
@@ -2809,7 +2809,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").Text;
+                return node.Get<NeoMemberString>("Name").Text;
             }
             set
             {
@@ -2829,7 +2829,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+                [Fields.Name] = () => node.Get<NeoMemberString>("Name").TextId,
             };
         }
 
@@ -2881,7 +2881,7 @@ namespace Assets.Scripts.Neo
 
     public partial class Derived : Base, IReadOnlyDerived
     {
-        internal Derived(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal Derived(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -2891,35 +2891,35 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Health = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null, int? Health = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-derived",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "attr-name", Name),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Health", "attr-health", Health)
+                "class-derived",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "member-name", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Health", "member-health", Health)
             );
         }
 
-        internal new static Derived Create(NeoClient client, NeoAttributeCustom node)
+        internal new static Derived Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Derived>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Derived>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new Derived(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static Derived CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static Derived CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Derived>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Derived>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new Derived(client, node, false, node.ownership),
                 };
@@ -2928,7 +2928,7 @@ namespace Assets.Scripts.Neo
 
         public new Derived Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyDerived IReadOnlyDerived.Clone()
@@ -2950,7 +2950,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("Health"));
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("Health"));
             }
             set
             {
@@ -2972,7 +2972,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+                [Fields.Name] = () => node.Get<NeoMemberString>("Name").TextId,
                 [Fields.Health] = () => null,
             };
         }
@@ -3026,7 +3026,7 @@ namespace Assets.Scripts.Neo
 
     public partial class Override : Base, IReadOnlyOverride
     {
-        internal Override(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal Override(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -3036,34 +3036,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Name = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-override",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "attr-altname", Name)
+                "class-override",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "member-altname", Name)
             );
         }
 
-        internal new static Override Create(NeoClient client, NeoAttributeCustom node)
+        internal new static Override Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Override>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Override>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new Override(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static Override CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static Override CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<Override>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<Override>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new Override(client, node, false, node.ownership),
                 };
@@ -3072,7 +3072,7 @@ namespace Assets.Scripts.Neo
 
         public new Override Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyOverride IReadOnlyOverride.Clone()
@@ -3094,7 +3094,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Name").Text;
+                return node.Get<NeoMemberString>("Name").Text;
             }
             set
             {
@@ -3114,7 +3114,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Name] = () => node.Get<NeoAttributeString>("Name").TextId,
+                [Fields.Name] = () => node.Get<NeoMemberString>("Name").TextId,
             };
         }
 
@@ -3171,10 +3171,10 @@ namespace Assets.Scripts.Neo
         new bool Run(int count);
     }
 
-    public abstract partial class ContractBase : NeoGeneratedCustomValue, IReadOnlyContractBase
+    public abstract partial class ContractBase : NeoGeneratedClassValue, IReadOnlyContractBase
     {
-        internal ContractBase(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-contract-base", isReadOnly, inheritedStorageOwnership)
+        internal ContractBase(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-contract-base", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -3184,35 +3184,35 @@ namespace Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        internal static ContractBase Create(NeoClient client, NeoAttributeCustom node)
+        internal static ContractBase Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractBase>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-contract-child" => new ContractChild(client, node, true, NeoValueOwnership.Asset),
-                    "type-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
-                    "type-contract-explicit-child" => new ContractExplicitChild(client, node, true, NeoValueOwnership.Asset),
-                    "type-contract-null-child" => new ContractNullChild(client, node, true, NeoValueOwnership.Asset),
-                    "type-contract-null-deep-child" => new ContractNullDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-child" => new ContractChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-explicit-child" => new ContractExplicitChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-null-child" => new ContractNullChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-null-deep-child" => new ContractNullDeepChild(client, node, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractBase' without a concrete client type id."),
                 };
             });
         }
 
-        internal static ContractBase CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static ContractBase CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractBase>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractBase>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-contract-child" => new ContractChild(client, node, false, node.ownership),
-                    "type-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
-                    "type-contract-explicit-child" => new ContractExplicitChild(client, node, false, node.ownership),
-                    "type-contract-null-child" => new ContractNullChild(client, node, false, node.ownership),
-                    "type-contract-null-deep-child" => new ContractNullDeepChild(client, node, false, node.ownership),
+                    "class-contract-child" => new ContractChild(client, node, false, node.ownership),
+                    "class-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
+                    "class-contract-explicit-child" => new ContractExplicitChild(client, node, false, node.ownership),
+                    "class-contract-null-child" => new ContractNullChild(client, node, false, node.ownership),
+                    "class-contract-null-deep-child" => new ContractNullDeepChild(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractBase' without a concrete client type id."),
                 };
             });
@@ -3220,7 +3220,7 @@ namespace Assets.Scripts.Neo
 
         public ContractBase Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyContractBase IReadOnlyContractBase.Clone()
@@ -3258,7 +3258,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Title] = () => node.Get<NeoAttributeString>("Title").TextId,
+                [Fields.Title] = () => node.Get<NeoMemberString>("Title").TextId,
             };
         }
 
@@ -3310,34 +3310,34 @@ namespace Assets.Scripts.Neo
 
     public abstract partial class ContractMiddle : ContractBase, IReadOnlyContractMiddle
     {
-        internal ContractMiddle(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal ContractMiddle(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal new static ContractMiddle Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ContractMiddle Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractMiddle>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractMiddle>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-contract-child" => new ContractChild(client, node, true, NeoValueOwnership.Asset),
-                    "type-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-child" => new ContractChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractMiddle' without a concrete client type id."),
                 };
             });
         }
 
-        internal new static ContractMiddle CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static ContractMiddle CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractMiddle>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractMiddle>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-contract-child" => new ContractChild(client, node, false, node.ownership),
-                    "type-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
+                    "class-contract-child" => new ContractChild(client, node, false, node.ownership),
+                    "class-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate abstract generated type 'ContractMiddle' without a concrete client type id."),
                 };
             });
@@ -3345,7 +3345,7 @@ namespace Assets.Scripts.Neo
 
         public new ContractMiddle Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyContractMiddle IReadOnlyContractMiddle.Clone()
@@ -3376,7 +3376,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Title] = () => node.Get<NeoAttributeString>("Title").TextId,
+                [Fields.Title] = () => node.Get<NeoMemberString>("Title").TextId,
             };
         }
 
@@ -3426,7 +3426,7 @@ namespace Assets.Scripts.Neo
 
     public partial class ContractChild : ContractMiddle, IReadOnlyContractChild
     {
-        internal ContractChild(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal ContractChild(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -3436,37 +3436,37 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Title = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Title = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-contract-child",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "attr-contract-title-reabstracted", Title)
+                "class-contract-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "member-contract-title-reabstracted", Title)
             );
         }
 
-        internal new static ContractChild Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ContractChild Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractChild>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-deep-child" => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
                     _ => new ContractChild(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static ContractChild CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static ContractChild CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractChild>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
+                    "class-contract-deep-child" => new ContractDeepChild(client, node, false, node.ownership),
                     _ => new ContractChild(client, node, false, node.ownership),
                 };
             });
@@ -3474,7 +3474,7 @@ namespace Assets.Scripts.Neo
 
         public new ContractChild Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyContractChild IReadOnlyContractChild.Clone()
@@ -3496,7 +3496,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Title").Text;
+                return node.Get<NeoMemberString>("Title").Text;
             }
             set
             {
@@ -3537,7 +3537,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Title] = () => node.Get<NeoAttributeString>("Title").TextId,
+                [Fields.Title] = () => node.Get<NeoMemberString>("Title").TextId,
             };
         }
 
@@ -3587,7 +3587,7 @@ namespace Assets.Scripts.Neo
 
     public partial class ContractDeepChild : ContractChild, IReadOnlyContractDeepChild
     {
-        internal ContractDeepChild(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal ContractDeepChild(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -3597,34 +3597,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Title = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Title = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-contract-deep-child",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "attr-contract-title-reabstracted", Title)
+                "class-contract-deep-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "member-contract-title-reabstracted", Title)
             );
         }
 
-        internal new static ContractDeepChild Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ContractDeepChild Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractDeepChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractDeepChild>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new ContractDeepChild(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static ContractDeepChild CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static ContractDeepChild CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractDeepChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractDeepChild>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new ContractDeepChild(client, node, false, node.ownership),
                 };
@@ -3633,7 +3633,7 @@ namespace Assets.Scripts.Neo
 
         public new ContractDeepChild Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyContractDeepChild IReadOnlyContractDeepChild.Clone()
@@ -3662,7 +3662,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Title] = () => node.Get<NeoAttributeString>("Title").TextId,
+                [Fields.Title] = () => node.Get<NeoMemberString>("Title").TextId,
             };
         }
 
@@ -3721,7 +3721,7 @@ namespace Assets.Scripts.Neo
 
     public partial class ContractExplicitChild : ContractBase, IReadOnlyContractExplicitChild
     {
-        internal ContractExplicitChild(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal ContractExplicitChild(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -3737,34 +3737,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string? Title = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string? Title = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-contract-explicit-child",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "attr-contract-title-sealed", Title)
+                "class-contract-explicit-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "member-contract-title-sealed", Title)
             );
         }
 
-        internal new static ContractExplicitChild Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ContractExplicitChild Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractExplicitChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractExplicitChild>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new ContractExplicitChild(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static ContractExplicitChild CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static ContractExplicitChild CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractExplicitChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractExplicitChild>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new ContractExplicitChild(client, node, false, node.ownership),
                 };
@@ -3773,7 +3773,7 @@ namespace Assets.Scripts.Neo
 
         public new ContractExplicitChild Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyContractExplicitChild IReadOnlyContractExplicitChild.Clone()
@@ -3795,7 +3795,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Title").Text;
+                return node.Get<NeoMemberString>("Title").Text;
             }
             set
             {
@@ -3837,7 +3837,7 @@ namespace Assets.Scripts.Neo
         {
             return new Dictionary<INeoField, Func<string?>>
             {
-                [Fields.Title] = () => node.Get<NeoAttributeString>("Title").TextId,
+                [Fields.Title] = () => node.Get<NeoMemberString>("Title").TextId,
             };
         }
 
@@ -3889,7 +3889,7 @@ namespace Assets.Scripts.Neo
 
     public partial class ContractNullChild : ContractBase, IReadOnlyContractNullChild
     {
-        internal ContractNullChild(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal ContractNullChild(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -3899,37 +3899,37 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(object? Title = null)
+        private static NeoMemberClassWritable CreateFactoryNode(object? Title = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-contract-null-child",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "attr-contract-title-null", Title)
+                "class-contract-null-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "member-contract-title-null", Title)
             );
         }
 
-        internal new static ContractNullChild Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ContractNullChild Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractNullChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullChild>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-contract-null-deep-child" => new ContractNullDeepChild(client, node, true, NeoValueOwnership.Asset),
+                    "class-contract-null-deep-child" => new ContractNullDeepChild(client, node, true, NeoValueOwnership.Asset),
                     _ => new ContractNullChild(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static ContractNullChild CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static ContractNullChild CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractNullChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullChild>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-contract-null-deep-child" => new ContractNullDeepChild(client, node, false, node.ownership),
+                    "class-contract-null-deep-child" => new ContractNullDeepChild(client, node, false, node.ownership),
                     _ => new ContractNullChild(client, node, false, node.ownership),
                 };
             });
@@ -3937,7 +3937,7 @@ namespace Assets.Scripts.Neo
 
         public new ContractNullChild Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyContractNullChild IReadOnlyContractNullChild.Clone()
@@ -3961,7 +3961,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("Title").Text;
+                return node.Get<NeoMemberString>("Title").Text;
             }
             set
             {
@@ -4048,7 +4048,7 @@ namespace Assets.Scripts.Neo
 
     public partial class ContractNullDeepChild : ContractNullChild, IReadOnlyContractNullDeepChild
     {
-        internal ContractNullDeepChild(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal ContractNullDeepChild(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -4058,34 +4058,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(object? Title = null)
+        private static NeoMemberClassWritable CreateFactoryNode(object? Title = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-contract-null-deep-child",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "attr-contract-title-null", Title)
+                "class-contract-null-deep-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "member-contract-title-null", Title)
             );
         }
 
-        internal new static ContractNullDeepChild Create(NeoClient client, NeoAttributeCustom node)
+        internal new static ContractNullDeepChild Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractNullDeepChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullDeepChild>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new ContractNullDeepChild(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static ContractNullDeepChild CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static ContractNullDeepChild CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<ContractNullDeepChild>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<ContractNullDeepChild>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new ContractNullDeepChild(client, node, false, node.ownership),
                 };
@@ -4094,7 +4094,7 @@ namespace Assets.Scripts.Neo
 
         public new ContractNullDeepChild Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyContractNullDeepChild IReadOnlyContractNullDeepChild.Clone()
@@ -4167,36 +4167,36 @@ namespace Assets.Scripts.Neo
         P Value { get; }
     }
 
-    public partial class GenericPayload<P> : NeoGeneratedCustomValue, IReadOnlyGenericPayload<P>
+    public partial class GenericPayload<P> : NeoGeneratedClassValue, IReadOnlyGenericPayload<P>
     {
-        internal GenericPayload(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-generic-payload", isReadOnly, inheritedStorageOwnership)
+        internal GenericPayload(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-generic-payload", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static GenericPayload<P> Create(NeoClient client, NeoAttributeCustom node)
+        internal static GenericPayload<P> Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericPayload<P>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericPayload<P>>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(client, node, true, NeoValueOwnership.Asset),
-                    "type-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(client, node, true, NeoValueOwnership.Asset),
+                    "class-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(client, node, true, NeoValueOwnership.Asset),
+                    "class-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(client, node, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericPayload' without a concrete client type id."),
                 };
             });
         }
 
-        internal static GenericPayload<P> CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static GenericPayload<P> CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericPayload<P>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericPayload<P>>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(client, node, false, node.ownership),
-                    "type-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(client, node, false, node.ownership),
+                    "class-generic-float-payload" => (GenericPayload<P>)(object)new GenericFloatPayload(client, node, false, node.ownership),
+                    "class-generic-string-payload" => (GenericPayload<P>)(object)new GenericStringPayload(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericPayload' without a concrete client type id."),
                 };
             });
@@ -4204,7 +4204,7 @@ namespace Assets.Scripts.Neo
 
         public GenericPayload<P> Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyGenericPayload<P> IReadOnlyGenericPayload<P>.Clone()
@@ -4228,14 +4228,14 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoAttribute>("Value");
+                var child = node.Get<NeoMember>("Value");
                 _valueGenericBinding ??= NeoGenericBindings.Resolve<P>(client, child);
                 return _valueGenericBinding.Read(child);
             }
             set
             {
                 ThrowIfReadOnly("GenericPayload.Value");
-                var child = writableNode.Get<NeoAttribute>("Value");
+                var child = writableNode.Get<NeoMember>("Value");
                 _valueGenericBinding ??= NeoGenericBindings.Resolve<P>(client, child);
                 _valueGenericBinding.Write(child, value);
             }
@@ -4302,7 +4302,7 @@ namespace Assets.Scripts.Neo
 
     public partial class GenericFloatPayload : GenericPayload<double>, IReadOnlyGenericFloatPayload
     {
-        internal GenericFloatPayload(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal GenericFloatPayload(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -4312,34 +4312,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(double Value)
+        private static NeoMemberClassWritable CreateFactoryNode(double Value)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-generic-float-payload",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-generic-payload-value", Value)
+                "class-generic-float-payload",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "member-generic-payload-value", Value)
             );
         }
 
-        internal new static GenericFloatPayload Create(NeoClient client, NeoAttributeCustom node)
+        internal new static GenericFloatPayload Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFloatPayload>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFloatPayload>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new GenericFloatPayload(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static GenericFloatPayload CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static GenericFloatPayload CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFloatPayload>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFloatPayload>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new GenericFloatPayload(client, node, false, node.ownership),
                 };
@@ -4348,7 +4348,7 @@ namespace Assets.Scripts.Neo
 
         public new GenericFloatPayload Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyGenericFloatPayload IReadOnlyGenericFloatPayload.Clone()
@@ -4427,7 +4427,7 @@ namespace Assets.Scripts.Neo
 
     public partial class GenericStringPayload : GenericPayload<string>, IReadOnlyGenericStringPayload
     {
-        internal GenericStringPayload(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal GenericStringPayload(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -4437,34 +4437,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string Value)
+        private static NeoMemberClassWritable CreateFactoryNode(string Value)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-generic-string-payload",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-generic-payload-value", Value)
+                "class-generic-string-payload",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "member-generic-payload-value", Value)
             );
         }
 
-        internal new static GenericStringPayload Create(NeoClient client, NeoAttributeCustom node)
+        internal new static GenericStringPayload Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericStringPayload>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericStringPayload>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new GenericStringPayload(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static GenericStringPayload CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static GenericStringPayload CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericStringPayload>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericStringPayload>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new GenericStringPayload(client, node, false, node.ownership),
                 };
@@ -4473,7 +4473,7 @@ namespace Assets.Scripts.Neo
 
         public new GenericStringPayload Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyGenericStringPayload IReadOnlyGenericStringPayload.Clone()
@@ -4566,10 +4566,10 @@ namespace Assets.Scripts.Neo
         Task<T> EchoLater(T value);
     }
 
-    public abstract partial class GenericContract<T> : NeoGeneratedCustomValue, IReadOnlyGenericContract<T>
+    public abstract partial class GenericContract<T> : NeoGeneratedClassValue, IReadOnlyGenericContract<T>
     {
-        internal GenericContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-generic-contract", isReadOnly, inheritedStorageOwnership)
+        internal GenericContract(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-generic-contract", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -4579,29 +4579,29 @@ namespace Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        internal static GenericContract<T> Create(NeoClient client, NeoAttributeCustom node)
+        internal static GenericContract<T> Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericContract<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericContract<T>>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(client, node, true, NeoValueOwnership.Asset),
-                    "type-generic-string-contract" => (GenericContract<T>)(object)new GenericStringContract(client, node, true, NeoValueOwnership.Asset),
+                    "class-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(client, node, true, NeoValueOwnership.Asset),
+                    "class-generic-string-contract" => (GenericContract<T>)(object)new GenericStringContract(client, node, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericContract' without a concrete client type id."),
                 };
             });
         }
 
-        internal static GenericContract<T> CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static GenericContract<T> CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericContract<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericContract<T>>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(client, node, false, node.ownership),
-                    "type-generic-string-contract" => (GenericContract<T>)(object)new GenericStringContract(client, node, false, node.ownership),
+                    "class-generic-float-contract" => (GenericContract<T>)(object)new GenericFloatContract(client, node, false, node.ownership),
+                    "class-generic-string-contract" => (GenericContract<T>)(object)new GenericStringContract(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericContract' without a concrete client type id."),
                 };
             });
@@ -4609,7 +4609,7 @@ namespace Assets.Scripts.Neo
 
         public GenericContract<T> Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyGenericContract<T> IReadOnlyGenericContract<T>.Clone()
@@ -4635,7 +4635,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<T>(client, node.Get<NeoAttributeList>("Values"), (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoAttribute)child).Read((NeoAttribute)child));
+                return new NeoReadOnlyList<T>(client, node.Get<NeoMemberList>("Values"), (client, child) => NeoGenericBindings.Resolve<T>(client, (NeoMember)child).Read((NeoMember)child));
             }
         }
 
@@ -4645,7 +4645,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoAttributeCustom>("Payload");
+                var child = node.Get<NeoMemberClass>("Payload");
                 return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<T>.Create(client, child);
             }
         }
@@ -4731,7 +4731,7 @@ namespace Assets.Scripts.Neo
 
     public partial class GenericFloatContract : GenericContract<double>, IReadOnlyGenericFloatContract
     {
-        internal GenericFloatContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal GenericFloatContract(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -4741,36 +4741,36 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(double Amount, IEnumerable<double>? Values = null, GenericPayload<double>? Payload = null)
+        private static NeoMemberClassWritable CreateFactoryNode(double Amount, IEnumerable<double>? Values = null, GenericPayload<double>? Payload = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-generic-float-contract",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Amount", "attr-generic-contract-amount", Amount),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Values", "attr-generic-contract-values", Values),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Payload", "attr-generic-contract-payload", Payload)
+                "class-generic-float-contract",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Amount", "member-generic-contract-amount", Amount),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Values", "member-generic-contract-values", Values),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Payload", "member-generic-contract-payload", Payload)
             );
         }
 
-        internal new static GenericFloatContract Create(NeoClient client, NeoAttributeCustom node)
+        internal new static GenericFloatContract Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFloatContract>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFloatContract>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new GenericFloatContract(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static GenericFloatContract CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static GenericFloatContract CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFloatContract>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFloatContract>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new GenericFloatContract(client, node, false, node.ownership),
                 };
@@ -4779,7 +4779,7 @@ namespace Assets.Scripts.Neo
 
         public new GenericFloatContract Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyGenericFloatContract IReadOnlyGenericFloatContract.Clone()
@@ -4803,14 +4803,14 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoAttribute>("Amount");
+                var child = node.Get<NeoMember>("Amount");
                 _amountGenericBinding ??= NeoGenericBindings.Resolve<double>(client, child);
                 return _amountGenericBinding.Read(child);
             }
             set
             {
                 ThrowIfReadOnly("GenericFloatContract.Amount");
-                var child = writableNode.Get<NeoAttribute>("Amount");
+                var child = writableNode.Get<NeoMember>("Amount");
                 _amountGenericBinding ??= NeoGenericBindings.Resolve<double>(client, child);
                 _amountGenericBinding.Write(child, value);
             }
@@ -4820,7 +4820,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<double>(client, writableNode.Get<NeoAttributeListWritable>("Values"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Values"), (client, child) => NeoGenericBindings.Resolve<double>(client, (NeoAttribute)child).Read((NeoAttribute)child), item => NeoGenericBindings.Resolve<double>(client, writableNode.Get<NeoAttributeListWritable>("Values")).Serialize(item), () => ThrowIfReadOnly("GenericFloatContract.Values"), () => IsReadOnly);
+                return new NeoList<double>(client, writableNode.Get<NeoMemberListWritable>("Values"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Values"), (client, child) => NeoGenericBindings.Resolve<double>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<double>(client, writableNode.Get<NeoMemberListWritable>("Values")).Serialize(item), () => ThrowIfReadOnly("GenericFloatContract.Values"), () => IsReadOnly);
             }
         }
 
@@ -4830,12 +4830,12 @@ namespace Assets.Scripts.Neo
             {
                 if (IsReadOnly)
                 {
-                    var child = node.Get<NeoAttributeCustom>("Payload");
+                    var child = node.Get<NeoMemberClass>("Payload");
                     return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<double>.Create(client, child);
                 }
                 else
                 {
-                    var child = writableNode.Get<NeoAttributeCustomWritable>("Payload");
+                    var child = writableNode.Get<NeoMemberClassWritable>("Payload");
                     return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<double>.CreateWritable(client, child);
                 }
             }
@@ -4855,7 +4855,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoAttributeNSProperty>("Computed").Compute(valueId!);
+                var result = writableNode.Get<NeoMemberNSProperty>("Computed").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return Convert.ToDouble(result.value);
             }
@@ -4874,7 +4874,7 @@ namespace Assets.Scripts.Neo
 
         public override Task<double> EchoLater(double value)
         {
-            return client.InvokeDeferredNativeFunction<double>("attr-generic-contract-echo-later", this, new object?[] { value });
+            return client.InvokeDeferredNativeFunction<double>("member-generic-contract-echo-later", this, new object?[] { value });
         }
 
         NeoReadOnlyList<double> IReadOnlyGenericContract<double>.Values
@@ -4966,7 +4966,7 @@ namespace Assets.Scripts.Neo
 
     public partial class GenericStringContract : GenericContract<string>, IReadOnlyGenericStringContract
     {
-        internal GenericStringContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal GenericStringContract(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -4976,36 +4976,36 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string Amount, IEnumerable<string>? Values = null, GenericPayload<string>? Payload = null)
+        private static NeoMemberClassWritable CreateFactoryNode(string Amount, IEnumerable<string>? Values = null, GenericPayload<string>? Payload = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-generic-string-contract",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Amount", "attr-generic-contract-amount", Amount),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Values", "attr-generic-contract-values", Values),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Payload", "attr-generic-contract-payload", Payload)
+                "class-generic-string-contract",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Amount", "member-generic-contract-amount", Amount),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Values", "member-generic-contract-values", Values),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Payload", "member-generic-contract-payload", Payload)
             );
         }
 
-        internal new static GenericStringContract Create(NeoClient client, NeoAttributeCustom node)
+        internal new static GenericStringContract Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericStringContract>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericStringContract>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new GenericStringContract(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static GenericStringContract CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static GenericStringContract CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericStringContract>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericStringContract>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new GenericStringContract(client, node, false, node.ownership),
                 };
@@ -5014,7 +5014,7 @@ namespace Assets.Scripts.Neo
 
         public new GenericStringContract Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyGenericStringContract IReadOnlyGenericStringContract.Clone()
@@ -5038,14 +5038,14 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoAttribute>("Amount");
+                var child = node.Get<NeoMember>("Amount");
                 _amountGenericBinding ??= NeoGenericBindings.Resolve<string>(client, child);
                 return _amountGenericBinding.Read(child);
             }
             set
             {
                 ThrowIfReadOnly("GenericStringContract.Amount");
-                var child = writableNode.Get<NeoAttribute>("Amount");
+                var child = writableNode.Get<NeoMember>("Amount");
                 _amountGenericBinding ??= NeoGenericBindings.Resolve<string>(client, child);
                 _amountGenericBinding.Write(child, value);
             }
@@ -5055,7 +5055,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<string>(client, writableNode.Get<NeoAttributeListWritable>("Values"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("Values"), (client, child) => NeoGenericBindings.Resolve<string>(client, (NeoAttribute)child).Read((NeoAttribute)child), item => NeoGenericBindings.Resolve<string>(client, writableNode.Get<NeoAttributeListWritable>("Values")).Serialize(item), () => ThrowIfReadOnly("GenericStringContract.Values"), () => IsReadOnly);
+                return new NeoList<string>(client, writableNode.Get<NeoMemberListWritable>("Values"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("Values"), (client, child) => NeoGenericBindings.Resolve<string>(client, (NeoMember)child).Read((NeoMember)child), item => NeoGenericBindings.Resolve<string>(client, writableNode.Get<NeoMemberListWritable>("Values")).Serialize(item), () => ThrowIfReadOnly("GenericStringContract.Values"), () => IsReadOnly);
             }
         }
 
@@ -5065,12 +5065,12 @@ namespace Assets.Scripts.Neo
             {
                 if (IsReadOnly)
                 {
-                    var child = node.Get<NeoAttributeCustom>("Payload");
+                    var child = node.Get<NeoMemberClass>("Payload");
                     return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<string>.Create(client, child);
                 }
                 else
                 {
-                    var child = writableNode.Get<NeoAttributeCustomWritable>("Payload");
+                    var child = writableNode.Get<NeoMemberClassWritable>("Payload");
                     return child.value?.value is null ? null : global::Assets.Scripts.Neo.GenericPayload<string>.CreateWritable(client, child);
                 }
             }
@@ -5090,7 +5090,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = writableNode.Get<NeoAttributeNSProperty>("Computed").Compute(valueId!);
+                var result = writableNode.Get<NeoMemberNSProperty>("Computed").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -5109,7 +5109,7 @@ namespace Assets.Scripts.Neo
 
         public override Task<string> EchoLater(string value)
         {
-            return client.InvokeDeferredNativeFunction<string>("attr-generic-contract-echo-later", this, new object?[] { value });
+            return client.InvokeDeferredNativeFunction<string>("member-generic-contract-echo-later", this, new object?[] { value });
         }
 
         NeoReadOnlyList<string> IReadOnlyGenericContract<string>.Values
@@ -5197,31 +5197,31 @@ namespace Assets.Scripts.Neo
         bool TryWritable<TWritable>(out TWritable writable) where TWritable : class, INeoValueReference;
     }
 
-    public partial class GenericFunctionBox<B> : NeoGeneratedCustomValue, IReadOnlyGenericFunctionBox<B>
+    public partial class GenericFunctionBox<B> : NeoGeneratedClassValue, IReadOnlyGenericFunctionBox<B>
     {
-        internal GenericFunctionBox(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-generic-function-box", isReadOnly, inheritedStorageOwnership)
+        internal GenericFunctionBox(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-generic-function-box", isReadOnly, inheritedStorageOwnership)
         {
         }
 
-        internal static GenericFunctionBox<B> Create(NeoClient client, NeoAttributeCustom node)
+        internal static GenericFunctionBox<B> Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionBox<B>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionBox<B>>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionBox' without a concrete client type id."),
                 };
             });
         }
 
-        internal static GenericFunctionBox<B> CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static GenericFunctionBox<B> CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionBox<B>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionBox<B>>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionBox' without a concrete client type id."),
                 };
@@ -5230,7 +5230,7 @@ namespace Assets.Scripts.Neo
 
         public GenericFunctionBox<B> Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyGenericFunctionBox<B> IReadOnlyGenericFunctionBox<B>.Clone()
@@ -5316,10 +5316,10 @@ namespace Assets.Scripts.Neo
         IReadOnlyGenericFunctionBox<T> TransformBox(IReadOnlyGenericFunctionBox<T> value);
     }
 
-    public abstract partial class GenericFunctionContract<T> : NeoGeneratedCustomValue, IReadOnlyGenericFunctionContract<T>
+    public abstract partial class GenericFunctionContract<T> : NeoGeneratedClassValue, IReadOnlyGenericFunctionContract<T>
     {
-        internal GenericFunctionContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-generic-function-contract", isReadOnly, inheritedStorageOwnership)
+        internal GenericFunctionContract(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-generic-function-contract", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -5329,27 +5329,27 @@ namespace Assets.Scripts.Neo
             set => FunctionHandlerObject = value;
         }
 
-        internal static GenericFunctionContract<T> Create(NeoClient client, NeoAttributeCustom node)
+        internal static GenericFunctionContract<T> Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionContract<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionContract<T>>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(client, node, true, NeoValueOwnership.Asset),
+                    "class-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(client, node, true, NeoValueOwnership.Asset),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionContract' without a concrete client type id."),
                 };
             });
         }
 
-        internal static GenericFunctionContract<T> CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static GenericFunctionContract<T> CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionContract<T>>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionContract<T>>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
-                    "type-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(client, node, false, node.ownership),
+                    "class-generic-function-hero-contract" => (GenericFunctionContract<T>)(object)new GenericFunctionHeroContract(client, node, false, node.ownership),
                     _ => throw new InvalidOperationException("Cannot instantiate open generic generated type 'GenericFunctionContract' without a concrete client type id."),
                 };
             });
@@ -5357,7 +5357,7 @@ namespace Assets.Scripts.Neo
 
         public GenericFunctionContract<T> Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyGenericFunctionContract<T> IReadOnlyGenericFunctionContract<T>.Clone()
@@ -5447,7 +5447,7 @@ namespace Assets.Scripts.Neo
 
     public partial class GenericFunctionHeroContract : GenericFunctionContract<Hero>, IReadOnlyGenericFunctionHeroContract
     {
-        internal GenericFunctionHeroContract(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+        internal GenericFunctionHeroContract(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
             : base(client, node, isReadOnly, inheritedStorageOwnership)
         {
         }
@@ -5457,34 +5457,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(Hero Subject)
+        private static NeoMemberClassWritable CreateFactoryNode(Hero Subject)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-generic-function-hero-contract",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Subject", "attr-generic-function-subject", Subject)
+                "class-generic-function-hero-contract",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Subject", "member-generic-function-subject", Subject)
             );
         }
 
-        internal new static GenericFunctionHeroContract Create(NeoClient client, NeoAttributeCustom node)
+        internal new static GenericFunctionHeroContract Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionHeroContract>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionHeroContract>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new GenericFunctionHeroContract(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal new static GenericFunctionHeroContract CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal new static GenericFunctionHeroContract CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<GenericFunctionHeroContract>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<GenericFunctionHeroContract>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new GenericFunctionHeroContract(client, node, false, node.ownership),
                 };
@@ -5493,7 +5493,7 @@ namespace Assets.Scripts.Neo
 
         public new GenericFunctionHeroContract Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyGenericFunctionHeroContract IReadOnlyGenericFunctionHeroContract.Clone()
@@ -5517,14 +5517,14 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var child = node.Get<NeoAttribute>("Subject");
+                var child = node.Get<NeoMember>("Subject");
                 _subjectGenericBinding ??= NeoGenericBindings.Resolve<Hero>(client, child);
                 return _subjectGenericBinding.Read(child);
             }
             set
             {
                 ThrowIfReadOnly("GenericFunctionHeroContract.Subject");
-                var child = writableNode.Get<NeoAttribute>("Subject");
+                var child = writableNode.Get<NeoMember>("Subject");
                 _subjectGenericBinding ??= NeoGenericBindings.Resolve<Hero>(client, child);
                 _subjectGenericBinding.Write(child, value);
             }
@@ -5543,7 +5543,7 @@ namespace Assets.Scripts.Neo
 
         public override Task<Hero> TransformLater(Hero value)
         {
-            return client.InvokeDeferredNativeFunction<Hero>("attr-generic-function-transform-later", this, new object?[] { value });
+            return client.InvokeDeferredNativeFunction<Hero>("member-generic-function-transform-later", this, new object?[] { value });
         }
 
         public override IReadOnlyGenericFunctionBox<Hero> TransformBox(IReadOnlyGenericFunctionBox<Hero> value)
@@ -5651,10 +5651,10 @@ namespace Assets.Scripts.Neo
         string ChoiceId { get; }
     }
 
-    public partial class NeoChoiceLog : NeoGeneratedCustomValue, IReadOnlyNeoChoiceLog
+    public partial class NeoChoiceLog : NeoGeneratedClassValue, IReadOnlyNeoChoiceLog
     {
-        internal NeoChoiceLog(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-choice-log", isReadOnly, inheritedStorageOwnership)
+        internal NeoChoiceLog(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-choice-log", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -5663,34 +5663,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(string ChoiceId)
+        private static NeoMemberClassWritable CreateFactoryNode(string ChoiceId)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-choice-log",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ChoiceId", "attr-choice-id", ChoiceId)
+                "class-choice-log",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ChoiceId", "member-choice-id", ChoiceId)
             );
         }
 
-        internal static NeoChoiceLog Create(NeoClient client, NeoAttributeCustom node)
+        internal static NeoChoiceLog Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoChoiceLog>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoChoiceLog>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new NeoChoiceLog(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static NeoChoiceLog CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static NeoChoiceLog CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoChoiceLog>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoChoiceLog>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new NeoChoiceLog(client, node, false, node.ownership),
                 };
@@ -5699,7 +5699,7 @@ namespace Assets.Scripts.Neo
 
         public NeoChoiceLog Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyNeoChoiceLog IReadOnlyNeoChoiceLog.Clone()
@@ -5721,7 +5721,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("ChoiceId").value?.value ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
+                return node.Get<NeoMemberString>("ChoiceId").value?.value ?? throw new InvalidOperationException("Required string 'ChoiceId' has no value.");
             }
             set
             {
@@ -5797,10 +5797,10 @@ namespace Assets.Scripts.Neo
         NeoReadOnlyList<IReadOnlyNeoChoiceLog> ChoiceHistory { get; }
     }
 
-    public partial class NeoTextNodeMemory : NeoGeneratedCustomValue, IReadOnlyNeoTextNodeMemory
+    public partial class NeoTextNodeMemory : NeoGeneratedClassValue, IReadOnlyNeoTextNodeMemory
     {
-        internal NeoTextNodeMemory(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-text-node-memory", isReadOnly, inheritedStorageOwnership)
+        internal NeoTextNodeMemory(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-text-node-memory", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -5809,37 +5809,37 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(int? VisitCount = null, string? LastVisitedAt = null, string? MostRecentChoiceId = null, IEnumerable<NeoChoiceLog>? ChoiceHistory = null)
+        private static NeoMemberClassWritable CreateFactoryNode(int? VisitCount = null, string? LastVisitedAt = null, string? MostRecentChoiceId = null, IEnumerable<NeoChoiceLog>? ChoiceHistory = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-text-node-memory",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VisitCount", "attr-visit-count", VisitCount),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LastVisitedAt", "attr-last-visited-at", LastVisitedAt),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MostRecentChoiceId", "attr-most-recent-choice-id", MostRecentChoiceId),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ChoiceHistory", "attr-choice-history", ChoiceHistory)
+                "class-text-node-memory",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VisitCount", "member-visit-count", VisitCount),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LastVisitedAt", "member-last-visited-at", LastVisitedAt),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MostRecentChoiceId", "member-most-recent-choice-id", MostRecentChoiceId),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ChoiceHistory", "member-choice-history", ChoiceHistory)
             );
         }
 
-        internal static NeoTextNodeMemory Create(NeoClient client, NeoAttributeCustom node)
+        internal static NeoTextNodeMemory Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTextNodeMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTextNodeMemory>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new NeoTextNodeMemory(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static NeoTextNodeMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static NeoTextNodeMemory CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoTextNodeMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoTextNodeMemory>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new NeoTextNodeMemory(client, node, false, node.ownership),
                 };
@@ -5848,7 +5848,7 @@ namespace Assets.Scripts.Neo
 
         public NeoTextNodeMemory Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyNeoTextNodeMemory IReadOnlyNeoTextNodeMemory.Clone()
@@ -5870,7 +5870,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
             }
             set
             {
@@ -5883,7 +5883,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("LastVisitedAt").Text;
+                return node.Get<NeoMemberString>("LastVisitedAt").Text;
             }
             set
             {
@@ -5896,7 +5896,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("MostRecentChoiceId").value?.value;
+                return node.Get<NeoMemberString>("MostRecentChoiceId").value?.value;
             }
             set
             {
@@ -5909,7 +5909,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoList<NeoChoiceLog>(client, writableNode.Get<NeoAttributeListWritable>("ChoiceHistory"), () => writableNode.GetOrCreateCollection<NeoAttributeListWritable>("ChoiceHistory"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoTextNodeMemory.ChoiceHistory"), () => IsReadOnly);
+                return new NeoList<NeoChoiceLog>(client, writableNode.Get<NeoMemberListWritable>("ChoiceHistory"), () => writableNode.GetOrCreateCollection<NeoMemberListWritable>("ChoiceHistory"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoChoiceLog.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoTextNodeMemory.ChoiceHistory"), () => IsReadOnly);
             }
         }
 
@@ -5917,7 +5917,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyList<IReadOnlyNeoChoiceLog>(client, node.Get<NeoAttributeList>("ChoiceHistory"), (client, child) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoAttributeCustom)child));
+                return new NeoReadOnlyList<IReadOnlyNeoChoiceLog>(client, node.Get<NeoMemberList>("ChoiceHistory"), (client, child) => global::Assets.Scripts.Neo.NeoChoiceLog.Create(client, (NeoMemberClass)child));
             }
         }
 
@@ -5939,7 +5939,7 @@ namespace Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.VisitCount] = () => null,
-                [Fields.LastVisitedAt] = () => node.Get<NeoAttributeString>("LastVisitedAt").TextId,
+                [Fields.LastVisitedAt] = () => node.Get<NeoMemberString>("LastVisitedAt").TextId,
                 [Fields.MostRecentChoiceId] = () => null,
                 [Fields.ChoiceHistory] = () => null,
             };
@@ -5998,10 +5998,10 @@ namespace Assets.Scripts.Neo
         NeoReadOnlyDictionary<IReadOnlyNeoTextNodeMemory> TextNodeMemories { get; }
     }
 
-    public partial class NeoDialogueMemory : NeoGeneratedCustomValue, IReadOnlyNeoDialogueMemory
+    public partial class NeoDialogueMemory : NeoGeneratedClassValue, IReadOnlyNeoDialogueMemory
     {
-        internal NeoDialogueMemory(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-dialogue-memory", isReadOnly, inheritedStorageOwnership)
+        internal NeoDialogueMemory(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-dialogue-memory", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -6010,36 +6010,36 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(int? VisitCount = null, string? LastVisitedAt = null, IDictionary<string, NeoTextNodeMemory>? TextNodeMemories = null)
+        private static NeoMemberClassWritable CreateFactoryNode(int? VisitCount = null, string? LastVisitedAt = null, IDictionary<string, NeoTextNodeMemory>? TextNodeMemories = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-dialogue-memory",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VisitCount", "attr-visit-count", VisitCount),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LastVisitedAt", "attr-last-visited-at", LastVisitedAt),
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("TextNodeMemories", "attr-text-node-memories", TextNodeMemories)
+                "class-dialogue-memory",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VisitCount", "member-visit-count", VisitCount),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LastVisitedAt", "member-last-visited-at", LastVisitedAt),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("TextNodeMemories", "member-text-node-memories", TextNodeMemories)
             );
         }
 
-        internal static NeoDialogueMemory Create(NeoClient client, NeoAttributeCustom node)
+        internal static NeoDialogueMemory Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoDialogueMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new NeoDialogueMemory(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static NeoDialogueMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static NeoDialogueMemory CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoDialogueMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoDialogueMemory>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new NeoDialogueMemory(client, node, false, node.ownership),
                 };
@@ -6048,7 +6048,7 @@ namespace Assets.Scripts.Neo
 
         public NeoDialogueMemory Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyNeoDialogueMemory IReadOnlyNeoDialogueMemory.Clone()
@@ -6070,7 +6070,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoAttributeInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
+                return NeoGeneratedTypesSupport.ReadInt(node.Get<NeoMemberInt>("VisitCount")) ?? throw new InvalidOperationException("Required int 'VisitCount' has no value.");
             }
             set
             {
@@ -6083,7 +6083,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return node.Get<NeoAttributeString>("LastVisitedAt").Text;
+                return node.Get<NeoMemberString>("LastVisitedAt").Text;
             }
             set
             {
@@ -6096,7 +6096,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<NeoTextNodeMemory>(client, writableNode.Get<NeoAttributeDictionaryWritable>("TextNodeMemories"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("TextNodeMemories"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoDialogueMemory.TextNodeMemories"), () => IsReadOnly);
+                return new NeoDictionary<NeoTextNodeMemory>(client, writableNode.Get<NeoMemberDictionaryWritable>("TextNodeMemories"), () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("TextNodeMemories"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoTextNodeMemory.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoDialogueMemory.TextNodeMemories"), () => IsReadOnly);
             }
         }
 
@@ -6104,7 +6104,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyDictionary<IReadOnlyNeoTextNodeMemory>(client, node.Get<NeoAttributeDictionary>("TextNodeMemories"), (client, child) => global::Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, (NeoAttributeCustom)child));
+                return new NeoReadOnlyDictionary<IReadOnlyNeoTextNodeMemory>(client, node.Get<NeoMemberDictionary>("TextNodeMemories"), (client, child) => global::Assets.Scripts.Neo.NeoTextNodeMemory.Create(client, (NeoMemberClass)child));
             }
         }
 
@@ -6124,7 +6124,7 @@ namespace Assets.Scripts.Neo
             return new Dictionary<INeoField, Func<string?>>
             {
                 [Fields.VisitCount] = () => null,
-                [Fields.LastVisitedAt] = () => node.Get<NeoAttributeString>("LastVisitedAt").TextId,
+                [Fields.LastVisitedAt] = () => node.Get<NeoMemberString>("LastVisitedAt").TextId,
                 [Fields.TextNodeMemories] = () => null,
             };
         }
@@ -6177,10 +6177,10 @@ namespace Assets.Scripts.Neo
         NeoReadOnlyDictionary<IReadOnlyNeoDialogueMemory> DialogueMemories { get; }
     }
 
-    public partial class NeoMemory : NeoGeneratedCustomValue, IReadOnlyNeoMemory
+    public partial class NeoMemory : NeoGeneratedClassValue, IReadOnlyNeoMemory
     {
-        internal NeoMemory(NeoClient client, NeoAttributeCustom node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
-            : base(client, node, "type-neo-memory", isReadOnly, inheritedStorageOwnership)
+        internal NeoMemory(NeoClient client, NeoMemberClass node, bool isReadOnly, NeoValueOwnership inheritedStorageOwnership = NeoValueOwnership.Asset)
+            : base(client, node, "class-neo-memory", isReadOnly, inheritedStorageOwnership)
         {
         }
 
@@ -6189,34 +6189,34 @@ namespace Assets.Scripts.Neo
         {
         }
 
-        private static NeoAttributeCustomWritable CreateFactoryNode(IDictionary<string, NeoDialogueMemory>? DialogueMemories = null)
+        private static NeoMemberClassWritable CreateFactoryNode(IDictionary<string, NeoDialogueMemory>? DialogueMemories = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            return NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-neo-memory",
-                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DialogueMemories", "attr-dialogue-memories", DialogueMemories)
+                "class-neo-memory",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DialogueMemories", "member-dialogue-memories", DialogueMemories)
             );
         }
 
-        internal static NeoMemory Create(NeoClient client, NeoAttributeCustom node)
+        internal static NeoMemory Create(NeoClient client, NeoMemberClass node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoMemory>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new NeoMemory(client, node, true, NeoValueOwnership.Asset),
                 };
             });
         }
 
-        internal static NeoMemory CreateWritable(NeoClient client, NeoAttributeCustomWritable node)
+        internal static NeoMemory CreateWritable(NeoClient client, NeoMemberClassWritable node)
         {
-            return NeoGeneratedTypesSupport.GetOrCreateGeneratedCustomValue<NeoMemory>(client, node, () =>
+            return NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue<NeoMemory>(client, node, () =>
             {
-                var clientTypeId = node.value?.typeId;
-                return clientTypeId switch
+                var clientClassId = node.value?.classId;
+                return clientClassId switch
                 {
                     _ => new NeoMemory(client, node, false, node.ownership),
                 };
@@ -6225,7 +6225,7 @@ namespace Assets.Scripts.Neo
 
         public NeoMemory Clone()
         {
-            return CreateWritable(client, NeoGeneratedTypesSupport.CloneCustomValue(client, this));
+            return CreateWritable(client, NeoGeneratedTypesSupport.CloneClassValue(client, this));
         }
 
         IReadOnlyNeoMemory IReadOnlyNeoMemory.Clone()
@@ -6247,7 +6247,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoDictionary<NeoDialogueMemory>(client, writableNode.Get<NeoAttributeDictionaryWritable>("DialogueMemories"), () => writableNode.GetOrCreateCollection<NeoAttributeDictionaryWritable>("DialogueMemories"), (client, child) => child is NeoAttributeCustomWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, (NeoAttributeCustom)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoMemory.DialogueMemories"), () => IsReadOnly);
+                return new NeoDictionary<NeoDialogueMemory>(client, writableNode.Get<NeoMemberDictionaryWritable>("DialogueMemories"), () => writableNode.GetOrCreateCollection<NeoMemberDictionaryWritable>("DialogueMemories"), (client, child) => child is NeoMemberClassWritable writableChild && !IsReadOnly ? global::Assets.Scripts.Neo.NeoDialogueMemory.CreateWritable(client, writableChild) : global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, (NeoMemberClass)child), item => NeoGeneratedTypesSupport.ValueReference(item), () => ThrowIfReadOnly("NeoMemory.DialogueMemories"), () => IsReadOnly);
             }
         }
 
@@ -6255,7 +6255,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                return new NeoReadOnlyDictionary<IReadOnlyNeoDialogueMemory>(client, node.Get<NeoAttributeDictionary>("DialogueMemories"), (client, child) => global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, (NeoAttributeCustom)child));
+                return new NeoReadOnlyDictionary<IReadOnlyNeoDialogueMemory>(client, node.Get<NeoMemberDictionary>("DialogueMemories"), (client, child) => global::Assets.Scripts.Neo.NeoDialogueMemory.Create(client, (NeoMemberClass)child));
             }
         }
 

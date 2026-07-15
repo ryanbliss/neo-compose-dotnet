@@ -12,18 +12,18 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// Well-known values for <see cref="GenericParamConstraint.kind"/>.
     /// Mirrors the TS-side <c>TGenericParamConstraint</c> tagged union
-    /// (specs/custom-type-generics.md §1.1).
+    /// (specs/class-generics.md §1.1).
     /// </summary>
     public static class NeoGenericConstraintKinds
     {
-        public const string CustomType = "customType";
+        public const string Class = "class";
         public const string Enum = "enum";
     }
 
     /// <summary>
     /// Constraint on a generic parameter. Absent (a null field on the
-    /// declaration) means any eligible attribute type. Exactly one of
-    /// <see cref="typeId"/> / <see cref="enumId"/> is set, matching
+    /// declaration) means any eligible member type. Exactly one of
+    /// <see cref="classId"/> / <see cref="enumId"/> is set, matching
     /// <see cref="kind"/> — enforced by
     /// <see cref="GenericParamConstraintConverter"/> on read.
     /// </summary>
@@ -32,18 +32,18 @@ namespace NeoCompose.Runtime.Json
     {
         public string kind = null!;
 
-        /// <summary>Set iff <see cref="kind"/> is "customType".</summary>
-        public string? typeId;
+        /// <summary>Set iff <see cref="kind"/> is "class".</summary>
+        public string? classId;
 
         /// <summary>Set iff <see cref="kind"/> is "enum".</summary>
         public string? enumId;
     }
 
     /// <summary>
-    /// One generic parameter declared by a custom type. <see cref="id"/> is
+    /// One generic parameter declared by a class. <see cref="id"/> is
     /// stable (never regenerated); <see cref="name"/> is the C#-identifier
     /// display name and a cross-repo codegen contract — renames are safe,
-    /// ids are load-bearing (specs/custom-type-generics.md Decision 2/3).
+    /// ids are load-bearing (specs/class-generics.md Decision 2/3).
     /// </summary>
     public class GenericParamDeclaration
     {
@@ -61,15 +61,15 @@ namespace NeoCompose.Runtime.Json
         /// <summary>Forwards one of the declaring context's own params.</summary>
         public const string Generic = "generic";
 
-        /// <summary>Supplies a concrete attribute record as the type argument.</summary>
-        public const string Attribute = "attribute";
+        /// <summary>Supplies a concrete member record as the type argument.</summary>
+        public const string Member = "member";
     }
 
     /// <summary>
     /// How a generic param is implemented — at the extends boundary
-    /// (<see cref="CustomType.extendsGenericBindings"/>) or at a usage site
-    /// (<see cref="CustomAttribute.customTypeArguments"/>). Exactly one of
-    /// <see cref="genericParamId"/> / <see cref="attributeId"/> is set,
+    /// (<see cref="NeoSchemaClass.extendsGenericBindings"/>) or at a usage site
+    /// (<see cref="ClassMember.classArguments"/>). Exactly one of
+    /// <see cref="genericParamId"/> / <see cref="memberId"/> is set,
     /// matching <see cref="kind"/> — enforced by
     /// <see cref="GenericBindingConverter"/> on read.
     /// </summary>
@@ -81,8 +81,8 @@ namespace NeoCompose.Runtime.Json
         /// <summary>Set iff <see cref="kind"/> is "generic".</summary>
         public string? genericParamId;
 
-        /// <summary>Set iff <see cref="kind"/> is "attribute".</summary>
-        public string? attributeId;
+        /// <summary>Set iff <see cref="kind"/> is "member".</summary>
+        public string? memberId;
 
         /// <summary>True when this binding forwards an in-scope param.</summary>
         public bool IsForward => kind == NeoGenericBindingKinds.Generic;
@@ -110,21 +110,25 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
+            Schema8LegacyFieldGuard.RejectRemovedReferenceFieldsShallow(
+                obj,
+                "Generic param constraint");
+            Schema8LegacyFieldGuard.RejectRemovedTypeInfoTypeId(obj);
             var kind = obj.Value<string>("kind");
             if (kind is null)
             {
                 throw new JsonSerializationException(
                     "Generic param constraint is missing 'kind'.");
             }
-            if (kind == NeoGenericConstraintKinds.CustomType)
+            if (kind == NeoGenericConstraintKinds.Class)
             {
-                var typeId = obj.Value<string>("typeId");
-                if (string.IsNullOrEmpty(typeId))
+                var classId = obj.Value<string>("classId");
+                if (string.IsNullOrEmpty(classId))
                 {
                     throw new JsonSerializationException(
-                        "Generic param constraint of kind 'customType' is missing 'typeId'.");
+                        "Generic param constraint of kind 'class' is missing 'classId'.");
                 }
-                return new GenericParamConstraint { kind = kind, typeId = typeId };
+                return new GenericParamConstraint { kind = kind, classId = classId };
             }
             if (kind == NeoGenericConstraintKinds.Enum)
             {
@@ -172,6 +176,9 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
+            Schema8LegacyFieldGuard.RejectRemovedReferenceFieldsShallow(
+                obj,
+                "Generic binding");
             var kind = obj.Value<string>("kind");
             if (kind is null)
             {
@@ -188,15 +195,15 @@ namespace NeoCompose.Runtime.Json
                 }
                 return new GenericBinding { kind = kind, genericParamId = genericParamId };
             }
-            if (kind == NeoGenericBindingKinds.Attribute)
+            if (kind == NeoGenericBindingKinds.Member)
             {
-                var attributeId = obj.Value<string>("attributeId");
-                if (string.IsNullOrEmpty(attributeId))
+                var memberId = obj.Value<string>("memberId");
+                if (string.IsNullOrEmpty(memberId))
                 {
                     throw new JsonSerializationException(
-                        "Generic binding of kind 'attribute' is missing 'attributeId'.");
+                        "Generic binding of kind 'member' is missing 'memberId'.");
                 }
-                return new GenericBinding { kind = kind, attributeId = attributeId };
+                return new GenericBinding { kind = kind, memberId = memberId };
             }
             throw new JsonSerializationException(
                 $"Unknown generic binding kind '{kind}'.");

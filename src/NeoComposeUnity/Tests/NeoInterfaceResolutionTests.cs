@@ -30,34 +30,34 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void TypeImplements_UsesTypeAndInterfaceInheritance()
+        public void ClassImplements_UsesClassAndInterfaceInheritance()
         {
             ProjectData data = Data(
                 Interface("entity"),
                 Interface("damageable", "entity"));
-            data.types["base"] = Type("base", "damageable");
-            data.types["child"] = Type("child", extendsTypeId: "base");
+            data.classes["base"] = Class("base", "damageable");
+            data.classes["child"] = Class("child", extendsClassId: "base");
 
             Assert.IsTrue(
-                NeoInterfaceResolution.TypeImplements("child", "damageable", data));
+                NeoInterfaceResolution.ClassImplements("child", "damageable", data));
             Assert.IsTrue(
-                NeoInterfaceResolution.TypeImplements("child", "entity", data));
+                NeoInterfaceResolution.ClassImplements("child", "entity", data));
             Assert.IsFalse(
-                NeoInterfaceResolution.TypeImplements("child", "missing", data));
+                NeoInterfaceResolution.ClassImplements("child", "missing", data));
         }
 
         [Test]
-        public void ResolveClosure_CycleThrowsAndTypeCheckFailsClosed()
+        public void ResolveClosure_CycleThrowsAndClassCheckFailsClosed()
         {
             ProjectData data = Data(
                 Interface("left", "right"),
                 Interface("right", "left"));
-            data.types["type"] = Type("type", "left");
+            data.classes["class"] = Class("class", "left");
 
             Assert.Throws<System.InvalidOperationException>(() =>
                 NeoInterfaceResolution.ResolveClosure("left", data));
             Assert.IsFalse(
-                NeoInterfaceResolution.TypeImplements("type", "left", data));
+                NeoInterfaceResolution.ClassImplements("class", "left", data));
         }
 
         private static ProjectData Data(params Interface[] interfaces)
@@ -65,7 +65,7 @@ namespace NeoCompose.Tests
             var data = new ProjectData
             {
                 interfaces = new Dictionary<string, Interface>(),
-                types = new Dictionary<string, CustomType>(),
+                classes = new Dictionary<string, NeoSchemaClass>(),
             };
             foreach (Interface declaration in interfaces)
             {
@@ -86,18 +86,18 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static CustomType Type(
+        private static NeoSchemaClass Class(
             string id,
             string? implementsInterfaceId = null,
-            string? extendsTypeId = null)
+            string? extendsClassId = null)
         {
-            return new CustomType
+            return new NeoSchemaClass
             {
                 id = id,
                 projectId = "project",
                 name = id,
                 schema = new Dictionary<string, string>(),
-                extendsTypeId = extendsTypeId,
+                extendsClassId = extendsClassId,
                 implementsInterfaceIds = implementsInterfaceId is null
                     ? null
                     : new List<string> { implementsInterfaceId },

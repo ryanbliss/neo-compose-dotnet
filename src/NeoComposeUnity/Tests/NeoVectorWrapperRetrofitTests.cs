@@ -13,7 +13,7 @@ namespace NeoCompose.Tests
 {
     /// <summary>
     /// Vector wrapper retrofit to the assignment convention
-    /// (specs/color-attribute.md §6): get-only <c>Value</c>, wrapper-typed
+    /// (specs/color-member.md §6): get-only <c>Value</c>, wrapper-typed
     /// SetVector* write funnels with value-copy semantics, *OrClear helpers,
     /// distinct null guard for required assignment, and value-based equality
     /// — for one float vector (Vector2) and one int vector (Vector2Int).
@@ -30,7 +30,7 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
 
             NeoGeneratedTypesSupport.SetVector2(client.save, "Position", new Vector2(9f, 8f));
-            var position = new NeoVector2(client.save.Get<NeoAttributeVector2Writable>("Position"));
+            var position = new NeoVector2(client.save.Get<NeoMemberVector2Writable>("Position"));
             Assert.AreEqual(new Vector2(9f, 8f), position.Value);
 
             NeoGeneratedTypesSupport.SetVector2(client.save, "Position", (NeoVector2)new Vector2(7f, 6f));
@@ -41,11 +41,11 @@ namespace NeoCompose.Tests
         public void SetVector2_BoundWrapperCopiesValueWithoutLinking()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            var offset = new NeoVector2(client.save.Get<NeoAttributeVector2Writable>("Offset"));
+            var offset = new NeoVector2(client.save.Get<NeoMemberVector2Writable>("Offset"));
             var offsetBefore = offset.Value;
 
             NeoGeneratedTypesSupport.SetVector2(client.save, "Position", offset);
-            var position = new NeoVector2(client.save.Get<NeoAttributeVector2Writable>("Position"));
+            var position = new NeoVector2(client.save.Get<NeoMemberVector2Writable>("Position"));
             Assert.AreEqual(offsetBefore, position.Value);
 
             // Mutating the source afterwards must not affect the target.
@@ -58,11 +58,11 @@ namespace NeoCompose.Tests
         public void SetVector2OrClear_NullClearsOptionalValue()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            Assert.IsNotNull(client.save.Get<NeoAttributeVector2Writable>("Offset").value);
+            Assert.IsNotNull(client.save.Get<NeoMemberVector2Writable>("Offset").value);
 
             NeoGeneratedTypesSupport.SetVector2OrClear(client.save, "Offset", null);
 
-            Assert.IsNull(client.save.Get<NeoAttributeVector2Writable>("Offset").value);
+            Assert.IsNull(client.save.Get<NeoMemberVector2Writable>("Offset").value);
         }
 
         [Test]
@@ -128,8 +128,8 @@ namespace NeoCompose.Tests
             NeoGeneratedTypesSupport.SetVector2(client.save, "Position", new Vector2(5f, 5f));
             NeoGeneratedTypesSupport.SetVector2(client.save, "Offset", new Vector2(5f, 5f));
 
-            var position = new NeoVector2(client.save.Get<NeoAttributeVector2Writable>("Position"));
-            var offset = new NeoVector2(client.save.Get<NeoAttributeVector2Writable>("Offset"));
+            var position = new NeoVector2(client.save.Get<NeoMemberVector2Writable>("Position"));
+            var offset = new NeoVector2(client.save.Get<NeoMemberVector2Writable>("Offset"));
 
             Assert.IsTrue(position == offset);
 
@@ -147,7 +147,7 @@ namespace NeoCompose.Tests
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
 
             NeoGeneratedTypesSupport.SetVector2Int(client.save, "Cell", new Vector2Int(9, 8));
-            var cell = new NeoVector2Int(client.save.Get<NeoAttributeVector2IntWritable>("Cell"));
+            var cell = new NeoVector2Int(client.save.Get<NeoMemberVector2IntWritable>("Cell"));
             Assert.AreEqual(new Vector2Int(9, 8), cell.Value);
 
             NeoGeneratedTypesSupport.SetVector2Int(client.save, "Cell", (NeoVector2Int)new Vector2Int(7, 6));
@@ -158,11 +158,11 @@ namespace NeoCompose.Tests
         public void SetVector2Int_BoundWrapperCopiesValueWithoutLinking()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            var anchor = new NeoVector2Int(client.save.Get<NeoAttributeVector2IntWritable>("Anchor"));
+            var anchor = new NeoVector2Int(client.save.Get<NeoMemberVector2IntWritable>("Anchor"));
             var anchorBefore = anchor.Value;
 
             NeoGeneratedTypesSupport.SetVector2Int(client.save, "Cell", anchor);
-            var cell = new NeoVector2Int(client.save.Get<NeoAttributeVector2IntWritable>("Cell"));
+            var cell = new NeoVector2Int(client.save.Get<NeoMemberVector2IntWritable>("Cell"));
             Assert.AreEqual(anchorBefore, cell.Value);
 
             NeoGeneratedTypesSupport.SetVector2Int(client.save, "Anchor", new Vector2Int(40, 41));
@@ -174,11 +174,11 @@ namespace NeoCompose.Tests
         public void SetVector2IntOrClear_NullClearsOptionalValue()
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
-            Assert.IsNotNull(client.save.Get<NeoAttributeVector2IntWritable>("Anchor").value);
+            Assert.IsNotNull(client.save.Get<NeoMemberVector2IntWritable>("Anchor").value);
 
             NeoGeneratedTypesSupport.SetVector2IntOrClear(client.save, "Anchor", null);
 
-            Assert.IsNull(client.save.Get<NeoAttributeVector2IntWritable>("Anchor").value);
+            Assert.IsNull(client.save.Get<NeoMemberVector2IntWritable>("Anchor").value);
         }
 
         [Test]
@@ -199,7 +199,7 @@ namespace NeoCompose.Tests
         {
             var client = NeoTestSaveStack.ClientFromSchema(BuildProjectData());
             var fractional = new NeoVector2Int(
-                client.save.Get<NeoAttributeVector2IntWritable>("Fractional"));
+                client.save.Get<NeoMemberVector2IntWritable>("Fractional"));
 
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 _ = fractional.Value);
@@ -255,25 +255,25 @@ namespace NeoCompose.Tests
 
         private static ProjectData BuildProjectData()
         {
-            var rootType = new CustomType
+            var rootClass = new NeoSchemaClass
             {
-                id = "root-type",
+                id = "root-class",
                 projectId = "project-a",
                 name = "Root",
                 schema = new Dictionary<string, string>(),
             };
-            var saveRootType = new CustomType
+            var saveRootClass = new NeoSchemaClass
             {
-                id = "save-root-type",
+                id = "save-root-class",
                 projectId = "project-a",
                 name = "Save Root",
                 schema = new Dictionary<string, string>
                 {
-                    ["Position"] = "position-attribute",
-                    ["Offset"] = "offset-attribute",
-                    ["Cell"] = "cell-attribute",
-                    ["Anchor"] = "anchor-attribute",
-                    ["Fractional"] = "fractional-attribute",
+                    ["Position"] = "position-member",
+                    ["Offset"] = "offset-member",
+                    ["Cell"] = "cell-member",
+                    ["Anchor"] = "anchor-member",
+                    ["Fractional"] = "fractional-member",
                 },
             };
 
@@ -284,59 +284,59 @@ namespace NeoCompose.Tests
                     id = "project-a",
                     _id = "project-a",
                     name = "Vector Wrapper Retrofit",
-                    rootAssetsAttributeId = "root-assets",
-                    rootSaveFileAttributeId = "root-save",
-                    rootSessionAttributeId = "root-session",
+                    rootAssetsMemberId = "root-assets",
+                    rootSaveFileMemberId = "root-save",
+                    rootSessionMemberId = "root-session",
                 },
-                attributes = new Dictionary<string, NeoCompose.Runtime.Json.Attribute>
+                members = new Dictionary<string, NeoCompose.Runtime.Json.Member>
                 {
-                    ["root-assets"] = RootAttribute("root-assets", "root-assets-value", rootType.id),
-                    ["root-save"] = RootAttribute("root-save", "root-save-value", saveRootType.id),
-                    ["root-session"] = RootAttribute("root-session", "root-session-value", rootType.id),
-                    ["position-attribute"] = new Vector2Attribute
+                    ["root-assets"] = RootMember("root-assets", "root-assets-value", rootClass.id),
+                    ["root-save"] = RootMember("root-save", "root-save-value", saveRootClass.id),
+                    ["root-session"] = RootMember("root-session", "root-session-value", rootClass.id),
+                    ["position-member"] = new Vector2Member
                     {
-                        id = "position-attribute",
+                        id = "position-member",
                         projectId = "project-a",
                         name = "Position",
-                        type = AttributeType.Vector2,
+                        kind = MemberKind.Vector2,
                         required = true,
                     },
-                    ["offset-attribute"] = new Vector2Attribute
+                    ["offset-member"] = new Vector2Member
                     {
-                        id = "offset-attribute",
+                        id = "offset-member",
                         projectId = "project-a",
                         name = "Offset",
-                        type = AttributeType.Vector2,
+                        kind = MemberKind.Vector2,
                     },
-                    ["cell-attribute"] = new Vector2IntAttribute
+                    ["cell-member"] = new Vector2IntMember
                     {
-                        id = "cell-attribute",
+                        id = "cell-member",
                         projectId = "project-a",
                         name = "Cell",
-                        type = AttributeType.Vector2Int,
+                        kind = MemberKind.Vector2Int,
                         required = true,
                     },
-                    ["anchor-attribute"] = new Vector2IntAttribute
+                    ["anchor-member"] = new Vector2IntMember
                     {
-                        id = "anchor-attribute",
+                        id = "anchor-member",
                         projectId = "project-a",
                         name = "Anchor",
-                        type = AttributeType.Vector2Int,
+                        kind = MemberKind.Vector2Int,
                     },
-                    ["fractional-attribute"] = new Vector2IntAttribute
+                    ["fractional-member"] = new Vector2IntMember
                     {
-                        id = "fractional-attribute",
+                        id = "fractional-member",
                         projectId = "project-a",
                         name = "Fractional",
-                        type = AttributeType.Vector2Int,
+                        kind = MemberKind.Vector2Int,
                     },
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    ["root-assets-value"] = ObjectValue("root-assets-value", rootType.id, new()),
+                    ["root-assets-value"] = ObjectValue("root-assets-value", rootClass.id, new()),
                     ["root-save-value"] = ObjectValue(
                         "root-save-value",
-                        saveRootType.id,
+                        saveRootClass.id,
                         new Dictionary<string, string>
                         {
                             ["Position"] = "position-value",
@@ -345,56 +345,56 @@ namespace NeoCompose.Tests
                             ["Anchor"] = "anchor-value",
                             ["Fractional"] = "fractional-value",
                         }),
-                    ["root-session-value"] = ObjectValue("root-session-value", rootType.id, new()),
+                    ["root-session-value"] = ObjectValue("root-session-value", rootClass.id, new()),
                     ["position-value"] = Vector2ValueRow("position-value", 1f, 2f),
                     ["offset-value"] = Vector2ValueRow("offset-value", 3f, 4f),
                     ["cell-value"] = Vector2ValueRow("cell-value", 5f, 6f),
                     ["anchor-value"] = Vector2ValueRow("anchor-value", 7f, 8f),
                     // Deliberately non-integer components behind a Vector2Int
-                    // attribute — the wrapper read must reject it.
+                    // member — the wrapper read must reject it.
                     ["fractional-value"] = Vector2ValueRow("fractional-value", 1.5f, 2f),
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    [rootType.id] = rootType,
-                    [saveRootType.id] = saveRootType,
+                    [rootClass.id] = rootClass,
+                    [saveRootClass.id] = saveRootClass,
                 },
                 enums = new Dictionary<string, NeoCompose.Runtime.Json.Enum>(),
             };
         }
 
-        private static CustomAttribute RootAttribute(string id, string valueId, string customTypeId)
+        private static ClassMember RootMember(string id, string valueId, string classId)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = "project-a",
                 name = id,
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
                 valueId = valueId,
-                customTypeId = customTypeId,
+                classId = classId,
             };
         }
 
-        private static Vector2AttributeValue Vector2ValueRow(string id, float x, float y)
+        private static Vector2MemberValue Vector2ValueRow(string id, float x, float y)
         {
-            return new Vector2AttributeValue
+            return new Vector2MemberValue
             {
                 id = id,
                 value = new NeoVector2Value { x = x, y = y },
             };
         }
 
-        private static ObjectAttributeValue ObjectValue(
+        private static ObjectMemberValue ObjectValue(
             string id,
-            string typeId,
+            string classId,
             Dictionary<string, string> record)
         {
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = typeId,
+                classId = classId,
                 value = record,
             };
         }

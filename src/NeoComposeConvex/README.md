@@ -14,7 +14,7 @@ lines to your project's `Packages/manifest.json`:
 
 ```json
 "com.ryanbliss.neocompose.convex": "<this package>",
-"com.ryanbliss.convex-dotnet-unity": "https://github.com/ryanbliss/convex-dotnet-unity.git#v0.1.0"
+"com.ryanbliss.convex-dotnet-unity": "https://github.com/ryanbliss/convex-dotnet-unity.git#v0.1.1"
 ```
 
 The second package is the vendored (unofficial) Convex .NET client this plugin

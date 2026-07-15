@@ -1404,10 +1404,10 @@ namespace NeoCompose.Runtime
         {
             if (!string.IsNullOrWhiteSpace(existing)) return existing!;
             if (!string.IsNullOrWhiteSpace(draftName)) return draftName!;
-            var custom = core.Options.BuildSaveName?.Invoke();
-            return string.IsNullOrWhiteSpace(custom)
+            var configuredName = core.Options.BuildSaveName?.Invoke();
+            return string.IsNullOrWhiteSpace(configuredName)
                 ? $"Save {DateTime.UtcNow:yyyy-MM-dd HH:mm}"
-                : custom!;
+                : configuredName!;
         }
 
         private NeoSaveCommitRequest BuildCommitRequest(

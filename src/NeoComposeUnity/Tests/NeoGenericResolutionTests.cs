@@ -8,13 +8,13 @@ using Newtonsoft.Json;
 using NUnit.Framework;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
-using Attribute = NeoCompose.Runtime.Json.Attribute;
+using Member = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Tests
 {
     /// <summary>
-    /// Shared fixture for the custom-type-generics suite
-    /// (specs/custom-type-generics.md §9). Mirrors the spec's motivating
+    /// Shared fixture for the class-generics suite
+    /// (specs/class-generics.md §9). Mirrors the spec's motivating
     /// shape: an open abstract base with a <c>T</c> member and a
     /// <c>List&lt;T&gt;</c> member, a forwarding middle, and closed leaves
     /// binding Float / String:
@@ -35,55 +35,55 @@ namespace NeoCompose.Tests
 
         public static ProjectData BuildProjectData()
         {
-            var rootType = new CustomType
+            var rootClass = new NeoSchemaClass
             {
-                id = "root-type",
+                id = "root-class",
                 projectId = "project-a",
                 name = "Root",
                 schema = new Dictionary<string, string>(),
             };
-            var saveRootType = new CustomType
+            var saveRootClass = new NeoSchemaClass
             {
-                id = "save-root-type",
+                id = "save-root-class",
                 projectId = "project-a",
                 name = "Save Root",
                 schema = new Dictionary<string, string>
                 {
-                    ["Card"] = "attr-card",
-                    ["StringCard"] = "attr-string-card",
-                    ["Constructed"] = "attr-constructed-slot",
+                    ["Card"] = "member-card",
+                    ["StringCard"] = "member-string-card",
+                    ["Constructed"] = "member-constructed-slot",
                 },
             };
-            var cardBase = new CustomType
+            var cardBase = new NeoSchemaClass
             {
-                id = "type-card-base",
+                id = "class-card-base",
                 projectId = "project-a",
                 name = "Card",
                 schema = new Dictionary<string, string>(),
             };
-            var enchant = new CustomType
+            var enchant = new NeoSchemaClass
             {
-                id = "type-enchant",
+                id = "class-enchant",
                 projectId = "project-a",
                 name = "EnchantCard",
-                extendsTypeId = cardBase.id,
+                extendsClassId = cardBase.id,
                 isAbstract = true,
                 schema = new Dictionary<string, string>
                 {
-                    ["Speed"] = "attr-speed",
-                    ["Values"] = "attr-values",
+                    ["Speed"] = "member-speed",
+                    ["Values"] = "member-values",
                 },
                 genericParams = new List<GenericParamDeclaration>
                 {
                     new() { id = ParamT, name = "T" },
                 },
             };
-            var middle = new CustomType
+            var middle = new NeoSchemaClass
             {
-                id = "type-middle",
+                id = "class-middle",
                 projectId = "project-a",
                 name = "MiddleCard",
-                extendsTypeId = enchant.id,
+                extendsClassId = enchant.id,
                 schema = new Dictionary<string, string>(),
                 genericParams = new List<GenericParamDeclaration>
                 {
@@ -98,51 +98,51 @@ namespace NeoCompose.Tests
                     },
                 },
             };
-            var damage = new CustomType
+            var damage = new NeoSchemaClass
             {
-                id = "type-damage",
+                id = "class-damage",
                 projectId = "project-a",
                 name = "DamageCard",
-                extendsTypeId = middle.id,
+                extendsClassId = middle.id,
                 schema = new Dictionary<string, string>(),
                 extendsGenericBindings = new Dictionary<string, GenericBinding>
                 {
                     [ParamU] = new()
                     {
-                        kind = NeoGenericBindingKinds.Attribute,
-                        attributeId = "attr-binding-float",
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = "member-binding-float",
                     },
                 },
             };
-            var stringCard = new CustomType
+            var stringCard = new NeoSchemaClass
             {
-                id = "type-string-card",
+                id = "class-string-card",
                 projectId = "project-a",
                 name = "StringCard",
-                extendsTypeId = enchant.id,
+                extendsClassId = enchant.id,
                 schema = new Dictionary<string, string>(),
                 extendsGenericBindings = new Dictionary<string, GenericBinding>
                 {
                     [ParamT] = new()
                     {
-                        kind = NeoGenericBindingKinds.Attribute,
-                        attributeId = "attr-binding-string",
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = "member-binding-string",
                     },
                 },
             };
-            var optionalFloatCard = new CustomType
+            var optionalFloatCard = new NeoSchemaClass
             {
-                id = "type-optional-float",
+                id = "class-optional-float",
                 projectId = "project-a",
                 name = "OptionalFloatCard",
-                extendsTypeId = enchant.id,
+                extendsClassId = enchant.id,
                 schema = new Dictionary<string, string>(),
                 extendsGenericBindings = new Dictionary<string, GenericBinding>
                 {
                     [ParamT] = new()
                     {
-                        kind = NeoGenericBindingKinds.Attribute,
-                        attributeId = "attr-binding-float-optional",
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = "member-binding-float-optional",
                     },
                 },
             };
@@ -153,75 +153,75 @@ namespace NeoCompose.Tests
                 {
                     id = "project-a",
                     _id = "project-a",
-                    name = "Custom Type Generics",
-                    rootAssetsAttributeId = "root-assets",
-                    rootSaveFileAttributeId = "root-save",
-                    rootSessionAttributeId = "root-session",
+                    name = "Class Generics",
+                    rootAssetsMemberId = "root-assets",
+                    rootSaveFileMemberId = "root-save",
+                    rootSessionMemberId = "root-session",
                 },
-                attributes = new Dictionary<string, Attribute>
+                members = new Dictionary<string, Member>
                 {
-                    ["root-assets"] = RootAttribute("root-assets", "root-assets-value", rootType.id),
-                    ["root-save"] = RootAttribute("root-save", "root-save-value", saveRootType.id),
-                    ["root-session"] = RootAttribute("root-session", "root-session-value", rootType.id),
-                    ["attr-card"] = new CustomAttribute
+                    ["root-assets"] = RootMember("root-assets", "root-assets-value", rootClass.id),
+                    ["root-save"] = RootMember("root-save", "root-save-value", saveRootClass.id),
+                    ["root-session"] = RootMember("root-session", "root-session-value", rootClass.id),
+                    ["member-card"] = new ClassMember
                     {
-                        id = "attr-card",
+                        id = "member-card",
                         projectId = "project-a",
                         name = "Card",
-                        type = AttributeType.Custom,
-                        customTypeId = damage.id,
+                        kind = MemberKind.Class,
+                        classId = damage.id,
                         required = true,
                     },
-                    ["attr-string-card"] = new CustomAttribute
+                    ["member-string-card"] = new ClassMember
                     {
-                        id = "attr-string-card",
+                        id = "member-string-card",
                         projectId = "project-a",
                         name = "StringCard",
-                        type = AttributeType.Custom,
-                        customTypeId = stringCard.id,
+                        kind = MemberKind.Class,
+                        classId = stringCard.id,
                         required = true,
                     },
-                    ["attr-speed"] = new GenericAttribute
+                    ["member-speed"] = new GenericMember
                     {
-                        id = "attr-speed",
+                        id = "member-speed",
                         projectId = "project-a",
                         name = "Speed",
-                        type = AttributeType.Generic,
+                        kind = MemberKind.Generic,
                         genericParamId = ParamT,
                         locked = true,
                         isVirtual = false,
                         isAbstract = true,
                     },
-                    ["attr-values"] = new ListAttribute
+                    ["member-values"] = new ListMember
                     {
-                        id = "attr-values",
+                        id = "member-values",
                         projectId = "project-a",
                         name = "Values",
-                        type = AttributeType.List,
-                        entryAttributeId = "attr-values-entry",
+                        kind = MemberKind.List,
+                        entryMemberId = "member-values-entry",
                     },
-                    ["attr-values-entry"] = new GenericAttribute
+                    ["member-values-entry"] = new GenericMember
                     {
-                        id = "attr-values-entry",
+                        id = "member-values-entry",
                         projectId = "project-a",
                         name = "Value",
-                        type = AttributeType.Generic,
+                        kind = MemberKind.Generic,
                         genericParamId = ParamT,
                     },
-                    ["attr-plain-list"] = new ListAttribute
+                    ["member-plain-list"] = new ListMember
                     {
-                        id = "attr-plain-list",
+                        id = "member-plain-list",
                         projectId = "project-a",
                         name = "PlainList",
-                        type = AttributeType.List,
-                        entryAttributeId = "attr-binding-string",
+                        kind = MemberKind.List,
+                        entryMemberId = "member-binding-string",
                     },
-                    ["attr-binding-float"] = new FloatAttribute
+                    ["member-binding-float"] = new FloatMember
                     {
-                        id = "attr-binding-float",
+                        id = "member-binding-float",
                         projectId = "project-a",
                         name = "FloatBinding",
-                        type = AttributeType.Float,
+                        kind = MemberKind.Float,
                         required = true,
                         minValue = 0f,
                         isVirtual = true,
@@ -229,59 +229,59 @@ namespace NeoCompose.Tests
                         // The binding's storage must NOT leak into the slot
                         // (substitution partition — Decision 10).
                         storage = "save",
-                        defaultValue = new NumberAttributeValueBase { value = 3.5 },
+                        defaultValue = new NumberMemberValueBase { value = 3.5 },
                     },
-                    ["attr-binding-float-optional"] = new FloatAttribute
+                    ["member-binding-float-optional"] = new FloatMember
                     {
-                        id = "attr-binding-float-optional",
+                        id = "member-binding-float-optional",
                         projectId = "project-a",
                         name = "OptionalFloatBinding",
-                        type = AttributeType.Float,
+                        kind = MemberKind.Float,
                         required = false,
                     },
-                    ["attr-binding-string"] = new StringAttribute
+                    ["member-binding-string"] = new StringMember
                     {
-                        id = "attr-binding-string",
+                        id = "member-binding-string",
                         projectId = "project-a",
                         name = "StringBinding",
-                        type = AttributeType.String,
+                        kind = MemberKind.String,
                         required = false,
                         localizable = false,
                     },
-                    ["attr-constructed-slot"] = new CustomAttribute
+                    ["member-constructed-slot"] = new ClassMember
                     {
-                        id = "attr-constructed-slot",
+                        id = "member-constructed-slot",
                         projectId = "project-a",
                         name = "ConstructedSlot",
-                        type = AttributeType.Custom,
-                        customTypeId = enchant.id,
-                        customTypeArguments = new Dictionary<string, GenericBinding>
+                        kind = MemberKind.Class,
+                        classId = enchant.id,
+                        classArguments = new Dictionary<string, GenericBinding>
                         {
                             [ParamT] = new()
                             {
-                                kind = NeoGenericBindingKinds.Attribute,
-                                attributeId = "attr-binding-float",
+                                kind = NeoGenericBindingKinds.Member,
+                                memberId = "member-binding-float",
                             },
                         },
                     },
                 },
-                values = new Dictionary<string, AttributeValue>
+                values = new Dictionary<string, MemberValue>
                 {
-                    ["root-assets-value"] = ObjectValue("root-assets-value", rootType.id, new()),
+                    ["root-assets-value"] = ObjectValue("root-assets-value", rootClass.id, new()),
                     ["root-save-value"] = ObjectValue(
                         "root-save-value",
-                        saveRootType.id,
+                        saveRootClass.id,
                         new Dictionary<string, string>
                         {
                             ["Card"] = "card-value",
                             ["StringCard"] = "string-card-value",
                             ["Constructed"] = "constructed-value",
                         }),
-                    ["root-session-value"] = ObjectValue("root-session-value", rootType.id, new()),
+                    ["root-session-value"] = ObjectValue("root-session-value", rootClass.id, new()),
                     ["card-value"] = ObjectValue("card-value", damage.id, new()),
                     ["string-card-value"] = ObjectValue("string-card-value", stringCard.id, new()),
-                    // A constructed-slot instance: no named subtype exists,
-                    // so the row carries `typeId: null` (the DECLARED open
+                    // A constructed-slot instance: no named subclass exists,
+                    // so the row carries `classId: null` (the DECLARED open
                     // type) — the slot's arguments close it (§4.1).
                     ["constructed-value"] = ObjectValue(
                         "constructed-value",
@@ -290,16 +290,16 @@ namespace NeoCompose.Tests
                         {
                             ["Speed"] = "constructed-speed-value",
                         }),
-                    ["constructed-speed-value"] = new NumberAttributeValue
+                    ["constructed-speed-value"] = new NumberMemberValue
                     {
                         id = "constructed-speed-value",
                         value = 7.25,
                     },
                 },
-                types = new Dictionary<string, CustomType>
+                classes = new Dictionary<string, NeoSchemaClass>
                 {
-                    [rootType.id] = rootType,
-                    [saveRootType.id] = saveRootType,
+                    [rootClass.id] = rootClass,
+                    [saveRootClass.id] = saveRootClass,
                     [cardBase.id] = cardBase,
                     [enchant.id] = enchant,
                     [middle.id] = middle,
@@ -311,40 +311,40 @@ namespace NeoCompose.Tests
             };
         }
 
-        private static CustomAttribute RootAttribute(string id, string valueId, string customTypeId)
+        private static ClassMember RootMember(string id, string valueId, string classId)
         {
-            return new CustomAttribute
+            return new ClassMember
             {
                 id = id,
                 projectId = "project-a",
                 name = id,
-                type = AttributeType.Custom,
+                kind = MemberKind.Class,
                 required = true,
                 valueId = valueId,
-                customTypeId = customTypeId,
+                classId = classId,
             };
         }
 
-        private static ObjectAttributeValue ObjectValue(
+        private static ObjectMemberValue ObjectValue(
             string id,
-            string? typeId,
+            string? classId,
             Dictionary<string, string> record)
         {
-            return new ObjectAttributeValue
+            return new ObjectMemberValue
             {
                 id = id,
-                typeId = typeId,
+                classId = classId,
                 value = record,
             };
         }
     }
 
     /// <summary>
-    /// specs/custom-type-generics.md §9: environment resolution (forward
+    /// specs/class-generics.md §9: environment resolution (forward
     /// chains included), the Decision-10 substitution field partition, the
     /// Decision-9 stamp lifecycle, constructed-slot admission, and the JSON
     /// read layer for the new wire fields. The dotnet side mirrors
-    /// <c>src/models/custom-types/generics.ts</c> — behavioral assertions
+    /// <c>src/models/classes/generics.ts</c> — behavioral assertions
     /// here should track that module's colocated tests.
     /// </summary>
     public class NeoGenericResolutionTests
@@ -359,12 +359,12 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         [Test]
-        public void Json_CustomType_ReadsGenericParamsAndBindings()
+        public void Json_NeoSchemaClass_ReadsGenericParamsAndBindings()
         {
             const string json = @"{
                 ""id"": ""t1"", ""projectId"": ""p"", ""name"": ""Foo"",
                 ""schema"": {},
-                ""extendsTypeId"": ""t0"",
+                ""extendsClassId"": ""t0"",
                 ""genericParams"": [
                     { ""id"": ""p1"", ""name"": ""T"" },
                     { ""id"": ""p2"", ""name"": ""U"",
@@ -372,52 +372,52 @@ namespace NeoCompose.Tests
                 ],
                 ""extendsGenericBindings"": {
                     ""pp1"": { ""kind"": ""generic"", ""genericParamId"": ""p1"" },
-                    ""pp2"": { ""kind"": ""attribute"", ""attributeId"": ""a1"" }
+                    ""pp2"": { ""kind"": ""member"", ""memberId"": ""a1"" }
                 }
             }";
-            var type = JsonConvert.DeserializeObject<CustomType>(json)!;
+            var schemaClass = JsonConvert.DeserializeObject<NeoSchemaClass>(json)!;
 
-            Assert.AreEqual(2, type.genericParams!.Count);
-            Assert.AreEqual("p1", type.genericParams[0].id);
-            Assert.IsNull(type.genericParams[0].constraint);
-            Assert.AreEqual(NeoGenericConstraintKinds.Enum, type.genericParams[1].constraint!.kind);
-            Assert.AreEqual("e1", type.genericParams[1].constraint!.enumId);
+            Assert.AreEqual(2, schemaClass.genericParams!.Count);
+            Assert.AreEqual("p1", schemaClass.genericParams[0].id);
+            Assert.IsNull(schemaClass.genericParams[0].constraint);
+            Assert.AreEqual(NeoGenericConstraintKinds.Enum, schemaClass.genericParams[1].constraint!.kind);
+            Assert.AreEqual("e1", schemaClass.genericParams[1].constraint!.enumId);
 
-            Assert.AreEqual(2, type.extendsGenericBindings!.Count);
-            Assert.IsTrue(type.extendsGenericBindings["pp1"].IsForward);
-            Assert.AreEqual("p1", type.extendsGenericBindings["pp1"].genericParamId);
-            Assert.IsFalse(type.extendsGenericBindings["pp2"].IsForward);
-            Assert.AreEqual("a1", type.extendsGenericBindings["pp2"].attributeId);
+            Assert.AreEqual(2, schemaClass.extendsGenericBindings!.Count);
+            Assert.IsTrue(schemaClass.extendsGenericBindings["pp1"].IsForward);
+            Assert.AreEqual("p1", schemaClass.extendsGenericBindings["pp1"].genericParamId);
+            Assert.IsFalse(schemaClass.extendsGenericBindings["pp2"].IsForward);
+            Assert.AreEqual("a1", schemaClass.extendsGenericBindings["pp2"].memberId);
         }
 
         [Test]
-        public void Json_CustomType_AbsentGenericFieldsStayNull()
+        public void Json_NeoSchemaClass_AbsentGenericFieldsStayNull()
         {
             const string json = @"{""id"": ""t1"", ""projectId"": ""p"", ""name"": ""Foo"", ""schema"": {}}";
-            var type = JsonConvert.DeserializeObject<CustomType>(json)!;
-            Assert.IsNull(type.genericParams);
-            Assert.IsNull(type.extendsGenericBindings);
+            var schemaClass = JsonConvert.DeserializeObject<NeoSchemaClass>(json)!;
+            Assert.IsNull(schemaClass.genericParams);
+            Assert.IsNull(schemaClass.extendsGenericBindings);
         }
 
         [Test]
-        public void Json_GenericAttribute_ReadsOrdinal21()
+        public void Json_GenericMember_ReadsOrdinal21()
         {
-            const string json = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""type"": 21, ""isStatic"": false, ""genericParamId"": ""p1""}";
-            var attribute = JsonConvert.DeserializeObject<Attribute>(json);
-            Assert.IsInstanceOf<GenericAttribute>(attribute);
-            Assert.AreEqual("p1", ((GenericAttribute)attribute!).genericParamId);
+            const string json = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""kind"": 21, ""isStatic"": false, ""genericParamId"": ""p1""}";
+            var member = JsonConvert.DeserializeObject<Member>(json);
+            Assert.IsInstanceOf<GenericMember>(member);
+            Assert.AreEqual("p1", ((GenericMember)member!).genericParamId);
         }
 
         [Test]
-        public void Json_AttributeVirtualAndAbstractFlagsPreserveAbsenceAndValues()
+        public void Json_MemberVirtualAndAbstractFlagsPreserveAbsenceAndValues()
         {
-            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5, ""isStatic"": false}";
-            const string trueJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5, ""isStatic"": false, ""isVirtual"": true, ""isAbstract"": true}";
-            const string falseJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5, ""isStatic"": false, ""isVirtual"": false, ""isAbstract"": false}";
+            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false}";
+            const string trueJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""isVirtual"": true, ""isAbstract"": true}";
+            const string falseJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""kind"": 5, ""isStatic"": false, ""isVirtual"": false, ""isAbstract"": false}";
 
-            var absent = JsonConvert.DeserializeObject<Attribute>(absentJson)!;
-            var trueValues = JsonConvert.DeserializeObject<Attribute>(trueJson)!;
-            var falseValues = JsonConvert.DeserializeObject<Attribute>(falseJson)!;
+            var absent = JsonConvert.DeserializeObject<Member>(absentJson)!;
+            var trueValues = JsonConvert.DeserializeObject<Member>(trueJson)!;
+            var falseValues = JsonConvert.DeserializeObject<Member>(falseJson)!;
 
             Assert.IsNull(absent.isVirtual);
             Assert.IsNull(absent.isAbstract);
@@ -428,31 +428,31 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void Json_CustomAttribute_ReadsTypeArguments()
+        public void Json_ClassMember_ReadsClassArguments()
         {
             const string json = @"{
-                ""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""type"": 7, ""isStatic"": false,
-                ""customTypeId"": ""t1"",
-                ""customTypeArguments"": {
-                    ""p1"": { ""kind"": ""attribute"", ""attributeId"": ""a2"" }
+                ""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""kind"": 7, ""isStatic"": false,
+                ""classId"": ""t1"",
+                ""classArguments"": {
+                    ""p1"": { ""kind"": ""member"", ""memberId"": ""a2"" }
                 }
             }";
-            var attribute = JsonConvert.DeserializeObject<Attribute>(json);
-            Assert.IsInstanceOf<CustomAttribute>(attribute);
-            var custom = (CustomAttribute)attribute!;
-            Assert.AreEqual(1, custom.customTypeArguments!.Count);
-            Assert.AreEqual("a2", custom.customTypeArguments["p1"].attributeId);
+            var member = JsonConvert.DeserializeObject<Member>(json);
+            Assert.IsInstanceOf<ClassMember>(member);
+            var classMember = (ClassMember)member!;
+            Assert.AreEqual(1, classMember.classArguments!.Count);
+            Assert.AreEqual("a2", classMember.classArguments["p1"].memberId);
         }
 
         [Test]
         public void Json_ValueRow_RoundTripsGenericBindingsStamp()
         {
             const string json = @"{""id"": ""v1"", ""value"": [], ""genericBindings"": {""p1"": ""a1""}}";
-            var row = JsonConvert.DeserializeObject<AttributeValue>(json)!;
+            var row = JsonConvert.DeserializeObject<MemberValue>(json)!;
             Assert.AreEqual("a1", row.genericBindings!["p1"]);
 
             string serialized = JsonConvert.SerializeObject(row);
-            var reparsed = JsonConvert.DeserializeObject<AttributeValue>(serialized)!;
+            var reparsed = JsonConvert.DeserializeObject<MemberValue>(serialized)!;
             Assert.AreEqual("a1", reparsed.genericBindings!["p1"]);
         }
 
@@ -472,37 +472,37 @@ namespace NeoCompose.Tests
         public void ResolveEnv_ClosedLeaf_ResolvesThroughForwardChain()
         {
             var client = LoadClient();
-            var env = NeoGenericResolution.ResolveEnv(client, "type-damage");
+            var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
 
             // T (declared by EnchantCard) forwards through MiddleCard's U to
             // the leaf's concrete binding; U resolves to the same terminal.
             Assert.IsTrue(env[NeoGenericTestFixture.ParamT].IsBound);
-            Assert.AreEqual("attr-binding-float", env[NeoGenericTestFixture.ParamT].attributeId);
+            Assert.AreEqual("member-binding-float", env[NeoGenericTestFixture.ParamT].memberId);
             Assert.IsTrue(env[NeoGenericTestFixture.ParamU].IsBound);
-            Assert.AreEqual("attr-binding-float", env[NeoGenericTestFixture.ParamU].attributeId);
-            Assert.IsTrue(NeoGenericResolution.IsClosedType(client, "type-damage"));
+            Assert.AreEqual("member-binding-float", env[NeoGenericTestFixture.ParamU].memberId);
+            Assert.IsTrue(NeoGenericResolution.IsClosedClass(client, "class-damage"));
         }
 
         [Test]
         public void ResolveEnv_ForwardingMiddle_LeavesDeepestForwardTargetUnbound()
         {
             var client = LoadClient();
-            var env = NeoGenericResolution.ResolveEnv(client, "type-middle");
+            var env = NeoGenericResolution.ResolveEnv(client, "class-middle");
 
             // T's terminal at MiddleCard is the forward target U — the param
             // a further descendant must bind.
             Assert.IsFalse(env[NeoGenericTestFixture.ParamT].IsBound);
             Assert.AreEqual(NeoGenericTestFixture.ParamU, env[NeoGenericTestFixture.ParamT].unboundParamId);
             Assert.IsFalse(env[NeoGenericTestFixture.ParamU].IsBound);
-            Assert.IsFalse(NeoGenericResolution.IsClosedType(client, "type-middle"));
+            Assert.IsFalse(NeoGenericResolution.IsClosedClass(client, "class-middle"));
         }
 
         [Test]
         public void ResolveEnv_NonGenericChain_IsEmptyAndClosed()
         {
             var client = LoadClient();
-            Assert.AreEqual(0, NeoGenericResolution.ResolveEnv(client, "type-card-base").Count);
-            Assert.IsTrue(NeoGenericResolution.IsClosedType(client, "type-card-base"));
+            Assert.AreEqual(0, NeoGenericResolution.ResolveEnv(client, "class-card-base").Count);
+            Assert.IsTrue(NeoGenericResolution.IsClosedClass(client, "class-card-base"));
         }
 
         // ------------------------------------------------------------------
@@ -513,15 +513,15 @@ namespace NeoCompose.Tests
         public void ResolveInstanceEnv_OverlaysConstructedSlotArgumentsOverOpenChainEnv()
         {
             var client = LoadClient();
-            var slot = (CustomAttribute)client.attributes["attr-constructed-slot"];
+            var slot = (ClassMember)client.members["member-constructed-slot"];
 
             // EnchantCard's chain leaves T unbound; the slot's Float
             // argument is the terminal binding at the usage site.
             var env = NeoGenericResolution.ResolveInstanceEnv(
-                client, "type-enchant", slot.customTypeArguments);
+                client, "class-enchant", slot.classArguments);
 
             Assert.IsTrue(env[NeoGenericTestFixture.ParamT].IsBound);
-            Assert.AreEqual("attr-binding-float", env[NeoGenericTestFixture.ParamT].attributeId);
+            Assert.AreEqual("member-binding-float", env[NeoGenericTestFixture.ParamT].memberId);
             Assert.IsNull(NeoGenericResolution.FirstUnboundParamId(env));
         }
 
@@ -530,24 +530,24 @@ namespace NeoCompose.Tests
         {
             var client = LoadClient();
 
-            // A named closed subtype picked into a constructed slot: the
+            // A named closed subclass picked into a constructed slot: the
             // chain's own binding stays authoritative (admission guarantees
             // signature equality, so they agree — here they deliberately
             // differ to prove precedence).
             var env = NeoGenericResolution.ResolveInstanceEnv(
                 client,
-                "type-damage",
+                "class-damage",
                 new Dictionary<string, GenericBinding>
                 {
                     [NeoGenericTestFixture.ParamT] = new()
                     {
-                        kind = NeoGenericBindingKinds.Attribute,
-                        attributeId = "attr-binding-string",
+                        kind = NeoGenericBindingKinds.Member,
+                        memberId = "member-binding-string",
                     },
                 });
 
             Assert.IsTrue(env[NeoGenericTestFixture.ParamT].IsBound);
-            Assert.AreEqual("attr-binding-float", env[NeoGenericTestFixture.ParamT].attributeId);
+            Assert.AreEqual("member-binding-float", env[NeoGenericTestFixture.ParamT].memberId);
         }
 
         [Test]
@@ -559,7 +559,7 @@ namespace NeoCompose.Tests
             // enclosing contexts substitute the slot before descent.
             var forwarded = NeoGenericResolution.ResolveInstanceEnv(
                 client,
-                "type-enchant",
+                "class-enchant",
                 new Dictionary<string, GenericBinding>
                 {
                     [NeoGenericTestFixture.ParamT] = new()
@@ -573,7 +573,7 @@ namespace NeoCompose.Tests
                 NeoGenericResolution.FirstUnboundParamId(forwarded));
 
             // Identity with ResolveEnv for slots without arguments.
-            var bare = NeoGenericResolution.ResolveInstanceEnv(client, "type-enchant", null);
+            var bare = NeoGenericResolution.ResolveInstanceEnv(client, "class-enchant", null);
             Assert.AreEqual(
                 NeoGenericTestFixture.ParamT,
                 NeoGenericResolution.FirstUnboundParamId(bare));
@@ -584,17 +584,17 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         [Test]
-        public void SubstituteAttribute_PartitionsSlotAndBindingFields()
+        public void SubstituteMember_PartitionsSlotAndBindingFields()
         {
             var client = LoadClient();
-            var env = NeoGenericResolution.ResolveEnv(client, "type-damage");
-            var slot = client.attributes["attr-speed"];
+            var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
+            var slot = client.members["member-speed"];
 
-            var substituted = NeoGenericResolution.SubstituteAttribute(client, slot, env);
+            var substituted = NeoGenericResolution.SubstituteMember(client, slot, env);
 
-            Assert.IsInstanceOf<FloatAttribute>(substituted);
+            Assert.IsInstanceOf<FloatMember>(substituted);
             // Slot identity/placement fields win.
-            Assert.AreEqual("attr-speed", substituted.id);
+            Assert.AreEqual("member-speed", substituted.id);
             Assert.AreEqual("Speed", substituted.name);
             Assert.IsTrue(substituted.locked);
             Assert.AreEqual(false, substituted.isVirtual,
@@ -603,27 +603,27 @@ namespace NeoCompose.Tests
                 "the slot's abstract declaration must not come from its binding");
             Assert.IsNull(substituted.storage,
                 "the binding's storage declaration must not leak into the slot");
-            Assert.IsNull(substituted.extendsAttributeId);
+            Assert.IsNull(substituted.extendsMemberId);
             // Binding type/config/required/defaultValue win.
-            var substitutedFloat = (FloatAttribute)substituted;
+            var substitutedFloat = (FloatMember)substituted;
             Assert.IsTrue(substitutedFloat.required);
             Assert.AreEqual(0f, substitutedFloat.minValue);
             Assert.AreEqual(3.5, substitutedFloat.defaultValue!.value);
         }
 
         [Test]
-        public void SubstituteAttribute_AbsentSlotFlagsClearBindingFlags()
+        public void SubstituteMember_AbsentSlotFlagsClearBindingFlags()
         {
             var client = LoadClient();
-            var env = NeoGenericResolution.ResolveEnv(client, "type-damage");
-            var slot = client.attributes["attr-speed"];
+            var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
+            var slot = client.members["member-speed"];
             slot.isVirtual = null;
             slot.isAbstract = null;
-            var binding = client.attributes["attr-binding-float"];
+            var binding = client.members["member-binding-float"];
             binding.isVirtual = false;
             binding.isAbstract = true;
 
-            var substituted = NeoGenericResolution.SubstituteAttribute(client, slot, env);
+            var substituted = NeoGenericResolution.SubstituteMember(client, slot, env);
 
             Assert.IsNull(substituted.isVirtual,
                 "an absent slot declaration must clear the binding's virtual flag");
@@ -632,23 +632,23 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void SubstituteAttribute_NonGenericRecord_IsIdentity()
+        public void SubstituteMember_NonGenericRecord_IsIdentity()
         {
             var client = LoadClient();
-            var env = NeoGenericResolution.ResolveEnv(client, "type-damage");
-            var plain = client.attributes["attr-binding-string"];
-            Assert.AreSame(plain, NeoGenericResolution.SubstituteAttribute(client, plain, env));
+            var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
+            var plain = client.members["member-binding-string"];
+            Assert.AreSame(plain, NeoGenericResolution.SubstituteMember(client, plain, env));
         }
 
         [Test]
-        public void SubstituteAttribute_UnboundParam_ThrowsDescriptively()
+        public void SubstituteMember_UnboundParam_ThrowsDescriptively()
         {
             var client = LoadClient();
-            var openEnv = NeoGenericResolution.ResolveEnv(client, "type-middle");
-            var slot = client.attributes["attr-speed"];
+            var openEnv = NeoGenericResolution.ResolveEnv(client, "class-middle");
+            var slot = client.members["member-speed"];
 
             var error = Assert.Throws<System.InvalidOperationException>(
-                () => NeoGenericResolution.SubstituteAttribute(client, slot, openEnv))!;
+                () => NeoGenericResolution.SubstituteMember(client, slot, openEnv))!;
             StringAssert.Contains("unbound", error.Message);
             StringAssert.Contains("Speed", error.Message);
         }
@@ -661,24 +661,24 @@ namespace NeoCompose.Tests
         public void ComputeGenericBindingsStamp_RoundTripsThroughEnvFromStamp()
         {
             var client = LoadClient();
-            var env = NeoGenericResolution.ResolveEnv(client, "type-damage");
-            var listAttribute = client.attributes["attr-values"];
+            var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
+            var listMember = client.members["member-values"];
 
-            var stamp = NeoGenericResolution.ComputeGenericBindingsStamp(client, listAttribute, env)!;
+            var stamp = NeoGenericResolution.ComputeGenericBindingsStamp(client, listMember, env)!;
             Assert.AreEqual(1, stamp.Count);
-            Assert.AreEqual("attr-binding-float", stamp[NeoGenericTestFixture.ParamT]);
+            Assert.AreEqual("member-binding-float", stamp[NeoGenericTestFixture.ParamT]);
 
             var rebuilt = NeoGenericResolution.EnvFromStamp(stamp);
             Assert.IsTrue(rebuilt[NeoGenericTestFixture.ParamT].IsBound);
-            Assert.AreEqual("attr-binding-float", rebuilt[NeoGenericTestFixture.ParamT].attributeId);
+            Assert.AreEqual("member-binding-float", rebuilt[NeoGenericTestFixture.ParamT].memberId);
         }
 
         [Test]
         public void ComputeGenericBindingsStamp_NonGenericSubtree_IsNull()
         {
             var client = LoadClient();
-            var env = NeoGenericResolution.ResolveEnv(client, "type-damage");
-            var plainList = client.attributes["attr-plain-list"];
+            var env = NeoGenericResolution.ResolveEnv(client, "class-damage");
+            var plainList = client.members["member-plain-list"];
             Assert.IsNull(NeoGenericResolution.ComputeGenericBindingsStamp(client, plainList, env));
         }
 
@@ -686,10 +686,10 @@ namespace NeoCompose.Tests
         public void ComputeGenericBindingsStamp_UnboundEnv_Throws()
         {
             var client = LoadClient();
-            var openEnv = NeoGenericResolution.ResolveEnv(client, "type-middle");
-            var listAttribute = client.attributes["attr-values"];
+            var openEnv = NeoGenericResolution.ResolveEnv(client, "class-middle");
+            var listMember = client.members["member-values"];
             var error = Assert.Throws<System.InvalidOperationException>(
-                () => NeoGenericResolution.ComputeGenericBindingsStamp(client, listAttribute, openEnv))!;
+                () => NeoGenericResolution.ComputeGenericBindingsStamp(client, listMember, openEnv))!;
             StringAssert.Contains("unbound", error.Message);
         }
 
@@ -698,95 +698,95 @@ namespace NeoCompose.Tests
         // ------------------------------------------------------------------
 
         [Test]
-        public void CustomNode_SubstitutesGenericChildBeforeDispatch()
+        public void ClassNode_SubstitutesGenericChildBeforeDispatch()
         {
             var client = LoadClient();
-            var card = client.save.Get<NeoAttributeCustomWritable>("Card");
+            var card = client.save.Get<NeoMemberClassWritable>("Card");
 
             // The T slot on a closed Float instance constructs the Float
             // wrapper and materializes the BINDING's default (3.5).
-            var speed = card.Get<NeoAttributeFloatWritable>("Speed");
+            var speed = card.Get<NeoMemberFloatWritable>("Speed");
             Assert.AreEqual(3.5, speed.value?.value);
 
             // The same slot on the String leaf constructs the String wrapper.
-            var stringCard = client.save.Get<NeoAttributeCustomWritable>("StringCard");
-            Assert.IsTrue(stringCard.TryGet("Speed", out NeoAttributeString? stringSpeed));
+            var stringCard = client.save.Get<NeoMemberClassWritable>("StringCard");
+            Assert.IsTrue(stringCard.TryGet("Speed", out NeoMemberString? stringSpeed));
             Assert.IsNull(stringSpeed!.value?.value);
         }
 
         [Test]
-        public void CustomNode_WritesGenericMemberThroughSubstitutedKind()
+        public void ClassNode_WritesGenericMemberThroughSubstitutedKind()
         {
             var client = LoadClient();
-            var card = client.save.Get<NeoAttributeCustomWritable>("Card");
+            var card = client.save.Get<NeoMemberClassWritable>("Card");
 
             card.SetSerializedValue("Speed", NeoValueWritePayload.FromValue((double?)2.5));
 
-            Assert.AreEqual(2.5, card.Get<NeoAttributeFloatWritable>("Speed").value?.value);
+            Assert.AreEqual(2.5, card.Get<NeoMemberFloatWritable>("Speed").value?.value);
         }
 
         [Test]
         public void CollectionRow_MintedBySdk_CarriesStampAndTypedEntries()
         {
             var client = LoadClient();
-            var card = client.save.Get<NeoAttributeCustomWritable>("Card");
+            var card = client.save.Get<NeoMemberClassWritable>("Card");
 
-            var values = card.GetOrCreateCollection<NeoAttributeListWritable>("Values");
+            var values = card.GetOrCreateCollection<NeoMemberListWritable>("Values");
             Assert.IsNotNull(values.value, "GetOrCreateCollection binds an empty list row");
             Assert.IsNotNull(values.value!.genericBindings, "SDK-minted generic collection rows must be stamped");
             Assert.AreEqual(
-                "attr-binding-float",
+                "member-binding-float",
                 values.value!.genericBindings![NeoGenericTestFixture.ParamT]);
 
             values.AddSerialized(NeoValueWritePayload.FromValue((double?)1.25));
             Assert.AreEqual(1, values.Count);
-            Assert.IsInstanceOf<NeoAttributeFloat>(values[0],
+            Assert.IsInstanceOf<NeoMemberFloat>(values[0],
                 "the stamped row substitutes the Generic entry to the Float wrapper");
-            Assert.AreEqual(1.25, ((NeoAttributeFloat)values[0]).value?.value);
+            Assert.AreEqual(1.25, ((NeoMemberFloat)values[0]).value?.value);
         }
 
         [Test]
-        public void CustomNode_ConstructedSlotInstance_ReadsChildThroughSlotArguments()
+        public void ClassNode_ConstructedSlotInstance_ReadsChildThroughSlotArguments()
         {
             var client = LoadClient();
 
-            // The instance row carries `typeId: null` (the DECLARED open
+            // The instance row carries `classId: null` (the DECLARED open
             // type) — its params are bound only by the slot's constructed
             // arguments. Descending previously threw "param ... is unbound
-            // in the binding environment — only closed types are
+            // in the binding environment — only closed classes are
             // instantiable" (spec §4.1).
-            var constructed = client.save.Get<NeoAttributeCustomWritable>("Constructed");
-            var speed = constructed.Get<NeoAttributeFloatWritable>("Speed");
+            var constructed = client.save.Get<NeoMemberClassWritable>("Constructed");
+            var speed = constructed.Get<NeoMemberFloatWritable>("Speed");
             Assert.AreEqual(7.25, speed.value?.value);
         }
 
         [Test]
-        public void Factory_CreateWritableCustomValue_SubstitutesRequiredDefaults()
+        public void Factory_CreateWritableClassValue_SubstitutesRequiredDefaults()
         {
             var client = LoadClient();
 
-            var node = NeoGeneratedTypesSupport.CreateWritableCustomValue(
+            var node = NeoGeneratedTypesSupport.CreateWritableClassValue(
                 client,
-                "type-damage",
+                "class-damage",
                 new Dictionary<string, string>(),
-                System.Array.Empty<AttributeValue>());
+                System.Array.Empty<MemberValue>());
 
             // Speed substitutes to the required Float binding, so the
             // factory materializes its default row.
-            Assert.AreEqual(3.5, node.Get<NeoAttributeFloatWritable>("Speed").value?.value);
+            Assert.AreEqual(3.5, node.Get<NeoMemberFloatWritable>("Speed").value?.value);
         }
 
         [Test]
-        public void Factory_CreateWritableCustomValue_RejectsOpenType()
+        public void Factory_CreateWritableClassValue_RejectsOpenClass()
         {
             var client = LoadClient();
             var error = Assert.Throws<System.InvalidOperationException>(
-                () => NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                () => NeoGeneratedTypesSupport.CreateWritableClassValue(
                     client,
-                    "type-middle",
+                    "class-middle",
                     new Dictionary<string, string>(),
-                    System.Array.Empty<AttributeValue>()))!;
-            StringAssert.Contains("open generic type", error.Message);
+                    System.Array.Empty<MemberValue>()))!;
+            StringAssert.Contains("open generic class", error.Message);
         }
 
         // ------------------------------------------------------------------
@@ -797,25 +797,25 @@ namespace NeoCompose.Tests
         public void ConstructedSlotAccepts_MatchingClosedDescendant_Ok()
         {
             var client = LoadClient();
-            var slot = (CustomAttribute)client.attributes["attr-constructed-slot"];
+            var slot = (ClassMember)client.members["member-constructed-slot"];
 
             var admission = NeoGenericResolution.ConstructedSlotAccepts(
-                client, slot, "type-damage", NeoGenericResolution.EmptyEnv);
+                client, slot, "class-damage", NeoGenericResolution.EmptyEnv);
 
             Assert.IsTrue(admission.ok, admission.reason);
         }
 
         [Test]
-        public void ConstructedSlotAccepts_DeclaredOpenTypeClosedBySlotArguments_Ok()
+        public void ConstructedSlotAccepts_DeclaredOpenClassClosedBySlotArguments_Ok()
         {
             var client = LoadClient();
-            var slot = (CustomAttribute)client.attributes["attr-constructed-slot"];
+            var slot = (ClassMember)client.members["member-constructed-slot"];
 
-            // The DECLARED open type itself is admissible when the slot's
+            // The DECLARED open class itself is admissible when the slot's
             // arguments close it — rejecting it as "open" would leave
             // constructed slots with no valid pick at all (spec §3.4).
             var admission = NeoGenericResolution.ConstructedSlotAccepts(
-                client, slot, "type-enchant", NeoGenericResolution.EmptyEnv);
+                client, slot, "class-enchant", NeoGenericResolution.EmptyEnv);
 
             Assert.IsTrue(admission.ok, admission.reason);
         }
@@ -824,29 +824,29 @@ namespace NeoCompose.Tests
         public void ConstructedSlotAccepts_SignatureMismatch_Rejected()
         {
             var client = LoadClient();
-            var slot = (CustomAttribute)client.attributes["attr-constructed-slot"];
+            var slot = (ClassMember)client.members["member-constructed-slot"];
 
             // String argument vs the slot's Float argument.
             var stringLeaf = NeoGenericResolution.ConstructedSlotAccepts(
-                client, slot, "type-string-card", NeoGenericResolution.EmptyEnv);
+                client, slot, "class-string-card", NeoGenericResolution.EmptyEnv);
             Assert.IsFalse(stringLeaf.ok);
             StringAssert.Contains("signature mismatch", stringLeaf.reason);
 
             // Optional Float vs required Float — `required` is part of the
             // signature (nullability is part of the type, Decision 8).
             var optionalLeaf = NeoGenericResolution.ConstructedSlotAccepts(
-                client, slot, "type-optional-float", NeoGenericResolution.EmptyEnv);
+                client, slot, "class-optional-float", NeoGenericResolution.EmptyEnv);
             Assert.IsFalse(optionalLeaf.ok);
             StringAssert.Contains("signature mismatch", optionalLeaf.reason);
         }
 
         [Test]
-        public void ConstructedSlotAccepts_OpenType_Rejected()
+        public void ConstructedSlotAccepts_OpenClass_Rejected()
         {
             var client = LoadClient();
-            var slot = (CustomAttribute)client.attributes["attr-constructed-slot"];
+            var slot = (ClassMember)client.members["member-constructed-slot"];
             var admission = NeoGenericResolution.ConstructedSlotAccepts(
-                client, slot, "type-middle", NeoGenericResolution.EmptyEnv);
+                client, slot, "class-middle", NeoGenericResolution.EmptyEnv);
             Assert.IsFalse(admission.ok);
             StringAssert.Contains("open", admission.reason);
         }
@@ -855,20 +855,20 @@ namespace NeoCompose.Tests
         public void ConstructedSlotAccepts_NonDescendant_Rejected()
         {
             var client = LoadClient();
-            var slot = (CustomAttribute)client.attributes["attr-constructed-slot"];
+            var slot = (ClassMember)client.members["member-constructed-slot"];
             var admission = NeoGenericResolution.ConstructedSlotAccepts(
-                client, slot, "root-type", NeoGenericResolution.EmptyEnv);
+                client, slot, "root-class", NeoGenericResolution.EmptyEnv);
             Assert.IsFalse(admission.ok);
             StringAssert.Contains("descendants", admission.reason);
         }
 
         [Test]
-        public void ConstructedSlotAccepts_MissingType_Rejected()
+        public void ConstructedSlotAccepts_MissingClass_Rejected()
         {
             var client = LoadClient();
-            var slot = (CustomAttribute)client.attributes["attr-constructed-slot"];
+            var slot = (ClassMember)client.members["member-constructed-slot"];
             var admission = NeoGenericResolution.ConstructedSlotAccepts(
-                client, slot, "type-nope", NeoGenericResolution.EmptyEnv);
+                client, slot, "class-nope", NeoGenericResolution.EmptyEnv);
             Assert.IsFalse(admission.ok);
             StringAssert.Contains("does not exist", admission.reason);
         }

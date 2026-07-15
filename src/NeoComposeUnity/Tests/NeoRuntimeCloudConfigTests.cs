@@ -112,7 +112,7 @@ namespace NeoCompose.Tests
         {
             var stack = NeoTestSaveStack.Create(LoadFixture("synth-example.json"));
             var client = stack.Load();
-            client.SetSaveValue(new StringAttributeValue
+            client.SetSaveValue(new StringMemberValue
             {
                 id = "committed-value",
                 createdAt = "now",

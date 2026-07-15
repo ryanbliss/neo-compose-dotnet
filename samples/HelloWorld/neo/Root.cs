@@ -36,10 +36,10 @@ public abstract partial class Root
         {
             Id = "444f7fa9-8160-4514-a3a7-eb63b327fa76",
             Path = "$",
-            Kind = NeoEntryKind.Custom,
+            Kind = NeoEntryKind.Class,
             Required = true,
             Virtual = true,
-            Custom = new()
+            Class = new()
             {
                 Type = typeof(ConsoleObjectLayer),
             },
@@ -65,10 +65,10 @@ public abstract partial class Root
         {
             Id = "4bc2ef98-930e-483f-90fa-c3716346b4d7",
             Path = "$",
-            Kind = NeoEntryKind.Custom,
+            Kind = NeoEntryKind.Class,
             Required = true,
             Virtual = true,
-            Custom = new()
+            Class = new()
             {
                 Type = typeof(ConsoleTileLayer),
             },

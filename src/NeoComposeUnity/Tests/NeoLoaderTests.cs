@@ -156,8 +156,8 @@ namespace NeoCompose.Tests
   ""values"": {},
   ""staticBindings"": {}
 }");
-            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
-            var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Save);
+            var member = RequireMember<StringMember>(client, "member-title");
+            var node = new NeoMemberStringWritable(client, member, null, NeoValueOwnership.Save);
 
             node.SetLiteralOverride("Manual Title");
 
@@ -180,8 +180,8 @@ namespace NeoCompose.Tests
   ""values"": {},
   ""staticBindings"": {}
 }");
-            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
-            var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Session);
+            var member = RequireMember<StringMember>(client, "member-title");
+            var node = new NeoMemberStringWritable(client, member, null, NeoValueOwnership.Session);
 
             node.SetLiteralOverride("Session Title");
 
@@ -208,9 +208,9 @@ namespace NeoCompose.Tests
             var data = JsonConvert.DeserializeObject<ProjectData>(
                 @"{
   ""project"": { ""id"": ""project-1"" },
-  ""attributes"": {},
+  ""members"": {},
   ""values"": {},
-  ""types"": {},
+  ""classes"": {},
   ""enums"": {},
   ""localization"": {
     ""schemaVersion"": 1,
@@ -505,33 +505,33 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoAttributeString_TextResolvesLocalizableTextIds()
+        public void NeoMemberString_TextResolvesLocalizableTextIds()
         {
             var client = LoadLocalizedStringClient(localizable: true);
-            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
-            var node = new NeoAttributeString(client, attr, null);
+            var member = RequireMember<StringMember>(client, "member-title");
+            var node = new NeoMemberString(client, member, null);
 
             Assert.AreEqual("text-title", node.TextId);
             Assert.AreEqual("Localized Title", node.Text);
         }
 
         [Test]
-        public void NeoAttributeString_TextKeepsNonLocalizableStringsLiteral()
+        public void NeoMemberString_TextKeepsNonLocalizableStringsLiteral()
         {
             var client = LoadLocalizedStringClient(localizable: false);
-            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
-            var node = new NeoAttributeString(client, attr, null);
+            var member = RequireMember<StringMember>(client, "member-title");
+            var node = new NeoMemberString(client, member, null);
 
             Assert.IsNull(node.TextId);
             Assert.AreEqual("text-title", node.Text);
         }
 
         [Test]
-        public void NeoAttributeString_SetLiteralOverrideDoesNotOverwriteLocalizedValue()
+        public void NeoMemberString_SetLiteralOverrideDoesNotOverwriteLocalizedValue()
         {
             var client = LoadLocalizedStringClient(localizable: true);
-            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
-            var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Save);
+            var member = RequireMember<StringMember>(client, "member-title");
+            var node = new NeoMemberStringWritable(client, member, null, NeoValueOwnership.Save);
 
             Assert.AreEqual("Localized Title", node.Text);
 
@@ -548,11 +548,11 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void NeoAttributeString_SetLiteralOverrideSupportsNullUnlessRequired()
+        public void NeoMemberString_SetLiteralOverrideSupportsNullUnlessRequired()
         {
             var client = LoadLocalizedStringClient(localizable: true);
-            var attr = RequireAttribute<StringAttribute>(client, "attr-title");
-            var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Save);
+            var member = RequireMember<StringMember>(client, "member-title");
+            var node = new NeoMemberStringWritable(client, member, null, NeoValueOwnership.Save);
 
             node.SetLiteralOverride(null);
 
@@ -560,7 +560,7 @@ namespace NeoCompose.Tests
             Assert.IsNull(node.TextId);
             Assert.AreEqual(NeoStringLocalizationMode.Literal, node.value!.neoLocalizationMode);
 
-            attr.required = true;
+            member.required = true;
 
             Assert.Throws<System.ArgumentNullException>(() => node.SetLiteralOverride(null));
         }
@@ -588,58 +588,58 @@ namespace NeoCompose.Tests
         {
             var projectJson = $@"{{
   ""metadata"": {{
-    ""schemaVersion"": 7,
+    ""schemaVersion"": 8,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   }},
   ""project"": {{
     ""id"": ""project-1"",
-    ""rootAssetsAttributeId"": ""root-assets"",
-    ""rootSaveFileAttributeId"": ""root-save"",
-    ""rootSessionAttributeId"": ""root-session""
+    ""rootAssetsMemberId"": ""root-assets"",
+    ""rootSaveFileMemberId"": ""root-save"",
+    ""rootSessionMemberId"": ""root-session""
   }},
-  ""attributes"": {{
+  ""members"": {{
     ""root-assets"": {{
       ""id"": ""root-assets"",
       ""projectId"": ""project-1"",
       ""name"": ""Assets"",
-      ""type"": 7,
+      ""kind"": 7,
       ""isStatic"": false,
-      ""customTypeId"": ""type-root"",
+      ""classId"": ""class-root"",
       ""valueId"": ""assets-value""
     }},
     ""root-save"": {{
       ""id"": ""root-save"",
       ""projectId"": ""project-1"",
       ""name"": ""Save"",
-      ""type"": 7,
+      ""kind"": 7,
       ""isStatic"": false,
-      ""customTypeId"": ""type-root""
+      ""classId"": ""class-root""
     }},
     ""root-session"": {{
       ""id"": ""root-session"",
       ""projectId"": ""project-1"",
       ""name"": ""Session"",
-      ""type"": 7,
+      ""kind"": 7,
       ""isStatic"": false,
-      ""customTypeId"": ""type-root""
+      ""classId"": ""class-root""
     }},
-    ""attr-title"": {{
-      ""id"": ""attr-title"",
+    ""member-title"": {{
+      ""id"": ""member-title"",
       ""projectId"": ""project-1"",
       ""name"": ""Title"",
-      ""type"": 3,
+      ""kind"": 3,
       ""isStatic"": false,
       ""valueId"": ""title-value"",
       ""localizable"": {localizable.ToString().ToLowerInvariant()}
     }}
   }},
-  ""types"": {{
-    ""type-root"": {{
-      ""id"": ""type-root"",
+  ""classes"": {{
+    ""class-root"": {{
+      ""id"": ""class-root"",
       ""projectId"": ""project-1"",
       ""name"": ""Root"",
-      ""attributes"": {{ ""Title"": ""attr-title"" }}
+      ""members"": {{ ""Title"": ""member-title"" }}
     }}
   }},
   ""values"": {{
@@ -648,7 +648,7 @@ namespace NeoCompose.Tests
       ""createdAt"": ""1970-01-01T00:00:00.000Z"",
       ""updatedAt"": ""1970-01-01T00:00:00.000Z"",
       ""value"": {{ ""Title"": ""title-value"" }},
-      ""typeId"": ""type-root""
+      ""classId"": ""class-root""
     }},
     ""title-value"": {{
       ""id"": ""title-value"",
@@ -683,15 +683,15 @@ namespace NeoCompose.Tests
                 initialSaveContent: string.IsNullOrEmpty(initialSave) ? null : initialSave);
         }
 
-        private static T RequireAttribute<T>(NeoClient client, string id)
-            where T : Attribute
+        private static T RequireMember<T>(NeoClient client, string id)
+            where T : Member
         {
-            if (!client.TryGetAttribute(id, out T? attr))
+            if (!client.TryGetMember(id, out T? member))
             {
-                Assert.Fail($"Fixture is missing attribute '{id}' of type {typeof(T).Name}");
+                Assert.Fail($"Fixture is missing member '{id}' of type {typeof(T).Name}");
                 throw new System.InvalidOperationException("unreachable");
             }
-            return attr;
+            return member;
         }
 
         private static NeoClient LoadClientWithStreamingLocalization(

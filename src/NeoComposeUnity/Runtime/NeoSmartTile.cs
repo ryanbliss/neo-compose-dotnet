@@ -69,7 +69,7 @@ namespace NeoCompose.Runtime
         string Condition { get; }
 
         /// <summary>
-        /// The referenced tile value id for the inherits-from-type conditions.
+        /// The referenced tile value id for the inherits-from-class conditions.
         /// </summary>
         string? TileValueId { get; }
     }
@@ -81,8 +81,8 @@ namespace NeoCompose.Runtime
         NotThis = 2,
         ExactTile = 3,
         NotExactTile = 4,
-        InheritsFromType = 5,
-        NotInheritsFromType = 6,
+        InheritsFromClass = 5,
+        NotInheritsFromClass = 6,
     }
 
     public enum NeoSmartTileOutputMode
@@ -105,15 +105,15 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// Smart tile enum option ids authored on the web side. These exact ids
     /// are pinned in the neo-compose repo at
-    /// <c>src/models/custom-types/world-system-types.ts</c> — keep both sides
+    /// <c>src/models/classes/world-system-classes.ts</c> — keep both sides
     /// in sync.
     /// </summary>
     public static class NeoSmartTileOptionIds
     {
         public const string ConditionThis = "This";
         public const string ConditionNotThis = "NotThis";
-        public const string ConditionInheritsFromType = "InheritsFromType";
-        public const string ConditionNotInheritsFromType = "NotInheritsFromType";
+        public const string ConditionInheritsFromClass = "InheritsFromClass";
+        public const string ConditionNotInheritsFromClass = "NotInheritsFromClass";
 
         public const string OutputSingle = "Single";
         public const string OutputRandom = "Random";
@@ -138,10 +138,10 @@ namespace NeoCompose.Runtime
                     return NeoSmartTileNeighborKind.This;
                 case ConditionNotThis:
                     return NeoSmartTileNeighborKind.NotThis;
-                case ConditionInheritsFromType:
-                    return NeoSmartTileNeighborKind.InheritsFromType;
-                case ConditionNotInheritsFromType:
-                    return NeoSmartTileNeighborKind.NotInheritsFromType;
+                case ConditionInheritsFromClass:
+                    return NeoSmartTileNeighborKind.InheritsFromClass;
+                case ConditionNotInheritsFromClass:
+                    return NeoSmartTileNeighborKind.NotInheritsFromClass;
                 default:
                     throw new ArgumentException(
                         "Unrecognized smart tile neighbor Condition option id "
@@ -398,7 +398,7 @@ namespace NeoCompose.Runtime
             }
 
             // ParseCondition only returns This, NotThis, or the two
-            // inherits-from-type kinds, which require a referenced tile value.
+            // inherits-from-class kinds, which require a referenced tile value.
             if (string.IsNullOrEmpty(neighbor.TileValueId))
             {
                 throw new InvalidOperationException(

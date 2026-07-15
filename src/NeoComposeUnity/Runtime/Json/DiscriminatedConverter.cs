@@ -47,6 +47,8 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         protected abstract Type? ResolveSubclass(JToken discriminator);
 
+        protected virtual void ValidateObjectBeforeDiscriminator(JObject obj) { }
+
         protected virtual void ValidateObject(JObject obj, Type concrete) { }
 
         public override bool CanConvert(Type objectType)
@@ -64,6 +66,10 @@ namespace NeoCompose.Runtime.Json
         {
             if (reader.TokenType == JsonToken.Null) return null;
             var obj = JObject.Load(reader);
+            Schema8LegacyFieldGuard.RejectRemovedReferenceFieldsShallow(
+                obj,
+                typeof(TBase).Name);
+            ValidateObjectBeforeDiscriminator(obj);
             var disc = obj[DiscriminatorField];
             if (disc == null)
             {
@@ -78,7 +84,7 @@ namespace NeoCompose.Runtime.Json
             }
             ValidateObject(obj, concrete);
             // CRITICAL: do NOT call `obj.ToObject(concrete, serializer)`.
-            // Newtonsoft would re-check `concrete`'s base attribute,
+            // Newtonsoft would re-check `concrete`'s base member,
             // find this same converter via `CanConvert`, and re-enter
             // — recursing until the runtime stack overflows. (Unity
             // crashes when this loops at PlayMode-test scale.)

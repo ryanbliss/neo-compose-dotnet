@@ -8,7 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Runtime.NeoScript;
-using JsonAttribute = NeoCompose.Runtime.Json.Attribute;
+using JsonMember = NeoCompose.Runtime.Json.Member;
 
 namespace NeoCompose.Runtime
 {
@@ -134,12 +134,12 @@ namespace NeoCompose.Runtime
                 ?? throw new NSGetterRuntimeError(
                     "NeoScript body is missing its compiled return type.");
             if (returnType is VoidTypeInfo
-                || returnType.type == AttributeType.Void
+                || returnType.type == MemberKind.Void
                 // Existing action/setter IR uses Null as its statement-body
                 // result marker. Preserve fallthrough for that wire shape;
                 // NSGetterEvaluator still enforces an explicit return at the
                 // getter boundary after allocation cleanup.
-                || returnType.type == AttributeType.Null)
+                || returnType.type == MemberKind.Null)
             {
                 if (execution.ReturnValue is not null)
                 {
@@ -154,7 +154,7 @@ namespace NeoCompose.Runtime
                     "NeoScript body ended without returning a value; its compiled IR is stale or corrupt.");
             }
             // Ordinary evaluator frames may carry a Neo row id as their
-            // internal representation for a declared Custom/List/Dictionary
+            // internal representation for a declared Class/List/Dictionary
             // return. Public NSFunction boundaries supply normalizeTerminal,
             // which performs the authoritative runtime validation/marshalling
             // against the resolved signature before allocation cleanup.
@@ -271,7 +271,7 @@ namespace NeoCompose.Runtime
                             object? returnValue = returnInstruction.pointer is null
                                 ? null
                                 : Eval(returnInstruction.pointer, scope, actionCtx);
-                            if (returnTypeInfo.type == AttributeType.Decimal
+                            if (returnTypeInfo.type == MemberKind.Decimal
                                 && returnValue is double or float or int or long or short)
                             {
                                 returnValue = NSGetterEvaluator.CoerceDecimalOperand(
@@ -364,7 +364,7 @@ namespace NeoCompose.Runtime
             NeoFunctionCallSuspended suspended,
             NeoScriptExecutionOptions? options)
         {
-            options?.WarnDeferred(suspended.AttributeId);
+            options?.WarnDeferred(suspended.MemberId);
             return ResumeAfterNestedCall(suspended.Execution);
 
             NeoScriptExecutionResult ResumeAfterNestedCall(
@@ -483,7 +483,7 @@ namespace NeoCompose.Runtime
             if (string.IsNullOrEmpty(pointer.callSiteId))
             {
                 throw new NSGetterRuntimeError(
-                    "Function call is missing its schema-6 callSiteId.");
+                    "Function call is missing its required callSiteId.");
             }
             string callSiteKey = pointer.callSiteId;
             string resumeKey = expressionState.NextInvocationKey(callSiteKey);
@@ -511,26 +511,26 @@ namespace NeoCompose.Runtime
                 {
                     args[i] = NSGetterEvaluator.EvaluatePointer(pointer.args[i], scope, ctx);
                 }
-                string attributeId = NSGetterEvaluator.ResolveFunctionAttributeId(
+                string memberId = NSGetterEvaluator.ResolveFunctionMemberId(
                     pointer,
                     receiver,
                     ctx);
                 object? value;
-                if (client.TryGetAttribute(attributeId, out NSFunctionAttribute? nsFunction))
+                if (client.TryGetMember(memberId, out NSFunctionMember? nsFunction))
                 {
                     bool deferred = NeoNSFunctionRuntime.ResolveSignature(
                         client,
-                        attributeId).Deferred;
+                        memberId).Deferred;
                     if (deferred && options?.AllowDeferredFunctionCalls != true)
                     {
                         throw new NeoDeferredFunctionRuntimeError(
-                            $"NSFunction '{nsFunction!.name}' ({attributeId}) deferred-mode mismatch: " +
+                            $"NSFunction '{nsFunction!.name}' ({memberId}) deferred-mode mismatch: " +
                             "an immediate NeoScript frame called its deferred signature; " +
                             "compiled call IR is stale/corrupt.");
                     }
                     NeoScriptExecutionResult nested = NeoNSFunctionRuntime.Execute(
                         client,
-                        attributeId,
+                        memberId,
                         receiver,
                         args,
                         ctx,
@@ -546,34 +546,34 @@ namespace NeoCompose.Runtime
                         }
                         throw new NeoFunctionCallSuspended(
                             resumeKey,
-                            attributeId,
+                            memberId,
                             nested);
                     }
                     value = nested.ReturnValue;
                 }
                 else
                 {
-                    bool deferred = client.IsNativeFunctionDeferred(attributeId);
+                    bool deferred = client.IsNativeFunctionDeferred(memberId);
                     if (!deferred)
                     {
-                        value = client.InvokeNativeFunction(attributeId, receiver, args);
+                        value = client.InvokeNativeFunction(memberId, receiver, args);
                     }
                     else
                     {
                         if (options?.AllowDeferredFunctionCalls != true)
                         {
-                            string functionName = client.TryGetAttribute(
-                                attributeId, out JsonAttribute? deferredAttribute)
-                                    ? deferredAttribute.name
-                                    : attributeId;
+                            string functionName = client.TryGetMember(
+                                memberId, out JsonMember? deferredMember)
+                                    ? deferredMember.name
+                                    : memberId;
                             throw new NeoDeferredFunctionRuntimeError(
-                                $"Function '{functionName}' ({attributeId}) deferred-mode mismatch: " +
+                                $"Function '{functionName}' ({memberId}) deferred-mode mismatch: " +
                                 "an immediate NeoScript frame called its deferred signature; " +
                                 "compiled call IR is stale/corrupt.");
                         }
                         var suspension = new DeferredNativeFunctionSuspension();
                         var deferredHandle = client.StartDeferredNativeFunction(
-                            attributeId,
+                            memberId,
                             receiver,
                             args,
                             suspension.Complete,
@@ -593,9 +593,9 @@ namespace NeoCompose.Runtime
                         {
                             throw new NeoFunctionCallSuspended(
                                 resumeKey,
-                                attributeId,
+                                memberId,
                                 NeoScriptExecutionResult.Paused(
-                                    attributeId,
+                                    memberId,
                                     deferredHandle,
                                     suspension,
                                     inlineValue => NeoScriptExecutionResult.Completed(
@@ -660,42 +660,42 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError("Cannot invoke setter on a null receiver.");
             }
 
-            string effectiveAttributeId = isStatic
-                ? callGetter.attributeId
-                : ResolveEffectiveSetterAttributeId(
+            string effectiveMemberId = isStatic
+                ? callGetter.memberId
+                : ResolveEffectiveSetterMemberId(
                     client,
-                    callGetter.attributeId,
+                    callGetter.memberId,
                     receiver!,
                     ctx);
             if (isStatic
-                && (!client.TryGetAttribute(
-                        effectiveAttributeId,
-                        out JsonAttribute? staticAttribute)
-                    || !staticAttribute.isStatic
-                    || callGetter.receiver.attributeId != effectiveAttributeId))
+                && (!client.TryGetMember(
+                        effectiveMemberId,
+                        out JsonMember? staticMember)
+                    || !staticMember.isStatic
+                    || callGetter.receiver.memberId != effectiveMemberId))
             {
                 throw new NSGetterRuntimeError(
-                    $"Static setter target '{effectiveAttributeId}' is missing, not static, or does not match its receiver.");
+                    $"Static setter target '{effectiveMemberId}' is missing, not static, or does not match its receiver.");
             }
-            if (ctx.setterCallStack.Contains(effectiveAttributeId))
+            if (ctx.setterCallStack.Contains(effectiveMemberId))
             {
-                string circularName = client.TryGetAttribute(
-                    effectiveAttributeId, out JsonAttribute? circularAttribute)
-                        ? circularAttribute.name
-                        : effectiveAttributeId;
+                string circularName = client.TryGetMember(
+                    effectiveMemberId, out JsonMember? circularMember)
+                        ? circularMember.name
+                        : effectiveMemberId;
                 throw new NSGetterRuntimeError(
                     $"Circular setter call: '{circularName}'.");
             }
 
             FunctionWithReturnType? setter = ResolveCompiledSetter(
-                effectiveAttributeId,
+                effectiveMemberId,
                 client);
             if (setter is null)
             {
-                string missingName = client.TryGetAttribute(
-                    effectiveAttributeId, out JsonAttribute? missingAttribute)
-                        ? missingAttribute.name
-                        : effectiveAttributeId;
+                string missingName = client.TryGetMember(
+                    effectiveMemberId, out JsonMember? missingMember)
+                        ? missingMember.name
+                        : effectiveMemberId;
                 throw new NSGetterRuntimeError(
                     $"NeoScript property '{missingName}' has no compiled setter — save its code to compile it.");
             }
@@ -719,10 +719,10 @@ namespace NeoCompose.Runtime
             }
 
             var nestedCtx = ctx
-                .WithSetterPushed(effectiveAttributeId)
+                .WithSetterPushed(effectiveMemberId)
                 .WithThis(isStatic ? null : receiver);
             var nestedOptions = (options ?? NeoScriptExecutionOptions.ForUnity(client))
-                .ForProperty(effectiveAttributeId);
+                .ForProperty(effectiveMemberId);
             return Execute(
                 client,
                 setter,
@@ -736,7 +736,7 @@ namespace NeoCompose.Runtime
 
         private static object? CoerceSetterValue(object? value, TypeInfo typeInfo)
         {
-            if (typeInfo.type == AttributeType.Decimal
+            if (typeInfo.type == MemberKind.Decimal
                 && value is double or float or int or long or short or decimal)
             {
                 return NSGetterEvaluator.CoerceDecimalOperand(value, "setter value");
@@ -744,60 +744,60 @@ namespace NeoCompose.Runtime
             return value;
         }
 
-        internal static string ResolveEffectiveSetterAttributeId(
+        internal static string ResolveEffectiveSetterMemberId(
             NeoClient client,
-            string staticAttributeId,
+            string staticMemberId,
             object receiver,
             NSGetterEvaluator.Context ctx)
         {
-            var placement = CustomTypeInheritance.FindSchemaPlacement(
-                staticAttributeId,
-                client.types.Values);
-            if (placement is null) return staticAttributeId;
+            var placement = NeoSchemaClassInheritance.FindSchemaPlacement(
+                staticMemberId,
+                client.classes.Values);
+            if (placement is null) return staticMemberId;
 
-            string? runtimeTypeId = NSGetterEvaluator.FindRowTypeIdByReference(
+            string? runtimeClassId = NSGetterEvaluator.FindRowClassIdByReference(
                 receiver,
                 ctx);
-            if (string.IsNullOrEmpty(runtimeTypeId)) return staticAttributeId;
+            if (string.IsNullOrEmpty(runtimeClassId)) return staticMemberId;
 
-            IList<CustomType> chain;
+            IList<NeoSchemaClass> chain;
             try
             {
-                chain = CustomTypeInheritance.ResolveChain(
-                    runtimeTypeId!,
-                    id => client.TryGetType(id, out CustomType? type) ? type : null);
+                chain = NeoSchemaClassInheritance.ResolveChain(
+                    runtimeClassId!,
+                    id => client.TryGetClass(id, out NeoSchemaClass? schemaClass) ? schemaClass : null);
             }
             catch (CircularInheritanceError)
             {
-                return staticAttributeId;
+                return staticMemberId;
             }
-            foreach (var entry in CustomTypeInheritance.MergeInstanceSchema(
+            foreach (var entry in NeoSchemaClassInheritance.MergeInstanceSchema(
                 chain,
-                id => client.TryGetAttribute(id, out JsonAttribute? attribute)
-                    ? attribute
+                id => client.TryGetMember(id, out JsonMember? member)
+                    ? member
                     : null))
             {
                 if (entry.schemaKey == placement.schemaKey)
                 {
-                    return entry.attributeId;
+                    return entry.memberId;
                 }
             }
-            return staticAttributeId;
+            return staticMemberId;
         }
 
         internal static FunctionWithReturnType? ResolveCompiledSetter(
-            string attributeId,
+            string memberId,
             NeoClient client)
         {
-            return CustomTypeInheritance.WalkExtendsAttributeChain(
-                attributeId,
-                id => client.TryGetAttribute(id, out JsonAttribute? attribute)
-                    ? attribute
+            return NeoSchemaClassInheritance.WalkExtendsMemberChain(
+                memberId,
+                id => client.TryGetMember(id, out JsonMember? member)
+                    ? member
                     : null,
-                attribute => attribute is NSPropertyAttribute property
+                member => member is NSPropertyMember property
                     ? property.setter
                     : null,
-                requireType: AttributeType.NSProperty);
+                requireKind: MemberKind.NSProperty);
         }
 
         private static NeoResolvedWriteTarget ResolveTarget(
@@ -812,8 +812,8 @@ namespace NeoCompose.Runtime
                     return new NeoStaticMemberWriteTarget(
                         new NeoStaticBinding(
                             client,
-                            staticMember.attributeId,
-                            client.ResolveStaticOwnership(staticMember.attributeId)),
+                            staticMember.memberId,
+                            client.ResolveStaticOwnership(staticMember.memberId)),
                         target.typeInfo);
                 case ReferencePointer reference:
                 {
@@ -844,11 +844,11 @@ namespace NeoCompose.Runtime
             {
                 var binding = new NeoStaticBinding(
                     client,
-                    staticMember.attributeId,
+                    staticMember.memberId,
                     ownership);
                 if (binding.ValueId is null)
                 {
-                    object initialValue = target.typeInfo.type == AttributeType.Dictionary
+                    object initialValue = target.typeInfo.type == MemberKind.Dictionary
                         ? new Dictionary<string, string>()
                         : System.Array.Empty<string>();
                     binding.SetValue(NeoValueWritePayload.FromValue(initialValue));
@@ -868,7 +868,7 @@ namespace NeoCompose.Runtime
                 object? key = Eval(lookupKeyOf.keyOf.key, scope, ctx);
                 rowId = null;
                 if (receiverRowId is not null
-                    && client.TryGetValue(receiverRowId, out ObjectAttributeValue? receiverRow)
+                    && client.TryGetValue(receiverRowId, out ObjectMemberValue? receiverRow)
                     && receiverRow!.value is not null
                     && receiverRow.value.TryGetValue(
                         ToStringKey(key, "Lookup member key"), out string? memberRowId))
@@ -886,11 +886,11 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError("Collection mutation target is not backed by a Neo value row.");
             }
             rowId = EnsureWritableRow(client, rowId, ownership);
-            if (!client.TryGetValue(ownership, rowId, out AttributeValue? row))
+            if (!client.TryGetValue(ownership, rowId, out MemberValue? row))
             {
                 throw new NSGetterRuntimeError($"Missing collection row '{rowId}'.");
             }
-            if (row is ArrayAttributeValue)
+            if (row is ArrayMemberValue)
             {
                 if (target.typeInfo is LookupTypeInfo lookupTypeInfo)
                 {
@@ -898,7 +898,7 @@ namespace NeoCompose.Runtime
                 }
                 return new NeoListWriteTarget(rowId, EntryTypeInfo(target.typeInfo), ownership);
             }
-            if (row is ObjectAttributeValue)
+            if (row is ObjectMemberValue)
             {
                 return new NeoDictionaryWriteTarget(rowId, EntryTypeInfo(target.typeInfo), ownership);
             }
@@ -921,12 +921,12 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError("Assignment receiver is not backed by a Neo value row.");
             }
             receiverRowId = EnsureWritableRow(client, receiverRowId, ownership);
-            if (!client.TryGetValue(ownership, receiverRowId, out AttributeValue? row))
+            if (!client.TryGetValue(ownership, receiverRowId, out MemberValue? row))
             {
                 throw new NSGetterRuntimeError($"Missing receiver row '{receiverRowId}'.");
             }
 
-            if (row is ArrayAttributeValue)
+            if (row is ArrayMemberValue)
             {
                 if (key is string)
                 {
@@ -935,17 +935,17 @@ namespace NeoCompose.Runtime
                 }
                 return new NeoListIndexWriteTarget(receiverRowId, ToInt(key, "List assignment index"), targetType, ownership);
             }
-            if (row is ObjectAttributeValue objectRow)
+            if (row is ObjectMemberValue objectRow)
             {
-                string keyString = ToStringKey(key, "Dictionary/custom assignment key");
-                if (!string.IsNullOrEmpty(objectRow.typeId)
-                    && TryResolveCustomMemberAttribute(client, objectRow.typeId!, keyString, out JsonAttribute? memberAttribute))
+                string keyString = ToStringKey(key, "Dictionary/class assignment key");
+                if (!string.IsNullOrEmpty(objectRow.classId)
+                    && TryResolveClassMemberMember(client, objectRow.classId!, keyString, out JsonMember? memberMember))
                 {
-                    return new NeoCustomMemberWriteTarget(receiverRowId, keyString, memberAttribute!, ownership);
+                    return new NeoClassMemberWriteTarget(receiverRowId, keyString, memberMember!, ownership);
                 }
                 return new NeoDictionaryEntryWriteTarget(receiverRowId, keyString, targetType, ownership);
             }
-            throw new NSGetterRuntimeError("Assignment receiver must be a list, dictionary, or custom object.");
+            throw new NSGetterRuntimeError("Assignment receiver must be a list, dictionary, or class object.");
         }
 
         private static NeoValueOwnership TargetOwnership(
@@ -1015,7 +1015,7 @@ namespace NeoCompose.Runtime
             ownership = NeoValueOwnership.Asset;
             if (pointer is StaticMemberPointer staticMember)
             {
-                ownership = client.ResolveStaticOwnership(staticMember.attributeId);
+                ownership = client.ResolveStaticOwnership(staticMember.memberId);
                 return true;
             }
             object? resolvedTarget = pointer switch
@@ -1058,22 +1058,22 @@ namespace NeoCompose.Runtime
             return rowId;
         }
 
-        private static bool TryResolveCustomMemberAttribute(
+        private static bool TryResolveClassMemberMember(
             NeoClient client,
-            string customTypeId,
+            string classId,
             string key,
-            out JsonAttribute? attribute)
+            out JsonMember? member)
         {
-            attribute = null;
+            member = null;
             IList<MergedSchemaEntry> merged;
             try
             {
-                merged = CustomTypeInheritance.MergeInstanceSchema(
-                    CustomTypeInheritance.ResolveChain(
-                        customTypeId,
-                        id => client.TryGetType(id, out CustomType? type) ? type : null),
-                    id => client.TryGetAttribute(id, out JsonAttribute? attribute)
-                        ? attribute
+                merged = NeoSchemaClassInheritance.MergeInstanceSchema(
+                    NeoSchemaClassInheritance.ResolveChain(
+                        classId,
+                        id => client.TryGetClass(id, out NeoSchemaClass? schemaClass) ? schemaClass : null),
+                    id => client.TryGetMember(id, out JsonMember? member)
+                        ? member
                         : null);
             }
             catch (CircularInheritanceError)
@@ -1083,7 +1083,7 @@ namespace NeoCompose.Runtime
             foreach (var entry in merged)
             {
                 if (entry.schemaKey != key) continue;
-                return client.TryGetAttribute(entry.attributeId, out attribute);
+                return client.TryGetMember(entry.memberId, out member);
             }
             return false;
         }
@@ -1100,14 +1100,14 @@ namespace NeoCompose.Runtime
             return NSGetterEvaluator.FindRowIdByReference(value, ctx);
         }
 
-        private static bool TryGetCustomValueReferenceId(
+        private static bool TryGetClassValueReferenceId(
             object? value,
             TypeInfo typeInfo,
             NSGetterEvaluator.Context ctx,
             out string? valueId)
         {
             valueId = null;
-            if (typeInfo.type != AttributeType.Custom) return false;
+            if (typeInfo.type != MemberKind.Class) return false;
             if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
@@ -1118,7 +1118,7 @@ namespace NeoCompose.Runtime
             return !string.IsNullOrEmpty(valueId);
         }
 
-        private static string ImportCustomValueReference(
+        private static string ImportClassValueReference(
             NeoClient client,
             NeoValueOwnership ownership,
             string sourceValueId,
@@ -1150,102 +1150,102 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static TypeInfo AttributeTypeInfo(JsonAttribute attribute)
+        private static TypeInfo MemberKindInfo(JsonMember member)
         {
-            return attribute switch
+            return member switch
             {
-                NullAttribute => new PrimitiveTypeInfo { type = AttributeType.Null, required = attribute.required },
-                BoolAttribute => new PrimitiveTypeInfo { type = AttributeType.Bool, required = attribute.required },
-                IntAttribute => new PrimitiveTypeInfo { type = AttributeType.Int, required = attribute.required },
-                FloatAttribute => new PrimitiveTypeInfo { type = AttributeType.Float, required = attribute.required },
-                StringAttribute => new PrimitiveTypeInfo { type = AttributeType.String, required = attribute.required },
-                Vector2Attribute => new PrimitiveTypeInfo { type = AttributeType.Vector2, required = attribute.required },
-                Vector2IntAttribute => new PrimitiveTypeInfo { type = AttributeType.Vector2Int, required = attribute.required },
-                Vector3Attribute => new PrimitiveTypeInfo { type = AttributeType.Vector3, required = attribute.required },
-                Vector3IntAttribute => new PrimitiveTypeInfo { type = AttributeType.Vector3Int, required = attribute.required },
-                ColorAttribute => new PrimitiveTypeInfo { type = AttributeType.Color, required = attribute.required },
-                DecimalAttribute => new PrimitiveTypeInfo { type = AttributeType.Decimal, required = attribute.required },
-                CustomAttribute custom => new CustomTypeInfo
+                NullMember => new PrimitiveTypeInfo { type = MemberKind.Null, required = member.required },
+                BoolMember => new PrimitiveTypeInfo { type = MemberKind.Bool, required = member.required },
+                IntMember => new PrimitiveTypeInfo { type = MemberKind.Int, required = member.required },
+                FloatMember => new PrimitiveTypeInfo { type = MemberKind.Float, required = member.required },
+                StringMember => new PrimitiveTypeInfo { type = MemberKind.String, required = member.required },
+                Vector2Member => new PrimitiveTypeInfo { type = MemberKind.Vector2, required = member.required },
+                Vector2IntMember => new PrimitiveTypeInfo { type = MemberKind.Vector2Int, required = member.required },
+                Vector3Member => new PrimitiveTypeInfo { type = MemberKind.Vector3, required = member.required },
+                Vector3IntMember => new PrimitiveTypeInfo { type = MemberKind.Vector3Int, required = member.required },
+                ColorMember => new PrimitiveTypeInfo { type = MemberKind.Color, required = member.required },
+                DecimalMember => new PrimitiveTypeInfo { type = MemberKind.Decimal, required = member.required },
+                ClassMember classMember => new ClassTypeInfo
                 {
-                    type = AttributeType.Custom,
-                    required = attribute.required,
-                    typeId = custom.customTypeId,
+                    type = MemberKind.Class,
+                    required = member.required,
+                    classId = classMember.classId,
                 },
-                EnumAttribute enumAttribute => new EnumTypeInfo
+                EnumMember enumMember => new EnumTypeInfo
                 {
-                    type = AttributeType.Enum,
-                    required = attribute.required,
-                    enumId = enumAttribute.enumId,
+                    type = MemberKind.Enum,
+                    required = member.required,
+                    enumId = enumMember.enumId,
                 },
-                _ => new PrimitiveTypeInfo { type = attribute.type, required = attribute.required },
+                _ => new PrimitiveTypeInfo { type = member.kind, required = member.required },
             };
         }
 
-        private static JsonAttribute AttributeFromTypeInfo(TypeInfo typeInfo)
+        private static JsonMember MemberFromTypeInfo(TypeInfo typeInfo)
         {
             var id = "__neo_dialogue_action_value";
             switch (typeInfo.type)
             {
-                case AttributeType.Null:
-                    return new NullAttribute { id = id, type = AttributeType.Null };
-                case AttributeType.Bool:
-                    return new BoolAttribute { id = id, type = AttributeType.Bool };
-                case AttributeType.Int:
-                    return new IntAttribute { id = id, type = AttributeType.Int };
-                case AttributeType.Float:
-                    return new FloatAttribute { id = id, type = AttributeType.Float };
-                case AttributeType.String:
-                    return new StringAttribute { id = id, type = AttributeType.String };
-                case AttributeType.Vector2:
-                    return new Vector2Attribute { id = id, type = AttributeType.Vector2 };
-                case AttributeType.Vector2Int:
-                    return new Vector2IntAttribute { id = id, type = AttributeType.Vector2Int };
-                case AttributeType.Vector3:
-                    return new Vector3Attribute { id = id, type = AttributeType.Vector3 };
-                case AttributeType.Vector3Int:
-                    return new Vector3IntAttribute { id = id, type = AttributeType.Vector3Int };
-                case AttributeType.Color:
-                    return new ColorAttribute { id = id, type = AttributeType.Color };
-                case AttributeType.Decimal:
-                    // A Decimal write flows through AttributeValueFactory as
-                    // a DecimalAttribute → StringAttributeValue row
-                    // (specs/decimal-attribute.md decision 5); the payload is
+                case MemberKind.Null:
+                    return new NullMember { id = id, kind = MemberKind.Null };
+                case MemberKind.Bool:
+                    return new BoolMember { id = id, kind = MemberKind.Bool };
+                case MemberKind.Int:
+                    return new IntMember { id = id, kind = MemberKind.Int };
+                case MemberKind.Float:
+                    return new FloatMember { id = id, kind = MemberKind.Float };
+                case MemberKind.String:
+                    return new StringMember { id = id, kind = MemberKind.String };
+                case MemberKind.Vector2:
+                    return new Vector2Member { id = id, kind = MemberKind.Vector2 };
+                case MemberKind.Vector2Int:
+                    return new Vector2IntMember { id = id, kind = MemberKind.Vector2Int };
+                case MemberKind.Vector3:
+                    return new Vector3Member { id = id, kind = MemberKind.Vector3 };
+                case MemberKind.Vector3Int:
+                    return new Vector3IntMember { id = id, kind = MemberKind.Vector3Int };
+                case MemberKind.Color:
+                    return new ColorMember { id = id, kind = MemberKind.Color };
+                case MemberKind.Decimal:
+                    // A Decimal write flows through MemberValueFactory as
+                    // a DecimalMember → StringMemberValue row
+                    // (specs/decimal-member.md decision 5); the payload is
                     // the canonical decimal string the evaluator produced.
-                    return new DecimalAttribute { id = id, type = AttributeType.Decimal };
-                case AttributeType.Custom:
-                    return new CustomAttribute
+                    return new DecimalMember { id = id, kind = MemberKind.Decimal };
+                case MemberKind.Class:
+                    return new ClassMember
                     {
                         id = id,
-                        type = AttributeType.Custom,
-                        customTypeId = ((CustomTypeInfo)typeInfo).typeId,
+                        kind = MemberKind.Class,
+                        classId = ((ClassTypeInfo)typeInfo).classId,
                     };
-                case AttributeType.List:
-                    return new ListAttribute
+                case MemberKind.List:
+                    return new ListMember
                     {
                         id = id,
-                        type = AttributeType.List,
-                        entryAttributeId = id,
+                        kind = MemberKind.List,
+                        entryMemberId = id,
                     };
-                case AttributeType.Dictionary:
-                    return new DictionaryAttribute
+                case MemberKind.Dictionary:
+                    return new DictionaryMember
                     {
                         id = id,
-                        type = AttributeType.Dictionary,
-                        entryAttributeId = id,
+                        kind = MemberKind.Dictionary,
+                        entryMemberId = id,
                     };
-                case AttributeType.Enum:
-                    return new EnumAttribute
+                case MemberKind.Enum:
+                    return new EnumMember
                     {
                         id = id,
-                        type = AttributeType.Enum,
+                        kind = MemberKind.Enum,
                         enumId = ((EnumTypeInfo)typeInfo).enumId,
                     };
-                case AttributeType.Lookup:
-                    return new LookupAttribute
+                case MemberKind.Lookup:
+                    return new LookupMember
                     {
                         id = id,
-                        type = AttributeType.Lookup,
-                        collectionAttributeId = id,
+                        kind = MemberKind.Lookup,
+                        collectionMemberId = id,
                     };
                 default:
                     throw new NSGetterRuntimeError(
@@ -1266,10 +1266,10 @@ namespace NeoCompose.Runtime
             throw new NSGetterRuntimeError("Collection target is missing entry type info.");
         }
 
-        private static AttributeValue CreateValueRow(
+        private static MemberValue CreateValueRow(
             NeoClient client,
             NeoValueOwnership ownership,
-            JsonAttribute attribute,
+            JsonMember member,
             object? value,
             string id,
             string createdAt,
@@ -1279,27 +1279,27 @@ namespace NeoCompose.Runtime
                 ? provider.ToNeoValuePayload()
                 : value;
             client.SetWritablePayloadRows(ownership, payload);
-            return AttributeValueFactory.Create(
-                attribute,
+            return MemberValueFactory.Create(
+                member,
                 payload,
                 id,
                 createdAt,
                 updatedAt);
         }
 
-        private static object? ReadRowValue(AttributeValue row)
+        private static object? ReadRowValue(MemberValue row)
         {
             return row switch
             {
-                BoolAttributeValue b => b.value,
-                NumberAttributeValue n => n.value,
-                StringAttributeValue s => s.value,
-                ArrayAttributeValue a => a.value,
-                ObjectAttributeValue o => o.value,
-                Vector2AttributeValue v => v.value,
-                Vector3AttributeValue v => v.value,
-                ColorAttributeValue c => c.value,
-                NullAttributeValue => null,
+                BoolMemberValue b => b.value,
+                NumberMemberValue n => n.value,
+                StringMemberValue s => s.value,
+                ArrayMemberValue a => a.value,
+                ObjectMemberValue o => o.value,
+                Vector2MemberValue v => v.value,
+                Vector3MemberValue v => v.value,
+                ColorMemberValue c => c.value,
+                NullMemberValue => null,
                 _ => null,
             };
         }
@@ -1339,24 +1339,24 @@ namespace NeoCompose.Runtime
             object? value,
             NSGetterEvaluator.Context ctx)
         {
-            if (!client.TryGetAttribute(lookupTypeInfo.collectionAttributeId, out JsonAttribute? collectionAttribute))
+            if (!client.TryGetMember(lookupTypeInfo.collectionMemberId, out JsonMember? collectionMember))
             {
                 throw new NSGetterRuntimeError(
-                    $"Lookup collection attribute '{lookupTypeInfo.collectionAttributeId}' was not found.");
+                    $"Lookup collection member '{lookupTypeInfo.collectionMemberId}' was not found.");
             }
             string? collectionValueId = client.TryResolveLookupCollectionValueId(
-                collectionAttribute.id,
+                collectionMember.id,
                 lookupTypeInfo.collectionValueId,
                 out string? resolvedCollectionValueId)
                     ? resolvedCollectionValueId
                     : null;
-            if (collectionValueId is null || !client.TryGetValue(collectionValueId, out AttributeValue? collectionValue))
+            if (collectionValueId is null || !client.TryGetValue(collectionValueId, out MemberValue? collectionValue))
             {
                 throw new NSGetterRuntimeError(
                     $"Lookup collection value '{collectionValueId ?? "<null>"}' was not found.");
             }
 
-            if (lookupTypeInfo.entryTypeInfo.type == AttributeType.Custom)
+            if (lookupTypeInfo.entryTypeInfo.type == MemberKind.Class)
             {
                 string? valueId = value is string id
                     ? id
@@ -1364,7 +1364,7 @@ namespace NeoCompose.Runtime
                 if (string.IsNullOrWhiteSpace(valueId))
                 {
                     throw new NSGetterRuntimeError(
-                        "Lookup set custom argument must be a selected value id or generated custom value.");
+                        "Lookup set class argument must be a selected value id or generated class value.");
                 }
                 if (!LookupCollectionContainsValueId(collectionValue, valueId!))
                 {
@@ -1384,14 +1384,14 @@ namespace NeoCompose.Runtime
         }
 
         private static bool LookupCollectionContainsValueId(
-            AttributeValue collectionValue,
+            MemberValue collectionValue,
             string valueId)
         {
             return collectionValue switch
             {
-                ArrayAttributeValue array when array.value is not null =>
+                ArrayMemberValue array when array.value is not null =>
                     Array.IndexOf(array.value, valueId) >= 0,
-                ObjectAttributeValue obj when obj.value is not null =>
+                ObjectMemberValue obj when obj.value is not null =>
                     obj.value.ContainsValue(valueId),
                 _ => false,
             };
@@ -1399,18 +1399,18 @@ namespace NeoCompose.Runtime
 
         private static string? FindLookupCollectionValueByPayload(
             NeoClient client,
-            AttributeValue collectionValue,
+            MemberValue collectionValue,
             object? value)
         {
             IEnumerable<string> childIds = collectionValue switch
             {
-                ArrayAttributeValue array when array.value is not null => array.value,
-                ObjectAttributeValue obj when obj.value is not null => obj.value.Values,
+                ArrayMemberValue array when array.value is not null => array.value,
+                ObjectMemberValue obj when obj.value is not null => obj.value.Values,
                 _ => Array.Empty<string>(),
             };
             foreach (var childId in childIds)
             {
-                if (!client.TryGetValue(childId, out AttributeValue? child)) continue;
+                if (!client.TryGetValue(childId, out MemberValue? child)) continue;
                 if (JsEqual(ReadRowValue(child), value)) return childId;
             }
             return null;
@@ -1509,7 +1509,7 @@ namespace NeoCompose.Runtime
         private static void StoreWritableRow(
             NeoClient client,
             NeoValueOwnership ownership,
-            AttributeValue row,
+            MemberValue row,
             NSGetterEvaluator.Context ctx)
         {
             client.SetWritableValue(ownership, row);
@@ -1534,7 +1534,7 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 string writableRowId = EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(ownership, writableRowId, out AttributeValue? row))
+                if (!client.TryGetValue(ownership, writableRowId, out MemberValue? row))
                 {
                     throw new NSGetterRuntimeError($"Missing target row '{writableRowId}'.");
                 }
@@ -1547,19 +1547,19 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 string writableRowId = EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(ownership, writableRowId, out AttributeValue? existing))
+                if (!client.TryGetValue(ownership, writableRowId, out MemberValue? existing))
                 {
                     throw new NSGetterRuntimeError($"Missing target row '{writableRowId}'.");
                 }
                 var next = CreateValueRow(
                     client,
                     ownership,
-                    AttributeFromTypeInfo(typeInfo),
+                    MemberFromTypeInfo(typeInfo),
                     value,
                     writableRowId,
                     existing.createdAt,
                     DateTime.UtcNow.ToString("o"));
-                next.typeId = existing.typeId;
+                next.classId = existing.classId;
                 StoreWritableRow(client, ownership, next, ctx);
             }
         }
@@ -1586,10 +1586,10 @@ namespace NeoCompose.Runtime
                 if (!client.TryGetOverlaidValue(
                         binding.Ownership,
                         valueId,
-                        out AttributeValue? row))
+                        out MemberValue? row))
                 {
                     throw new NSGetterRuntimeError(
-                        $"Static member '{binding.AttributeId}' is bound to missing value '{valueId}'.");
+                        $"Static member '{binding.MemberId}' is bound to missing value '{valueId}'.");
                 }
                 return ReadRowValue(row);
             }
@@ -1601,7 +1601,7 @@ namespace NeoCompose.Runtime
             {
                 try
                 {
-                    if (typeInfo.type == AttributeType.Custom)
+                    if (typeInfo.type == MemberKind.Class)
                     {
                         string? valueId = FindValueId(value, ctx);
                         NeoValueOwnership sourceOwnership = default;
@@ -1638,7 +1638,7 @@ namespace NeoCompose.Runtime
                         && client.TryGetOverlaidValue(
                             binding.Ownership,
                             updatedId,
-                            out AttributeValue? updatedRow))
+                            out MemberValue? updatedRow))
                     {
                         NSGetterEvaluator.RefreshCachedRowAfterWrite(
                             updatedRow,
@@ -1653,22 +1653,22 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private sealed class NeoCustomMemberWriteTarget : NeoResolvedWriteTarget
+        private sealed class NeoClassMemberWriteTarget : NeoResolvedWriteTarget
         {
             private readonly string parentRowId;
             private readonly string key;
-            private readonly JsonAttribute attribute;
+            private readonly JsonMember member;
             private readonly NeoValueOwnership ownership;
 
-            public NeoCustomMemberWriteTarget(
+            public NeoClassMemberWriteTarget(
                 string parentRowId,
                 string key,
-                JsonAttribute attribute,
+                JsonMember member,
                 NeoValueOwnership ownership)
             {
                 this.parentRowId = parentRowId;
                 this.key = key;
-                this.attribute = attribute;
+                this.member = member;
                 this.ownership = ownership;
             }
 
@@ -1676,10 +1676,10 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 NSGetterEvaluator.Context ctx)
             {
-                if (!client.TryGetValue(ownership, parentRowId, out ObjectAttributeValue? parent)
+                if (!client.TryGetValue(ownership, parentRowId, out ObjectMemberValue? parent)
                     || parent.value == null
                     || !parent.value.TryGetValue(key, out string childId)
-                    || !client.TryGetValue(ownership, childId, out AttributeValue? child))
+                    || !client.TryGetValue(ownership, childId, out MemberValue? child))
                 {
                     return null;
                 }
@@ -1692,7 +1692,7 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 string writableParentRowId = EnsureWritableRow(client, parentRowId, ownership);
-                if (!client.TryGetValue(ownership, writableParentRowId, out ObjectAttributeValue? parent))
+                if (!client.TryGetValue(ownership, writableParentRowId, out ObjectMemberValue? parent))
                 {
                     throw new NSGetterRuntimeError($"Missing parent row '{writableParentRowId}'.");
                 }
@@ -1702,15 +1702,15 @@ namespace NeoCompose.Runtime
                 // (a fresh row at the same id shadows the authored default),
                 // so no path pre-materialization is needed.
                 if (parent.value.TryGetValue(key, out string existingId)
-                    && client.TryGetValue(ownership, existingId, out AttributeValue? existing))
+                    && client.TryGetValue(ownership, existingId, out MemberValue? existing))
                 {
-                    if (TryGetCustomValueReferenceId(
+                    if (TryGetClassValueReferenceId(
                             value,
-                            AttributeTypeInfo(attribute),
+                            MemberKindInfo(member),
                             ctx,
                             out string? referenceId))
                     {
-                        string importedId = ImportCustomValueReference(
+                        string importedId = ImportClassValueReference(
                             client,
                             ownership,
                             referenceId!,
@@ -1721,22 +1721,22 @@ namespace NeoCompose.Runtime
                         parent.updatedAt = now;
                         StoreWritableRow(client, ownership, parent, ctx);
                         client.RemoveWritableValueAndDescendantsIfUnlinked(
-                            ownership, existingId, attribute);
+                            ownership, existingId, member);
                         return;
                     }
-                    var next = CreateValueRow(client, ownership, attribute, value, existingId, existing.createdAt, now);
-                    next.typeId = existing.typeId;
+                    var next = CreateValueRow(client, ownership, member, value, existingId, existing.createdAt, now);
+                    next.classId = existing.classId;
                     StoreWritableRow(client, ownership, next, ctx);
                 }
                 else
                 {
-                    if (TryGetCustomValueReferenceId(
+                    if (TryGetClassValueReferenceId(
                             value,
-                            AttributeTypeInfo(attribute),
+                            MemberKindInfo(member),
                             ctx,
                             out string? referenceId))
                     {
-                        parent.value[key] = ImportCustomValueReference(
+                        parent.value[key] = ImportClassValueReference(
                             client,
                             ownership,
                             referenceId!,
@@ -1746,7 +1746,7 @@ namespace NeoCompose.Runtime
                         return;
                     }
                     var childId = Guid.NewGuid().ToString();
-                    var next = CreateValueRow(client, ownership, attribute, value, childId, now, now);
+                    var next = CreateValueRow(client, ownership, member, value, childId, now, now);
                     StoreWritableRow(client, ownership, next, ctx);
                     parent.value[key] = childId;
                 }
@@ -1778,10 +1778,10 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 NSGetterEvaluator.Context ctx)
             {
-                if (!client.TryGetValue(parentRowId, out ObjectAttributeValue? parent)
+                if (!client.TryGetValue(parentRowId, out ObjectMemberValue? parent)
                     || parent.value == null
                     || !parent.value.TryGetValue(key, out string childId)
-                    || !client.TryGetValue(childId, out AttributeValue? child))
+                    || !client.TryGetValue(childId, out MemberValue? child))
                 {
                     return null;
                 }
@@ -1821,11 +1821,11 @@ namespace NeoCompose.Runtime
                 NeoClient client,
                 NSGetterEvaluator.Context ctx)
             {
-                if (!client.TryGetValue(parentRowId, out ArrayAttributeValue? parent)
+                if (!client.TryGetValue(parentRowId, out ArrayMemberValue? parent)
                     || parent.value == null
                     || index < 0
                     || index >= parent.value.Length
-                    || !client.TryGetValue(parent.value[index], out AttributeValue? child))
+                    || !client.TryGetValue(parent.value[index], out MemberValue? child))
                 {
                     throw new NSGetterRuntimeError($"List index out of bounds: {index}");
                 }
@@ -1838,7 +1838,7 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 EnsureWritableRow(client, parentRowId, ownership);
-                if (!client.TryGetValue(parentRowId, out ArrayAttributeValue? parent)
+                if (!client.TryGetValue(parentRowId, out ArrayMemberValue? parent)
                     || parent.value == null
                     || index < 0
                     || index >= parent.value.Length)
@@ -1846,13 +1846,13 @@ namespace NeoCompose.Runtime
                     throw new NSGetterRuntimeError($"List index out of bounds: {index}");
                 }
                 var childId = parent.value[index];
-                if (TryGetCustomValueReferenceId(
+                if (TryGetClassValueReferenceId(
                         value,
                         typeInfo,
                         ctx,
                         out string? referenceId))
                 {
-                    string importedId = ImportCustomValueReference(
+                    string importedId = ImportClassValueReference(
                         client,
                         ownership,
                         referenceId!,
@@ -1863,22 +1863,22 @@ namespace NeoCompose.Runtime
                     parent.updatedAt = DateTime.UtcNow.ToString("o");
                     StoreWritableRow(client, ownership, parent, ctx);
                     client.RemoveWritableValueAndDescendantsIfUnlinked(
-                        ownership, childId, AttributeFromTypeInfo(typeInfo));
+                        ownership, childId, MemberFromTypeInfo(typeInfo));
                     return;
                 }
-                if (!client.TryGetValue(childId, out AttributeValue? existing))
+                if (!client.TryGetValue(childId, out MemberValue? existing))
                 {
                     throw new NSGetterRuntimeError($"Missing list child row '{childId}'.");
                 }
                 var next = CreateValueRow(
                     client,
                     ownership,
-                    AttributeFromTypeInfo(typeInfo),
+                    MemberFromTypeInfo(typeInfo),
                     value,
                     childId,
                     existing.createdAt,
                     DateTime.UtcNow.ToString("o"));
-                next.typeId = existing.typeId;
+                next.classId = existing.classId;
                 StoreWritableRow(client, ownership, next, ctx);
             }
         }
@@ -1912,7 +1912,7 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(rowId, out ArrayAttributeValue? row))
+                if (!client.TryGetValue(rowId, out ArrayMemberValue? row))
                 {
                     throw new NSGetterRuntimeError($"Missing list row '{rowId}'.");
                 }
@@ -1922,7 +1922,7 @@ namespace NeoCompose.Runtime
                 {
                     case CollectionMutationKind.Add:
                     {
-                        if (TryGetCustomValueReferenceId(
+                        if (TryGetClassValueReferenceId(
                                 args[0],
                                 entryTypeInfo,
                                 ctx,
@@ -1930,7 +1930,7 @@ namespace NeoCompose.Runtime
                         {
                             var referencedNext = new string[row.value.Length + 1];
                             Array.Copy(row.value, referencedNext, row.value.Length);
-                            referencedNext[row.value.Length] = ImportCustomValueReference(
+                            referencedNext[row.value.Length] = ImportClassValueReference(
                                 client,
                                 ownership,
                                 referenceId!,
@@ -1944,7 +1944,7 @@ namespace NeoCompose.Runtime
                         var child = CreateValueRow(
                             client,
                             ownership,
-                            AttributeFromTypeInfo(entryTypeInfo),
+                            MemberFromTypeInfo(entryTypeInfo),
                             args[0],
                             childId,
                             now,
@@ -1970,7 +1970,7 @@ namespace NeoCompose.Runtime
                         return;
                     case CollectionMutationKind.Remove:
                     {
-                        string? referenceId = TryGetCustomValueReferenceId(
+                        string? referenceId = TryGetClassValueReferenceId(
                             args[0],
                             entryTypeInfo,
                             ctx,
@@ -1984,7 +1984,7 @@ namespace NeoCompose.Runtime
                                 RemoveAt(client, ownership, row, i, now, entryTypeInfo, ctx);
                                 return;
                             }
-                            if (!client.TryGetValue(row.value[i], out AttributeValue? child)) continue;
+                            if (!client.TryGetValue(row.value[i], out MemberValue? child)) continue;
                             if (!JsEqual(ReadRowValue(child), args[0])) continue;
                             RemoveAt(client, ownership, row, i, now, entryTypeInfo, ctx);
                             return;
@@ -2000,7 +2000,7 @@ namespace NeoCompose.Runtime
                         foreach (var childId in removedIds)
                         {
                             client.RemoveWritableValueAndDescendantsIfUnlinked(
-                                ownership, childId, AttributeFromTypeInfo(entryTypeInfo));
+                                ownership, childId, MemberFromTypeInfo(entryTypeInfo));
                         }
                         return;
                     }
@@ -2012,7 +2012,7 @@ namespace NeoCompose.Runtime
             private static void RemoveAt(
                 NeoClient client,
                 NeoValueOwnership ownership,
-                ArrayAttributeValue row,
+                ArrayMemberValue row,
                 int index,
                 string now,
                 TypeInfo entryTypeInfo,
@@ -2033,7 +2033,7 @@ namespace NeoCompose.Runtime
                 row.updatedAt = now;
                 StoreWritableRow(client, ownership, row, ctx);
                 client.RemoveWritableValueAndDescendantsIfUnlinked(
-                    ownership, removedId, AttributeFromTypeInfo(entryTypeInfo));
+                    ownership, removedId, MemberFromTypeInfo(entryTypeInfo));
             }
         }
 
@@ -2057,7 +2057,7 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(rowId, out ArrayAttributeValue? row))
+                if (!client.TryGetValue(rowId, out ArrayMemberValue? row))
                 {
                     throw new NSGetterRuntimeError($"Missing lookup row '{rowId}'.");
                 }
@@ -2153,22 +2153,22 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(rowId, out ObjectAttributeValue? row))
+                if (!client.TryGetValue(rowId, out ObjectMemberValue? row))
                 {
                     throw new NSGetterRuntimeError($"Missing dictionary row '{rowId}'.");
                 }
                 row.value ??= new Dictionary<string, string>();
                 var now = DateTime.UtcNow.ToString("o");
                 if (row.value.TryGetValue(key, out string existingId)
-                    && client.TryGetValue(existingId, out AttributeValue? existing))
+                    && client.TryGetValue(existingId, out MemberValue? existing))
                 {
-                    if (TryGetCustomValueReferenceId(
+                    if (TryGetClassValueReferenceId(
                             value,
                             entryTypeInfo,
                             ctx,
                             out string? referenceId))
                     {
-                        string importedId = ImportCustomValueReference(
+                        string importedId = ImportClassValueReference(
                             client,
                             ownership,
                             referenceId!,
@@ -2179,29 +2179,29 @@ namespace NeoCompose.Runtime
                         row.updatedAt = now;
                         StoreWritableRow(client, ownership, row, ctx);
                         client.RemoveWritableValueAndDescendantsIfUnlinked(
-                            ownership, existingId, AttributeFromTypeInfo(entryTypeInfo));
+                            ownership, existingId, MemberFromTypeInfo(entryTypeInfo));
                         return;
                     }
                     var next = CreateValueRow(
                         client,
                         ownership,
-                        AttributeFromTypeInfo(entryTypeInfo),
+                        MemberFromTypeInfo(entryTypeInfo),
                         value,
                         existingId,
                         existing.createdAt,
                         now);
-                    next.typeId = existing.typeId;
+                    next.classId = existing.classId;
                     StoreWritableRow(client, ownership, next, ctx);
                 }
                 else
                 {
-                    if (TryGetCustomValueReferenceId(
+                    if (TryGetClassValueReferenceId(
                             value,
                             entryTypeInfo,
                             ctx,
                             out string? referenceId))
                     {
-                        row.value[key] = ImportCustomValueReference(
+                        row.value[key] = ImportClassValueReference(
                             client,
                             ownership,
                             referenceId!,
@@ -2214,7 +2214,7 @@ namespace NeoCompose.Runtime
                     var next = CreateValueRow(
                         client,
                         ownership,
-                        AttributeFromTypeInfo(entryTypeInfo),
+                        MemberFromTypeInfo(entryTypeInfo),
                         value,
                         childId,
                         now,
@@ -2232,7 +2232,7 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(rowId, out ObjectAttributeValue? row)
+                if (!client.TryGetValue(rowId, out ObjectMemberValue? row)
                     || row.value == null
                     || !row.value.TryGetValue(key, out string removedId))
                 {
@@ -2242,7 +2242,7 @@ namespace NeoCompose.Runtime
                 row.updatedAt = DateTime.UtcNow.ToString("o");
                 StoreWritableRow(client, ownership, row, ctx);
                 client.RemoveWritableValueAndDescendantsIfUnlinked(
-                    ownership, removedId, AttributeFromTypeInfo(entryTypeInfo));
+                    ownership, removedId, MemberFromTypeInfo(entryTypeInfo));
             }
 
             private void Clear(
@@ -2250,7 +2250,7 @@ namespace NeoCompose.Runtime
                 NSGetterEvaluator.Context ctx)
             {
                 EnsureWritableRow(client, rowId, ownership);
-                if (!client.TryGetValue(rowId, out ObjectAttributeValue? row)
+                if (!client.TryGetValue(rowId, out ObjectMemberValue? row)
                     || row.value == null)
                 {
                     return;
@@ -2262,7 +2262,7 @@ namespace NeoCompose.Runtime
                 foreach (var childId in removedIds)
                 {
                     client.RemoveWritableValueAndDescendantsIfUnlinked(
-                        ownership, childId, AttributeFromTypeInfo(entryTypeInfo));
+                        ownership, childId, MemberFromTypeInfo(entryTypeInfo));
                 }
             }
         }
@@ -2329,16 +2329,16 @@ namespace NeoCompose.Runtime
     {
         internal NeoFunctionCallSuspended(
             string resumeKey,
-            string attributeId,
+            string memberId,
             NeoScriptExecutionResult execution)
         {
             ResumeKey = resumeKey;
-            AttributeId = attributeId;
+            MemberId = memberId;
             Execution = execution;
         }
 
         internal string ResumeKey { get; }
-        internal string AttributeId { get; }
+        internal string MemberId { get; }
         internal NeoScriptExecutionResult Execution { get; }
     }
 
@@ -2346,20 +2346,20 @@ namespace NeoCompose.Runtime
     {
         private readonly NeoClient client;
         private readonly Action<string> warning;
-        private readonly string? propertyAttributeId;
+        private readonly string? propertyMemberId;
         internal bool AllowDeferredFunctionCalls { get; }
         internal bool CancelContinuationOnDeferredDisposal { get; }
 
         private NeoScriptExecutionOptions(
             NeoClient client,
             Action<string> warning,
-            string? propertyAttributeId,
+            string? propertyMemberId,
             bool allowDeferredFunctionCalls,
             bool cancelContinuationOnDeferredDisposal)
         {
             this.client = client;
             this.warning = warning;
-            this.propertyAttributeId = propertyAttributeId;
+            this.propertyMemberId = propertyMemberId;
             AllowDeferredFunctionCalls = allowDeferredFunctionCalls;
             CancelContinuationOnDeferredDisposal =
                 cancelContinuationOnDeferredDisposal;
@@ -2410,12 +2410,12 @@ namespace NeoCompose.Runtime
                 cancelContinuationOnDeferredDisposal: false);
         }
 
-        internal NeoScriptExecutionOptions ForProperty(string attributeId)
+        internal NeoScriptExecutionOptions ForProperty(string memberId)
         {
             return new NeoScriptExecutionOptions(
                 client,
                 warning,
-                attributeId,
+                memberId,
                 AllowDeferredFunctionCalls,
                 CancelContinuationOnDeferredDisposal);
         }
@@ -2425,26 +2425,26 @@ namespace NeoCompose.Runtime
             return new NeoScriptExecutionOptions(
                 client,
                 warning,
-                propertyAttributeId,
+                propertyMemberId,
                 allowDeferredFunctionCalls: deferred,
                 cancelContinuationOnDeferredDisposal:
                     CancelContinuationOnDeferredDisposal);
         }
 
-        internal void WarnDeferred(string functionAttributeId)
+        internal void WarnDeferred(string functionMemberId)
         {
-            if (propertyAttributeId is null) return;
-            string propertyName = client.TryGetAttribute(
-                propertyAttributeId, out JsonAttribute? propertyAttribute)
-                    ? propertyAttribute.name
-                    : propertyAttributeId;
-            string functionName = client.TryGetAttribute(
-                functionAttributeId, out JsonAttribute? functionAttribute)
-                    ? functionAttribute.name
-                    : functionAttributeId;
+            if (propertyMemberId is null) return;
+            string propertyName = client.TryGetMember(
+                propertyMemberId, out JsonMember? propertyMember)
+                    ? propertyMember.name
+                    : propertyMemberId;
+            string functionName = client.TryGetMember(
+                functionMemberId, out JsonMember? functionMember)
+                    ? functionMember.name
+                    : functionMemberId;
             warning(
-                $"NeoScript property setter '{propertyName}' ({propertyAttributeId}) " +
-                $"called deferred Function '{functionName}' ({functionAttributeId}), " +
+                $"NeoScript property setter '{propertyName}' ({propertyMemberId}) " +
+                $"called deferred Function '{functionName}' ({functionMemberId}), " +
                 "which did not call Complete/Fail inline. The setter will continue " +
                 "asynchronously; any later error will be logged by the Neo Compose SDK.");
         }
@@ -2460,7 +2460,7 @@ namespace NeoCompose.Runtime
             bool isPaused,
             bool returned,
             object? returnValue,
-            string? suspendedAttributeId,
+            string? suspendedMemberId,
             NeoDeferredFunctionBase? deferred,
             DeferredNativeFunctionSuspension? suspension,
             Func<object?, NeoScriptExecutionResult>? resume,
@@ -2469,7 +2469,7 @@ namespace NeoCompose.Runtime
             IsPaused = isPaused;
             Returned = returned;
             ReturnValue = returnValue;
-            SuspendedAttributeId = suspendedAttributeId;
+            SuspendedMemberId = suspendedMemberId;
             Deferred = deferred;
             this.suspension = suspension;
             this.resume = resume;
@@ -2479,7 +2479,7 @@ namespace NeoCompose.Runtime
         internal bool IsPaused { get; }
         internal bool Returned { get; }
         internal object? ReturnValue { get; }
-        internal string? SuspendedAttributeId { get; }
+        internal string? SuspendedMemberId { get; }
         internal NeoDeferredFunctionBase? Deferred { get; }
 
         internal static NeoScriptExecutionResult Completed(
@@ -2498,7 +2498,7 @@ namespace NeoCompose.Runtime
         }
 
         internal static NeoScriptExecutionResult Paused(
-            string suspendedAttributeId,
+            string suspendedMemberId,
             NeoDeferredFunctionBase deferred,
             DeferredNativeFunctionSuspension suspension,
             Func<object?, NeoScriptExecutionResult> resume)
@@ -2507,7 +2507,7 @@ namespace NeoCompose.Runtime
                 true,
                 false,
                 null,
-                suspendedAttributeId,
+                suspendedMemberId,
                 deferred,
                 suspension,
                 resume,
@@ -2589,9 +2589,9 @@ namespace NeoCompose.Runtime
                 true,
                 false,
                 null,
-                SuspendedAttributeId
+                SuspendedMemberId
                     ?? throw new InvalidOperationException(
-                        "Paused action result is missing its Function attribute id."),
+                        "Paused action result is missing its Function member id."),
                 Deferred,
                 suspension,
                 value => next(resume(value)),
@@ -2618,7 +2618,7 @@ namespace NeoCompose.Runtime
                 true,
                 false,
                 null,
-                SuspendedAttributeId,
+                SuspendedMemberId,
                 Deferred,
                 suspension,
                 resume,

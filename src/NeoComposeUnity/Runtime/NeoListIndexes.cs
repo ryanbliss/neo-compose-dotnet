@@ -12,7 +12,7 @@ using NeoCompose.Runtime.Json;
 namespace NeoCompose.Runtime
 {
     /// <summary>
-    /// Deterministic work counters for List identity/custom indexes. These
+    /// Deterministic work counters for List identity/declared indexes. These
     /// counters make complexity regressions testable without flaky timing
     /// thresholds across Unity runtimes.
     /// </summary>
@@ -34,7 +34,7 @@ namespace NeoCompose.Runtime
     /// </summary>
     internal sealed class NeoRawListIndex
     {
-        private readonly NeoAttributeList list;
+        private readonly NeoMemberList list;
         private readonly ListIndexDefinition definition;
         private Dictionary<string, List<string>>? buckets;
         private Dictionary<string, string?>? keysByValueId;
@@ -43,7 +43,7 @@ namespace NeoCompose.Runtime
         private string? resolvedKeyEnumId;
 
         internal NeoRawListIndex(
-            NeoAttributeList list,
+            NeoMemberList list,
             ListIndexDefinition definition)
         {
             this.list = list ?? throw new ArgumentNullException(nameof(list));
@@ -117,7 +117,7 @@ namespace NeoCompose.Runtime
         {
             if (buckets is null || keysByValueId is null) return;
             RemoveEntry(valueId);
-            if (!list.TryGetChildById(valueId, out NeoAttribute? child)) return;
+            if (!list.TryGetChildById(valueId, out NeoMember? child)) return;
             string? rawKey = ReadRawKey(child);
             keysByValueId[valueId] = rawKey;
             if (rawKey is not null) AddToBucket(rawKey, valueId);
@@ -167,8 +167,8 @@ namespace NeoCompose.Runtime
             if (definition.unique && duplicateKeys is { Count: > 0 })
             {
                 throw new InvalidOperationException(
-                    $"Unique List index '{definition.schemaKey}' on attribute "
-                    + $"'{list.attribute.id}' contains duplicate key(s): "
+                    $"Unique List index '{definition.schemaKey}' on member "
+                    + $"'{list.member.id}' contains duplicate key(s): "
                     + string.Join(", ", duplicateKeys));
             }
         }
@@ -194,7 +194,7 @@ namespace NeoCompose.Runtime
             duplicateKeys = nextDuplicates;
             try
             {
-                foreach (NeoAttribute child in list)
+                foreach (NeoMember child in list)
                 {
                     string valueId = list.EntryValueId(child);
                     string? rawKey = ReadRawKey(child);
@@ -225,38 +225,38 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private string? ReadRawKey(NeoAttribute entry)
+        private string? ReadRawKey(NeoMember entry)
         {
-            if (entry is not NeoAttributeCustom custom || custom.value is null)
+            if (entry is not NeoMemberClass classNode || classNode.value is null)
             {
                 return null;
             }
-            if (!custom.TryGet(definition.schemaKey, out NeoAttribute? keyNode))
+            if (!classNode.TryGet(definition.schemaKey, out NeoMember? keyNode))
             {
                 throw new InvalidOperationException(
-                    $"List index '{definition.schemaKey}' on attribute "
-                    + $"'{list.attribute.id}' could not resolve that field on "
+                    $"List index '{definition.schemaKey}' on member "
+                    + $"'{list.member.id}' could not resolve that field on "
                     + $"entry value '{list.EntryValueId(entry)}'.");
             }
             switch (keyNode)
             {
-                case NeoAttributeString text:
-                    if (text.attribute.localizable)
+                case NeoMemberString text:
+                    if (text.member.localizable)
                     {
                         throw InvalidKeyKind(entry,
                             "localized String fields are not indexable");
                     }
                     ObserveKeyContract(ListIndexKeyKind.String, null, entry);
                     return text.value?.value;
-                case NeoAttributeEnum selected:
-                    if (selected.attribute.multiselect)
+                case NeoMemberEnum selected:
+                    if (selected.member.multiselect)
                     {
                         throw InvalidKeyKind(entry,
                             "multiselect Enum fields are not indexable");
                     }
                     ObserveKeyContract(
                         ListIndexKeyKind.Enum,
-                        selected.attribute.enumId,
+                        selected.member.enumId,
                         entry);
                     string[] optionIds = selected.Selected();
                     if (optionIds.Length == 0) return null;
@@ -275,7 +275,7 @@ namespace NeoCompose.Runtime
         private void ObserveKeyContract(
             string keyKind,
             string? keyEnumId,
-            NeoAttribute entry)
+            NeoMember entry)
         {
             if (resolvedKeyKind is null)
             {
@@ -294,12 +294,12 @@ namespace NeoCompose.Runtime
         }
 
         private InvalidOperationException InvalidKeyKind(
-            NeoAttribute entry,
+            NeoMember entry,
             string reason)
         {
             return new InvalidOperationException(
-                $"List index '{definition.schemaKey}' on attribute "
-                + $"'{list.attribute.id}' is invalid for entry value "
+                $"List index '{definition.schemaKey}' on member "
+                + $"'{list.member.id}' is invalid for entry value "
                 + $"'{list.EntryValueId(entry)}': {reason}.");
         }
     }
@@ -313,26 +313,26 @@ namespace NeoCompose.Runtime
         where TItem : class
     {
         private readonly NeoClient client;
-        private readonly NeoAttributeList list;
+        private readonly NeoMemberList list;
         private readonly NeoRawListIndex index;
-        private readonly Func<NeoClient, NeoAttribute, TItem?> createItem;
+        private readonly Func<NeoClient, NeoMember, TItem?> createItem;
         private readonly Func<string, TKey> fromRawKey;
         private readonly Func<TKey, string> toRawKey;
 
         public NeoUniqueListIndex(
             NeoClient client,
-            NeoAttributeList list,
+            NeoMemberList list,
             string schemaKey,
-            Func<NeoClient, NeoAttribute, TItem?> createItem)
+            Func<NeoClient, NeoMember, TItem?> createItem)
             : this(client, list, schemaKey, createItem, StringKeyFromRaw, StringKeyToRaw)
         {
         }
 
         public NeoUniqueListIndex(
             NeoClient client,
-            NeoAttributeList list,
+            NeoMemberList list,
             string schemaKey,
-            Func<NeoClient, NeoAttribute, TItem?> createItem,
+            Func<NeoClient, NeoMember, TItem?> createItem,
             Func<string, TKey> fromRawKey,
             Func<TKey, string> toRawKey)
         {
@@ -423,7 +423,7 @@ namespace NeoCompose.Runtime
 
         private TItem Materialize(string valueId)
         {
-            if (!list.TryGetChildById(valueId, out NeoAttribute? child))
+            if (!list.TryGetChildById(valueId, out NeoMember? child))
             {
                 throw new InvalidOperationException(
                     $"List index resolved entry '{valueId}', but it is no longer a member of the List.");
@@ -463,26 +463,26 @@ namespace NeoCompose.Runtime
         where TItem : class
     {
         private readonly NeoClient client;
-        private readonly NeoAttributeList list;
+        private readonly NeoMemberList list;
         private readonly NeoRawListIndex index;
-        private readonly Func<NeoClient, NeoAttribute, TItem?> createItem;
+        private readonly Func<NeoClient, NeoMember, TItem?> createItem;
         private readonly Func<string, TKey> fromRawKey;
         private readonly Func<TKey, string> toRawKey;
 
         public NeoMultiListIndex(
             NeoClient client,
-            NeoAttributeList list,
+            NeoMemberList list,
             string schemaKey,
-            Func<NeoClient, NeoAttribute, TItem?> createItem)
+            Func<NeoClient, NeoMember, TItem?> createItem)
             : this(client, list, schemaKey, createItem, StringKeyFromRaw, StringKeyToRaw)
         {
         }
 
         public NeoMultiListIndex(
             NeoClient client,
-            NeoAttributeList list,
+            NeoMemberList list,
             string schemaKey,
-            Func<NeoClient, NeoAttribute, TItem?> createItem,
+            Func<NeoClient, NeoMember, TItem?> createItem,
             Func<string, TKey> fromRawKey,
             Func<TKey, string> toRawKey)
         {
@@ -558,7 +558,7 @@ namespace NeoCompose.Runtime
             var items = new List<TItem>(valueIds.Count);
             foreach (string valueId in valueIds)
             {
-                if (!list.TryGetChildById(valueId, out NeoAttribute? child))
+                if (!list.TryGetChildById(valueId, out NeoMember? child))
                 {
                     throw new InvalidOperationException(
                         $"List index resolved entry '{valueId}', but it is no longer a member of the List.");

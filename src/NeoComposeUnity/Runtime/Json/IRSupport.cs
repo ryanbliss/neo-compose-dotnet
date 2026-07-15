@@ -80,8 +80,8 @@ namespace NeoCompose.Runtime.Json
 
     public static class FunctionKind
     {
-        public const string CustomClone = "customClone";
-        public const string CustomConstructor = "customConstructor";
+        public const string ClassClone = "classClone";
+        public const string ClassConstructor = "classConstructor";
         public const string Select = "select";
         public const string First = "first";
         public const string FirstOrDefault = "firstOrDefault";
@@ -118,7 +118,7 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// Wire values of the TS-side <c>TNSDecimalOp</c> union — the ops a
     /// <c>decimalOp</c> function IR node may carry
-    /// (specs/decimal-attribute.md decision 7).
+    /// (specs/decimal-member.md decision 7).
     /// </summary>
     public static class DecimalOpKind
     {
@@ -219,7 +219,7 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// TS-side <c>decimal?: boolean</c> — when true, this operation is
         /// Decimal-typed and evaluates over canonical decimal strings via
-        /// <see cref="NeoDecimalMath"/> (specs/decimal-attribute.md
+        /// <see cref="NeoDecimalMath"/> (specs/decimal-member.md
         /// decision 7). Only <c>+</c>/<c>-</c>/<c>*</c> ever carry the
         /// stamp (the compiler rejects <c>/</c> and <c>%</c> on decimals).
         /// The TS-side name <c>decimal</c> is a C# keyword —

@@ -23,7 +23,7 @@ namespace NeoCompose.Tests
     /// <c>__this__</c> binding for it), then writes the produced
     /// values to <c>nsgetter-expected.json</c>. This test loads the
     /// same fixture + the dump and asserts that the SDK's
-    /// <see cref="NeoAttributeNSProperty.Compute(object?)"/> produces
+    /// <see cref="NeoMemberNSProperty.Compute(object?)"/> produces
     /// identical results entry-by-entry.
     ///
     /// <para>Re-run the dump script after touching the TS evaluator;
@@ -46,7 +46,7 @@ namespace NeoCompose.Tests
 
         private class ExpectedEntry
         {
-            public string attributeId { get; set; } = "";
+            public string memberId { get; set; } = "";
             public string? thisValueId { get; set; }
             public bool ok { get; set; }
             public JToken? value { get; set; }
@@ -75,21 +75,21 @@ namespace NeoCompose.Tests
             int matched = 0;
             foreach (var entry in expected)
             {
-                if (!client.TryGetAttribute(entry.attributeId, out NSPropertyAttribute? attr))
+                if (!client.TryGetMember(entry.memberId, out NSPropertyMember? member))
                 {
-                    failures.Add($"[{entry.attributeId}] not found in fixture");
+                    failures.Add($"[{entry.memberId}] not found in fixture");
                     continue;
                 }
-                var node = new NeoAttributeNSProperty(client, attr, null);
+                var node = new NeoMemberNSProperty(client, member, null);
                 // Use the row-id overload so the receiver is unwrapped
                 // through the evaluator's per-context cache + reverse
-                // index — required for `is`-checks against Custom types
+                // index — required for `is`-checks against Classes
                 // and runtime-override dispatch on `this` directly.
                 var actual = string.IsNullOrEmpty(entry.thisValueId)
                     ? node.Compute()
                     : node.Compute(entry.thisValueId!);
 
-                string label = $"[{entry.attributeId} | this={entry.thisValueId ?? "null"}]";
+                string label = $"[{entry.memberId} | this={entry.thisValueId ?? "null"}]";
                 if (entry.ok)
                 {
                     if (!actual.ok)

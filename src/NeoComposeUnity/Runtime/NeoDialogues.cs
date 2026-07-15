@@ -396,7 +396,7 @@ namespace NeoCompose.Runtime
                     return new InvalidOperationException(
                         $"Lookup dialogue '{dialogue.id}' is missing lookupValueId.");
                 }
-                if (!client.TryGetValue(lookupValueId!, out NeoCompose.Runtime.Json.AttributeValue? _))
+                if (!client.TryGetValue(lookupValueId!, out NeoCompose.Runtime.Json.MemberValue? _))
                 {
                     return new InvalidOperationException(
                         $"Lookup dialogue '{dialogue.id}' references missing lookup value '{lookupValueId}'.");
@@ -582,19 +582,19 @@ namespace NeoCompose.Runtime
             List<NeoDialogueTriggerWarning> warnings)
         {
             if (priorityGroup?.options == null || priorityGroup.options.Length == 0) return 0;
-            string? priorityTypeId = dialogue
+            string? priorityOptionId = dialogue
                 .triggerNode
                 ?.dialogueGroupSettings
                 ?.priority
-                ?.priorityTypeId;
+                ?.priorityOptionId;
             int lowest = priorityGroup.options.Length - 1;
-            if (string.IsNullOrEmpty(priorityTypeId)) return lowest;
+            if (string.IsNullOrEmpty(priorityOptionId)) return lowest;
             for (int i = 0; i < priorityGroup.options.Length; i++)
             {
-                if (priorityGroup.options[i].id == priorityTypeId) return i;
+                if (priorityGroup.options[i].id == priorityOptionId) return i;
             }
             warnings.Add(new NeoDialogueTriggerWarning(
-                $"Dialogue '{dialogue.id}' references missing priority option '{priorityTypeId}'.",
+                $"Dialogue '{dialogue.id}' references missing priority option '{priorityOptionId}'.",
                 dialogueId: dialogue.id,
                 groupId: dialogue.triggerNode?.dialogueGroupSettings?.dialogueGroupId));
             return lowest;

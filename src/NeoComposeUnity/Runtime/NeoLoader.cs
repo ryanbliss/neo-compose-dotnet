@@ -10,7 +10,7 @@ using NeoCompose.Runtime.Json;
 namespace NeoCompose.Runtime
 {
     /// <summary>
-    /// Loads Neo types
+    /// Loads Neo classes
     /// </summary>
     public class NeoLoader
     {

@@ -27,7 +27,7 @@ namespace NeoCompose.Tests
             "\"author\":{\"kind\":\"user\",\"id\":\"user-1\"}," +
             "\"actor\":{\"kind\":\"user\",\"id\":\"user-1\"}," +
             "\"values\":{\"v1\":{\"id\":\"v1\",\"value\":true,\"createdAt\":1,\"updatedAt\":2}}," +
-            "\"staticBindings\":{\"attr-current\":\"v1\",\"attr-cleared\":null}," +
+            "\"staticBindings\":{\"member-current\":\"v1\",\"member-cleared\":null}," +
             "\"platforms\":null,\"systems\":null,\"inputDevices\":null," +
             "\"createdAt\":1,\"updatedAt\":2,\"synchronizedAt\":3,\"archivedAt\":null" +
             "}";
@@ -45,9 +45,87 @@ namespace NeoCompose.Tests
             // values stayed opaque: the raw token is preserved, not pre-typed.
             Assert.That(save.values.Raw.Type, Is.EqualTo(JTokenType.Object));
             Assert.That((bool)save.values.Raw["v1"]!["value"]!, Is.True);
-            Assert.That(save.staticBindings["attr-current"], Is.EqualTo("v1"));
-            Assert.That(save.staticBindings.ContainsKey("attr-cleared"), Is.True);
-            Assert.That(save.staticBindings["attr-cleared"], Is.Null);
+            Assert.That(save.staticBindings["member-current"], Is.EqualTo("v1"));
+            Assert.That(save.staticBindings.ContainsKey("member-cleared"), Is.True);
+            Assert.That(save.staticBindings["member-cleared"], Is.Null);
+        }
+
+        [Test]
+        public void RemoteLoader_OldValueRowTypeIdIsRejectedWithoutAlias()
+        {
+            var json = JObject.Parse(RemoteJson);
+            json["values"]!["v1"]!["typeId"] = "class-legacy";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                RemoteGameSaveLoader.Load(json.ToString()));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("removed field 'typeId'; schema 8 requires 'classId'"));
+        }
+
+        [Test]
+        public void LocalLoader_OldEnvelopeMemberReferenceIsRejectedWithoutAlias()
+        {
+            var json = JObject.Parse(RemoteJson);
+            json.Remove("id");
+            json["customId"] = "save-1";
+            json["attributeId"] = "member-legacy";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                LocalGameSaveLoader.Load(json.ToString()));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("removed field 'attributeId'; schema 8 requires 'memberId'"));
+            Assert.That(
+                LocalGameSaveLoader.TryLoad(json.ToString(), out _),
+                Is.False);
+        }
+
+        [Test]
+        public void ProjectSaveData_OldValueRowTypeIdIsRejectedWithoutAlias()
+        {
+            const string json = @"{
+  ""values"": {
+    ""value-profile"": {
+      ""id"": ""value-profile"",
+      ""projectId"": ""project"",
+      ""value"": {},
+      ""typeId"": ""class-profile"",
+      ""createdAt"": 1,
+      ""updatedAt"": 2
+    }
+  },
+  ""staticBindings"": {}
+}";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<ProjectSaveData>(json));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("removed field 'typeId'; schema 8 requires 'classId'"));
+        }
+
+        [Test]
+        public void RemoteLoader_UserValueKeysThatMatchOldFieldsRemainOpaque()
+        {
+            var json = JObject.Parse(RemoteJson);
+            json["values"]!["v1"]!["value"] = new JObject
+            {
+                ["attributeId"] = "authored dictionary key",
+                ["typeId"] = "another authored dictionary key",
+            };
+
+            var save = RemoteGameSaveLoader.Load(json.ToString());
+
+            Assert.That(
+                (string)save.values.Raw["v1"]!["value"]!["attributeId"]!,
+                Is.EqualTo("authored dictionary key"));
+            Assert.That(
+                (string)save.values.Raw["v1"]!["value"]!["typeId"]!,
+                Is.EqualTo("another authored dictionary key"));
         }
 
         [Test]
@@ -66,8 +144,8 @@ namespace NeoCompose.Tests
 
             Assert.That(ok, Is.True);
             Assert.That(values.ContainsKey("v1"), Is.True);
-            Assert.That(values["v1"], Is.InstanceOf<BoolAttributeValue>());
-            Assert.That(((BoolAttributeValue)values["v1"]).value, Is.True);
+            Assert.That(values["v1"], Is.InstanceOf<BoolMemberValue>());
+            Assert.That(((BoolMemberValue)values["v1"]).value, Is.True);
         }
 
         [Test]
@@ -108,9 +186,9 @@ namespace NeoCompose.Tests
             Assert.That(reloaded.snapshotId, Is.EqualTo("snap-1"));
             Assert.That(reloaded.snapshotHash, Is.EqualTo("hash-1"));
             Assert.That((bool)reloaded.values.Raw["v1"]!["value"]!, Is.True);
-            Assert.That(reloaded.staticBindings["attr-current"], Is.EqualTo("v1"));
-            Assert.That(reloaded.staticBindings.ContainsKey("attr-cleared"), Is.True);
-            Assert.That(reloaded.staticBindings["attr-cleared"], Is.Null);
+            Assert.That(reloaded.staticBindings["member-current"], Is.EqualTo("v1"));
+            Assert.That(reloaded.staticBindings.ContainsKey("member-cleared"), Is.True);
+            Assert.That(reloaded.staticBindings["member-cleared"], Is.Null);
             Assert.That(reloaded.IsLocalOnly, Is.False);
         }
 
@@ -125,7 +203,7 @@ namespace NeoCompose.Tests
             Assert.That(local.releaseChannelId, Is.EqualTo("channel-dev"));
             Assert.That(local.name, Is.EqualTo("My Save"));
             Assert.That(local.synchronizedAt, Is.EqualTo(3d));
-            Assert.That(local.staticBindings["attr-current"], Is.EqualTo("v1"));
+            Assert.That(local.staticBindings["member-current"], Is.EqualTo("v1"));
         }
 
         [Test]
@@ -147,8 +225,8 @@ namespace NeoCompose.Tests
         {
             var bindings = new Dictionary<string, string?>
             {
-                ["attr-current"] = "v-runtime",
-                ["attr-cleared"] = null,
+                ["member-current"] = "v-runtime",
+                ["member-cleared"] = null,
             };
             var projectSave = new ProjectSaveData { staticBindings = bindings };
             var commit = new NeoSaveCommitRequest { staticBindings = bindings };
@@ -158,12 +236,12 @@ namespace NeoCompose.Tests
             var commitRoundTrip = JsonConvert.DeserializeObject<NeoSaveCommitRequest>(
                 JsonConvert.SerializeObject(commit))!;
 
-            Assert.That(projectRoundTrip.staticBindings["attr-current"], Is.EqualTo("v-runtime"));
-            Assert.That(projectRoundTrip.staticBindings.ContainsKey("attr-cleared"), Is.True);
-            Assert.That(projectRoundTrip.staticBindings["attr-cleared"], Is.Null);
-            Assert.That(commitRoundTrip.staticBindings["attr-current"], Is.EqualTo("v-runtime"));
-            Assert.That(commitRoundTrip.staticBindings.ContainsKey("attr-cleared"), Is.True);
-            Assert.That(commitRoundTrip.staticBindings["attr-cleared"], Is.Null);
+            Assert.That(projectRoundTrip.staticBindings["member-current"], Is.EqualTo("v-runtime"));
+            Assert.That(projectRoundTrip.staticBindings.ContainsKey("member-cleared"), Is.True);
+            Assert.That(projectRoundTrip.staticBindings["member-cleared"], Is.Null);
+            Assert.That(commitRoundTrip.staticBindings["member-current"], Is.EqualTo("v-runtime"));
+            Assert.That(commitRoundTrip.staticBindings.ContainsKey("member-cleared"), Is.True);
+            Assert.That(commitRoundTrip.staticBindings["member-cleared"], Is.Null);
         }
 
         [Test]
@@ -173,23 +251,23 @@ namespace NeoCompose.Tests
             {
                 staticBindings = new Dictionary<string, string?>
                 {
-                    ["attr-current"] = "v-runtime",
-                    ["attr-cleared"] = null,
+                    ["member-current"] = "v-runtime",
+                    ["member-cleared"] = null,
                 },
                 restoredStaticBindingsToAuthored = new List<string>
                 {
-                    "attr-restored",
+                    "member-restored",
                 },
             };
 
             var roundTripped = JsonConvert.DeserializeObject<NeoSavePatch>(
                 JsonConvert.SerializeObject(patch))!;
 
-            Assert.That(roundTripped.staticBindings["attr-current"], Is.EqualTo("v-runtime"));
-            Assert.That(roundTripped.staticBindings.ContainsKey("attr-cleared"), Is.True);
-            Assert.That(roundTripped.staticBindings["attr-cleared"], Is.Null);
+            Assert.That(roundTripped.staticBindings["member-current"], Is.EqualTo("v-runtime"));
+            Assert.That(roundTripped.staticBindings.ContainsKey("member-cleared"), Is.True);
+            Assert.That(roundTripped.staticBindings["member-cleared"], Is.Null);
             CollectionAssert.AreEqual(
-                new[] { "attr-restored" },
+                new[] { "member-restored" },
                 roundTripped.restoredStaticBindingsToAuthored);
             Assert.That(roundTripped.IsEmpty, Is.False);
         }

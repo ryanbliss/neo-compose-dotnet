@@ -12,20 +12,20 @@ namespace NeoCompose.Runtime.Json
 {
     /// <summary>
     /// Abstract base for the TS-side <c>TNSTypeInfo</c> discriminated
-    /// union. Newtonsoft dispatches primitive, custom, interface, generic, enum,
+    /// union. Newtonsoft dispatches primitive, class, interface, generic, enum,
     /// collection, lookup, and unknown variants on the numeric
     /// <see cref="type"/> via {@link TypeInfoConverter}.
     /// </summary>
     [JsonConverter(typeof(TypeInfoConverter))]
     public abstract class TypeInfo
     {
-        public AttributeType type;
+        public MemberKind type;
         public bool required;
     }
 
     /// <summary>
     /// Primitive type info — Null / Bool / Int / Float / String and
-    /// file-backed asset types. No
+    /// file-backed asset classes. No
     /// extra fields; <see cref="TypeInfo.type"/> alone identifies the
     /// primitive variant.
     /// </summary>
@@ -38,23 +38,23 @@ namespace NeoCompose.Runtime.Json
     public class UnknownTypeInfo : TypeInfo { }
 
     /// <summary>
-    /// Function-return-only sentinel for native Function attributes that
+    /// Function-return-only sentinel for native Function members that
     /// return no value.
     /// </summary>
     public class VoidTypeInfo : TypeInfo { }
 
     /// <summary>
-    /// Custom type info. Carries the referenced custom-type id.
-    /// Mirrors the TS-side <c>INSTypeInfoCustom</c>.
+    /// Class info. Carries the referenced class id.
+    /// Mirrors the TS-side <c>INSTypeInfoClass</c>.
     /// </summary>
-    public class CustomTypeInfo : TypeInfo
+    public class ClassTypeInfo : TypeInfo
     {
-        public string typeId = null!;
+        public string classId = null!;
         public Dictionary<string, TypeInfo>? typeArguments;
     }
 
     /// <summary>
-    /// Custom-type interface type info. Carries the referenced interface id.
+    /// Class interface type info. Carries the referenced interface id.
     /// Mirrors the TS-side <c>INSTypeInfoInterface</c>.
     /// </summary>
     public class InterfaceTypeInfo : TypeInfo
@@ -63,14 +63,14 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
-    /// Open generic parameter type-info. The declaring type and stable
+    /// Open generic parameter class-info. The declaring class and stable
     /// parameter id mirror the TS-side <c>INSTypeInfoGenericParam</c>.
     /// Generated closed surfaces normally substitute this before runtime;
     /// retaining the wire shape keeps property/function IR round-trippable.
     /// </summary>
     public class GenericTypeInfo : TypeInfo
     {
-        public string ownerTypeId = null!;
+        public string ownerClassId = null!;
         public string genericParamId = null!;
     }
 
@@ -91,22 +91,27 @@ namespace NeoCompose.Runtime.Json
     {
         public TypeInfo entryTypeInfo = null!;
         public string? keyEnumId;
-        public string? listAttributeId;
+        public string? listMemberId;
     }
 
     /// <summary>
     /// Multiselect Lookup type info. Carries the recursive entry type
-    /// and the collection attribute the lookup selects from.
+    /// and the collection member the lookup selects from.
     /// </summary>
     public class LookupTypeInfo : TypeInfo
     {
         public TypeInfo entryTypeInfo = null!;
-        public string collectionAttributeId = null!;
+        public string collectionMemberId = null!;
         public string? collectionValueId;
     }
 
     public class TypeInfoConverter : DiscriminatedConverter<TypeInfo>
     {
+        protected override void ValidateObject(JObject obj, Type concrete)
+        {
+            Schema8LegacyFieldGuard.RejectRemovedTypeInfoTypeId(obj);
+        }
+
         protected override Type? ResolveSubclass(JToken discriminator)
         {
             if (discriminator.Type == JTokenType.String)
@@ -115,40 +120,40 @@ namespace NeoCompose.Runtime.Json
                     ? typeof(UnknownTypeInfo)
                     : null;
             }
-            // TS-side `AttributeType` is a numeric enum on the wire.
+            // TS-side `MemberKind` is a numeric enum on the wire.
             // Newtonsoft surfaces the JSON number as a long; cast through
             // int to land on the enum value.
-            var value = (AttributeType)discriminator.Value<int>();
+            var value = (MemberKind)discriminator.Value<int>();
             switch (value)
             {
-                case AttributeType.Null:
-                case AttributeType.Bool:
-                case AttributeType.Int:
-                case AttributeType.Float:
-                case AttributeType.String:
-                case AttributeType.Sprite:
-                case AttributeType.Audio:
-                case AttributeType.Vector2:
-                case AttributeType.Vector2Int:
-                case AttributeType.Vector3:
-                case AttributeType.Vector3Int:
-                case AttributeType.Color:
-                case AttributeType.Decimal:
+                case MemberKind.Null:
+                case MemberKind.Bool:
+                case MemberKind.Int:
+                case MemberKind.Float:
+                case MemberKind.String:
+                case MemberKind.Sprite:
+                case MemberKind.Audio:
+                case MemberKind.Vector2:
+                case MemberKind.Vector2Int:
+                case MemberKind.Vector3:
+                case MemberKind.Vector3Int:
+                case MemberKind.Color:
+                case MemberKind.Decimal:
                     return typeof(PrimitiveTypeInfo);
-                case AttributeType.Custom:
-                    return typeof(CustomTypeInfo);
-                case AttributeType.Interface:
+                case MemberKind.Class:
+                    return typeof(ClassTypeInfo);
+                case MemberKind.Interface:
                     return typeof(InterfaceTypeInfo);
-                case AttributeType.Enum:
+                case MemberKind.Enum:
                     return typeof(EnumTypeInfo);
-                case AttributeType.List:
-                case AttributeType.Dictionary:
+                case MemberKind.List:
+                case MemberKind.Dictionary:
                     return typeof(CollectionTypeInfo);
-                case AttributeType.Lookup:
+                case MemberKind.Lookup:
                     return typeof(LookupTypeInfo);
-                case AttributeType.DialogueLookup:
+                case MemberKind.DialogueLookup:
                     return typeof(PrimitiveTypeInfo);
-                case AttributeType.Generic:
+                case MemberKind.Generic:
                     return typeof(GenericTypeInfo);
                 default:
                     return null;
@@ -158,6 +163,11 @@ namespace NeoCompose.Runtime.Json
 
     public class FunctionReturnTypeInfoConverter : DiscriminatedConverter<TypeInfo>
     {
+        protected override void ValidateObject(JObject obj, Type concrete)
+        {
+            Schema8LegacyFieldGuard.RejectRemovedTypeInfoTypeId(obj);
+        }
+
         protected override Type? ResolveSubclass(JToken discriminator)
         {
             if (discriminator.Type == JTokenType.String)
@@ -170,37 +180,37 @@ namespace NeoCompose.Runtime.Json
                 }
             }
 
-            var value = (AttributeType)discriminator.Value<int>();
+            var value = (MemberKind)discriminator.Value<int>();
             switch (value)
             {
-                case AttributeType.Null:
-                case AttributeType.Bool:
-                case AttributeType.Int:
-                case AttributeType.Float:
-                case AttributeType.String:
-                case AttributeType.Sprite:
-                case AttributeType.Audio:
-                case AttributeType.Vector2:
-                case AttributeType.Vector2Int:
-                case AttributeType.Vector3:
-                case AttributeType.Vector3Int:
-                case AttributeType.Color:
-                case AttributeType.Decimal:
+                case MemberKind.Null:
+                case MemberKind.Bool:
+                case MemberKind.Int:
+                case MemberKind.Float:
+                case MemberKind.String:
+                case MemberKind.Sprite:
+                case MemberKind.Audio:
+                case MemberKind.Vector2:
+                case MemberKind.Vector2Int:
+                case MemberKind.Vector3:
+                case MemberKind.Vector3Int:
+                case MemberKind.Color:
+                case MemberKind.Decimal:
                     return typeof(PrimitiveTypeInfo);
-                case AttributeType.Custom:
-                    return typeof(CustomTypeInfo);
-                case AttributeType.Interface:
+                case MemberKind.Class:
+                    return typeof(ClassTypeInfo);
+                case MemberKind.Interface:
                     return typeof(InterfaceTypeInfo);
-                case AttributeType.Enum:
+                case MemberKind.Enum:
                     return typeof(EnumTypeInfo);
-                case AttributeType.List:
-                case AttributeType.Dictionary:
+                case MemberKind.List:
+                case MemberKind.Dictionary:
                     return typeof(CollectionTypeInfo);
-                case AttributeType.Lookup:
+                case MemberKind.Lookup:
                     return typeof(LookupTypeInfo);
-                case AttributeType.DialogueLookup:
+                case MemberKind.DialogueLookup:
                     return typeof(PrimitiveTypeInfo);
-                case AttributeType.Generic:
+                case MemberKind.Generic:
                     return typeof(GenericTypeInfo);
                 default:
                     return null;
