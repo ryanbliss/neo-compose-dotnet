@@ -402,7 +402,7 @@ namespace NeoCompose.Tests
         [Test]
         public void Json_GenericAttribute_ReadsOrdinal21()
         {
-            const string json = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""type"": 21, ""genericParamId"": ""p1""}";
+            const string json = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""type"": 21, ""isStatic"": false, ""genericParamId"": ""p1""}";
             var attribute = JsonConvert.DeserializeObject<Attribute>(json);
             Assert.IsInstanceOf<GenericAttribute>(attribute);
             Assert.AreEqual("p1", ((GenericAttribute)attribute!).genericParamId);
@@ -411,9 +411,9 @@ namespace NeoCompose.Tests
         [Test]
         public void Json_AttributeVirtualAndAbstractFlagsPreserveAbsenceAndValues()
         {
-            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5}";
-            const string trueJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5, ""isVirtual"": true, ""isAbstract"": true}";
-            const string falseJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5, ""isVirtual"": false, ""isAbstract"": false}";
+            const string absentJson = @"{""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5, ""isStatic"": false}";
+            const string trueJson = @"{""id"": ""a2"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5, ""isStatic"": false, ""isVirtual"": true, ""isAbstract"": true}";
+            const string falseJson = @"{""id"": ""a3"", ""projectId"": ""p"", ""name"": ""Name"", ""type"": 5, ""isStatic"": false, ""isVirtual"": false, ""isAbstract"": false}";
 
             var absent = JsonConvert.DeserializeObject<Attribute>(absentJson)!;
             var trueValues = JsonConvert.DeserializeObject<Attribute>(trueJson)!;
@@ -431,7 +431,7 @@ namespace NeoCompose.Tests
         public void Json_CustomAttribute_ReadsTypeArguments()
         {
             const string json = @"{
-                ""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""type"": 7,
+                ""id"": ""a1"", ""projectId"": ""p"", ""name"": ""Slot"", ""type"": 7, ""isStatic"": false,
                 ""customTypeId"": ""t1"",
                 ""customTypeArguments"": {
                     ""p1"": { ""kind"": ""attribute"", ""attributeId"": ""a2"" }

@@ -51,7 +51,7 @@ unsupported. Preserve any source you need, then create a fresh v2 working copy:
 neo init --project <id> [--version <id>] [--dir neo]
 ```
 
-`neo pull --reset` is only for an existing v2 workspace; it reconstructs
+`neo pull --reset` is only for an existing schema workspace; it reconstructs
 CLI-managed source from the server and refreshes the compiler SDK and analyzer.
 
 Neo never downloads or installs .NET. Compiler host discovery is:
@@ -107,6 +107,9 @@ Native C# carries native meaning:
   ordering attribute is present.
 - Method parameters and return type are the function signature.
   `Task`/`Task<T>` means deferred execution.
+- A C# `static` property or method is type-owned. Stored static properties use
+  one replaceable binding and are excluded from instance construction;
+  receiver kind cannot be changed in place.
 - Concrete `[NeoScript]`/`[NeoFunction]` methods are C# 11 partial
   declarations. The bundled source generator adds inert compile-only bodies.
   Abstract functions are ordinary abstract methods.
@@ -123,7 +126,7 @@ public enum ItemType
     Food,
 }
 
-[NeoType("type-inventory-item", AllowedStorage = NeoAllowedStorage.Static)]
+[NeoType("type-inventory-item", AllowedStorage = NeoAllowedStorage.Immutable)]
 [NeoSchemaOrder(nameof(Name), nameof(Type), nameof(Tags), nameof(UsePrimary))]
 public abstract partial class InventoryItem<
     [NeoId("generic-stack")] TStack>
@@ -234,9 +237,30 @@ Canonical C# places `// NeoScript: Scripts/<Type>/<Member>.neo` above the
 linked declaration. Go-to-definition, references, and rename use the Roslyn
 source identity plus stable member ID to navigate between C# and `.neo`.
 
-NeoScript is C#-flavored: use typed declarations (`string name = ...;`, not
-`var`); `this` is the containing instance; roots include `root.Assets`,
-`root.Save`, and `root.Session`.
+NeoScript is C#-flavored. Locals may use an explicit type
+(`string name = ...;`) or inference (`var name = ...;`); inferred locals retain
+the same static type and editor intelligence. `this` is the containing
+instance; roots include `root.Assets`, `root.Save`, and `root.Session`.
+
+Every executable NeoScript unit uses the same mutation-capable resolver and
+executor. Getter and dialogue-condition bodies may write just like actions,
+setters, Functions, and migrations; the resolved target's Immutable, Save,
+Session, or runtime ownership—not the body kind—decides whether the write is
+legal. The non-code Condition builder remains a restricted read form.
+
+Concrete, closed, writable Custom types expose the same public constructor
+shape as generated C#. Use `new Type(required, optional, ...)`; required
+parameters come first, optional parameters follow in generated-code order,
+and `null` skips an optional positional slot. Arguments remain positional;
+editor parameter-name hints are previews, not named-argument syntax.
+Constructor graphs begin as parentless Session values. They survive only when
+attached, returned, or otherwise escaped from the invocation; abandoned
+graphs are reclaimed.
+
+Static members use a type receiver (`GameRules.EncounterCount`), while
+instance members use a value receiver. Stored static members resolve through
+their authored/Save/Session binding layer and are never copied into Custom
+instances.
 
 ```sh
 neo script check --all
@@ -251,7 +275,8 @@ neo script apply --mode action '...'
 
 `eval` uses authored values and the same evaluator as the web app. `apply` is
 preview-only unless its command explicitly supports a commit; it reports
-return values and write intents. Prefer `--json` for automation.
+return values, ordered write intents, and surviving constructor rows in
+`createdSessionValues`. Prefer `--json` for automation.
 
 ## Conflicts and version bumps
 
@@ -278,6 +303,9 @@ neo records get <kind> <id>
 neo values list [attributeId]
 neo values get <valueId>
 neo values set <valueId> '<raw-json-value>'
+neo values bind <staticAttributeId> <valueId>
+neo values unbind <staticAttributeId>
+neo values create '<raw-json-value>' [--type <customTypeId>] --bind <staticAttributeId>
 neo loc locales
 neo loc list
 neo loc set <textId> <locale> "text"
@@ -285,9 +313,11 @@ neo loc set <textId> <locale> "text"
 
 Write verbs accept a JSON-array batch on stdin or `--file`; use one batch when
 edits must be atomic. A `values set` payload is the raw value, not
-`{"value": ...}`. For collection rows use `values add-entry` on the live
-container value; an attribute's default container ID may not be an instance's
-container.
+`{"value": ...}`. `values bind` and `unbind` edit only a stored static
+member's authored binding; `create --bind` can atomically create and bind a
+complete Custom/collection graph supplied as one batch. For collection rows
+use `values add-entry` on the live container value; an attribute's default
+container ID may not be an instance's container.
 
 ### Dialogue authoring
 

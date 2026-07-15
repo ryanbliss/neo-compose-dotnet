@@ -383,7 +383,11 @@ namespace NeoCompose.Runtime
                 inheritanceChain = CustomTypeInheritance.ResolveChain(
                     type.id,
                     id => client.TryGetType(id, out var t) ? t : null);
-                mergedSchema = CustomTypeInheritance.MergeSchemas(inheritanceChain);
+                mergedSchema = CustomTypeInheritance.MergeInstanceSchema(
+                    inheritanceChain,
+                    id => client.TryGetAttribute(id, out Attribute? attribute)
+                        ? attribute
+                        : null);
                 // The chain env alone misses constructed slots: an instance
                 // of the DECLARED open type (`typeId: null` rows under a
                 // `GenericTest<Color>` slot) binds its params through the
@@ -425,7 +429,7 @@ namespace NeoCompose.Runtime
             string? overrideValueId)
         {
             // An explicit declared storage fixes the child's shape in both
-            // families (specs/attribute-storage.md §8.3): Static-stamped
+            // families (specs/attribute-storage.md §8.3): Immutable-stamped
             // children stay read-only even under a writable parent;
             // Save/Session stamps pin the child to that ownership store.
             NeoValueOwnership? declared = client.DeclaredOwnership(childAttribute);
@@ -641,7 +645,7 @@ namespace NeoCompose.Runtime
             if (childOwnership == NeoValueOwnership.Asset)
             {
                 throw new System.InvalidOperationException(
-                    $"Cannot write '{key}' on Custom '{attribute.id}': its effective storage is static.");
+                    $"Cannot write '{key}' on Custom '{attribute.id}': its effective storage is immutable.");
             }
             bool recordWritable = ownership != NeoValueOwnership.Asset;
 
@@ -741,6 +745,10 @@ namespace NeoCompose.Runtime
                 newValueId = System.Guid.NewGuid().ToString();
                 AttributeValue newValueRow = AttributeValueFactory.Create(
                     childAttribute, setValue?.value, newValueId, nowIso, nowIso);
+                newValueRow.mapKey = client.ResolveCreatedValueMapKey(
+                    childAttribute,
+                    value?.mapKey,
+                    value?.typeId);
                 // Freshly-minted collection rows carry the Decision-9 stamp
                 // computed from this record's env (the SDK walks top-down
                 // with the document in memory).

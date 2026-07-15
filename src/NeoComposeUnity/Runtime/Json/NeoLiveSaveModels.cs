@@ -23,10 +23,25 @@ namespace NeoCompose.Runtime.Json
         public Dictionary<string, JToken> entries = new();
         public List<string> restoredToAuthored = new();
 
+        /// <summary>
+        /// Static-member binding upserts keyed by attribute id. Values are
+        /// target value ids or null tombstones.
+        /// </summary>
+        public Dictionary<string, string?> staticBindings = new();
+
+        /// <summary>
+        /// Static-member bindings to delete from the sparse overlay so the
+        /// authored <c>attribute.valueId</c> is visible again.
+        /// </summary>
+        public List<string> restoredStaticBindingsToAuthored = new();
+
         /// <summary>True when the patch changes nothing (the server rejects these).</summary>
         [JsonIgnore]
         public bool IsEmpty =>
-            entries.Count == 0 && restoredToAuthored.Count == 0;
+            entries.Count == 0
+            && restoredToAuthored.Count == 0
+            && staticBindings.Count == 0
+            && restoredStaticBindingsToAuthored.Count == 0;
     }
 
     /// <summary>

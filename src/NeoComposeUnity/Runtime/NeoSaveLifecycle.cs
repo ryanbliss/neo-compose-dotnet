@@ -4,6 +4,7 @@
 #nullable enable
 
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using NeoCompose.Runtime.Json;
 
@@ -101,14 +102,29 @@ namespace NeoCompose.Runtime
     public sealed class NeoSaveMigration
     {
         public NeoSaveMigration(string customId, NeoSaveValues opaqueValues, ProjectData schema)
+            : this(
+                customId,
+                opaqueValues,
+                new Dictionary<string, string?>(),
+                schema)
+        {
+        }
+
+        public NeoSaveMigration(
+            string customId,
+            NeoSaveValues opaqueValues,
+            IReadOnlyDictionary<string, string?> staticBindings,
+            ProjectData schema)
         {
             CustomId = customId;
             OpaqueValues = opaqueValues;
+            StaticBindings = staticBindings;
             Schema = schema;
         }
 
         public string CustomId { get; }
         public NeoSaveValues OpaqueValues { get; }
+        public IReadOnlyDictionary<string, string?> StaticBindings { get; }
         public ProjectData Schema { get; }
     }
 

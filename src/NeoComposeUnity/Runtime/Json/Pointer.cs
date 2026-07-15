@@ -55,6 +55,15 @@ namespace NeoCompose.Runtime.Json
         public Function function = null!;
     }
 
+    /// <summary>
+    /// Type-owned stored member pointer. The stable attribute id is resolved
+    /// against authored/Save/Session binding state at evaluation time.
+    /// </summary>
+    public class StaticMemberPointer : Pointer
+    {
+        public string attributeId = null!;
+    }
+
     /// <summary>Mirror of <c>INSPointerKeyOf</c>.</summary>
     public class KeyOfPointer : Pointer
     {
@@ -108,11 +117,48 @@ namespace NeoCompose.Runtime.Json
         public TypeInfo checkType = null!;
     }
 
+    public static class CallReceiverKind
+    {
+        public const string Instance = "instance";
+        public const string Static = "static";
+    }
+
+    /// <summary>
+    /// Explicit receiver union shared by callGetter/callFunction. Instance
+    /// calls carry a pointer; receiverless type-owned calls carry the stable
+    /// callable attribute id. A null/fake this pointer is never used to encode
+    /// static dispatch.
+    /// </summary>
+    public class CallReceiver
+    {
+        public string kind = null!;
+        public Pointer? pointer;
+        public string? attributeId;
+
+        [JsonIgnore]
+        public bool IsStatic => kind == CallReceiverKind.Static;
+    }
+
     /// <summary>Mirror of <c>INSPointerCallGetter</c>.</summary>
     public class CallGetterPointer : Pointer
     {
         public string attributeId = null!;
-        public Pointer thisPointer = null!;
+        public CallReceiver receiver = null!;
+        /// <summary>
+        /// Source-compatibility shim for schema-6 tests/callers. It is never
+        /// serialized; current wire data uses <see cref="receiver"/>.
+        /// </summary>
+        [JsonIgnore]
+        [Obsolete("Use receiver = new CallReceiver { kind = \"instance\", pointer = ... }.")]
+        public Pointer thisPointer
+        {
+            get => receiver.pointer!;
+            set => receiver = new CallReceiver
+            {
+                kind = CallReceiverKind.Instance,
+                pointer = value,
+            };
+        }
         /// <summary>
         /// `true` when the source used `?.` chaining. TS field is
         /// <c>optional?: boolean</c> — absent on the wire when not
@@ -152,7 +198,19 @@ namespace NeoCompose.Runtime.Json
     {
         public string? attributeId;
         public string? memberKey;
-        public Pointer thisPointer = null!;
+        public CallReceiver receiver = null!;
+        /// <summary>Schema-6 source shim; omitted from current JSON.</summary>
+        [JsonIgnore]
+        [Obsolete("Use receiver = new CallReceiver { kind = \"instance\", pointer = ... }.")]
+        public Pointer thisPointer
+        {
+            get => receiver.pointer!;
+            set => receiver = new CallReceiver
+            {
+                kind = CallReceiverKind.Instance,
+                pointer = value,
+            };
+        }
         public Pointer[] args = null!;
         public bool? optional;
         public string callSiteId = null!;
@@ -186,6 +244,7 @@ namespace NeoCompose.Runtime.Json
                 case PointerKind.Stringify: return typeof(StringifyPointer);
                 case PointerKind.CallFunction: return typeof(CallFunctionPointer);
                 case PointerKind.FunctionErrorCheck: return typeof(FunctionErrorCheckPointer);
+                case PointerKind.StaticMember: return typeof(StaticMemberPointer);
                 default: return null;
             }
         }
@@ -210,6 +269,11 @@ namespace NeoCompose.Runtime.Json
                 }
                 return;
             }
+            if (concrete == typeof(CallGetterPointer))
+            {
+                ValidateReceiver(obj);
+                return;
+            }
             if (concrete != typeof(CallFunctionPointer)) return;
 
             bool hasAttributeId = HasNonEmptyString(obj, "attributeId");
@@ -226,16 +290,67 @@ namespace NeoCompose.Runtime.Json
                 throw new JsonSerializationException(
                     "CallFunctionPointer must contain a non-empty 'callSiteId'.");
             }
-            if (obj["thisPointer"]?.Type != JTokenType.Object)
-            {
-                throw new JsonSerializationException(
-                    "CallFunctionPointer must contain a 'thisPointer' object.");
-            }
+            ValidateReceiver(obj);
             if (obj["args"]?.Type != JTokenType.Array)
             {
                 throw new JsonSerializationException(
                     "CallFunctionPointer must contain an 'args' array.");
             }
+        }
+
+        private static void ValidateReceiver(JObject obj)
+        {
+            // Schema 6 encoded instance receivers as `thisPointer`. Normalize
+            // on read so old exported projects remain loadable, while the DTO
+            // and all current serialization emit only the explicit union.
+            if (obj["receiver"] is null
+                && obj["thisPointer"] is JObject legacyPointer)
+            {
+                obj["receiver"] = new JObject
+                {
+                    ["kind"] = CallReceiverKind.Instance,
+                    ["pointer"] = legacyPointer.DeepClone(),
+                };
+                obj.Remove("thisPointer");
+            }
+            if (obj["receiver"] is not JObject receiver)
+            {
+                throw new JsonSerializationException(
+                    "Callable pointer must contain a 'receiver' object.");
+            }
+            string? kind = receiver["kind"]?.Type == JTokenType.String
+                ? receiver["kind"]!.Value<string>()
+                : null;
+            if (kind == CallReceiverKind.Instance)
+            {
+                if (receiver["pointer"]?.Type != JTokenType.Object)
+                {
+                    throw new JsonSerializationException(
+                        "Instance call receiver must contain a 'pointer' object.");
+                }
+                if (HasNonEmptyString(receiver, "attributeId"))
+                {
+                    throw new JsonSerializationException(
+                        "Instance call receiver cannot contain 'attributeId'.");
+                }
+                return;
+            }
+            if (kind == CallReceiverKind.Static)
+            {
+                if (!HasNonEmptyString(receiver, "attributeId"))
+                {
+                    throw new JsonSerializationException(
+                        "Static call receiver must contain a non-empty 'attributeId'.");
+                }
+                if (receiver["pointer"] is not null)
+                {
+                    throw new JsonSerializationException(
+                        "Static call receiver cannot contain 'pointer'.");
+                }
+                return;
+            }
+            throw new JsonSerializationException(
+                "Call receiver 'kind' must be 'instance' or 'static'.");
         }
 
         private static bool HasNonEmptyString(JObject obj, string propertyName)

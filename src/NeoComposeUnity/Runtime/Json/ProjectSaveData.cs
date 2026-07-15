@@ -168,5 +168,14 @@ namespace NeoCompose.Runtime.Json
         /// <c>mark: "removed"</c> tombstone to express an explicit unset.
         /// </summary>
         public Dictionary<string, AttributeValue> values = null!;
+
+        /// <summary>
+        /// Sparse runtime bindings for static Custom-type members, keyed by
+        /// stable attribute id. A missing key inherits the authored
+        /// <c>attribute.valueId</c>; a present null value is an explicit unset.
+        /// The referenced value graph remains in <see cref="values"/>.
+        /// Schema-6 save files omit this field and load as an empty map.
+        /// </summary>
+        public Dictionary<string, string?> staticBindings = new();
     }
 }

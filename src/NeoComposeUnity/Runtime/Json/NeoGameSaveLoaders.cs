@@ -55,6 +55,7 @@ namespace NeoCompose.Runtime.Json
                 throw new InvalidOperationException("Remote save JSON could not be deserialized.");
             }
 
+            save.staticBindings ??= new();
             return save;
         }
 
@@ -67,6 +68,7 @@ namespace NeoCompose.Runtime.Json
                 var parsed = JsonConvert.DeserializeObject<RemoteGameSave>(
                     json, NeoSaveJson.ContentSettings);
                 if (parsed == null) return false;
+                parsed.staticBindings ??= new();
                 save = parsed;
                 return true;
             }
@@ -98,6 +100,7 @@ namespace NeoCompose.Runtime.Json
                 throw new InvalidOperationException("Local save JSON could not be deserialized.");
             }
 
+            save.staticBindings ??= new();
             return save;
         }
 
@@ -110,6 +113,7 @@ namespace NeoCompose.Runtime.Json
                 var parsed = JsonConvert.DeserializeObject<LocalGameSave>(
                     json, NeoSaveJson.ContentSettings);
                 if (parsed == null) return false;
+                parsed.staticBindings ??= new();
                 save = parsed;
                 return true;
             }

@@ -110,7 +110,7 @@ namespace NeoCompose.Tests
   ""createdAt"": 100,
   ""updatedAt"": 123,
   ""values"": {},
-  ""attributeValueOverrides"": {}
+  ""staticBindings"": {}
 }";
             var client = LoadLocalizedStringClient(localizable: true, saveBuffer);
 
@@ -128,7 +128,7 @@ namespace NeoCompose.Tests
   ""createdAt"": 100,
   ""updatedAt"": 123,
   ""values"": {},
-  ""attributeValueOverrides"": {}
+  ""staticBindings"": {}
 }";
             var client = LoadLocalizedStringClient(localizable: true, saveBuffer);
 
@@ -154,7 +154,7 @@ namespace NeoCompose.Tests
   ""createdAt"": 100,
   ""updatedAt"": 123,
   ""values"": {},
-  ""attributeValueOverrides"": {}
+  ""staticBindings"": {}
 }");
             var attr = RequireAttribute<StringAttribute>(client, "attr-title");
             var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Save);
@@ -178,7 +178,7 @@ namespace NeoCompose.Tests
   ""createdAt"": 100,
   ""updatedAt"": 123,
   ""values"": {},
-  ""attributeValueOverrides"": {}
+  ""staticBindings"": {}
 }");
             var attr = RequireAttribute<StringAttribute>(client, "attr-title");
             var node = new NeoAttributeStringWritable(client, attr, null, NeoValueOwnership.Session);
@@ -588,7 +588,7 @@ namespace NeoCompose.Tests
         {
             var projectJson = $@"{{
   ""metadata"": {{
-    ""schemaVersion"": 6,
+    ""schemaVersion"": 7,
     ""projectId"": ""project-1"",
     ""versionId"": ""version-1""
   }},
@@ -604,6 +604,7 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Assets"",
       ""type"": 7,
+      ""isStatic"": false,
       ""customTypeId"": ""type-root"",
       ""valueId"": ""assets-value""
     }},
@@ -612,6 +613,7 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Save"",
       ""type"": 7,
+      ""isStatic"": false,
       ""customTypeId"": ""type-root""
     }},
     ""root-session"": {{
@@ -619,6 +621,7 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Session"",
       ""type"": 7,
+      ""isStatic"": false,
       ""customTypeId"": ""type-root""
     }},
     ""attr-title"": {{
@@ -626,6 +629,7 @@ namespace NeoCompose.Tests
       ""projectId"": ""project-1"",
       ""name"": ""Title"",
       ""type"": 3,
+      ""isStatic"": false,
       ""valueId"": ""title-value"",
       ""localizable"": {localizable.ToString().ToLowerInvariant()}
     }}

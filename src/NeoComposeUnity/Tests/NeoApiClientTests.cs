@@ -24,7 +24,7 @@ namespace NeoCompose.Tests
             "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
             "\"author\":{\"kind\":\"user\",\"id\":\"user-1\"}," +
             "\"actor\":{\"kind\":\"user\",\"id\":\"user-1\"}," +
-            "\"values\":{},\"attributeValueOverrides\":{}," +
+            "\"values\":{},\"staticBindings\":{}," +
             "\"createdAt\":1,\"updatedAt\":2,\"synchronizedAt\":3,\"archivedAt\":null" +
             "}";
 
@@ -116,6 +116,7 @@ namespace NeoCompose.Tests
             // Envelope carries the save and the replaceSnapshot flag.
             StringAssert.Contains("\"replaceSnapshot\":true", http.sends[0].body);
             StringAssert.Contains("\"save\":", http.sends[0].body);
+            StringAssert.Contains("\"staticBindings\":{\"attr-current\":\"v-runtime\"}", http.sends[0].body);
             StringAssert.DoesNotContain("\"tileGridDeltas\"", http.sends[0].body);
         }
 
@@ -179,6 +180,10 @@ namespace NeoCompose.Tests
                 version = new VersionData { id = "v1", label = "1.0" },
                 targetReleaseChannelId = "channel-dev",
                 values = NeoSaveValues.Empty,
+                staticBindings = new Dictionary<string, string?>
+                {
+                    ["attr-current"] = "v-runtime",
+                },
             };
 
         private static NeoApiClient NewClient(

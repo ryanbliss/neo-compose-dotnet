@@ -27,7 +27,7 @@ namespace NeoCompose.Tests
     /// script's `attr-elem-*` records):
     /// <c>Root.ElementStats</c> (Save storage, authored `fire` entry + the
     /// deliberately dangling `storm` key), <c>Root.ElementMultipliers</c>
-    /// (Static storage), <c>Hero.ElementAffinity</c> (nested inside a
+    /// (Immutable storage), <c>Hero.ElementAffinity</c> (nested inside a
     /// Custom type), and <c>Root.ElementChampions</c> (Custom-typed
     /// entries). The real-world <c>project-example.json</c> carries the
     /// mirror shapes plus the two enum-keyed NSGetters asserted at the
@@ -91,7 +91,7 @@ namespace NeoCompose.Tests
         }
 
         // ------------------------------------------------------------------
-        // Static storage.
+        // Immutable storage.
         // ------------------------------------------------------------------
 
         [Test]
@@ -99,7 +99,7 @@ namespace NeoCompose.Tests
         {
             var app = LoadGeneratedClient(out _);
 
-            // Static-storage dictionaries emit read-only two-arity wrappers.
+            // Immutable-storage dictionaries emit read-only two-arity wrappers.
             Assert.AreEqual(3, app.Save.ElementMultipliers[Element.ice]);
             Assert.IsFalse(app.Save.ElementMultipliers.ContainsKey(Element.fire));
         }

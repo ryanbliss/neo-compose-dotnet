@@ -78,6 +78,7 @@ namespace NeoCompose.Tests
                     ""type"": 13,
                     ""locked"": false,
                     ""required"": false,
+                    ""isStatic"": false,
                     ""createdAt"": ""2024-01-01T00:00:00.000Z"",
                     ""updatedAt"": ""2024-01-01T00:00:00.000Z"",
                     ""returnTypeInfo"": { ""type"": ""Void"", ""required"": true },

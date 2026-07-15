@@ -22,7 +22,7 @@ namespace NeoCompose.Tests
         public void AttributeDto_UsesOrdinal23AndGeneralFunctionCallIr()
         {
             const string json = @"{
-                'id':'fn','projectId':'project-function','name':'Compute','type':23,
+                'id':'fn','projectId':'project-function','name':'Compute','type':23,'isStatic':false,
                 'code':'return RequiredLevel;','returnTypeInfo':{'type':2,'required':true},
                 'argumentTypes':[{'name':'RequiredLevel','type':2,'required':true}],
                 'deferred':false,'createdAt':'x','updatedAt':'x',
@@ -335,10 +335,168 @@ namespace NeoCompose.Tests
 
             FunctionAttribute deserialized =
                 JsonConvert.DeserializeObject<FunctionAttribute>(
-                    "{'type':13,'returnTypeInfo':{'type':18,'required':true}}")!;
+                    "{'type':13,'isStatic':false,'returnTypeInfo':{'type':18,'required':true}}")!;
             Assert.AreEqual(
                 AttributeType.DialogueLookup,
                 deserialized.returnTypeInfo.type);
+        }
+
+        [Test]
+        public void Invoke_MarshalsReceiverGenericDecimalReturn()
+        {
+            const string genericTypeId = "generic-decimal-receiver-type";
+            const string genericParamId = "generic-decimal-receiver-param";
+            var returnType = new GenericTypeInfo
+            {
+                type = AttributeType.Generic,
+                required = true,
+                ownerTypeId = genericTypeId,
+                genericParamId = genericParamId,
+            };
+            NSFunctionAttribute function = ScriptFunction(
+                "fn-generic-decimal-return",
+                "GenericDecimalReturn",
+                deferred: false,
+                returnType,
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(
+                    returnType,
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    Return(Number(7))));
+            var binding = new DecimalAttribute
+            {
+                id = "attr-generic-decimal-binding",
+                projectId = ProjectId,
+                name = "Generic Decimal Binding",
+                type = AttributeType.Decimal,
+                required = true,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var genericType = new CustomType
+            {
+                id = genericTypeId,
+                projectId = ProjectId,
+                name = "GenericDecimalReceiver",
+                schema = new Dictionary<string, string>
+                {
+                    [function.name] = function.id,
+                },
+                genericParams = new List<GenericParamDeclaration>
+                {
+                    new() { id = genericParamId, name = "T" },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var concreteType = new CustomType
+            {
+                id = "receiver-type",
+                projectId = ProjectId,
+                name = "ConcreteDecimalReceiver",
+                schema = new Dictionary<string, string>(),
+                extendsTypeId = genericType.id,
+                extendsGenericBindings = new Dictionary<string, GenericBinding>
+                {
+                    [genericParamId] = new()
+                    {
+                        kind = NeoGenericBindingKinds.Attribute,
+                        attributeId = binding.id,
+                    },
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            NeoClient client = BuildClient(
+                new JsonAttribute[] { function, binding },
+                concreteType,
+                new[] { genericType });
+
+            object? result = new NeoAttributeNSFunction(
+                client,
+                function,
+                null).Invoke(
+                    "receiver-value",
+                    Array.Empty<object?>());
+
+            Assert.AreEqual("7", result);
+        }
+
+        [Test]
+        public void Invoke_RejectsWrongNominalCustomAndNestedListReturnValues()
+        {
+            var expectedType = new CustomType
+            {
+                id = "expected-return-type",
+                projectId = ProjectId,
+                name = "ExpectedReturn",
+                schema = new Dictionary<string, string>(),
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var customReturnType = new CustomTypeInfo
+            {
+                type = AttributeType.Custom,
+                required = true,
+                typeId = expectedType.id,
+            };
+            NSFunctionAttribute wrongCustom = ScriptFunction(
+                "fn-wrong-custom-return",
+                "WrongCustomReturn",
+                deferred: false,
+                customReturnType,
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(
+                    customReturnType,
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    Return(Variable("__this__"))));
+            var listReturnType = new CollectionTypeInfo
+            {
+                type = AttributeType.List,
+                required = true,
+                entryTypeInfo = IntType(),
+            };
+            NSFunctionAttribute wrongList = ScriptFunction(
+                "fn-wrong-list-return",
+                "WrongListReturn",
+                deferred: false,
+                listReturnType,
+                Array.Empty<FunctionArgumentTypeInfo>(),
+                Action(
+                    listReturnType,
+                    Array.Empty<FunctionArgumentTypeInfo>(),
+                    Return(new ValuePointer
+                    {
+                        type = PointerKind.Value,
+                        value = new Value
+                        {
+                            typeInfo = listReturnType,
+                            value = new JArray("not-an-int"),
+                        },
+                    })));
+            NeoClient client = BuildClient(
+                new JsonAttribute[] { wrongCustom, wrongList },
+                ReceiverType(
+                    (wrongCustom.name, wrongCustom.id),
+                    (wrongList.name, wrongList.id)),
+                new[] { expectedType });
+
+            InvalidOperationException customError =
+                Assert.Throws<InvalidOperationException>(() =>
+                    new NeoAttributeNSFunction(
+                        client,
+                        wrongCustom,
+                        null).Invoke(
+                            "receiver-value",
+                            Array.Empty<object?>()))!;
+            StringAssert.Contains("expected-return-type", customError.Message);
+            Assert.Throws<InvalidOperationException>(() =>
+                new NeoAttributeNSFunction(
+                    client,
+                    wrongList,
+                    null).Invoke(
+                        "receiver-value",
+                        Array.Empty<object?>()));
         }
 
         [Test]

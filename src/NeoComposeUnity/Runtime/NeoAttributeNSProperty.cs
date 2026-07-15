@@ -64,7 +64,7 @@ namespace NeoCompose.Runtime
             get
             {
                 if (attribute.setter is not null) return attribute.setter;
-                return NeoActionExecutor.ResolveCompiledSetter(attribute.id, client);
+                return NeoScriptExecutor.ResolveCompiledSetter(attribute.id, client);
             }
         }
 
@@ -227,12 +227,12 @@ namespace NeoCompose.Runtime
                 return SetterError("Cannot invoke setter on a null receiver.");
             }
 
-            string effectiveAttributeId = NeoActionExecutor.ResolveEffectiveSetterAttributeId(
+            string effectiveAttributeId = NeoScriptExecutor.ResolveEffectiveSetterAttributeId(
                 client,
                 attribute.id,
                 boundThis,
                 ctx);
-            var setter = NeoActionExecutor.ResolveCompiledSetter(
+            var setter = NeoScriptExecutor.ResolveCompiledSetter(
                 effectiveAttributeId,
                 client);
             if (setter is null)
@@ -274,14 +274,17 @@ namespace NeoCompose.Runtime
             var terminalLogger = new SetterTerminalLogger(effectiveProperty);
             try
             {
-                var execution = NeoActionExecutor.Execute(
+                var execution = NeoScriptExecutor.Execute(
                     client,
                     setter,
                     scope,
                     ctx.WithSetterPushed(effectiveAttributeId).WithThis(boundThis),
-                    NeoActionExecutionOptions
+                    NeoScriptExecutionOptions
                         .ForUnity(client)
-                        .ForProperty(effectiveAttributeId));
+                        .ForProperty(effectiveAttributeId),
+                    terminal => NeoScriptExecutor.ValidateStatementTerminal(
+                        terminal,
+                        "NeoScript property setter"));
                 if (!execution.IsPaused) return NSSetterResult.Ok();
 
                 ObservePendingExecution(execution, terminalLogger);
@@ -342,7 +345,7 @@ namespace NeoCompose.Runtime
         }
 
         private static void ObservePendingExecution(
-            NeoActionExecutionResult execution,
+            NeoScriptExecutionResult execution,
             SetterTerminalLogger terminalLogger)
         {
             execution.WhenDeferredSettled(

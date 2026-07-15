@@ -23,6 +23,12 @@ namespace NeoCompose.Runtime.Json
         public NeoSaveValues values = NeoSaveValues.Empty;
 
         /// <summary>
+        /// Sparse static-member binding overrides keyed by attribute id.
+        /// Values are target value ids or null tombstones.
+        /// </summary>
+        public Dictionary<string, string?> staticBindings = new();
+
+        /// <summary>
         /// Storage-partition split of the commit
         /// (specs/list-attribute-and-tilegrid-scaling.md §6): when set,
         /// <see cref="values"/> carries ONLY main-partition rows and each

@@ -43,6 +43,13 @@ namespace NeoCompose.Runtime.Json
         public NeoSaveValues values = NeoSaveValues.Empty;
 
         /// <summary>
+        /// Sparse static-member binding overrides keyed by attribute id.
+        /// Missing keys inherit authored bindings; present null values are
+        /// explicit tombstones. The target rows stay in <see cref="values"/>.
+        /// </summary>
+        public Dictionary<string, string?> staticBindings = new();
+
+        /// <summary>
         /// Storage-partition presentation of the overlay
         /// (specs/list-attribute-and-tilegrid-scaling.md §6): the same rows as
         /// <see cref="values"/> split by their <c>mapKey</c> stamp, keyed by
@@ -188,6 +195,7 @@ namespace NeoCompose.Runtime.Json
                 projectId = remote.projectId,
                 version = remote.version,
                 values = remote.values,
+                staticBindings = remote.staticBindings,
                 valuePartitions = remote.valuePartitions,
                 platforms = remote.platforms,
                 systems = remote.systems,

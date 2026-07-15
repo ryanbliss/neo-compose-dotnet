@@ -173,7 +173,7 @@ namespace NeoCompose.Tests
         {
             var indexed = JsonConvert.DeserializeObject<JsonAttribute>(
                 "{\"id\":\"items\",\"projectId\":\"p\",\"name\":\"Items\","
-                + "\"type\":6,\"entryAttributeId\":\"entry\","
+                + "\"type\":6,\"isStatic\":false,\"entryAttributeId\":\"entry\","
                 + "\"indexes\":[{\"schemaKey\":\"Slug\",\"unique\":true}]}"
             ) as ListAttribute;
             Assert.IsNotNull(indexed);
@@ -182,7 +182,7 @@ namespace NeoCompose.Tests
 
             var legacy = JsonConvert.DeserializeObject<JsonAttribute>(
                 "{\"id\":\"items\",\"projectId\":\"p\",\"name\":\"Items\","
-                + "\"type\":6,\"entryAttributeId\":\"entry\"}"
+                + "\"type\":6,\"isStatic\":false,\"entryAttributeId\":\"entry\"}"
             ) as ListAttribute;
             Assert.IsNotNull(legacy);
             Assert.IsNull(legacy!.indexes);

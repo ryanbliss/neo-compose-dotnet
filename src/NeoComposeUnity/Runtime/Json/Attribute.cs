@@ -34,6 +34,12 @@ namespace NeoCompose.Runtime.Json
         public bool locked;
         public bool required;
         /// <summary>
+        /// Whether this declaration belongs to its declaring Custom type
+        /// rather than to each Custom value instance. Schema-7 exports carry
+        /// this receiver classification explicitly for every attribute.
+        /// </summary>
+        public bool isStatic;
+        /// <summary>
         /// Whether declarations in extending custom types may override this
         /// schema member. Optional on the wire; <c>null</c> has the permanent
         /// backwards-compatible meaning <c>true</c>.
@@ -60,7 +66,7 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public string? valueId;
         /// <summary>
-        /// Storage class override (specs/attribute-storage.md): "static",
+        /// Storage class override (specs/attribute-storage.md): "immutable",
         /// "save", or "session". Absent means the attribute inherits its
         /// placement parent's effective storage. Resolved through the
         /// <see cref="extendsAttributeId"/> chain like other override
@@ -70,13 +76,12 @@ namespace NeoCompose.Runtime.Json
         /// <summary>
         /// Storage-partition declaration
         /// (specs/list-attribute-and-tilegrid-scaling.md §6): values created
-        /// under this attribute are stamped with this partition key
-        /// (<see cref="AttributeValue.mapKey"/>), e.g.
-        /// <c>world:&lt;gridTypeId&gt;</c>. Informational on the C# side —
-        /// the web app resolves and stamps partitions at creation; the
-        /// runtime only reads the stamps already on value rows.
+        /// under this attribute are stamped with the resolved partition key
+        /// (<see cref="AttributeValue.mapKey"/>). The declaration may inherit,
+        /// name a fixed partition, or use <c>$parentType</c>; runtime-created
+        /// constructor/static rows resolve it at their placement boundary.
         /// </summary>
-        public string? storageMap;
+        public string? storageKey;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
 
@@ -503,6 +508,20 @@ namespace NeoCompose.Runtime.Json
 
     public class AttributeConverter : DiscriminatedConverter<Attribute>
     {
+        protected override void ValidateObject(JObject obj, Type concrete)
+        {
+            if (!obj.TryGetValue("isStatic", out var isStatic))
+            {
+                throw new JsonSerializationException(
+                    $"Missing required field 'isStatic' on {concrete.Name}.");
+            }
+            if (isStatic.Type != JTokenType.Boolean)
+            {
+                throw new JsonSerializationException(
+                    $"Field 'isStatic' on {concrete.Name} must be a boolean.");
+            }
+        }
+
         protected override Type? ResolveSubclass(JToken discriminator)
         {
             // The TS-side `AttributeType` is a numeric enum on the

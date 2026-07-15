@@ -1,0 +1,300 @@
+{
+  "metadata": {
+    "schemaVersion": 7,
+    "projectId": "test-project",
+    "versionId": "version-1",
+    "semver": {
+      "major": 0,
+      "minor": 1,
+      "patch": 0,
+      "label": "0.1.0"
+    },
+    "status": {
+      "id": "draft",
+      "name": "Draft"
+    },
+    "releaseChannels": [
+      {
+        "id": "default-release-channel",
+        "slug": "default"
+      }
+    ],
+    "projectDocumentContentHash": "synth-project-document",
+    "codegenContractHash": "synth-codegen-contract",
+    "runtimeDataContractHash": "synth-runtime-data-contract"
+  },
+  "project": {
+    "id": "test-project",
+    "name": "Static Compile Smoke",
+    "owner": {
+      "kind": "organization",
+      "id": "test-organization"
+    },
+    "author": {
+      "kind": "user",
+      "id": "test-user"
+    },
+    "exportSettings": {
+      "unity": {
+        "singleton": true,
+        "namespaceForGeneratedTypes": "NeoCompose.StaticCompileFixture"
+      }
+    },
+    "rootAssetsAttributeId": "root-assets",
+    "rootSaveFileAttributeId": "root-save",
+    "rootSessionAttributeId": "root-session",
+    "defaultPriorityGroupId": "default-priority-group",
+    "defaultTextureTemplateId": null,
+    "defaultAudioClipTemplateId": null,
+    "createdAt": 0,
+    "updatedAt": 0,
+    "authorUser": null,
+    "latestVersion": null,
+    "latestVersionStatus": null,
+    "listContext": {
+      "kind": "public"
+    },
+    "ownerOrganization": null
+  },
+  "attributes": {
+    "root-assets": {
+      "id": "root-assets",
+      "projectId": "test-project",
+      "name": "Assets",
+      "type": 7,
+      "locked": false,
+      "required": true,
+      "isStatic": false,
+      "customTypeId": "static-smoke-root-type",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "root-save": {
+      "id": "root-save",
+      "projectId": "test-project",
+      "name": "Save",
+      "type": 7,
+      "locked": false,
+      "required": true,
+      "isStatic": false,
+      "customTypeId": "static-smoke-root-type",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "root-session": {
+      "id": "root-session",
+      "projectId": "test-project",
+      "name": "Session",
+      "type": 7,
+      "locked": false,
+      "required": true,
+      "isStatic": false,
+      "customTypeId": "static-smoke-root-type",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-count": {
+      "id": "static-smoke-count",
+      "projectId": "test-project",
+      "name": "Global Count",
+      "type": 2,
+      "locked": false,
+      "required": true,
+      "isStatic": true,
+      "isVirtual": false,
+      "storage": "session",
+      "valueId": "static-smoke-count-value",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-motto": {
+      "id": "static-smoke-motto",
+      "projectId": "test-project",
+      "name": "Motto",
+      "type": 3,
+      "locked": false,
+      "required": true,
+      "isStatic": true,
+      "isVirtual": false,
+      "localizable": false,
+      "storage": "immutable",
+      "valueId": "static-smoke-motto-value",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-entry": {
+      "id": "static-smoke-entry",
+      "projectId": "test-project",
+      "name": "Entry",
+      "type": 3,
+      "locked": false,
+      "required": true,
+      "isStatic": false,
+      "localizable": false,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-names": {
+      "id": "static-smoke-names",
+      "projectId": "test-project",
+      "name": "Names",
+      "type": 6,
+      "locked": false,
+      "required": false,
+      "isStatic": true,
+      "isVirtual": false,
+      "storage": "save",
+      "entryAttributeId": "static-smoke-entry",
+      "listKind": "ordered",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-current": {
+      "id": "static-smoke-current",
+      "projectId": "test-project",
+      "name": "Current",
+      "type": 7,
+      "locked": false,
+      "required": false,
+      "isStatic": true,
+      "isVirtual": false,
+      "storage": "session",
+      "customTypeId": "static-smoke-item-type",
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-reset": {
+      "id": "static-smoke-reset",
+      "projectId": "test-project",
+      "name": "Reset",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "isStatic": true,
+      "isVirtual": false,
+      "deferred": false,
+      "argumentTypes": [
+        {
+          "name": "amount",
+          "type": 2,
+          "required": true
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 2,
+        "required": true
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-wait": {
+      "id": "static-smoke-wait",
+      "projectId": "test-project",
+      "name": "Wait",
+      "type": 13,
+      "locked": false,
+      "required": false,
+      "isStatic": true,
+      "isVirtual": false,
+      "deferred": true,
+      "argumentTypes": [],
+      "returnTypeInfo": {
+        "type": "Void",
+        "required": true
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-calculate": {
+      "id": "static-smoke-calculate",
+      "projectId": "test-project",
+      "name": "Calculate",
+      "type": 23,
+      "locked": false,
+      "required": false,
+      "isStatic": true,
+      "isVirtual": false,
+      "deferred": false,
+      "code": "return amount + 1;",
+      "argumentTypes": [
+        {
+          "name": "amount",
+          "type": 2,
+          "required": true
+        }
+      ],
+      "returnTypeInfo": {
+        "type": 2,
+        "required": true
+      },
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  },
+  "enums": {},
+  "interfaces": {},
+  "types": {
+    "static-smoke-root-type": {
+      "id": "static-smoke-root-type",
+      "projectId": "test-project",
+      "name": "Smoke Root",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-item-type": {
+      "id": "static-smoke-item-type",
+      "projectId": "test-project",
+      "name": "Smoke Item",
+      "schema": {},
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-rules-type": {
+      "id": "static-smoke-rules-type",
+      "projectId": "test-project",
+      "name": "Smoke Rules",
+      "schema": {
+        "GlobalCount": "static-smoke-count",
+        "Motto": "static-smoke-motto",
+        "Names": "static-smoke-names",
+        "Current": "static-smoke-current",
+        "Reset": "static-smoke-reset",
+        "Wait": "static-smoke-wait",
+        "Calculate": "static-smoke-calculate"
+      },
+      "hiddenInAttributeSelector": false,
+      "isAbstract": false,
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  },
+  "values": {
+    "static-smoke-count-value": {
+      "id": "static-smoke-count-value",
+      "value": 1,
+      "createdAt": 0,
+      "updatedAt": 0
+    },
+    "static-smoke-motto-value": {
+      "id": "static-smoke-motto-value",
+      "value": "hello",
+      "createdAt": 0,
+      "updatedAt": 0
+    }
+  },
+  "valuePartitions": {},
+  "dialogues": {},
+  "dialogueGroups": {},
+  "priorityGroups": {},
+  "files": {},
+  "textureTemplates": {},
+  "audioClipTemplates": {},
+  "localizationConfig": null,
+  "localizationStatuses": {},
+  "localizedTexts": {}
+}

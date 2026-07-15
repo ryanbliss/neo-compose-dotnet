@@ -17,6 +17,213 @@ using JsonEnum = NeoCompose.Runtime.Json.Enum;
 namespace NeoCompose.Runtime.NeoScript
 {
     /// <summary>
+    /// Tracks Session-backed custom values created by NeoScript constructor
+    /// intrinsics for one logical invocation. Nested NSFunction/setter/getter
+    /// executions share the tracker, so a temporary returned into its caller
+    /// is not collected before the caller can attach or return it.
+    /// </summary>
+    internal sealed class NeoScriptAllocationTracker
+    {
+        private readonly HashSet<string> allocatedRootIds = new();
+        private readonly HashSet<string> escapedRootIds = new();
+        private int activeExecutions;
+
+        internal void EnterExecution()
+        {
+            activeExecutions++;
+        }
+
+        internal void RegisterSessionRoot(string valueId)
+        {
+            if (!string.IsNullOrEmpty(valueId)) allocatedRootIds.Add(valueId);
+        }
+
+        /// <summary>
+        /// A value crossing a function-call boundary is no longer owned by
+        /// the current NeoScript frame. Mark its complete constructed graph as
+        /// escaped; a later parent assignment may still move/import it.
+        /// </summary>
+        internal void MarkEscaped(object? value, NSGetterEvaluator.Context ctx)
+        {
+            MarkEscaped(value, ctx, new HashSet<object>());
+        }
+
+        private void MarkEscaped(
+            object? value,
+            NSGetterEvaluator.Context ctx,
+            HashSet<object> visited)
+        {
+            if (value is null || value is string || value.GetType().IsValueType)
+            {
+                return;
+            }
+            if (!visited.Add(value)) return;
+
+            string? valueId = NSGetterEvaluator.FindRowIdByReference(value, ctx);
+            if (valueId is not null)
+            {
+                MarkAllocationGroupEscaped(valueId, ctx);
+            }
+
+            if (value is System.Collections.IDictionary dictionary)
+            {
+                foreach (System.Collections.DictionaryEntry entry in dictionary)
+                {
+                    MarkEscaped(entry.Key, ctx, visited);
+                    MarkEscaped(entry.Value, ctx, visited);
+                }
+                return;
+            }
+            if (value is System.Collections.IEnumerable enumerable)
+            {
+                foreach (object? entry in enumerable)
+                {
+                    MarkEscaped(entry, ctx, visited);
+                }
+            }
+        }
+
+        private void MarkAllocationGroupEscaped(
+            string valueId,
+            NSGetterEvaluator.Context ctx)
+        {
+            // A NeoScript return may expose any object-shaped row in a
+            // constructor graph (for example a nested Custom, List, or
+            // Dictionary), rather than the constructor's root object itself.
+            // Follow authoritative owned-parent edges back to every staged
+            // constructor root so the complete allocation group survives the
+            // terminal cleanup.
+            var visited = new HashSet<string>();
+            string cursor = valueId;
+            while (visited.Add(cursor))
+            {
+                if (allocatedRootIds.Contains(cursor))
+                {
+                    escapedRootIds.Add(cursor);
+                }
+                if (!ctx.client.TryFindOwnedParent(
+                        NeoValueOwnership.Session,
+                        cursor,
+                        out string? parentValueId)
+                    || string.IsNullOrEmpty(parentValueId)
+                    || parentValueId.StartsWith("attribute:", StringComparison.Ordinal)
+                    || parentValueId.StartsWith("static:", StringComparison.Ordinal))
+                {
+                    break;
+                }
+                cursor = parentValueId;
+            }
+        }
+
+        internal void ExitExecution(
+            NeoClient client,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionResult? terminalResult)
+        {
+            if (activeExecutions <= 0)
+            {
+                throw new InvalidOperationException(
+                    "NeoScript allocation tracker execution depth underflow.");
+            }
+            activeExecutions--;
+            if (activeExecutions != 0) return;
+
+            if (terminalResult?.Returned == true)
+            {
+                MarkEscaped(terminalResult.ReturnValue, ctx);
+            }
+
+            foreach (string valueId in allocatedRootIds.ToArray())
+            {
+                if (escapedRootIds.Contains(valueId)) continue;
+                // Unwrapping a Custom row exposes schema values as stable-id
+                // strings, so MarkEscaped cannot discover a nested constructed
+                // Custom by recursively walking the CLR return object. Preserve
+                // it when its authoritative owned-parent chain reaches an
+                // escaped constructed root instead. This is also the exact
+                // tree-ownership signal used by assignment/import code.
+                if (IsOwnedByEscapedRoot(client, valueId)) continue;
+                // A constructor may be attached beneath a parentless Session
+                // aggregate supplied by the host or retained from an earlier
+                // NeoScript invocation. Such a parent is intentionally not a
+                // global Session reachability root, but its authoritative
+                // owned edge still transfers the constructor out of this
+                // invocation's temporary allocation group. Follow only the
+                // client's schema-aware owned-parent relation here: Lookup and
+                // other reference payloads must never keep a constructor alive.
+                if (IsOwnedByExternalSessionRoot(client, valueId)) continue;
+                // External/global owners were ruled out above. Force-reclaim
+                // the invocation-minted owned graph instead of ordinary
+                // reachability GC: storage-key rows in unloaded partitions
+                // are conservatively protected by normal GC, but these fresh
+                // rows cannot belong to an unloaded authored graph.
+                IReadOnlyCollection<string> removed =
+                    client.RemoveTemporaryWritableValueGraph(
+                        NeoValueOwnership.Session,
+                        valueId);
+                if (removed.Count == 0) continue;
+                client.DisposeWrappersTouchingRows(removed);
+                NSGetterEvaluator.EvictCachedRows(
+                    ctx,
+                    NeoValueOwnership.Session,
+                    removed);
+            }
+            allocatedRootIds.Clear();
+            escapedRootIds.Clear();
+        }
+
+        private bool IsOwnedByEscapedRoot(
+            NeoClient client,
+            string valueId)
+        {
+            var visited = new HashSet<string> { valueId };
+            string cursor = valueId;
+            while (client.TryFindOwnedParent(
+                NeoValueOwnership.Session,
+                cursor,
+                out string? parentValueId))
+            {
+                if (escapedRootIds.Contains(parentValueId)) return true;
+                if (!visited.Add(parentValueId)) return false;
+                cursor = parentValueId;
+            }
+            return false;
+        }
+
+        private bool IsOwnedByExternalSessionRoot(
+            NeoClient client,
+            string valueId)
+        {
+            var visited = new HashSet<string> { valueId };
+            string cursor = valueId;
+            while (client.TryFindOwnedParent(
+                NeoValueOwnership.Session,
+                cursor,
+                out string? parentValueId))
+            {
+                if (parentValueId.StartsWith("attribute:", StringComparison.Ordinal)
+                    || parentValueId.StartsWith("static:", StringComparison.Ordinal))
+                {
+                    return true;
+                }
+                if (!visited.Add(parentValueId))
+                {
+                    // Malformed owned cycles are not an escape route. The
+                    // ordinary defensive cleanup traversal will terminate on
+                    // its own visited set.
+                    return false;
+                }
+                cursor = parentValueId;
+            }
+
+            // A terminal current-invocation constructor root is still a
+            // temporary. Any other terminal row belongs to a graph that
+            // predates this allocation tracker and therefore owns the value.
+            return cursor != valueId && !allocatedRootIds.Contains(cursor);
+        }
+    }
+
+    /// <summary>
     /// Pure, stateless walker that evaluates a compiled
     /// <see cref="FunctionWithReturnType"/> NSProperty. C# port of the TS
     /// <c>evaluateNSGetter</c> in
@@ -66,7 +273,7 @@ namespace NeoCompose.Runtime.NeoScript
             /// Stack of NSProperty attribute ids whose setters are currently
             /// executing. Kept separate from <see cref="getterCallStack"/>,
             /// but preserved by every child context so setter→getter→setter
-            /// recursion is detected by the shared action executor.
+            /// recursion is detected by the shared NeoScript executor.
             /// </summary>
             public IReadOnlyCollection<string> setterCallStack { get; }
             /// <summary>
@@ -123,6 +330,7 @@ namespace NeoCompose.Runtime.NeoScript
                 string,
                 IReadOnlyDictionary<string, NeoGenericEnvEntry>>
                 genericEnvironmentCache { get; }
+            internal NeoScriptAllocationTracker allocationTracker { get; private set; }
 
             public Context(
                 NeoClient client,
@@ -168,12 +376,19 @@ namespace NeoCompose.Runtime.NeoScript
                     ?? new Dictionary<
                         string,
                         IReadOnlyDictionary<string, NeoGenericEnvEntry>>();
+                allocationTracker = new NeoScriptAllocationTracker();
+            }
+
+            private Context ShareAllocationTracker(Context child)
+            {
+                child.allocationTracker = allocationTracker;
+                return child;
             }
 
             internal Context WithGetterPushed(string attributeId)
             {
                 var next = new HashSet<string>(getterCallStack) { attributeId };
-                return new Context(
+                return ShareAllocationTracker(new Context(
                     client,
                     thisValue,
                     rootValue,
@@ -189,12 +404,12 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache);
+                    genericEnvironmentCache));
             }
 
             internal Context WithThis(object? newThisValue)
             {
-                return new Context(
+                return ShareAllocationTracker(new Context(
                     client,
                     newThisValue,
                     rootValue,
@@ -210,12 +425,12 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache);
+                    genericEnvironmentCache));
             }
 
             internal Context WithRoot(object? newRootValue)
             {
-                return new Context(
+                return ShareAllocationTracker(new Context(
                     client,
                     thisValue,
                     newRootValue,
@@ -231,12 +446,12 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache);
+                    genericEnvironmentCache));
             }
 
             internal Context WithContext(object? newContextValue)
             {
-                return new Context(
+                return ShareAllocationTracker(new Context(
                     client,
                     thisValue,
                     rootValue,
@@ -252,12 +467,12 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache);
+                    genericEnvironmentCache));
             }
 
             internal Context WithMemoryStore(INeoDialogueMemoryStore? newMemoryStore)
             {
-                return new Context(
+                return ShareAllocationTracker(new Context(
                     client,
                     thisValue,
                     rootValue,
@@ -273,13 +488,13 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache);
+                    genericEnvironmentCache));
             }
 
             internal Context WithFunctionCallHandler(
                 FunctionCallHandler handler)
             {
-                return new Context(
+                return ShareAllocationTracker(new Context(
                     client,
                     thisValue,
                     rootValue,
@@ -295,13 +510,13 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache);
+                    genericEnvironmentCache));
             }
 
             internal Context WithSetterPushed(string attributeId)
             {
                 var next = new HashSet<string>(setterCallStack) { attributeId };
-                return new Context(
+                return ShareAllocationTracker(new Context(
                     client,
                     thisValue,
                     rootValue,
@@ -317,7 +532,7 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache);
+                    genericEnvironmentCache));
             }
 
             internal Context WithFunctionPushed(string attributeId)
@@ -325,7 +540,7 @@ namespace NeoCompose.Runtime.NeoScript
                 var next = new List<string>(functionCallStack.Count + 1);
                 next.AddRange(functionCallStack);
                 next.Add(attributeId);
-                return new Context(
+                return ShareAllocationTracker(new Context(
                     client,
                     thisValue,
                     rootValue,
@@ -341,7 +556,7 @@ namespace NeoCompose.Runtime.NeoScript
                     schemaPlacementCache,
                     callableDispatchCache,
                     rowCacheKeysByRow,
-                    genericEnvironmentCache);
+                    genericEnvironmentCache));
             }
         }
 
@@ -387,18 +602,25 @@ namespace NeoCompose.Runtime.NeoScript
                 ["__root__"] = ctx.rootValue,
                 ["__context__"] = ctx.contextValue,
             };
-            var result = EvalInstructions(getter.instructions, scope, ctx);
-            if (result.kind == InstructionResultKind.Return)
+            // Getters, actions, setters, and NSFunctions now share the same
+            // effect-capable executor. Writability is a compile/runtime target
+            // property, not a reason to maintain a second pure interpreter.
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
+                ctx.client,
+                getter,
+                scope,
+                ctx);
+            if (result.IsPaused)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Getter suspended on deferred Function '{result.SuspendedAttributeId}'. Deferred calls are not supported by synchronous property evaluation.");
+            }
+            if (result.Returned)
             {
                 // `return intExpr;` on a Decimal-typed getter type-checks via
                 // exact int widening; the runtime number becomes a canonical
                 // decimal string here (mirrors the TS evaluator's return seam).
-                if (getter.typeInfo.type == AttributeType.Decimal
-                    && IsRuntimeNumber(result.value))
-                {
-                    return CoerceDecimalOperand(result.value, "return");
-                }
-                return result.value;
+                return result.ReturnValue;
             }
             throw new NSGetterRuntimeError("Function ended without a return statement");
         }
@@ -428,115 +650,6 @@ namespace NeoCompose.Runtime.NeoScript
             Context ctx)
         {
             return EvalPointer(pointer, scope, ctx);
-        }
-
-        // ---------------------------------------------------------------
-        // Instructions
-        // ---------------------------------------------------------------
-
-        private enum InstructionResultKind { Fallthrough, Return }
-        private readonly struct InstructionResult
-        {
-            public InstructionResultKind kind { get; }
-            public object? value { get; }
-            public InstructionResult(InstructionResultKind kind, object? value)
-            {
-                this.kind = kind;
-                this.value = value;
-            }
-            public static InstructionResult Fallthrough() => new(InstructionResultKind.Fallthrough, null);
-            public static InstructionResult Return(object? value) => new(InstructionResultKind.Return, value);
-        }
-
-        private static InstructionResult EvalInstructions(
-            Instruction[] instructions,
-            Dictionary<string, object?> scope,
-            Context ctx)
-        {
-            foreach (var ins in instructions)
-            {
-                switch (ins)
-                {
-                    case VariableInstruction varInstr:
-                    {
-                        var v = EvalPointer(varInstr.variable.pointer, scope, ctx);
-                        // `decimal x = intExpr;` type-checks via exact int
-                        // widening; the runtime number becomes a canonical
-                        // decimal string at the seam (TS evaluator parity).
-                        if (varInstr.variable.typeInfo.type == AttributeType.Decimal
-                            && IsRuntimeNumber(v))
-                        {
-                            v = CoerceDecimalOperand(v, "variable initialization");
-                        }
-                        scope[varInstr.variable.id] = v;
-                        break;
-                    }
-                    case IfInstruction ifInstr:
-                    {
-                        bool matched = false;
-                        foreach (var branch in ifInstr.branches)
-                        {
-                            if (EvalBooleanExpression(branch.expression, scope, ctx))
-                            {
-                                matched = true;
-                                var r = EvalInstructions(branch.instructions, scope, ctx);
-                                if (r.kind == InstructionResultKind.Return) return r;
-                                break;
-                            }
-                        }
-                        if (!matched && ifInstr.elseInstructions is not null)
-                        {
-                            var r = EvalInstructions(ifInstr.elseInstructions, scope, ctx);
-                            if (r.kind == InstructionResultKind.Return) return r;
-                        }
-                        break;
-                    }
-                    case ReturnInstruction retInstr:
-                    {
-                        object? v = retInstr.pointer is null
-                            ? null
-                            : EvalPointer(retInstr.pointer, scope, ctx);
-                        return InstructionResult.Return(v);
-                    }
-                    case ThrowInstruction throwInstr:
-                    {
-                        var msg = EvalPointer(throwInstr.pointer, scope, ctx);
-                        throw new NSGetterRuntimeError(msg?.ToString() ?? "null");
-                    }
-                    case FunctionCallInstruction functionCall:
-                    {
-                        EvalFunctionCall(functionCall.call, scope, ctx);
-                        break;
-                    }
-                    case AssignInstruction assign:
-                    {
-                        // Getters are pure: only LOCAL variable reassignment
-                        // (`found = found + 1`) is legal here. Attribute writes
-                        // belong to dialogue actions (NeoDialogueActionEvaluator).
-                        if (assign.target.pointer is not VariablePointer variablePointer)
-                        {
-                            throw new NSGetterRuntimeError(
-                                "Getters cannot assign to attributes; assignment targets must be local variables.");
-                        }
-                        var assigned = EvalPointer(assign.pointer, scope, ctx);
-                        // `decimalVar = intExpr` type-checks via exact int
-                        // widening; coerce before storing (TS evaluator's
-                        // assign seam — it fires before the local-variable
-                        // branch and the write push alike).
-                        if (assign.target.typeInfo.type == AttributeType.Decimal
-                            && IsRuntimeNumber(assigned))
-                        {
-                            assigned = CoerceDecimalOperand(assigned, "assignment");
-                        }
-                        scope[variablePointer.variableId] = assigned;
-                        break;
-                    }
-                    default:
-                        throw new NSGetterRuntimeError(
-                            $"Unknown instruction kind {ins.GetType().Name}");
-                }
-            }
-            return InstructionResult.Fallthrough();
         }
 
         // ---------------------------------------------------------------
@@ -570,6 +683,40 @@ namespace NeoCompose.Runtime.NeoScript
                             $"Missing value reference: {rp.valueId}");
                     }
                     return UnwrapCached(row, ctx, ownership);
+                }
+                case StaticMemberPointer staticMember:
+                {
+                    if (!ctx.client.TryGetAttribute(
+                            staticMember.attributeId,
+                            out JsonAttribute? staticAttribute)
+                        || !staticAttribute.isStatic)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"Static member attribute '{staticMember.attributeId}' was not found.");
+                    }
+                    NeoValueOwnership ownership =
+                        ctx.client.ResolveStaticOwnership(staticAttribute);
+                    if (!ctx.client.TryResolveStaticBinding(
+                            staticAttribute.id,
+                            out _,
+                            out _,
+                            out string? staticValueId))
+                    {
+                        return null;
+                    }
+                    if (!ctx.client.TryGetOverlaidValue(
+                            ownership,
+                            staticValueId,
+                            out AttributeValue? staticRow))
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"Static member '{staticAttribute.name}' is bound to missing value '{staticValueId}'.");
+                    }
+                    return UnwrapCached(
+                        staticRow,
+                        ctx,
+                        ownership,
+                        staticAttribute);
                 }
                 case KeyOfPointer kop:
                     return EvalKeyOf(kop.keyOf, scope, ctx, kop.optional == true);
@@ -613,7 +760,19 @@ namespace NeoCompose.Runtime.NeoScript
                 }
                 case CallGetterPointer cgp:
                 {
-                    var innerThis = EvalPointer(cgp.thisPointer, scope, ctx);
+                    if (cgp.receiver.IsStatic)
+                    {
+                        ValidateStaticCallableReceiver(
+                            cgp.receiver,
+                            cgp.attributeId,
+                            "getter",
+                            ctx);
+                        return DispatchNSGetterById(
+                            cgp.attributeId,
+                            receiver: null,
+                            ctx);
+                    }
+                    var innerThis = EvalCallReceiver(cgp.receiver, scope, ctx);
                     if (cgp.optional == true && innerThis is null) return null;
                     // Try runtime dispatch via the receiver's typeId merged
                     // schema first — same trick the TS evaluator uses to
@@ -671,6 +830,8 @@ namespace NeoCompose.Runtime.NeoScript
                     return $"variable {vp.variableId}";
                 case ReferencePointer rp:
                     return $"reference {rp.valueId}";
+                case StaticMemberPointer staticMember:
+                    return $"staticMember {staticMember.attributeId}";
                 case CallFunctionPointer functionCall:
                     return $"functionCall {functionCall.attributeId ?? functionCall.memberKey}";
                 default:
@@ -697,10 +858,10 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return ctx.functionCallHandler(pointer, scope, ctx);
             }
-            var receiver = EvalPointer(pointer.thisPointer, scope, ctx);
+            var receiver = EvalCallReceiver(pointer.receiver, scope, ctx);
             if (pointer.optional == true && receiver is null)
             {
-                return null;
+                if (!pointer.receiver.IsStatic) return null;
             }
             var args = new object?[pointer.args.Length];
             for (int i = 0; i < pointer.args.Length; i++)
@@ -738,6 +899,24 @@ namespace NeoCompose.Runtime.NeoScript
             object? receiver,
             Context ctx)
         {
+            if (pointer.receiver.IsStatic)
+            {
+                string targetAttributeId = pointer.attributeId
+                    ?? pointer.receiver.attributeId
+                    ?? throw new NSGetterRuntimeError(
+                        "Static Function call is missing its callable attribute id.");
+                ValidateStaticCallableReceiver(
+                    pointer.receiver,
+                    targetAttributeId,
+                    "Function",
+                    ctx);
+                if (!string.IsNullOrEmpty(pointer.memberKey))
+                {
+                    throw new NSGetterRuntimeError(
+                        "Static Function call must dispatch by attributeId, not memberKey.");
+                }
+                return targetAttributeId;
+            }
             string? schemaKey = pointer.memberKey;
             if (string.IsNullOrEmpty(schemaKey)
                 && !string.IsNullOrEmpty(pointer.attributeId))
@@ -790,7 +969,11 @@ namespace NeoCompose.Runtime.NeoScript
                 throw new NSGetterRuntimeError(
                     $"Cannot resolve Function member '{schemaKey}' because runtime type '{runtimeTypeId}' has circular inheritance.");
             }
-            foreach (MergedSchemaEntry entry in CustomTypeInheritance.MergeSchemas(chain))
+            foreach (MergedSchemaEntry entry in CustomTypeInheritance.MergeInstanceSchema(
+                chain,
+                id => ctx.client.TryGetAttribute(id, out JsonAttribute? attribute)
+                    ? attribute
+                    : null))
             {
                 if (entry.schemaKey != schemaKey) continue;
                 if (!TryResolveCallableKind(ctx.client, entry.attributeId))
@@ -804,6 +987,50 @@ namespace NeoCompose.Runtime.NeoScript
             ctx.callableDispatchCache[dispatchCacheKey] = null;
             throw new NSGetterRuntimeError(
                 $"Runtime type '{runtimeTypeId}' does not implement Function member '{schemaKey}'.");
+        }
+
+        internal static object? EvalCallReceiver(
+            CallReceiver receiver,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            if (receiver is null)
+            {
+                throw new NSGetterRuntimeError("Callable pointer is missing its receiver.");
+            }
+            if (receiver.IsStatic) return null;
+            if (receiver.kind != CallReceiverKind.Instance || receiver.pointer is null)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Unsupported call receiver kind '{receiver.kind ?? "<missing>"}'.");
+            }
+            return EvalPointer(receiver.pointer, scope, ctx);
+        }
+
+        private static void ValidateStaticCallableReceiver(
+            CallReceiver receiver,
+            string targetAttributeId,
+            string callableKind,
+            Context ctx)
+        {
+            if (string.IsNullOrEmpty(receiver.attributeId))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Static {callableKind} call receiver is missing its attribute id.");
+            }
+            if (receiver.attributeId != targetAttributeId)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Static {callableKind} call receiver '{receiver.attributeId}' does not match target '{targetAttributeId}'.");
+            }
+            if (!ctx.client.TryGetAttribute(
+                    targetAttributeId,
+                    out JsonAttribute? attribute)
+                || !attribute.isStatic)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Static {callableKind} target '{targetAttributeId}' is missing or is not static.");
+            }
         }
 
         private static bool EvalFunctionErrorCheck(
@@ -1019,7 +1246,11 @@ namespace NeoCompose.Runtime.NeoScript
             {
                 return DispatchResult.NoInfo();
             }
-            var merged = CustomTypeInheritance.MergeSchemas(chain);
+            var merged = CustomTypeInheritance.MergeInstanceSchema(
+                chain,
+                id => ctx.client.TryGetAttribute(id, out JsonAttribute? attribute)
+                    ? attribute
+                    : null);
             MergedSchemaEntry? entry = null;
             foreach (var e in merged)
             {
@@ -1400,6 +1631,67 @@ namespace NeoCompose.Runtime.NeoScript
         {
             switch (fn)
             {
+                case CustomConstructorFunction constructor:
+                {
+                    var fields = new List<NeoGeneratedTypesSupport.RuntimeConstructorField>(
+                        constructor.info.fields.Length);
+                    foreach (FunctionCustomConstructorField field in constructor.info.fields)
+                    {
+                        fields.Add(new NeoGeneratedTypesSupport.RuntimeConstructorField
+                        {
+                            schemaKey = field.schemaKey,
+                            attributeId = field.attributeId,
+                        });
+                    }
+                    try
+                    {
+                        NeoGeneratedTypesSupport.ValidateRuntimeCustomConstructorMetadata(
+                            ctx.client,
+                            constructor.info.customTypeInfo,
+                            fields);
+                    }
+                    catch (Exception error)
+                        when (error is InvalidOperationException
+                            || error is ArgumentException)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"Custom constructor failed: {error.Message}");
+                    }
+                    for (int i = 0; i < fields.Count; i++)
+                    {
+                        fields[i].value = EvalPointer(
+                            constructor.info.fields[i].valuePointer,
+                            scope,
+                            ctx);
+                    }
+                    try
+                    {
+                        NeoAttributeCustomWritable node =
+                            NeoGeneratedTypesSupport.CreateRuntimeCustomValue(
+                                ctx.client,
+                                constructor.info.customTypeInfo,
+                                fields,
+                                value => ConstructorReferenceOf(value, ctx));
+                        if (node.value is null)
+                        {
+                            throw new NSGetterRuntimeError(
+                                $"Custom constructor for '{constructor.info.customTypeInfo.typeId}' produced no root row.");
+                        }
+                        ctx.allocationTracker.RegisterSessionRoot(node.value.id);
+                        return UnwrapCached(
+                            node.value,
+                            ctx,
+                            NeoValueOwnership.Session,
+                            node.attribute);
+                    }
+                    catch (Exception error)
+                        when (error is InvalidOperationException
+                            || error is ArgumentException)
+                    {
+                        throw new NSGetterRuntimeError(
+                            $"Custom constructor failed: {error.Message}");
+                    }
+                }
                 case CustomCloneFunction ccf:
                 {
                     var receiver = EvalPointer(ccf.info.receiverPointer, scope, ctx);
@@ -1512,8 +1804,11 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         var innerScope = PushParams(scope, inner.parameters,
                             keyOrIndex: key, entry: entry, isList: isList);
-                        var result = EvalInstructions(inner.instructions, innerScope, ctx);
-                        if (result.kind == InstructionResultKind.Return && result.value is bool b && b)
+                        NeoScriptExecutionResult result = ExecuteCollectionCallback(
+                            inner,
+                            innerScope,
+                            ctx);
+                        if (result.Returned && result.ReturnValue is bool b && b)
                         {
                             // Re-emit valueId references rather than dereferenced
                             // entries when we have them — matches TS semantic.
@@ -1545,8 +1840,11 @@ namespace NeoCompose.Runtime.NeoScript
                         if (inner is null) { found = true; foundValue = entry; return; }
                         var innerScope = PushParams(scope, inner.parameters,
                             keyOrIndex: key, entry: entry, isList: isList);
-                        var result = EvalInstructions(inner.instructions, innerScope, ctx);
-                        if (result.kind == InstructionResultKind.Return && result.value is bool b && b)
+                        NeoScriptExecutionResult result = ExecuteCollectionCallback(
+                            inner,
+                            innerScope,
+                            ctx);
+                        if (result.Returned && result.ReturnValue is bool b && b)
                         {
                             found = true;
                             foundValue = entry;
@@ -1572,10 +1870,13 @@ namespace NeoCompose.Runtime.NeoScript
                     {
                         var innerScope = PushParams(scope, inner.parameters,
                             keyOrIndex: key, entry: entry, isList: isList);
-                        var result = EvalInstructions(inner.instructions, innerScope, ctx);
-                        if (result.kind == InstructionResultKind.Return)
+                        NeoScriptExecutionResult result = ExecuteCollectionCallback(
+                            inner,
+                            innerScope,
+                            ctx);
+                        if (result.Returned)
                         {
-                            acc.Add(result.value);
+                            acc.Add(result.ReturnValue);
                         }
                     });
                     return acc.ToArray();
@@ -1584,6 +1885,34 @@ namespace NeoCompose.Runtime.NeoScript
                     throw new NSGetterRuntimeError(
                         $"Unknown function kind {fn.GetType().Name}");
             }
+        }
+
+        /// <summary>
+        /// Collection callbacks are ordinary synchronous NeoScript frames.
+        /// They inherit the ambient context, allocation tracker, write
+        /// targets, and call-cycle state; only deferred suspension remains
+        /// illegal. Keeping this seam on the shared executor prevents
+        /// Where/First/FirstOrDefault/Select from silently falling back to
+        /// the legacy read-only getter instruction walker.
+        /// </summary>
+        private static NeoScriptExecutionResult ExecuteCollectionCallback(
+            FunctionWithReturnType callback,
+            Dictionary<string, object?> scope,
+            Context ctx)
+        {
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
+                ctx.client,
+                callback,
+                scope,
+                ctx);
+            if (result.IsPaused)
+            {
+                result.Deferred?.DisposeFromOwner(
+                    "collection callback cannot suspend");
+                throw new NSGetterRuntimeError(
+                    "Collection callbacks cannot call deferred Functions.");
+            }
+            return result;
         }
 
         private static object? EvalListIndex(
@@ -2158,7 +2487,10 @@ namespace NeoCompose.Runtime.NeoScript
             var ownership = preferredOwnership ?? ResolveOwnershipForValueId(ctx, id);
             if (!ctx.client.TryGetValue(ownership, id, out AttributeValue? row)) return at;
             var v = UnwrapCached(row, ctx, ownership, attribute);
-            if (v is object?[] arr && arr.Length == 1 && arr[0] is string singleId)
+            if (attribute is LookupAttribute
+                && v is object?[] arr
+                && arr.Length == 1
+                && arr[0] is string singleId)
             {
                 var singleOwnership = ResolveOwnershipForValueId(ctx, singleId);
                 if (ctx.client.TryGetValue(singleOwnership, singleId, out AttributeValue? next))
@@ -2203,6 +2535,17 @@ namespace NeoCompose.Runtime.NeoScript
                 return reference.valueId;
             }
             return FindRowIdByReference(value, ctx);
+        }
+
+        private static NeoConstructorValueReference?
+            ConstructorReferenceOf(object? value, Context ctx)
+        {
+            string? valueId = ValueIdOf(value, ctx);
+            if (string.IsNullOrEmpty(valueId)) return null;
+            NeoValueOwnership? ownership = value is NeoGeneratedCustomValue generated
+                ? generated.ValueOwnership
+                : FindRowOwnershipByReference(value, ctx);
+            return new NeoConstructorValueReference(valueId!, ownership);
         }
 
         // ---------------------------------------------------------------
@@ -2315,76 +2658,226 @@ namespace NeoCompose.Runtime.NeoScript
             NeoValueOwnership ownership)
         {
             string rowCacheKey = RowCacheRowKey(ownership, row.id);
-            if (!ctx.rowCacheKeysByRow.TryGetValue(
-                    rowCacheKey, out HashSet<string>? indexedKeys))
-            {
-                return;
-            }
-            var matchingKeys = new List<string>(indexedKeys);
+            ctx.rowCacheKeysByRow.TryGetValue(
+                rowCacheKey,
+                out HashSet<string>? indexedKeys);
+            var matchingKeys = indexedKeys is null
+                ? new List<string>()
+                : new List<string>(indexedKeys);
+            var patchedObjects = new HashSet<object>(
+                ReferenceEqualityComparer.Instance);
 
             foreach (string key in matchingKeys)
             {
                 if (!ctx.rowUnwrapCache.TryGetValue(key, out object? cached))
                 {
-                    indexedKeys.Remove(key);
+                    indexedKeys!.Remove(key);
                     continue;
                 }
-                if (row is ObjectAttributeValue objectRow
-                    && cached is IDictionary<string, object?> record)
+                if (PatchCachedShape(row, cached))
                 {
-                    record.Clear();
-                    if (objectRow.value is not null)
-                    {
-                        foreach (var pair in objectRow.value)
-                        {
-                            record[pair.Key] = pair.Value;
-                        }
-                    }
-                    continue;
-                }
-                if (row is ArrayAttributeValue arrayRow
-                    && cached is object?[] array
-                    && arrayRow.value is not null
-                    && array.Length == arrayRow.value.Length)
-                {
-                    for (int i = 0; i < array.Length; i++)
-                    {
-                        array[i] = arrayRow.value[i];
-                    }
-                    continue;
-                }
-                if (row is FileAttributeValue fileRow
-                    && cached is IDictionary<string, object?> fileRecord)
-                {
-                    fileRecord.Clear();
-                    if (fileRow.value is not null)
-                    {
-                        fileRecord["fileId"] = fileRow.value.fileId;
-                    }
-                    continue;
-                }
-                if (row is SpriteAttributeValue spriteRow
-                    && cached is IDictionary<string, object?> spriteRecord)
-                {
-                    spriteRecord.Clear();
-                    if (spriteRow.value is not null)
-                    {
-                        spriteRecord["fileId"] = spriteRow.value.fileId;
-                        spriteRecord["sliceIndex"] = spriteRow.value.sliceIndex;
-                    }
+                    if (cached is not null) patchedObjects.Add(cached);
                     continue;
                 }
 
                 ctx.rowUnwrapCache.Remove(key);
-                indexedKeys.Remove(key);
-                if (cached is not null)
-                {
-                    ctx.rowReverseIndex.Remove(cached);
-                }
+                indexedKeys!.Remove(key);
+                // Keep reverse provenance for existing locals/arguments even
+                // when a fixed-size CLR shape (notably object[]) cannot be
+                // patched in place. A future row read materializes a fresh
+                // canonical shape, while the old alias can still resolve and
+                // write through its authoritative backing row.
             }
-            if (indexedKeys.Count == 0)
+            if (indexedKeys is not null && indexedKeys.Count == 0)
             {
                 ctx.rowCacheKeysByRow.Remove(rowCacheKey);
+            }
+
+            // A Session constructor graph can be promoted into Save while a
+            // local/argument still aliases one of its CLR objects. The
+            // canonical unwrap cache has one entry per row, but all existing
+            // aliases remain in the reverse index. Patch those aliases too so
+            // subsequent reads observe writes through the promoted row.
+            foreach (var pair in ctx.rowReverseIndex.ToArray())
+            {
+                if (pair.Value.valueId != row.id
+                    || pair.Value.ownership != ownership
+                    || patchedObjects.Contains(pair.Key))
+                {
+                    continue;
+                }
+                PatchCachedShape(row, pair.Key);
+            }
+        }
+
+        private static bool PatchCachedShape(AttributeValue row, object? cached)
+        {
+            if (row is ObjectAttributeValue objectRow
+                && cached is IDictionary<string, object?> record)
+            {
+                record.Clear();
+                if (objectRow.value is not null)
+                {
+                    foreach (var pair in objectRow.value)
+                    {
+                        record[pair.Key] = pair.Value;
+                    }
+                }
+                return true;
+            }
+            if (row is ArrayAttributeValue arrayRow
+                && cached is object?[] array
+                && arrayRow.value is not null
+                && array.Length == arrayRow.value.Length)
+            {
+                for (int i = 0; i < array.Length; i++)
+                {
+                    array[i] = arrayRow.value[i];
+                }
+                return true;
+            }
+            if (row is FileAttributeValue fileRow
+                && cached is IDictionary<string, object?> fileRecord)
+            {
+                fileRecord.Clear();
+                if (fileRow.value is not null)
+                {
+                    fileRecord["fileId"] = fileRow.value.fileId;
+                }
+                return true;
+            }
+            if (row is SpriteAttributeValue spriteRow
+                && cached is IDictionary<string, object?> spriteRecord)
+            {
+                spriteRecord.Clear();
+                if (spriteRow.value is not null)
+                {
+                    spriteRecord["fileId"] = spriteRow.value.fileId;
+                    spriteRecord["sliceIndex"] = spriteRow.value.sliceIndex;
+                }
+                return true;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Retargets every cached CLR alias whose row was atomically moved
+        /// from one writable store to another. Row ids remain stable during a
+        /// Session-to-Save promotion; only provenance changes.
+        /// </summary>
+        internal static void RetargetCachedRowsAfterMove(
+            Context ctx,
+            NeoValueOwnership sourceOwnership,
+            NeoValueOwnership targetOwnership)
+        {
+            if (sourceOwnership == targetOwnership) return;
+            var movedRowIds = new HashSet<string>();
+            foreach (var pair in ctx.rowReverseIndex.ToArray())
+            {
+                RowReference row = pair.Value;
+                if (row.ownership != sourceOwnership
+                    || ctx.client.HasWritableValue(sourceOwnership, row.valueId)
+                    || !ctx.client.HasWritableValue(targetOwnership, row.valueId))
+                {
+                    continue;
+                }
+                ctx.rowReverseIndex[pair.Key] = new RowReference(
+                    row.valueId,
+                    targetOwnership);
+                movedRowIds.Add(row.valueId);
+            }
+
+            string sourcePrefix = sourceOwnership + ":";
+            foreach (string rowCacheKey in ctx.rowCacheKeysByRow.Keys.ToArray())
+            {
+                if (!rowCacheKey.StartsWith(sourcePrefix, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                string rowId = rowCacheKey.Substring(sourcePrefix.Length);
+                if (ctx.client.HasWritableValue(sourceOwnership, rowId)
+                    || !ctx.client.HasWritableValue(targetOwnership, rowId))
+                {
+                    continue;
+                }
+                movedRowIds.Add(rowId);
+            }
+
+            foreach (string rowId in movedRowIds)
+            {
+                RetargetCachedRow(
+                    ctx,
+                    sourceOwnership,
+                    targetOwnership,
+                    rowId);
+            }
+        }
+
+        private static void RetargetCachedRow(
+            Context ctx,
+            NeoValueOwnership sourceOwnership,
+            NeoValueOwnership targetOwnership,
+            string rowId)
+        {
+            string sourceRowKey = RowCacheRowKey(sourceOwnership, rowId);
+            if (!ctx.rowCacheKeysByRow.TryGetValue(
+                    sourceRowKey,
+                    out HashSet<string>? sourceKeys))
+            {
+                return;
+            }
+            string targetRowKey = RowCacheRowKey(targetOwnership, rowId);
+            if (!ctx.rowCacheKeysByRow.TryGetValue(
+                    targetRowKey,
+                    out HashSet<string>? targetKeys))
+            {
+                targetKeys = new HashSet<string>();
+                ctx.rowCacheKeysByRow[targetRowKey] = targetKeys;
+            }
+            string sourcePrefix = sourceOwnership + ":";
+            string targetPrefix = targetOwnership + ":";
+            foreach (string sourceKey in sourceKeys.ToArray())
+            {
+                string targetKey = targetPrefix + sourceKey.Substring(sourcePrefix.Length);
+                if (ctx.rowUnwrapCache.TryGetValue(sourceKey, out object? cached))
+                {
+                    ctx.rowUnwrapCache.Remove(sourceKey);
+                    // Prefer the moving graph's object so locals bound before
+                    // promotion remain the canonical unwrap for future reads.
+                    ctx.rowUnwrapCache[targetKey] = cached;
+                }
+                targetKeys.Add(targetKey);
+            }
+            ctx.rowCacheKeysByRow.Remove(sourceRowKey);
+        }
+
+        internal static void EvictCachedRows(
+            Context ctx,
+            NeoValueOwnership ownership,
+            IEnumerable<string> rowIds)
+        {
+            var removed = new HashSet<string>(rowIds);
+            foreach (string rowId in removed)
+            {
+                string rowKey = RowCacheRowKey(ownership, rowId);
+                if (ctx.rowCacheKeysByRow.TryGetValue(
+                        rowKey,
+                        out HashSet<string>? cacheKeys))
+                {
+                    foreach (string cacheKey in cacheKeys)
+                    {
+                        ctx.rowUnwrapCache.Remove(cacheKey);
+                    }
+                    ctx.rowCacheKeysByRow.Remove(rowKey);
+                }
+            }
+            foreach (var pair in ctx.rowReverseIndex.ToArray())
+            {
+                if (pair.Value.ownership == ownership
+                    && removed.Contains(pair.Value.valueId))
+                {
+                    ctx.rowReverseIndex.Remove(pair.Key);
+                }
             }
         }
 
@@ -2672,10 +3165,43 @@ namespace NeoCompose.Runtime.NeoScript
 
         internal static string? FindRowTypeIdByReference(object? value, Context ctx)
         {
-            if (value is INeoValueReference valueReference
-                && !string.IsNullOrEmpty(valueReference.valueId)
-                && ctx.client.TryGetValue(valueReference.valueId!, out AttributeValue? referencedRow))
+            // Prefer the context's exact ownership-qualified reverse index.
+            // The same stable id may legitimately exist in Session and Save
+            // with different runtime types; id-only lookup would select the
+            // wrong overlay for an unwrapped NeoObjectRecord.
+            if (TryFindRowReferenceByReference(value, ctx, out RowReference rowRef))
             {
+                if (!ctx.client.TryGetValue(
+                        rowRef.ownership,
+                        rowRef.valueId,
+                        out AttributeValue? indexedRow))
+                {
+                    return null;
+                }
+                if (!string.IsNullOrEmpty(indexedRow.typeId))
+                {
+                    return indexedRow.typeId;
+                }
+                return ctx.client.TryInferAttributeForValueId(
+                        rowRef.valueId,
+                        out JsonAttribute? indexedAttribute)
+                    && indexedAttribute is CustomAttribute indexedCustom
+                        ? indexedCustom.customTypeId
+                        : null;
+            }
+            if (value is INeoValueReference valueReference
+                && !string.IsNullOrEmpty(valueReference.valueId))
+            {
+                NeoValueOwnership ownership = value is NeoGeneratedCustomValue generated
+                    ? generated.ValueOwnership
+                    : ResolveOwnershipForValueId(ctx, valueReference.valueId!);
+                if (!ctx.client.TryGetValue(
+                        ownership,
+                        valueReference.valueId!,
+                        out AttributeValue? referencedRow))
+                {
+                    return null;
+                }
                 if (!string.IsNullOrEmpty(referencedRow.typeId)) return referencedRow.typeId;
                 if (ctx.client.TryInferAttributeForValueId(
                         valueReference.valueId!, out JsonAttribute? referencedAttribute)
@@ -2684,20 +3210,7 @@ namespace NeoCompose.Runtime.NeoScript
                     return referencedCustom.customTypeId;
                 }
             }
-            // O(1) reverse lookup against the per-context unwrap cache.
-            // Only object-shaped values are indexed (see UnwrapCached);
-            // primitives correctly miss because reference identity isn't
-            // meaningful for them.
-            if (!TryFindRowReferenceByReference(value, ctx, out RowReference rowRef)) return null;
-            if (!ctx.client.TryGetValue(rowRef.ownership, rowRef.valueId, out AttributeValue? row))
-            {
-                return null;
-            }
-            if (!string.IsNullOrEmpty(row.typeId)) return row.typeId;
-            return ctx.client.TryInferAttributeForValueId(rowRef.valueId, out JsonAttribute? attribute)
-                && attribute is CustomAttribute customAttribute
-                    ? customAttribute.customTypeId
-                    : null;
+            return null;
         }
 
         // ---------------------------------------------------------------
@@ -2866,7 +3379,7 @@ namespace NeoCompose.Runtime.NeoScript
                 : null;
         }
 
-        private static NeoValueOwnership? FindRowOwnershipByReference(object? value, Context ctx)
+        internal static NeoValueOwnership? FindRowOwnershipByReference(object? value, Context ctx)
         {
             return TryFindRowReferenceByReference(value, ctx, out RowReference rowRef)
                 ? rowRef.ownership

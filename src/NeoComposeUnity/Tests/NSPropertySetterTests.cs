@@ -87,6 +87,104 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ActionAssignment_RuntimeWritabilityUsesActualSaveOwnership()
+        {
+            var client = BuildClient(out _);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var root = RuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+            var action = Function(new AssignInstruction
+            {
+                type = InstructionKind.Assign,
+                target = new WriteTarget
+                {
+                    pointer = RootTargetPointer(),
+                    typeInfo = IntType(),
+                    writability = WritabilityKind.Runtime,
+                },
+                operatorValue = "=",
+                pointer = NumberLiteral(31),
+            });
+            var scope = new Dictionary<string, object?> { ["__root__"] = root };
+
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
+                client,
+                action,
+                scope,
+                ctx);
+
+            Assert.IsFalse(result.IsPaused);
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Save,
+                "value-target",
+                out NumberAttributeValue? target));
+            Assert.AreEqual(31, target!.value);
+        }
+
+        [Test]
+        public void ActionAssignment_RuntimeWritabilityUsesActualSessionOwnership()
+        {
+            var client = BuildClient(out _);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var root = RuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+            var action = Function(new AssignInstruction
+            {
+                type = InstructionKind.Assign,
+                target = new WriteTarget
+                {
+                    pointer = KeyOf(KeyOf(RootVariable(), "Session"), "Target"),
+                    typeInfo = IntType(),
+                    writability = WritabilityKind.Runtime,
+                },
+                operatorValue = "=",
+                pointer = NumberLiteral(47),
+            });
+            var scope = new Dictionary<string, object?> { ["__root__"] = root };
+
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
+                client,
+                action,
+                scope,
+                ctx);
+
+            Assert.IsFalse(result.IsPaused);
+            Assert.IsTrue(client.TryGetValue(
+                NeoValueOwnership.Session,
+                "value-session-target",
+                out NumberAttributeValue? target));
+            Assert.AreEqual(47, target!.value);
+        }
+
+        [Test]
+        public void ActionAssignment_RuntimeWritabilityRejectsAssetOwnership()
+        {
+            var client = BuildClient(out _);
+            var ctx = new NSGetterEvaluator.Context(client, null, null);
+            var root = RuntimeRoot(client, ctx);
+            ctx = ctx.WithRoot(root);
+            var action = Function(new AssignInstruction
+            {
+                type = InstructionKind.Assign,
+                target = new WriteTarget
+                {
+                    pointer = KeyOf(KeyOf(RootVariable(), "Assets"), "Target"),
+                    typeInfo = IntType(),
+                    writability = WritabilityKind.Runtime,
+                },
+                operatorValue = "=",
+                pointer = NumberLiteral(31),
+            });
+            var scope = new Dictionary<string, object?> { ["__root__"] = root };
+
+            var error = Assert.Throws<NSGetterRuntimeError>(() =>
+                NeoScriptExecutor.Execute(client, action, scope, ctx));
+
+            StringAssert.Contains("runtime-owned target", error!.Message);
+            StringAssert.Contains("Asset-owned", error.Message);
+        }
+
+        [Test]
         public void Set_DispatchesMostDerivedSetterByRuntimeType()
         {
             var client = BuildClient(
@@ -248,7 +346,7 @@ namespace NeoCompose.Tests
                 ["__root__"] = root,
             };
 
-            NeoActionExecutionResult result = NeoActionExecutor.Execute(
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
                 client,
                 action,
                 scope,
@@ -311,7 +409,7 @@ namespace NeoCompose.Tests
                 ["__root__"] = root,
             };
 
-            NeoActionExecutionResult result = NeoActionExecutor.Execute(
+            NeoScriptExecutionResult result = NeoScriptExecutor.Execute(
                 client,
                 action,
                 scope,
@@ -619,7 +717,6 @@ namespace NeoCompose.Tests
                 name = "Target",
                 type = AttributeType.Int,
                 valueId = "value-target",
-                storage = "save",
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -701,10 +798,20 @@ namespace NeoCompose.Tests
                         "value-save",
                         "type-root",
                         ("Target", "value-target")),
-                    ["value-session"] = ObjectValue("value-session", "type-root"),
+                    ["value-session"] = ObjectValue(
+                        "value-session",
+                        "type-root",
+                        ("Target", "value-session-target")),
                     ["value-target"] = new NumberAttributeValue
                     {
                         id = "value-target",
+                        value = 0,
+                        createdAt = "x",
+                        updatedAt = "x",
+                    },
+                    ["value-session-target"] = new NumberAttributeValue
+                    {
+                        id = "value-session-target",
                         value = 0,
                         createdAt = "x",
                         updatedAt = "x",
