@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
+using JsonAttribute = NeoCompose.Runtime.Json.Attribute;
 
 namespace NeoCompose.Runtime
 {
@@ -1951,10 +1952,13 @@ namespace NeoCompose.Runtime
             if (!client.types.ContainsKey(typeId)) return null;
             try
             {
-                return CustomTypeInheritance.MergeSchemas(
+                return CustomTypeInheritance.MergeInstanceSchema(
                     CustomTypeInheritance.ResolveChain(
                         typeId,
-                        id => client.types.TryGetValue(id, out CustomType match) ? match : null));
+                        id => client.types.TryGetValue(id, out CustomType match) ? match : null),
+                    id => client.attributes.TryGetValue(id, out JsonAttribute attribute)
+                        ? attribute
+                        : null);
             }
             catch (CircularInheritanceError)
             {

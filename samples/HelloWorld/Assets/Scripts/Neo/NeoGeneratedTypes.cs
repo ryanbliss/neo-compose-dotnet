@@ -361,7 +361,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         }
     }
 
-    public sealed class NeoSmartTileOutput : IEquatable<NeoSmartTileOutput>
+    public sealed class NeoSmartTileOutput : IEquatable<NeoSmartTileOutput>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, NeoSmartTileOutput> values = new Dictionary<string, NeoSmartTileOutput>();
         public string optionId { get; }
@@ -429,7 +429,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(NeoSmartTileOutput? left, NeoSmartTileOutput? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(NeoSmartTileOutput? left, NeoSmartTileOutput? right) => !(left == right);
     }
-    public sealed class Planet : IEquatable<Planet>
+    public sealed class Planet : IEquatable<Planet>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, Planet> values = new Dictionary<string, Planet>();
         public string optionId { get; }
@@ -515,7 +515,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(Planet? left, Planet? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(Planet? left, Planet? right) => !(left == right);
     }
-    public sealed class NeoSmartTileCollider : IEquatable<NeoSmartTileCollider>
+    public sealed class NeoSmartTileCollider : IEquatable<NeoSmartTileCollider>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, NeoSmartTileCollider> values = new Dictionary<string, NeoSmartTileCollider>();
         public string optionId { get; }
@@ -583,7 +583,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(NeoSmartTileCollider? left, NeoSmartTileCollider? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(NeoSmartTileCollider? left, NeoSmartTileCollider? right) => !(left == right);
     }
-    public sealed class SaturnMoon : IEquatable<SaturnMoon>
+    public sealed class SaturnMoon : IEquatable<SaturnMoon>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, SaturnMoon> values = new Dictionary<string, SaturnMoon>();
         public string optionId { get; }
@@ -648,7 +648,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(SaturnMoon? left, SaturnMoon? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(SaturnMoon? left, SaturnMoon? right) => !(left == right);
     }
-    public sealed class JupiterMoon : IEquatable<JupiterMoon>
+    public sealed class JupiterMoon : IEquatable<JupiterMoon>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, JupiterMoon> values = new Dictionary<string, JupiterMoon>();
         public string optionId { get; }
@@ -719,7 +719,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(JupiterMoon? left, JupiterMoon? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(JupiterMoon? left, JupiterMoon? right) => !(left == right);
     }
-    public sealed class QuestStage : IEquatable<QuestStage>
+    public sealed class QuestStage : IEquatable<QuestStage>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, QuestStage> values = new Dictionary<string, QuestStage>();
         public string optionId { get; }
@@ -796,7 +796,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(QuestStage? left, QuestStage? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(QuestStage? left, QuestStage? right) => !(left == right);
     }
-    public sealed class NeoSmartTileCondition : IEquatable<NeoSmartTileCondition>
+    public sealed class NeoSmartTileCondition : IEquatable<NeoSmartTileCondition>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, NeoSmartTileCondition> values = new Dictionary<string, NeoSmartTileCondition>();
         public string optionId { get; }
@@ -867,7 +867,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(NeoSmartTileCondition? left, NeoSmartTileCondition? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(NeoSmartTileCondition? left, NeoSmartTileCondition? right) => !(left == right);
     }
-    public sealed class WorldEnding : IEquatable<WorldEnding>
+    public sealed class WorldEnding : IEquatable<WorldEnding>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, WorldEnding> values = new Dictionary<string, WorldEnding>();
         public string optionId { get; }
@@ -941,7 +941,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         public static bool operator ==(WorldEnding? left, WorldEnding? right) => ReferenceEquals(left, right) || (left is not null && left.Equals(right));
         public static bool operator !=(WorldEnding? left, WorldEnding? right) => !(left == right);
     }
-    public sealed class NeoSmartTileTransform : IEquatable<NeoSmartTileTransform>
+    public sealed class NeoSmartTileTransform : IEquatable<NeoSmartTileTransform>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, NeoSmartTileTransform> values = new Dictionary<string, NeoSmartTileTransform>();
         public string optionId { get; }
@@ -1221,75 +1221,16 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, NeoDialogueReference? BootGlyphAttuned = null, string? Name = null, Sprite? Sprite = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (CompatibleLayers is not null)
-            {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = CompatibleLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
-                });
-            }
-            if (DefaultLayer is not null)
-            {
-                var DefaultLayerValueId = Guid.NewGuid().ToString();
-                value["DefaultLayer"] = DefaultLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
-                });
-            }
-            if (BootGlyphAttuned is not null)
-            {
-                var BootGlyphAttunedValueId = Guid.NewGuid().ToString();
-                value["BootGlyphAttuned"] = BootGlyphAttunedValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = BootGlyphAttunedValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = BootGlyphAttuned is null ? null : new[] { BootGlyphAttuned.Id },
-                });
-            }
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Sprite is not null)
-            {
-                var SpriteValueId = Guid.NewGuid().ToString();
-                value["Sprite"] = SpriteValueId;
-                valueRows.Add(new SpriteAttributeValue
-                {
-                    id = SpriteValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
-                });
-            }
-            if (SmartTile is not null)
-            {
-                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "07db44f3-8cc5-4164-aace-098ca68460f4", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "07db44f3-8cc5-4164-aace-098ca68460f4",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CompatibleLayers", "6f734d02-4752-4697-9995-1bfa748e0938", CompatibleLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultLayer", "0cea4b79-8614-4753-a319-858a749fd2b3", DefaultLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("BootGlyphAttuned", "e2a98ca7-1317-4743-9be1-19cd5ec47bf1", BootGlyphAttuned),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "f703feff-bc27-46d5-a9b9-d29df959342a", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "948a6ed7-d7bf-4ffb-b123-06955293681c", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SmartTile", "96cda8f5-3100-45b5-adcb-0552d21504dd", SmartTile)
+            );
         }
 
         internal new static BootGlyphTile Create(NeoClient client, NeoAttributeCustom node)
@@ -1517,57 +1458,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<Sprite> Frames, int? FPS = null, string? Name = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (FPS is not null)
-            {
-                var FPSValueId = Guid.NewGuid().ToString();
-                value["FPS"] = FPSValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = FPSValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = FPS.HasValue ? FPS.Value : (double?)null,
-                });
-            }
-            var FramesValueId = Guid.NewGuid().ToString();
-            value["Frames"] = FramesValueId;
-            var FramesIds = new List<string>();
-            foreach (var entry in Frames)
-            {
-                var entryValueId = Guid.NewGuid().ToString();
-                FramesIds.Add(entryValueId);
-                valueRows.Add(new SpriteAttributeValue
-                {
-                    id = entryValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.SpriteValue(client, entry),
-                });
-            }
-            valueRows.Add(new ArrayAttributeValue
-            {
-                id = FramesValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = FramesIds.ToArray(),
-            });
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "11177bd5-0678-4bff-86b8-46718ff1827b", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "11177bd5-0678-4bff-86b8-46718ff1827b",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Frames", "cc7fec3f-593b-4888-bf93-b9bb6bcb5e44", Frames),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FPS", "87ec59c5-a157-4670-9cb9-794487cc79d3", FPS),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "8b8ac389-c9a7-4a0c-8335-2352865ee1b4", Name)
+            );
         }
 
         internal static AnimationInfo Create(NeoClient client, NeoAttributeCustom node)
@@ -2068,11 +1965,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(OldConsoleLandingGrid OldConsoleLanding)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            value["OldConsoleLanding"] = NeoGeneratedTypesSupport.LookupSelectionId(OldConsoleLanding.valueId);
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "22a62498-61f8-4b6f-8d4c-bc05743a5c2e", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "22a62498-61f8-4b6f-8d4c-bc05743a5c2e",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OldConsoleLanding", "f5252031-8220-49be-bfc3-b717d5679ca8", OldConsoleLanding)
+            );
         }
 
         internal static Worlds Create(NeoClient client, NeoAttributeCustom node)
@@ -2215,121 +2112,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoDialogueReference? RecoveryCache = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Children is not null)
-            {
-                var ChildrenValueId = Guid.NewGuid().ToString();
-                value["Children"] = ChildrenValueId;
-                var ChildrenIds = new List<string>();
-                foreach (var entry in Children)
-                {
-                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ChildrenValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ChildrenIds.ToArray(),
-                });
-            }
-            if (CompatibleLayers is not null)
-            {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = CompatibleLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
-                });
-            }
-            if (DefaultLayer is not null)
-            {
-                var DefaultLayerValueId = Guid.NewGuid().ToString();
-                value["DefaultLayer"] = DefaultLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
-                });
-            }
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (PlacementTiles is not null)
-            {
-                var PlacementTilesValueId = Guid.NewGuid().ToString();
-                value["PlacementTiles"] = PlacementTilesValueId;
-                var PlacementTilesIds = new List<string>();
-                foreach (var entry in PlacementTiles)
-                {
-                    PlacementTilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = PlacementTilesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = PlacementTilesIds.ToArray(),
-                });
-            }
-            if (RecoveryCache is not null)
-            {
-                var RecoveryCacheValueId = Guid.NewGuid().ToString();
-                value["RecoveryCache"] = RecoveryCacheValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = RecoveryCacheValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = RecoveryCache is null ? null : new[] { RecoveryCache.Id },
-                });
-            }
-            if (Collider is not null)
-            {
-                value["Collider"] = NeoGeneratedTypesSupport.LookupSelectionId(Collider.valueId);
-            }
-            if (Position is not null)
-            {
-                var PositionValueId = Guid.NewGuid().ToString();
-                value["Position"] = PositionValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = PositionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
-                });
-            }
-            if (Size is not null)
-            {
-                var SizeValueId = Guid.NewGuid().ToString();
-                value["Size"] = SizeValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = SizeValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "27874300-3e78-4d1c-802b-caf34d25d1ab", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "27874300-3e78-4d1c-802b-caf34d25d1ab",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "32be897f-be96-4ab7-a586-a9a6fdfff8b7", Children),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CompatibleLayers", "16778506-5859-42ac-a233-da915bc170d6", CompatibleLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultLayer", "e37c6500-370f-44a5-b78d-b4f68a22ae5e", DefaultLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "345b54f2-eb9c-4cd9-8c5f-cee868c9602d", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "d8e9ad0e-157f-4709-96a7-8775efa3dd11", PlacementTiles),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("RecoveryCache", "47466be3-368c-4ac1-8c0e-7a825af6b538", RecoveryCache),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "94472662-a3a9-4c02-8abb-6229442e1e49", Collider),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size)
+            );
         }
 
         internal new static RecoveryCacheObject Create(NeoClient client, NeoAttributeCustom node)
@@ -2623,36 +2418,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? baseText = null, string? optionalSuffix = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (baseText is not null)
-            {
-                var baseTextValueId = Guid.NewGuid().ToString();
-                value["baseText"] = baseTextValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = baseTextValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = baseText,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (optionalSuffix is not null)
-            {
-                var optionalSuffixValueId = Guid.NewGuid().ToString();
-                value["optionalSuffix"] = optionalSuffixValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = optionalSuffixValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = optionalSuffix,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "2ab1bc07-da0b-47fc-b77b-54cc511575bb", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "2ab1bc07-da0b-47fc-b77b-54cc511575bb",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("baseText", "29659610-fc70-4b9c-833e-a6185f745c04", baseText),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("optionalSuffix", "d56d641e-4f15-4da6-8c1f-114016c9166d", optionalSuffix)
+            );
         }
 
         internal static ComputedText Create(NeoClient client, NeoAttributeCustom node)
@@ -2711,7 +2482,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("fullText").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("fullText").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -2971,22 +2742,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2Int? Cell = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Cell is not null)
-            {
-                var CellValueId = Guid.NewGuid().ToString();
-                value["Cell"] = CellValueId;
-                valueRows.Add(new Vector2AttributeValue
-                {
-                    id = CellValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector2IntValue(Cell.Value),
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "38c4b25a-e2a5-4c33-87ca-84bd4cb7cae6",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cell", "b0b3c45c-a87d-4218-b056-7418ef46aac5", Cell)
+            );
         }
 
         internal static NeoObjectPlacementTile Create(NeoClient client, NeoAttributeCustom node)
@@ -3119,34 +2879,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2Int? Cell = null, NeoLookupSelection? Tile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Cell is not null)
-            {
-                var CellValueId = Guid.NewGuid().ToString();
-                value["Cell"] = CellValueId;
-                valueRows.Add(new Vector2AttributeValue
-                {
-                    id = CellValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector2IntValue(Cell.Value),
-                });
-            }
-            if (Tile is not null)
-            {
-                var TileValueId = Guid.NewGuid().ToString();
-                value["Tile"] = TileValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TileValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Tile.HasValue ? new[] { Tile.Value.valueId } : null,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "3ab13327-ccaa-4dbe-8ec7-24b9592ddf15",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cell", "f4be2707-74f5-4833-9784-e81bb2474330", Cell),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tile", "cffc3a6e-5fed-4a15-aa89-cb61d512b7a1", Tile)
+            );
         }
 
         internal static NeoTileInstance Create(NeoClient client, NeoAttributeCustom node)
@@ -3320,73 +3058,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(AudioClip BitsGainSfx, AudioClip BitsSpendSfx, AudioClip DialogCloseSfx, AudioClip DialogNextSfx, AudioClip DialogOpenSfx, AudioClip ItemGetSfx, AudioClip RocketThrustSfx)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var BitsGainSfxValueId = Guid.NewGuid().ToString();
-            value["BitsGainSfx"] = BitsGainSfxValueId;
-            valueRows.Add(new FileAttributeValue
-            {
-                id = BitsGainSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, BitsGainSfx),
-            });
-            var BitsSpendSfxValueId = Guid.NewGuid().ToString();
-            value["BitsSpendSfx"] = BitsSpendSfxValueId;
-            valueRows.Add(new FileAttributeValue
-            {
-                id = BitsSpendSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, BitsSpendSfx),
-            });
-            var DialogCloseSfxValueId = Guid.NewGuid().ToString();
-            value["DialogCloseSfx"] = DialogCloseSfxValueId;
-            valueRows.Add(new FileAttributeValue
-            {
-                id = DialogCloseSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, DialogCloseSfx),
-            });
-            var DialogNextSfxValueId = Guid.NewGuid().ToString();
-            value["DialogNextSfx"] = DialogNextSfxValueId;
-            valueRows.Add(new FileAttributeValue
-            {
-                id = DialogNextSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, DialogNextSfx),
-            });
-            var DialogOpenSfxValueId = Guid.NewGuid().ToString();
-            value["DialogOpenSfx"] = DialogOpenSfxValueId;
-            valueRows.Add(new FileAttributeValue
-            {
-                id = DialogOpenSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, DialogOpenSfx),
-            });
-            var ItemGetSfxValueId = Guid.NewGuid().ToString();
-            value["ItemGetSfx"] = ItemGetSfxValueId;
-            valueRows.Add(new FileAttributeValue
-            {
-                id = ItemGetSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, ItemGetSfx),
-            });
-            var RocketThrustSfxValueId = Guid.NewGuid().ToString();
-            value["RocketThrustSfx"] = RocketThrustSfxValueId;
-            valueRows.Add(new FileAttributeValue
-            {
-                id = RocketThrustSfxValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.AudioValue(client, RocketThrustSfx),
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "44d6324f-6507-4420-a919-3496681c3b21", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "44d6324f-6507-4420-a919-3496681c3b21",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("BitsGainSfx", "421de440-ad72-4f9f-aef0-e3def8cd0582", BitsGainSfx),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("BitsSpendSfx", "d30300c6-4fca-4fa4-be07-65ccc5ebc427", BitsSpendSfx),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DialogCloseSfx", "e6bdf8bd-bb3c-4827-b14c-24173d6b75d1", DialogCloseSfx),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DialogNextSfx", "9862c2d2-92ad-48d6-8ed3-a1e4e3e8c35e", DialogNextSfx),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DialogOpenSfx", "e1f13e5c-3d16-476e-9fa4-c120959a4d32", DialogOpenSfx),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ItemGetSfx", "a44ed1c2-3296-40e1-b9ef-7924ec97cb21", ItemGetSfx),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("RocketThrustSfx", "46284af1-9326-40f3-94c5-491484099f70", RocketThrustSfx)
+            );
         }
 
         internal static Audio Create(NeoClient client, NeoAttributeCustom node)
@@ -3611,94 +3293,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection TileLayer, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null, NeoDialogueReference? BootGlyphSealLocked = null, NeoDialogueReference? BootGlyphSealReady = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var NameValueId = Guid.NewGuid().ToString();
-            value["Name"] = NameValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = NameValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Name,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            if (Position is not null)
-            {
-                var PositionValueId = Guid.NewGuid().ToString();
-                value["Position"] = PositionValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = PositionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
-                });
-            }
-            if (Size is not null)
-            {
-                var SizeValueId = Guid.NewGuid().ToString();
-                value["Size"] = SizeValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = SizeValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
-                });
-            }
-            var TileLayerValueId = Guid.NewGuid().ToString();
-            value["TileLayer"] = TileLayerValueId;
-            valueRows.Add(new ArrayAttributeValue
-            {
-                id = TileLayerValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new[] { TileLayer.valueId },
-            });
-            if (Tiles is not null)
-            {
-                var TilesValueId = Guid.NewGuid().ToString();
-                value["Tiles"] = TilesValueId;
-                var TilesIds = new List<string>();
-                foreach (var entry in Tiles)
-                {
-                    TilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TilesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = TilesIds.ToArray(),
-                });
-            }
-            if (BootGlyphSealLocked is not null)
-            {
-                var BootGlyphSealLockedValueId = Guid.NewGuid().ToString();
-                value["BootGlyphSealLocked"] = BootGlyphSealLockedValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = BootGlyphSealLockedValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = BootGlyphSealLocked is null ? null : new[] { BootGlyphSealLocked.Id },
-                });
-            }
-            if (BootGlyphSealReady is not null)
-            {
-                var BootGlyphSealReadyValueId = Guid.NewGuid().ToString();
-                value["BootGlyphSealReady"] = BootGlyphSealReadyValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = BootGlyphSealReadyValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = BootGlyphSealReady is null ? null : new[] { BootGlyphSealReady.Id },
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "47a1f7dd-b16d-4f04-96f8-6c0199d18c7b",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("TileLayer", "325dba0e-5967-4e18-937e-5c6800b68abc", TileLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "98655d2b-ad0b-45e2-a901-62600b4d3a22", Tiles),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("BootGlyphSealLocked", "e0316e12-b70d-4d4a-9c16-1861ce394849", BootGlyphSealLocked),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("BootGlyphSealReady", "0659d085-0267-4d6e-8e18-b726f393f740", BootGlyphSealReady)
+            );
         }
 
         internal new static BlockedPath Create(NeoClient client, NeoAttributeCustom node)
@@ -3899,63 +3504,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Sprite is not null)
-            {
-                var SpriteValueId = Guid.NewGuid().ToString();
-                value["Sprite"] = SpriteValueId;
-                valueRows.Add(new SpriteAttributeValue
-                {
-                    id = SpriteValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
-                });
-            }
-            if (DefaultLayer is not null)
-            {
-                var DefaultLayerValueId = Guid.NewGuid().ToString();
-                value["DefaultLayer"] = DefaultLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
-                });
-            }
-            if (CompatibleLayers is not null)
-            {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = CompatibleLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
-                });
-            }
-            if (SmartTile is not null)
-            {
-                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "48bcbba5-57c0-40fd-8df8-35f4e7ce73f2",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "106c7fee-6a3a-472b-baed-5b5aeb99c280", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "c95da9bc-2193-4bd0-998f-a2f9f98862ee", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultLayer", "bdd71ed6-7f39-4089-8375-fa5909835f00", DefaultLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CompatibleLayers", "bb63d9bd-1571-4ef4-9453-e453db64ff41", CompatibleLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SmartTile", "96cda8f5-3100-45b5-adcb-0552d21504dd", SmartTile)
+            );
         }
 
         internal new static VoidTile Create(NeoClient client, NeoAttributeCustom node)
@@ -4167,52 +3724,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? LastVisitedAt = null, IDictionary<string, NeoTextNodeMemory>? TextNodeMemories = null, int? VisitCount = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (LastVisitedAt is not null)
-            {
-                var LastVisitedAtValueId = Guid.NewGuid().ToString();
-                value["LastVisitedAt"] = LastVisitedAtValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = LastVisitedAtValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = LastVisitedAt,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (TextNodeMemories is not null)
-            {
-                var TextNodeMemoriesValueId = Guid.NewGuid().ToString();
-                value["TextNodeMemories"] = TextNodeMemoriesValueId;
-                var TextNodeMemoriesIds = new Dictionary<string, string>();
-                foreach (var pair in TextNodeMemories)
-                {
-                    TextNodeMemoriesIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(pair.Value.valueId);
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = TextNodeMemoriesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = TextNodeMemoriesIds,
-                });
-            }
-            if (VisitCount is not null)
-            {
-                var VisitCountValueId = Guid.NewGuid().ToString();
-                value["VisitCount"] = VisitCountValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = VisitCountValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = VisitCount.HasValue ? VisitCount.Value : (double?)null,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "48f37cd8-69d2-4cd3-ae44-7cfed7912415", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "48f37cd8-69d2-4cd3-ae44-7cfed7912415",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LastVisitedAt", "defd7f67-7f35-4907-a75d-8da3b24b96f4", LastVisitedAt),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("TextNodeMemories", "84960eeb-60ea-4241-a074-99a47a0d8dc1", TextNodeMemories),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VisitCount", "504778e6-972f-4b04-8d64-ec038ff2414f", VisitCount)
+            );
         }
 
         internal static NeoDialogueMemory Create(NeoClient client, NeoAttributeCustom node)
@@ -4263,7 +3781,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("HasVisited").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("HasVisited").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (bool)result.value!;
             }
@@ -4420,42 +3938,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(Sprite Image, string Name, Planet Planet, AnimationInfo? AnimatedImage = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (AnimatedImage is not null)
-            {
-                value["AnimatedImage"] = NeoGeneratedTypesSupport.LookupSelectionId(AnimatedImage.valueId);
-            }
-            var ImageValueId = Guid.NewGuid().ToString();
-            value["Image"] = ImageValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = ImageValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, Image),
-            });
-            var NameValueId = Guid.NewGuid().ToString();
-            value["Name"] = NameValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = NameValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Name,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            var PlanetValueId = Guid.NewGuid().ToString();
-            value["Planet"] = PlanetValueId;
-            valueRows.Add(new ArrayAttributeValue
-            {
-                id = PlanetValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new[] { Planet.optionId },
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "4c196697-4e08-4aeb-823f-322b353071ac", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "4c196697-4e08-4aeb-823f-322b353071ac",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Image", "7ce8a389-265c-4ad4-90f4-42c3e91e7648", Image),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "b56410b3-b2da-4681-897f-a25ce0a0ceb1", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Planet", "3166fd08-4bdb-4df9-b100-ecccec859443", Planet),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("AnimatedImage", "d7607422-7e33-402f-9fe6-8e9ac85a7019", AnimatedImage)
+            );
         }
 
         internal static Outpost Create(NeoClient client, NeoAttributeCustom node)
@@ -4520,7 +4010,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("FullDisplayText").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("FullDisplayText").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -4557,7 +4047,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("Save").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("Save").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadRequiredNSPropertyCustom(client, result.value, true, null, OutpostSaveData.CreateWritable);
             }
@@ -4567,7 +4057,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("SaveUnsafe").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("SaveUnsafe").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return NeoGeneratedTypesSupport.ReadNSPropertyCustom(client, result.value, false, true, null, OutpostSaveData.CreateWritable);
             }
@@ -4968,65 +4458,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoChoiceLog>? ChoiceHistory = null, string? LastVisitedAt = null, string? MostRecentChoiceId = null, int? VisitCount = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (ChoiceHistory is not null)
-            {
-                var ChoiceHistoryValueId = Guid.NewGuid().ToString();
-                value["ChoiceHistory"] = ChoiceHistoryValueId;
-                var ChoiceHistoryIds = new List<string>();
-                foreach (var entry in ChoiceHistory)
-                {
-                    ChoiceHistoryIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ChoiceHistoryValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ChoiceHistoryIds.ToArray(),
-                });
-            }
-            if (LastVisitedAt is not null)
-            {
-                var LastVisitedAtValueId = Guid.NewGuid().ToString();
-                value["LastVisitedAt"] = LastVisitedAtValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = LastVisitedAtValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = LastVisitedAt,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (MostRecentChoiceId is not null)
-            {
-                var MostRecentChoiceIdValueId = Guid.NewGuid().ToString();
-                value["MostRecentChoiceId"] = MostRecentChoiceIdValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = MostRecentChoiceIdValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = MostRecentChoiceId,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (VisitCount is not null)
-            {
-                var VisitCountValueId = Guid.NewGuid().ToString();
-                value["VisitCount"] = VisitCountValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = VisitCountValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = VisitCount.HasValue ? VisitCount.Value : (double?)null,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "4cdf4a5b-b299-4253-854b-d25c0a4c7c20", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "4cdf4a5b-b299-4253-854b-d25c0a4c7c20",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ChoiceHistory", "214c9215-b01d-463a-b5fb-cb21e14b1961", ChoiceHistory),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LastVisitedAt", "8f20c7ca-a552-4418-a355-6e35ee96639e", LastVisitedAt),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MostRecentChoiceId", "28beaf7f-a3d3-4e9c-9f31-325d6708bd66", MostRecentChoiceId),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VisitCount", "2bcf2b63-87aa-4c4a-99ea-590e2b555fa6", VisitCount)
+            );
         }
 
         internal static NeoTextNodeMemory Create(NeoClient client, NeoAttributeCustom node)
@@ -5085,7 +4524,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("HasVisited").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("HasVisited").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (bool)result.value!;
             }
@@ -5233,133 +4672,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, NeoDialogueReference? ExitPromptRelay = null, NeoDialogueReference? ExitPromptQuiet = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, NeoVector3? Size = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoCollider? Collider = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (CompatibleLayers is not null)
-            {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = CompatibleLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
-                });
-            }
-            if (DefaultLayer is not null)
-            {
-                var DefaultLayerValueId = Guid.NewGuid().ToString();
-                value["DefaultLayer"] = DefaultLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
-                });
-            }
-            if (ExitPromptRelay is not null)
-            {
-                var ExitPromptRelayValueId = Guid.NewGuid().ToString();
-                value["ExitPromptRelay"] = ExitPromptRelayValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ExitPromptRelayValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ExitPromptRelay is null ? null : new[] { ExitPromptRelay.Id },
-                });
-            }
-            if (ExitPromptQuiet is not null)
-            {
-                var ExitPromptQuietValueId = Guid.NewGuid().ToString();
-                value["ExitPromptQuiet"] = ExitPromptQuietValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ExitPromptQuietValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ExitPromptQuiet is null ? null : new[] { ExitPromptQuiet.Id },
-                });
-            }
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Children is not null)
-            {
-                var ChildrenValueId = Guid.NewGuid().ToString();
-                value["Children"] = ChildrenValueId;
-                var ChildrenIds = new List<string>();
-                foreach (var entry in Children)
-                {
-                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ChildrenValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ChildrenIds.ToArray(),
-                });
-            }
-            if (Size is not null)
-            {
-                var SizeValueId = Guid.NewGuid().ToString();
-                value["Size"] = SizeValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = SizeValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
-                });
-            }
-            if (PlacementTiles is not null)
-            {
-                var PlacementTilesValueId = Guid.NewGuid().ToString();
-                value["PlacementTiles"] = PlacementTilesValueId;
-                var PlacementTilesIds = new List<string>();
-                foreach (var entry in PlacementTiles)
-                {
-                    PlacementTilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = PlacementTilesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = PlacementTilesIds.ToArray(),
-                });
-            }
-            if (Position is not null)
-            {
-                var PositionValueId = Guid.NewGuid().ToString();
-                value["Position"] = PositionValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = PositionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
-                });
-            }
-            if (Collider is not null)
-            {
-                value["Collider"] = NeoGeneratedTypesSupport.LookupSelectionId(Collider.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "5c65b156-e83a-41c5-bef0-ee375798bdc2", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "5c65b156-e83a-41c5-bef0-ee375798bdc2",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CompatibleLayers", "f05dfa96-f35a-440c-832d-b4462cb2f30a", CompatibleLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultLayer", "ff033c90-8bd5-4c57-929c-0af97005b9d3", DefaultLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptRelay", "5676cb8a-be0f-4f1b-adc6-7241c09f8cf5", ExitPromptRelay),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ExitPromptQuiet", "663d7511-cfc3-427c-8431-90cfc87a9813", ExitPromptQuiet),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "14ec578e-0aa7-4d12-8d02-47463e03a1f3", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "de93c887-ea29-49bd-bfea-a6255b8b9a54", Children),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "8e8c5ddf-6273-4440-869e-f1f9ca5dc51b", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "571a0e0b-b36c-45f3-ae9a-5fde39045c11", PlacementTiles),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
+            );
         }
 
         internal new static ExitPromptObject Create(NeoClient client, NeoAttributeCustom node)
@@ -5656,47 +4982,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Value = null, double? Weight = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Value is not null)
-            {
-                var ValueValueId = Guid.NewGuid().ToString();
-                value["Value"] = ValueValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = ValueValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Value.HasValue ? Value.Value : (double?)null,
-                });
-            }
-            if (Weight is not null)
-            {
-                var WeightValueId = Guid.NewGuid().ToString();
-                value["Weight"] = WeightValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = WeightValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Weight,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "60c25a92-cb01-46f7-b5cf-c9d950586116", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "60c25a92-cb01-46f7-b5cf-c9d950586116",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "66e49f29-58cb-4ac7-b128-93febd0f0fb1", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "0c160a97-ff40-4433-ad66-6e649866bffd", Value),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Weight", "d12785e9-fd6f-4591-81a0-4dabd2b95526", Weight)
+            );
         }
 
         internal static Item Create(NeoClient client, NeoAttributeCustom node)
@@ -5855,46 +5147,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2Int? Cell = null, NeoSmartTileCondition? Condition = null, NeoLookupSelection? Tile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Cell is not null)
-            {
-                var CellValueId = Guid.NewGuid().ToString();
-                value["Cell"] = CellValueId;
-                valueRows.Add(new Vector2AttributeValue
-                {
-                    id = CellValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector2IntValue(Cell.Value),
-                });
-            }
-            if (Condition is not null)
-            {
-                var ConditionValueId = Guid.NewGuid().ToString();
-                value["Condition"] = ConditionValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ConditionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Condition is null ? null : new[] { Condition.optionId },
-                });
-            }
-            if (Tile is not null)
-            {
-                var TileValueId = Guid.NewGuid().ToString();
-                value["Tile"] = TileValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TileValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Tile.HasValue ? new[] { Tile.Value.valueId } : null,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "628e0cce-5472-4bec-addd-71230b8e64a6", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "628e0cce-5472-4bec-addd-71230b8e64a6",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Cell", "7202cfb6-9cc4-49d3-b3fb-e44a23915b40", Cell),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Condition", "496b0bb9-0375-4ca8-b768-0a1bdf88a158", Condition),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tile", "2b2bb88e-6817-463b-a5d5-73145531016e", Tile)
+            );
         }
 
         internal static NeoSmartTileNeighbor Create(NeoClient client, NeoAttributeCustom node)
@@ -6055,22 +5314,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector3? Position = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Position is not null)
-            {
-                var PositionValueId = Guid.NewGuid().ToString();
-                value["Position"] = PositionValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = PositionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "63b261c9-46f2-4d37-84e9-06f16af04e58", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "63b261c9-46f2-4d37-84e9-06f16af04e58",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "1c7de3b5-6474-483c-aef5-fc48265199b0", Position)
+            );
         }
 
         internal static Session Create(NeoClient client, NeoAttributeCustom node)
@@ -6205,27 +5453,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IDictionary<string, NeoDialogueMemory>? DialogueMemories = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (DialogueMemories is not null)
-            {
-                var DialogueMemoriesValueId = Guid.NewGuid().ToString();
-                value["DialogueMemories"] = DialogueMemoriesValueId;
-                var DialogueMemoriesIds = new Dictionary<string, string>();
-                foreach (var pair in DialogueMemories)
-                {
-                    DialogueMemoriesIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(pair.Value.valueId);
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = DialogueMemoriesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DialogueMemoriesIds,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "6c6f3bb8-30a0-4132-b0d4-cce75943aedd", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "6c6f3bb8-30a0-4132-b0d4-cce75943aedd",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DialogueMemories", "6223e7c9-a37a-480d-820b-c70f53c6eb0d", DialogueMemories)
+            );
         }
 
         internal static NeoMemory Create(NeoClient client, NeoAttributeCustom node)
@@ -6486,63 +5718,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Sprite is not null)
-            {
-                var SpriteValueId = Guid.NewGuid().ToString();
-                value["Sprite"] = SpriteValueId;
-                valueRows.Add(new SpriteAttributeValue
-                {
-                    id = SpriteValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
-                });
-            }
-            if (DefaultLayer is not null)
-            {
-                var DefaultLayerValueId = Guid.NewGuid().ToString();
-                value["DefaultLayer"] = DefaultLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
-                });
-            }
-            if (CompatibleLayers is not null)
-            {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = CompatibleLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
-                });
-            }
-            if (SmartTile is not null)
-            {
-                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "720c1361-de9e-4c12-b90e-bb6ac9e1ce8b",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "95ec9093-fb16-487e-b897-89ac9f60c426", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "9de921e3-007d-4ca7-aa65-699c5b92a8f1", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultLayer", "fb8dc50f-20de-461a-9d27-97fe9f8eb5f2", DefaultLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CompatibleLayers", "daaf5b5f-4191-4e22-95e5-d10c3bc264cf", CompatibleLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SmartTile", "96cda8f5-3100-45b5-adcb-0552d21504dd", SmartTile)
+            );
         }
 
         internal new static SealBarrierTile Create(NeoClient client, NeoAttributeCustom node)
@@ -6750,39 +5934,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(NeoLookupSelection? Lookup = null, IDictionary<string, LookupEntry>? LookupList = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Lookup is not null)
-            {
-                var LookupValueId = Guid.NewGuid().ToString();
-                value["Lookup"] = LookupValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = LookupValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Lookup.HasValue ? new[] { Lookup.Value.valueId } : null,
-                });
-            }
-            if (LookupList is not null)
-            {
-                var LookupListValueId = Guid.NewGuid().ToString();
-                value["LookupList"] = LookupListValueId;
-                var LookupListIds = new Dictionary<string, string>();
-                foreach (var pair in LookupList)
-                {
-                    LookupListIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(pair.Value.valueId);
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = LookupListValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = LookupListIds,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "77558d64-4fcc-46ac-8351-893093ee0002", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "77558d64-4fcc-46ac-8351-893093ee0002",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Lookup", "b8f18264-dfdc-4ae7-ada7-77e1db50f70a", Lookup),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LookupList", "a65d4782-28cb-401f-8577-128dccca3d46", LookupList)
+            );
         }
 
         internal static LookupContainer Create(NeoClient client, NeoAttributeCustom node)
@@ -6928,28 +6085,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(Planet World, int DateUnix)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var WorldValueId = Guid.NewGuid().ToString();
-            value["World"] = WorldValueId;
-            valueRows.Add(new ArrayAttributeValue
-            {
-                id = WorldValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new[] { World.optionId },
-            });
-            var DateUnixValueId = Guid.NewGuid().ToString();
-            value["DateUnix"] = DateUnixValueId;
-            valueRows.Add(new NumberAttributeValue
-            {
-                id = DateUnixValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = DateUnix,
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7755a905-f2a1-4e5d-8b60-78cbdd2b2042", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "7755a905-f2a1-4e5d-8b60-78cbdd2b2042",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("World", "04d5e145-412b-4499-a253-b03496a065f0", World),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DateUnix", "14d38a73-5732-4348-8fde-e81554a1a497", DateUnix)
+            );
         }
 
         internal static PlanetVisit Create(NeoClient client, NeoAttributeCustom node)
@@ -7103,56 +6244,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(Sprite Sprite, string? Name = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Position is not null)
-            {
-                var PositionValueId = Guid.NewGuid().ToString();
-                value["Position"] = PositionValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = PositionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
-                });
-            }
-            if (Size is not null)
-            {
-                var SizeValueId = Guid.NewGuid().ToString();
-                value["Size"] = SizeValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = SizeValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
-                });
-            }
-            var SpriteValueId = Guid.NewGuid().ToString();
-            value["Sprite"] = SpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = SpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7cb1b706-95d2-4465-8e75-c82a6b7d8830", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "7cb1b706-95d2-4465-8e75-c82a6b7d8830",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "e9288ba9-f5a2-4485-8443-6afb155b31e0", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "441cb790-a45f-4488-a5a9-6f375af6c369", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size)
+            );
         }
 
         internal new static NeoSpriteObject Create(NeoClient client, NeoAttributeCustom node)
@@ -7326,109 +6425,18 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoCollider? Collider = null, NeoVector3? Position = null, NeoVector3? Size = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (CompatibleLayers is not null)
-            {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = CompatibleLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
-                });
-            }
-            if (DefaultLayer is not null)
-            {
-                var DefaultLayerValueId = Guid.NewGuid().ToString();
-                value["DefaultLayer"] = DefaultLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
-                });
-            }
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Children is not null)
-            {
-                var ChildrenValueId = Guid.NewGuid().ToString();
-                value["Children"] = ChildrenValueId;
-                var ChildrenIds = new List<string>();
-                foreach (var entry in Children)
-                {
-                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ChildrenValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ChildrenIds.ToArray(),
-                });
-            }
-            if (PlacementTiles is not null)
-            {
-                var PlacementTilesValueId = Guid.NewGuid().ToString();
-                value["PlacementTiles"] = PlacementTilesValueId;
-                var PlacementTilesIds = new List<string>();
-                foreach (var entry in PlacementTiles)
-                {
-                    PlacementTilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = PlacementTilesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = PlacementTilesIds.ToArray(),
-                });
-            }
-            if (Collider is not null)
-            {
-                value["Collider"] = NeoGeneratedTypesSupport.LookupSelectionId(Collider.valueId);
-            }
-            if (Position is not null)
-            {
-                var PositionValueId = Guid.NewGuid().ToString();
-                value["Position"] = PositionValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = PositionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
-                });
-            }
-            if (Size is not null)
-            {
-                var SizeValueId = Guid.NewGuid().ToString();
-                value["Size"] = SizeValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = SizeValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "7d9647b1-df4d-4cb6-9f4d-7d80fe381f2f",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CompatibleLayers", "6ae49766-2186-48b8-b63e-62768cb3e88b", CompatibleLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultLayer", "ee30bd7d-5ba2-4a83-9fbe-38ee6b53d7ca", DefaultLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "1994e574-7fcd-4c5f-8abe-f3e807bd334d", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "35275ba0-4a3f-4b83-8b09-fccb7bd7a515", Children),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "47c21aa5-e852-41d2-882c-b4f555aee9dd", PlacementTiles),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "e5f5125c-fe5c-46b4-9589-9c6ae6fcba19", Collider),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "2b10e854-d60a-40a7-bc4c-8aede3e5049e", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size)
+            );
         }
 
         internal new static PlayerSpawnObject Create(NeoClient client, NeoAttributeCustom node)
@@ -7716,46 +6724,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(NeoVector2? size = null, NeoVector2? offset = null, bool? isTrigger = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (size is not null)
-            {
-                var sizeValueId = Guid.NewGuid().ToString();
-                value["size"] = sizeValueId;
-                valueRows.Add(new Vector2AttributeValue
-                {
-                    id = sizeValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector2Value(size.Value),
-                });
-            }
-            if (offset is not null)
-            {
-                var offsetValueId = Guid.NewGuid().ToString();
-                value["offset"] = offsetValueId;
-                valueRows.Add(new Vector2AttributeValue
-                {
-                    id = offsetValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector2Value(offset.Value),
-                });
-            }
-            if (isTrigger is not null)
-            {
-                var isTriggerValueId = Guid.NewGuid().ToString();
-                value["isTrigger"] = isTriggerValueId;
-                valueRows.Add(new BoolAttributeValue
-                {
-                    id = isTriggerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = isTrigger,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "7ed188f9-484b-4692-840d-436acf1635aa", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "7ed188f9-484b-4692-840d-436acf1635aa",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("size", "c66c17e3-ecfc-4f41-96de-6a53bb2acd4f", size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("offset", "ec5b5d5e-7053-4378-87d1-9cceec30ff1a", offset),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("isTrigger", "6ed1890b-0ae6-4979-bf5b-6f216d69f432", isTrigger)
+            );
         }
 
         internal static NeoCollider Create(NeoClient client, NeoAttributeCustom node)
@@ -7913,39 +6888,12 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(NeoSmartTileCollider? DefaultCollider = null, IEnumerable<NeoSmartTileRule>? Rules = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (DefaultCollider is not null)
-            {
-                var DefaultColliderValueId = Guid.NewGuid().ToString();
-                value["DefaultCollider"] = DefaultColliderValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultColliderValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultCollider is null ? null : new[] { DefaultCollider.optionId },
-                });
-            }
-            if (Rules is not null)
-            {
-                var RulesValueId = Guid.NewGuid().ToString();
-                value["Rules"] = RulesValueId;
-                var RulesIds = new List<string>();
-                foreach (var entry in Rules)
-                {
-                    RulesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = RulesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = RulesIds.ToArray(),
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "89b38b34-c040-4e69-8707-487f1484a056", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "89b38b34-c040-4e69-8707-487f1484a056",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultCollider", "0a51bdef-4b3e-49d6-913b-11cbea98bced", DefaultCollider),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Rules", "97cb9d95-2d54-4809-ae88-0b0ba7859248", Rules)
+            );
         }
 
         internal static NeoSmartTile Create(NeoClient client, NeoAttributeCustom node)
@@ -8098,46 +7046,13 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(bool? Unlocked = null, int? VisitCount = null, int? Reputation = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Unlocked is not null)
-            {
-                var UnlockedValueId = Guid.NewGuid().ToString();
-                value["Unlocked"] = UnlockedValueId;
-                valueRows.Add(new BoolAttributeValue
-                {
-                    id = UnlockedValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Unlocked,
-                });
-            }
-            if (VisitCount is not null)
-            {
-                var VisitCountValueId = Guid.NewGuid().ToString();
-                value["VisitCount"] = VisitCountValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = VisitCountValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = VisitCount.HasValue ? VisitCount.Value : (double?)null,
-                });
-            }
-            if (Reputation is not null)
-            {
-                var ReputationValueId = Guid.NewGuid().ToString();
-                value["Reputation"] = ReputationValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = ReputationValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Reputation.HasValue ? Reputation.Value : (double?)null,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "8ccfe860-309f-428b-b74c-76a873bdea8a", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "8ccfe860-309f-428b-b74c-76a873bdea8a",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Unlocked", "5a4d8d10-9fef-4197-a7a1-1dc1b112677b", Unlocked),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VisitCount", "68cd6fe1-7683-4c67-8030-acd6334f77a2", VisitCount),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Reputation", "1d1d14bc-987e-4079-a8f8-09998d5954fc", Reputation)
+            );
         }
 
         internal static OutpostSaveData Create(NeoClient client, NeoAttributeCustom node)
@@ -8224,7 +7139,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("Visited").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("Visited").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (bool)result.value!;
             }
@@ -8318,23 +7233,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "9296e4be-bd27-44e3-9823-77fbeaa60665", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "9296e4be-bd27-44e3-9823-77fbeaa60665",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "29563228-5f16-44e1-bb3e-89f2097fd3cb", Name)
+            );
         }
 
         internal static LookupEntry Create(NeoClient client, NeoAttributeCustom node)
@@ -8469,54 +7372,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(Sprite Image, string Name, SaturnMoon Moon, AnimationInfo? AnimatedImage = null, Planet? Planet = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (AnimatedImage is not null)
-            {
-                value["AnimatedImage"] = NeoGeneratedTypesSupport.LookupSelectionId(AnimatedImage.valueId);
-            }
-            var ImageValueId = Guid.NewGuid().ToString();
-            value["Image"] = ImageValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = ImageValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, Image),
-            });
-            var NameValueId = Guid.NewGuid().ToString();
-            value["Name"] = NameValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = NameValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Name,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            if (Planet is not null)
-            {
-                var PlanetValueId = Guid.NewGuid().ToString();
-                value["Planet"] = PlanetValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = PlanetValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Planet is null ? null : new[] { Planet.optionId },
-                });
-            }
-            var MoonValueId = Guid.NewGuid().ToString();
-            value["Moon"] = MoonValueId;
-            valueRows.Add(new ArrayAttributeValue
-            {
-                id = MoonValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new[] { Moon.optionId },
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "96818dab-90e5-4ab9-8f69-cce66e39e370", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "96818dab-90e5-4ab9-8f69-cce66e39e370",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Image", "7ce8a389-265c-4ad4-90f4-42c3e91e7648", Image),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "b56410b3-b2da-4681-897f-a25ce0a0ceb1", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Moon", "a804bead-3d5b-4c68-a733-94e85e1e79b6", Moon),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("AnimatedImage", "d7607422-7e33-402f-9fe6-8e9ac85a7019", AnimatedImage),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Planet", "08cc78f5-3f90-43cc-89d7-9ec8d58e8dd0", Planet)
+            );
         }
 
         internal new static SaturnOutpost Create(NeoClient client, NeoAttributeCustom node)
@@ -8567,7 +7431,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("FullDisplayText").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("FullDisplayText").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -8721,128 +7585,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(int? Bits = null, bool? Dead = null, IEnumerable<NeoLookupSelection>? Inventory = null, NeoLookupSelection? Location = null, NeoMemory? NeoMemory = null, IDictionary<string, OutpostSaveData?>? OutpostSaveMap = null, QuestState? Quest = null, IEnumerable<PlanetVisit>? Visited = null, Planet? World = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Bits is not null)
-            {
-                var BitsValueId = Guid.NewGuid().ToString();
-                value["Bits"] = BitsValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = BitsValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Bits.HasValue ? Bits.Value : (double?)null,
-                });
-            }
-            if (Dead is not null)
-            {
-                var DeadValueId = Guid.NewGuid().ToString();
-                value["Dead"] = DeadValueId;
-                valueRows.Add(new BoolAttributeValue
-                {
-                    id = DeadValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Dead,
-                });
-            }
-            if (Inventory is not null)
-            {
-                var InventoryValueId = Guid.NewGuid().ToString();
-                value["Inventory"] = InventoryValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = InventoryValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(Inventory),
-                });
-            }
-            if (Location is not null)
-            {
-                var LocationValueId = Guid.NewGuid().ToString();
-                value["Location"] = LocationValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = LocationValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Location.HasValue ? new[] { Location.Value.valueId } : null,
-                });
-            }
-            if (NeoMemory is not null)
-            {
-                value["NeoMemory"] = NeoGeneratedTypesSupport.LookupSelectionId(NeoMemory.valueId);
-            }
-            if (OutpostSaveMap is not null)
-            {
-                var OutpostSaveMapValueId = Guid.NewGuid().ToString();
-                value["OutpostSaveMap"] = OutpostSaveMapValueId;
-                var OutpostSaveMapIds = new Dictionary<string, string>();
-                foreach (var pair in OutpostSaveMap)
-                {
-                    var entryValue = pair.Value;
-                    if (entryValue is null)
-                    {
-                        var entryValueId = Guid.NewGuid().ToString();
-                        OutpostSaveMapIds[pair.Key] = entryValueId;
-                        valueRows.Add(new ObjectAttributeValue
-                        {
-                            id = entryValueId,
-                            createdAt = nowIso,
-                            updatedAt = nowIso,
-                            value = null,
-                        });
-                    }
-                    else
-                    {
-                        OutpostSaveMapIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(entryValue.valueId);
-                    }
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = OutpostSaveMapValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = OutpostSaveMapIds,
-                });
-            }
-            if (Quest is not null)
-            {
-                value["Quest"] = NeoGeneratedTypesSupport.LookupSelectionId(Quest.valueId);
-            }
-            if (Visited is not null)
-            {
-                var VisitedValueId = Guid.NewGuid().ToString();
-                value["Visited"] = VisitedValueId;
-                var VisitedIds = new List<string>();
-                foreach (var entry in Visited)
-                {
-                    VisitedIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = VisitedValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = VisitedIds.ToArray(),
-                });
-            }
-            if (World is not null)
-            {
-                var WorldValueId = Guid.NewGuid().ToString();
-                value["World"] = WorldValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = WorldValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = World is null ? null : new[] { World.optionId },
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "96e8284d-ae43-4e91-919d-86c25ce098e0", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "96e8284d-ae43-4e91-919d-86c25ce098e0",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Bits", "1f76e191-faaf-4840-9bb0-29785a1c8ed6", Bits),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Dead", "5155954d-ca1d-441e-b9ee-1837b0a08e05", Dead),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Inventory", "bf4a75b5-acf9-4ff8-8511-57f871749db3", Inventory),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Location", "82a12a52-95ac-453a-9353-24c11a63c530", Location),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("NeoMemory", "99b07db1-f732-437e-a903-98183edca96b", NeoMemory),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("OutpostSaveMap", "f977a94e-aa40-414c-9812-dacdd50110a8", OutpostSaveMap),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Quest", "4868ab84-027a-405d-bfca-d04d4d4917fa", Quest),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Visited", "c151eda4-ecce-4edf-988d-25a97c657146", Visited),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("World", "ebab06a2-98e9-4a30-bb13-cfea8f910462", World)
+            );
         }
 
         internal static Save Create(NeoClient client, NeoAttributeCustom node)
@@ -9120,81 +7875,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(Sprite FirstWorldIconSprite, Sprite FlareStaticSprite, Sprite JupiterSprite, Sprite SaturnSprite, Sprite ShipSprite, Sprite SunSprite, Sprite VaultPlaqueSprite, AnimationInfo? FlareAnimation = null, AnimationInfo? ShipAnimation = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var FirstWorldIconSpriteValueId = Guid.NewGuid().ToString();
-            value["FirstWorldIconSprite"] = FirstWorldIconSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = FirstWorldIconSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, FirstWorldIconSprite),
-            });
-            if (FlareAnimation is not null)
-            {
-                value["FlareAnimation"] = NeoGeneratedTypesSupport.LookupSelectionId(FlareAnimation.valueId);
-            }
-            var FlareStaticSpriteValueId = Guid.NewGuid().ToString();
-            value["FlareStaticSprite"] = FlareStaticSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = FlareStaticSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, FlareStaticSprite),
-            });
-            var JupiterSpriteValueId = Guid.NewGuid().ToString();
-            value["JupiterSprite"] = JupiterSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = JupiterSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, JupiterSprite),
-            });
-            var SaturnSpriteValueId = Guid.NewGuid().ToString();
-            value["SaturnSprite"] = SaturnSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = SaturnSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, SaturnSprite),
-            });
-            if (ShipAnimation is not null)
-            {
-                value["ShipAnimation"] = NeoGeneratedTypesSupport.LookupSelectionId(ShipAnimation.valueId);
-            }
-            var ShipSpriteValueId = Guid.NewGuid().ToString();
-            value["ShipSprite"] = ShipSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = ShipSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, ShipSprite),
-            });
-            var SunSpriteValueId = Guid.NewGuid().ToString();
-            value["SunSprite"] = SunSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = SunSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, SunSprite),
-            });
-            var VaultPlaqueSpriteValueId = Guid.NewGuid().ToString();
-            value["VaultPlaqueSprite"] = VaultPlaqueSpriteValueId;
-            valueRows.Add(new SpriteAttributeValue
-            {
-                id = VaultPlaqueSpriteValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = NeoGeneratedTypesSupport.SpriteValue(client, VaultPlaqueSprite),
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "9a6019b6-680f-4300-8cea-bde6fce47fc1", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "9a6019b6-680f-4300-8cea-bde6fce47fc1",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FirstWorldIconSprite", "8d27045c-c3a0-44ae-9095-499e2f9779a7", FirstWorldIconSprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlareStaticSprite", "13e587b4-f143-419e-b2f1-a5fb2fef92fd", FlareStaticSprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("JupiterSprite", "dca14d32-7e42-4db4-8174-de9f3798a5be", JupiterSprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SaturnSprite", "8042556b-586e-4f79-b358-80924968a7b8", SaturnSprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ShipSprite", "7d53ed57-05e7-47f9-a805-f7917b77dc55", ShipSprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SunSprite", "dfa0872f-9f3e-4083-8244-9f6d0fa88f8b", SunSprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VaultPlaqueSprite", "20d4dfe4-935c-441d-b2c2-ca8052c5a96e", VaultPlaqueSprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlareAnimation", "f6c2157b-c0f2-4d6d-b16c-412675070862", FlareAnimation),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ShipAnimation", "7a3f6a94-a649-4b75-8776-eb623f55fe1b", ShipAnimation)
+            );
         }
 
         internal static Art Create(NeoClient client, NeoAttributeCustom node)
@@ -9587,57 +8280,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string Name, JupiterMoon Moon, AnimationInfo? AnimatedImage = null, Sprite? Image = null, Planet? Planet = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (AnimatedImage is not null)
-            {
-                value["AnimatedImage"] = NeoGeneratedTypesSupport.LookupSelectionId(AnimatedImage.valueId);
-            }
-            if (Image is not null)
-            {
-                var ImageValueId = Guid.NewGuid().ToString();
-                value["Image"] = ImageValueId;
-                valueRows.Add(new SpriteAttributeValue
-                {
-                    id = ImageValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.SpriteValue(client, Image, "66504747-cbd5-4026-9d4c-89a0644f8192", "Image"),
-                });
-            }
-            var NameValueId = Guid.NewGuid().ToString();
-            value["Name"] = NameValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = NameValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Name,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            if (Planet is not null)
-            {
-                var PlanetValueId = Guid.NewGuid().ToString();
-                value["Planet"] = PlanetValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = PlanetValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Planet is null ? null : new[] { Planet.optionId },
-                });
-            }
-            var MoonValueId = Guid.NewGuid().ToString();
-            value["Moon"] = MoonValueId;
-            valueRows.Add(new ArrayAttributeValue
-            {
-                id = MoonValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new[] { Moon.optionId },
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "a50efb7e-58f6-4342-906e-0b01f98b15af", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "a50efb7e-58f6-4342-906e-0b01f98b15af",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "b56410b3-b2da-4681-897f-a25ce0a0ceb1", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Moon", "c91791ff-8b41-47b2-ba12-81a84e595f42", Moon),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("AnimatedImage", "d7607422-7e33-402f-9fe6-8e9ac85a7019", AnimatedImage),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Image", "6133e24a-bf87-4d3a-a71e-3933eebcab25", Image),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Planet", "54c74f99-f949-44f6-bc1c-37a80888e32f", Planet)
+            );
         }
 
         internal new static JupiterOutpost Create(NeoClient client, NeoAttributeCustom node)
@@ -9688,7 +8339,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("FullDisplayText").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("FullDisplayText").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -9845,63 +8496,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Sprite is not null)
-            {
-                var SpriteValueId = Guid.NewGuid().ToString();
-                value["Sprite"] = SpriteValueId;
-                valueRows.Add(new SpriteAttributeValue
-                {
-                    id = SpriteValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
-                });
-            }
-            if (DefaultLayer is not null)
-            {
-                var DefaultLayerValueId = Guid.NewGuid().ToString();
-                value["DefaultLayer"] = DefaultLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
-                });
-            }
-            if (CompatibleLayers is not null)
-            {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = CompatibleLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
-                });
-            }
-            if (SmartTile is not null)
-            {
-                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "a8305a31-7f6c-4ff5-8a9f-5871ef451093", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "a8305a31-7f6c-4ff5-8a9f-5871ef451093",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "08a564d0-4924-457f-8901-46f636e789b5", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "14750f2f-0ecf-424f-9386-8fd34eca9310", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultLayer", "5572bd04-b0be-434b-bde9-6ddf77fed61e", DefaultLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CompatibleLayers", "e8568eb4-ae16-4888-8b8e-0f52268c4b11", CompatibleLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SmartTile", "96cda8f5-3100-45b5-adcb-0552d21504dd", SmartTile)
+            );
         }
 
         internal new static HullPlatingTile Create(NeoClient client, NeoAttributeCustom node)
@@ -10107,23 +8710,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? ChoiceId = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (ChoiceId is not null)
-            {
-                var ChoiceIdValueId = Guid.NewGuid().ToString();
-                value["ChoiceId"] = ChoiceIdValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = ChoiceIdValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ChoiceId,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "af5795d0-e019-4776-8b7c-d0206f90d59f", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "af5795d0-e019-4776-8b7c-d0206f90d59f",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ChoiceId", "dd65f671-aedb-4c17-8849-1a3290b5c4d0", ChoiceId)
+            );
         }
 
         internal static NeoChoiceLog Create(NeoClient client, NeoAttributeCustom node)
@@ -10264,109 +8855,18 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string DisplayName, NeoVector3? CellSize = null, IEnumerable<NeoLayerGroupBase>? Children = null, IEnumerable<NeoLookupSelection>? ObjectLayers = null, IEnumerable<NeoLookupSelection>? Objects = null, int? PixelsPerUnit = null, IEnumerable<NeoLookupSelection>? TileLayers = null, IEnumerable<NeoLookupSelection>? Tiles = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (CellSize is not null)
-            {
-                var CellSizeValueId = Guid.NewGuid().ToString();
-                value["CellSize"] = CellSizeValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = CellSizeValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(CellSize.Value),
-                });
-            }
-            if (Children is not null)
-            {
-                var ChildrenValueId = Guid.NewGuid().ToString();
-                value["Children"] = ChildrenValueId;
-                var ChildrenIds = new List<string>();
-                foreach (var entry in Children)
-                {
-                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ChildrenValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ChildrenIds.ToArray(),
-                });
-            }
-            if (ObjectLayers is not null)
-            {
-                var ObjectLayersValueId = Guid.NewGuid().ToString();
-                value["ObjectLayers"] = ObjectLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ObjectLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(ObjectLayers),
-                });
-            }
-            if (Objects is not null)
-            {
-                var ObjectsValueId = Guid.NewGuid().ToString();
-                value["Objects"] = ObjectsValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ObjectsValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(Objects),
-                });
-            }
-            if (PixelsPerUnit is not null)
-            {
-                var PixelsPerUnitValueId = Guid.NewGuid().ToString();
-                value["PixelsPerUnit"] = PixelsPerUnitValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = PixelsPerUnitValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = PixelsPerUnit.HasValue ? PixelsPerUnit.Value : (double?)null,
-                });
-            }
-            if (TileLayers is not null)
-            {
-                var TileLayersValueId = Guid.NewGuid().ToString();
-                value["TileLayers"] = TileLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TileLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(TileLayers),
-                });
-            }
-            if (Tiles is not null)
-            {
-                var TilesValueId = Guid.NewGuid().ToString();
-                value["Tiles"] = TilesValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TilesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(Tiles),
-                });
-            }
-            var DisplayNameValueId = Guid.NewGuid().ToString();
-            value["DisplayName"] = DisplayNameValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = DisplayNameValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = DisplayName,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "b44d80a9-7760-4919-8844-0cb71d08b788", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "b44d80a9-7760-4919-8844-0cb71d08b788",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DisplayName", "f7493cd5-3da1-44ef-a275-5997d765b640", DisplayName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CellSize", "3b523230-a851-4ab5-a6f2-c2d0745c116f", CellSize),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "98578ba3-a70e-4397-9283-996a898d44c8", Children),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ObjectLayers", "2193c5a4-cca1-4cd1-b079-62b83c1664e8", ObjectLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Objects", "cddb5d5d-04cf-4c61-b9df-e46bfdabe3a5", Objects),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PixelsPerUnit", "8ece74e4-e17e-4e56-9ef6-8dc2bc9f59f0", PixelsPerUnit),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("TileLayers", "2faf47b8-cf59-4b51-91bc-ae4babe5d4b2", TileLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "711149d9-1c0d-4e36-af29-245a6ff2bc67", Tiles)
+            );
         }
 
         internal new static OldConsoleLandingGrid Create(NeoClient client, NeoAttributeCustom node)
@@ -10560,57 +9060,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string DisplayName, string? Name = null, NeoLookupSelection? SortingLayer = null, int? SortingOrder = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (SortingLayer is not null)
-            {
-                var SortingLayerValueId = Guid.NewGuid().ToString();
-                value["SortingLayer"] = SortingLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = SortingLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = SortingLayer.HasValue ? new[] { SortingLayer.Value.valueId } : null,
-                });
-            }
-            if (SortingOrder is not null)
-            {
-                var SortingOrderValueId = Guid.NewGuid().ToString();
-                value["SortingOrder"] = SortingOrderValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = SortingOrderValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = SortingOrder.HasValue ? SortingOrder.Value : (double?)null,
-                });
-            }
-            var DisplayNameValueId = Guid.NewGuid().ToString();
-            value["DisplayName"] = DisplayNameValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = DisplayNameValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = DisplayName,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "b737f725-5a4a-4d33-8bc5-c6953dbeff77", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "b737f725-5a4a-4d33-8bc5-c6953dbeff77",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DisplayName", "248753df-f9b6-445a-b3c6-b12957f99ee2", DisplayName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "788a3dbc-6167-4320-83aa-1e884924f776", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingLayer", "89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b", SortingLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingOrder", "472dfd84-59cb-4516-8763-90d0af6d039f", SortingOrder)
+            );
         }
 
         internal new static ConsoleObjectLayer Create(NeoClient client, NeoAttributeCustom node)
@@ -10764,63 +9221,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Sprite is not null)
-            {
-                var SpriteValueId = Guid.NewGuid().ToString();
-                value["Sprite"] = SpriteValueId;
-                valueRows.Add(new SpriteAttributeValue
-                {
-                    id = SpriteValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
-                });
-            }
-            if (DefaultLayer is not null)
-            {
-                var DefaultLayerValueId = Guid.NewGuid().ToString();
-                value["DefaultLayer"] = DefaultLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
-                });
-            }
-            if (CompatibleLayers is not null)
-            {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = CompatibleLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
-                });
-            }
-            if (SmartTile is not null)
-            {
-                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "bda4cf72-c8da-4be0-8148-024d0fc2d826", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "bda4cf72-c8da-4be0-8148-024d0fc2d826",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "04100351-2919-4795-8aa6-fadd571a6036", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "deabb583-d797-4c3e-bb07-3bafbb1e84b3", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultLayer", "b562d0ae-f799-4364-b90c-b4f026c7d870", DefaultLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CompatibleLayers", "e0e00d1b-0ee3-4102-9d83-34b3038c573f", CompatibleLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SmartTile", "96cda8f5-3100-45b5-adcb-0552d21504dd", SmartTile)
+            );
         }
 
         internal new static GlassFloorTile Create(NeoClient client, NeoAttributeCustom node)
@@ -11189,133 +9598,20 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoLookupSelection? DefaultLayer = null, string? Name = null, NeoDialogueReference? VaultPlaqueLocked = null, NeoDialogueReference? VaultPlaqueReward = null, IEnumerable<NeoObjectBase>? Children = null, IEnumerable<NeoObjectPlacementTile>? PlacementTiles = null, NeoVector3? Position = null, NeoVector3? Size = null, NeoCollider? Collider = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (CompatibleLayers is not null)
-            {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = CompatibleLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
-                });
-            }
-            if (DefaultLayer is not null)
-            {
-                var DefaultLayerValueId = Guid.NewGuid().ToString();
-                value["DefaultLayer"] = DefaultLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
-                });
-            }
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (VaultPlaqueLocked is not null)
-            {
-                var VaultPlaqueLockedValueId = Guid.NewGuid().ToString();
-                value["VaultPlaqueLocked"] = VaultPlaqueLockedValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = VaultPlaqueLockedValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = VaultPlaqueLocked is null ? null : new[] { VaultPlaqueLocked.Id },
-                });
-            }
-            if (VaultPlaqueReward is not null)
-            {
-                var VaultPlaqueRewardValueId = Guid.NewGuid().ToString();
-                value["VaultPlaqueReward"] = VaultPlaqueRewardValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = VaultPlaqueRewardValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = VaultPlaqueReward is null ? null : new[] { VaultPlaqueReward.Id },
-                });
-            }
-            if (Children is not null)
-            {
-                var ChildrenValueId = Guid.NewGuid().ToString();
-                value["Children"] = ChildrenValueId;
-                var ChildrenIds = new List<string>();
-                foreach (var entry in Children)
-                {
-                    ChildrenIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ChildrenValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ChildrenIds.ToArray(),
-                });
-            }
-            if (PlacementTiles is not null)
-            {
-                var PlacementTilesValueId = Guid.NewGuid().ToString();
-                value["PlacementTiles"] = PlacementTilesValueId;
-                var PlacementTilesIds = new List<string>();
-                foreach (var entry in PlacementTiles)
-                {
-                    PlacementTilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = PlacementTilesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = PlacementTilesIds.ToArray(),
-                });
-            }
-            if (Position is not null)
-            {
-                var PositionValueId = Guid.NewGuid().ToString();
-                value["Position"] = PositionValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = PositionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
-                });
-            }
-            if (Size is not null)
-            {
-                var SizeValueId = Guid.NewGuid().ToString();
-                value["Size"] = SizeValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = SizeValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
-                });
-            }
-            if (Collider is not null)
-            {
-                value["Collider"] = NeoGeneratedTypesSupport.LookupSelectionId(Collider.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "cacf06dd-db1d-4f48-99c7-f3cea5a6961f", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "cacf06dd-db1d-4f48-99c7-f3cea5a6961f",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CompatibleLayers", "b98218ae-934e-4359-a9cd-4ca82433dc51", CompatibleLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultLayer", "71bca16c-04c7-46ad-884b-002a1914bee8", DefaultLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "9bcfd9a8-ef4a-4a89-b6d4-446c9baf01d7", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VaultPlaqueLocked", "502c9308-974b-446d-935b-c22adde5a9d2", VaultPlaqueLocked),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VaultPlaqueReward", "d4a33b58-95a5-4874-8236-05ec38df8f82", VaultPlaqueReward),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Children", "c481dc1e-b5fd-4352-a76b-536cc3e17f71", Children),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("PlacementTiles", "430fca56-b45a-4896-9ab2-795a3faf57f6", PlacementTiles),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "a0083c92-72f7-405f-8863-ff86f995d36d", Collider)
+            );
         }
 
         internal new static VaultPlaqueObject Create(NeoClient client, NeoAttributeCustom node)
@@ -11599,112 +9895,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(NeoSmartTileCollider? Collider = null, double? MaxAnimationSpeed = null, double? MinAnimationSpeed = null, IEnumerable<NeoSmartTileNeighbor>? Neighbors = null, NeoSmartTileOutput? Output = null, NeoSmartTileTransform? RuleTransform = null, IEnumerable<Sprite>? Sprites = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Collider is not null)
-            {
-                var ColliderValueId = Guid.NewGuid().ToString();
-                value["Collider"] = ColliderValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ColliderValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Collider is null ? null : new[] { Collider.optionId },
-                });
-            }
-            if (MaxAnimationSpeed is not null)
-            {
-                var MaxAnimationSpeedValueId = Guid.NewGuid().ToString();
-                value["MaxAnimationSpeed"] = MaxAnimationSpeedValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = MaxAnimationSpeedValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = MaxAnimationSpeed,
-                });
-            }
-            if (MinAnimationSpeed is not null)
-            {
-                var MinAnimationSpeedValueId = Guid.NewGuid().ToString();
-                value["MinAnimationSpeed"] = MinAnimationSpeedValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = MinAnimationSpeedValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = MinAnimationSpeed,
-                });
-            }
-            if (Neighbors is not null)
-            {
-                var NeighborsValueId = Guid.NewGuid().ToString();
-                value["Neighbors"] = NeighborsValueId;
-                var NeighborsIds = new List<string>();
-                foreach (var entry in Neighbors)
-                {
-                    NeighborsIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = NeighborsValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeighborsIds.ToArray(),
-                });
-            }
-            if (Output is not null)
-            {
-                var OutputValueId = Guid.NewGuid().ToString();
-                value["Output"] = OutputValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = OutputValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Output is null ? null : new[] { Output.optionId },
-                });
-            }
-            if (RuleTransform is not null)
-            {
-                var RuleTransformValueId = Guid.NewGuid().ToString();
-                value["RuleTransform"] = RuleTransformValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = RuleTransformValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = RuleTransform is null ? null : new[] { RuleTransform.optionId },
-                });
-            }
-            if (Sprites is not null)
-            {
-                var SpritesValueId = Guid.NewGuid().ToString();
-                value["Sprites"] = SpritesValueId;
-                var SpritesIds = new List<string>();
-                foreach (var entry in Sprites)
-                {
-                    var entryValueId = Guid.NewGuid().ToString();
-                    SpritesIds.Add(entryValueId);
-                    valueRows.Add(new SpriteAttributeValue
-                    {
-                        id = entryValueId,
-                        createdAt = nowIso,
-                        updatedAt = nowIso,
-                        value = NeoGeneratedTypesSupport.SpriteValue(client, entry),
-                    });
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = SpritesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = SpritesIds.ToArray(),
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "d500e920-87d9-4804-affa-1bd8fc5e91ae", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "d500e920-87d9-4804-affa-1bd8fc5e91ae",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Collider", "f8106137-0cde-4be0-bce7-3db5cf40257a", Collider),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MaxAnimationSpeed", "9ae9cf8b-4ea1-413e-8c7a-dcabe1a5cc98", MaxAnimationSpeed),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MinAnimationSpeed", "3111ed6f-d441-40b9-97f0-25fff2fb9838", MinAnimationSpeed),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Neighbors", "8bfadaa8-14e9-4488-a103-ee688c1cc9c4", Neighbors),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Output", "9b22d8df-ea41-4c76-9d2e-a6c64c95a64a", Output),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("RuleTransform", "29a3d2a7-ce2e-4d40-bcdf-ee6c314023fe", RuleTransform),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprites", "fd3a7f0f-cff8-4069-9b19-004015a6aca1", Sprites)
+            );
         }
 
         internal static NeoSmartTileRule Create(NeoClient client, NeoAttributeCustom node)
@@ -11924,63 +10125,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, Sprite? Sprite = null, NeoLookupSelection? DefaultLayer = null, IEnumerable<NeoLookupSelection>? CompatibleLayers = null, NeoSmartTile? SmartTile = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Sprite is not null)
-            {
-                var SpriteValueId = Guid.NewGuid().ToString();
-                value["Sprite"] = SpriteValueId;
-                valueRows.Add(new SpriteAttributeValue
-                {
-                    id = SpriteValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.SpriteValue(client, Sprite),
-                });
-            }
-            if (DefaultLayer is not null)
-            {
-                var DefaultLayerValueId = Guid.NewGuid().ToString();
-                value["DefaultLayer"] = DefaultLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = DefaultLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DefaultLayer.HasValue ? new[] { DefaultLayer.Value.valueId } : null,
-                });
-            }
-            if (CompatibleLayers is not null)
-            {
-                var CompatibleLayersValueId = Guid.NewGuid().ToString();
-                value["CompatibleLayers"] = CompatibleLayersValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = CompatibleLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.LookupSelectionIds(CompatibleLayers),
-                });
-            }
-            if (SmartTile is not null)
-            {
-                value["SmartTile"] = NeoGeneratedTypesSupport.LookupSelectionId(SmartTile.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "d931c907-19cd-4f3d-b04a-e6f1945fb216", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "d931c907-19cd-4f3d-b04a-e6f1945fb216",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "1462765c-6a91-4576-acc7-0fb47c242f1b", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Sprite", "5c877f60-4f89-41fc-ae54-c724b1733860", Sprite),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DefaultLayer", "4f6da61d-0f3d-4b69-980b-460fc951b32f", DefaultLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("CompatibleLayers", "0e5e27bb-20e3-4081-8e4b-f32b682881e0", CompatibleLayers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SmartTile", "96cda8f5-3100-45b5-adcb-0552d21504dd", SmartTile)
+            );
         }
 
         internal new static RedNovaWarningTile Create(NeoClient client, NeoAttributeCustom node)
@@ -12200,94 +10353,17 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(WorldEnding? Ending = null, bool? EvidenceArchive = null, bool? EvidenceFaith = null, bool? EvidenceLedger = null, int? FlareClock = null, int? Reruns = null, QuestStage? Stage = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Ending is not null)
-            {
-                var EndingValueId = Guid.NewGuid().ToString();
-                value["Ending"] = EndingValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = EndingValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Ending is null ? null : new[] { Ending.optionId },
-                });
-            }
-            if (EvidenceArchive is not null)
-            {
-                var EvidenceArchiveValueId = Guid.NewGuid().ToString();
-                value["EvidenceArchive"] = EvidenceArchiveValueId;
-                valueRows.Add(new BoolAttributeValue
-                {
-                    id = EvidenceArchiveValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = EvidenceArchive,
-                });
-            }
-            if (EvidenceFaith is not null)
-            {
-                var EvidenceFaithValueId = Guid.NewGuid().ToString();
-                value["EvidenceFaith"] = EvidenceFaithValueId;
-                valueRows.Add(new BoolAttributeValue
-                {
-                    id = EvidenceFaithValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = EvidenceFaith,
-                });
-            }
-            if (EvidenceLedger is not null)
-            {
-                var EvidenceLedgerValueId = Guid.NewGuid().ToString();
-                value["EvidenceLedger"] = EvidenceLedgerValueId;
-                valueRows.Add(new BoolAttributeValue
-                {
-                    id = EvidenceLedgerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = EvidenceLedger,
-                });
-            }
-            if (FlareClock is not null)
-            {
-                var FlareClockValueId = Guid.NewGuid().ToString();
-                value["FlareClock"] = FlareClockValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = FlareClockValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = FlareClock.HasValue ? FlareClock.Value : (double?)null,
-                });
-            }
-            if (Reruns is not null)
-            {
-                var RerunsValueId = Guid.NewGuid().ToString();
-                value["Reruns"] = RerunsValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = RerunsValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Reruns.HasValue ? Reruns.Value : (double?)null,
-                });
-            }
-            if (Stage is not null)
-            {
-                var StageValueId = Guid.NewGuid().ToString();
-                value["Stage"] = StageValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = StageValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Stage is null ? null : new[] { Stage.optionId },
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "daf72c99-ad09-47d6-a863-f1ab31acf750", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "daf72c99-ad09-47d6-a863-f1ab31acf750",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Ending", "a8a1eee9-5662-4b22-9b55-10ebfc8438c4", Ending),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("EvidenceArchive", "42487172-af8c-49ff-b88a-2397894542fe", EvidenceArchive),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("EvidenceFaith", "35ac06e1-119c-4d1f-81e9-f119610e3865", EvidenceFaith),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("EvidenceLedger", "0794a73f-60b2-4ce0-b191-83d0829fe7bb", EvidenceLedger),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("FlareClock", "26df3938-e800-4801-b897-602d50db7ec9", FlareClock),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Reruns", "cb9bb845-466c-46ac-aee0-345163dcfbf3", Reruns),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Stage", "3ed7f33a-67fe-4671-8af9-c8339751894b", Stage)
+            );
         }
 
         internal static QuestState Create(NeoClient client, NeoAttributeCustom node)
@@ -12399,7 +10475,7 @@ namespace HelloWorld.Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("NextHint").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("NextHint").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -12550,82 +10626,19 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(Worlds Worlds, Art? Art = null, Audio? Audio = null, ComputedText? Computed = null, IEnumerable<Item>? Items = null, LookupContainer? LookupContainer = null, NeoWorlds? NeoWorlds = null, IEnumerable<Outpost>? Outposts = null, IEnumerable<NeoSortingLayer>? SortingLayers = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Art is not null)
-            {
-                value["Art"] = NeoGeneratedTypesSupport.LookupSelectionId(Art.valueId);
-            }
-            if (Audio is not null)
-            {
-                value["Audio"] = NeoGeneratedTypesSupport.LookupSelectionId(Audio.valueId);
-            }
-            if (Computed is not null)
-            {
-                value["Computed"] = NeoGeneratedTypesSupport.LookupSelectionId(Computed.valueId);
-            }
-            if (Items is not null)
-            {
-                var ItemsValueId = Guid.NewGuid().ToString();
-                value["Items"] = ItemsValueId;
-                var ItemsIds = new List<string>();
-                foreach (var entry in Items)
-                {
-                    ItemsIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ItemsValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ItemsIds.ToArray(),
-                });
-            }
-            if (LookupContainer is not null)
-            {
-                value["LookupContainer"] = NeoGeneratedTypesSupport.LookupSelectionId(LookupContainer.valueId);
-            }
-            if (NeoWorlds is not null)
-            {
-                value["NeoWorlds"] = NeoGeneratedTypesSupport.LookupSelectionId(NeoWorlds.valueId);
-            }
-            if (Outposts is not null)
-            {
-                var OutpostsValueId = Guid.NewGuid().ToString();
-                value["Outposts"] = OutpostsValueId;
-                var OutpostsIds = new List<string>();
-                foreach (var entry in Outposts)
-                {
-                    OutpostsIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = OutpostsValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = OutpostsIds.ToArray(),
-                });
-            }
-            if (SortingLayers is not null)
-            {
-                var SortingLayersValueId = Guid.NewGuid().ToString();
-                value["SortingLayers"] = SortingLayersValueId;
-                var SortingLayersIds = new List<string>();
-                foreach (var entry in SortingLayers)
-                {
-                    SortingLayersIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = SortingLayersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = SortingLayersIds.ToArray(),
-                });
-            }
-            value["Worlds"] = NeoGeneratedTypesSupport.LookupSelectionId(Worlds.valueId);
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "dd0bbe5a-47ef-4164-9421-caea07f6f56f", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "dd0bbe5a-47ef-4164-9421-caea07f6f56f",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Worlds", "80d05ad2-08ff-4e17-8b29-8b185562b2c6", Worlds),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Art", "3b73b328-9a9d-4ee3-955c-9cc573170346", Art),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Audio", "6cc17e87-3907-4f96-84a2-b0b5a32bac25", Audio),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Computed", "92fe2bbb-e542-40a7-9d5e-7a7ad5b9abca", Computed),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Items", "214df1a1-abca-4141-987b-380a5417c70a", Items),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LookupContainer", "2c57948b-7479-47e0-b97c-242f6d543ae0", LookupContainer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("NeoWorlds", "ef275539-d049-42da-bf44-541375ab0bf8", NeoWorlds),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Outposts", "2827aefd-7f57-48ea-994c-c5c39ec659e3", Outposts),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingLayers", "7ec79ef8-a216-407f-8886-9f770bc9895b", SortingLayers)
+            );
         }
 
         internal static Assets Create(NeoClient client, NeoAttributeCustom node)
@@ -12854,70 +10867,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoLookupSelection TileLayer, NeoVector3? Position = null, NeoVector3? Size = null, IEnumerable<NeoTileInstance>? Tiles = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var NameValueId = Guid.NewGuid().ToString();
-            value["Name"] = NameValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = NameValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Name,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            if (Position is not null)
-            {
-                var PositionValueId = Guid.NewGuid().ToString();
-                value["Position"] = PositionValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = PositionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
-                });
-            }
-            if (Size is not null)
-            {
-                var SizeValueId = Guid.NewGuid().ToString();
-                value["Size"] = SizeValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = SizeValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
-                });
-            }
-            var TileLayerValueId = Guid.NewGuid().ToString();
-            value["TileLayer"] = TileLayerValueId;
-            valueRows.Add(new ArrayAttributeValue
-            {
-                id = TileLayerValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new[] { TileLayer.valueId },
-            });
-            if (Tiles is not null)
-            {
-                var TilesValueId = Guid.NewGuid().ToString();
-                value["Tiles"] = TilesValueId;
-                var TilesIds = new List<string>();
-                foreach (var entry in Tiles)
-                {
-                    TilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TilesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = TilesIds.ToArray(),
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "e78cfcd2-78ae-4656-9f04-6429bb0efe20", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "e78cfcd2-78ae-4656-9f04-6429bb0efe20",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("TileLayer", "325dba0e-5967-4e18-937e-5c6800b68abc", TileLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "98655d2b-ad0b-45e2-a901-62600b4d3a22", Tiles)
+            );
         }
 
         internal new static NeoTileLayerLink Create(NeoClient client, NeoAttributeCustom node)
@@ -13488,73 +11446,15 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string Name, NeoVector3? Position = null, NeoVector3? Size = null, NeoLookupSelection? ObjectLayer = null, IEnumerable<NeoObjectBase>? Objects = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var NameValueId = Guid.NewGuid().ToString();
-            value["Name"] = NameValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = NameValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Name,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            if (Position is not null)
-            {
-                var PositionValueId = Guid.NewGuid().ToString();
-                value["Position"] = PositionValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = PositionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
-                });
-            }
-            if (Size is not null)
-            {
-                var SizeValueId = Guid.NewGuid().ToString();
-                value["Size"] = SizeValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = SizeValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Size.Value),
-                });
-            }
-            if (ObjectLayer is not null)
-            {
-                var ObjectLayerValueId = Guid.NewGuid().ToString();
-                value["ObjectLayer"] = ObjectLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ObjectLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ObjectLayer.HasValue ? new[] { ObjectLayer.Value.valueId } : null,
-                });
-            }
-            if (Objects is not null)
-            {
-                var ObjectsValueId = Guid.NewGuid().ToString();
-                value["Objects"] = ObjectsValueId;
-                var ObjectsIds = new List<string>();
-                foreach (var entry in Objects)
-                {
-                    ObjectsIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ObjectsValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ObjectsIds.ToArray(),
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "f1b08825-2ad0-4666-acf1-3df7ffbda64e", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "f1b08825-2ad0-4666-acf1-3df7ffbda64e",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "b21bfd01-1234-4f49-ab6b-889f829cb148", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "7fc41bde-418a-4507-8c4b-9b75d7012125", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Size", "e1d820d8-56b1-43ac-aa10-0a019f0dc38f", Size),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ObjectLayer", "9cc0ab67-e138-4d11-8011-fab7d7a75b13", ObjectLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Objects", "f8e217b1-da89-4819-9c8d-e9c9da2bdfb2", Objects)
+            );
         }
 
         internal new static NeoObjectLayerLink Create(NeoClient client, NeoAttributeCustom node)
@@ -13723,23 +11623,11 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "fb219343-34db-4e82-baf0-09df9a2b5210", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "fb219343-34db-4e82-baf0-09df9a2b5210",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "e963862e-6228-4594-8220-8ef06098c253", Name)
+            );
         }
 
         internal static NeoSortingLayer Create(NeoClient client, NeoAttributeCustom node)
@@ -13870,57 +11758,14 @@ namespace HelloWorld.Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string DisplayName, string? Name = null, NeoLookupSelection? SortingLayer = null, int? SortingOrder = null)
         {
             var client = HelloWorldNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (SortingLayer is not null)
-            {
-                var SortingLayerValueId = Guid.NewGuid().ToString();
-                value["SortingLayer"] = SortingLayerValueId;
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = SortingLayerValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = SortingLayer.HasValue ? new[] { SortingLayer.Value.valueId } : null,
-                });
-            }
-            if (SortingOrder is not null)
-            {
-                var SortingOrderValueId = Guid.NewGuid().ToString();
-                value["SortingOrder"] = SortingOrderValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = SortingOrderValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = SortingOrder.HasValue ? SortingOrder.Value : (double?)null,
-                });
-            }
-            var DisplayNameValueId = Guid.NewGuid().ToString();
-            value["DisplayName"] = DisplayNameValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = DisplayNameValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = DisplayName,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "fbbd7a13-2b2a-4d0c-bd8f-78b5474cd4ba",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DisplayName", "679e3c47-e6eb-4808-bcc5-2f8440612626", DisplayName),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "788a3dbc-6167-4320-83aa-1e884924f776", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingLayer", "89dbb12e-1d7c-42ad-b872-63fc7fe8bd5b", SortingLayer),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SortingOrder", "472dfd84-59cb-4516-8763-90d0af6d039f", SortingOrder)
+            );
         }
 
         internal new static ConsoleTileLayer Create(NeoClient client, NeoAttributeCustom node)

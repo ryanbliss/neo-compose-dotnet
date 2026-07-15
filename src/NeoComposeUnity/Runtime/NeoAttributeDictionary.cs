@@ -279,6 +279,10 @@ namespace NeoCompose.Runtime
                 newValueId = System.Guid.NewGuid().ToString();
                 AttributeValue newValueRow = AttributeValueFactory.Create(
                     entryAttribute, setValue?.value, newValueId, nowIso, nowIso);
+                newValueRow.mapKey = client.ResolveCreatedValueMapKey(
+                    entryAttribute,
+                    value?.mapKey,
+                    value?.typeId);
                 // A nested collection entry (e.g. Dictionary<string, List<T>>)
                 // carries its own Decision-9 stamp, resolved through this
                 // row's stamp.

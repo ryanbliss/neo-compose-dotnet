@@ -493,7 +493,11 @@ namespace NeoCompose.Runtime
             }
 
             State = NeoSaveSynchronizerState.Resolving;
-            var migration = new NeoSaveMigration(CustomId, save.values, core.Schema);
+            var migration = new NeoSaveMigration(
+                CustomId,
+                save.values,
+                save.staticBindings,
+                core.Schema);
             var continuation = new NeoSaveMigrationContinuation();
             OnMigrationRequired.Invoke(migration, continuation);
             return await continuation.Completion;
@@ -1423,6 +1427,7 @@ namespace NeoCompose.Runtime
                 version = local.version,
                 targetReleaseChannelId = core.TargetReleaseChannelId,
                 values = mainValues,
+                staticBindings = local.staticBindings,
                 valuePartitions = partitions,
                 platforms = local.platforms,
                 systems = local.systems,

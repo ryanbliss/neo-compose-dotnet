@@ -13,7 +13,7 @@ namespace NeoCompose.Tests
     /// <summary>
     /// specs/attribute-storage.md — per-placement storage in the runtime.
     /// Mirrors the TS resolution vectors in
-    /// <c>src/models/attributes/effective-storage.test.ts</c>: a static
+    /// <c>src/models/attributes/effective-storage.test.ts</c>: an immutable
     /// Outpost record under the Assets root with a Save-stamped Health field
     /// (the headline case), plus the lifetime/refusal edges.
     /// </summary>
@@ -26,9 +26,11 @@ namespace NeoCompose.Tests
         {
             Assert.AreEqual(NeoAttributeStorage.Inherit, NeoAttributeStorageResolution.Parse(null));
             Assert.AreEqual(NeoAttributeStorage.Inherit, NeoAttributeStorageResolution.Parse("inherit"));
-            Assert.AreEqual(NeoAttributeStorage.Static, NeoAttributeStorageResolution.Parse("static"));
+            Assert.AreEqual(NeoAttributeStorage.Immutable, NeoAttributeStorageResolution.Parse("immutable"));
             Assert.AreEqual(NeoAttributeStorage.Save, NeoAttributeStorageResolution.Parse("save"));
             Assert.AreEqual(NeoAttributeStorage.Session, NeoAttributeStorageResolution.Parse("session"));
+            Assert.Throws<System.InvalidOperationException>(
+                () => NeoAttributeStorageResolution.Parse("static"));
             Assert.Throws<System.InvalidOperationException>(
                 () => NeoAttributeStorageResolution.Parse("persistent"));
         }
@@ -48,7 +50,7 @@ namespace NeoCompose.Tests
             Assert.IsTrue(client.TryGetValueOwnership("v-mood", out NeoValueOwnership moodOwnership));
             Assert.AreEqual(NeoValueOwnership.Session, moodOwnership);
 
-            // Static-stamped leaf under the save root stays asset-owned.
+            // Immutable-stamped leaf under the save root stays asset-owned.
             Assert.IsTrue(client.TryGetValueOwnership("v-build", out NeoValueOwnership buildOwnership));
             Assert.AreEqual(NeoValueOwnership.Asset, buildOwnership);
         }
@@ -82,7 +84,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public void AsWritableView_AllowsStampedKeyWritesAndRefusesStaticKeys()
+        public void AsWritableView_AllowsStampedKeyWritesAndRefusesImmutableKeys()
         {
             var client = LoadStorageClient();
             var outpost = client.AssetsRoot.Get<NeoAttributeCustom>("Outpost");
@@ -93,23 +95,23 @@ namespace NeoCompose.Tests
             var health = outpost.Get<NeoAttributeIntWritable>("Health");
             Assert.AreEqual(75, (int)health.value!.value!.Value);
 
-            var staticWrite = Assert.Throws<System.InvalidOperationException>(() =>
+            var immutableWrite = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoGeneratedTypesSupport.SetValue(
                     view, "Label", NeoValueWritePayload.FromValue("hacked")));
-            StringAssert.Contains("effective storage is static", staticWrite!.Message);
+            StringAssert.Contains("effective storage is immutable", immutableWrite!.Message);
         }
 
         [Test]
-        public void WritableSaveTree_RefusesStaticStampedLeaf()
+        public void WritableSaveTree_RefusesImmutableStampedLeaf()
         {
             var client = LoadStorageClient();
             var saveRoot = client.SaveRoot;
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoGeneratedTypesSupport.SetValue(
                     saveRoot, "BuildLabel", NeoValueWritePayload.FromValue("nope")));
-            StringAssert.Contains("effective storage is static", error!.Message);
+            StringAssert.Contains("effective storage is immutable", error!.Message);
 
-            // The static-stamped child node under the writable root is the
+            // The immutable-stamped child node under the writable root is the
             // read-only kind.
             var buildLabel = saveRoot.Get<NeoAttribute>("BuildLabel");
             Assert.IsFalse(buildLabel is NeoAttributeStringWritable);
@@ -121,18 +123,18 @@ namespace NeoCompose.Tests
             var data = BuildStorageProjectData();
             data.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 7,
+                schemaVersion = 8,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             var error = Assert.Throws<System.InvalidOperationException>(() =>
                 NeoTestSaveStack.ClientFromSchema(data));
-            StringAssert.Contains("schema version 7", error!.Message);
+            StringAssert.Contains("schema version 8", error!.Message);
             StringAssert.Contains("newer", error.Message);
         }
 
         [Test]
-        public void ExportSchemaVersion_OlderThanNSFunctionSupportThrows()
+        public void ExportSchemaVersion_OlderThanCurrentContractThrows()
         {
             var legacy = BuildStorageProjectData();
             legacy.metadata = new ProjectExportMetadata
@@ -153,11 +155,28 @@ namespace NeoCompose.Tests
             var current = BuildStorageProjectData();
             current.metadata = new ProjectExportMetadata
             {
-                schemaVersion = 6,
+                schemaVersion = 7,
                 projectId = ProjectId,
                 versionId = "version-1",
             };
             Assert.DoesNotThrow(() => NeoTestSaveStack.ClientFromSchema(current));
+        }
+
+        [Test]
+        public void ExportSchemaVersion_PreviousRequiresReExport()
+        {
+            var previous = BuildStorageProjectData();
+            previous.metadata = new ProjectExportMetadata
+            {
+                schemaVersion = 6,
+                projectId = ProjectId,
+                versionId = "version-1",
+            };
+            var error = Assert.Throws<System.InvalidOperationException>(() =>
+                NeoTestSaveStack.ClientFromSchema(previous));
+            StringAssert.Contains("schema version 6", error!.Message);
+            StringAssert.Contains("requires at least 7", error.Message);
+            StringAssert.Contains("Re-export", error.Message);
         }
 
         [Test]
@@ -172,7 +191,7 @@ namespace NeoCompose.Tests
                     assumeCurrentSchema: false));
 
             StringAssert.Contains("metadata is missing", error!.Message);
-            StringAssert.Contains("schema version 6", error.Message);
+            StringAssert.Contains("supports through 7", error.Message);
             StringAssert.Contains("Re-export", error.Message);
         }
 
@@ -184,7 +203,7 @@ namespace NeoCompose.Tests
         /// <summary>
         /// Assets root: { Outpost: Outpost { Health(int, storage=save),
         /// Label(string), Mood(string, storage=session) } } with authored
-        /// values. Save root: { BuildLabel(string, storage=static) }.
+        /// values. Save root: { BuildLabel(string, storage=immutable) }.
         /// Session root: empty. Plus an unplaced override attribute whose
         /// extends chain reaches the Save-stamped Health.
         /// </summary>
@@ -239,7 +258,7 @@ namespace NeoCompose.Tests
                 name = "BuildLabel",
                 type = AttributeType.String,
                 localizable = false,
-                storage = "static",
+                storage = "immutable",
                 createdAt = "x",
                 updatedAt = "x",
             };
@@ -253,7 +272,7 @@ namespace NeoCompose.Tests
                 createdAt = "x",
                 updatedAt = "x",
             };
-            var rootAssets = RootAttribute("attr-root-assets", "Assets", "type-root-assets", "v-root-assets", "static");
+            var rootAssets = RootAttribute("attr-root-assets", "Assets", "type-root-assets", "v-root-assets", "immutable");
             var rootSave = RootAttribute("attr-root-save", "Save", "type-root-save", "v-root-save", "save");
             var rootSession = RootAttribute("attr-root-session", "Session", "type-root-session", "v-root-session", "session");
 

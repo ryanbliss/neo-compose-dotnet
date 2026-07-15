@@ -33,6 +33,7 @@ namespace NeoCompose.Runtime.Json
         public const string Stringify = "stringify";
         public const string CallFunction = "callFunction";
         public const string FunctionErrorCheck = "functionErrorCheck";
+        public const string StaticMember = "staticMember";
     }
 
     public static class InstructionKind
@@ -80,6 +81,7 @@ namespace NeoCompose.Runtime.Json
     public static class FunctionKind
     {
         public const string CustomClone = "customClone";
+        public const string CustomConstructor = "customConstructor";
         public const string Select = "select";
         public const string First = "first";
         public const string FirstOrDefault = "firstOrDefault";
@@ -131,9 +133,10 @@ namespace NeoCompose.Runtime.Json
         public const string Local = "local";
         public const string Save = "save";
         public const string Session = "session";
-        public const string Asset = "asset";
-        public const string AssetToSaveLookup = "assetToSaveLookup";
-        public const string AssetToSessionLookup = "assetToSessionLookup";
+        public const string Immutable = "immutable";
+        public const string ImmutableToSaveLookup = "immutableToSaveLookup";
+        public const string ImmutableToSessionLookup = "immutableToSessionLookup";
+        public const string Runtime = "runtime";
         public const string ReadOnly = "readOnly";
         public const string Setter = "setter";
     }

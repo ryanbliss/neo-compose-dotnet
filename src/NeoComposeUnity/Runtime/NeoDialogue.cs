@@ -479,7 +479,7 @@ namespace NeoCompose.Runtime
         private void EnterDeferredFunction(
             DialogueActionsNodeModel node,
             int actionIndex,
-            NeoActionExecutionResult result)
+            NeoScriptExecutionResult result)
         {
             if (result.Deferred == null)
             {

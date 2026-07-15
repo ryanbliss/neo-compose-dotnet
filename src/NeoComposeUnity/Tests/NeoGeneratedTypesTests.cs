@@ -692,6 +692,53 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void GeneratedNSFunction_ConstructSampleMutatesReceiverAndReturnsAttachableSessionValue()
+        {
+            var app = LoadGeneratedClient(out _);
+            var assetRoot = (Root)app.Assets;
+            var blocked = (SampleBlockedPath)assetRoot.SampleLayerGroup!;
+            SampleTileInstance receiver = blocked.Tiles[0];
+
+            Assert.AreEqual(7, receiver.Value);
+
+            IReadOnlySampleTileInstance returned = receiver.ConstructSample();
+
+            Assert.AreEqual(
+                1,
+                receiver.Value,
+                "the NSFunction body should allow its runtime write to the Save-backed receiver");
+            Assert.IsTrue(returned.TryWritable(out SampleTileInstance constructed));
+            Assert.IsNotNull(constructed.valueId);
+            Assert.IsTrue(app.Client.TryGetValueOwnership(
+                constructed.valueId!,
+                out NeoValueOwnership initialOwnership));
+            Assert.AreEqual(
+                NeoValueOwnership.Session,
+                initialOwnership,
+                "an escaped NeoScript constructor result should remain in Session until attached");
+
+            const int constructedValue = 646464;
+            constructed.Value = constructedValue;
+            Assert.AreEqual(constructedValue, constructed.Value);
+            StringAssert.DoesNotContain(
+                constructedValue.ToString(),
+                app.SerializeSaveData(),
+                "an unattached constructor result must not leak into Save");
+
+            blocked.Tiles.Add(constructed);
+
+            Assert.IsTrue(app.Client.TryGetValueOwnership(
+                constructed.valueId!,
+                out NeoValueOwnership attachedOwnership));
+            Assert.AreEqual(NeoValueOwnership.Save, attachedOwnership);
+            Assert.AreSame(constructed, blocked.Tiles[blocked.Tiles.Count - 1]);
+            StringAssert.Contains(
+                constructedValue.ToString(),
+                app.SerializeSaveData(),
+                "attaching the returned constructor value should promote its graph into Save");
+        }
+
+        [Test]
         public void GeneratedInheritedStorage_PropagatesThroughExplicitSaveSessionAndStaticChildren()
         {
             var app = LoadGeneratedClient(out _);
@@ -1081,7 +1128,7 @@ namespace NeoCompose.Tests
             {
                 id = typeId,
                 name = "StaticClone",
-                allowedStorage = "static",
+                allowedStorage = "immutable",
                 schema = new Dictionary<string, string>(),
                 createdAt = "1970-01-01T00:00:00.000Z",
                 updatedAt = "1970-01-01T00:00:00.000Z",
@@ -1098,7 +1145,7 @@ namespace NeoCompose.Tests
             var ex = Assert.Throws<System.InvalidOperationException>(
                 () => app.Client.CloneValueReference(valueId))!;
             StringAssert.Contains(valueId, ex.Message);
-            StringAssert.Contains("static-only", ex.Message);
+            StringAssert.Contains("immutable-only", ex.Message);
         }
 
         [Test]

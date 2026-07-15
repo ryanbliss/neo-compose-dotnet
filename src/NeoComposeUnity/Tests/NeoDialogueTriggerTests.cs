@@ -2058,6 +2058,7 @@ namespace NeoCompose.Tests
                         name = "DeferredScore",
                         type = AttributeType.Function,
                         required = false,
+                        isStatic = true,
                         returnTypeInfo = IntTypeInfo(),
                         argumentTypes = new FunctionArgumentTypeInfo[0],
                         deferred = true,
@@ -2201,6 +2202,7 @@ namespace NeoCompose.Tests
                             ["Items"] = "attr-items",
                             ["Inventory"] = "attr-inventory",
                             ["Foo"] = "attr-session-foo",
+                            ["DeferredScore"] = "attr-deferred-score",
                         },
                         createdAt = Now,
                         updatedAt = Now,
@@ -3663,7 +3665,11 @@ namespace NeoCompose.Tests
                         {
                             type = PointerKind.CallFunction,
                             attributeId = "attr-deferred-score",
-                            thisPointer = NullPointer(),
+                            receiver = new CallReceiver
+                            {
+                                kind = CallReceiverKind.Static,
+                                attributeId = "attr-deferred-score",
+                            },
                             args = new Pointer[0],
                             callSiteId = "deferred-score",
                         },

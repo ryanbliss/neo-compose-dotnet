@@ -543,6 +543,10 @@ namespace NeoCompose.Runtime
                 newValueId = System.Guid.NewGuid().ToString();
                 AttributeValue newValueRow = AttributeValueFactory.Create(
                     entryAttribute, entryValue?.value, newValueId, nowIso, nowIso);
+                newValueRow.mapKey = client.ResolveCreatedValueMapKey(
+                    entryAttribute,
+                    parentRow.mapKey,
+                    parentRow.typeId);
                 // A nested collection entry (e.g. List<List<T>>) carries its
                 // own Decision-9 stamp, resolved through this row's stamp.
                 NeoGenericResolution.StampGenericBindings(

@@ -63,9 +63,12 @@
                       },
                       "pointer": {
                         "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
-                        "thisPointer": {
-                          "type": "reference",
-                          "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                        "receiver": {
+                          "kind": "instance",
+                          "pointer": {
+                            "type": "reference",
+                            "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                          }
                         },
                         "type": "callGetter"
                       }
@@ -104,9 +107,12 @@
                 "call": {
                   "args": [],
                   "attributeId": "cab850e3-cf8c-42b3-a70b-f0066089e6fb",
-                  "thisPointer": {
-                    "type": "variable",
-                    "variableId": "__this__"
+                  "receiver": {
+                    "kind": "instance",
+                    "pointer": {
+                      "type": "variable",
+                      "variableId": "__this__"
+                    }
                   },
                   "type": "callFunction",
                   "callSiteId": "capitol-og-intro:32014fbd:0"
@@ -172,9 +178,12 @@
                       },
                       "pointer": {
                         "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
-                        "thisPointer": {
-                          "type": "variable",
-                          "variableId": "__this__"
+                        "receiver": {
+                          "kind": "instance",
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "__this__"
+                          }
                         },
                         "type": "callGetter"
                       }
@@ -215,9 +224,12 @@
                     }
                   ],
                   "attributeId": "e549555b-9276-48d8-be33-156972520d31",
-                  "thisPointer": {
-                    "type": "variable",
-                    "variableId": "__this__"
+                  "receiver": {
+                    "kind": "instance",
+                    "pointer": {
+                      "type": "variable",
+                      "variableId": "__this__"
+                    }
                   },
                   "type": "callFunction",
                   "callSiteId": "capitol-og-intro:88cacaa9:0"
@@ -528,9 +540,12 @@
                       },
                       "pointer": {
                         "attributeId": "cccadaa5-0623-4a0f-9197-7175726c0e8b",
-                        "thisPointer": {
-                          "type": "variable",
-                          "variableId": "__this__"
+                        "receiver": {
+                          "kind": "instance",
+                          "pointer": {
+                            "type": "variable",
+                            "variableId": "__this__"
+                          }
                         },
                         "type": "callGetter"
                       }

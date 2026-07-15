@@ -384,7 +384,7 @@ namespace Assets.Scripts.Neo
         }
     }
 
-    public sealed class Element : IEquatable<Element>
+    public sealed class Element : IEquatable<Element>, global::NeoCompose.Runtime.INeoEnumOption
     {
         private static readonly Dictionary<string, Element> values = new Dictionary<string, Element>();
         public string optionId { get; }
@@ -514,110 +514,16 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Health = null, NeoVector3? Position = null, NeoVector3Int? GridCell = null, IEnumerable<NeoVector3>? Path = null, IDictionary<string, string?>? ElementAffinity = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Health is not null)
-            {
-                var HealthValueId = Guid.NewGuid().ToString();
-                value["Health"] = HealthValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = HealthValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Health.HasValue ? Health.Value : (double?)null,
-                });
-            }
-            if (Position is not null)
-            {
-                var PositionValueId = Guid.NewGuid().ToString();
-                value["Position"] = PositionValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = PositionValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3Value(Position.Value),
-                });
-            }
-            if (GridCell is not null)
-            {
-                var GridCellValueId = Guid.NewGuid().ToString();
-                value["GridCell"] = GridCellValueId;
-                valueRows.Add(new Vector3AttributeValue
-                {
-                    id = GridCellValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = NeoGeneratedTypesSupport.Vector3IntValue(GridCell.Value),
-                });
-            }
-            if (Path is not null)
-            {
-                var PathValueId = Guid.NewGuid().ToString();
-                value["Path"] = PathValueId;
-                var PathIds = new List<string>();
-                foreach (var entry in Path)
-                {
-                    var entryValueId = Guid.NewGuid().ToString();
-                    PathIds.Add(entryValueId);
-                    valueRows.Add(new Vector3AttributeValue
-                    {
-                        id = entryValueId,
-                        createdAt = nowIso,
-                        updatedAt = nowIso,
-                        value = NeoGeneratedTypesSupport.Vector3Value(entry.Value),
-                    });
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = PathValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = PathIds.ToArray(),
-                });
-            }
-            if (ElementAffinity is not null)
-            {
-                var ElementAffinityValueId = Guid.NewGuid().ToString();
-                value["ElementAffinity"] = ElementAffinityValueId;
-                var ElementAffinityIds = new Dictionary<string, string>();
-                foreach (var pair in ElementAffinity)
-                {
-                    var entryValueId = Guid.NewGuid().ToString();
-                    ElementAffinityIds[pair.Key] = entryValueId;
-                    valueRows.Add(new StringAttributeValue
-                    {
-                        id = entryValueId,
-                        createdAt = nowIso,
-                        updatedAt = nowIso,
-                        value = pair.Value,
-                        neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                    });
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = ElementAffinityValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ElementAffinityIds,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-hero", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-hero",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "attr-name", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Health", "attr-health", Health),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Position", "attr-position", Position),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("GridCell", "attr-grid-cell", GridCell),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Path", "attr-path", Path),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementAffinity", "attr-elem-affinity", ElementAffinity)
+            );
         }
 
         internal static Hero Create(NeoClient client, NeoAttributeCustom node)
@@ -894,146 +800,19 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<Hero?>? Heroes = null, bool? Flag = null, int? Score = null, NeoMemory? NeoMemory = null, SampleLayerGroupBase? SampleLayerGroup = null, StorageA? StorageInherit = null, IDictionary<string, int?>? ElementStats = null, IDictionary<string, int?>? ElementMultipliers = null, IDictionary<string, Hero>? ElementChampions = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Heroes is not null)
-            {
-                var HeroesValueId = Guid.NewGuid().ToString();
-                value["Heroes"] = HeroesValueId;
-                var HeroesIds = new List<string>();
-                foreach (var entry in Heroes)
-                {
-                    var entryValue = entry;
-                    if (entryValue is null)
-                    {
-                        var entryValueId = Guid.NewGuid().ToString();
-                        HeroesIds.Add(entryValueId);
-                        valueRows.Add(new ObjectAttributeValue
-                        {
-                            id = entryValueId,
-                            createdAt = nowIso,
-                            updatedAt = nowIso,
-                            value = null,
-                        });
-                    }
-                    else
-                    {
-                        HeroesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entryValue.valueId));
-                    }
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = HeroesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = HeroesIds.ToArray(),
-                });
-            }
-            if (Flag is not null)
-            {
-                var FlagValueId = Guid.NewGuid().ToString();
-                value["Flag"] = FlagValueId;
-                valueRows.Add(new BoolAttributeValue
-                {
-                    id = FlagValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Flag,
-                });
-            }
-            if (Score is not null)
-            {
-                var ScoreValueId = Guid.NewGuid().ToString();
-                value["Score"] = ScoreValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = ScoreValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Score.HasValue ? Score.Value : (double?)null,
-                });
-            }
-            if (NeoMemory is not null)
-            {
-                value["NeoMemory"] = NeoGeneratedTypesSupport.LookupSelectionId(NeoMemory.valueId);
-            }
-            if (SampleLayerGroup is not null)
-            {
-                value["SampleLayerGroup"] = NeoGeneratedTypesSupport.LookupSelectionId(SampleLayerGroup.valueId);
-            }
-            if (StorageInherit is not null)
-            {
-                value["StorageInherit"] = NeoGeneratedTypesSupport.LookupSelectionId(StorageInherit.valueId);
-            }
-            if (ElementStats is not null)
-            {
-                var ElementStatsValueId = Guid.NewGuid().ToString();
-                value["ElementStats"] = ElementStatsValueId;
-                var ElementStatsIds = new Dictionary<string, string>();
-                foreach (var pair in ElementStats)
-                {
-                    var entryValueId = Guid.NewGuid().ToString();
-                    ElementStatsIds[pair.Key] = entryValueId;
-                    valueRows.Add(new NumberAttributeValue
-                    {
-                        id = entryValueId,
-                        createdAt = nowIso,
-                        updatedAt = nowIso,
-                        value = pair.Value,
-                    });
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = ElementStatsValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ElementStatsIds,
-                });
-            }
-            if (ElementMultipliers is not null)
-            {
-                var ElementMultipliersValueId = Guid.NewGuid().ToString();
-                value["ElementMultipliers"] = ElementMultipliersValueId;
-                var ElementMultipliersIds = new Dictionary<string, string>();
-                foreach (var pair in ElementMultipliers)
-                {
-                    var entryValueId = Guid.NewGuid().ToString();
-                    ElementMultipliersIds[pair.Key] = entryValueId;
-                    valueRows.Add(new NumberAttributeValue
-                    {
-                        id = entryValueId,
-                        createdAt = nowIso,
-                        updatedAt = nowIso,
-                        value = pair.Value,
-                    });
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = ElementMultipliersValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ElementMultipliersIds,
-                });
-            }
-            if (ElementChampions is not null)
-            {
-                var ElementChampionsValueId = Guid.NewGuid().ToString();
-                value["ElementChampions"] = ElementChampionsValueId;
-                var ElementChampionsIds = new Dictionary<string, string>();
-                foreach (var pair in ElementChampions)
-                {
-                    ElementChampionsIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(pair.Value.valueId);
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = ElementChampionsValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ElementChampionsIds,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-root", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-root",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Heroes", "attr-heroes", Heroes),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Flag", "attr-isalive", Flag),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Score", "attr-root-score", Score),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("NeoMemory", "attr-neo-memory", NeoMemory),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SampleLayerGroup", "attr-sample-layer-group", SampleLayerGroup),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("StorageInherit", "attr-storage-a", StorageInherit),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementStats", "attr-elem-stats", ElementStats),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementMultipliers", "attr-elem-multipliers", ElementMultipliers),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ElementChampions", "attr-elem-champions", ElementChampions)
+            );
         }
 
         internal static Root Create(NeoClient client, NeoAttributeCustom node)
@@ -1100,7 +879,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("Manifest").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("Manifest").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -1110,13 +889,13 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("Active").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("Active").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (bool)result.value!;
             }
             set
             {
-                var result = node.Get<NeoAttributeNSProperty>("Active").Set(valueId!, value);
+                var result = writableNode.Get<NeoAttributeNSProperty>("Active").Set(valueId!, value);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty setter failed.");
             }
         }
@@ -1388,6 +1167,8 @@ namespace Assets.Scripts.Neo
         bool TryWritable(out SampleTileInstance writable);
 
         int? Value { get; }
+
+        IReadOnlySampleTileInstance ConstructSample();
     }
 
     public partial class SampleTileInstance : NeoGeneratedCustomValue, IReadOnlySampleTileInstance
@@ -1405,22 +1186,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(int? Value = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Value is not null)
-            {
-                var ValueValueId = Guid.NewGuid().ToString();
-                value["Value"] = ValueValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = ValueValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Value.HasValue ? Value.Value : (double?)null,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-sample-tile-instance", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-sample-tile-instance",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-sample-tile-value", Value)
+            );
         }
 
         internal static SampleTileInstance Create(NeoClient client, NeoAttributeCustom node)
@@ -1478,6 +1248,14 @@ namespace Assets.Scripts.Neo
                 ThrowIfReadOnly("SampleTileInstance.Value");
                 NeoGeneratedTypesSupport.SetValue(writableNode, "Value", NeoGeneratedTypesSupport.Value(value));
             }
+        }
+
+
+        public virtual IReadOnlySampleTileInstance ConstructSample()
+        {
+            if (valueId is null) throw new InvalidOperationException("Cannot invoke NSFunction 'ConstructSample' without a backing receiver value id.");
+            var result = writableNode.Get<NeoAttributeNSFunction>("ConstructSample").Invoke(valueId!, new object?[] { });
+            return NeoGeneratedTypesSupport.ReadRequiredNSPropertyCustom(client, result, true, null, SampleTileInstance.CreateWritable);
         }
 
         public sealed class Fields
@@ -1792,27 +1570,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IEnumerable<SampleTileInstance>? Tiles = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Tiles is not null)
-            {
-                var TilesValueId = Guid.NewGuid().ToString();
-                value["Tiles"] = TilesValueId;
-                var TilesIds = new List<string>();
-                foreach (var entry in Tiles)
-                {
-                    TilesIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = TilesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = TilesIds.ToArray(),
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-sample-blocked-path", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-sample-blocked-path",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Tiles", "attr-sample-tiles", Tiles)
+            );
         }
 
         internal new static SampleBlockedPath Create(NeoClient client, NeoAttributeCustom node)
@@ -1945,26 +1707,12 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(int? Value = null, StorageB? SaveChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Value is not null)
-            {
-                var ValueValueId = Guid.NewGuid().ToString();
-                value["Value"] = ValueValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = ValueValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Value.HasValue ? Value.Value : (double?)null,
-                });
-            }
-            if (SaveChild is not null)
-            {
-                value["SaveChild"] = NeoGeneratedTypesSupport.LookupSelectionId(SaveChild.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-storage-a", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-storage-a",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-storage-a-value", Value),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SaveChild", "attr-storage-a-save-child", SaveChild)
+            );
         }
 
         internal static StorageA Create(NeoClient client, NeoAttributeCustom node)
@@ -2122,14 +1870,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(StorageC? InheritChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (InheritChild is not null)
-            {
-                value["InheritChild"] = NeoGeneratedTypesSupport.LookupSelectionId(InheritChild.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-storage-b", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-storage-b",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("InheritChild", "attr-storage-b-inherit-child", InheritChild)
+            );
         }
 
         internal static StorageB Create(NeoClient client, NeoAttributeCustom node)
@@ -2272,26 +2017,12 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(int? Value = null, StorageD? SessionChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Value is not null)
-            {
-                var ValueValueId = Guid.NewGuid().ToString();
-                value["Value"] = ValueValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = ValueValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Value.HasValue ? Value.Value : (double?)null,
-                });
-            }
-            if (SessionChild is not null)
-            {
-                value["SessionChild"] = NeoGeneratedTypesSupport.LookupSelectionId(SessionChild.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-storage-c", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-storage-c",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-storage-c-value", Value),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("SessionChild", "attr-storage-c-session-child", SessionChild)
+            );
         }
 
         internal static StorageC Create(NeoClient client, NeoAttributeCustom node)
@@ -2448,14 +2179,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(StorageE? InheritChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (InheritChild is not null)
-            {
-                value["InheritChild"] = NeoGeneratedTypesSupport.LookupSelectionId(InheritChild.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-storage-d", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-storage-d",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("InheritChild", "attr-storage-d-inherit-child", InheritChild)
+            );
         }
 
         internal static StorageD Create(NeoClient client, NeoAttributeCustom node)
@@ -2598,26 +2326,12 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(int? Value = null, StorageF? StaticChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Value is not null)
-            {
-                var ValueValueId = Guid.NewGuid().ToString();
-                value["Value"] = ValueValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = ValueValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Value.HasValue ? Value.Value : (double?)null,
-                });
-            }
-            if (StaticChild is not null)
-            {
-                value["StaticChild"] = NeoGeneratedTypesSupport.LookupSelectionId(StaticChild.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-storage-e", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-storage-e",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-storage-e-value", Value),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("StaticChild", "attr-storage-e-static-child", StaticChild)
+            );
         }
 
         internal static StorageE Create(NeoClient client, NeoAttributeCustom node)
@@ -2765,14 +2479,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(StorageG? InheritChild = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (InheritChild is not null)
-            {
-                value["InheritChild"] = NeoGeneratedTypesSupport.LookupSelectionId(InheritChild.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-storage-f", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-storage-f",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("InheritChild", "attr-storage-f-inherit-child", InheritChild)
+            );
         }
 
         internal static StorageF Create(NeoClient client, NeoAttributeCustom node)
@@ -2904,22 +2615,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(int? Value = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Value is not null)
-            {
-                var ValueValueId = Guid.NewGuid().ToString();
-                value["Value"] = ValueValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = ValueValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Value.HasValue ? Value.Value : (double?)null,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-storage-g", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-storage-g",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-storage-g-value", Value)
+            );
         }
 
         internal static StorageG Create(NeoClient client, NeoAttributeCustom node)
@@ -3050,23 +2750,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-base", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-base",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "attr-name", Name)
+            );
         }
 
         internal static Base Create(NeoClient client, NeoAttributeCustom node)
@@ -3206,35 +2894,12 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null, int? Health = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (Health is not null)
-            {
-                var HealthValueId = Guid.NewGuid().ToString();
-                value["Health"] = HealthValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = HealthValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Health.HasValue ? Health.Value : (double?)null,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-derived", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-derived",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "attr-name", Name),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Health", "attr-health", Health)
+            );
         }
 
         internal new static Derived Create(NeoClient client, NeoAttributeCustom node)
@@ -3374,23 +3039,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Name = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Name is not null)
-            {
-                var NameValueId = Guid.NewGuid().ToString();
-                value["Name"] = NameValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = NameValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Name,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-override", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-override",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Name", "attr-altname", Name)
+            );
         }
 
         internal new static Override Create(NeoClient client, NeoAttributeCustom node)
@@ -3786,23 +3439,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Title = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Title is not null)
-            {
-                var TitleValueId = Guid.NewGuid().ToString();
-                value["Title"] = TitleValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = TitleValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Title,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-contract-child", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-contract-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "attr-contract-title-reabstracted", Title)
+            );
         }
 
         internal new static ContractChild Create(NeoClient client, NeoAttributeCustom node)
@@ -3959,23 +3600,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Title = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Title is not null)
-            {
-                var TitleValueId = Guid.NewGuid().ToString();
-                value["Title"] = TitleValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = TitleValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Title,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-contract-deep-child", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-contract-deep-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "attr-contract-title-reabstracted", Title)
+            );
         }
 
         internal new static ContractDeepChild Create(NeoClient client, NeoAttributeCustom node)
@@ -4111,23 +3740,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string? Title = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (Title is not null)
-            {
-                var TitleValueId = Guid.NewGuid().ToString();
-                value["Title"] = TitleValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = TitleValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = Title,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-contract-explicit-child", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-contract-explicit-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "attr-contract-title-sealed", Title)
+            );
         }
 
         internal new static ContractExplicitChild Create(NeoClient client, NeoAttributeCustom node)
@@ -4285,10 +3902,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(object? Title = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-contract-null-child", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-contract-null-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "attr-contract-title-null", Title)
+            );
         }
 
         internal new static ContractNullChild Create(NeoClient client, NeoAttributeCustom node)
@@ -4443,10 +4061,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(object? Title = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-contract-null-deep-child", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-contract-null-deep-child",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Title", "attr-contract-title-null", Title)
+            );
         }
 
         internal new static ContractNullDeepChild Create(NeoClient client, NeoAttributeCustom node)
@@ -4696,19 +4315,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(double Value)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var ValueValueId = Guid.NewGuid().ToString();
-            value["Value"] = ValueValueId;
-            valueRows.Add(new NumberAttributeValue
-            {
-                id = ValueValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Value,
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-generic-float-payload", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-generic-float-payload",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-generic-payload-value", Value)
+            );
         }
 
         internal new static GenericFloatPayload Create(NeoClient client, NeoAttributeCustom node)
@@ -4829,20 +4440,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string Value)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var ValueValueId = Guid.NewGuid().ToString();
-            value["Value"] = ValueValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = ValueValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Value,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-generic-string-payload", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-generic-string-payload",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Value", "attr-generic-payload-value", Value)
+            );
         }
 
         internal new static GenericStringPayload Create(NeoClient client, NeoAttributeCustom node)
@@ -5142,48 +4744,13 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(double Amount, IEnumerable<double>? Values = null, GenericPayload<double>? Payload = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var AmountValueId = Guid.NewGuid().ToString();
-            value["Amount"] = AmountValueId;
-            valueRows.Add(new NumberAttributeValue
-            {
-                id = AmountValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Amount,
-            });
-            if (Values is not null)
-            {
-                var ValuesValueId = Guid.NewGuid().ToString();
-                value["Values"] = ValuesValueId;
-                var ValuesIds = new List<string>();
-                foreach (var entry in Values)
-                {
-                    var entryValueId = Guid.NewGuid().ToString();
-                    ValuesIds.Add(entryValueId);
-                    valueRows.Add(new NumberAttributeValue
-                    {
-                        id = entryValueId,
-                        createdAt = nowIso,
-                        updatedAt = nowIso,
-                        value = entry,
-                    });
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ValuesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ValuesIds.ToArray(),
-                });
-            }
-            if (Payload is not null)
-            {
-                value["Payload"] = NeoGeneratedTypesSupport.LookupSelectionId(Payload.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-generic-float-contract", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-generic-float-contract",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Amount", "attr-generic-contract-amount", Amount),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Values", "attr-generic-contract-values", Values),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Payload", "attr-generic-contract-payload", Payload)
+            );
         }
 
         internal new static GenericFloatContract Create(NeoClient client, NeoAttributeCustom node)
@@ -5288,7 +4855,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("Computed").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("Computed").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return Convert.ToDouble(result.value);
             }
@@ -5412,50 +4979,13 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string Amount, IEnumerable<string>? Values = null, GenericPayload<string>? Payload = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var AmountValueId = Guid.NewGuid().ToString();
-            value["Amount"] = AmountValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = AmountValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Amount,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            if (Values is not null)
-            {
-                var ValuesValueId = Guid.NewGuid().ToString();
-                value["Values"] = ValuesValueId;
-                var ValuesIds = new List<string>();
-                foreach (var entry in Values)
-                {
-                    var entryValueId = Guid.NewGuid().ToString();
-                    ValuesIds.Add(entryValueId);
-                    valueRows.Add(new StringAttributeValue
-                    {
-                        id = entryValueId,
-                        createdAt = nowIso,
-                        updatedAt = nowIso,
-                        value = entry,
-                        neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                    });
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ValuesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ValuesIds.ToArray(),
-                });
-            }
-            if (Payload is not null)
-            {
-                value["Payload"] = NeoGeneratedTypesSupport.LookupSelectionId(Payload.valueId);
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-generic-string-contract", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-generic-string-contract",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Amount", "attr-generic-contract-amount", Amount),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Values", "attr-generic-contract-values", Values),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Payload", "attr-generic-contract-payload", Payload)
+            );
         }
 
         internal new static GenericStringContract Create(NeoClient client, NeoAttributeCustom node)
@@ -5560,7 +5090,7 @@ namespace Assets.Scripts.Neo
         {
             get
             {
-                var result = node.Get<NeoAttributeNSProperty>("Computed").Compute(valueId!);
+                var result = writableNode.Get<NeoAttributeNSProperty>("Computed").Compute(valueId!);
                 if (!result.ok) throw new InvalidOperationException(result.error ?? "NSProperty evaluation failed.");
                 return (string)result.value!;
             }
@@ -5930,11 +5460,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(Hero Subject)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            value["Subject"] = NeoGeneratedTypesSupport.LookupSelectionId(Subject.valueId);
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-generic-function-hero-contract", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-generic-function-hero-contract",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("Subject", "attr-generic-function-subject", Subject)
+            );
         }
 
         internal new static GenericFunctionHeroContract Create(NeoClient client, NeoAttributeCustom node)
@@ -6136,20 +5666,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(string ChoiceId)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            var ChoiceIdValueId = Guid.NewGuid().ToString();
-            value["ChoiceId"] = ChoiceIdValueId;
-            valueRows.Add(new StringAttributeValue
-            {
-                id = ChoiceIdValueId,
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = ChoiceId,
-                neoLocalizationMode = NeoStringLocalizationMode.Literal,
-            });
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-choice-log", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-choice-log",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ChoiceId", "attr-choice-id", ChoiceId)
+            );
         }
 
         internal static NeoChoiceLog Create(NeoClient client, NeoAttributeCustom node)
@@ -6291,65 +5812,14 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(int? VisitCount = null, string? LastVisitedAt = null, string? MostRecentChoiceId = null, IEnumerable<NeoChoiceLog>? ChoiceHistory = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (VisitCount is not null)
-            {
-                var VisitCountValueId = Guid.NewGuid().ToString();
-                value["VisitCount"] = VisitCountValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = VisitCountValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = VisitCount.HasValue ? VisitCount.Value : (double?)null,
-                });
-            }
-            if (LastVisitedAt is not null)
-            {
-                var LastVisitedAtValueId = Guid.NewGuid().ToString();
-                value["LastVisitedAt"] = LastVisitedAtValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = LastVisitedAtValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = LastVisitedAt,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (MostRecentChoiceId is not null)
-            {
-                var MostRecentChoiceIdValueId = Guid.NewGuid().ToString();
-                value["MostRecentChoiceId"] = MostRecentChoiceIdValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = MostRecentChoiceIdValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = MostRecentChoiceId,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (ChoiceHistory is not null)
-            {
-                var ChoiceHistoryValueId = Guid.NewGuid().ToString();
-                value["ChoiceHistory"] = ChoiceHistoryValueId;
-                var ChoiceHistoryIds = new List<string>();
-                foreach (var entry in ChoiceHistory)
-                {
-                    ChoiceHistoryIds.Add(NeoGeneratedTypesSupport.LookupSelectionId(entry.valueId));
-                }
-                valueRows.Add(new ArrayAttributeValue
-                {
-                    id = ChoiceHistoryValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = ChoiceHistoryIds.ToArray(),
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-text-node-memory", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-text-node-memory",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VisitCount", "attr-visit-count", VisitCount),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LastVisitedAt", "attr-last-visited-at", LastVisitedAt),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("MostRecentChoiceId", "attr-most-recent-choice-id", MostRecentChoiceId),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("ChoiceHistory", "attr-choice-history", ChoiceHistory)
+            );
         }
 
         internal static NeoTextNodeMemory Create(NeoClient client, NeoAttributeCustom node)
@@ -6543,52 +6013,13 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(int? VisitCount = null, string? LastVisitedAt = null, IDictionary<string, NeoTextNodeMemory>? TextNodeMemories = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (VisitCount is not null)
-            {
-                var VisitCountValueId = Guid.NewGuid().ToString();
-                value["VisitCount"] = VisitCountValueId;
-                valueRows.Add(new NumberAttributeValue
-                {
-                    id = VisitCountValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = VisitCount.HasValue ? VisitCount.Value : (double?)null,
-                });
-            }
-            if (LastVisitedAt is not null)
-            {
-                var LastVisitedAtValueId = Guid.NewGuid().ToString();
-                value["LastVisitedAt"] = LastVisitedAtValueId;
-                valueRows.Add(new StringAttributeValue
-                {
-                    id = LastVisitedAtValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = LastVisitedAt,
-                    neoLocalizationMode = NeoStringLocalizationMode.Literal,
-                });
-            }
-            if (TextNodeMemories is not null)
-            {
-                var TextNodeMemoriesValueId = Guid.NewGuid().ToString();
-                value["TextNodeMemories"] = TextNodeMemoriesValueId;
-                var TextNodeMemoriesIds = new Dictionary<string, string>();
-                foreach (var pair in TextNodeMemories)
-                {
-                    TextNodeMemoriesIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(pair.Value.valueId);
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = TextNodeMemoriesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = TextNodeMemoriesIds,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-dialogue-memory", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-dialogue-memory",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("VisitCount", "attr-visit-count", VisitCount),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("LastVisitedAt", "attr-last-visited-at", LastVisitedAt),
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("TextNodeMemories", "attr-text-node-memories", TextNodeMemories)
+            );
         }
 
         internal static NeoDialogueMemory Create(NeoClient client, NeoAttributeCustom node)
@@ -6761,27 +6192,11 @@ namespace Assets.Scripts.Neo
         private static NeoAttributeCustomWritable CreateFactoryNode(IDictionary<string, NeoDialogueMemory>? DialogueMemories = null)
         {
             var client = TestProjectNeo.RequireInstance().Client;
-            var nowIso = DateTime.UtcNow.ToString("o");
-            var value = new Dictionary<string, string>();
-            var valueRows = new List<AttributeValue>();
-            if (DialogueMemories is not null)
-            {
-                var DialogueMemoriesValueId = Guid.NewGuid().ToString();
-                value["DialogueMemories"] = DialogueMemoriesValueId;
-                var DialogueMemoriesIds = new Dictionary<string, string>();
-                foreach (var pair in DialogueMemories)
-                {
-                    DialogueMemoriesIds[pair.Key] = NeoGeneratedTypesSupport.LookupSelectionId(pair.Value.valueId);
-                }
-                valueRows.Add(new ObjectAttributeValue
-                {
-                    id = DialogueMemoriesValueId,
-                    createdAt = nowIso,
-                    updatedAt = nowIso,
-                    value = DialogueMemoriesIds,
-                });
-            }
-            return NeoGeneratedTypesSupport.CreateWritableCustomValue(client, "type-neo-memory", value, valueRows);
+            return NeoGeneratedTypesSupport.CreateWritableCustomValue(
+                client,
+                "type-neo-memory",
+                new global::NeoCompose.Runtime.NeoGeneratedConstructorValue("DialogueMemories", "attr-dialogue-memories", DialogueMemories)
+            );
         }
 
         internal static NeoMemory Create(NeoClient client, NeoAttributeCustom node)

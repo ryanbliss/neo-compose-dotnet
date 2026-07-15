@@ -39,7 +39,7 @@ namespace NeoCompose.Tests
         public void DecimalAttribute_DeserializesByTypeOrdinal()
         {
             var attribute = JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Attribute>(
-                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Speed\",\"type\":20," +
+                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Speed\",\"type\":20,\"isStatic\":false," +
                 "\"minValue\":\"0\",\"maxValue\":\"100.5\",\"decimalPoints\":4," +
                 "\"defaultValue\":{\"value\":\"1.25\"}}");
             Assert.IsInstanceOf<DecimalAttribute>(attribute);

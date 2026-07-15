@@ -347,6 +347,7 @@ namespace NeoCompose.Tests
                     ""type"": 5,
                     ""locked"": false,
                     ""required"": false,
+                    ""isStatic"": false,
                     ""createdAt"": 0,
                     ""updatedAt"": 0,
                     ""entryAttributeId"": ""attr-entry"",
@@ -371,6 +372,7 @@ namespace NeoCompose.Tests
                     ""type"": 5,
                     ""locked"": false,
                     ""required"": false,
+                    ""isStatic"": false,
                     ""createdAt"": 0,
                     ""updatedAt"": 0,
                     ""entryAttributeId"": ""attr-entry""
@@ -391,6 +393,7 @@ namespace NeoCompose.Tests
                     ""type"": 5,
                     ""locked"": false,
                     ""required"": false,
+                    ""isStatic"": false,
                     ""createdAt"": 0,
                     ""updatedAt"": 0,
                     ""entryAttributeId"": ""attr-entry"",

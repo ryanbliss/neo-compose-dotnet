@@ -8,14 +8,14 @@ namespace NeoCompose.Runtime
     /// <summary>
     /// Storage classes for attribute values (specs/attribute-storage.md).
     /// Mirrors the TS-side <c>AttributeStorage</c> enum; the wire values are
-    /// the lowercase strings "inherit" / "static" / "save" / "session".
+    /// the lowercase strings "inherit" / "immutable" / "save" / "session".
     /// </summary>
     public enum NeoAttributeStorage
     {
         /// <summary>No declared class — the placement parent decides.</summary>
         Inherit,
         /// <summary>Authored value only; read-only at runtime.</summary>
-        Static,
+        Immutable,
         /// <summary>Writable; persisted in the save-file overlay.</summary>
         Save,
         /// <summary>Writable; in-memory only, resets each session.</summary>
@@ -28,7 +28,7 @@ namespace NeoCompose.Runtime
         /// Parses the wire string form. Absent (null) is
         /// <see cref="NeoAttributeStorage.Inherit"/>; unknown strings throw
         /// so a future storage class fails loud instead of silently reading
-        /// as static.
+        /// as immutable.
         /// </summary>
         public static NeoAttributeStorage Parse(string? wire)
         {
@@ -37,8 +37,8 @@ namespace NeoCompose.Runtime
                 case null:
                 case "inherit":
                     return NeoAttributeStorage.Inherit;
-                case "static":
-                    return NeoAttributeStorage.Static;
+                case "immutable":
+                    return NeoAttributeStorage.Immutable;
                 case "save":
                     return NeoAttributeStorage.Save;
                 case "session":
@@ -60,7 +60,7 @@ namespace NeoCompose.Runtime
             {
                 case NeoAttributeStorage.Inherit:
                     return null;
-                case NeoAttributeStorage.Static:
+                case NeoAttributeStorage.Immutable:
                     return NeoValueOwnership.Asset;
                 case NeoAttributeStorage.Save:
                     return NeoValueOwnership.Save;

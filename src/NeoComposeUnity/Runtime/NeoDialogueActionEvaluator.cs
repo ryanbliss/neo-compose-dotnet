@@ -14,7 +14,7 @@ namespace NeoCompose.Runtime
 {
     internal static class NeoDialogueActionEvaluator
     {
-        internal static NeoActionExecutionResult Execute(
+        internal static NeoScriptExecutionResult Execute(
             NeoClient client,
             FunctionWithReturnType action,
             NeoDialogueContext dialogueContext,
@@ -31,41 +31,162 @@ namespace NeoCompose.Runtime
                 ["__root__"] = ctx.rootValue,
                 ["__context__"] = ctx.contextValue,
             };
-            return NeoActionExecutor.Execute(
+            return NeoScriptExecutor.Execute(
                 client,
                 action,
                 scope,
                 ctx,
-                NeoActionExecutionOptions.ForDialogue(client, logger));
+                NeoScriptExecutionOptions.ForDialogue(client, logger),
+                terminal => NeoScriptExecutor.ValidateStatementTerminal(
+                    terminal,
+                    "Dialogue action"));
         }
     }
 
     /// <summary>
-    /// Shared mutation-capable NeoScript executor. Dialogue code actions and
-    /// NSProperty setters supply their own root scope and evaluator context,
-    /// while sharing write targets and deferred-Function continuations.
+    /// Shared mutation-capable NeoScript executor. Getters, NSFunctions,
+    /// setters, dialogue code actions, and collection callbacks supply their
+    /// own scope/context while sharing write targets, calls, and deferred
+    /// continuations.
     /// </summary>
-    internal static class NeoActionExecutor
+    internal static class NeoScriptExecutor
     {
-        internal static NeoActionExecutionResult Execute(
+        internal static NeoScriptExecutionResult Execute(
             NeoClient client,
-            FunctionWithReturnType action,
+            FunctionWithReturnType body,
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx,
-            NeoActionExecutionOptions? options = null)
+            NeoScriptExecutionOptions? options = null,
+            Func<NeoScriptExecutionResult, NeoScriptExecutionResult>?
+                normalizeTerminal = null)
         {
-            return ExecuteInstructions(
-                client,
-                action.instructions,
-                action.typeInfo,
-                scope,
-                ctx,
-                0,
-                null,
-                options);
+            bool allocationScopeClosed = false;
+            ctx.allocationTracker.EnterExecution();
+            try
+            {
+                NeoScriptExecutionResult result = ExecuteInstructions(
+                    client,
+                    body.instructions,
+                    body.typeInfo,
+                    scope,
+                    ctx,
+                    0,
+                    null,
+                    options);
+                return ExitAllocationScopeWhenTerminal(result);
+            }
+            catch
+            {
+                CloseAllocationScope(null);
+                throw;
+            }
+
+            void CloseAllocationScope(NeoScriptExecutionResult? terminalResult)
+            {
+                if (allocationScopeClosed) return;
+                allocationScopeClosed = true;
+                ctx.allocationTracker.ExitExecution(
+                    client,
+                    ctx,
+                    terminalResult);
+            }
+
+            NeoScriptExecutionResult ExitAllocationScopeWhenTerminal(
+                NeoScriptExecutionResult result)
+            {
+                if (result.IsPaused)
+                {
+                    return result
+                        .Then(ExitAllocationScopeWhenTerminal)
+                        .ObserveFailure(_ => CloseAllocationScope(null));
+                }
+                // Terminal marshalling may intentionally replace the CLR
+                // value (for example, a receiver-generic Decimal number with
+                // its canonical string). Allocation escape detection must
+                // still inspect the evaluator's original row-backed object;
+                // a copied List/Dictionary would otherwise lose its reverse
+                // row identity and an empty returned constructor graph could
+                // be reclaimed as though it never escaped.
+                NeoScriptExecutionResult allocationTerminal = result;
+                if (normalizeTerminal is null)
+                {
+                    result = ValidateTerminalAgainstBody(body, result);
+                }
+                else
+                {
+                    // NSFunctions resolve receiver-bound Generic return types
+                    // at invocation time. Their terminal callback is therefore
+                    // the authoritative validator/marshaller; validating the
+                    // unresolved compiled body type first would reject valid
+                    // closed invocations.
+                    result = normalizeTerminal(result);
+                }
+                CloseAllocationScope(allocationTerminal);
+                return result;
+            }
         }
 
-        private static NeoActionExecutionResult ExecuteInstructions(
+        private static NeoScriptExecutionResult ValidateTerminalAgainstBody(
+            FunctionWithReturnType body,
+            NeoScriptExecutionResult execution)
+        {
+            TypeInfo returnType = body.typeInfo
+                ?? throw new NSGetterRuntimeError(
+                    "NeoScript body is missing its compiled return type.");
+            if (returnType is VoidTypeInfo
+                || returnType.type == AttributeType.Void
+                // Existing action/setter IR uses Null as its statement-body
+                // result marker. Preserve fallthrough for that wire shape;
+                // NSGetterEvaluator still enforces an explicit return at the
+                // getter boundary after allocation cleanup.
+                || returnType.type == AttributeType.Null)
+            {
+                if (execution.ReturnValue is not null)
+                {
+                    throw new NSGetterRuntimeError(
+                        "Void NeoScript body returned a value; its compiled IR is stale or corrupt.");
+                }
+                return execution;
+            }
+            if (!execution.Returned)
+            {
+                throw new NSGetterRuntimeError(
+                    "NeoScript body ended without returning a value; its compiled IR is stale or corrupt.");
+            }
+            // Ordinary evaluator frames may carry a Neo row id as their
+            // internal representation for a declared Custom/List/Dictionary
+            // return. Public NSFunction boundaries supply normalizeTerminal,
+            // which performs the authoritative runtime validation/marshalling
+            // against the resolved signature before allocation cleanup.
+            return execution;
+        }
+
+        /// <summary>
+        /// Setters and dialogue actions are statement bodies. Their compiled
+        /// <see cref="FunctionWithReturnType.typeInfo"/> historically carries
+        /// Null or the property's value type rather than Void, so falling off
+        /// the end is successful. A non-null terminal value is nevertheless
+        /// stale/corrupt IR and must be rejected before constructor allocation
+        /// cleanup decides that the value escaped.
+        /// </summary>
+        internal static NeoScriptExecutionResult ValidateStatementTerminal(
+            NeoScriptExecutionResult execution,
+            string subject)
+        {
+            if (execution.IsPaused)
+            {
+                throw new InvalidOperationException(
+                    $"{subject} terminal normalization received a paused execution.");
+            }
+            if (execution.ReturnValue is not null)
+            {
+                throw new NSGetterRuntimeError(
+                    $"{subject} returned a value; its compiled IR is stale or corrupt.");
+            }
+            return execution;
+        }
+
+        private static NeoScriptExecutionResult ExecuteInstructions(
             NeoClient client,
             Instruction[] instructions,
             TypeInfo returnTypeInfo,
@@ -73,7 +194,7 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             int startIndex,
             ExpressionResumeState? resumeState,
-            NeoActionExecutionOptions? options)
+            NeoScriptExecutionOptions? options)
         {
             var expressionState = resumeState ?? new ExpressionResumeState();
             var actionCtx = ctx.WithFunctionCallHandler(
@@ -157,7 +278,7 @@ namespace NeoCompose.Runtime
                                     returnValue,
                                     "return");
                             }
-                            return NeoActionExecutionResult.Completed(
+                            return NeoScriptExecutionResult.Completed(
                                 returned: true,
                                 returnValue);
                         }
@@ -229,10 +350,10 @@ namespace NeoCompose.Runtime
                             $"Unknown instruction kind {instruction.GetType().Name}");
                 }
             }
-            return NeoActionExecutionResult.Completed(returned: false, returnValue: null);
+            return NeoScriptExecutionResult.Completed(returned: false, returnValue: null);
         }
 
-        private static NeoActionExecutionResult PauseAtInstruction(
+        private static NeoScriptExecutionResult PauseAtInstruction(
             NeoClient client,
             Instruction[] instructions,
             TypeInfo returnTypeInfo,
@@ -241,13 +362,13 @@ namespace NeoCompose.Runtime
             int instructionIndex,
             ExpressionResumeState expressionState,
             NeoFunctionCallSuspended suspended,
-            NeoActionExecutionOptions? options)
+            NeoScriptExecutionOptions? options)
         {
             options?.WarnDeferred(suspended.AttributeId);
             return ResumeAfterNestedCall(suspended.Execution);
 
-            NeoActionExecutionResult ResumeAfterNestedCall(
-                NeoActionExecutionResult nestedResult)
+            NeoScriptExecutionResult ResumeAfterNestedCall(
+                NeoScriptExecutionResult nestedResult)
             {
                 if (nestedResult.IsPaused)
                 {
@@ -268,9 +389,9 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private static NeoActionExecutionResult ThenWhenCompleted(
-            NeoActionExecutionResult result,
-            Func<NeoActionExecutionResult, NeoActionExecutionResult> next)
+        private static NeoScriptExecutionResult ThenWhenCompleted(
+            NeoScriptExecutionResult result,
+            Func<NeoScriptExecutionResult, NeoScriptExecutionResult> next)
         {
             if (result.IsPaused)
             {
@@ -279,12 +400,12 @@ namespace NeoCompose.Runtime
             return next(result);
         }
 
-        private static NeoActionExecutionResult? ExecuteAssign(
+        private static NeoScriptExecutionResult? ExecuteAssign(
             NeoClient client,
             AssignInstruction instruction,
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx,
-            NeoActionExecutionOptions? options)
+            NeoScriptExecutionOptions? options)
         {
             object? rhs = Eval(instruction.pointer, scope, ctx);
             if (instruction.target.pointer is VariablePointer variablePointer)
@@ -357,7 +478,7 @@ namespace NeoCompose.Runtime
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx,
             ExpressionResumeState expressionState,
-            NeoActionExecutionOptions? options)
+            NeoScriptExecutionOptions? options)
         {
             if (string.IsNullOrEmpty(pointer.callSiteId))
             {
@@ -373,11 +494,17 @@ namespace NeoCompose.Runtime
             }
             try
             {
-                var receiver = NSGetterEvaluator.EvaluatePointer(pointer.thisPointer, scope, ctx);
+                var receiver = NSGetterEvaluator.EvalCallReceiver(
+                    pointer.receiver,
+                    scope,
+                    ctx);
                 if (pointer.optional == true && receiver is null)
                 {
-                    expressionState.StoreValue(resumeKey, null);
-                    return null;
+                    if (!pointer.receiver.IsStatic)
+                    {
+                        expressionState.StoreValue(resumeKey, null);
+                        return null;
+                    }
                 }
                 var args = new object?[pointer.args.Length];
                 for (int i = 0; i < pointer.args.Length; i++)
@@ -401,13 +528,13 @@ namespace NeoCompose.Runtime
                             "an immediate NeoScript frame called its deferred signature; " +
                             "compiled call IR is stale/corrupt.");
                     }
-                    NeoActionExecutionResult nested = NeoNSFunctionRuntime.Execute(
+                    NeoScriptExecutionResult nested = NeoNSFunctionRuntime.Execute(
                         client,
                         attributeId,
                         receiver,
                         args,
                         ctx,
-                        options ?? NeoActionExecutionOptions.ForImmediate(client));
+                        options ?? NeoScriptExecutionOptions.ForImmediate(client));
                     if (nested.IsPaused)
                     {
                         if (!deferred)
@@ -454,7 +581,7 @@ namespace NeoCompose.Runtime
                             suspension.MarkInvokerReturned,
                             options?.CancelContinuationOnDeferredDisposal == true
                                 ? suspension.Cancel
-                                : null);
+                                : suspension.Abandon);
                         if (suspension.TryGetInlineResult(
                                 out object? inlineValue,
                                 out Exception? inlineError))
@@ -467,11 +594,11 @@ namespace NeoCompose.Runtime
                             throw new NeoFunctionCallSuspended(
                                 resumeKey,
                                 attributeId,
-                                NeoActionExecutionResult.Paused(
+                                NeoScriptExecutionResult.Paused(
                                     attributeId,
                                     deferredHandle,
                                     suspension,
-                                    inlineValue => NeoActionExecutionResult.Completed(
+                                    inlineValue => NeoScriptExecutionResult.Completed(
                                         returned: true,
                                         inlineValue)));
                         }
@@ -509,13 +636,13 @@ namespace NeoCompose.Runtime
             throw new NSGetterRuntimeError("If condition did not evaluate to bool.");
         }
 
-        private static NeoActionExecutionResult ExecuteSetterAssignment(
+        private static NeoScriptExecutionResult ExecuteSetterAssignment(
             NeoClient client,
             AssignInstruction instruction,
             object? rhs,
             Dictionary<string, object?> scope,
             NSGetterEvaluator.Context ctx,
-            NeoActionExecutionOptions? options)
+            NeoScriptExecutionOptions? options)
         {
             if (instruction.target.pointer is not CallGetterPointer callGetter)
             {
@@ -523,17 +650,33 @@ namespace NeoCompose.Runtime
                     "Setter write target must be a callGetter pointer.");
             }
 
-            object? receiver = Eval(callGetter.thisPointer, scope, ctx);
-            if (receiver is null)
+            bool isStatic = callGetter.receiver.IsStatic;
+            object? receiver = NSGetterEvaluator.EvalCallReceiver(
+                callGetter.receiver,
+                scope,
+                ctx);
+            if (!isStatic && receiver is null)
             {
                 throw new NSGetterRuntimeError("Cannot invoke setter on a null receiver.");
             }
 
-            string effectiveAttributeId = ResolveEffectiveSetterAttributeId(
-                client,
-                callGetter.attributeId,
-                receiver,
-                ctx);
+            string effectiveAttributeId = isStatic
+                ? callGetter.attributeId
+                : ResolveEffectiveSetterAttributeId(
+                    client,
+                    callGetter.attributeId,
+                    receiver!,
+                    ctx);
+            if (isStatic
+                && (!client.TryGetAttribute(
+                        effectiveAttributeId,
+                        out JsonAttribute? staticAttribute)
+                    || !staticAttribute.isStatic
+                    || callGetter.receiver.attributeId != effectiveAttributeId))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Static setter target '{effectiveAttributeId}' is missing, not static, or does not match its receiver.");
+            }
             if (ctx.setterCallStack.Contains(effectiveAttributeId))
             {
                 string circularName = client.TryGetAttribute(
@@ -566,10 +709,10 @@ namespace NeoCompose.Runtime
 
             var nestedScope = new Dictionary<string, object?>
             {
-                ["__this__"] = receiver,
                 ["__root__"] = ctx.rootValue,
                 ["__value__"] = value,
             };
+            if (!isStatic) nestedScope["__this__"] = receiver;
             if (ctx.contextValue is not null)
             {
                 nestedScope["__context__"] = ctx.contextValue;
@@ -577,10 +720,18 @@ namespace NeoCompose.Runtime
 
             var nestedCtx = ctx
                 .WithSetterPushed(effectiveAttributeId)
-                .WithThis(receiver);
-            var nestedOptions = (options ?? NeoActionExecutionOptions.ForUnity(client))
+                .WithThis(isStatic ? null : receiver);
+            var nestedOptions = (options ?? NeoScriptExecutionOptions.ForUnity(client))
                 .ForProperty(effectiveAttributeId);
-            return Execute(client, setter, nestedScope, nestedCtx, nestedOptions);
+            return Execute(
+                client,
+                setter,
+                nestedScope,
+                nestedCtx,
+                nestedOptions,
+                terminal => ValidateStatementTerminal(
+                    terminal,
+                    "NeoScript property setter"));
         }
 
         private static object? CoerceSetterValue(object? value, TypeInfo typeInfo)
@@ -620,7 +771,11 @@ namespace NeoCompose.Runtime
             {
                 return staticAttributeId;
             }
-            foreach (var entry in CustomTypeInheritance.MergeSchemas(chain))
+            foreach (var entry in CustomTypeInheritance.MergeInstanceSchema(
+                chain,
+                id => client.TryGetAttribute(id, out JsonAttribute? attribute)
+                    ? attribute
+                    : null))
             {
                 if (entry.schemaKey == placement.schemaKey)
                 {
@@ -653,6 +808,13 @@ namespace NeoCompose.Runtime
         {
             switch (target.pointer)
             {
+                case StaticMemberPointer staticMember:
+                    return new NeoStaticMemberWriteTarget(
+                        new NeoStaticBinding(
+                            client,
+                            staticMember.attributeId,
+                            client.ResolveStaticOwnership(staticMember.attributeId)),
+                        target.typeInfo);
                 case ReferencePointer reference:
                 {
                     NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
@@ -678,7 +840,22 @@ namespace NeoCompose.Runtime
         {
             NeoValueOwnership ownership = TargetOwnership(client, target, scope, ctx);
             string? rowId;
-            if (target.typeInfo is LookupTypeInfo && target.pointer is KeyOfPointer lookupKeyOf)
+            if (target.pointer is StaticMemberPointer staticMember)
+            {
+                var binding = new NeoStaticBinding(
+                    client,
+                    staticMember.attributeId,
+                    ownership);
+                if (binding.ValueId is null)
+                {
+                    object initialValue = target.typeInfo.type == AttributeType.Dictionary
+                        ? new Dictionary<string, string>()
+                        : System.Array.Empty<string>();
+                    binding.SetValue(NeoValueWritePayload.FromValue(initialValue));
+                }
+                rowId = binding.ValueId;
+            }
+            else if (target.typeInfo is LookupTypeInfo && target.pointer is KeyOfPointer lookupKeyOf)
             {
                 // A lookup READ resolves to the looked-up entries, so the
                 // evaluated value reverse-maps to an ASSET row (the first
@@ -788,12 +965,33 @@ namespace NeoCompose.Runtime
             return target.writability switch
             {
                 WritabilityKind.Save => NeoValueOwnership.Save,
-                WritabilityKind.AssetToSaveLookup => NeoValueOwnership.Save,
+                WritabilityKind.ImmutableToSaveLookup => NeoValueOwnership.Save,
                 WritabilityKind.Session => NeoValueOwnership.Session,
-                WritabilityKind.AssetToSessionLookup => NeoValueOwnership.Session,
+                WritabilityKind.ImmutableToSessionLookup => NeoValueOwnership.Session,
                 WritabilityKind.Local => NeoValueOwnership.Session,
+                WritabilityKind.Runtime => ResolveRuntimeTargetOwnership(
+                    client, target.pointer, scope, ctx),
                 _ => throw new NSGetterRuntimeError("Cannot mutate read-only dialogue action target."),
             };
+        }
+
+        private static NeoValueOwnership ResolveRuntimeTargetOwnership(
+            NeoClient client,
+            Pointer pointer,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx)
+        {
+            if (!TryResolveTargetOwnership(client, pointer, scope, ctx, out NeoValueOwnership ownership))
+            {
+                throw new NSGetterRuntimeError(
+                    "Cannot write runtime-owned target because its value ownership could not be resolved.");
+            }
+            if (ownership == NeoValueOwnership.Asset)
+            {
+                throw new NSGetterRuntimeError(
+                    "Cannot write runtime-owned target because its value is Asset-owned.");
+            }
+            return ownership;
         }
 
         private static bool TryInferTargetOwnership(
@@ -803,16 +1001,44 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             out NeoValueOwnership ownership)
         {
-            ownership = NeoValueOwnership.Asset;
-            string? rowId = pointer switch
-            {
-                ReferencePointer reference => reference.valueId,
-                KeyOfPointer keyOfPointer => FindValueId(Eval(keyOfPointer.keyOf.pointer, scope, ctx), ctx),
-                _ => null,
-            };
-            return rowId is not null
-                && client.TryGetValueOwnership(rowId, out ownership)
+            return TryResolveTargetOwnership(client, pointer, scope, ctx, out ownership)
                 && ownership != NeoValueOwnership.Asset;
+        }
+
+        private static bool TryResolveTargetOwnership(
+            NeoClient client,
+            Pointer pointer,
+            Dictionary<string, object?> scope,
+            NSGetterEvaluator.Context ctx,
+            out NeoValueOwnership ownership)
+        {
+            ownership = NeoValueOwnership.Asset;
+            if (pointer is StaticMemberPointer staticMember)
+            {
+                ownership = client.ResolveStaticOwnership(staticMember.attributeId);
+                return true;
+            }
+            object? resolvedTarget = pointer switch
+            {
+                ReferencePointer => null,
+                KeyOfPointer keyOfPointer =>
+                    Eval(keyOfPointer.keyOf.pointer, scope, ctx),
+                _ => Eval(pointer, scope, ctx),
+            };
+            NeoValueOwnership? contextualOwnership =
+                NSGetterEvaluator.FindRowOwnershipByReference(
+                    resolvedTarget,
+                    ctx);
+            if (contextualOwnership is not null)
+            {
+                ownership = contextualOwnership.Value;
+                return true;
+            }
+            string? rowId = pointer is ReferencePointer reference
+                ? reference.valueId
+                : FindValueId(resolvedTarget, ctx);
+            return rowId is not null
+                && client.TryGetValueOwnership(rowId, out ownership);
         }
 
         private static string EnsureWritableRow(NeoClient client, string rowId, NeoValueOwnership ownership)
@@ -842,10 +1068,13 @@ namespace NeoCompose.Runtime
             IList<MergedSchemaEntry> merged;
             try
             {
-                merged = CustomTypeInheritance.MergeSchemas(
+                merged = CustomTypeInheritance.MergeInstanceSchema(
                     CustomTypeInheritance.ResolveChain(
                         customTypeId,
-                        id => client.TryGetType(id, out CustomType? type) ? type : null));
+                        id => client.TryGetType(id, out CustomType? type) ? type : null),
+                    id => client.TryGetAttribute(id, out JsonAttribute? attribute)
+                        ? attribute
+                        : null);
             }
             catch (CircularInheritanceError)
             {
@@ -893,14 +1122,27 @@ namespace NeoCompose.Runtime
             NeoClient client,
             NeoValueOwnership ownership,
             string sourceValueId,
+            NSGetterEvaluator.Context ctx,
             string? currentDestinationValueId = null)
         {
             try
             {
-                return client.ImportValueReference(
+                bool hadSourceOwnership = client.TryGetValueOwnership(
+                    sourceValueId,
+                    out NeoValueOwnership sourceOwnership);
+                string importedId = client.ImportValueReference(
                     ownership,
                     sourceValueId,
+                    out bool sourceMoved,
                     currentDestinationValueId);
+                if (sourceMoved && hadSourceOwnership)
+                {
+                    NSGetterEvaluator.RetargetCachedRowsAfterMove(
+                        ctx,
+                        sourceOwnership,
+                        ownership);
+                }
+                return importedId;
             }
             catch (InvalidOperationException ex)
             {
@@ -1322,6 +1564,95 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private sealed class NeoStaticMemberWriteTarget : NeoResolvedWriteTarget
+        {
+            private readonly NeoStaticBinding binding;
+            private readonly TypeInfo typeInfo;
+
+            public NeoStaticMemberWriteTarget(
+                NeoStaticBinding binding,
+                TypeInfo typeInfo)
+            {
+                this.binding = binding;
+                this.typeInfo = typeInfo;
+            }
+
+            public override object? ReadCurrentValue(
+                NeoClient client,
+                NSGetterEvaluator.Context ctx)
+            {
+                string? valueId = binding.ValueId;
+                if (valueId is null) return null;
+                if (!client.TryGetOverlaidValue(
+                        binding.Ownership,
+                        valueId,
+                        out AttributeValue? row))
+                {
+                    throw new NSGetterRuntimeError(
+                        $"Static member '{binding.AttributeId}' is bound to missing value '{valueId}'.");
+                }
+                return ReadRowValue(row);
+            }
+
+            public override void Write(
+                NeoClient client,
+                object? value,
+                NSGetterEvaluator.Context ctx)
+            {
+                try
+                {
+                    if (typeInfo.type == AttributeType.Custom)
+                    {
+                        string? valueId = FindValueId(value, ctx);
+                        NeoValueOwnership sourceOwnership = default;
+                        bool hadSourceOwnership = valueId is not null
+                            && client.TryGetValueOwnership(
+                                valueId,
+                                out sourceOwnership);
+                        NeoValueWritePayload? payload = valueId is null
+                            ? NeoValueWritePayload.FromValue(null)
+                            : NeoValueWritePayload.FromValueReference(
+                                valueId,
+                                value as INeoValueReference);
+                        binding.SetValue(payload);
+                        if (hadSourceOwnership
+                            && sourceOwnership == NeoValueOwnership.Session
+                            && binding.Ownership == NeoValueOwnership.Save
+                            && !client.HasWritableValue(sourceOwnership, valueId!)
+                            && client.HasWritableValue(binding.Ownership, valueId!))
+                        {
+                            NSGetterEvaluator.RetargetCachedRowsAfterMove(
+                                ctx,
+                                sourceOwnership,
+                                binding.Ownership);
+                        }
+                    }
+                    else
+                    {
+                        object? payload = value is INeoValuePayloadProvider provider
+                            ? provider.ToNeoValuePayload()
+                            : value;
+                        binding.SetValue(NeoValueWritePayload.FromValue(payload));
+                    }
+                    if (binding.ValueId is string updatedId
+                        && client.TryGetOverlaidValue(
+                            binding.Ownership,
+                            updatedId,
+                            out AttributeValue? updatedRow))
+                    {
+                        NSGetterEvaluator.RefreshCachedRowAfterWrite(
+                            updatedRow,
+                            ctx,
+                            binding.Ownership);
+                    }
+                }
+                catch (InvalidOperationException error)
+                {
+                    throw new NSGetterRuntimeError(error.Message);
+                }
+            }
+        }
+
         private sealed class NeoCustomMemberWriteTarget : NeoResolvedWriteTarget
         {
             private readonly string parentRowId;
@@ -1383,6 +1714,7 @@ namespace NeoCompose.Runtime
                             client,
                             ownership,
                             referenceId!,
+                            ctx,
                             existingId);
                         if (importedId == existingId) return;
                         parent.value[key] = importedId;
@@ -1407,7 +1739,8 @@ namespace NeoCompose.Runtime
                         parent.value[key] = ImportCustomValueReference(
                             client,
                             ownership,
-                            referenceId!);
+                            referenceId!,
+                            ctx);
                         parent.updatedAt = now;
                         StoreWritableRow(client, ownership, parent, ctx);
                         return;
@@ -1523,6 +1856,7 @@ namespace NeoCompose.Runtime
                         client,
                         ownership,
                         referenceId!,
+                        ctx,
                         childId);
                     if (importedId == childId) return;
                     parent.value[index] = importedId;
@@ -1599,7 +1933,8 @@ namespace NeoCompose.Runtime
                             referencedNext[row.value.Length] = ImportCustomValueReference(
                                 client,
                                 ownership,
-                                referenceId!);
+                                referenceId!,
+                                ctx);
                             row.value = referencedNext;
                             row.updatedAt = now;
                             StoreWritableRow(client, ownership, row, ctx);
@@ -1837,6 +2172,7 @@ namespace NeoCompose.Runtime
                             client,
                             ownership,
                             referenceId!,
+                            ctx,
                             existingId);
                         if (importedId == existingId) return;
                         row.value[key] = importedId;
@@ -1868,7 +2204,8 @@ namespace NeoCompose.Runtime
                         row.value[key] = ImportCustomValueReference(
                             client,
                             ownership,
-                            referenceId!);
+                            referenceId!,
+                            ctx);
                         row.updatedAt = now;
                         StoreWritableRow(client, ownership, row, ctx);
                         return;
@@ -1993,7 +2330,7 @@ namespace NeoCompose.Runtime
         internal NeoFunctionCallSuspended(
             string resumeKey,
             string attributeId,
-            NeoActionExecutionResult execution)
+            NeoScriptExecutionResult execution)
         {
             ResumeKey = resumeKey;
             AttributeId = attributeId;
@@ -2002,10 +2339,10 @@ namespace NeoCompose.Runtime
 
         internal string ResumeKey { get; }
         internal string AttributeId { get; }
-        internal NeoActionExecutionResult Execution { get; }
+        internal NeoScriptExecutionResult Execution { get; }
     }
 
-    internal sealed class NeoActionExecutionOptions
+    internal sealed class NeoScriptExecutionOptions
     {
         private readonly NeoClient client;
         private readonly Action<string> warning;
@@ -2013,7 +2350,7 @@ namespace NeoCompose.Runtime
         internal bool AllowDeferredFunctionCalls { get; }
         internal bool CancelContinuationOnDeferredDisposal { get; }
 
-        private NeoActionExecutionOptions(
+        private NeoScriptExecutionOptions(
             NeoClient client,
             Action<string> warning,
             string? propertyAttributeId,
@@ -2028,11 +2365,11 @@ namespace NeoCompose.Runtime
                 cancelContinuationOnDeferredDisposal;
         }
 
-        internal static NeoActionExecutionOptions ForDialogue(
+        internal static NeoScriptExecutionOptions ForDialogue(
             NeoClient client,
             INeoDialogueLogger? logger)
         {
-            return new NeoActionExecutionOptions(
+            return new NeoScriptExecutionOptions(
                 client,
                 logger is null
                     ? UnityEngine.Debug.LogWarning
@@ -2042,9 +2379,9 @@ namespace NeoCompose.Runtime
                 cancelContinuationOnDeferredDisposal: false);
         }
 
-        internal static NeoActionExecutionOptions ForUnity(NeoClient client)
+        internal static NeoScriptExecutionOptions ForUnity(NeoClient client)
         {
-            return new NeoActionExecutionOptions(
+            return new NeoScriptExecutionOptions(
                 client,
                 UnityEngine.Debug.LogWarning,
                 null,
@@ -2052,10 +2389,10 @@ namespace NeoCompose.Runtime
                 cancelContinuationOnDeferredDisposal: false);
         }
 
-        internal static NeoActionExecutionOptions ForDirectFunction(
+        internal static NeoScriptExecutionOptions ForDirectFunction(
             NeoClient client)
         {
-            return new NeoActionExecutionOptions(
+            return new NeoScriptExecutionOptions(
                 client,
                 UnityEngine.Debug.LogWarning,
                 null,
@@ -2063,9 +2400,9 @@ namespace NeoCompose.Runtime
                 cancelContinuationOnDeferredDisposal: true);
         }
 
-        internal static NeoActionExecutionOptions ForImmediate(NeoClient client)
+        internal static NeoScriptExecutionOptions ForImmediate(NeoClient client)
         {
-            return new NeoActionExecutionOptions(
+            return new NeoScriptExecutionOptions(
                 client,
                 UnityEngine.Debug.LogWarning,
                 null,
@@ -2073,9 +2410,9 @@ namespace NeoCompose.Runtime
                 cancelContinuationOnDeferredDisposal: false);
         }
 
-        internal NeoActionExecutionOptions ForProperty(string attributeId)
+        internal NeoScriptExecutionOptions ForProperty(string attributeId)
         {
-            return new NeoActionExecutionOptions(
+            return new NeoScriptExecutionOptions(
                 client,
                 warning,
                 attributeId,
@@ -2083,9 +2420,9 @@ namespace NeoCompose.Runtime
                 CancelContinuationOnDeferredDisposal);
         }
 
-        internal NeoActionExecutionOptions ForFunction(bool deferred)
+        internal NeoScriptExecutionOptions ForFunction(bool deferred)
         {
-            return new NeoActionExecutionOptions(
+            return new NeoScriptExecutionOptions(
                 client,
                 warning,
                 propertyAttributeId,
@@ -2113,19 +2450,21 @@ namespace NeoCompose.Runtime
         }
     }
 
-    internal sealed class NeoActionExecutionResult
+    internal sealed class NeoScriptExecutionResult
     {
-        private readonly Func<object?, NeoActionExecutionResult>? resume;
+        private readonly Func<object?, NeoScriptExecutionResult>? resume;
         private readonly DeferredNativeFunctionSuspension? suspension;
+        private readonly Action<Exception>? failureObserver;
 
-        private NeoActionExecutionResult(
+        private NeoScriptExecutionResult(
             bool isPaused,
             bool returned,
             object? returnValue,
             string? suspendedAttributeId,
             NeoDeferredFunctionBase? deferred,
             DeferredNativeFunctionSuspension? suspension,
-            Func<object?, NeoActionExecutionResult>? resume)
+            Func<object?, NeoScriptExecutionResult>? resume,
+            Action<Exception>? failureObserver)
         {
             IsPaused = isPaused;
             Returned = returned;
@@ -2134,6 +2473,7 @@ namespace NeoCompose.Runtime
             Deferred = deferred;
             this.suspension = suspension;
             this.resume = resume;
+            this.failureObserver = failureObserver;
         }
 
         internal bool IsPaused { get; }
@@ -2142,38 +2482,40 @@ namespace NeoCompose.Runtime
         internal string? SuspendedAttributeId { get; }
         internal NeoDeferredFunctionBase? Deferred { get; }
 
-        internal static NeoActionExecutionResult Completed(
+        internal static NeoScriptExecutionResult Completed(
             bool returned,
             object? returnValue)
         {
-            return new NeoActionExecutionResult(
+            return new NeoScriptExecutionResult(
                 false,
                 returned,
                 returnValue,
                 null,
                 null,
                 null,
+                null,
                 null);
         }
 
-        internal static NeoActionExecutionResult Paused(
+        internal static NeoScriptExecutionResult Paused(
             string suspendedAttributeId,
             NeoDeferredFunctionBase deferred,
             DeferredNativeFunctionSuspension suspension,
-            Func<object?, NeoActionExecutionResult> resume)
+            Func<object?, NeoScriptExecutionResult> resume)
         {
-            return new NeoActionExecutionResult(
+            return new NeoScriptExecutionResult(
                 true,
                 false,
                 null,
                 suspendedAttributeId,
                 deferred,
                 suspension,
-                resume);
+                resume,
+                null);
         }
 
         internal void WhenDeferredSettled(
-            Action<NeoActionExecutionResult> complete,
+            Action<NeoScriptExecutionResult> complete,
             Action<Exception> fail)
         {
             if (suspension == null || resume == null)
@@ -2181,23 +2523,61 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     "Cannot attach deferred handlers to a completed action result.");
             }
+            void FailObserved(Exception exception)
+            {
+                try
+                {
+                    failureObserver?.Invoke(exception);
+                }
+                catch (Exception observerException)
+                {
+                    fail(observerException);
+                    return;
+                }
+                fail(exception);
+            }
+
             suspension.SetContinuation(
                 value =>
                 {
+                    NeoScriptExecutionResult resumed;
                     try
                     {
-                        complete(resume(value));
+                        resumed = resume(value);
                     }
                     catch (Exception ex)
                     {
+                        FailObserved(ex);
+                        return;
+                    }
+                    try
+                    {
+                        complete(resumed);
+                    }
+                    catch (Exception ex)
+                    {
+                        // The NeoScript continuation already reached a result;
+                        // do not run allocation failure observers a second time
+                        // if the external completion callback itself fails.
                         fail(ex);
                     }
                 },
-                fail);
+                FailObserved);
+            suspension.SetAbandonmentObserver(exception =>
+            {
+                try
+                {
+                    failureObserver?.Invoke(exception);
+                }
+                catch (Exception observerException)
+                {
+                    fail(observerException);
+                }
+            });
         }
 
-        internal NeoActionExecutionResult Then(
-            Func<NeoActionExecutionResult, NeoActionExecutionResult> next)
+        internal NeoScriptExecutionResult Then(
+            Func<NeoScriptExecutionResult, NeoScriptExecutionResult> next)
         {
             if (!IsPaused) return next(this);
             if (Deferred == null || suspension == null || resume == null)
@@ -2205,13 +2585,44 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     "Paused action result is missing deferred continuation state.");
             }
-            return Paused(
+            return new NeoScriptExecutionResult(
+                true,
+                false,
+                null,
                 SuspendedAttributeId
                     ?? throw new InvalidOperationException(
                         "Paused action result is missing its Function attribute id."),
                 Deferred,
                 suspension,
-                value => next(resume(value)));
+                value => next(resume(value)),
+                failureObserver);
+        }
+
+        internal NeoScriptExecutionResult ObserveFailure(
+            Action<Exception> observer)
+        {
+            if (!IsPaused) return this;
+            if (Deferred == null || suspension == null || resume == null)
+            {
+                throw new InvalidOperationException(
+                    "Paused action result is missing deferred continuation state.");
+            }
+            Action<Exception> combined = failureObserver is null
+                ? observer
+                : exception =>
+                {
+                    failureObserver(exception);
+                    observer(exception);
+                };
+            return new NeoScriptExecutionResult(
+                true,
+                false,
+                null,
+                SuspendedAttributeId,
+                Deferred,
+                suspension,
+                resume,
+                combined);
         }
     }
 
@@ -2220,10 +2631,13 @@ namespace NeoCompose.Runtime
         private readonly object sync = new();
         private Action<object?>? completeContinuation;
         private Action<Exception>? failContinuation;
+        private Action<Exception>? abandonmentObserver;
         private bool completed;
         private bool failed;
+        private bool abandoned;
         private object? value;
         private Exception? exception;
+        private Exception? abandonmentException;
         private bool invokerReturned;
         private bool completedInline;
 
@@ -2232,7 +2646,7 @@ namespace NeoCompose.Runtime
             Action<object?>? continuation;
             lock (sync)
             {
-                if (completed || failed)
+                if (completed || failed || abandoned)
                 {
                     throw new InvalidOperationException(
                         "Deferred Function completion was signaled more than once.");
@@ -2250,7 +2664,7 @@ namespace NeoCompose.Runtime
             Action<Exception>? continuation;
             lock (sync)
             {
-                if (completed || failed)
+                if (completed || failed || abandoned)
                 {
                     throw new InvalidOperationException(
                         "Deferred Function completion was signaled more than once.");
@@ -2266,6 +2680,25 @@ namespace NeoCompose.Runtime
         internal void Cancel(string reason)
         {
             Fail(new OperationCanceledException(reason));
+        }
+
+        /// <summary>
+        /// Releases execution-owned resources when an owning dialogue/client
+        /// is disposed without turning that expected lifecycle event into a
+        /// dialogue failure or resuming its NeoScript continuation.
+        /// </summary>
+        internal void Abandon(string reason)
+        {
+            Action<Exception>? observer;
+            var cancellation = new OperationCanceledException(reason);
+            lock (sync)
+            {
+                if (completed || failed || abandoned) return;
+                abandoned = true;
+                abandonmentException = cancellation;
+                observer = abandonmentObserver;
+            }
+            observer?.Invoke(cancellation);
         }
 
         internal void MarkInvokerReturned()
@@ -2318,6 +2751,22 @@ namespace NeoCompose.Runtime
             else if (callFail && completedError != null)
             {
                 fail(completedError);
+            }
+        }
+
+        internal void SetAbandonmentObserver(Action<Exception> observer)
+        {
+            bool callObserver;
+            Exception? abandonedWith;
+            lock (sync)
+            {
+                abandonmentObserver = observer;
+                callObserver = abandoned;
+                abandonedWith = abandonmentException;
+            }
+            if (callObserver && abandonedWith != null)
+            {
+                observer(abandonedWith);
             }
         }
     }

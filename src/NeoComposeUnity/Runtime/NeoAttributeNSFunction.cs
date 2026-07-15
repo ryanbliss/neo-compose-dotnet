@@ -57,13 +57,13 @@ namespace NeoCompose.Runtime
                     $"NSFunction '{invocation.Function.Attribute.name}' is deferred; use InvokeAsync.");
             }
 
-            NeoActionExecutionResult result = NeoNSFunctionRuntime.ExecuteResolved(
+            NeoScriptExecutionResult result = NeoNSFunctionRuntime.ExecuteResolved(
                 client,
                 invocation.Function,
                 invocation.Receiver,
                 args,
                 invocation.Context,
-                NeoActionExecutionOptions.ForImmediate(client));
+                NeoScriptExecutionOptions.ForImmediate(client));
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -84,13 +84,13 @@ namespace NeoCompose.Runtime
                     throw new InvalidOperationException(
                         $"NSFunction '{invocation.Function.Attribute.name}' is immediate; use Invoke.");
                 }
-                NeoActionExecutionResult result = NeoNSFunctionRuntime.ExecuteResolved(
+                NeoScriptExecutionResult result = NeoNSFunctionRuntime.ExecuteResolved(
                     client,
                     invocation.Function,
                     invocation.Receiver,
                     args,
                     invocation.Context,
-                    NeoActionExecutionOptions.ForDirectFunction(client));
+                    NeoScriptExecutionOptions.ForDirectFunction(client));
                 return AwaitExecution(result);
             }
             catch (Exception exception)
@@ -133,10 +133,14 @@ namespace NeoCompose.Runtime
                 {
                     type = PointerKind.CallFunction,
                     attributeId = attribute.id,
-                    thisPointer = new VariablePointer
+                    receiver = new CallReceiver
                     {
-                        type = PointerKind.Variable,
-                        variableId = "__this__",
+                        kind = CallReceiverKind.Instance,
+                        pointer = new VariablePointer
+                        {
+                            type = PointerKind.Variable,
+                            variableId = "__this__",
+                        },
                     },
                     args = Array.Empty<Pointer>(),
                     callSiteId = "__direct__",
@@ -149,7 +153,80 @@ namespace NeoCompose.Runtime
                 ctx);
         }
 
-        private Task<object?> AwaitExecution(NeoActionExecutionResult initial)
+        /// <summary>Invokes a receiverless static NSFunction.</summary>
+        public object? InvokeStatic(object?[] args)
+        {
+            Invocation invocation = PrepareStaticInvocation(args);
+            if (invocation.Function.Deferred)
+            {
+                throw new InvalidOperationException(
+                    $"NSFunction '{invocation.Function.Attribute.name}' is deferred; use InvokeStaticAsync.");
+            }
+            NeoScriptExecutionResult result = NeoNSFunctionRuntime.ExecuteResolved(
+                client,
+                invocation.Function,
+                receiver: null,
+                args,
+                invocation.Context,
+                NeoScriptExecutionOptions.ForImmediate(client));
+            if (result.IsPaused)
+            {
+                result.Deferred?.DisposeFromOwner(
+                    "synchronous static NSFunction invocation suspended");
+                throw new NSGetterRuntimeError(
+                    $"Non-deferred static NSFunction '{invocation.Function.Attribute.name}' suspended; its compiled IR is stale or corrupt.");
+            }
+            return result.ReturnValue;
+        }
+
+        /// <summary>Invokes a deferred receiverless static NSFunction.</summary>
+        public Task<object?> InvokeStaticAsync(object?[] args)
+        {
+            try
+            {
+                Invocation invocation = PrepareStaticInvocation(args);
+                if (!invocation.Function.Deferred)
+                {
+                    throw new InvalidOperationException(
+                        $"NSFunction '{invocation.Function.Attribute.name}' is immediate; use InvokeStatic.");
+                }
+                return AwaitExecution(NeoNSFunctionRuntime.ExecuteResolved(
+                    client,
+                    invocation.Function,
+                    receiver: null,
+                    args,
+                    invocation.Context,
+                    NeoScriptExecutionOptions.ForDirectFunction(client)));
+            }
+            catch (Exception exception)
+            {
+                return Task.FromException<object?>(exception);
+            }
+        }
+
+        private Invocation PrepareStaticInvocation(object?[] args)
+        {
+            args ??= Array.Empty<object?>();
+            NeoResolvedNSFunction function = NeoNSFunctionRuntime.ResolveSignature(
+                client,
+                attribute.id);
+            if (!function.Attribute.isStatic)
+            {
+                throw new NSGetterRuntimeError(
+                    $"NSFunction '{function.Attribute.name}' is an instance member and requires a receiver.");
+            }
+            var ctx = new NSGetterEvaluator.Context(
+                client,
+                thisValue: null,
+                rootValue: null,
+                valueOwnership: NeoValueOwnership.Session);
+            return new Invocation(
+                function,
+                receiver: null,
+                ctx.WithRoot(NeoScriptValueMarshaller.ResolveRoot(client, ctx)));
+        }
+
+        private Task<object?> AwaitExecution(NeoScriptExecutionResult initial)
         {
             if (!initial.IsPaused) return Task.FromResult(initial.ReturnValue);
 
@@ -158,7 +235,7 @@ namespace NeoCompose.Runtime
             Observe(initial);
             return completion.Task;
 
-            void Observe(NeoActionExecutionResult execution)
+            void Observe(NeoScriptExecutionResult execution)
             {
                 if (!execution.IsPaused)
                 {
@@ -195,7 +272,7 @@ namespace NeoCompose.Runtime
         {
             internal Invocation(
                 NeoResolvedNSFunction function,
-                object receiver,
+                object? receiver,
                 NSGetterEvaluator.Context context)
             {
                 Function = function;
@@ -204,7 +281,7 @@ namespace NeoCompose.Runtime
             }
 
             internal NeoResolvedNSFunction Function { get; }
-            internal object Receiver { get; }
+            internal object? Receiver { get; }
             internal NSGetterEvaluator.Context Context { get; }
         }
     }
@@ -254,13 +331,13 @@ namespace NeoCompose.Runtime
                     "an immediate NeoScript frame called its deferred signature; " +
                     "compiled call IR is stale/corrupt.");
             }
-            NeoActionExecutionResult result = ExecuteResolved(
+            NeoScriptExecutionResult result = ExecuteResolved(
                 client,
                 function,
                 receiver,
                 args,
                 ctx,
-                NeoActionExecutionOptions.ForImmediate(client));
+                NeoScriptExecutionOptions.ForImmediate(client));
             if (result.IsPaused)
             {
                 result.Deferred?.DisposeFromOwner(
@@ -271,13 +348,13 @@ namespace NeoCompose.Runtime
             return result.ReturnValue;
         }
 
-        internal static NeoActionExecutionResult Execute(
+        internal static NeoScriptExecutionResult Execute(
             NeoClient client,
             string attributeId,
             object? receiver,
             object?[] args,
             NSGetterEvaluator.Context ctx,
-            NeoActionExecutionOptions options)
+            NeoScriptExecutionOptions options)
         {
             return ExecuteResolved(
                 client,
@@ -288,18 +365,24 @@ namespace NeoCompose.Runtime
                 options);
         }
 
-        internal static NeoActionExecutionResult ExecuteResolved(
+        internal static NeoScriptExecutionResult ExecuteResolved(
             NeoClient client,
             NeoResolvedNSFunction function,
             object? receiver,
             object?[] args,
             NSGetterEvaluator.Context ctx,
-            NeoActionExecutionOptions options)
+            NeoScriptExecutionOptions options)
         {
-            if (receiver is null)
+            bool isStatic = function.Attribute.isStatic;
+            if (receiver is null && !isStatic)
             {
                 throw new NSGetterRuntimeError(
                     $"Cannot invoke NSFunction '{function.Attribute.name}' on a null receiver.");
+            }
+            if (receiver is not null && isStatic)
+            {
+                throw new NSGetterRuntimeError(
+                    $"Static NSFunction '{function.Attribute.name}' must be invoked without an instance receiver.");
             }
             args ??= Array.Empty<object?>();
             if (args.Length != function.ArgumentTypes.Length)
@@ -324,7 +407,8 @@ namespace NeoCompose.Runtime
             }
 
             FunctionWithReturnType action = function.Action;
-            int expectedParameters = function.ArgumentTypes.Length + 2;
+            int receiverParameterCount = isStatic ? 1 : 2;
+            int expectedParameters = function.ArgumentTypes.Length + receiverParameterCount;
             if (action.parameters is null || action.parameters.Length != expectedParameters)
             {
                 throw new NSGetterRuntimeError(
@@ -333,11 +417,20 @@ namespace NeoCompose.Runtime
 
             TypeInfo effectiveReturnType = function.ReturnTypeInfo;
             TypeInfo[] effectiveArgumentTypes = function.ArgumentTypes;
-            if (ContainsGeneric(function.ReturnTypeInfo)
+            if (isStatic
+                && (ContainsGeneric(function.ReturnTypeInfo)
+                    || Array.Exists(function.ArgumentTypes, ContainsGeneric)))
+            {
+                throw new NSGetterRuntimeError(
+                    $"Static NSFunction '{function.Attribute.name}' cannot use receiver-bound Generic signature types.");
+            }
+            if (!isStatic
+                && (ContainsGeneric(function.ReturnTypeInfo)
                 || Array.Exists(function.ArgumentTypes, ContainsGeneric))
+               )
             {
                 IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv =
-                    ResolveReceiverGenericEnv(client, receiver, ctx, function);
+                    ResolveReceiverGenericEnv(client, receiver!, ctx, function);
                 effectiveReturnType = ResolveInvocationTypeInfo(
                     client,
                     function.ReturnTypeInfo,
@@ -354,17 +447,27 @@ namespace NeoCompose.Runtime
                 }
             }
 
-            var scope = new Dictionary<string, object?>(expectedParameters)
+            var scope = new Dictionary<string, object?>(expectedParameters);
+            int rootParameterIndex;
+            int argumentParameterOffset;
+            if (isStatic)
             {
-                [action.parameters[0].id] = receiver,
-                [action.parameters[1].id] = ctx.rootValue,
-            };
+                rootParameterIndex = 0;
+                argumentParameterOffset = 1;
+            }
+            else
+            {
+                scope[action.parameters[0].id] = receiver;
+                rootParameterIndex = 1;
+                argumentParameterOffset = 2;
+            }
+            scope[action.parameters[rootParameterIndex].id] = ctx.rootValue;
             for (int i = 0; i < args.Length; i++)
             {
                 FunctionArgumentTypeInfo argument = function.ArgumentTypes[i];
                 try
                 {
-                    scope[action.parameters[i + 2].id] = NeoScriptValueMarshaller.Normalize(
+                    scope[action.parameters[i + argumentParameterOffset].id] = NeoScriptValueMarshaller.Normalize(
                         client,
                         ctx.valueOwnership,
                         args[i],
@@ -384,36 +487,41 @@ namespace NeoCompose.Runtime
 
             NSGetterEvaluator.Context nestedCtx = ctx
                 .WithFunctionPushed(function.AttributeId)
-                .WithThis(receiver);
-            NeoActionExecutionResult execution = NeoActionExecutor.Execute(
+                .WithThis(isStatic ? null : receiver);
+            NeoScriptExecutionResult execution = NeoScriptExecutor.Execute(
                 client,
                 action,
                 scope,
                 nestedCtx,
-                options.ForFunction(function.Deferred));
-            return NormalizeTerminal(execution, function, effectiveReturnType);
+                options.ForFunction(function.Deferred),
+                terminal => NormalizeTerminal(
+                    client,
+                    nestedCtx,
+                    terminal,
+                    function,
+                    effectiveReturnType));
+            return execution;
         }
 
-        private static NeoActionExecutionResult NormalizeTerminal(
-            NeoActionExecutionResult execution,
+        private static NeoScriptExecutionResult NormalizeTerminal(
+            NeoClient client,
+            NSGetterEvaluator.Context ctx,
+            NeoScriptExecutionResult execution,
             NeoResolvedNSFunction function,
             TypeInfo effectiveReturnType)
         {
             if (execution.IsPaused)
-            {
-                return execution.Then(resumed => NormalizeTerminal(
-                    resumed,
-                    function,
-                    effectiveReturnType));
-            }
-            if (function.ReturnTypeInfo is VoidTypeInfo)
+                throw new InvalidOperationException(
+                    "NSFunction terminal normalization received a paused execution.");
+            if (effectiveReturnType is VoidTypeInfo
+                || effectiveReturnType.type == AttributeType.Void)
             {
                 if (execution.ReturnValue is not null)
                 {
                     throw new NSGetterRuntimeError(
                         $"Void NSFunction '{function.Attribute.name}' returned a value; its compiled IR is stale or corrupt.");
                 }
-                return NeoActionExecutionResult.Completed(
+                return NeoScriptExecutionResult.Completed(
                     execution.Returned,
                     returnValue: null);
             }
@@ -422,11 +530,24 @@ namespace NeoCompose.Runtime
                 throw new NSGetterRuntimeError(
                     $"NSFunction '{function.Attribute.name}' ended without returning a value; its compiled IR is stale or corrupt.");
             }
-            NeoScriptValueMarshaller.ValidateRuntimeValue(
+            string subject =
+                $"return value of NSFunction '{function.Attribute.name}'";
+            object? normalized = NeoScriptValueMarshaller.Normalize(
+                client,
+                ctx.valueOwnership,
                 execution.ReturnValue,
                 effectiveReturnType,
-                $"return value of NSFunction '{function.Attribute.name}'");
-            return execution;
+                ctx,
+                subject);
+            NeoScriptValueMarshaller.ValidateResolvedRuntimeValue(
+                client,
+                normalized,
+                effectiveReturnType,
+                ctx,
+                subject);
+            return NeoScriptExecutionResult.Completed(
+                returned: true,
+                normalized);
         }
 
         private static bool ContainsGeneric(TypeInfo typeInfo)
@@ -1013,9 +1134,15 @@ namespace NeoCompose.Runtime
             else if (value is INeoValueReference reference
                 && !string.IsNullOrEmpty(reference.valueId))
             {
+                NeoValueOwnership referenceOwnership =
+                    value is NeoGeneratedCustomValue generated
+                        ? generated.ValueOwnership
+                        : NSGetterEvaluator.FindRowOwnershipByReference(
+                            value,
+                            ctx) ?? ownership;
                 value = UnwrapValueReference(
                     client,
-                    ownership,
+                    referenceOwnership,
                     reference.valueId!,
                     ctx,
                     subject);
@@ -1181,6 +1308,146 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// Completes the structural checks above with the resolved signature's
+        /// nominal Custom/Interface identity and recursively validates
+        /// collection entries. This runs only at public invocation boundaries,
+        /// after normalization has canonicalized scalars such as Decimal.
+        /// </summary>
+        internal static void ValidateResolvedRuntimeValue(
+            NeoClient client,
+            object? value,
+            TypeInfo typeInfo,
+            NSGetterEvaluator.Context ctx,
+            string subject)
+        {
+            ValidateRuntimeValue(value, typeInfo, subject);
+            if (value is null) return;
+
+            switch (typeInfo.type)
+            {
+                case AttributeType.Custom:
+                {
+                    string? expectedTypeId = typeInfo switch
+                    {
+                        CustomTypeInfo custom => custom.typeId,
+                        FunctionArgumentTypeInfo argument => argument.typeId,
+                        _ => null,
+                    };
+                    if (string.IsNullOrEmpty(expectedTypeId))
+                    {
+                        throw new InvalidOperationException(
+                            $"{subject} is missing its declared Custom type id.");
+                    }
+                    string? actualTypeId =
+                        NSGetterEvaluator.FindRowTypeIdByReference(value, ctx);
+                    if (string.IsNullOrEmpty(actualTypeId)
+                        || !IsAssignableCustomType(
+                            client,
+                            actualTypeId!,
+                            expectedTypeId!))
+                    {
+                        throw new InvalidOperationException(
+                            $"{subject} has runtime Custom type '{actualTypeId ?? "<unbound>"}', expected '{expectedTypeId}'.");
+                    }
+                    return;
+                }
+                case AttributeType.Interface:
+                {
+                    string? interfaceId = typeInfo switch
+                    {
+                        InterfaceTypeInfo interfaceType => interfaceType.interfaceId,
+                        FunctionArgumentTypeInfo argument => argument.interfaceId,
+                        _ => null,
+                    };
+                    string? actualTypeId =
+                        NSGetterEvaluator.FindRowTypeIdByReference(value, ctx);
+                    if (string.IsNullOrEmpty(interfaceId)
+                        || string.IsNullOrEmpty(actualTypeId)
+                        || !NeoInterfaceResolution.TypeImplements(
+                            actualTypeId!,
+                            interfaceId!,
+                            client.ProjectDataForRuntime))
+                    {
+                        throw new InvalidOperationException(
+                            $"{subject} has runtime Custom type '{actualTypeId ?? "<unbound>"}', which does not implement Interface '{interfaceId ?? "<missing>"}'.");
+                    }
+                    return;
+                }
+                case AttributeType.List:
+                case AttributeType.Lookup:
+                {
+                    TypeInfo? entryType = typeInfo switch
+                    {
+                        FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
+                        CollectionTypeInfo collection => collection.entryTypeInfo,
+                        LookupTypeInfo lookup => lookup.entryTypeInfo,
+                        _ => null,
+                    };
+                    if (entryType is null) return;
+                    int index = 0;
+                    foreach (object? entry in (System.Collections.IEnumerable)value)
+                    {
+                        ValidateResolvedRuntimeValue(
+                            client,
+                            entry,
+                            entryType,
+                            ctx,
+                            $"entry {index++} of {subject}");
+                    }
+                    return;
+                }
+                case AttributeType.Dictionary:
+                {
+                    TypeInfo? entryType = typeInfo switch
+                    {
+                        FunctionArgumentTypeInfo argument => argument.entryTypeInfo,
+                        CollectionTypeInfo collection => collection.entryTypeInfo,
+                        _ => null,
+                    };
+                    if (entryType is null) return;
+                    if (value is not System.Collections.IDictionary dictionary)
+                    {
+                        throw new InvalidOperationException(
+                            $"{subject} did not normalize to a dictionary.");
+                    }
+                    foreach (System.Collections.DictionaryEntry entry in dictionary)
+                    {
+                        ValidateResolvedRuntimeValue(
+                            client,
+                            entry.Value,
+                            entryType,
+                            ctx,
+                            $"key '{entry.Key}' of {subject}");
+                    }
+                    return;
+                }
+            }
+        }
+
+        private static bool IsAssignableCustomType(
+            NeoClient client,
+            string actualTypeId,
+            string expectedTypeId)
+        {
+            try
+            {
+                foreach (CustomType type in CustomTypeInheritance.ResolveChain(
+                    actualTypeId,
+                    id => client.TryGetType(id, out CustomType? candidate)
+                        ? candidate
+                        : null))
+                {
+                    if (type.id == expectedTypeId) return true;
+                }
+            }
+            catch (CircularInheritanceError)
+            {
+                return false;
+            }
+            return false;
+        }
+
         private static object UnwrapValueReference(
             NeoClient client,
             NeoValueOwnership fallbackOwnership,
@@ -1188,16 +1455,15 @@ namespace NeoCompose.Runtime
             NSGetterEvaluator.Context ctx,
             string subject)
         {
-            if (!client.TryGetValue(valueId, out AttributeValue? row))
+            if (!client.TryGetValue(
+                    fallbackOwnership,
+                    valueId,
+                    out AttributeValue? row))
             {
                 throw new InvalidOperationException(
-                    $"Neo value '{valueId}' for {subject} was not found.");
+                    $"Neo value '{valueId}' for {subject} was not found in {fallbackOwnership} storage.");
             }
-            NeoValueOwnership valueOwnership = client.TryGetValueOwnership(
-                valueId, out NeoValueOwnership foundOwnership)
-                    ? foundOwnership
-                    : fallbackOwnership;
-            return NSGetterEvaluator.UnwrapRow(row, ctx, valueOwnership)
+            return NSGetterEvaluator.UnwrapRow(row, ctx, fallbackOwnership)
                 ?? throw new InvalidOperationException(
                     $"Neo value '{valueId}' for {subject} resolved to null.");
         }

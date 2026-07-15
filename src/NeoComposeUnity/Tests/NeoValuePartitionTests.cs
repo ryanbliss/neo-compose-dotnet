@@ -513,7 +513,7 @@ namespace NeoCompose.Tests
                         type = AttributeType.List,
                         entryAttributeId = "tile-layer-link-tile-entry-attribute",
                         listKind = NeoListKinds.Unordered,
-                        storageMap = WorldPartitionKey,
+                        storageKey = WorldPartitionKey,
                     },
                     ["tile-layer-link-tile-entry-attribute"] = new CustomAttribute
                     {

@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "schemaVersion": 6,
+    "schemaVersion": 7,
     "projectId": "c54a74be-225c-44f9-ab86-fbbfd8224020",
     "versionId": "version-1",
     "semver": {
@@ -28,6 +28,7 @@
       "type": 7,
       "locked": true,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -44,6 +45,7 @@
       "type": 7,
       "locked": true,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -60,6 +62,7 @@
       "type": 7,
       "locked": true,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -74,6 +77,7 @@
       "name": "Name",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": ""
       },
@@ -89,6 +93,7 @@
       "name": "Name",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": ""
       },
@@ -104,6 +109,7 @@
       "name": "Moneys",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": 0
       },
@@ -119,6 +125,7 @@
       "name": "Enabled",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": true
       },
@@ -134,6 +141,7 @@
       "name": "NPCs",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -150,6 +158,7 @@
       "name": "NPCs",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": []
       },
@@ -166,6 +175,7 @@
       "name": "Name",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": ""
       },
@@ -181,6 +191,7 @@
       "name": "Age",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": 18
       },
@@ -196,6 +207,7 @@
       "name": "Can Romance",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": false
       },
@@ -211,6 +223,7 @@
       "name": "Blah",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": ""
       },
@@ -226,6 +239,7 @@
       "name": "DictionaryText",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": ""
       },
@@ -241,6 +255,7 @@
       "name": "Dictionary",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -257,6 +272,7 @@
       "name": "Combo",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": [
           "A"
@@ -277,6 +293,7 @@
       "name": "Combo Multi",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": []
       },
@@ -294,6 +311,7 @@
       "name": "InventoryItem",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -310,6 +328,7 @@
       "name": "Inventory Items",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": []
       },
@@ -326,6 +345,7 @@
       "name": "IDK",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": false
       },
@@ -341,6 +361,7 @@
       "name": "Damage",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": 10
       },
@@ -357,6 +378,7 @@
       "name": "NPCDict",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -373,6 +395,7 @@
       "name": "NPCs",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -390,6 +413,7 @@
       "name": "ItemLookup",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": []
       },
@@ -407,6 +431,7 @@
       "name": "DictionaryCustomLookup",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": []
       },
@@ -424,6 +449,7 @@
       "name": "NPCListText",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": ""
       },
@@ -439,6 +465,7 @@
       "name": "SomeNPCList",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": []
       },
@@ -455,6 +482,7 @@
       "name": "Plant Name",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": ""
       },
@@ -470,6 +498,7 @@
       "name": "TextGet",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "    string itemName = this.ItemGetOptional?.Name ?? \"Unknown\";\n    string label = $\"Hello world!!! NPC: {this.NPCs.First().Name}, item: {itemName}\";\n    return label;",
       "returnTypeInfo": {
@@ -531,12 +560,18 @@
                 "left": {
                   "type": "callGetter",
                   "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
-                  "thisPointer": {
-                    "type": "callGetter",
-                    "attributeId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
-                    "thisPointer": {
-                      "type": "variable",
-                      "variableId": "__this__"
+                  "receiver": {
+                    "kind": "instance",
+                    "pointer": {
+                      "type": "callGetter",
+                      "attributeId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
+                      "receiver": {
+                        "kind": "instance",
+                        "pointer": {
+                          "type": "variable",
+                          "variableId": "__this__"
+                        }
+                      }
                     }
                   },
                   "optional": true
@@ -666,6 +701,7 @@
       "name": "BoolGet",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "    NPC npc = this.NPCs[\"James\"];\n    if (npc.Age >= 18) {\n        return npc.CanRomance;\n    }\n    return false;",
       "returnTypeInfo": {
@@ -879,6 +915,7 @@
       "name": "ListGet",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "    return root.Assets.InventoryItems.Where((item) => { return item is ToolItem; })\n        .Select((item) => {\n            return item.Name;\n        });",
       "returnTypeInfo": {
@@ -1038,9 +1075,12 @@
                         "pointer": {
                           "type": "callGetter",
                           "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
-                          "thisPointer": {
-                            "type": "variable",
-                            "variableId": "item"
+                          "receiver": {
+                            "kind": "instance",
+                            "pointer": {
+                              "type": "variable",
+                              "variableId": "item"
+                            }
                           }
                         }
                       }
@@ -1076,6 +1116,7 @@
       "name": "ItemGet",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "    InventoryItem? item = this.ItemGetOptional;\n    if (!item) {\n        throw $\"item is unexpectedly null!\";\n    }\n    return item;",
       "returnTypeInfo": {
@@ -1137,9 +1178,12 @@
               "pointer": {
                 "type": "callGetter",
                 "attributeId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
-                "thisPointer": {
-                  "type": "variable",
-                  "variableId": "__this__"
+                "receiver": {
+                  "kind": "instance",
+                  "pointer": {
+                    "type": "variable",
+                    "variableId": "__this__"
+                  }
                 }
               }
             }
@@ -1238,6 +1282,7 @@
       "name": "ComboGet",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "\treturn this.Combo;",
       "returnTypeInfo": {
@@ -1328,6 +1373,7 @@
       "name": "ItemGetOptional",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "\tstring query = this.Name;\n    return root.Assets.InventoryItems.Find((check) => {\n        return check.Name == query;\n    });",
       "returnTypeInfo": {
@@ -1475,9 +1521,12 @@
                                 "operand1": {
                                   "type": "callGetter",
                                   "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
-                                  "thisPointer": {
-                                    "type": "variable",
-                                    "variableId": "check"
+                                  "receiver": {
+                                    "kind": "instance",
+                                    "pointer": {
+                                      "type": "variable",
+                                      "variableId": "check"
+                                    }
                                   }
                                 },
                                 "operand2": {
@@ -1519,6 +1568,7 @@
       "name": "isAdult",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "\treturn this.Age >= 18;",
       "returnTypeInfo": {
@@ -1629,6 +1679,7 @@
       "name": "GameTime",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -1645,6 +1696,7 @@
       "name": "Day",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": 1
       },
@@ -1662,6 +1714,7 @@
       "name": "Season",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": [
           "Spring"
@@ -1681,6 +1734,7 @@
       "name": "Birthday",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -1697,6 +1751,7 @@
       "name": "isBirthday",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "\treturn this.Birthday.Day == root.Save.GameTime.Day\n\t\t&& this.Birthday.Season == root.Save.GameTime.Season;",
       "returnTypeInfo": {
@@ -1996,6 +2051,7 @@
       "name": "ToolName",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": "[Tool]"
       },
@@ -2012,6 +2068,7 @@
       "name": "Name",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "\tthrow \"Not implemented exception\";",
       "returnTypeInfo": {
@@ -2087,6 +2144,7 @@
       "name": "Name",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "\treturn $\"{this.Material} {this.ToolName}\";",
       "returnTypeInfo": {
@@ -2223,6 +2281,7 @@
       "name": "Material",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": [
           "wood"
@@ -2242,6 +2301,7 @@
       "name": "ToolName",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": "Pickaxe"
       },
@@ -2258,6 +2318,7 @@
       "name": "ToolName",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": "Hoe"
       },
@@ -2274,6 +2335,7 @@
       "name": "SeedName",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": "[Plant] Seed"
       },
@@ -2289,6 +2351,7 @@
       "name": "Name",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "\treturn this.SeedName;",
       "returnTypeInfo": {
@@ -2377,6 +2440,7 @@
       "name": "Value",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": 0
       },
@@ -2393,6 +2457,7 @@
       "name": "Element Damage Entry",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": 0
       },
@@ -2408,6 +2473,7 @@
       "name": "ElementDamage",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -2426,6 +2492,7 @@
       "name": "Element Stat Entry",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": 0
       },
@@ -2441,6 +2508,7 @@
       "name": "ElementStats",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -2459,6 +2527,7 @@
       "name": "SelectedElement",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": [
           "water"
@@ -2478,6 +2547,7 @@
       "name": "Element Bonus Entry",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": 0
       },
@@ -2493,6 +2563,7 @@
       "name": "ElementBonus",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -2511,6 +2582,7 @@
       "name": "Element Champion",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -2527,6 +2599,7 @@
       "name": "ElementChampions",
       "locked": false,
       "required": true,
+      "isStatic": false,
       "defaultValue": {
         "value": {}
       },
@@ -2545,6 +2618,7 @@
       "name": "FireDamageGet",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "\treturn this.ElementDamage[Element.fire] + root.Save.ElementStats[Element.fire];",
       "returnTypeInfo": {
@@ -2706,6 +2780,7 @@
       "name": "SelectedDamageGet",
       "locked": false,
       "required": false,
+      "isStatic": false,
       "type": 10,
       "code": "\treturn this.ElementDamage[this.SelectedElement];",
       "returnTypeInfo": {

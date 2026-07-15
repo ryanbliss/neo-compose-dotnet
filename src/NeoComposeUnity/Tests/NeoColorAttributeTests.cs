@@ -155,7 +155,7 @@ namespace NeoCompose.Tests
         public void ColorAttribute_DeserializesByTypeOrdinal()
         {
             var attribute = JsonConvert.DeserializeObject<NeoCompose.Runtime.Json.Attribute>(
-                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Tint\",\"type\":19," +
+                "{\"id\":\"a1\",\"projectId\":\"p\",\"name\":\"Tint\",\"type\":19,\"isStatic\":false," +
                 "\"defaultValue\":{\"value\":{\"r\":0.25,\"g\":0.5,\"b\":0.75,\"a\":1}}}");
             Assert.IsInstanceOf<ColorAttribute>(attribute);
             var color = (ColorAttribute)attribute!;

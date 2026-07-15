@@ -140,6 +140,48 @@ namespace NeoCompose.Runtime.Json
         }
 
         /// <summary>
+        /// Projects a merged Custom-type schema to the fields owned by each
+        /// value instance. Type-owned (<see cref="Attribute.isStatic"/>)
+        /// declarations are separate roots and must never be materialized or
+        /// traversed through an instance record.
+        /// </summary>
+        public static IList<MergedSchemaEntry> MergeInstanceSchema(
+            IList<CustomType> chain,
+            Func<string, Attribute?> attributeLookup)
+        {
+            IList<MergedSchemaEntry> merged = MergeSchemas(chain);
+            List<MergedSchemaEntry> result = new(merged.Count);
+            foreach (MergedSchemaEntry entry in merged)
+            {
+                Attribute? attribute = attributeLookup(entry.attributeId);
+                if (attribute?.isStatic == true) continue;
+                result.Add(entry);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Projects a merged Custom-type schema to inherited type-owned
+        /// members. The returned entry retains the declaration's owner type so
+        /// storage defaults and generated APIs remain anchored to the declaring
+        /// type when accessed through a descendant.
+        /// </summary>
+        public static IList<MergedSchemaEntry> MergeStaticMembers(
+            IList<CustomType> chain,
+            Func<string, Attribute?> attributeLookup)
+        {
+            IList<MergedSchemaEntry> merged = MergeSchemas(chain);
+            List<MergedSchemaEntry> result = new(merged.Count);
+            foreach (MergedSchemaEntry entry in merged)
+            {
+                Attribute? attribute = attributeLookup(entry.attributeId);
+                if (attribute?.isStatic != true) continue;
+                result.Add(entry);
+            }
+            return result;
+        }
+
+        /// <summary>
         /// Scans <paramref name="types"/> for the first Custom type whose
         /// schema maps any key to <paramref name="attributeId"/>. Returns
         /// the owning type and the key it's listed under, or <c>null</c>

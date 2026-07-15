@@ -5,6 +5,7 @@
 
 using System.Collections.Generic;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
@@ -26,7 +27,7 @@ namespace NeoCompose.Tests
             "\"author\":{\"kind\":\"user\",\"id\":\"user-1\"}," +
             "\"actor\":{\"kind\":\"user\",\"id\":\"user-1\"}," +
             "\"values\":{\"v1\":{\"id\":\"v1\",\"value\":true,\"createdAt\":1,\"updatedAt\":2}}," +
-            "\"attributeValueOverrides\":{\"attr-1\":\"v1\"}," +
+            "\"staticBindings\":{\"attr-current\":\"v1\",\"attr-cleared\":null}," +
             "\"platforms\":null,\"systems\":null,\"inputDevices\":null," +
             "\"createdAt\":1,\"updatedAt\":2,\"synchronizedAt\":3,\"archivedAt\":null" +
             "}";
@@ -44,6 +45,9 @@ namespace NeoCompose.Tests
             // values stayed opaque: the raw token is preserved, not pre-typed.
             Assert.That(save.values.Raw.Type, Is.EqualTo(JTokenType.Object));
             Assert.That((bool)save.values.Raw["v1"]!["value"]!, Is.True);
+            Assert.That(save.staticBindings["attr-current"], Is.EqualTo("v1"));
+            Assert.That(save.staticBindings.ContainsKey("attr-cleared"), Is.True);
+            Assert.That(save.staticBindings["attr-cleared"], Is.Null);
         }
 
         [Test]
@@ -104,6 +108,9 @@ namespace NeoCompose.Tests
             Assert.That(reloaded.snapshotId, Is.EqualTo("snap-1"));
             Assert.That(reloaded.snapshotHash, Is.EqualTo("hash-1"));
             Assert.That((bool)reloaded.values.Raw["v1"]!["value"]!, Is.True);
+            Assert.That(reloaded.staticBindings["attr-current"], Is.EqualTo("v1"));
+            Assert.That(reloaded.staticBindings.ContainsKey("attr-cleared"), Is.True);
+            Assert.That(reloaded.staticBindings["attr-cleared"], Is.Null);
             Assert.That(reloaded.IsLocalOnly, Is.False);
         }
 
@@ -118,6 +125,73 @@ namespace NeoCompose.Tests
             Assert.That(local.releaseChannelId, Is.EqualTo("channel-dev"));
             Assert.That(local.name, Is.EqualTo("My Save"));
             Assert.That(local.synchronizedAt, Is.EqualTo(3d));
+            Assert.That(local.staticBindings["attr-current"], Is.EqualTo("v1"));
+        }
+
+        [Test]
+        public void SaveModels_MissingStaticBindingsDefaultToEmpty()
+        {
+            var remote = RemoteGameSaveLoader.Load("{}");
+            var local = LocalGameSaveLoader.Load("{}");
+            var projectSave = JsonConvert.DeserializeObject<ProjectSaveData>("{}")!;
+            var commit = JsonConvert.DeserializeObject<NeoSaveCommitRequest>("{}")!;
+
+            Assert.That(remote.staticBindings, Is.Empty);
+            Assert.That(local.staticBindings, Is.Empty);
+            Assert.That(projectSave.staticBindings, Is.Empty);
+            Assert.That(commit.staticBindings, Is.Empty);
+        }
+
+        [Test]
+        public void ProjectAndCommitStaticBindings_RoundTripNullTombstones()
+        {
+            var bindings = new Dictionary<string, string?>
+            {
+                ["attr-current"] = "v-runtime",
+                ["attr-cleared"] = null,
+            };
+            var projectSave = new ProjectSaveData { staticBindings = bindings };
+            var commit = new NeoSaveCommitRequest { staticBindings = bindings };
+
+            var projectRoundTrip = JsonConvert.DeserializeObject<ProjectSaveData>(
+                JsonConvert.SerializeObject(projectSave))!;
+            var commitRoundTrip = JsonConvert.DeserializeObject<NeoSaveCommitRequest>(
+                JsonConvert.SerializeObject(commit))!;
+
+            Assert.That(projectRoundTrip.staticBindings["attr-current"], Is.EqualTo("v-runtime"));
+            Assert.That(projectRoundTrip.staticBindings.ContainsKey("attr-cleared"), Is.True);
+            Assert.That(projectRoundTrip.staticBindings["attr-cleared"], Is.Null);
+            Assert.That(commitRoundTrip.staticBindings["attr-current"], Is.EqualTo("v-runtime"));
+            Assert.That(commitRoundTrip.staticBindings.ContainsKey("attr-cleared"), Is.True);
+            Assert.That(commitRoundTrip.staticBindings["attr-cleared"], Is.Null);
+        }
+
+        [Test]
+        public void LivePatchStaticBindings_RoundTripUpsertsRestoresAndTombstones()
+        {
+            var patch = new NeoSavePatch
+            {
+                staticBindings = new Dictionary<string, string?>
+                {
+                    ["attr-current"] = "v-runtime",
+                    ["attr-cleared"] = null,
+                },
+                restoredStaticBindingsToAuthored = new List<string>
+                {
+                    "attr-restored",
+                },
+            };
+
+            var roundTripped = JsonConvert.DeserializeObject<NeoSavePatch>(
+                JsonConvert.SerializeObject(patch))!;
+
+            Assert.That(roundTripped.staticBindings["attr-current"], Is.EqualTo("v-runtime"));
+            Assert.That(roundTripped.staticBindings.ContainsKey("attr-cleared"), Is.True);
+            Assert.That(roundTripped.staticBindings["attr-cleared"], Is.Null);
+            CollectionAssert.AreEqual(
+                new[] { "attr-restored" },
+                roundTripped.restoredStaticBindingsToAuthored);
+            Assert.That(roundTripped.IsEmpty, Is.False);
         }
 
         [Test]

@@ -34,7 +34,7 @@ namespace NeoCompose.Runtime.Json
         public bool isAbstract;
         /// <summary>
         /// Storage placement constraint (specs/attribute-storage.md §4.3):
-        /// "static", "save", or "session". Absent/null means the type may be
+        /// "immutable", "save", or "session". Absent/null means the type may be
         /// placed at any storage class. Inherited through
         /// <see cref="extendsTypeId"/> (narrow-only).
         /// </summary>

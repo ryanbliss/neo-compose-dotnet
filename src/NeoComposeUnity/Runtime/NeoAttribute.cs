@@ -338,7 +338,7 @@ namespace NeoCompose.Runtime
         /// <summary>
         /// Resolves the current value-id via the chain:
         /// <c>overrideValueId</c> (the id this node was bound to by its
-        /// parent's value-map) → static <c>attribute.valueId</c> (the
+        /// parent's value-map) → authored <c>attribute.valueId</c> (the
         /// authored default, used by the root and by directly-resolved
         /// attributes). Returns null if nothing is bound.
         ///

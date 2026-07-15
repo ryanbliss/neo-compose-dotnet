@@ -39,6 +39,26 @@ namespace NeoCompose.Runtime.Json
         public CustomTypeInfo customTypeInfo = null!;
     }
 
+    /// <summary>One explicitly supplied field of a Custom constructor.</summary>
+    public class FunctionCustomConstructorField
+    {
+        public string schemaKey = null!;
+        public string attributeId = null!;
+        public Pointer valuePointer = null!;
+    }
+
+    /// <summary>
+    /// Constructor intrinsic payload. Argument ordering/default decisions are
+    /// already compiled into <see cref="fields"/> by the shared language
+    /// package; the runtime materializes only those explicit values and lets
+    /// normal Custom defaults fill required omissions.
+    /// </summary>
+    public class FunctionCustomConstructorInfo
+    {
+        public CustomTypeInfo customTypeInfo = null!;
+        public FunctionCustomConstructorField[] fields = null!;
+    }
+
     /// <summary>
     /// Info shape for <c>select</c>: collection + projection function.
     /// Mirrors TS-side <c>INSFunctionCollectionSelectInfo</c>.
@@ -174,6 +194,11 @@ namespace NeoCompose.Runtime.Json
         public FunctionCustomCloneInfo info = null!;
     }
 
+    public class CustomConstructorFunction : Function
+    {
+        public FunctionCustomConstructorInfo info = null!;
+    }
+
     public class SelectFunction : Function
     {
         public FunctionCollectionSelectInfo info = null!;
@@ -241,6 +266,7 @@ namespace NeoCompose.Runtime.Json
             switch (discriminator.Value<string>())
             {
                 case FunctionKind.CustomClone: return typeof(CustomCloneFunction);
+                case FunctionKind.CustomConstructor: return typeof(CustomConstructorFunction);
                 case FunctionKind.Select: return typeof(SelectFunction);
                 case FunctionKind.First: return typeof(FirstFunction);
                 case FunctionKind.FirstOrDefault: return typeof(FirstOrDefaultFunction);

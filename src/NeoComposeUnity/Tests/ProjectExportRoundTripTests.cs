@@ -61,6 +61,7 @@ namespace NeoCompose.Tests
                 projectId = "project",
                 name = "Score",
                 type = AttributeType.NSProperty,
+                isStatic = true,
                 code = "return root.Save.Score;",
                 returnTypeInfo = typeInfo,
                 getter = new FunctionWithReturnType
@@ -111,10 +112,84 @@ namespace NeoCompose.Tests
                 .DeserializeObject<Attribute>(json)!;
 
             Assert.AreEqual(source.setterCode, roundTripped.setterCode);
+            Assert.IsTrue(roundTripped.isStatic);
             Assert.IsNotNull(roundTripped.setter);
             var assign = (AssignInstruction)roundTripped.setter!.instructions[0];
             Assert.AreEqual(WritabilityKind.Setter, assign.target.writability);
             Assert.AreEqual("__value__", ((VariablePointer)assign.pointer).variableId);
+        }
+
+        [Test]
+        public void WriteTarget_RuntimeWritabilityAndSchemaSevenVocabularyRoundTrip()
+        {
+            var source = new WriteTarget
+            {
+                pointer = new ReferencePointer
+                {
+                    type = PointerKind.Reference,
+                    valueId = "runtime-value",
+                },
+                typeInfo = new PrimitiveTypeInfo
+                {
+                    type = AttributeType.Int,
+                    required = true,
+                },
+                writability = WritabilityKind.Runtime,
+            };
+
+            var roundTripped = JsonConvert.DeserializeObject<WriteTarget>(
+                JsonConvert.SerializeObject(source))!;
+
+            Assert.AreEqual("runtime", roundTripped.writability);
+            Assert.AreEqual("immutable", WritabilityKind.Immutable);
+            Assert.AreEqual("immutableToSaveLookup", WritabilityKind.ImmutableToSaveLookup);
+            Assert.AreEqual("immutableToSessionLookup", WritabilityKind.ImmutableToSessionLookup);
+        }
+
+        [Test]
+        public void Attribute_MissingIsStaticIsRejected()
+        {
+            var source = new IntAttribute
+            {
+                id = "legacy-member",
+                projectId = "project",
+                name = "Count",
+                type = AttributeType.Int,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var json = JObject.FromObject(source);
+            json.Remove("isStatic");
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Attribute>(json.ToString()));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("Missing required field 'isStatic' on IntAttribute."));
+        }
+
+        [Test]
+        public void Attribute_NonBooleanIsStaticIsRejected()
+        {
+            var source = new IntAttribute
+            {
+                id = "invalid-member",
+                projectId = "project",
+                name = "Count",
+                type = AttributeType.Int,
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            var json = JObject.FromObject(source);
+            json["isStatic"] = "false";
+
+            var error = Assert.Throws<JsonSerializationException>(() =>
+                JsonConvert.DeserializeObject<Attribute>(json.ToString()));
+
+            Assert.That(
+                error!.Message,
+                Does.Contain("Field 'isStatic' on IntAttribute must be a boolean."));
         }
 
         [Test]
@@ -471,6 +546,7 @@ namespace NeoCompose.Tests
       ""type"": 4,
       ""locked"": false,
       ""required"": true,
+      ""isStatic"": false,
       ""valueId"": ""value-a"",
       ""createdAt"": ""1970-01-01T00:00:00.000Z"",
       ""updatedAt"": ""1970-01-01T00:00:00.000Z""
@@ -518,6 +594,7 @@ namespace NeoCompose.Tests
       ""type"": 11,
       ""locked"": false,
       ""required"": true,
+      ""isStatic"": false,
       ""templateId"": ""texture-template-1"",
       ""valueId"": ""sprite-value"",
       ""defaultValue"": { ""value"": { ""fileId"": ""file-1"", ""sliceIndex"": 2 } },
@@ -532,6 +609,7 @@ namespace NeoCompose.Tests
       ""type"": 12,
       ""locked"": false,
       ""required"": false,
+      ""isStatic"": false,
       ""templateId"": ""audio-template-1"",
       ""valueId"": ""audio-value"",
       ""defaultValue"": { ""value"": { ""fileId"": ""file-2"" } },
@@ -1345,6 +1423,7 @@ namespace NeoCompose.Tests
                 ""type"": 3,
                 ""locked"": false,
                 ""required"": false,
+                ""isStatic"": false,
                 ""defaultValue"": { ""value"": null, ""typeId"": ""carrier-type"" },
                 ""createdAt"": ""1970-01-01T00:00:00.000Z"",
                 ""updatedAt"": ""1970-01-01T00:00:00.000Z""

@@ -12,6 +12,85 @@ using Attribute = NeoCompose.Runtime.Json.Attribute;
 
 namespace NeoCompose.Runtime
 {
+    internal readonly struct NeoGeneratedConstructorDictionaryEntry
+    {
+        internal NeoGeneratedConstructorDictionaryEntry(
+            object? key,
+            object? value)
+        {
+            Key = key;
+            Value = value;
+        }
+
+        internal object? Key { get; }
+        internal object? Value { get; }
+    }
+
+    /// <summary>
+    /// Ownership-qualified reference captured from a generated wrapper or a
+    /// NeoScript row-backed value. Stable ids can coexist in Session and Save,
+    /// so constructor attachment must not rediscover ownership from the id
+    /// after the caller has already selected a concrete value.
+    /// </summary>
+    internal readonly struct NeoConstructorValueReference
+    {
+        internal NeoConstructorValueReference(
+            string valueId,
+            NeoValueOwnership? ownership)
+        {
+            this.valueId = valueId;
+            this.ownership = ownership;
+        }
+
+        internal string valueId { get; }
+        internal NeoValueOwnership? ownership { get; }
+    }
+
+    /// <summary>
+    /// Non-generic bridge used by generated dictionary views so constructor
+    /// materialization does not need reflection for the common
+    /// <c>NeoDictionary&lt;T&gt;</c> path.
+    /// </summary>
+    internal interface INeoGeneratedConstructorDictionary
+    {
+        IEnumerable<NeoGeneratedConstructorDictionaryEntry>
+            EnumerateGeneratedConstructorEntries();
+    }
+
+    /// <summary>
+    /// Stable generated-constructor argument descriptor. Generated facades
+    /// identify each supplied value by both merged schema key and attribute id
+    /// so stale generated code fails before any value rows are published.
+    /// </summary>
+    public sealed class NeoGeneratedConstructorValue
+    {
+        public string schemaKey { get; }
+        public string attributeId { get; }
+        public object? value { get; }
+
+        public NeoGeneratedConstructorValue(
+            string schemaKey,
+            string attributeId,
+            object? value)
+        {
+            this.schemaKey = schemaKey
+                ?? throw new ArgumentNullException(nameof(schemaKey));
+            this.attributeId = attributeId
+                ?? throw new ArgumentNullException(nameof(attributeId));
+            this.value = value;
+        }
+    }
+
+    /// <summary>
+    /// Common option-id surface implemented by generated enum option classes.
+    /// It lets the shared constructor materializer handle enum values without
+    /// reflection or project-specific generated helpers.
+    /// </summary>
+    public interface INeoEnumOption
+    {
+        string optionId { get; }
+    }
+
     /// <summary>
     /// Shared helper methods used by web-generated C# facade types.
     /// Kept in the SDK runtime so generated files only contain
@@ -19,6 +98,31 @@ namespace NeoCompose.Runtime
     /// </summary>
     public static class NeoGeneratedTypesSupport
     {
+        private sealed class ConstructorKeyValuePairAccessors
+        {
+            internal System.Reflection.PropertyInfo key = null!;
+            internal System.Reflection.PropertyInfo value = null!;
+        }
+
+        private static readonly object ConstructorDictionaryShapeLock = new();
+        private static readonly Dictionary<Type, bool>
+            ConstructorDictionaryShapeCache = new();
+        private static readonly Dictionary<Type, ConstructorKeyValuePairAccessors?>
+            ConstructorKeyValuePairAccessorsCache = new();
+
+        internal sealed class RuntimeConstructorField
+        {
+            internal string schemaKey = null!;
+            internal string attributeId = null!;
+            internal object? value;
+        }
+
+        private sealed class RuntimeConstructorMetadata
+        {
+            internal Dictionary<string, Attribute> attributesBySchemaKey = null!;
+            internal IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv = null!;
+        }
+
         public delegate object ReadOnlyCustomFactory(
             NeoClient client,
             NeoAttributeCustom node);
@@ -30,6 +134,19 @@ namespace NeoCompose.Runtime
         public static NeoValueWritePayload? Value<T>(T? value)
         {
             return NeoValueWritePayload.FromValue(value);
+        }
+
+        /// <summary>
+        /// Builds a live attribute-id keyed static-member view. Generated
+        /// properties call this from the active project singleton, so every
+        /// access observes the current authored/Save/Session binding.
+        /// </summary>
+        public static NeoStaticBinding StaticBinding(
+            NeoClient client,
+            string attributeId,
+            NeoValueOwnership ownership)
+        {
+            return new NeoStaticBinding(client, attributeId, ownership);
         }
 
         public static SpriteValue? SpriteValue(
@@ -674,10 +791,32 @@ namespace NeoCompose.Runtime
                             new HashSet<string>(visitingValueIds),
                             out string? parentTypeId)
                         || string.IsNullOrEmpty(parentTypeId)
-                        || !client.types.TryGetValue(parentTypeId, out CustomType? parentType)
-                        || parentType.schema == null
-                        || !parentType.schema.TryGetValue(pair.Key, out string childAttributeId)
-                        || !client.TryGetAttribute(childAttributeId, out Attribute? childAttribute))
+                        || !client.types.TryGetValue(parentTypeId, out CustomType? parentType))
+                    {
+                        continue;
+                    }
+
+                    MergedSchemaEntry? matchedEntry = null;
+                    foreach (MergedSchemaEntry entry in CustomTypeInheritance.MergeInstanceSchema(
+                        CustomTypeInheritance.ResolveChain(
+                            parentType.id,
+                            id => client.TryGetType(id, out CustomType? candidate)
+                                ? candidate
+                                : null),
+                        id => client.TryGetAttribute(id, out Attribute? candidate)
+                            ? candidate
+                            : null))
+                    {
+                        if (entry.schemaKey == pair.Key)
+                        {
+                            matchedEntry = entry;
+                            break;
+                        }
+                    }
+                    if (matchedEntry is null
+                        || !client.TryGetAttribute(
+                            matchedEntry.attributeId,
+                            out Attribute? childAttribute))
                     {
                         continue;
                     }
@@ -988,6 +1127,23 @@ namespace NeoCompose.Runtime
             Dictionary<string, string> value,
             IReadOnlyList<AttributeValue> valueRows)
         {
+            return CreateWritableCustomValueCore(
+                client,
+                customTypeId,
+                value,
+                valueRows,
+                referenceOwnershipByPath: null);
+        }
+
+        private static NeoAttributeCustomWritable CreateWritableCustomValueCore(
+            NeoClient client,
+            string customTypeId,
+            Dictionary<string, string> value,
+            IReadOnlyList<AttributeValue> valueRows,
+            IReadOnlyDictionary<string, NeoValueOwnership>?
+                referenceOwnershipByPath)
+        {
+            ValidateConstructibleCustomType(client, customTypeId);
             var nowIso = DateTime.UtcNow.ToString("o");
             var rows = new List<AttributeValue>(valueRows);
             var parentRow = CreateWritableCustomValueRow(
@@ -998,6 +1154,12 @@ namespace NeoCompose.Runtime
                 nowIso,
                 new HashSet<string>());
             rows.Add(parentRow);
+
+            PrepareConstructedGraph(
+                client,
+                parentRow,
+                rows,
+                referenceOwnershipByPath);
 
             foreach (var row in rows)
             {
@@ -1018,6 +1180,1688 @@ namespace NeoCompose.Runtime
                 factoryAttribute,
                 parentRow.id,
                 NeoValueOwnership.Session);
+        }
+
+        /// <summary>
+        /// Materializes generated public-constructor arguments through the
+        /// same recursive, atomic supplied-value path as NeoScript
+        /// <c>new Custom(...)</c>. Optional null arguments are omitted, while
+        /// null entries inside collections retain their position/key as an
+        /// explicit nullable value row.
+        /// </summary>
+        public static NeoAttributeCustomWritable CreateWritableCustomValue(
+            NeoClient client,
+            string customTypeId,
+            params NeoGeneratedConstructorValue[] suppliedValues)
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (customTypeId is null)
+                throw new ArgumentNullException(nameof(customTypeId));
+            suppliedValues ??= Array.Empty<NeoGeneratedConstructorValue>();
+            var fields = new List<RuntimeConstructorField>(suppliedValues.Length);
+            foreach (NeoGeneratedConstructorValue supplied in suppliedValues)
+            {
+                if (supplied is null)
+                {
+                    throw new ArgumentException(
+                        "Generated constructor arguments cannot contain null descriptors.",
+                        nameof(suppliedValues));
+                }
+                fields.Add(new RuntimeConstructorField
+                {
+                    schemaKey = supplied.schemaKey,
+                    attributeId = supplied.attributeId,
+                    value = supplied.value,
+                });
+            }
+            return CreateSuppliedCustomValue(
+                client,
+                new CustomTypeInfo
+                {
+                    type = AttributeType.Custom,
+                    required = true,
+                    typeId = customTypeId,
+                },
+                fields,
+                value => GeneratedValueReference(client, value));
+        }
+
+        private static NeoConstructorValueReference?
+            GeneratedValueReference(NeoClient client, object? value)
+        {
+            if (value is INeoValueReference reference
+                && !string.IsNullOrEmpty(reference.valueId))
+            {
+                NeoValueOwnership? ownership = value is NeoGeneratedCustomValue generated
+                    ? generated.ValueOwnership
+                    : client.TryGetValueOwnership(
+                        reference.valueId!,
+                        out NeoValueOwnership inferred)
+                            ? inferred
+                            : null;
+                return new NeoConstructorValueReference(
+                    reference.valueId!,
+                    ownership);
+            }
+            if (value is NeoValueWritePayload payload
+                && payload.isValueReference)
+            {
+                string? valueId = payload.valueReference?.valueId
+                    ?? payload.valueId;
+                if (string.IsNullOrEmpty(valueId)) return null;
+                NeoValueOwnership? ownership =
+                    payload.valueReference is NeoGeneratedCustomValue generated
+                        ? generated.ValueOwnership
+                        : client.TryGetValueOwnership(
+                            valueId!,
+                            out NeoValueOwnership inferred)
+                                ? inferred
+                                : null;
+                return new NeoConstructorValueReference(
+                    valueId!,
+                    ownership);
+            }
+            return null;
+        }
+
+        private sealed class PendingConstructorReference
+        {
+            internal string sourceValueId = null!;
+            internal NeoValueOwnership sourceOwnership;
+            internal Attribute attribute = null!;
+            internal string path = null!;
+            internal string? expectedMapKey;
+            internal string? expectedContainerId;
+            internal Action<string> replaceValueId = null!;
+        }
+
+        private static void ValidateConstructibleCustomType(
+            NeoClient client,
+            string customTypeId)
+        {
+            if (!client.TryGetType(customTypeId, out CustomType? type))
+            {
+                throw new InvalidOperationException(
+                    $"Cannot construct missing Custom type '{customTypeId}'.");
+            }
+            if (type!.isAbstract)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot construct abstract Custom type '{type.name}'.");
+            }
+            if (client.TryResolveCustomTypeAllowedOwnership(
+                    customTypeId,
+                    out NeoValueOwnership ownership)
+                && ownership == NeoValueOwnership.Asset)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot construct immutable-only Custom type '{type.name}'.");
+            }
+            // Also validates inheritance, closed generic bindings, and merged
+            // schema integrity before any Session row can be published.
+            _ = ResolveMergedSchema(client, customTypeId);
+        }
+
+        /// <summary>
+        /// Validates and normalizes the complete generated/runtime constructor
+        /// graph before publication. Existing owned Custom references use the
+        /// ordinary Session import funnel, while every freshly staged row is
+        /// schema-shaped, singly owned, and partition-stamped first.
+        /// </summary>
+        private static void PrepareConstructedGraph(
+            NeoClient client,
+            ObjectAttributeValue root,
+            List<AttributeValue> rows,
+            IReadOnlyDictionary<string, NeoValueOwnership>?
+                referenceOwnershipByPath)
+        {
+            if (!string.IsNullOrEmpty(root.mapKey))
+            {
+                throw new InvalidOperationException(
+                    $"Parentless constructed Custom root '{root.id}' cannot arrive pre-stamped with partition '{root.mapKey}'.");
+            }
+            root.mapKey = null;
+            var stagedById = new Dictionary<string, AttributeValue>();
+            foreach (AttributeValue row in rows)
+            {
+                if (string.IsNullOrEmpty(row.id))
+                {
+                    throw new InvalidOperationException(
+                        "Constructed value graph contains a row without an id.");
+                }
+                if (!stagedById.TryAdd(row.id, row))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed value graph contains duplicate row id '{row.id}'.");
+                }
+                if (client.TryGetValue(row.id, out AttributeValue? _))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed value graph row id '{row.id}' collides with an existing value.");
+                }
+            }
+
+            var reachableStagedIds = new HashSet<string> { root.id };
+            var ownedByPath = new Dictionary<string, string>();
+            var pending = new List<PendingConstructorReference>();
+            ValidateConstructedCustomRow(
+                client,
+                root,
+                root.typeId
+                    ?? throw new InvalidOperationException(
+                        "Constructed Custom root has no runtime typeId."),
+                stagedById,
+                reachableStagedIds,
+                ownedByPath,
+                pending,
+                path: root.typeId!,
+                new HashSet<string>(),
+                referenceOwnershipByPath);
+
+            foreach (string stagedId in stagedById.Keys)
+            {
+                if (!reachableStagedIds.Contains(stagedId))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed value graph contains orphan staged row '{stagedId}'.");
+                }
+            }
+
+            // Preflight every ownership decision before the first import. This
+            // keeps an already-owned reference error from leaving earlier
+            // imported rows behind.
+            foreach (PendingConstructorReference reference in pending)
+            {
+                NeoValueOwnership ownership;
+                if (referenceOwnershipByPath is not null
+                    && referenceOwnershipByPath.TryGetValue(
+                        reference.path,
+                        out NeoValueOwnership suppliedOwnership))
+                {
+                    ownership = suppliedOwnership;
+                    if (!client.TryGetValue(
+                            ownership,
+                            reference.sourceValueId,
+                            out AttributeValue? _))
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructed field '{reference.path}' references missing {ownership} value '{reference.sourceValueId}'.");
+                    }
+                }
+                else if (!client.TryGetValueOwnership(
+                             reference.sourceValueId,
+                             out ownership))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed field '{reference.path}' references missing value '{reference.sourceValueId}'.");
+                }
+                reference.sourceOwnership = ownership;
+                if (ownership == NeoValueOwnership.Session
+                    && client.TryFindOwnedParent(
+                        ownership,
+                        reference.sourceValueId,
+                        out string? parentValueId))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed field '{reference.path}' cannot attach value '{reference.sourceValueId}' because it is already owned by parent value '{parentValueId}'. Call Clone() explicitly before constructing another owner.");
+                }
+            }
+
+            var newlyImportedRoots = new List<string>();
+            try
+            {
+                foreach (PendingConstructorReference reference in pending)
+                {
+                    bool existedInSession =
+                        reference.sourceOwnership == NeoValueOwnership.Session
+                        && client.HasWritableValue(
+                            NeoValueOwnership.Session,
+                            reference.sourceValueId);
+                    string importedValueId = reference.sourceOwnership
+                        == NeoValueOwnership.Session
+                            ? client.ImportValueReference(
+                                NeoValueOwnership.Session,
+                                reference.sourceValueId)
+                            : client.CloneOwnedValueReferenceForNewParent(
+                                NeoValueOwnership.Session,
+                                reference.sourceOwnership,
+                                reference.sourceValueId,
+                                reference.attribute);
+                    reference.replaceValueId(importedValueId);
+                    if ((reference.sourceOwnership != NeoValueOwnership.Session
+                            || !existedInSession)
+                        && client.HasWritableValue(
+                            NeoValueOwnership.Session,
+                            importedValueId))
+                    {
+                        newlyImportedRoots.Add(importedValueId);
+                    }
+                    StampImportedConstructorGraph(
+                        client,
+                        importedValueId,
+                        reference.attribute,
+                        reference.expectedMapKey,
+                        new HashSet<string>(),
+                        expectedContainerId: reference.expectedContainerId);
+                }
+            }
+            catch
+            {
+                foreach (string importedValueId in newlyImportedRoots)
+                {
+                    client.RemoveTemporaryWritableValueGraph(
+                        NeoValueOwnership.Session,
+                        importedValueId);
+                }
+                throw;
+            }
+        }
+
+        private static void ValidateConstructedCustomRow(
+            NeoClient client,
+            ObjectAttributeValue row,
+            string customTypeId,
+            IReadOnlyDictionary<string, AttributeValue> stagedById,
+            HashSet<string> reachableStagedIds,
+            Dictionary<string, string> ownedByPath,
+            List<PendingConstructorReference> pending,
+            string path,
+            HashSet<string> traversal,
+            IReadOnlyDictionary<string, NeoValueOwnership>?
+                referenceOwnershipByPath)
+        {
+            if (!traversal.Add(row.id))
+            {
+                throw new InvalidOperationException(
+                    $"Constructed value graph contains an owned cycle at '{path}'/'{row.id}'.");
+            }
+            try
+            {
+                if (!IsAssignableCustomType(client, customTypeId, customTypeId))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed Custom row '{row.id}' has unknown runtime type '{customTypeId}'.");
+                }
+                if (row.value is null)
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed Custom root '{path}' cannot have a null record payload.");
+                }
+                IList<MergedSchemaEntry> schema = ResolveMergedSchema(
+                    client,
+                    customTypeId);
+                var schemaByKey = new Dictionary<string, MergedSchemaEntry>();
+                foreach (MergedSchemaEntry entry in schema)
+                {
+                    if (!schemaByKey.TryAdd(entry.schemaKey, entry))
+                    {
+                        throw new InvalidOperationException(
+                            $"Merged schema for '{customTypeId}' contains duplicate key '{entry.schemaKey}'.");
+                    }
+                }
+                foreach (string key in row.value.Keys)
+                {
+                    if (!schemaByKey.ContainsKey(key))
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructed Custom row '{path}' contains unknown schema key '{key}'.");
+                    }
+                }
+
+                var env = NeoGenericResolution.ResolveInstanceEnv(
+                    client,
+                    customTypeId,
+                    customTypeArguments: null);
+                foreach (MergedSchemaEntry entry in schema)
+                {
+                    if (!client.TryGetAttribute(
+                            entry.attributeId,
+                            out Attribute? rawAttribute))
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructed Custom row '{path}' schema key '{entry.schemaKey}' references missing attribute '{entry.attributeId}'.");
+                    }
+                    Attribute attribute = NeoGenericResolution.SubstituteAttribute(
+                        client,
+                        rawAttribute,
+                        env);
+                    if (!IsStoredConstructorAttribute(attribute))
+                    {
+                        if (row.value.ContainsKey(entry.schemaKey))
+                        {
+                            throw new InvalidOperationException(
+                                $"Constructed Custom row '{path}' contains non-stored member '{entry.schemaKey}'.");
+                        }
+                        continue;
+                    }
+                    if (!row.value.TryGetValue(entry.schemaKey, out string? childId))
+                    {
+                        if (attribute.required)
+                        {
+                            throw new InvalidOperationException(
+                                $"Constructed Custom row '{path}' is missing required member '{entry.schemaKey}'/'{entry.attributeId}'.");
+                        }
+                        continue;
+                    }
+                    if (string.IsNullOrEmpty(childId))
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructed Custom row '{path}.{entry.schemaKey}' references an empty value id.");
+                    }
+                    string key = entry.schemaKey;
+                    ValidateConstructedValueLink(
+                        client,
+                        attribute,
+                        childId,
+                        replacement => row.value[key] = replacement,
+                        row.mapKey,
+                        customTypeId,
+                        stagedById,
+                        reachableStagedIds,
+                        ownedByPath,
+                        pending,
+                        $"{path}.{entry.schemaKey}",
+                        traversal,
+                        env,
+                        referenceOwnershipByPath);
+                }
+            }
+            finally
+            {
+                traversal.Remove(row.id);
+            }
+        }
+
+        private static void ValidateConstructedValueLink(
+            NeoClient client,
+            Attribute attribute,
+            string valueId,
+            Action<string> replaceValueId,
+            string? parentMapKey,
+            string? parentTypeId,
+            IReadOnlyDictionary<string, AttributeValue> stagedById,
+            HashSet<string> reachableStagedIds,
+            Dictionary<string, string> ownedByPath,
+            List<PendingConstructorReference> pending,
+            string path,
+            HashSet<string> traversal,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> env,
+            IReadOnlyDictionary<string, NeoValueOwnership>?
+                referenceOwnershipByPath,
+            string? expectedContainerId = null)
+        {
+            if (ownedByPath.TryGetValue(valueId, out string? priorPath))
+            {
+                throw new InvalidOperationException(
+                    $"Constructed value '{valueId}' would have two owned parents ('{priorPath}' and '{path}'). Call Clone() explicitly for a second owner.");
+            }
+            ownedByPath[valueId] = path;
+            string? expectedMapKey = client.ResolveCreatedValueMapKey(
+                attribute,
+                parentMapKey,
+                parentTypeId);
+
+            if (!stagedById.TryGetValue(valueId, out AttributeValue? row))
+            {
+                if (attribute is not CustomAttribute customAttribute)
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed field '{path}' references unstaged value '{valueId}' for non-Custom attribute '{attribute.id}'.");
+                }
+                bool sourceExists = referenceOwnershipByPath is not null
+                    && referenceOwnershipByPath.TryGetValue(
+                        path,
+                        out NeoValueOwnership suppliedOwnership)
+                        ? client.TryGetValue(
+                            suppliedOwnership,
+                            valueId,
+                            out ObjectAttributeValue? source)
+                        : client.TryGetValue(
+                            valueId,
+                            out source);
+                if (!sourceExists)
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed Custom field '{path}' references missing object value '{valueId}'.");
+                }
+                string actualTypeId = source!.typeId ?? customAttribute.customTypeId;
+                if (!IsAssignableCustomType(
+                        client,
+                        actualTypeId,
+                        customAttribute.customTypeId))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed Custom field '{path}' expects '{customAttribute.customTypeId}' but value '{valueId}' has runtime type '{actualTypeId}'.");
+                }
+                if (!MapKeyCanMoveTo(source.mapKey, expectedMapKey))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed Custom field '{path}' cannot attach value '{valueId}' from partition '{source.mapKey ?? "main"}' to '{expectedMapKey ?? "main"}'.");
+                }
+                pending.Add(new PendingConstructorReference
+                {
+                    sourceValueId = valueId,
+                    attribute = attribute,
+                    path = path,
+                    expectedMapKey = expectedMapKey,
+                    expectedContainerId = expectedContainerId,
+                    replaceValueId = replaceValueId,
+                });
+                return;
+            }
+
+            reachableStagedIds.Add(valueId);
+            if (!MapKeyCanMoveTo(row.mapKey, expectedMapKey))
+            {
+                throw new InvalidOperationException(
+                    $"Constructed field '{path}' carries partition '{row.mapKey ?? "main"}' but resolves to '{expectedMapKey ?? "main"}'.");
+            }
+            row.mapKey = expectedMapKey;
+            if (expectedContainerId is not null)
+            {
+                if (!string.IsNullOrEmpty(row.containerId)
+                    && row.containerId != expectedContainerId)
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed field '{path}' already belongs to unordered list '{row.containerId}', expected '{expectedContainerId}'.");
+                }
+                row.containerId = expectedContainerId;
+            }
+            ValidateConstructedRowShape(client, attribute, row, path);
+
+            switch (attribute)
+            {
+                case CustomAttribute customAttribute
+                    when row is ObjectAttributeValue customRow
+                    && customRow.value is not null:
+                {
+                    string actualTypeId = customRow.typeId
+                        ?? customAttribute.customTypeId;
+                    if (!IsAssignableCustomType(
+                            client,
+                            actualTypeId,
+                            customAttribute.customTypeId))
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructed Custom field '{path}' expects '{customAttribute.customTypeId}' but staged row '{valueId}' has runtime type '{actualTypeId}'.");
+                    }
+                    customRow.typeId = actualTypeId;
+                    ValidateConstructedCustomRow(
+                        client,
+                        customRow,
+                        actualTypeId,
+                        stagedById,
+                        reachableStagedIds,
+                        ownedByPath,
+                        pending,
+                        path,
+                        traversal,
+                        referenceOwnershipByPath);
+                    break;
+                }
+                case ListAttribute listAttribute
+                    when row is ArrayAttributeValue listRow
+                    && listRow.value is not null:
+                {
+                    if (!client.TryGetAttribute(
+                            listAttribute.entryAttributeId,
+                            out Attribute? entryAttribute))
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructed List field '{path}' references missing entry attribute '{listAttribute.entryAttributeId}'.");
+                    }
+                    entryAttribute = NeoGenericResolution.SubstituteAttribute(
+                        client,
+                        entryAttribute,
+                        env);
+                    bool isUnordered = client.IsUnorderedList(listAttribute);
+                    var memberIds = new List<string>(listRow.value);
+                    if (isUnordered)
+                    {
+                        // A low-level generated constructor may already carry
+                        // canonical unordered membership on staged rows. The
+                        // shared runtime materializer temporarily carries ids
+                        // inline so external Custom references can participate
+                        // in the same ownership validation before publication.
+                        foreach (AttributeValue stagedRow in stagedById.Values)
+                        {
+                            if (stagedRow.containerId == listRow.id
+                                && !memberIds.Contains(stagedRow.id))
+                            {
+                                memberIds.Add(stagedRow.id);
+                            }
+                        }
+                    }
+                    for (int index = 0; index < memberIds.Count; index++)
+                    {
+                        int capturedIndex = index;
+                        ValidateConstructedValueLink(
+                            client,
+                            entryAttribute,
+                            memberIds[index],
+                            isUnordered
+                                ? _ => { }
+                                : replacement => listRow.value[capturedIndex] = replacement,
+                            listRow.mapKey,
+                            listRow.typeId,
+                            stagedById,
+                            reachableStagedIds,
+                            ownedByPath,
+                            pending,
+                            $"{path}[{index}]",
+                            traversal,
+                            env,
+                            referenceOwnershipByPath,
+                            expectedContainerId: isUnordered
+                                ? listRow.id
+                                : null);
+                    }
+                    if (isUnordered)
+                    {
+                        // Unordered List payload is only the present/null
+                        // discriminator; membership lives on entry rows.
+                        listRow.value = Array.Empty<string>();
+                    }
+                    break;
+                }
+                case DictionaryAttribute dictionaryAttribute
+                    when row is ObjectAttributeValue dictionaryRow
+                    && dictionaryRow.value is not null:
+                {
+                    if (!client.TryGetAttribute(
+                            dictionaryAttribute.entryAttributeId,
+                            out Attribute? entryAttribute))
+                    {
+                        throw new InvalidOperationException(
+                            $"Constructed Dictionary field '{path}' references missing entry attribute '{dictionaryAttribute.entryAttributeId}'.");
+                    }
+                    entryAttribute = NeoGenericResolution.SubstituteAttribute(
+                        client,
+                        entryAttribute,
+                        env);
+                    foreach (string key in new List<string>(dictionaryRow.value.Keys))
+                    {
+                        string capturedKey = key;
+                        ValidateConstructedValueLink(
+                            client,
+                            entryAttribute,
+                            dictionaryRow.value[key],
+                            replacement => dictionaryRow.value[capturedKey] = replacement,
+                            dictionaryRow.mapKey,
+                            dictionaryRow.typeId,
+                            stagedById,
+                            reachableStagedIds,
+                            ownedByPath,
+                            pending,
+                            $"{path}[{key}]",
+                            traversal,
+                            env,
+                            referenceOwnershipByPath);
+                    }
+                    break;
+                }
+            }
+        }
+
+        private static void ValidateConstructedRowShape(
+            NeoClient client,
+            Attribute attribute,
+            AttributeValue row,
+            string path)
+        {
+            bool shapeMatches = attribute switch
+            {
+                NullAttribute => row is NullAttributeValue,
+                BoolAttribute => row is BoolAttributeValue,
+                IntAttribute => row is NumberAttributeValue number
+                    && (number.value is null
+                        || number.value.Value == Math.Truncate(number.value.Value)),
+                FloatAttribute => row is NumberAttributeValue,
+                StringAttribute or DecimalAttribute => row is StringAttributeValue,
+                DictionaryAttribute or CustomAttribute => row is ObjectAttributeValue,
+                ListAttribute or EnumAttribute or LookupAttribute or DialogueLookupAttribute =>
+                    row is ArrayAttributeValue,
+                SpriteAttribute => row is SpriteAttributeValue,
+                AudioAttribute => row is FileAttributeValue,
+                Vector2Attribute or Vector2IntAttribute => row is Vector2AttributeValue,
+                Vector3Attribute or Vector3IntAttribute => row is Vector3AttributeValue,
+                ColorAttribute => row is ColorAttributeValue,
+                _ => false,
+            };
+            if (!shapeMatches)
+            {
+                throw new InvalidOperationException(
+                    $"Constructed field '{path}' has row shape '{row.GetType().Name}', incompatible with schema attribute '{attribute.id}' ({attribute.type}).");
+            }
+            if (attribute.required && IsNullStoredValue(row))
+            {
+                throw new InvalidOperationException(
+                    $"Constructed required field '{path}' has a null value.");
+            }
+            if (attribute is DecimalAttribute
+                && row is StringAttributeValue decimalRow
+                && decimalRow.value is not null
+                && NeoDecimalValues.GetViolation(decimalRow.value)
+                    != NeoDecimalValues.Violation.None)
+            {
+                throw new InvalidOperationException(
+                    $"Constructed Decimal field '{path}' is not a canonical decimal value.");
+            }
+            if (attribute is CustomAttribute customAttribute
+                && row is ObjectAttributeValue customRow)
+            {
+                string actualTypeId = customRow.typeId
+                    ?? customAttribute.customTypeId;
+                if (!IsAssignableCustomType(
+                        client,
+                        actualTypeId,
+                        customAttribute.customTypeId))
+                {
+                    throw new InvalidOperationException(
+                        $"Constructed Custom field '{path}' has incompatible runtime type '{actualTypeId}'.");
+                }
+            }
+        }
+
+        private static bool IsNullStoredValue(AttributeValue row)
+        {
+            return row switch
+            {
+                NullAttributeValue => true,
+                BoolAttributeValue value => value.value is null,
+                NumberAttributeValue value => value.value is null,
+                StringAttributeValue value => value.value is null,
+                ArrayAttributeValue value => value.value is null,
+                ObjectAttributeValue value => value.value is null,
+                SpriteAttributeValue value => value.value is null,
+                FileAttributeValue value => value.value is null,
+                Vector2AttributeValue value => value.value is null,
+                Vector3AttributeValue value => value.value is null,
+                ColorAttributeValue value => value.value is null,
+                _ => true,
+            };
+        }
+
+        private static bool IsAssignableCustomType(
+            NeoClient client,
+            string actualTypeId,
+            string expectedTypeId)
+        {
+            if (!client.TryGetType(actualTypeId, out CustomType? _)) return false;
+            try
+            {
+                foreach (CustomType type in CustomTypeInheritance.ResolveChain(
+                    actualTypeId,
+                    id => client.TryGetType(id, out CustomType? candidate)
+                        ? candidate
+                        : null))
+                {
+                    if (type.id == expectedTypeId) return true;
+                }
+            }
+            catch (CircularInheritanceError)
+            {
+                return false;
+            }
+            return false;
+        }
+
+        private static bool MapKeyCanMoveTo(
+            string? currentMapKey,
+            string? expectedMapKey)
+        {
+            return string.IsNullOrEmpty(currentMapKey)
+                || currentMapKey == expectedMapKey;
+        }
+
+        private static void StampImportedConstructorGraph(
+            NeoClient client,
+            string valueId,
+            Attribute attribute,
+            string? expectedMapKey,
+            HashSet<string> visited,
+            bool requireValue = true,
+            string? expectedContainerId = null)
+        {
+            if (!visited.Add(valueId)) return;
+            if (!client.TryGetValue(
+                    NeoValueOwnership.Session,
+                    valueId,
+                    out AttributeValue? row))
+            {
+                // Stable-id authored aggregates may contain sparse child
+                // references whose value row resolves through the schema
+                // default rather than a stored row. Ordinary assignment/import
+                // preserves those ids; constructor attachment must do the same.
+                if (!requireValue) return;
+                throw new InvalidOperationException(
+                    $"Imported constructor value '{valueId}' is missing from Session storage.");
+            }
+            if (!MapKeyCanMoveTo(row!.mapKey, expectedMapKey))
+            {
+                throw new InvalidOperationException(
+                    $"Imported constructor value '{valueId}' has partition '{row.mapKey ?? "main"}', expected '{expectedMapKey ?? "main"}'.");
+            }
+            if (!string.IsNullOrEmpty(row.containerId)
+                && expectedContainerId is not null
+                && row.containerId != expectedContainerId)
+            {
+                throw new InvalidOperationException(
+                    $"Imported constructor value '{valueId}' already belongs to unordered list '{row.containerId}', expected '{expectedContainerId}'.");
+            }
+            if (row.mapKey != expectedMapKey
+                || (expectedContainerId is not null
+                    && row.containerId != expectedContainerId))
+            {
+                AttributeValue writable = client.CloneRowForWrite(row);
+                writable.mapKey = expectedMapKey;
+                if (expectedContainerId is not null)
+                {
+                    writable.containerId = expectedContainerId;
+                }
+                client.SetWritableValue(NeoValueOwnership.Session, writable);
+                row = writable;
+            }
+
+            switch (attribute)
+            {
+                case CustomAttribute customAttribute
+                    when row is ObjectAttributeValue customRow
+                    && customRow.value is not null:
+                {
+                    string actualTypeId = customRow.typeId
+                        ?? customAttribute.customTypeId;
+                    IList<MergedSchemaEntry> schema = ResolveMergedSchema(
+                        client,
+                        actualTypeId);
+                    var env = NeoGenericResolution.ResolveInstanceEnv(
+                        client,
+                        actualTypeId,
+                        customTypeArguments: null);
+                    foreach (MergedSchemaEntry entry in schema)
+                    {
+                        if (!customRow.value.TryGetValue(
+                                entry.schemaKey,
+                                out string? childId)
+                            || !client.TryGetAttribute(
+                                entry.attributeId,
+                                out Attribute? childAttribute))
+                        {
+                            continue;
+                        }
+                        childAttribute = NeoGenericResolution.SubstituteAttribute(
+                            client,
+                            childAttribute,
+                            env);
+                        if (!IsStoredConstructorAttribute(childAttribute)) continue;
+                        string? childMapKey = client.ResolveCreatedValueMapKey(
+                            childAttribute,
+                            row.mapKey,
+                            actualTypeId);
+                        StampImportedConstructorGraph(
+                            client,
+                            childId,
+                            childAttribute,
+                            childMapKey,
+                            visited,
+                            requireValue: false);
+                    }
+                    break;
+                }
+                case ListAttribute listAttribute
+                    when row is ArrayAttributeValue listRow
+                    && listRow.value is not null
+                    && client.TryGetAttribute(
+                        listAttribute.entryAttributeId,
+                        out Attribute? entryAttribute):
+                    foreach (string childId in listRow.value)
+                    {
+                        string? childMapKey = client.ResolveCreatedValueMapKey(
+                            entryAttribute,
+                            row.mapKey,
+                            row.typeId);
+                        StampImportedConstructorGraph(
+                            client,
+                            childId,
+                            entryAttribute,
+                            childMapKey,
+                            visited,
+                            requireValue: false);
+                    }
+                    break;
+                case DictionaryAttribute dictionaryAttribute
+                    when row is ObjectAttributeValue dictionaryRow
+                    && dictionaryRow.value is not null
+                    && client.TryGetAttribute(
+                        dictionaryAttribute.entryAttributeId,
+                        out Attribute? entryAttribute):
+                    foreach (string childId in dictionaryRow.value.Values)
+                    {
+                        string? childMapKey = client.ResolveCreatedValueMapKey(
+                            entryAttribute,
+                            row.mapKey,
+                            row.typeId);
+                        StampImportedConstructorGraph(
+                            client,
+                            childId,
+                            entryAttribute,
+                            childMapKey,
+                            visited,
+                            requireValue: false);
+                    }
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Materializes the shared NeoScript <c>customConstructor</c>
+        /// intrinsic through the same Session-backed value graph used by
+        /// generated public C# constructors. Explicit fields are applied by
+        /// schema/attribute id; ordinary required defaults are then filled by
+        /// <see cref="CreateWritableCustomValue"/>.
+        /// </summary>
+        internal static NeoAttributeCustomWritable CreateRuntimeCustomValue(
+            NeoClient client,
+            CustomTypeInfo customTypeInfo,
+            IReadOnlyList<RuntimeConstructorField> fields,
+            Func<object?, NeoConstructorValueReference?> valueReference)
+        {
+            return CreateSuppliedCustomValue(
+                client,
+                customTypeInfo,
+                fields,
+                valueReference);
+        }
+
+        private static NeoAttributeCustomWritable CreateSuppliedCustomValue(
+            NeoClient client,
+            CustomTypeInfo customTypeInfo,
+            IReadOnlyList<RuntimeConstructorField> fields,
+            Func<object?, NeoConstructorValueReference?> valueReference)
+        {
+            RuntimeConstructorMetadata metadata =
+                ValidateRuntimeCustomConstructorMetadataCore(
+                    client,
+                    customTypeInfo,
+                    fields);
+
+            var value = new Dictionary<string, string>();
+            var rows = new List<AttributeValue>();
+            var referenceOwnershipByPath =
+                new Dictionary<string, NeoValueOwnership>();
+            string nowIso = DateTime.UtcNow.ToString("o");
+            foreach (RuntimeConstructorField field in fields)
+            {
+                Attribute attribute = metadata.attributesBySchemaKey[field.schemaKey];
+                if (field.value is null
+                    && !RequiresRuntimeConstructorArgument(attribute))
+                {
+                    // Matches generated C# optional parameters: null means the
+                    // field is omitted and its ordinary constructor/default
+                    // behavior applies.
+                    continue;
+                }
+                string? fieldValueId = MaterializeRuntimeConstructorValue(
+                    client,
+                    attribute,
+                    field.value,
+                    rows,
+                    nowIso,
+                    valueReference,
+                    metadata.genericEnv,
+                    $"{customTypeInfo.typeId}.{field.schemaKey}",
+                    referenceOwnershipByPath);
+                if (fieldValueId is not null)
+                {
+                    value[field.schemaKey] = fieldValueId;
+                }
+            }
+            return CreateWritableCustomValueCore(
+                client,
+                customTypeInfo.typeId,
+                value,
+                rows,
+                referenceOwnershipByPath);
+        }
+
+        /// <summary>
+        /// Validates all schema/type/field metadata carried by constructor IR
+        /// without inspecting argument values. The evaluator invokes this
+        /// before evaluating any argument pointer, matching NeoScript's
+        /// compile-time call-shape ordering and preventing stale IR from
+        /// running argument side effects.
+        /// </summary>
+        internal static void ValidateRuntimeCustomConstructorMetadata(
+            NeoClient client,
+            CustomTypeInfo customTypeInfo,
+            IReadOnlyList<RuntimeConstructorField> fields)
+        {
+            ValidateRuntimeCustomConstructorMetadataCore(
+                client,
+                customTypeInfo,
+                fields);
+        }
+
+        private static RuntimeConstructorMetadata
+            ValidateRuntimeCustomConstructorMetadataCore(
+                NeoClient client,
+                CustomTypeInfo customTypeInfo,
+                IReadOnlyList<RuntimeConstructorField> fields)
+        {
+            if (!client.TryGetType(customTypeInfo.typeId, out CustomType? customType))
+            {
+                throw new InvalidOperationException(
+                    $"NeoScript construction references missing Custom type '{customTypeInfo.typeId}'.");
+            }
+            if (customType!.isAbstract)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot construct abstract Custom type '{customType.name}'.");
+            }
+            if (customTypeInfo.type != AttributeType.Custom)
+            {
+                throw new InvalidOperationException(
+                    $"Custom constructor for '{customTypeInfo.typeId}' carries non-Custom runtime type metadata '{customTypeInfo.type}'.");
+            }
+            if (client.TryResolveCustomTypeAllowedOwnership(
+                    customTypeInfo.typeId,
+                    out NeoValueOwnership allowedOwnership)
+                && allowedOwnership == NeoValueOwnership.Asset)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot construct immutable-only Custom type '{customType.name}'.");
+            }
+            var genericEnv = NeoGenericResolution.ResolveInstanceEnv(
+                client,
+                customTypeInfo.typeId,
+                customTypeArguments: null);
+            string? unboundParamId = NeoGenericResolution.FirstUnboundParamId(
+                genericEnv);
+            if (unboundParamId is not null)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot construct open generic Custom type '{customType.name}'; generic param '{unboundParamId}' is unbound. Construct a closed named descendant.");
+            }
+            ValidateRuntimeConstructorTypeArguments(
+                client,
+                customTypeInfo,
+                genericEnv);
+            IList<MergedSchemaEntry> schema = ResolveMergedSchema(
+                client,
+                customTypeInfo.typeId);
+            var schemaByKey = new Dictionary<string, MergedSchemaEntry>();
+            var attributesBySchemaKey = new Dictionary<string, Attribute>();
+            foreach (MergedSchemaEntry entry in schema)
+            {
+                if (!schemaByKey.TryAdd(entry.schemaKey, entry))
+                {
+                    throw new InvalidOperationException(
+                        $"Custom constructor schema for '{customTypeInfo.typeId}' contains duplicate merged key '{entry.schemaKey}'.");
+                }
+            }
+
+            var suppliedSchemaKeys = new HashSet<string>();
+            foreach (RuntimeConstructorField field in fields)
+            {
+                if (!suppliedSchemaKeys.Add(field.schemaKey))
+                {
+                    throw new InvalidOperationException(
+                        $"Custom constructor for '{customTypeInfo.typeId}' contains duplicate field '{field.schemaKey}'.");
+                }
+            }
+            foreach (MergedSchemaEntry entry in schema)
+            {
+                if (!client.TryGetAttribute(entry.attributeId, out Attribute? attribute))
+                {
+                    throw new InvalidOperationException(
+                        $"Custom constructor schema field '{entry.schemaKey}' references missing attribute '{entry.attributeId}'.");
+                }
+                attribute = NeoGenericResolution.SubstituteAttribute(
+                    client,
+                    attribute,
+                    genericEnv);
+                attributesBySchemaKey[entry.schemaKey] = attribute;
+                if (!IsStoredConstructorAttribute(attribute)) continue;
+                if (RequiresRuntimeConstructorArgument(attribute)
+                    && !suppliedSchemaKeys.Contains(entry.schemaKey))
+                {
+                    throw new InvalidOperationException(
+                        $"Custom constructor for '{customTypeInfo.typeId}' is missing required field '{entry.schemaKey}'/'{entry.attributeId}'. Regenerate the NeoScript IR from the current schema.");
+                }
+            }
+            foreach (RuntimeConstructorField field in fields)
+            {
+                if (!schemaByKey.TryGetValue(field.schemaKey, out MergedSchemaEntry? entry)
+                    || entry.attributeId != field.attributeId)
+                {
+                    throw new InvalidOperationException(
+                        $"Custom constructor for '{customTypeInfo.typeId}' contains stale field '{field.schemaKey}'/'{field.attributeId}'. Regenerate the NeoScript IR from the current schema.");
+                }
+                Attribute attribute = attributesBySchemaKey[field.schemaKey];
+                if (!IsStoredConstructorAttribute(attribute))
+                {
+                    throw new InvalidOperationException(
+                        $"Custom constructor field '{field.schemaKey}' references non-stored attribute '{entry.attributeId}'.");
+                }
+            }
+            return new RuntimeConstructorMetadata
+            {
+                attributesBySchemaKey = attributesBySchemaKey,
+                genericEnv = genericEnv,
+            };
+        }
+
+        private static void ValidateRuntimeConstructorTypeArguments(
+            NeoClient client,
+            CustomTypeInfo customTypeInfo,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv)
+        {
+            if (customTypeInfo.typeArguments is null) return;
+            foreach (var pair in customTypeInfo.typeArguments)
+            {
+                if (!genericEnv.TryGetValue(pair.Key, out NeoGenericEnvEntry? binding)
+                    || !binding.IsBound
+                    || string.IsNullOrEmpty(binding.attributeId))
+                {
+                    throw new InvalidOperationException(
+                        $"Custom constructor type argument '{pair.Key}' is not a bound parameter of closed type '{customTypeInfo.typeId}'.");
+                }
+                if (!client.TryGetAttribute(binding.attributeId!, out Attribute? bindingAttribute))
+                {
+                    throw new InvalidOperationException(
+                        $"Custom constructor type argument '{pair.Key}' references missing binding attribute '{binding.attributeId}'.");
+                }
+                if (!RuntimeConstructorTypeMatchesAttribute(
+                        client,
+                        pair.Value,
+                        bindingAttribute))
+                {
+                    throw new InvalidOperationException(
+                        $"Custom constructor type argument '{pair.Key}' does not match closed type '{customTypeInfo.typeId}' binding attribute '{binding.attributeId}'.");
+                }
+            }
+        }
+
+        private static bool RuntimeConstructorTypeMatchesAttribute(
+            NeoClient client,
+            TypeInfo typeInfo,
+            Attribute attribute)
+        {
+            if (typeInfo.type != attribute.type
+                || typeInfo.required != attribute.required)
+            {
+                return false;
+            }
+            if (typeInfo is CustomTypeInfo customType
+                && attribute is CustomAttribute customAttribute)
+            {
+                return customType.typeId == customAttribute.customTypeId;
+            }
+            if (typeInfo is EnumTypeInfo enumType
+                && attribute is EnumAttribute enumAttribute)
+            {
+                return enumType.enumId == enumAttribute.enumId;
+            }
+            if (typeInfo is CollectionTypeInfo collectionType
+                && attribute is ListAttribute listAttribute
+                && client.TryGetAttribute(
+                    listAttribute.entryAttributeId,
+                    out Attribute? listEntry))
+            {
+                return RuntimeConstructorTypeMatchesAttribute(
+                    client,
+                    collectionType.entryTypeInfo,
+                    listEntry);
+            }
+            if (typeInfo is CollectionTypeInfo dictionaryType
+                && attribute is DictionaryAttribute dictionaryAttribute
+                && client.TryGetAttribute(
+                    dictionaryAttribute.entryAttributeId,
+                    out Attribute? dictionaryEntry))
+            {
+                return RuntimeConstructorTypeMatchesAttribute(
+                    client,
+                    dictionaryType.entryTypeInfo,
+                    dictionaryEntry);
+            }
+            return true;
+        }
+
+        private static bool RequiresRuntimeConstructorArgument(
+            Attribute attribute)
+        {
+            return attribute.required && !HasExplicitDefaultValue(attribute);
+        }
+
+        private static bool IsStoredConstructorAttribute(Attribute attribute)
+        {
+            return !attribute.isStatic
+                && attribute is not NSPropertyAttribute
+                && attribute is not FunctionAttribute
+                && attribute is not NSFunctionAttribute;
+        }
+
+        private static bool HasExplicitDefaultValue(Attribute attribute)
+        {
+            return attribute switch
+            {
+                NullAttribute attr => attr.defaultValue is not null,
+                BoolAttribute attr => attr.defaultValue is not null,
+                IntAttribute attr => attr.defaultValue is not null,
+                FloatAttribute attr => attr.defaultValue is not null,
+                StringAttribute attr => attr.defaultValue is not null,
+                DictionaryAttribute attr => attr.defaultValue is not null,
+                ListAttribute attr => attr.defaultValue is not null,
+                CustomAttribute attr => attr.defaultValue is not null,
+                GenericAttribute attr => attr.defaultValue is not null,
+                EnumAttribute attr => attr.defaultValue is not null,
+                LookupAttribute attr => attr.defaultValue is not null,
+                DialogueLookupAttribute attr => attr.defaultValue is not null,
+                SpriteAttribute attr => attr.defaultValue is not null,
+                AudioAttribute attr => attr.defaultValue is not null,
+                Vector2Attribute attr => attr.defaultValue is not null,
+                Vector2IntAttribute attr => attr.defaultValue is not null,
+                Vector3Attribute attr => attr.defaultValue is not null,
+                Vector3IntAttribute attr => attr.defaultValue is not null,
+                ColorAttribute attr => attr.defaultValue is not null,
+                DecimalAttribute attr => attr.defaultValue is not null,
+                _ => false,
+            };
+        }
+
+        private static string? MaterializeRuntimeConstructorValue(
+            NeoClient client,
+            Attribute attribute,
+            object? runtimeValue,
+            List<AttributeValue> rows,
+            string nowIso,
+            Func<object?, NeoConstructorValueReference?> valueReference,
+            IReadOnlyDictionary<string, NeoGenericEnvEntry> genericEnv,
+            string path,
+            Dictionary<string, NeoValueOwnership> referenceOwnershipByPath,
+            bool preserveOptionalNull = false)
+        {
+            if (runtimeValue is null)
+            {
+                if (attribute.required)
+                {
+                    throw new InvalidOperationException(
+                        $"Required constructor field '{attribute.name}' received null.");
+                }
+                if (!preserveOptionalNull) return null;
+            }
+
+            if (runtimeValue is not null && attribute is CustomAttribute)
+            {
+                NeoConstructorValueReference? source = valueReference(runtimeValue);
+                if (source is null || string.IsNullOrEmpty(source.Value.valueId))
+                {
+                    throw new InvalidOperationException(
+                        $"Custom constructor field '{attribute.name}' is not backed by a Neo value.");
+                }
+                // Ownership import is deliberately deferred until the entire
+                // staged constructor graph has passed schema/shape validation.
+                // PrepareConstructedGraph then applies the same ordinary
+                // parentless-attach / already-owned rejection rule used by
+                // generated C# constructors and normal assignments.
+                if (source.Value.ownership is NeoValueOwnership ownership)
+                {
+                    referenceOwnershipByPath[path] = ownership;
+                }
+                return source.Value.valueId;
+            }
+
+            NeoValuePayload? wrappedPayload = runtimeValue
+                is INeoValuePayloadProvider provider
+                    ? provider.ToNeoValuePayload()
+                    : null;
+            object? suppliedValue = wrappedPayload?.value ?? runtimeValue;
+            if (suppliedValue is null && attribute.required)
+            {
+                throw new InvalidOperationException(
+                    $"Required constructor field '{attribute.name}' received null.");
+            }
+            bool materializeExplicitNull = suppliedValue is null;
+            object? payload = suppliedValue;
+            string valueId = Guid.NewGuid().ToString();
+            if (materializeExplicitNull)
+            {
+                // A null optional field is normally omitted. Once it appears
+                // inside a collection, however, it is a real element and must
+                // become the correctly typed null row (including Array/Object
+                // rows for enum, lookup, nested list, and nested dictionary
+                // entries) so list positions and dictionary keys are stable.
+                payload = null;
+            }
+            else if (attribute is ListAttribute listAttribute)
+            {
+                if (!client.TryGetAttribute(
+                        listAttribute.entryAttributeId,
+                        out Attribute? entryAttribute))
+                {
+                    throw new InvalidOperationException(
+                        $"List constructor field '{attribute.name}' references missing entry attribute '{listAttribute.entryAttributeId}'.");
+                }
+                entryAttribute = NeoGenericResolution.SubstituteAttribute(
+                    client,
+                    entryAttribute,
+                    genericEnv);
+                var ids = new List<string>();
+                if (suppliedValue is System.Collections.IEnumerable enumerable
+                    && suppliedValue is not string)
+                {
+                    foreach (object? item in enumerable)
+                    {
+                        string? id = MaterializeRuntimeConstructorValue(
+                            client,
+                            entryAttribute,
+                            item,
+                            rows,
+                            nowIso,
+                            valueReference,
+                            genericEnv,
+                            $"{path}[{ids.Count}]",
+                            referenceOwnershipByPath,
+                            preserveOptionalNull: true);
+                        if (id is null)
+                        {
+                            throw new InvalidOperationException(
+                                $"List constructor field '{attribute.name}' failed to materialize an entry.");
+                        }
+                        ids.Add(id);
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        $"List constructor field '{attribute.name}' requires a collection value.");
+                }
+                payload = ids.ToArray();
+            }
+            else if (attribute is DictionaryAttribute dictionaryAttribute)
+            {
+                if (!client.TryGetAttribute(
+                        dictionaryAttribute.entryAttributeId,
+                        out Attribute? entryAttribute))
+                {
+                    throw new InvalidOperationException(
+                        $"Dictionary constructor field '{attribute.name}' references missing entry attribute '{dictionaryAttribute.entryAttributeId}'.");
+                }
+                entryAttribute = NeoGenericResolution.SubstituteAttribute(
+                    client,
+                    entryAttribute,
+                    genericEnv);
+                if (!TryEnumerateConstructorDictionary(
+                        suppliedValue!,
+                        out IEnumerable<NeoGeneratedConstructorDictionaryEntry>?
+                            dictionaryEntries))
+                {
+                    throw new InvalidOperationException(
+                        $"Dictionary constructor field '{attribute.name}' requires a dictionary value.");
+                }
+                var ids = new Dictionary<string, string>();
+                foreach (NeoGeneratedConstructorDictionaryEntry pair in
+                         dictionaryEntries)
+                {
+                    string key = pair.Key switch
+                    {
+                        INeoEnumOption option => option.optionId,
+                        string text => text,
+                        null => throw new InvalidOperationException(
+                            $"Dictionary constructor field '{attribute.name}' contains a null key."),
+                        _ => pair.Key.ToString()
+                            ?? throw new InvalidOperationException(
+                                $"Dictionary constructor field '{attribute.name}' contains an invalid key."),
+                    };
+                    string? id = MaterializeRuntimeConstructorValue(
+                        client,
+                        entryAttribute,
+                        pair.Value,
+                        rows,
+                        nowIso,
+                        valueReference,
+                        genericEnv,
+                        $"{path}[{key}]",
+                        referenceOwnershipByPath,
+                        preserveOptionalNull: true);
+                    if (id is null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Dictionary constructor field '{attribute.name}' failed to materialize key '{key}'.");
+                    }
+                    ids[key] = id;
+                }
+                payload = ids;
+            }
+            else if (attribute is EnumAttribute enumAttribute)
+            {
+                payload = ConstructorEnumOptionIds(
+                    suppliedValue!, enumAttribute);
+            }
+            else if (attribute is LookupAttribute lookupAttribute)
+            {
+                payload = ConstructorLookupIds(suppliedValue!, lookupAttribute);
+            }
+            else if (attribute is DialogueLookupAttribute dialogueAttribute)
+            {
+                payload = ConstructorDialogueIds(
+                    suppliedValue!, dialogueAttribute);
+            }
+            else
+            {
+                payload = NormalizeGeneratedConstructorScalar(
+                    client,
+                    attribute,
+                    suppliedValue);
+            }
+
+            if (wrappedPayload is not null)
+            {
+                payload = new NeoValuePayload(
+                    payload,
+                    wrappedPayload.typeId,
+                    wrappedPayload.valueRows);
+            }
+
+            if (payload is NeoValuePayload finalWrappedPayload)
+            {
+                rows.AddRange(finalWrappedPayload.valueRows);
+            }
+            AttributeValue row = AttributeValueFactory.Create(
+                attribute,
+                payload,
+                valueId,
+                nowIso,
+                nowIso);
+            NeoGenericResolution.StampGenericBindings(
+                client,
+                attribute,
+                row,
+                genericEnv);
+            rows.Add(row);
+            return valueId;
+        }
+
+        private static string[] ConstructorEnumOptionIds(
+            object runtimeValue,
+            EnumAttribute attribute)
+        {
+            if (runtimeValue is string optionId)
+            {
+                return new[] { optionId };
+            }
+            if (runtimeValue is INeoEnumOption option)
+            {
+                return new[] { option.optionId };
+            }
+            if (runtimeValue is not System.Collections.IEnumerable values)
+            {
+                throw new InvalidOperationException(
+                    $"Enum constructor field '{attribute.name}' requires an enum option or option collection.");
+            }
+            var optionIds = new List<string>();
+            foreach (object? value in values)
+            {
+                string? id = value switch
+                {
+                    string text => text,
+                    INeoEnumOption enumOption => enumOption.optionId,
+                    _ => null,
+                };
+                if (string.IsNullOrEmpty(id))
+                {
+                    throw new InvalidOperationException(
+                        $"Enum constructor field '{attribute.name}' contains an invalid option.");
+                }
+                optionIds.Add(id!);
+            }
+            string[] result = optionIds.ToArray();
+            ValidateConstructorSelectionCardinality(
+                result,
+                attribute.multiselect,
+                attribute.name,
+                "Enum");
+            return result;
+        }
+
+        private static bool TryEnumerateConstructorDictionary(
+            object value,
+            out IEnumerable<NeoGeneratedConstructorDictionaryEntry> entries)
+        {
+            if (value is INeoGeneratedConstructorDictionary generated)
+            {
+                entries = generated.EnumerateGeneratedConstructorEntries();
+                return true;
+            }
+            if (value is System.Collections.IDictionary dictionary)
+            {
+                entries = EnumerateNonGenericConstructorDictionary(dictionary);
+                return true;
+            }
+            if (value is System.Collections.IEnumerable enumerable
+                && IsGenericStringKeyDictionary(value.GetType()))
+            {
+                entries = EnumerateGenericConstructorDictionary(enumerable);
+                return true;
+            }
+
+            entries = Array.Empty<NeoGeneratedConstructorDictionaryEntry>();
+            return false;
+        }
+
+        private static IEnumerable<NeoGeneratedConstructorDictionaryEntry>
+            EnumerateNonGenericConstructorDictionary(
+                System.Collections.IDictionary dictionary)
+        {
+            foreach (System.Collections.DictionaryEntry pair in dictionary)
+            {
+                yield return new NeoGeneratedConstructorDictionaryEntry(
+                    pair.Key,
+                    pair.Value);
+            }
+        }
+
+        private static bool IsGenericStringKeyDictionary(Type type)
+        {
+            lock (ConstructorDictionaryShapeLock)
+            {
+                if (ConstructorDictionaryShapeCache.TryGetValue(
+                        type,
+                        out bool cached))
+                {
+                    return cached;
+                }
+            }
+
+            bool matches = false;
+            foreach (Type contract in type.GetInterfaces())
+            {
+                if (!contract.IsGenericType) continue;
+                Type definition = contract.GetGenericTypeDefinition();
+                if ((definition == typeof(IDictionary<,>)
+                        || definition == typeof(IReadOnlyDictionary<,>))
+                    && contract.GetGenericArguments()[0] == typeof(string))
+                {
+                    matches = true;
+                    break;
+                }
+            }
+            lock (ConstructorDictionaryShapeLock)
+            {
+                ConstructorDictionaryShapeCache[type] = matches;
+            }
+            return matches;
+        }
+
+        private static IEnumerable<NeoGeneratedConstructorDictionaryEntry>
+            EnumerateGenericConstructorDictionary(
+                System.Collections.IEnumerable dictionary)
+        {
+            foreach (object? pair in dictionary)
+            {
+                if (pair is null)
+                {
+                    throw new InvalidOperationException(
+                        "Generated constructor dictionary yielded a null entry.");
+                }
+                ConstructorKeyValuePairAccessors? accessors =
+                    ConstructorDictionaryAccessors(pair.GetType());
+                if (accessors is null)
+                {
+                    throw new InvalidOperationException(
+                        $"Generated constructor dictionary yielded unsupported entry type '{pair.GetType().FullName}'.");
+                }
+                yield return new NeoGeneratedConstructorDictionaryEntry(
+                    accessors.key.GetValue(pair),
+                    accessors.value.GetValue(pair));
+            }
+        }
+
+        private static ConstructorKeyValuePairAccessors?
+            ConstructorDictionaryAccessors(Type pairType)
+        {
+            lock (ConstructorDictionaryShapeLock)
+            {
+                if (ConstructorKeyValuePairAccessorsCache.TryGetValue(
+                        pairType,
+                        out ConstructorKeyValuePairAccessors? cached))
+                {
+                    return cached;
+                }
+            }
+
+            ConstructorKeyValuePairAccessors? result = null;
+            if (pairType.IsGenericType
+                && pairType.GetGenericTypeDefinition() == typeof(KeyValuePair<,>)
+                && pairType.GetGenericArguments()[0] == typeof(string))
+            {
+                System.Reflection.PropertyInfo? key = pairType.GetProperty("Key");
+                System.Reflection.PropertyInfo? value = pairType.GetProperty("Value");
+                if (key is not null && value is not null)
+                {
+                    result = new ConstructorKeyValuePairAccessors
+                    {
+                        key = key,
+                        value = value,
+                    };
+                }
+            }
+            lock (ConstructorDictionaryShapeLock)
+            {
+                ConstructorKeyValuePairAccessorsCache[pairType] = result;
+            }
+            return result;
+        }
+
+        private static string[] ConstructorLookupIds(
+            object runtimeValue,
+            LookupAttribute attribute)
+        {
+            var ids = ConstructorReferenceIds(
+                runtimeValue,
+                value => value switch
+                {
+                    NeoLookupSelection selection => selection.valueId,
+                    INeoValueReference reference => reference.valueId,
+                    string id => id,
+                    _ => null,
+                },
+                $"Lookup constructor field '{attribute.name}'");
+            ValidateConstructorSelectionCardinality(
+                ids,
+                attribute.multiselect,
+                attribute.name,
+                "Lookup");
+            return ids;
+        }
+
+        private static string[] ConstructorDialogueIds(
+            object runtimeValue,
+            DialogueLookupAttribute attribute)
+        {
+            var ids = ConstructorReferenceIds(
+                runtimeValue,
+                value => value switch
+                {
+                    NeoDialogueReference reference => reference.Id,
+                    string id => id,
+                    _ => null,
+                },
+                $"DialogueLookup constructor field '{attribute.name}'");
+            ValidateConstructorSelectionCardinality(
+                ids,
+                attribute.multiselect,
+                attribute.name,
+                "DialogueLookup");
+            return ids;
+        }
+
+        private static string[] ConstructorReferenceIds(
+            object runtimeValue,
+            Func<object?, string?> valueId,
+            string subject)
+        {
+            string? singleId = valueId(runtimeValue);
+            if (!string.IsNullOrEmpty(singleId)) return new[] { singleId! };
+            if (runtimeValue is string
+                || runtimeValue is not System.Collections.IEnumerable values)
+            {
+                throw new InvalidOperationException(
+                    $"{subject} requires a reference or reference collection.");
+            }
+            var ids = new List<string>();
+            foreach (object? value in values)
+            {
+                string? id = valueId(value);
+                if (string.IsNullOrEmpty(id))
+                {
+                    throw new InvalidOperationException(
+                        $"{subject} contains an unbound reference.");
+                }
+                ids.Add(id!);
+            }
+            return ids.ToArray();
+        }
+
+        private static void ValidateConstructorSelectionCardinality(
+            string[] ids,
+            bool multiselect,
+            string attributeName,
+            string kind)
+        {
+            if (!multiselect && ids.Length != 1)
+            {
+                throw new InvalidOperationException(
+                    $"{kind} constructor field '{attributeName}' requires exactly one selection.");
+            }
+        }
+
+        private static object? NormalizeGeneratedConstructorScalar(
+            NeoClient client,
+            Attribute attribute,
+            object? value)
+        {
+            switch (attribute)
+            {
+                case SpriteAttribute sprite when value is Sprite unitySprite:
+                    return SpriteValue(
+                        client,
+                        unitySprite,
+                        sprite.templateId,
+                        sprite.name);
+                case AudioAttribute audio when value is AudioClip unityAudio:
+                    return AudioValue(
+                        client,
+                        unityAudio,
+                        audio.templateId,
+                        audio.name);
+                case DecimalAttribute when value is double or float or int or long or short:
+                    return NeoScript.NSGetterEvaluator.CoerceDecimalOperand(
+                        value,
+                        $"constructor field '{attribute.name}'");
+                default:
+                    return value;
+            }
         }
 
         private static ObjectAttributeValue CreateWritableCustomValueRow(
@@ -1062,6 +2906,7 @@ namespace NeoCompose.Runtime
                     // defaultValue travel with the binding
                     // (specs/custom-type-generics.md Decision 10).
                     attribute = NeoGenericResolution.SubstituteAttribute(client, attribute, env);
+                    if (!IsStoredConstructorAttribute(attribute)) continue;
                     if (!attribute.required) continue;
 
                     var defaultRow = CreateDefaultValueRow(
@@ -1118,12 +2963,15 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     $"Cannot create default custom value for open generic type '{type.name}': generic param '{unboundParamId}' is unbound — every generic param must be bound before instantiation (specs/custom-type-generics.md Decision 6).");
             }
-            return CustomTypeInheritance.MergeSchemas(
+            return CustomTypeInheritance.MergeInstanceSchema(
                 CustomTypeInheritance.ResolveChain(
                     customTypeId,
                     id => client.TryGetType(id, out CustomType? match)
                         ? match
-                        : null));
+                        : null),
+                id => client.TryGetAttribute(id, out Attribute? attribute)
+                    ? attribute
+                    : null);
         }
 
         private static AttributeValue? CreateDefaultValueRow(
@@ -1221,6 +3069,35 @@ namespace NeoCompose.Runtime
                             value = CloneArray(attr.defaultValue.value),
                             typeId = attr.defaultValue.typeId,
                         };
+                case DialogueLookupAttribute attr:
+                    return attr.defaultValue is null
+                        ? null
+                        : new ArrayAttributeValue
+                        {
+                            id = Guid.NewGuid().ToString(),
+                            createdAt = nowIso,
+                            updatedAt = nowIso,
+                            value = CloneArray(attr.defaultValue.value),
+                            typeId = attr.defaultValue.typeId,
+                        };
+                case SpriteAttribute attr:
+                    return attr.defaultValue is null
+                        ? null
+                        : AttributeValueFactory.Create(
+                            attr,
+                            attr.defaultValue.value,
+                            Guid.NewGuid().ToString(),
+                            nowIso,
+                            nowIso);
+                case AudioAttribute attr:
+                    return attr.defaultValue is null
+                        ? null
+                        : AttributeValueFactory.Create(
+                            attr,
+                            attr.defaultValue.value,
+                            Guid.NewGuid().ToString(),
+                            nowIso,
+                            nowIso);
                 case CustomAttribute attr:
                     return CreateDefaultCustomValueRow(
                         client,
@@ -1232,13 +3109,17 @@ namespace NeoCompose.Runtime
                     return CreateDefaultDictionaryValueRow(
                         client,
                         attr,
+                        rows,
                         nowIso,
+                        customTypeStack,
                         env);
                 case ListAttribute attr:
                     return CreateDefaultListValueRow(
                         client,
                         attr,
+                        rows,
                         nowIso,
+                        customTypeStack,
                         env);
                 default:
                     return null;
@@ -1320,38 +3201,54 @@ namespace NeoCompose.Runtime
             return result;
         }
 
-        private static ObjectAttributeValue CreateDefaultDictionaryValueRow(
+        private static ObjectAttributeValue? CreateDefaultDictionaryValueRow(
             NeoClient client,
             DictionaryAttribute attribute,
+            List<AttributeValue> rows,
             string nowIso,
+            HashSet<string> customTypeStack,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
-            var row = new ObjectAttributeValue
+            if (attribute.defaultValue is null) return null;
+            var source = new ObjectAttributeValue
             {
-                id = Guid.NewGuid().ToString(),
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = new Dictionary<string, string>(),
+                id = "__neo_embedded_dictionary_default",
+                value = attribute.defaultValue.value,
+                typeId = attribute.defaultValue.typeId,
             };
-            NeoGenericResolution.StampGenericBindings(client, attribute, row, env);
-            return row;
+            return CloneDictionaryValueRow(
+                client,
+                attribute,
+                source,
+                rows,
+                nowIso,
+                customTypeStack,
+                env);
         }
 
-        private static ArrayAttributeValue CreateDefaultListValueRow(
+        private static ArrayAttributeValue? CreateDefaultListValueRow(
             NeoClient client,
             ListAttribute attribute,
+            List<AttributeValue> rows,
             string nowIso,
+            HashSet<string> customTypeStack,
             IReadOnlyDictionary<string, NeoGenericEnvEntry> env)
         {
-            var row = new ArrayAttributeValue
+            if (attribute.defaultValue is null) return null;
+            var source = new ArrayAttributeValue
             {
-                id = Guid.NewGuid().ToString(),
-                createdAt = nowIso,
-                updatedAt = nowIso,
-                value = Array.Empty<string>(),
+                id = "__neo_embedded_list_default",
+                value = attribute.defaultValue.value,
+                typeId = attribute.defaultValue.typeId,
             };
-            NeoGenericResolution.StampGenericBindings(client, attribute, row, env);
-            return row;
+            return CloneListValueRow(
+                client,
+                attribute,
+                source,
+                rows,
+                nowIso,
+                customTypeStack,
+                env);
         }
 
         private static AttributeValue? CloneStoredValueForAttribute(
@@ -1434,7 +3331,7 @@ namespace NeoCompose.Runtime
                         neoLocalizationMode = sourceValue.neoLocalizationMode,
                         typeId = source.typeId,
                     };
-                case EnumAttribute or LookupAttribute
+                case EnumAttribute or LookupAttribute or DialogueLookupAttribute
                     when source is ArrayAttributeValue sourceValue:
                     return new ArrayAttributeValue
                     {
@@ -1442,6 +3339,32 @@ namespace NeoCompose.Runtime
                         createdAt = nowIso,
                         updatedAt = nowIso,
                         value = CloneArray(sourceValue.value),
+                        typeId = source.typeId,
+                    };
+                case SpriteAttribute when source is SpriteAttributeValue sourceValue:
+                    return new SpriteAttributeValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = sourceValue.value is null
+                            ? null
+                            : new SpriteValue
+                            {
+                                fileId = sourceValue.value.fileId,
+                                sliceIndex = sourceValue.value.sliceIndex,
+                            },
+                        typeId = source.typeId,
+                    };
+                case AudioAttribute when source is FileAttributeValue sourceValue:
+                    return new FileAttributeValue
+                    {
+                        id = Guid.NewGuid().ToString(),
+                        createdAt = nowIso,
+                        updatedAt = nowIso,
+                        value = sourceValue.value is null
+                            ? null
+                            : new FileValue { fileId = sourceValue.value.fileId },
                         typeId = source.typeId,
                     };
                 case CustomAttribute customAttribute
@@ -1503,13 +3426,23 @@ namespace NeoCompose.Runtime
                 ? env
                 : NeoGenericResolution.EnvFromStamp(source.genericBindings);
             var value = new Dictionary<string, string>();
-            if (source.value is not null
-                && client.TryGetAttribute(attribute.entryAttributeId, out Attribute? entryAttribute))
+            if (source.value is not null)
             {
+                if (!client.TryGetAttribute(
+                        attribute.entryAttributeId,
+                        out Attribute? entryAttribute))
+                {
+                    throw new InvalidOperationException(
+                        $"Dictionary default for '{attribute.name}' references missing entry attribute '{attribute.entryAttributeId}'.");
+                }
                 entryAttribute = NeoGenericResolution.SubstituteAttribute(client, entryAttribute, entryEnv);
                 foreach (var pair in source.value)
                 {
-                    if (!client.TryGetValue(pair.Value, out AttributeValue? sourceRow)) continue;
+                    if (!client.TryGetValue(pair.Value, out AttributeValue? sourceRow))
+                    {
+                        throw new InvalidOperationException(
+                            $"Dictionary default for '{attribute.name}' key '{pair.Key}' references missing value '{pair.Value}'.");
+                    }
                     var cloned = CloneStoredValueForAttribute(
                         client,
                         entryAttribute,
@@ -1518,7 +3451,11 @@ namespace NeoCompose.Runtime
                         nowIso,
                         customTypeStack,
                         entryEnv);
-                    if (cloned is null) continue;
+                    if (cloned is null)
+                    {
+                        throw new InvalidOperationException(
+                            $"Dictionary default for '{attribute.name}' key '{pair.Key}' has incompatible row shape '{sourceRow.GetType().Name}'.");
+                    }
 
                     rows.Add(cloned);
                     value[pair.Key] = cloned.id;
@@ -1554,13 +3491,23 @@ namespace NeoCompose.Runtime
                 ? env
                 : NeoGenericResolution.EnvFromStamp(source.genericBindings);
             var value = new List<string>();
-            if (source.value is not null
-                && client.TryGetAttribute(attribute.entryAttributeId, out Attribute? entryAttribute))
+            if (source.value is not null)
             {
+                if (!client.TryGetAttribute(
+                        attribute.entryAttributeId,
+                        out Attribute? entryAttribute))
+                {
+                    throw new InvalidOperationException(
+                        $"List default for '{attribute.name}' references missing entry attribute '{attribute.entryAttributeId}'.");
+                }
                 entryAttribute = NeoGenericResolution.SubstituteAttribute(client, entryAttribute, entryEnv);
                 foreach (var sourceId in source.value)
                 {
-                    if (!client.TryGetValue(sourceId, out AttributeValue? sourceRow)) continue;
+                    if (!client.TryGetValue(sourceId, out AttributeValue? sourceRow))
+                    {
+                        throw new InvalidOperationException(
+                            $"List default for '{attribute.name}' references missing value '{sourceId}'.");
+                    }
                     var cloned = CloneStoredValueForAttribute(
                         client,
                         entryAttribute,
@@ -1569,7 +3516,11 @@ namespace NeoCompose.Runtime
                         nowIso,
                         customTypeStack,
                         entryEnv);
-                    if (cloned is null) continue;
+                    if (cloned is null)
+                    {
+                        throw new InvalidOperationException(
+                            $"List default for '{attribute.name}' has incompatible row shape '{sourceRow.GetType().Name}'.");
+                    }
 
                     rows.Add(cloned);
                     value.Add(cloned.id);
@@ -1848,7 +3799,7 @@ namespace NeoCompose.Runtime
             bool required,
             bool saved,
             Func<NeoClient, NeoAttributeCustom, T>? readOnlyFactory,
-            // Nullable: a Static-constrained type (allowedStorage collapse)
+            // Nullable: an Immutable-constrained type (allowedStorage collapse)
             // generates no writable class, so codegen passes null here.
             Func<NeoClient, NeoAttributeCustomWritable, T>? savedFactory)
         {
@@ -1916,7 +3867,7 @@ namespace NeoCompose.Runtime
                 if (savedFactory is null)
                 {
                     throw new InvalidOperationException(
-                        "NSProperty getter custom value resolved to a writable placement, but the type's allowedStorage is static (no writable factory exists).");
+                        "NSProperty getter custom value resolved to a writable placement, but the type's allowedStorage is immutable (no writable factory exists).");
                 }
                 return savedFactory(
                     client,

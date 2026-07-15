@@ -11,7 +11,7 @@ namespace ProjectSchema;
 [NeoRegistry]
 public abstract partial class Root
 {
-    [NeoMember("8f1dbf20-8d7c-49e0-9e0f-5e172da6f684", Locked = true, Storage = NeoStorage.Static)]
+    [NeoMember("8f1dbf20-8d7c-49e0-9e0f-5e172da6f684", Locked = true, Storage = NeoStorage.Immutable)]
     [NeoSchemaOrder("Outposts", "Computed", "Items", "LookupContainer")]
     public virtual Assets Assets { get; init; } = default!;
 

@@ -503,12 +503,18 @@
                                 "left": {
                                     "type": "callGetter",
                                     "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
-                                    "thisPointer": {
-                                        "type": "callGetter",
-                                        "attributeId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
-                                        "thisPointer": {
-                                            "type": "variable",
-                                            "variableId": "__this__"
+                                    "receiver": {
+                                        "kind": "instance",
+                                        "pointer": {
+                                            "type": "callGetter",
+                                            "attributeId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
+                                            "receiver": {
+                                                "kind": "instance",
+                                                "pointer": {
+                                                    "type": "variable",
+                                                    "variableId": "__this__"
+                                                }
+                                            }
                                         }
                                     },
                                     "optional": true
@@ -1010,9 +1016,12 @@
                                                 "pointer": {
                                                     "type": "callGetter",
                                                     "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
-                                                    "thisPointer": {
-                                                        "type": "variable",
-                                                        "variableId": "item"
+                                                    "receiver": {
+                                                        "kind": "instance",
+                                                        "pointer": {
+                                                            "type": "variable",
+                                                            "variableId": "item"
+                                                        }
                                                     }
                                                 }
                                             }
@@ -1109,9 +1118,12 @@
                             "pointer": {
                                 "type": "callGetter",
                                 "attributeId": "7e6f7c5e-6ad9-4abd-8c70-131919a3db2b",
-                                "thisPointer": {
-                                    "type": "variable",
-                                    "variableId": "__this__"
+                                "receiver": {
+                                    "kind": "instance",
+                                    "pointer": {
+                                        "type": "variable",
+                                        "variableId": "__this__"
+                                    }
                                 }
                             }
                         }
@@ -1447,9 +1459,12 @@
                                                                 "operand1": {
                                                                     "type": "callGetter",
                                                                     "attributeId": "411fa900-1172-4cc4-98e3-c8bf63aff4f1",
-                                                                    "thisPointer": {
-                                                                        "type": "variable",
-                                                                        "variableId": "check"
+                                                                    "receiver": {
+                                                                        "kind": "instance",
+                                                                        "pointer": {
+                                                                            "type": "variable",
+                                                                            "variableId": "check"
+                                                                        }
                                                                     }
                                                                 },
                                                                 "operand2": {

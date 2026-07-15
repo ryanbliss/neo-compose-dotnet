@@ -266,7 +266,9 @@ namespace NeoCompose.Runtime
         public void RemoveAt(int index) => RequireWritableNode().RemoveAt(index);
     }
 
-    public class NeoReadOnlyDictionary<T> : IReadOnlyDictionary<string, T>
+    public class NeoReadOnlyDictionary<T>
+        : IReadOnlyDictionary<string, T>,
+          INeoGeneratedConstructorDictionary
     {
         protected readonly NeoClient client;
         protected NeoAttributeDictionary node;
@@ -356,6 +358,18 @@ namespace NeoCompose.Runtime
         }
 
         IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+
+        IEnumerable<NeoGeneratedConstructorDictionaryEntry>
+            INeoGeneratedConstructorDictionary
+                .EnumerateGeneratedConstructorEntries()
+        {
+            foreach (KeyValuePair<string, T> pair in this)
+            {
+                yield return new NeoGeneratedConstructorDictionaryEntry(
+                    pair.Key,
+                    pair.Value);
+            }
+        }
     }
 
     public class NeoDictionary<T> : NeoReadOnlyDictionary<T>, IDictionary<string, T>
