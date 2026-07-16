@@ -3,8 +3,8 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>9.0</LangVersion>
     <RootNamespace>NeoCompose.Unity.Editor</RootNamespace>
-    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
-    <UnityEditorDir Condition="'$(UnityEditorDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed</UnityEditorDir>
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.5.4f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
+    <UnityEditorDir Condition="'$(UnityEditorDir)' == ''">/Applications/Unity/Hub/Editor/6000.5.4f1/Unity.app/Contents/Managed</UnityEditorDir>
     <NeoComposeUnityPackageAssembliesDir Condition="'$(NeoComposeUnityPackageAssembliesDir)' == ''">$(MSBuildThisFileDirectory)../../samples/HelloWorld/Library/ScriptAssemblies</NeoComposeUnityPackageAssembliesDir>
   </PropertyGroup>
 

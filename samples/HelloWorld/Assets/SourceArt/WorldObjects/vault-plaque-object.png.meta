@@ -147,7 +147,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      vault-plaque-object_0: 8859657999452155516
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
