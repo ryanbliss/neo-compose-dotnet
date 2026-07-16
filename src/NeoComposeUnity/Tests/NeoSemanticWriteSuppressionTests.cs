@@ -54,6 +54,8 @@ namespace NeoCompose.Tests
 
             Assert.That(nestedChange.entries.Keys, Is.EquivalentTo(new[] { "row-1" }),
                 "nested updatedAt is authored domain data and remains semantic");
+            Assert.That(nestedChange.baseMapKeys.ContainsKey("row-1"), Is.True);
+            Assert.That(nestedChange.baseMapKeys["row-1"], Is.Null);
         }
 
         [Test]

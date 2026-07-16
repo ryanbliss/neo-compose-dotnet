@@ -24,6 +24,14 @@ namespace NeoCompose.Runtime.Json
         public List<string> restoredToAuthored = new();
 
         /// <summary>
+        /// Baseline storage home for every existing value touched by this
+        /// patch. Null means the main overlay; a string is a named partition.
+        /// Missing keys are newly introduced or otherwise ambiguous and make
+        /// the server use its full-snapshot fallback.
+        /// </summary>
+        public Dictionary<string, string?> baseMapKeys = new();
+
+        /// <summary>
         /// Static-member binding upserts keyed by member id. Values are
         /// target value ids or null tombstones.
         /// </summary>

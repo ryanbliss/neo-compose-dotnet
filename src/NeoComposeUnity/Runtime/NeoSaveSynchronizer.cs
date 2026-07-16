@@ -1264,6 +1264,10 @@ namespace NeoCompose.Runtime
                     || !NeoSemanticJson.ProjectRecordsEqual(existing, property.Value))
                 {
                     patch.entries[property.Name] = property.Value;
+                    if (existing != null)
+                    {
+                        patch.baseMapKeys[property.Name] = ReadMapKey(existing);
+                    }
                 }
             }
 
@@ -1272,10 +1276,20 @@ namespace NeoCompose.Runtime
                 if (!staged.ContainsKey(property.Name))
                 {
                     patch.restoredToAuthored.Add(property.Name);
+                    patch.baseMapKeys[property.Name] = ReadMapKey(property.Value);
                 }
             }
 
             return patch;
+        }
+
+        private static string? ReadMapKey(JToken entry)
+        {
+            if (entry is not JObject row) return null;
+            var mapKey = row["mapKey"];
+            return mapKey?.Type == JTokenType.String
+                ? mapKey.Value<string>()
+                : null;
         }
 
         /// <summary>The values map as a JSON object: a null token reads as an
