@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.1] - 2026-07-16
+
+### Changed
+
+- Updated the realtime package for payload-light save listing, on-demand
+  snapshot loading, and save partition-home metadata.
+- Requires `com.ryanbliss.neocompose` 0.2.1.
+
 ## [0.2.0] - 2026-07-15
 
 ### Breaking
