@@ -414,11 +414,19 @@ namespace NeoCompose.Unity.Editor
 
         private static void ApplyValueDelta(JObject root, string valueId, JToken? rawData)
         {
-            var values = root["values"] as JObject ?? new JObject();
-            root["values"] = values;
+            var values = root["values"] as JObject;
+            if (values == null)
+            {
+                values = new JObject();
+                root["values"] = values;
+            }
             values.Remove(valueId);
-            var partitions = root["valuePartitions"] as JObject ?? new JObject();
-            root["valuePartitions"] = partitions;
+            var partitions = root["valuePartitions"] as JObject;
+            if (partitions == null)
+            {
+                partitions = new JObject();
+                root["valuePartitions"] = partitions;
+            }
             foreach (var partition in partitions.Properties().ToArray())
             {
                 if (partition.Value is not JObject rows) continue;
