@@ -41,12 +41,13 @@ namespace NeoCompose.Tests
             await client.ListSavesAsync(null);
             await client.GetSaveAsync("save-1");
             await client.GetSaveSnapshotsAsync("save-1");
+            await client.GetSaveSnapshotAsync("save-1", "snap-1");
             await client.CommitAsync(NewCommit(), replaceSnapshot: false);
             await client.CloneSaveAsync("save-1", new NeoCloneRequest());
             await client.ArchiveSaveAsync("save-1");
             await client.ArchiveSnapshotAsync("save-1", "snap-1");
 
-            Assert.That(http.sends, Has.Count.EqualTo(7));
+            Assert.That(http.sends, Has.Count.EqualTo(8));
             foreach (var send in http.sends)
             {
                 Assert.That(send.bearer, Is.EqualTo("the-token"), $"Request to {send.url} must carry the bearer.");
@@ -96,6 +97,33 @@ namespace NeoCompose.Tests
             Assert.That(list.RequiresClone("save-2"), Is.False);
             // The target channel must be forwarded in the request body.
             StringAssert.Contains("channel-other", http.sends[0].body);
+        }
+
+        [Test]
+        public async Task SnapshotHistory_ListsSummariesAndFetchesSelectedDetail()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"snapshots\":[" + RemoteJson + "]}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            var summaries = await client.GetSaveSnapshotsAsync("save-1");
+
+            Assert.That(summaries, Has.Count.EqualTo(1));
+            Assert.That(summaries[0].snapshotId, Is.EqualTo("snap-1"));
+            StringAssert.EndsWith(
+                "/saves/save-1/snapshots/query",
+                http.sends[0].url);
+
+            http.body = RemoteJson;
+            var detail = await client.GetSaveSnapshotAsync("save-1", "snap-1");
+
+            Assert.That(detail.snapshotHash, Is.EqualTo("hash-1"));
+            Assert.That(detail.values, Is.Not.Null);
+            StringAssert.EndsWith(
+                "/saves/save-1/snapshots/snap-1/query",
+                http.sends[1].url);
         }
 
         [Test]

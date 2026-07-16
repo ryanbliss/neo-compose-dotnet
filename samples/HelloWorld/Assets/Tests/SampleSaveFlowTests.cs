@@ -163,7 +163,7 @@ namespace HelloWorld.Assets.Tests
             public Awaitable<NeoSaveFileList> ListSavesAsync(string targetReleaseChannelId)
             {
                 var list = new NeoSaveFileList();
-                list.saves.AddRange(saves.Values);
+                list.saves.AddRange(saves.Values.Select(RemoteGameSaveSummary.FromRemote));
                 return NeoAwaitable.FromResult(list);
             }
 
@@ -172,14 +172,23 @@ namespace HelloWorld.Assets.Tests
                     ? NeoAwaitable.FromResult(save)
                     : throw new InvalidOperationException($"No cloud save \"{customId}\".");
 
-            public Awaitable<IReadOnlyList<RemoteGameSave>> GetSaveSnapshotsAsync(string customId)
+            public Awaitable<IReadOnlyList<RemoteGameSaveSummary>> GetSaveSnapshotsAsync(
+                string customId)
             {
-                IReadOnlyList<RemoteGameSave> snapshots =
+                IReadOnlyList<RemoteGameSaveSummary> snapshots =
                     saves.TryGetValue(customId, out var save)
-                        ? new List<RemoteGameSave> { save }
-                        : new List<RemoteGameSave>();
+                        ? new List<RemoteGameSaveSummary>
+                        {
+                            RemoteGameSaveSummary.FromRemote(save),
+                        }
+                        : new List<RemoteGameSaveSummary>();
                 return NeoAwaitable.FromResult(snapshots);
             }
+
+            public Awaitable<RemoteGameSave> GetSaveSnapshotAsync(
+                string customId,
+                string snapshotId) =>
+                GetSaveAsync(customId);
 
             public Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot)
             {

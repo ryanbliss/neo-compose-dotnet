@@ -10,6 +10,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using NeoCompose.Runtime.Json;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 namespace NeoCompose.Runtime
@@ -238,6 +239,8 @@ namespace NeoCompose.Runtime
         protected ProjectSaveData sessionData;
         private readonly INeoSaveLoader loader;
         private INeoLiveContentSource? liveContentSource;
+        private JObject? committedSaveState;
+        private JToken? committedSaveSemanticState;
 
         /// <summary>
         /// The origin of the change currently being applied; change handlers
@@ -312,7 +315,7 @@ namespace NeoCompose.Runtime
             ValidateRootClassMember(data.project.rootSaveFileMemberId, nameof(Project.rootSaveFileMemberId));
             ValidateRootClassMember(data.project.rootSessionMemberId, nameof(Project.rootSessionMemberId));
             ValidateCallableMembers();
-            LoadSaveDataOrDefault(loadedSaveContent);
+            bool loadedExistingSave = LoadSaveDataOrDefault(loadedSaveContent);
             sessionData = BuildDefaultSessionData();
             BuildMembershipIndex();
             BuildAuthoredOwnershipMap();
@@ -321,6 +324,10 @@ namespace NeoCompose.Runtime
             assets = new(this, data.project.rootAssetsMemberId, null);
             save = new(this, data.project.rootSaveFileMemberId, null, NeoValueOwnership.Save);
             session = new(this, data.project.rootSessionMemberId, null, NeoValueOwnership.Session);
+            if (loadedExistingSave)
+            {
+                CaptureCommittedSaveState();
+            }
             if (loader is INeoLiveContentSource liveSource)
             {
                 liveContentSource = liveSource;
@@ -1211,7 +1218,6 @@ namespace NeoCompose.Runtime
             StampMapKeyForWrite(ownership, value);
             GetWritableStore(ownership).values[value.id] = value;
             IndexStoreWrite(ownership, value);
-            TouchWritableStoreUpdatedAt(ownership);
         }
 
         private void TouchWritableStoreUpdatedAt(NeoValueOwnership ownership)
@@ -4244,6 +4250,63 @@ namespace NeoCompose.Runtime
             return JsonConvert.SerializeObject(saveData);
         }
 
+        private bool SaveHasSemanticChanges()
+        {
+            if (committedSaveSemanticState is null) return true;
+            var current = JObject.Parse(SerializeSaveData());
+            return !JToken.DeepEquals(
+                committedSaveSemanticState,
+                NeoSemanticJson.SaveEnvelope(current));
+        }
+
+        private void CaptureCommittedSaveState(string? content = null)
+        {
+            committedSaveState = JObject.Parse(content ?? SerializeSaveData());
+            committedSaveSemanticState = NeoSemanticJson.SaveEnvelope(committedSaveState);
+        }
+
+        /// <summary>
+        /// Same-value setters may have stamped their in-memory row before the
+        /// commit boundary proved the batch semantic no-op. Put those
+        /// server-managed timestamps back so a suppressed commit is also
+        /// observationally timestamp-neutral to the running game.
+        /// </summary>
+        private void RestoreCommittedSaveMetadata()
+        {
+            if (committedSaveState is null) return;
+            saveData.projectId = committedSaveState["projectId"]?.Value<string>()
+                ?? saveData.projectId;
+            saveData.createdAt = ReadTimestamp(
+                committedSaveState["createdAt"],
+                saveData.createdAt);
+            saveData.updatedAt = ReadTimestamp(
+                committedSaveState["updatedAt"],
+                saveData.updatedAt);
+
+            if (committedSaveState["values"] is not JObject baselineValues) return;
+            foreach (var pair in saveData.values)
+            {
+                if (!baselineValues.TryGetValue(pair.Key, out var baselineRow)) continue;
+                var currentRow = JToken.FromObject(pair.Value);
+                if (!NeoSemanticJson.ProjectRecordsEqual(currentRow, baselineRow)) continue;
+                pair.Value.createdAt = ReadTimestamp(
+                    baselineRow["createdAt"],
+                    pair.Value.createdAt);
+                pair.Value.updatedAt = ReadTimestamp(
+                    baselineRow["updatedAt"],
+                    pair.Value.updatedAt);
+            }
+        }
+
+        private static NeoTimestamp ReadTimestamp(
+            JToken? value,
+            NeoTimestamp fallback)
+        {
+            return value?.Type is JTokenType.Integer or JTokenType.Float
+                ? new NeoTimestamp(value.Value<double>())
+                : fallback;
+        }
+
         /// <summary>
         /// Applies an externally-merged save content blob into the running
         /// value graph <b>in place</b> — the inbound side of live save sessions
@@ -4366,6 +4429,12 @@ namespace NeoCompose.Runtime
             bool warnUnlinked,
             bool flushLiveImmediately)
         {
+            if (!SaveHasSemanticChanges())
+            {
+                RestoreCommittedSaveMetadata();
+                return;
+            }
+
             if (warnUnlinked)
             {
                 var unlinkedValueIds = FindUnlinkedSaveValueIds();
@@ -4387,10 +4456,12 @@ namespace NeoCompose.Runtime
                     content,
                     replaceSnapshot,
                     flushLiveImmediately: true);
+                CaptureCommittedSaveState(content);
                 return;
             }
 
             await loader.CommitSaveContentAsync(content, replaceSnapshot);
+            CaptureCommittedSaveState(content);
         }
 
         public int RunGarbageCollector()
@@ -4792,7 +4863,7 @@ namespace NeoCompose.Runtime
         /// is written here; the first <see cref="CommitAsync"/> persists the draft.
         /// </summary>
         [MemberNotNull(nameof(saveData))]
-        private void LoadSaveDataOrDefault(string? content)
+        private bool LoadSaveDataOrDefault(string? content)
         {
             ProjectSaveData? parsed = null;
             if (!string.IsNullOrEmpty(content))
@@ -4812,6 +4883,7 @@ namespace NeoCompose.Runtime
             saveData = parsed ?? BuildDefaultSaveData();
             saveData.values ??= new();
             saveData.staticBindings ??= new();
+            return parsed is not null;
         }
     }
 }

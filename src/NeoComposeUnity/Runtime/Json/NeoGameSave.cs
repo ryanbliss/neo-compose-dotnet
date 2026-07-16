@@ -9,6 +9,53 @@ using Newtonsoft.Json;
 namespace NeoCompose.Runtime.Json
 {
     /// <summary>
+    /// Payload-light save-list row. Lists carry only identity, head digests,
+    /// display metadata, and lifecycle state; opening a row fetches the full
+    /// <see cref="RemoteGameSave"/> detail payload separately.
+    /// </summary>
+    public sealed class RemoteGameSaveSummary
+    {
+        public string serverId = "";
+        public string id = "";
+        public string snapshotId = "";
+        public string snapshotHash = "";
+        public string projectId = "";
+        public string releaseChannelId = "";
+        public VersionData version = new VersionData();
+        public string name = "";
+        public string snapshotName = "";
+        public NeoSaveActor author = new NeoSaveActor();
+        public NeoSaveActor actor = new NeoSaveActor();
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
+        public NeoTimestamp synchronizedAt;
+        public double? archivedAt;
+        public double? snapshotArchivedAt;
+        public string? liveSessionId;
+
+        public static RemoteGameSaveSummary FromRemote(RemoteGameSave save) => new()
+        {
+            serverId = save.serverId,
+            id = save.id,
+            snapshotId = save.snapshotId,
+            snapshotHash = save.snapshotHash,
+            projectId = save.projectId,
+            releaseChannelId = save.releaseChannelId,
+            version = save.version,
+            name = save.name,
+            snapshotName = save.snapshotName,
+            author = save.author,
+            actor = save.actor,
+            createdAt = save.createdAt,
+            updatedAt = save.updatedAt,
+            synchronizedAt = save.synchronizedAt,
+            archivedAt = save.archivedAt,
+            snapshotArchivedAt = save.snapshotArchivedAt,
+            liveSessionId = save.liveSessionId,
+        };
+    }
+
+    /// <summary>
     /// The actor (user / organization / system) recorded against a save's
     /// authorship and last write. Mirrors the server-side actor identifier.
     /// </summary>
@@ -123,6 +170,9 @@ namespace NeoCompose.Runtime.Json
         /// (a <see cref="NeoTimestamp"/> converter would collapse null to 0).
         /// </summary>
         public double? archivedAt;
+
+        /// <summary>Archive time of this snapshot, or null while active.</summary>
+        public double? snapshotArchivedAt;
 
         /// <summary>
         /// The play session that forked the head snapshot, or null for classic

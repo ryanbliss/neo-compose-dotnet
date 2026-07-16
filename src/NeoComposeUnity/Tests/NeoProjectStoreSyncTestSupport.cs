@@ -61,6 +61,14 @@ namespace NeoCompose.Tests
                 synchronizedAt = 3,
             };
         }
+
+        public static RemoteGameSaveSummary Summary(
+            string id,
+            string snapshotId,
+            string snapshotHash,
+            string channel = TargetChannel) =>
+            RemoteGameSaveSummary.FromRemote(
+                Remote(id, snapshotId, snapshotHash, channel));
     }
 
     /// <summary>An <see cref="IProjectDataSource"/> whose read completes on demand.</summary>
@@ -80,6 +88,7 @@ namespace NeoCompose.Tests
         public readonly Queue<NeoCommitResult> commitResults = new();
         public readonly List<(NeoSaveCommitRequest request, bool replaceSnapshot)> commits = new();
         public RemoteGameSave? getResult;
+        public int getCalls;
         public Exception? getThrows;
         public RemoteGameSave? cloneResult;
         public readonly List<string> archivedSaves = new();
@@ -90,6 +99,7 @@ namespace NeoCompose.Tests
 
         public Awaitable<RemoteGameSave> GetSaveAsync(string customId)
         {
+            getCalls++;
             if (getThrows != null) throw getThrows;
             if (getResult == null)
             {
@@ -99,11 +109,19 @@ namespace NeoCompose.Tests
             return NeoAwaitable.FromResult(getResult);
         }
 
-        public Awaitable<IReadOnlyList<RemoteGameSave>> GetSaveSnapshotsAsync(string customId)
+        public Awaitable<IReadOnlyList<RemoteGameSaveSummary>> GetSaveSnapshotsAsync(
+            string customId)
         {
-            IReadOnlyList<RemoteGameSave> empty = new List<RemoteGameSave>();
+            IReadOnlyList<RemoteGameSaveSummary> empty =
+                new List<RemoteGameSaveSummary>();
             return NeoAwaitable.FromResult(empty);
         }
+
+        public Awaitable<RemoteGameSave> GetSaveSnapshotAsync(
+            string customId,
+            string snapshotId) =>
+            NeoAwaitable.FromResult(
+                getResult ?? NeoSaveTestSupport.Remote(customId, snapshotId, "snapshot-hash"));
 
         public Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot)
         {

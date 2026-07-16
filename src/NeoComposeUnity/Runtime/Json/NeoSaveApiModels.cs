@@ -75,7 +75,7 @@ namespace NeoCompose.Runtime.Json
     /// </summary>
     public sealed class NeoSaveFileList
     {
-        public List<RemoteGameSave> saves = new();
+        public List<RemoteGameSaveSummary> saves = new();
         public Dictionary<string, bool> cloneRequired = new();
 
         /// <summary>True when the named save must be cloned to load on the target channel.</summary>
