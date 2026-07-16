@@ -6,7 +6,7 @@ during development.
 
 ## Setup
 
-1. Open this project in Unity 6000.0.40f1.
+1. Open this project in Unity 6000.5.4f1.
 2. The package is referenced at `file:../../../src/NeoComposeUnity` in
    `Packages/manifest.json` — edits to the package source are picked up
    on the next domain reload.

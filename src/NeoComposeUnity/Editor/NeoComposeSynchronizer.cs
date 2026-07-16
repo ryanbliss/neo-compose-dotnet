@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
@@ -35,6 +36,7 @@ namespace NeoCompose.Unity.Editor
     public interface INeoComposeEditorAssetService
     {
         bool FileExists(string assetPath);
+        string ReadAllText(string assetPath);
         string[] FindFiles(string assetDirectory, string searchPattern);
         void EnsureDirectory(string assetDirectory);
         void WriteAllText(string assetPath, string content);
@@ -81,15 +83,18 @@ namespace NeoCompose.Unity.Editor
         private readonly INeoComposeEditorApiClient apiClient;
         private readonly INeoComposeConfirmationService confirmations;
         private readonly INeoComposeEditorAssetService assets;
+        private readonly INeoComposeEditorExportCache exportCache;
 
         public NeoComposeSynchronizer(
             INeoComposeEditorApiClient apiClient,
             INeoComposeConfirmationService confirmations,
-            INeoComposeEditorAssetService assets)
+            INeoComposeEditorAssetService assets,
+            INeoComposeEditorExportCache? exportCache = null)
         {
             this.apiClient = apiClient;
             this.confirmations = confirmations;
             this.assets = assets;
+            this.exportCache = exportCache ?? new NeoComposeEditorExportCache();
         }
 
         public async Task<NeoComposeSyncResult> SynchronizeAsync(
@@ -101,11 +106,29 @@ namespace NeoCompose.Unity.Editor
 
             try
             {
+                var generatedTypesPath = NeoComposePathUtility.CombineAssetPath(
+                    config.generatedTypesDirectory,
+                    NeoComposeEditorDefaults.GeneratedTypesFileName);
+                var projectJsonPath = NeoComposePathUtility.CombineAssetPath(
+                    config.projectJsonDirectory,
+                    NeoComposeEditorDefaults.ProjectJsonFileName);
                 onProgress?.Invoke("Exporting project...");
-                var exportResponse = await apiClient.ExportProjectAsync(
-                    config.apiBaseUrl,
-                    config.projectId,
-                    config.versionId);
+                var incremental = await TryBuildIncrementalExportAsync(
+                    config,
+                    projectJsonPath,
+                    onProgress);
+                if (incremental?.unchanged == true)
+                {
+                    return NeoComposeSyncResult.Success(
+                        "Neo Compose project is already synchronized.",
+                        incremental.response);
+                }
+                var isIncremental = incremental != null;
+                var exportResponse = incremental?.response
+                    ?? await apiClient.ExportProjectAsync(
+                        config.apiBaseUrl,
+                        config.projectId,
+                        config.versionId);
                 var diagnosticErrors = exportResponse.diagnostics
                     .Where(d => string.Equals(d.severity, "error", StringComparison.OrdinalIgnoreCase))
                     .ToArray();
@@ -124,17 +147,14 @@ namespace NeoCompose.Unity.Editor
                     }
                 }
 
-                var generatedTypesPath = NeoComposePathUtility.CombineAssetPath(
-                    config.generatedTypesDirectory,
-                    NeoComposeEditorDefaults.GeneratedTypesFileName);
-                var projectJsonPath = NeoComposePathUtility.CombineAssetPath(
-                    config.projectJsonDirectory,
-                    NeoComposeEditorDefaults.ProjectJsonFileName);
                 var localizationPaths = BuildLocalizationFilePaths(
                     config,
                     exportResponse.localizationFiles,
                     ReadLocalizationMainLocaleOrDefault(exportResponse.projectJson));
-                var existingReplacementPaths = new[] { generatedTypesPath, projectJsonPath }
+                var replacementRoots = isIncremental
+                    ? new[] { projectJsonPath }
+                    : new[] { generatedTypesPath, projectJsonPath };
+                var existingReplacementPaths = replacementRoots
                     .Concat(localizationPaths.Values)
                     .Where(assets.FileExists)
                     .ToArray();
@@ -152,15 +172,20 @@ namespace NeoCompose.Unity.Editor
 
                 assets.EnsureDirectory(config.generatedTypesDirectory);
                 assets.EnsureDirectory(config.projectJsonDirectory);
-                var localizationSyncErrors = SynchronizeLocalizationFiles(
-                    config,
-                    exportResponse.localizationFiles,
-                    localizationPaths,
-                    onProgress);
+                var localizationSyncErrors = isIncremental
+                    ? Array.Empty<string>()
+                    : SynchronizeLocalizationFiles(
+                        config,
+                        exportResponse.localizationFiles,
+                        localizationPaths,
+                        onProgress);
                 var assetSyncErrors = await SynchronizeFilesAsync(config, exportResponse.projectJson, onProgress);
 
                 onProgress?.Invoke("Writing generated files...");
-                assets.WriteAllText(generatedTypesPath, exportResponse.generatedTypes);
+                if (!isIncremental)
+                {
+                    assets.WriteAllText(generatedTypesPath, exportResponse.generatedTypes);
+                }
                 assets.WriteAllText(projectJsonPath, exportResponse.projectJson);
                 if (exportResponse.version != null && !string.IsNullOrWhiteSpace(exportResponse.version.id))
                 {
@@ -179,6 +204,13 @@ namespace NeoCompose.Unity.Editor
                 }
                 assets.SaveConfig(config);
                 assets.SchedulePostSynchronize(config, projectJsonPath);
+                if (exportResponse.syncState != null)
+                {
+                    exportCache.Save(
+                        config.projectId,
+                        config.versionId,
+                        PrepareSyncStateForCache(exportResponse.syncState));
+                }
 
                 var syncErrors = localizationSyncErrors.Concat(assetSyncErrors).ToArray();
                 if (syncErrors.Length > 0)
@@ -195,6 +227,274 @@ namespace NeoCompose.Unity.Editor
                 Debug.LogError(exception);
                 return NeoComposeSyncResult.Failure(exception.Message);
             }
+        }
+
+        private sealed class IncrementalExportAttempt
+        {
+            public NeoComposeUnityExportResponse response = new();
+            public bool unchanged;
+        }
+
+        private async Task<IncrementalExportAttempt?> TryBuildIncrementalExportAsync(
+            NeoComposeConfig config,
+            string projectJsonPath,
+            Action<string>? onProgress)
+        {
+            var state = exportCache.Load(config.projectId, config.versionId);
+            if (state == null || state.schemaVersion != 1) return null;
+            if (!assets.FileExists(projectJsonPath)) return null;
+
+            var delta = await apiClient.ExportProjectDeltaAsync(
+                config.apiBaseUrl,
+                config.projectId,
+                config.versionId,
+                state.cursor);
+            if (delta.fullResync || delta.cursor == null) return null;
+            // Value records are the high-volume content path and map directly
+            // onto the exported values/valuePartitions dictionaries. Every
+            // other record kind can affect global materialization (dialogue
+            // aggregation, localization files, file reachability, or codegen)
+            // and deliberately falls back to the exact full export.
+            if (delta.codegenAffected
+                || delta.runtimeContractAffected
+                || delta.records.Any(record => record.recordKind != "value"))
+            {
+                return null;
+            }
+            if (delta.records.Count == 0)
+            {
+                state.cursor = delta.cursor;
+                exportCache.Save(config.projectId, config.versionId, state);
+                return new IncrementalExportAttempt
+                {
+                    unchanged = true,
+                    response = new NeoComposeUnityExportResponse
+                    {
+                        mode = "incremental",
+                        projectId = config.projectId,
+                        projectJson = assets.ReadAllText(projectJsonPath),
+                        syncState = state,
+                    },
+                };
+            }
+
+            onProgress?.Invoke("Fetching changed project snapshots...");
+            var snapshotsById = state.snapshots.ToDictionary(snapshot => snapshot.id);
+            var missingIds = delta.records
+                .Where(record => !record.deleted && record.snapshotId != null)
+                .Select(record => record.snapshotId!)
+                .Where(snapshotId => !snapshotsById.ContainsKey(snapshotId))
+                .Distinct()
+                .ToArray();
+            if (missingIds.Length > 0)
+            {
+                var fetched = await apiClient.ExportProjectSnapshotsAsync(
+                    config.apiBaseUrl,
+                    config.projectId,
+                    config.versionId,
+                    missingIds);
+                foreach (var snapshot in fetched.snapshots)
+                {
+                    snapshotsById[snapshot.id] = snapshot;
+                }
+                if (missingIds.Any(snapshotId => !snapshotsById.ContainsKey(snapshotId)))
+                {
+                    return null;
+                }
+            }
+
+            JObject root;
+            try
+            {
+                root = JObject.Parse(assets.ReadAllText(projectJsonPath));
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+            var headsByKey = state.heads.ToDictionary(HeadKey);
+            var projectFileIds = root["files"] is JObject files
+                ? files.Properties().Select(property => property.Name).ToArray()
+                : Array.Empty<string>();
+
+            foreach (var descriptor in delta.records)
+            {
+                var oldValue = FindExportedValue(root, descriptor.recordId);
+                NeoComposeUnityExportCachedSnapshot? snapshot = null;
+                if (!descriptor.deleted)
+                {
+                    if (descriptor.snapshotId == null
+                        || !snapshotsById.TryGetValue(descriptor.snapshotId, out snapshot)
+                        || snapshot.recordKind != "value"
+                        || snapshot.recordId != descriptor.recordId)
+                    {
+                        return null;
+                    }
+                }
+                // File inclusion is a global reachability calculation. A value
+                // that adds or removes any known file id uses the full export
+                // rather than risking a stale asset manifest.
+                if (projectFileIds.Any(fileId =>
+                        TokenContainsString(oldValue, fileId)
+                        || TokenContainsString(snapshot?.data, fileId)))
+                {
+                    return null;
+                }
+                ApplyValueDelta(root, descriptor.recordId, snapshot?.data);
+                var nextHead = new NeoComposeUnityExportHeadDescriptor
+                {
+                    recordKind = descriptor.recordKind,
+                    recordId = descriptor.recordId,
+                    snapshotId = descriptor.deleted ? null : descriptor.snapshotId,
+                    contentHash = descriptor.deleted ? null : snapshot!.contentHash,
+                    deleted = descriptor.deleted,
+                };
+                if (descriptor.deleted)
+                {
+                    headsByKey.Remove(HeadKey(nextHead));
+                }
+                else
+                {
+                    headsByKey[HeadKey(nextHead)] = nextHead;
+                }
+            }
+
+            var contentHash = ComputeProjectDocumentContentHash(headsByKey.Values);
+            if (root["metadata"] is not JObject metadata) return null;
+            metadata["projectDocumentContentHash"] = contentHash;
+
+            state.cursor = delta.cursor;
+            state.heads = headsByKey.Values
+                .OrderBy(head => HeadKey(head), StringComparer.Ordinal)
+                .ToList();
+            state.snapshots = snapshotsById.Values
+                .Where(snapshot =>
+                    headsByKey.TryGetValue(
+                        snapshot.recordKind + ":" + snapshot.recordId,
+                        out var head)
+                    && head.snapshotId == snapshot.id)
+                .ToList();
+            var project = root["project"] as JObject;
+            return new IncrementalExportAttempt
+            {
+                response = new NeoComposeUnityExportResponse
+                {
+                    mode = "incremental",
+                    projectId = config.projectId,
+                    projectName = project?["name"]?.Value<string>() ?? "",
+                    projectJson = root.ToString(Formatting.Indented),
+                    generatedTypes = "",
+                    projectDocumentContentHash = contentHash,
+                    codegenContractHash = metadata["codegenContractHash"]?.Value<string>(),
+                    runtimeDataContractHash = metadata["runtimeDataContractHash"]?.Value<string>(),
+                    syncState = state,
+                },
+            };
+        }
+
+        private static string HeadKey(NeoComposeUnityExportHeadDescriptor head) =>
+            head.recordKind + ":" + head.recordId;
+
+        private static JToken? FindExportedValue(JObject root, string valueId)
+        {
+            if (root["values"] is JObject values && values.TryGetValue(valueId, out var main))
+            {
+                return main;
+            }
+            if (root["valuePartitions"] is not JObject partitions) return null;
+            foreach (var partition in partitions.Properties())
+            {
+                if (partition.Value is JObject rows && rows.TryGetValue(valueId, out var value))
+                {
+                    return value;
+                }
+            }
+            return null;
+        }
+
+        private static void ApplyValueDelta(JObject root, string valueId, JToken? rawData)
+        {
+            var values = root["values"] as JObject;
+            if (values == null)
+            {
+                values = new JObject();
+                root["values"] = values;
+            }
+            values.Remove(valueId);
+            var partitions = root["valuePartitions"] as JObject;
+            if (partitions == null)
+            {
+                partitions = new JObject();
+                root["valuePartitions"] = partitions;
+            }
+            foreach (var partition in partitions.Properties().ToArray())
+            {
+                if (partition.Value is not JObject rows) continue;
+                rows.Remove(valueId);
+                if (!rows.Properties().Any()) partition.Remove();
+            }
+            if (rawData == null) return;
+            var record = rawData.DeepClone() as JObject
+                ?? throw new JsonSerializationException("A project record snapshot must be an object.");
+            var mapKey = record["mapKey"]?.Value<string>();
+            if (string.IsNullOrEmpty(mapKey))
+            {
+                values[valueId] = record;
+                return;
+            }
+            var target = partitions[mapKey] as JObject ?? new JObject();
+            partitions[mapKey] = target;
+            target[valueId] = record;
+        }
+
+        private static NeoComposeUnityExportSyncState PrepareSyncStateForCache(
+            NeoComposeUnityExportSyncState state)
+        {
+            var currentValueSnapshots = state.heads
+                .Where(head =>
+                    !head.deleted
+                    && head.recordKind == "value"
+                    && head.snapshotId != null)
+                .Select(head => head.snapshotId!)
+                .ToHashSet(StringComparer.Ordinal);
+            state.snapshots = state.snapshots
+                .Where(snapshot =>
+                    snapshot.recordKind == "value"
+                    && currentValueSnapshots.Contains(snapshot.id))
+                .ToList();
+            return state;
+        }
+
+        private static bool TokenContainsString(JToken? token, string expected)
+        {
+            if (token == null) return false;
+            if (token.Type == JTokenType.String)
+            {
+                return token.Value<string>() == expected;
+            }
+            return token.Children().Any(child => TokenContainsString(child, expected));
+        }
+
+        private static string ComputeProjectDocumentContentHash(
+            IEnumerable<NeoComposeUnityExportHeadDescriptor> heads)
+        {
+            var array = new JArray(
+                heads
+                    .Where(head => !head.deleted && head.contentHash != null)
+                    .OrderBy(HeadKey, StringComparer.Ordinal)
+                    .Select(head => new JObject
+                    {
+                        ["contentHash"] = head.contentHash,
+                        ["deleted"] = false,
+                        ["recordId"] = head.recordId,
+                        ["recordKind"] = head.recordKind,
+                    }));
+            using var sha = SHA256.Create();
+            var bytes = sha.ComputeHash(
+                Encoding.UTF8.GetBytes(array.ToString(Formatting.None)));
+            var result = new StringBuilder(bytes.Length * 2);
+            foreach (var item in bytes) result.Append(item.ToString("x2"));
+            return result.ToString();
         }
 
         private string[] SynchronizeLocalizationFiles(
@@ -577,6 +877,11 @@ namespace NeoCompose.Unity.Editor
         public bool FileExists(string assetPath)
         {
             return File.Exists(assetPath);
+        }
+
+        public string ReadAllText(string assetPath)
+        {
+            return File.ReadAllText(assetPath, Encoding.UTF8);
         }
 
         public string[] FindFiles(string assetDirectory, string searchPattern)

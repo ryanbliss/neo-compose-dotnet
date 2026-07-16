@@ -4,6 +4,7 @@
 #nullable enable
 
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Unity.Editor
 {
@@ -115,6 +116,7 @@ namespace NeoCompose.Unity.Editor
 
     public sealed class NeoComposeUnityExportResponse
     {
+        public string mode = "full";
         public string projectId = "";
         public string projectName = "";
         public string projectJson = "";
@@ -128,12 +130,61 @@ namespace NeoCompose.Unity.Editor
         public string? codegenContractHash;
         public string? runtimeDataContractHash;
         public NeoComposeUnityRuntimeOAuthConfig? runtimeOAuth;
+        public NeoComposeUnityExportSyncState? syncState;
 
         /// <summary>
         /// Convex deployment URL for realtime sync; null when the server has
         /// none configured (the editor then leaves the config field alone).
         /// </summary>
         public string? convexUrl;
+    }
+
+    public sealed class NeoComposeUnityExportCursor
+    {
+        public double createdAt;
+        public List<string> transactionIds = new();
+        public string versionsStamp = "";
+    }
+
+    public sealed class NeoComposeUnityExportHeadDescriptor
+    {
+        public string recordKind = "";
+        public string recordId = "";
+        public string? snapshotId;
+        public string? contentHash;
+        public bool deleted;
+    }
+
+    public sealed class NeoComposeUnityExportCachedSnapshot
+    {
+        public string id = "";
+        public string recordKind = "";
+        public string recordId = "";
+        public string contentHash = "";
+        public JToken data = JValue.CreateNull();
+    }
+
+    public sealed class NeoComposeUnityExportSyncState
+    {
+        public int schemaVersion = 1;
+        public NeoComposeUnityExportCursor cursor = new();
+        public List<NeoComposeUnityExportHeadDescriptor> heads = new();
+        public List<NeoComposeUnityExportCachedSnapshot> snapshots = new();
+    }
+
+    public sealed class NeoComposeUnityExportDeltaManifestResponse
+    {
+        public string mode = "incremental";
+        public bool fullResync;
+        public bool codegenAffected;
+        public bool runtimeContractAffected;
+        public NeoComposeUnityExportCursor? cursor;
+        public List<NeoComposeUnityExportHeadDescriptor> records = new();
+    }
+
+    public sealed class NeoComposeUnityExportSnapshotResponse
+    {
+        public List<NeoComposeUnityExportCachedSnapshot> snapshots = new();
     }
 
     /// <summary>

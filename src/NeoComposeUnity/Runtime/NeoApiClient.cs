@@ -26,7 +26,8 @@ namespace NeoCompose.Runtime
     {
         Awaitable<NeoSaveFileList> ListSavesAsync(string? targetReleaseChannelId);
         Awaitable<RemoteGameSave> GetSaveAsync(string customId);
-        Awaitable<IReadOnlyList<RemoteGameSave>> GetSaveSnapshotsAsync(string customId);
+        Awaitable<IReadOnlyList<RemoteGameSaveSummary>> GetSaveSnapshotsAsync(string customId);
+        Awaitable<RemoteGameSave> GetSaveSnapshotAsync(string customId, string snapshotId);
         Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot);
         Awaitable<RemoteGameSave> CloneSaveAsync(string customId, NeoCloneRequest request);
         Awaitable ArchiveSaveAsync(string customId);
@@ -86,7 +87,8 @@ namespace NeoCompose.Runtime
             return Deserialize<RemoteGameSave>(json, "save file");
         }
 
-        public async Awaitable<IReadOnlyList<RemoteGameSave>> GetSaveSnapshotsAsync(string customId)
+        public async Awaitable<IReadOnlyList<RemoteGameSaveSummary>> GetSaveSnapshotsAsync(
+            string customId)
         {
             RequireCustomId(customId);
             var url = SavesUrl($"/{UnityWebRequest.EscapeURL(customId)}/snapshots/query");
@@ -95,6 +97,24 @@ namespace NeoCompose.Runtime
             var json = await PostAuthorizedAsync(url, operation);
             var wrapper = Deserialize<SnapshotListWire>(json, "save snapshots");
             return wrapper.snapshots;
+        }
+
+        public async Awaitable<RemoteGameSave> GetSaveSnapshotAsync(
+            string customId,
+            string snapshotId)
+        {
+            RequireCustomId(customId);
+            if (string.IsNullOrWhiteSpace(snapshotId))
+            {
+                throw new ArgumentException("Snapshot id cannot be empty.", nameof(snapshotId));
+            }
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/snapshots/" +
+                $"{UnityWebRequest.EscapeURL(snapshotId)}/query");
+            var operation = new NeoComposeApiOperation(
+                "read this save file snapshot", projectId, ReadScope);
+            var json = await PostAuthorizedAsync(url, operation);
+            return Deserialize<RemoteGameSave>(json, "save snapshot");
         }
 
         public async Awaitable<NeoCommitResult> CommitAsync(
@@ -297,7 +317,7 @@ namespace NeoCompose.Runtime
 
         private sealed class SnapshotListWire
         {
-            public List<RemoteGameSave> snapshots = new();
+            public List<RemoteGameSaveSummary> snapshots = new();
         }
 
         private sealed class ApiErrorWire

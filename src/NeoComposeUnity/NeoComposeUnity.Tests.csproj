@@ -3,7 +3,6 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>9.0</LangVersion>
     <RootNamespace>NeoCompose.Tests</RootNamespace>
-    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.0.40f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
     <UnityTestRunnerDir Condition="'$(UnityTestRunnerDir)' == ''">../../samples/HelloWorld/Library/ScriptAssemblies</UnityTestRunnerDir>
     <!-- IDE-only shim — Unity drives the actual test compile via the
          Tests/NeoCompose.Unity.Tests.asmdef. This csproj is what gives VSCode /

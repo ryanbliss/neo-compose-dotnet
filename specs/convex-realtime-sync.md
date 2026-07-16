@@ -63,7 +63,7 @@ Draft — for review. No implementation has started.
 2. **Ship target**: production-capable, but the primary surface is editor +
    development builds. The sample demonstrates disabling it in release builds.
    We do not optimize for every platform now.
-3. **Vendoring** *(amended during phase 1)*: the converted client lives in its
+3. **Vendoring** _(amended during phase 1)_: the converted client lives in its
    own public repo — `ryanbliss/convex-dotnet-unity` — as a standalone UPM
    package (`com.ryanbliss.convex-dotnet-unity`, assembly `Convex.Client`),
    built from upstream commit `cc0759f5c5c3261dd898a355dde149096f853c9e`,
@@ -171,7 +171,7 @@ Package only `src/Convex.Client` from the upstream repo (182 files / ~38k LOC
 before trimming). Delete at vendor time, recording each deletion in
 `NOTICE.md`:
 
-> **Language-version constraint (discovered in phase 1):** Unity 6000.0.40f1
+> **Language-version constraint (discovered in phase 1):** Unity 6000.5.4f1
 > ships Roslyn 4.3.1, which tops out at C#11-preview even with a
 > `csc.rsp -langversion` override — upstream is C#13. The vendored copy is
 > mechanically down-converted (collection expressions, primary constructors,
@@ -184,7 +184,7 @@ before trimming). Delete at vendor time, recording each deletion in
   `Convex.Client.AspNetCore`, `Convex.Client.Blazor`, the analyzers, and the
   source generator: never vendored.
 - `Auth/Clerk/**` (Clerk token services), `Extensions/ExtensionMethods/
-  ConvexWpfMauiExtensions.cs`, `DependencyInjection/**` (we construct clients
+ConvexWpfMauiExtensions.cs`, `DependencyInjection/**` (we construct clients
   directly), `DeveloperTools/**`.
 - Evaluate during phase 1 and trim if unused by our provider: `Files`,
   `VectorSearch`, `Scheduler`, batching/testing/performance extension
@@ -435,10 +435,11 @@ on store disposal).
 #endif
 ```
 
-  plus a `NeoComposeConfig` developer-owned bool (sibling of
-  `enableOAuthCloudSync`) so the gate is data-driven where teams prefer that.
-  Production use is supported — the gate is the recommendation, not a
-  constraint.
+plus a `NeoComposeConfig` developer-owned bool (sibling of
+`enableOAuthCloudSync`) so the gate is data-driven where teams prefer that.
+Production use is supported — the gate is the recommendation, not a
+constraint.
+
 - Desktop + mobile via `System.Net.WebSockets` on `netstandard2.1`. WebGL is
   explicitly unsupported (provider constructor throws a distinct error on
   WebGL rather than failing obscurely at connect time).
@@ -499,7 +500,7 @@ until phase 4, so they can land independently.
   Channels).
 - Name of the store-options registration property and the editor-side seam
   type (settled in phases 4–5 against the real options classes).
-- Whether the sync signal should also gate on the *selected* version vs. the
+- Whether the sync signal should also gate on the _selected_ version vs. the
   channel head (depends on how the editor's update-availability UX evolves).
 
 ## Tasks
@@ -509,9 +510,9 @@ until phase 4, so they can land independently.
 ### Phase 1 — Vendor + compile
 
 - [-] Package skeleton: `src/NeoComposeConvex` with `package.json`
-      (`com.ryanbliss.neocompose.convex`), Runtime/Editor/Tests asmdefs
-      (Editor asmdef deferred to phase 5 — an empty assembly is a Unity
-      import warning)
+  (`com.ryanbliss.neocompose.convex`), Runtime/Editor/Tests asmdefs
+  (Editor asmdef deferred to phase 5 — an empty assembly is a Unity
+  import warning)
 - [x] Vendor `src/Convex.Client` at pinned commit `cc0759f`, apply trim list
       (plus a mechanical C#12→C#11 down-conversion — Unity 6000.0's Roslyn
       4.3.1 tops out at C#11-preview; see the NOTICE edit log)
@@ -571,7 +572,7 @@ until phase 4, so they can land independently.
       no gate fix needed (channel read is inferred from templated
       `save:write` for the scoped session; rejected without it)
 - [x] Sync-signal query: `projectExportData.exportSignal(projectId,
-      versionId)` → latest `projectVersionTransactions` head
+    versionId)` → latest `projectVersionTransactions` head
       `{ versionId, transactionId, transactionHash, transactionAt } | null`,
       scope `unity:export`, one indexed row read
       (`projectExportSignal.test.ts`)

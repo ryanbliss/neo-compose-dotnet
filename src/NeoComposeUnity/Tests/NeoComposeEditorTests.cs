@@ -11,6 +11,7 @@ using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
 using NeoCompose.Unity.Editor;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEditor;
 using UnityEngine;
@@ -392,6 +393,130 @@ namespace NeoCompose.Tests
             Assert.IsTrue(assets.savedConfig);
             Assert.AreEqual("version-1", api.lastExportVersionId);
             Assert.AreEqual("Assets/Resources/Neo/project.json", assets.postSynchronizeProjectJsonPath);
+        }
+
+        [Test]
+        public async Task Synchronizer_AppliesValueDeltaWithoutFullExportOrCodegenWrite()
+        {
+            var config = MakeConfig();
+            var api = new FakeApiClient();
+            api.deltaResponse = new NeoComposeUnityExportDeltaManifestResponse
+            {
+                cursor = new NeoComposeUnityExportCursor
+                {
+                    createdAt = 200,
+                    transactionIds = new List<string> { "tx-2" },
+                    versionsStamp = "1:100",
+                },
+                records = new List<NeoComposeUnityExportHeadDescriptor>
+                {
+                    new()
+                    {
+                        recordKind = "value",
+                        recordId = "value-1",
+                        snapshotId = "snapshot-value-2",
+                    },
+                },
+            };
+            api.snapshotResponse.snapshots.Add(new NeoComposeUnityExportCachedSnapshot
+            {
+                id = "snapshot-value-2",
+                recordKind = "value",
+                recordId = "value-1",
+                contentHash = "value-hash-2",
+                data = JObject.Parse(
+                    "{ \"id\": \"value-1\", \"projectId\": \"project-1\", \"value\": 2, \"updatedAt\": 200 }"),
+            });
+            var assets = new FakeAssetService();
+            assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"] = "// existing generated";
+            assets.files["Assets/Resources/Neo/project.json"] = @"{
+  ""metadata"": {
+    ""projectDocumentContentHash"": ""old-document-hash"",
+    ""codegenContractHash"": ""codegen-hash"",
+    ""runtimeDataContractHash"": ""runtime-hash""
+  },
+  ""project"": { ""id"": ""project-1"", ""name"": ""Project One"" },
+  ""values"": {
+    ""value-1"": { ""id"": ""value-1"", ""projectId"": ""project-1"", ""value"": 1 }
+  },
+  ""valuePartitions"": {},
+  ""files"": {},
+  ""textureTemplates"": {},
+  ""audioClipTemplates"": {}
+}";
+            var cache = new FakeExportCache
+            {
+                state = new NeoComposeUnityExportSyncState
+                {
+                    cursor = new NeoComposeUnityExportCursor
+                    {
+                        createdAt = 100,
+                        transactionIds = new List<string> { "tx-1" },
+                        versionsStamp = "1:100",
+                    },
+                    heads = new List<NeoComposeUnityExportHeadDescriptor>
+                    {
+                        new()
+                        {
+                            recordKind = "project",
+                            recordId = "project-1",
+                            snapshotId = "snapshot-project",
+                            contentHash = "project-hash",
+                        },
+                        new()
+                        {
+                            recordKind = "value",
+                            recordId = "value-1",
+                            snapshotId = "snapshot-value-1",
+                            contentHash = "value-hash-1",
+                        },
+                    },
+                    snapshots = new List<NeoComposeUnityExportCachedSnapshot>
+                    {
+                        new()
+                        {
+                            id = "snapshot-project",
+                            recordKind = "project",
+                            recordId = "project-1",
+                            contentHash = "project-hash",
+                            data = JObject.Parse("{ \"id\": \"project-1\" }"),
+                        },
+                        new()
+                        {
+                            id = "snapshot-value-1",
+                            recordKind = "value",
+                            recordId = "value-1",
+                            contentHash = "value-hash-1",
+                            data = JObject.Parse("{ \"id\": \"value-1\", \"value\": 1 }"),
+                        },
+                    },
+                },
+            };
+            var synchronizer = new NeoComposeSynchronizer(
+                api,
+                new FakeConfirmationService(true),
+                assets,
+                cache);
+
+            var result = await synchronizer.SynchronizeAsync(config);
+
+            Assert.IsTrue(result.success, result.message);
+            Assert.AreEqual(0, api.fullExportCalls);
+            Assert.AreEqual(1, api.deltaExportCalls);
+            Assert.AreEqual(1, api.snapshotExportCalls);
+            Assert.AreEqual(
+                "// existing generated",
+                assets.files["Assets/Scripts/Neo/NeoGeneratedTypes.cs"]);
+            var written = JObject.Parse(assets.files["Assets/Resources/Neo/project.json"]);
+            Assert.AreEqual(2, written["values"]?["value-1"]?["value"]?.Value<int>());
+            Assert.AreEqual(200, written["values"]?["value-1"]?["updatedAt"]?.Value<int>());
+            Assert.AreEqual("tx-2", cache.state?.cursor.transactionIds.Single());
+            Assert.AreEqual(
+                "value-hash-2",
+                cache.state?.heads.Single(head => head.recordId == "value-1").contentHash);
+            CollectionAssert.AreEqual(
+                new[] { "snapshot-value-2" },
+                cache.state?.snapshots.Select(snapshot => snapshot.id).ToArray());
         }
 
         [Test]
@@ -1397,6 +1522,14 @@ namespace NeoCompose.Tests
             public string? lastEditNamespace;
             public bool? lastEditSingleton;
             public string? lastExportVersionId;
+            public NeoComposeUnityExportDeltaManifestResponse deltaResponse = new()
+            {
+                cursor = new NeoComposeUnityExportCursor(),
+            };
+            public NeoComposeUnityExportSnapshotResponse snapshotResponse = new();
+            public int fullExportCalls;
+            public int deltaExportCalls;
+            public int snapshotExportCalls;
             public NeoComposeUnityExportFileDownloadResponse fileDownloadResponse = new();
             public readonly Dictionary<string, byte[]> downloads = new();
             public string[] lastFileDownloadIds = System.Array.Empty<string>();
@@ -1447,8 +1580,30 @@ namespace NeoCompose.Tests
 
             public Task<NeoComposeUnityExportResponse> ExportProjectAsync(string apiBaseUrl, string projectId, string versionId)
             {
+                fullExportCalls++;
                 lastExportVersionId = versionId;
                 return Task.FromResult(exportResponse);
+            }
+
+            public Task<NeoComposeUnityExportDeltaManifestResponse> ExportProjectDeltaAsync(
+                string apiBaseUrl,
+                string projectId,
+                string versionId,
+                NeoComposeUnityExportCursor cursor)
+            {
+                deltaExportCalls++;
+                lastExportVersionId = versionId;
+                return Task.FromResult(deltaResponse);
+            }
+
+            public Task<NeoComposeUnityExportSnapshotResponse> ExportProjectSnapshotsAsync(
+                string apiBaseUrl,
+                string projectId,
+                string versionId,
+                string[] snapshotIds)
+            {
+                snapshotExportCalls++;
+                return Task.FromResult(snapshotResponse);
             }
 
             public Task<NeoComposeUnityExportFileDownloadResponse> ExportProjectFileDownloadsAsync(
@@ -1564,6 +1719,11 @@ namespace NeoCompose.Tests
                 return files.ContainsKey(assetPath) || binaryFiles.ContainsKey(assetPath);
             }
 
+            public string ReadAllText(string assetPath)
+            {
+                return files[assetPath];
+            }
+
             public string[] FindFiles(string assetDirectory, string searchPattern)
             {
                 return files.Keys
@@ -1640,6 +1800,26 @@ namespace NeoCompose.Tests
                 deletedAssets.Add(assetPath);
                 files.Remove(assetPath);
                 binaryFiles.Remove(assetPath);
+            }
+        }
+
+        private sealed class FakeExportCache : INeoComposeEditorExportCache
+        {
+            public NeoComposeUnityExportSyncState? state;
+
+            public NeoComposeUnityExportSyncState? Load(string projectId, string versionId)
+            {
+                return state;
+            }
+
+            public void Save(string projectId, string versionId, NeoComposeUnityExportSyncState next)
+            {
+                state = next;
+            }
+
+            public void Delete(string projectId, string versionId)
+            {
+                state = null;
             }
         }
     }

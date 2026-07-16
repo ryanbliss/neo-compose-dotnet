@@ -33,9 +33,24 @@ namespace NeoCompose.Tests
             await client.GetVersionMetadataAsync(ApiBaseUrl, ProjectId, VersionId);
             await client.UpdateProjectExportSettingsAsync(ApiBaseUrl, ProjectId, VersionId, "Ns", true);
             await client.ExportProjectAsync(ApiBaseUrl, ProjectId, VersionId);
+            await client.ExportProjectDeltaAsync(
+                ApiBaseUrl,
+                ProjectId,
+                VersionId,
+                new NeoComposeUnityExportCursor
+                {
+                    createdAt = 100,
+                    transactionIds = new List<string> { "tx-1" },
+                    versionsStamp = "1:100",
+                });
+            await client.ExportProjectSnapshotsAsync(
+                ApiBaseUrl,
+                ProjectId,
+                VersionId,
+                new[] { "snapshot-1" });
             await client.ExportProjectFileDownloadsAsync(ApiBaseUrl, ProjectId, VersionId, new[] { "file-1" });
 
-            Assert.AreEqual(8, http.sends.Count);
+            Assert.AreEqual(10, http.sends.Count);
             foreach (var send in http.sends)
             {
                 Assert.AreEqual("the-token", send.bearer, $"Request to {send.url} must carry the bearer token.");

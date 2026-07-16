@@ -16,8 +16,8 @@ namespace NeoCompose.Tests
 {
     /// <summary>
     /// Realtime integration at the core seam (<see cref="INeoRealtimeProvider"/>):
-    /// list subscriptions feed the save-list cache, head pushes prime the
-    /// fresh-remote cache and raise the opt-in divergence event, and commits
+    /// list subscriptions feed payload-light browse summaries, head pushes
+    /// prime the full-detail cache and raise the opt-in divergence event, and commits
     /// route through the provider with a REST fallback.
     /// </summary>
     public class NeoRealtimeSaveTests
@@ -68,7 +68,7 @@ namespace NeoCompose.Tests
         }
 
         [Test]
-        public async Task PushedList_UpdatesTheBrowseListAndPrimesTheFreshRemoteCache()
+        public async Task PushedList_UpdatesBrowseSummaryButOpenFetchesFullDetail()
         {
             var (store, api, _, realtime) =
                 await ReadyStoreWithRealtimeAsync(NeoRealtimeConnectionState.Connected);
@@ -78,7 +78,10 @@ namespace NeoCompose.Tests
             var remote = NeoSaveTestSupport.Remote("save-1", "snap-1", "hash-1");
             realtime.PushList(new NeoSaveFileList
             {
-                saves = new List<RemoteGameSave> { remote },
+                saves = new List<RemoteGameSaveSummary>
+                {
+                    RemoteGameSaveSummary.FromRemote(remote),
+                },
                 cloneRequired = new Dictionary<string, bool> { ["save-1"] = false },
             });
 
@@ -86,13 +89,12 @@ namespace NeoCompose.Tests
             Assert.That(store.Saves, Has.Count.EqualTo(1));
             Assert.That(store.Saves[0].existsRemotely, Is.True);
 
-            // The pushed head must satisfy the next load without a per-save
-            // fetch: a fetch would throw here.
-            api.getThrows = new InvalidOperationException(
-                "The fresh-remote cache should have served this load.");
+            api.getResult = remote;
             var sync = store.Open("save-1");
             var content = await sync.LoadSaveContentAsync();
             Assert.That(content, Does.Contain("hash-1"));
+            Assert.That(api.getCalls, Is.EqualTo(1),
+                "a summary list row must never masquerade as the full payload");
         }
 
         [Test]

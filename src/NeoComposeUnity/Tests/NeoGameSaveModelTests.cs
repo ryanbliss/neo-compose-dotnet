@@ -249,6 +249,11 @@ namespace NeoCompose.Tests
         {
             var patch = new NeoSavePatch
             {
+                baseMapKeys = new Dictionary<string, string?>
+                {
+                    ["value-main"] = null,
+                    ["value-world"] = "world:grid-1",
+                },
                 staticBindings = new Dictionary<string, string?>
                 {
                     ["member-current"] = "v-runtime",
@@ -264,6 +269,9 @@ namespace NeoCompose.Tests
                 JsonConvert.SerializeObject(patch))!;
 
             Assert.That(roundTripped.staticBindings["member-current"], Is.EqualTo("v-runtime"));
+            Assert.That(roundTripped.baseMapKeys.ContainsKey("value-main"), Is.True);
+            Assert.That(roundTripped.baseMapKeys["value-main"], Is.Null);
+            Assert.That(roundTripped.baseMapKeys["value-world"], Is.EqualTo("world:grid-1"));
             Assert.That(roundTripped.staticBindings.ContainsKey("member-cleared"), Is.True);
             Assert.That(roundTripped.staticBindings["member-cleared"], Is.Null);
             CollectionAssert.AreEqual(

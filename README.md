@@ -8,7 +8,7 @@ A Unity C# package — `com.ryanbliss.neocompose`.
 src/
   NeoComposeUnity/        Unity package (Runtime + Editor + Tests)
 samples/
-  HelloWorld/             Unity 6000.0.40f1 project consuming the package
+  HelloWorld/             Unity 6000.5.4f1 project consuming the package
                           via a local file: dependency
     neo/                  Neo Schema Authoring v2 workspace for the sample
 ```
@@ -19,7 +19,7 @@ separate raw-.NET library or precompiled `.dll`.
 
 ## Setup
 
-1. Open `samples/HelloWorld/` in Unity 6000.0.40f1.
+1. Open `samples/HelloWorld/` in Unity 6000.5.4f1.
 2. The `com.ryanbliss.neocompose` package is referenced via a local path
    in `Packages/manifest.json`, so edits in `src/NeoComposeUnity/` are
    picked up live.

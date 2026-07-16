@@ -147,7 +147,8 @@ TextureImporter:
     secondaryTextures: []
     spriteCustomMetadata:
       entries: []
-    nameFileIdTable: {}
+    nameFileIdTable:
+      boot-glyph-tile_0: 5024515880627196451
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

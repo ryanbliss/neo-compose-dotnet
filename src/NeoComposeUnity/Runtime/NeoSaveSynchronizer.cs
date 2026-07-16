@@ -1255,15 +1255,19 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>Per-key diff for the sparse values overlay.</summary>
-        private static NeoSavePatch BuildLivePatch(JObject baseline, JObject staged)
+        internal static NeoSavePatch BuildLivePatch(JObject baseline, JObject staged)
         {
             var patch = new NeoSavePatch();
             foreach (var property in staged.Properties())
             {
                 if (!baseline.TryGetValue(property.Name, out var existing)
-                    || !JToken.DeepEquals(existing, property.Value))
+                    || !NeoSemanticJson.ProjectRecordsEqual(existing, property.Value))
                 {
                     patch.entries[property.Name] = property.Value;
+                    if (existing != null)
+                    {
+                        patch.baseMapKeys[property.Name] = ReadMapKey(existing);
+                    }
                 }
             }
 
@@ -1272,10 +1276,20 @@ namespace NeoCompose.Runtime
                 if (!staged.ContainsKey(property.Name))
                 {
                     patch.restoredToAuthored.Add(property.Name);
+                    patch.baseMapKeys[property.Name] = ReadMapKey(property.Value);
                 }
             }
 
             return patch;
+        }
+
+        private static string? ReadMapKey(JToken entry)
+        {
+            if (entry is not JObject row) return null;
+            var mapKey = row["mapKey"];
+            return mapKey?.Type == JTokenType.String
+                ? mapKey.Value<string>()
+                : null;
         }
 
         /// <summary>The values map as a JSON object: a null token reads as an
@@ -1373,10 +1387,9 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Resolves the cloud head for a load: none when cloud sync is off; the head
-        /// cached by a recent <c>RefreshListAsync</c> when it is still fresh (avoiding
-        /// a redundant per-save network read right after the browse list loaded);
-        /// otherwise a fresh, failure-tolerant fetch.
+        /// Resolves the full cloud head for a load: none when cloud sync is off;
+        /// a recent full detail/realtime head when available; otherwise a fresh,
+        /// failure-tolerant detail fetch. Payload-light list rows never satisfy it.
         /// </summary>
         private async Awaitable<RemoteGameSave?> ResolveRemoteForLoadAsync()
         {

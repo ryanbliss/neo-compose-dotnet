@@ -21,18 +21,17 @@ namespace NeoCompose.Runtime
     public sealed class InternalProjectStore
     {
         /// <summary>
-        /// How long a cloud save fetched by <see cref="RefreshListAsync"/> is trusted
-        /// for a subsequent <c>Open</c>: within this window the cached cloud head is
-        /// reused instead of issuing a per-save network read.
+        /// How long a full cloud head fetched by a detail query or realtime-head
+        /// subscription is trusted for a subsequent <c>Open</c>. Payload-light
+        /// list rows are never inserted into this cache.
         /// </summary>
         public static readonly TimeSpan RemoteListFreshness = TimeSpan.FromMinutes(15);
 
         private readonly Dictionary<string, NeoSaveListEntry> saves = new();
-        // The full cloud heads from the last list refresh (with values), so an Open
-        // shortly after a list can load without a second network round trip.
-        private readonly Dictionary<string, RemoteGameSave> remoteCache = new();
+        private readonly Dictionary<string, (RemoteGameSave save, DateTimeOffset cachedAt)>
+            remoteDetailCache = new();
+        private readonly HashSet<string> listedRemoteIds = new();
         private readonly Func<DateTimeOffset> now;
-        private DateTimeOffset lastListRefreshAt = DateTimeOffset.MinValue;
         private IDisposable? realtimeListSubscription;
 
         public InternalProjectStore(
@@ -58,16 +57,20 @@ namespace NeoCompose.Runtime
         }
 
         /// <summary>
-        /// Returns the cloud head cached by the most recent <see cref="RefreshListAsync"/>
-        /// when that refresh is still within <see cref="RemoteListFreshness"/> — letting
-        /// <c>Open</c> skip a redundant per-save network read. Returns false when stale
-        /// or uncached, so the caller falls back to a fresh fetch.
+        /// Returns a full cloud head cached by a detail/realtime-head path. Summary
+        /// rows from list queries deliberately cannot satisfy this method.
         /// </summary>
         public bool TryGetFreshRemote(string customId, out RemoteGameSave remote)
         {
             remote = null!;
-            if (now() - lastListRefreshAt > RemoteListFreshness) return false;
-            return remoteCache.TryGetValue(customId, out remote!);
+            if (!remoteDetailCache.TryGetValue(customId, out var cached)) return false;
+            if (now() - cached.cachedAt > RemoteListFreshness)
+            {
+                remoteDetailCache.Remove(customId);
+                return false;
+            }
+            remote = cached.save;
+            return true;
         }
 
         public ProjectData Schema { get; }
@@ -122,14 +125,15 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void ApplyRealtimeSaveList(NeoSaveFileList remoteList)
         {
-            remoteCache.Clear();
+            listedRemoteIds.Clear();
             foreach (var remote in remoteList.saves)
             {
-                remoteCache[remote.id] = remote;
+                listedRemoteIds.Add(remote.id);
+                EvictMovedDetail(remote);
                 MergeRemote(remote, remoteList.RequiresClone(remote.id));
             }
 
-            lastListRefreshAt = now();
+            EvictUnlistedDetails();
             ReconcileOrphanedLocalSaves();
             ListChanged?.Invoke();
         }
@@ -141,8 +145,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         internal void RecordRealtimeRemoteHead(RemoteGameSave remote)
         {
-            remoteCache[remote.id] = remote;
-            lastListRefreshAt = now();
+            remoteDetailCache[remote.id] = (remote, now());
+            listedRemoteIds.Add(remote.id);
             MergeRemote(remote, remote.releaseChannelId != TargetReleaseChannelId);
             ListChanged?.Invoke();
         }
@@ -167,7 +171,7 @@ namespace NeoCompose.Runtime
         public async Awaitable RefreshListAsync()
         {
             saves.Clear();
-            remoteCache.Clear();
+            listedRemoteIds.Clear();
 
             var localIds = await LocalStore.ListSaveIdsAsync();
             foreach (var customId in localIds)
@@ -185,12 +189,11 @@ namespace NeoCompose.Runtime
                     var remoteList = await ApiClient.ListSavesAsync(TargetReleaseChannelId);
                     foreach (var remote in remoteList.saves)
                     {
-                        remoteCache[remote.id] = remote;
+                        listedRemoteIds.Add(remote.id);
+                        EvictMovedDetail(remote);
                         MergeRemote(remote, remoteList.RequiresClone(remote.id));
                     }
-                    // Stamp freshness only on a successful cloud list, so a failed
-                    // refresh never serves stale heads from a prior fetch.
-                    lastListRefreshAt = now();
+                    EvictUnlistedDetails();
                     cloudListed = true;
                 }
                 catch (Exception ex)
@@ -236,6 +239,11 @@ namespace NeoCompose.Runtime
                 archivedAt = remote?.archivedAt,
             };
             saves[customId] = entry;
+            if (remote != null)
+            {
+                remoteDetailCache[customId] = (remote, now());
+                listedRemoteIds.Add(customId);
+            }
             ListChanged?.Invoke();
         }
 
@@ -282,7 +290,7 @@ namespace NeoCompose.Runtime
         {
             foreach (var entry in saves.Values)
             {
-                if (entry.existsRemotely && !remoteCache.ContainsKey(entry.customId))
+                if (entry.existsRemotely && !listedRemoteIds.Contains(entry.customId))
                 {
                     entry.existsRemotely = false;
                     entry.isLocalOnly = true;
@@ -290,7 +298,7 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void MergeRemote(RemoteGameSave remote, bool requiresClone)
+        private void MergeRemote(RemoteGameSaveSummary remote, bool requiresClone)
         {
             if (!saves.TryGetValue(remote.id, out var entry))
             {
@@ -304,8 +312,37 @@ namespace NeoCompose.Runtime
             entry.existsRemotely = true;
             entry.isLocalOnly = false;
             entry.requiresClone = requiresClone;
-            entry.needsMigration = !remote.TryDeserializeValues(out _);
+            // Compatibility needs the payload and is resolved when the save is
+            // opened through the full-detail endpoint.
+            entry.needsMigration = false;
             entry.archivedAt = remote.archivedAt;
+        }
+
+        private void MergeRemote(RemoteGameSave remote, bool requiresClone)
+        {
+            MergeRemote(RemoteGameSaveSummary.FromRemote(remote), requiresClone);
+        }
+
+        private void EvictMovedDetail(RemoteGameSaveSummary summary)
+        {
+            if (remoteDetailCache.TryGetValue(summary.id, out var cached)
+                && cached.save.snapshotHash != summary.snapshotHash)
+            {
+                remoteDetailCache.Remove(summary.id);
+            }
+        }
+
+        private void EvictUnlistedDetails()
+        {
+            var unlistedIds = new List<string>();
+            foreach (string id in remoteDetailCache.Keys)
+            {
+                if (!listedRemoteIds.Contains(id)) unlistedIds.Add(id);
+            }
+            foreach (string id in unlistedIds)
+            {
+                remoteDetailCache.Remove(id);
+            }
         }
     }
 }

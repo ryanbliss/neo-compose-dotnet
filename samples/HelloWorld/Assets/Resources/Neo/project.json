@@ -19,7 +19,7 @@
                 "slug": "development"
             }
         ],
-        "projectDocumentContentHash": "ae4746467f4a397ce04f0fef00afd8b5ad1ef0a6cfccc4afae47bfe36e7a58fd",
+        "projectDocumentContentHash": "1960495e945a43813bfe58e37d55fe8bd60bd6f23465f55ed40d33f492e74e80",
         "codegenContractHash": "fce593cc32c2304ea749da401e5c8476c57b508a6757244c4cad389b5d47f9c0",
         "runtimeDataContractHash": "6fbec44ebc3d746ce2f1e77eac4f571d612a93c4c6efbafe1b32b43e38431018"
     },
@@ -46510,7 +46510,7 @@
                 "defaultSaveOptionChoices": true
             },
             "triggerNodeId": "17d6690c-5649-4e6c-b252-bb237c884b5b",
-            "updatedAt": 1782704874608,
+            "updatedAt": 1784192981357,
             "nodes": {
                 "050f1583-b0fa-44a4-964b-74d2c267aad8": {
                     "id": "050f1583-b0fa-44a4-964b-74d2c267aad8",
@@ -48920,6 +48920,10 @@
                         {
                             "source": 1,
                             "valueId": "913fd757-d6ee-488e-866f-c7af41aa544b"
+                        },
+                        {
+                            "source": 2,
+                            "valueId": "18b9a621-ea41-4ac7-8a46-9cc443f2b480"
                         }
                     ],
                     "name": "Welcome!",
@@ -48927,7 +48931,148 @@
                     "primaryLinkedValueId": "913fd757-d6ee-488e-866f-c7af41aa544b",
                     "text": "7d3aef9c-3c76-4f49-8f7f-a67f10012202",
                     "toNodeId": "55cd604a-448b-4eb4-bd13-aa8c0f8143c9",
-                    "type": 1
+                    "type": 1,
+                    "variables": {
+                        "b8fb5589-1ca0-480a-a2eb-fc23e44e3ae9": {
+                            "displayPath": "Assets > Items > Helium-3 Flask > Name",
+                            "getter": {
+                                "instructions": [
+                                    {
+                                        "pointer": {
+                                            "operation": {
+                                                "arithmetic": {
+                                                    "pointers": [
+                                                        {
+                                                            "type": "value",
+                                                            "value": {
+                                                                "typeInfo": {
+                                                                    "required": true,
+                                                                    "type": 3
+                                                                },
+                                                                "value": ""
+                                                            }
+                                                        },
+                                                        {
+                                                            "keyOf": {
+                                                                "key": {
+                                                                    "type": "value",
+                                                                    "value": {
+                                                                        "typeInfo": {
+                                                                            "required": true,
+                                                                            "type": 3
+                                                                        },
+                                                                        "value": "Name"
+                                                                    }
+                                                                },
+                                                                "pointer": {
+                                                                    "type": "reference",
+                                                                    "valueId": "18b9a621-ea41-4ac7-8a46-9cc443f2b480"
+                                                                }
+                                                            },
+                                                            "type": "keyOf"
+                                                        }
+                                                    ],
+                                                    "type": "+"
+                                                },
+                                                "type": "arithmetic"
+                                            },
+                                            "type": "operation"
+                                        },
+                                        "type": "return"
+                                    }
+                                ],
+                                "parameters": [
+                                    {
+                                        "id": "__this__",
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "classId": "4c196697-4e08-4aeb-823f-322b353071ac",
+                                                    "required": true,
+                                                    "type": 7
+                                                },
+                                                "value": null
+                                            }
+                                        },
+                                        "typeInfo": {
+                                            "classId": "4c196697-4e08-4aeb-823f-322b353071ac",
+                                            "required": true,
+                                            "type": 7
+                                        }
+                                    },
+                                    {
+                                        "id": "__root__",
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "classId": "__root__",
+                                                    "required": true,
+                                                    "type": 7
+                                                },
+                                                "value": null
+                                            }
+                                        },
+                                        "typeInfo": {
+                                            "classId": "__root__",
+                                            "required": true,
+                                            "type": 7
+                                        }
+                                    },
+                                    {
+                                        "id": "__context__",
+                                        "pointer": {
+                                            "type": "value",
+                                            "value": {
+                                                "typeInfo": {
+                                                    "classId": "__dialogue_context__",
+                                                    "required": true,
+                                                    "type": 7
+                                                },
+                                                "value": null
+                                            }
+                                        },
+                                        "typeInfo": {
+                                            "classId": "__dialogue_context__",
+                                            "required": true,
+                                            "type": 7
+                                        }
+                                    }
+                                ],
+                                "typeInfo": {
+                                    "required": true,
+                                    "type": 3
+                                }
+                            },
+                            "id": "b8fb5589-1ca0-480a-a2eb-fc23e44e3ae9",
+                            "label": "Helium-3 Flask > Name",
+                            "pointer": {
+                                "keyOf": {
+                                    "key": {
+                                        "type": "value",
+                                        "value": {
+                                            "typeInfo": {
+                                                "required": true,
+                                                "type": 3
+                                            },
+                                            "value": "Name"
+                                        }
+                                    },
+                                    "pointer": {
+                                        "type": "reference",
+                                        "valueId": "18b9a621-ea41-4ac7-8a46-9cc443f2b480"
+                                    }
+                                },
+                                "type": "keyOf"
+                            },
+                            "sourcePath": "ref:18b9a621-ea41-4ac7-8a46-9cc443f2b480.Name",
+                            "typeInfo": {
+                                "required": true,
+                                "type": 3
+                            }
+                        }
+                    }
                 },
                 "d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5": {
                     "id": "d04d75d7-6e7b-44c9-bcc9-7c61a8cb2fd5",
@@ -72345,8 +72490,8 @@
                 "en-US": {
                     "localeComment": null,
                     "statusId": "localization-status-approved",
-                    "updatedAt": 1782703530947,
-                    "value": "Hello, traveler! Welcome to the best planet of the best solar system in the <b>ENTIRE</b> galaxy!"
+                    "updatedAt": 1784192992995,
+                    "value": "Hello, traveler! Welcome to the best planet of the best solar system in the <b>ENTIRE</b> galaxy! {{neo-var:b8fb5589-1ca0-480a-a2eb-fc23e44e3ae9}} "
                 },
                 "es-ES": {
                     "localeComment": null,
@@ -72357,7 +72502,7 @@
             },
             "projectId": "7cd65ee0-a3be-4162-b617-cba3ada4f8e8",
             "sourceComment": null,
-            "updatedAt": 1782703530947
+            "updatedAt": 1784192993606
         },
         "7dcfeadc-d448-478d-82ae-33ebbdd62c7a": {
             "archivedAt": null,
