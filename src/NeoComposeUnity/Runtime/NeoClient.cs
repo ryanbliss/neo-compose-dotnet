@@ -235,6 +235,8 @@ namespace NeoCompose.Runtime
         }
 
         protected ProjectData data;
+        internal NeoInternalRecordRelationGraph InternalRecordRelations { get; private set; } = null!;
+        internal int ProjectSchemaVersion => data.metadata?.schemaVersion ?? 0;
         protected ProjectSaveData saveData;
         protected ProjectSaveData sessionData;
         private readonly INeoSaveLoader loader;
@@ -306,6 +308,8 @@ namespace NeoCompose.Runtime
             this.data = loader.Schema;
             ValidateExportSchemaVersion(data.metadata);
             ValidateClassMemberPayload(data);
+            ValidateInternalRecordRelations(data);
+            InternalRecordRelations = new NeoInternalRecordRelationGraph(data);
             ValidateNoLegacyTileGridContents(data);
             AdoptStampedMainValueRows();
             SaveOptions = saveOptions ?? new NeoSaveOptions();
@@ -863,22 +867,127 @@ namespace NeoCompose.Runtime
 
         private static void ValidateExportSchemaVersion(ProjectExportMetadata? metadata)
         {
-            const int requiredVersion = 8;
+            const int legacyVersion = 8;
+            const int currentVersion = 9;
 
-            // Schema 8 is the coordinated Class/Member wire cutover. There is
-            // deliberately no schema-7 reader or field-alias layer.
+            // Schema 8 is retained only as the explicit release-data boundary
+            // while projects are repaired into schema 9's class-relation world
+            // model. There is deliberately no schema-7 reader or alias layer.
             if (metadata is null)
             {
                 throw new System.InvalidOperationException(
-                    $"Project export metadata is missing (this SDK requires schema version {requiredVersion}). Re-export the project from the current web app.");
+                    $"Project export metadata is missing (this SDK requires schema version {legacyVersion} or {currentVersion}). Re-export the project from the current web app.");
             }
-            if (metadata.schemaVersion != requiredVersion)
+            if (metadata.schemaVersion != legacyVersion
+                && metadata.schemaVersion != currentVersion)
             {
-                string action = metadata.schemaVersion < requiredVersion
+                string action = metadata.schemaVersion < legacyVersion
                     ? "Re-export the project from the current web app."
                     : "Update the NeoCompose SDK.";
                 throw new System.InvalidOperationException(
-                    $"Project export schema version {metadata.schemaVersion} is unsupported; this SDK accepts only schema version {requiredVersion}. {action}");
+                    $"Project export schema version {metadata.schemaVersion} is unsupported; this SDK accepts only schema versions {legacyVersion} and {currentVersion}. {action}");
+            }
+        }
+
+        private static void ValidateInternalRecordRelations(ProjectData data)
+        {
+            if (data.metadata?.schemaVersion == 8)
+            {
+                data.internalRecordRelations ??=
+                    new Dictionary<string, InternalRecordRelation>();
+                return;
+            }
+            if (data.internalRecordRelations is null)
+            {
+                throw new System.InvalidOperationException(
+                    "Project export schema version 9 is missing the required 'internalRecordRelations' collection. Re-export the project from the current web app.");
+            }
+
+            var knownKinds = new HashSet<string>(System.StringComparer.Ordinal)
+            {
+                InternalRecordRelationKinds.WorldGridTileImport,
+                InternalRecordRelationKinds.WorldGridObjectImport,
+                InternalRecordRelationKinds.WorldGridTileLayer,
+                InternalRecordRelationKinds.WorldGridObjectLayer,
+                InternalRecordRelationKinds.WorldTileCompatibleLayer,
+                InternalRecordRelationKinds.WorldTileDefaultLayer,
+                InternalRecordRelationKinds.WorldObjectCompatibleLayer,
+                InternalRecordRelationKinds.WorldObjectDefaultLayer,
+                InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                InternalRecordRelationKinds.WorldObjectLayerLinkTarget,
+                InternalRecordRelationKinds.WorldSmartTileNeighborTile,
+            };
+            var edgeKeys = new HashSet<string>(System.StringComparer.Ordinal);
+            foreach (var pair in data.internalRecordRelations)
+            {
+                InternalRecordRelation relation = pair.Value
+                    ?? throw new System.InvalidOperationException(
+                        $"Internal record relation '{pair.Key}' is null.");
+                if (!string.Equals(pair.Key, relation.id, System.StringComparison.Ordinal))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Internal record relation dictionary key '{pair.Key}' does not match row id '{relation.id}'.");
+                }
+                if (!knownKinds.Contains(relation.relationKind))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Internal record relation '{relation.id}' uses unsupported relation kind '{relation.relationKind}'. Update the NeoCompose SDK.");
+                }
+                bool smartTileNeighbor = relation.relationKind
+                    == InternalRecordRelationKinds.WorldSmartTileNeighborTile;
+                string expectedSourceKind = smartTileNeighbor ? "value" : "class";
+                if (!string.Equals(
+                    relation.sourceRecordKind,
+                    expectedSourceKind,
+                    System.StringComparison.Ordinal))
+                {
+                    throw new System.InvalidOperationException(
+                        $"World relation '{relation.id}' has unsupported source record kind '{relation.sourceRecordKind}'.");
+                }
+                if (!string.Equals(relation.targetRecordKind, "class", System.StringComparison.Ordinal))
+                {
+                    throw new System.InvalidOperationException(
+                        $"World relation '{relation.id}' has unsupported target record kind '{relation.targetRecordKind}'.");
+                }
+                bool sourceExists = smartTileNeighbor
+                    ? data.values.ContainsKey(relation.sourceRecordId)
+                    : data.classes.ContainsKey(relation.sourceRecordId);
+                if (!sourceExists)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Internal record relation '{relation.id}' references missing source {expectedSourceKind} '{relation.sourceRecordId}'.");
+                }
+                if (!data.classes.ContainsKey(relation.targetRecordId))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Internal record relation '{relation.id}' references missing target class '{relation.targetRecordId}'.");
+                }
+                bool ordered =
+                    relation.relationKind == InternalRecordRelationKinds.WorldGridTileLayer
+                    || relation.relationKind == InternalRecordRelationKinds.WorldGridObjectLayer;
+                if (ordered && string.IsNullOrEmpty(relation.orderKey))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Ordered internal record relation '{relation.id}' is missing orderKey.");
+                }
+                if (!ordered && relation.orderKey is not null)
+                {
+                    throw new System.InvalidOperationException(
+                        $"Unordered internal record relation '{relation.id}' must not define orderKey.");
+                }
+                string edgeKey = string.Join("\n", new[]
+                {
+                    relation.relationKind,
+                    relation.sourceRecordKind,
+                    relation.sourceRecordId,
+                    relation.targetRecordKind,
+                    relation.targetRecordId,
+                });
+                if (!edgeKeys.Add(edgeKey))
+                {
+                    throw new System.InvalidOperationException(
+                        $"Internal record relation '{relation.id}' duplicates a live edge.");
+                }
             }
         }
 

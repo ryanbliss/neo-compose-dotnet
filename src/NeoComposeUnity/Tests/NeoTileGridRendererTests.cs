@@ -25,6 +25,103 @@ namespace NeoCompose.Tests
         private const string BaseTileClassId = "base-tile-class";
         private const string SubTileClassId = "sub-tile-class";
         private const string OtherTileClassId = "other-tile-class";
+        private const string BackgroundLayerClassId = "background-layer-class";
+
+        [Test]
+        public void SchemaNineClassBackedLayerResolvesClassDefaultTileWithoutDefinitionValue()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+            var tile = layer.GetTile(new Vector2Int(2, 3));
+
+            Assert.NotNull(tile);
+            Assert.IsInstanceOf<TestTile>(tile!.Info);
+            Assert.IsNull(tile.Info.valueId);
+            Assert.AreEqual(TileClassId, ((TestTile)tile.Info).classId);
+            Assert.AreEqual(BackgroundLayerClassId, layer.LayerClassId);
+            Assert.AreEqual("background-layer-override", layer.LayerOverrideValueId);
+            Assert.AreEqual("Override Background", layer.Name);
+            Assert.AreEqual("Default layer description", layer.Description);
+            Assert.AreEqual("background-layer-override", layer.valueId);
+        }
+
+        [Test]
+        public void SchemaNineLayerWithoutOverrideUsesClassDefaults()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var backgroundLink = (ObjectMemberValue)data.values["background-link"];
+            backgroundLink.value!.Remove("layerOverrideValueId");
+            data.values.Remove("background-layer-override");
+            data.values.Remove("background-layer-override-name");
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+
+            Assert.IsNull(layer.LayerOverrideValueId);
+            Assert.IsNull(layer.valueId);
+            Assert.AreEqual("Default Background", layer.Name);
+            Assert.AreEqual("Default layer description", layer.Description);
+        }
+
+        [Test]
+        public void SchemaNineGenericPlacementWritesClassReferenceAndEnforcesGridImports()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoTileGridPrimitive.ResolveForSave(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string>
+                {
+                    [typeof(TestTile)] = TileClassId,
+                    [typeof(TestOtherTile)] = OtherTileClassId,
+                });
+            var layer = primitive.BindWritableTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+            var lifecycle = new RecordingTileSetLifecycle();
+            primitive.Lifecycle = lifecycle;
+
+            var placed = layer.Place<TestTile>(new Vector2Int(7, 8));
+            var updated = layer.Place<TestTile>(new Vector2Int(7, 8));
+            var rejected = layer.Place<TestOtherTile>(new Vector2Int(9, 10));
+
+            Assert.IsTrue(placed.Ok, placed.Message);
+            Assert.IsTrue(updated.Ok, updated.Message);
+            Assert.IsFalse(rejected.Ok);
+            Assert.AreEqual("tile-grid-asset-not-imported", rejected.ErrorCode);
+            Assert.IsNotNull(lifecycle.ExistingInstance);
+            Assert.AreEqual(
+                BackgroundLayerClassId,
+                lifecycle.ExistingInstance!["layerClassId"]!.Value<string>());
+            Assert.AreNotEqual(
+                "background-link",
+                lifecycle.ExistingInstance["layerClassId"]!.Value<string>());
+            var resolved = layer.GetTile(new Vector2Int(7, 8));
+            Assert.NotNull(resolved);
+            Assert.IsInstanceOf<TestTile>(resolved!.Info);
+            Assert.IsNull(resolved.Info.valueId);
+        }
 
         [Test]
         public void TileLayerLinkPayloadsResolveThroughCurrentObjectPosition()
@@ -707,6 +804,19 @@ namespace NeoCompose.Tests
 
                 database.RemoveTileAsset("floor-tile");
                 Assert.IsNull(database.TryGetTileBase("floor-tile"));
+
+                database.SetTileClassAsset(
+                    TileClassId,
+                    "Assets/Neo/Generated/Tiles/tile-class.asset",
+                    "hash-class",
+                    tile);
+                Assert.AreSame(tile, database.TryGetTileBaseForClass(TileClassId));
+                Assert.AreEqual(0, database.FindMissingTileAssets(new HashSet<string>()).Length);
+                Assert.AreEqual(
+                    1,
+                    database.FindMissingTileClassAssets(new HashSet<string>()).Length);
+                database.RemoveTileClassAsset(TileClassId);
+                Assert.IsNull(database.TryGetTileBaseForClass(TileClassId));
             }
             finally
             {
@@ -779,6 +889,49 @@ namespace NeoCompose.Tests
                 UnityEngine.Object.DestroyImmediate(go);
                 UnityEngine.Object.DestroyImmediate(generatedTile.sprite.texture);
                 UnityEngine.Object.DestroyImmediate(generatedTile.sprite);
+                UnityEngine.Object.DestroyImmediate(generatedTile);
+                UnityEngine.Object.DestroyImmediate(database);
+            }
+        }
+
+        [Test]
+        public void Render_PrefersEditorGeneratedTileAssetForClassDefaultPlacement()
+        {
+            var data = BuildClassBackedTileGridProjectData();
+            var client = NeoTestSaveStack.ClientFromSchema(data);
+            var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
+                client,
+                "town-grid",
+                BuildClassBackedReadOnlyFactories(),
+                BuildClassBackedWritableFactories(),
+                new Dictionary<Type, string> { [typeof(TestTile)] = TileClassId });
+            var layer = primitive.BindReadOnlyTileLayer<TestAuthoredTileLayer>(
+                BackgroundLayerClassId,
+                new[] { TileClassId });
+            var generatedTile = ScriptableObject.CreateInstance<Tile>();
+            var database = ScriptableObject.CreateInstance<NeoAssetDatabase>();
+            database.SetTileClassAsset(
+                TileClassId,
+                "Assets/Neo/Generated/Tiles/tile-class.asset",
+                "hash-class",
+                generatedTile);
+            var go = new GameObject("NeoTileGridRenderer class asset test");
+
+            try
+            {
+                var renderer = go.AddComponent<NeoTileGridRenderer>();
+                renderer.AssetDatabase = database;
+                renderer.Render(primitive, new[] { layer });
+
+                var tilemap = go.GetComponentInChildren<Tilemap>();
+                Assert.IsNotNull(tilemap);
+                Assert.AreSame(
+                    generatedTile,
+                    tilemap!.GetTile(new Vector3Int(2, 3, 0)));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(go);
                 UnityEngine.Object.DestroyImmediate(generatedTile);
                 UnityEngine.Object.DestroyImmediate(database);
             }
@@ -881,9 +1034,9 @@ namespace NeoCompose.Tests
             var neighborSprite = CreateTestSprite("subclass-neighbor");
             smartTileValue.Sprite = defaultSprite;
             neighborValue.Sprite = neighborSprite;
-            smartTileValue.SmartTile = SmartTileWithInheritsNeighbor(
+            smartTileValue.SmartTile = SmartTileWithInheritsClassNeighbor(
                 connectedSprite,
-                "base-tile");
+                BaseTileClassId);
 
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
@@ -958,9 +1111,9 @@ namespace NeoCompose.Tests
             var neighborSprite = CreateTestSprite("unrelated-neighbor");
             smartTileValue.Sprite = defaultSprite;
             neighborValue.Sprite = neighborSprite;
-            smartTileValue.SmartTile = SmartTileWithInheritsNeighbor(
+            smartTileValue.SmartTile = SmartTileWithInheritsClassNeighbor(
                 connectedSprite,
-                "base-tile");
+                BaseTileClassId);
 
             var primitive = NeoReadOnlyTileGridPrimitive.Resolve(
                 client,
@@ -1256,13 +1409,17 @@ namespace NeoCompose.Tests
             IReadOnlyList<Sprite> INeoSmartTileRule.Sprites => Sprites;
         }
 
-        private sealed class TestSmartTileNeighbor : INeoSmartTileNeighbor
+        private sealed class TestSmartTileNeighbor
+            : INeoSmartTileNeighbor,
+              INeoSmartTileClassNeighbor
         {
             public Vector2Int Cell { get; set; }
 
             public string Condition { get; set; } = NeoSmartTileOptionIds.ConditionThis;
 
             public string? TileValueId { get; set; }
+
+            public string? TileClassId { get; set; }
         }
 
         private sealed class MutableTestTileLayerRuntime : ReadOnlyNeoTileLayerRuntime
@@ -1315,6 +1472,43 @@ namespace NeoCompose.Tests
             public void ClearTiles()
             {
                 Tiles.Clear();
+            }
+        }
+
+        private sealed class TestAuthoredTileLayer : NeoGeneratedTileLayerValue
+        {
+            public TestAuthoredTileLayer(
+                NeoClient client,
+                NeoMemberClass node,
+                bool isReadOnly = true)
+                : base(client, node, BackgroundLayerClassId, isReadOnly)
+            {
+            }
+
+            public string? Name => node.Get<NeoMemberString>("Name").Text;
+
+            public string? Description =>
+                node.Get<NeoMemberString>("Description").Text;
+
+            public NeoPlacementResult Place<TAsset>(Vector2Int cell)
+                where TAsset : class => TrySetTileClass<TAsset>(cell);
+        }
+
+        private sealed class TestOtherTile : NeoGeneratedClassValue
+        {
+            public TestOtherTile(NeoClient client, NeoMemberClass node)
+                : base(client, node, OtherTileClassId)
+            {
+            }
+        }
+
+        private sealed class RecordingTileSetLifecycle : NeoTileGridLifecycle
+        {
+            public JObject? ExistingInstance { get; private set; }
+
+            public override void BeforeSetTile(NeoTileSetContext context)
+            {
+                ExistingInstance = context.ExistingInstance;
             }
         }
 
@@ -1434,16 +1628,16 @@ namespace NeoCompose.Tests
         {
             public TestTileGridContent(
                 NeoReadOnlyTileGridPrimitive primitive,
-                IReadOnlyList<ReadOnlyNeoTileLayerRuntime> tileLayers)
+                IReadOnlyList<IReadOnlyNeoTileLayerRuntime> tileLayers)
             {
                 Primitive = primitive;
                 TileLayersInOrder = tileLayers;
-                ObjectLayersInOrder = Array.Empty<ReadOnlyNeoObjectLayerRuntime>();
+                ObjectLayersInOrder = Array.Empty<IReadOnlyNeoObjectLayerRuntime>();
             }
 
             public NeoReadOnlyTileGridPrimitive Primitive { get; }
-            public IReadOnlyList<ReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
-            public IReadOnlyList<ReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
+            public IReadOnlyList<IReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
+            public IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
             public NeoTileGridRenderer? Renderer => Primitive.Renderer;
             public IDisposable OnChanged(Action<NeoTileGridChangedArgs> handler) =>
                 Primitive.OnChanged(handler);
@@ -1508,6 +1702,23 @@ namespace NeoCompose.Tests
                 Cell = new Vector2Int(1, 0),
                 Condition = NeoSmartTileOptionIds.ConditionInheritsFromClass,
                 TileValueId = tileValueId,
+            });
+            var smartTile = new TestSmartTile();
+            smartTile.Rules.Add(rule);
+            return smartTile;
+        }
+
+        private static TestSmartTile SmartTileWithInheritsClassNeighbor(
+            Sprite connectedSprite,
+            string tileClassId)
+        {
+            var rule = new TestSmartTileRule();
+            rule.Sprites.Add(connectedSprite);
+            rule.Neighbors.Add(new TestSmartTileNeighbor
+            {
+                Cell = new Vector2Int(1, 0),
+                Condition = NeoSmartTileOptionIds.ConditionInheritsFromClass,
+                TileClassId = tileClassId,
             });
             var smartTile = new TestSmartTile();
             smartTile.Rules.Add(rule);
@@ -1596,6 +1807,180 @@ namespace NeoCompose.Tests
 
         private const string GridClassId = "grid-class";
         private const string ObjectLayerLinkClassId = "object-layer-link-class";
+
+        private static ProjectData BuildClassBackedTileGridProjectData()
+        {
+            var data = BuildTileGridProjectData();
+            data.metadata = new ProjectExportMetadata
+            {
+                schemaVersion = 9,
+                projectId = "project-a",
+                versionId = "version-relations",
+            };
+            data.classes[BackgroundLayerClassId] = new NeoSchemaClass
+            {
+                id = BackgroundLayerClassId,
+                projectId = "project-a",
+                name = "Background Tile Layer",
+                schema = new Dictionary<string, string>
+                {
+                    ["Name"] = "background-layer-name-member",
+                    ["Description"] = "background-layer-description-member",
+                },
+            };
+            data.members["background-layer-name-member"] = new StringMember
+            {
+                id = "background-layer-name-member",
+                projectId = "project-a",
+                name = "Name",
+                kind = MemberKind.String,
+                localizable = false,
+                defaultValue = new StringMemberValueBase
+                {
+                    value = "Default Background",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.members["background-layer-description-member"] = new StringMember
+            {
+                id = "background-layer-description-member",
+                projectId = "project-a",
+                name = "Description",
+                kind = MemberKind.String,
+                localizable = false,
+                defaultValue = new StringMemberValueBase
+                {
+                    value = "Default layer description",
+                },
+                createdAt = "x",
+                updatedAt = "x",
+            };
+            data.internalRecordRelations = new Dictionary<string, InternalRecordRelation>
+            {
+                ["relation-grid-layer"] = Relation(
+                    "relation-grid-layer",
+                    InternalRecordRelationKinds.WorldGridTileLayer,
+                    GridClassId,
+                    BackgroundLayerClassId,
+                    "a0"),
+                ["relation-grid-import"] = Relation(
+                    "relation-grid-import",
+                    InternalRecordRelationKinds.WorldGridTileImport,
+                    GridClassId,
+                    TileClassId),
+                ["relation-tile-compatible"] = Relation(
+                    "relation-tile-compatible",
+                    InternalRecordRelationKinds.WorldTileCompatibleLayer,
+                    TileClassId,
+                    BackgroundLayerClassId),
+                ["relation-link-target"] = Relation(
+                    "relation-link-target",
+                    InternalRecordRelationKinds.WorldTileLayerLinkTarget,
+                    TileLayerLinkClassId,
+                    BackgroundLayerClassId),
+            };
+
+            var backgroundLink = (ObjectMemberValue)data.values["background-link"];
+            backgroundLink.value!["layerClassId"] = BackgroundLayerClassId;
+            backgroundLink.value["layerOverrideValueId"] = "background-layer-override";
+            backgroundLink.value.Remove("TileLayer");
+            data.values["background-layer-override"] = new ObjectMemberValue
+            {
+                id = "background-layer-override",
+                classId = BackgroundLayerClassId,
+                containerId = "background-link",
+                value = new Dictionary<string, string>
+                {
+                    ["Name"] = "background-layer-override-name",
+                },
+            };
+            data.values["background-layer-override-name"] = new StringMemberValue
+            {
+                id = "background-layer-override-name",
+                value = "Override Background",
+            };
+            ((ArrayMemberValue)data.values["background-link-tiles"]).value =
+                new[] { "class-backed-placement" };
+            data.values["class-backed-placement"] = new ObjectMemberValue
+            {
+                id = "class-backed-placement",
+                classId = TileInstanceClassId,
+                containerId = "background-link-tiles",
+                value = new Dictionary<string, string>
+                {
+                    ["Cell"] = "class-backed-placement-cell",
+                    ["assetClassId"] = TileClassId,
+                },
+            };
+            data.values["class-backed-placement-cell"] = new Vector2MemberValue
+            {
+                id = "class-backed-placement-cell",
+                value = new NeoVector2Value { x = 2, y = 3 },
+            };
+            return data;
+        }
+
+        private static InternalRecordRelation Relation(
+            string id,
+            string kind,
+            string sourceClassId,
+            string targetClassId,
+            string? orderKey = null)
+        {
+            return new InternalRecordRelation
+            {
+                id = id,
+                projectId = "project-a",
+                relationKind = kind,
+                sourceRecordKind = "class",
+                sourceRecordId = sourceClassId,
+                targetRecordKind = "class",
+                targetRecordId = targetClassId,
+                orderKey = orderKey,
+                createdAt = "2026-01-01T00:00:00.000Z",
+                updatedAt = "2026-01-01T00:00:00.000Z",
+            };
+        }
+
+        private static Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            BuildClassBackedReadOnlyFactories()
+        {
+            return new Dictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            {
+                [TileClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestTile(resolvedClient, node)),
+                [OtherTileClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestOtherTile(resolvedClient, node)),
+                [BackgroundLayerClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestAuthoredTileLayer(resolvedClient, node)),
+            };
+        }
+
+        private static Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+            BuildClassBackedWritableFactories()
+        {
+            return new Dictionary<string, NeoGeneratedTypesSupport.WritableClassFactory>
+            {
+                [BackgroundLayerClassId] = (resolvedClient, node) =>
+                    NeoGeneratedTypesSupport.GetOrCreateGeneratedClassValue(
+                        resolvedClient,
+                        node,
+                        () => new TestAuthoredTileLayer(
+                            resolvedClient,
+                            node,
+                            isReadOnly: false)),
+            };
+        }
 
         /// <summary>
         /// Values-native world fixture: the grid value's "Children" ordered

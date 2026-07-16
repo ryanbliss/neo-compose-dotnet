@@ -62,7 +62,7 @@ namespace NeoCompose.Runtime
         public NeoObjectInstanceId InstanceId { get; private set; }
 
         /// <summary>The object layer the instance belongs to.</summary>
-        public ReadOnlyNeoObjectLayerRuntime Layer { get; private set; } = null!;
+        public IReadOnlyNeoObjectLayerRuntime Layer { get; private set; } = null!;
 
         /// <summary>The renderer that spawned this GameObject.</summary>
         public NeoTileGridRenderer Renderer { get; private set; } = null!;
@@ -86,7 +86,7 @@ namespace NeoCompose.Runtime
 
         internal void Initialize(
             NeoTileGridRenderer renderer,
-            ReadOnlyNeoObjectLayerRuntime layer,
+            IReadOnlyNeoObjectLayerRuntime layer,
             NeoResolvedObjectInstance instance)
         {
             if (isInitialized)

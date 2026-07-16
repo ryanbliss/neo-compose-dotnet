@@ -1217,6 +1217,61 @@ namespace NeoCompose.Tests
             }
         }
 
+        [Test]
+        public void PostSynchronizeProcessor_IndexesClassBackedTileAssets()
+        {
+            var projectData = new ProjectData
+            {
+                values = new Dictionary<string, MemberValue>
+                {
+                    ["class-default-placement"] = ClassBackedPlacement(
+                        "tile-class",
+                        null,
+                        "Cell"),
+                    ["overridden-placement"] = ClassBackedPlacement(
+                        "tile-class",
+                        "tile-override-value",
+                        "Cell"),
+                    ["object-placement"] = ClassBackedPlacement(
+                        "object-class",
+                        null,
+                        "Position"),
+                },
+                classes = new Dictionary<string, NeoSchemaClass>(),
+            };
+
+            CollectionAssert.AreEqual(
+                new[] { "tile-class" },
+                NeoComposePostSynchronizeProcessor
+                    .EnumerateReferencedTileClassIds(projectData)
+                    .ToArray());
+            CollectionAssert.AreEqual(
+                new[] { "tile-override-value" },
+                NeoComposePostSynchronizeProcessor
+                    .EnumerateReferencedTileValueIds(projectData)
+                    .ToArray());
+        }
+
+        private static ObjectMemberValue ClassBackedPlacement(
+            string assetClassId,
+            string? assetValueId,
+            string positionKey)
+        {
+            var value = new Dictionary<string, string>
+            {
+                ["assetClassId"] = assetClassId,
+                [positionKey] = "position-value",
+            };
+            if (assetValueId != null) value["assetValueId"] = assetValueId;
+            return new ObjectMemberValue
+            {
+                id = $"placement-{assetClassId}-{assetValueId ?? "default"}",
+                classId = "placement-class",
+                containerId = "layer-items",
+                value = value,
+            };
+        }
+
         private sealed class TestPayloadProvider : INeoValuePayloadProvider
         {
             private readonly NeoValuePayload payload;

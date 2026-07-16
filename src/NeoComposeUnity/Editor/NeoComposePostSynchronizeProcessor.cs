@@ -141,11 +141,15 @@ namespace NeoCompose.Unity.Editor
                     "ResolveDialogueValue");
 
             var synchronized = new HashSet<string>();
+            var readOnlyFactories = GetGeneratedReadOnlyFactories(generatedProjectType);
+            var client = GetGeneratedClient(generatedProjectType, project);
             SynchronizeGeneratedTileAssets(
                 projectData,
                 assetDatabasePath,
                 project,
-                resolveMethod);
+                resolveMethod,
+                client,
+                readOnlyFactories);
 
             foreach (string valueId in EnumerateProjectValueIds(projectData))
             {
@@ -170,7 +174,10 @@ namespace NeoCompose.Unity.Editor
             ProjectData projectData,
             string assetDatabasePath,
             IDisposable project,
-            MethodInfo resolveMethod)
+            MethodInfo resolveMethod,
+            NeoClient client,
+            IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+                readOnlyFactories)
         {
             if (string.IsNullOrWhiteSpace(assetDatabasePath)) return;
             var assetDatabase = AssetDatabase.LoadAssetAtPath<NeoAssetDatabase>(assetDatabasePath);
@@ -209,6 +216,42 @@ namespace NeoCompose.Unity.Editor
                     persistedTile);
             }
 
+            var tileClassIds = new HashSet<string>(
+                EnumerateReferencedTileClassIds(projectData));
+            foreach (var stale in assetDatabase.FindMissingTileClassAssets(tileClassIds))
+            {
+                DeleteGeneratedTileAsset(stale.AssetPath);
+                assetDatabase.RemoveTileClassAsset(stale.TileClassId);
+            }
+
+            foreach (string tileClassId in tileClassIds.OrderBy(id => id, StringComparer.Ordinal))
+            {
+                NeoGeneratedClassValue classValue =
+                    NeoGeneratedTypesSupport.CreateReadOnlyClassDefault(
+                        client,
+                        tileClassId,
+                        readOnlyFactories);
+                var generatedTile = NeoTileAssetFactory.CreateTransientTileBase(classValue);
+                if (generatedTile == null) continue;
+
+                string assetPath = GeneratedTileAssetPath(tileClassId, generatedTile);
+                var existingEntry = assetDatabase.TryGetTileEntryForClass(tileClassId);
+                if (existingEntry != null
+                    && !string.IsNullOrWhiteSpace(existingEntry.AssetPath)
+                    && existingEntry.AssetPath != assetPath)
+                {
+                    DeleteGeneratedTileAsset(existingEntry.AssetPath);
+                }
+                DeleteAlternateGeneratedTileAsset(tileClassId, assetPath);
+
+                TileBase persistedTile = PersistGeneratedTileAsset(assetPath, generatedTile);
+                assetDatabase.SetTileClassAsset(
+                    tileClassId,
+                    assetPath,
+                    GeneratedTileClassContentHash(projectData, tileClassId, classValue),
+                    persistedTile);
+            }
+
             EditorUtility.SetDirty(assetDatabase);
             AssetDatabase.SaveAssets();
         }
@@ -219,7 +262,7 @@ namespace NeoCompose.Unity.Editor
         /// a "Tile" single-select Lookup — the values-native shape that
         /// replaced the derived tileGridContents regions.
         /// </summary>
-        private static IEnumerable<string> EnumerateReferencedTileValueIds(ProjectData projectData)
+        internal static IEnumerable<string> EnumerateReferencedTileValueIds(ProjectData projectData)
         {
             var seen = new HashSet<string>();
             foreach (var row in projectData.values.Values)
@@ -228,6 +271,18 @@ namespace NeoCompose.Unity.Editor
                 if (string.IsNullOrEmpty(placement.containerId)) continue;
                 if (string.IsNullOrEmpty(placement.classId)) continue;
                 if (placement.value == null) continue;
+                if (IsClassBackedTilePlacement(placement.value))
+                {
+                    string? assetValueId = ReadDirectReference(
+                        placement.value,
+                        "assetValueId");
+                    if (!string.IsNullOrWhiteSpace(assetValueId)
+                        && seen.Add(assetValueId!))
+                    {
+                        yield return assetValueId!;
+                    }
+                    continue;
+                }
                 string? tileKey = FindTileSchemaKey(projectData, placement.classId!);
                 if (tileKey == null) continue;
                 if (!placement.value.TryGetValue(tileKey, out string tileLookupId)) continue;
@@ -239,6 +294,53 @@ namespace NeoCompose.Unity.Editor
                     if (seen.Add(tileValueId)) yield return tileValueId;
                 }
             }
+        }
+
+        internal static IEnumerable<string> EnumerateReferencedTileClassIds(
+            ProjectData projectData)
+        {
+            var seen = new HashSet<string>();
+            foreach (var row in projectData.values.Values)
+            {
+                if (row is not ObjectMemberValue placement) continue;
+                if (string.IsNullOrEmpty(placement.containerId)) continue;
+                if (placement.value == null || !IsClassBackedTilePlacement(placement.value))
+                {
+                    continue;
+                }
+                if (!string.IsNullOrWhiteSpace(
+                    ReadDirectReference(placement.value, "assetValueId")))
+                {
+                    continue;
+                }
+                string? classId = ReadDirectReference(placement.value, "assetClassId");
+                if (!string.IsNullOrWhiteSpace(classId) && seen.Add(classId!))
+                {
+                    yield return classId!;
+                }
+            }
+        }
+
+        private static bool IsClassBackedTilePlacement(
+            IReadOnlyDictionary<string, string> value)
+        {
+            return ReadDirectReference(value, "assetClassId") != null
+                && ReadDirectReference(value, "Cell") != null;
+        }
+
+        private static string? ReadDirectReference(
+            IReadOnlyDictionary<string, string> value,
+            string key)
+        {
+            foreach (var pair in value)
+            {
+                if (!string.Equals(pair.Key, key, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                return string.IsNullOrWhiteSpace(pair.Value) ? null : pair.Value;
+            }
+            return null;
         }
 
         private static readonly string[] TileSchemaKeyCandidates = { "Tile", "tileValue", "tileValueId" };
@@ -351,6 +453,48 @@ namespace NeoCompose.Unity.Editor
                 ? "rule"
                 : "tile";
             return $"{classValue.classId ?? ""}:{updatedAt}:{tileKind}";
+        }
+
+        private static string GeneratedTileClassContentHash(
+            ProjectData projectData,
+            string tileClassId,
+            NeoGeneratedClassValue classValue)
+        {
+            string updatedAt = projectData.classes.TryGetValue(tileClassId, out var row)
+                ? row.updatedAt.ToString()
+                : "";
+            string tileKind = NeoTileAssetFactory.TryResolveSmartTile(classValue, out _)
+                ? "rule"
+                : "tile";
+            return $"{tileClassId}:{updatedAt}:{tileKind}";
+        }
+
+        private static NeoClient GetGeneratedClient(
+            Type generatedProjectType,
+            IDisposable project)
+        {
+            PropertyInfo property = generatedProjectType.GetProperty(
+                    "Client",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                ?? throw new MissingMemberException(generatedProjectType.FullName, "Client");
+            return property.GetValue(project) as NeoClient
+                ?? throw new InvalidOperationException(
+                    $"Generated project '{generatedProjectType.FullName}' did not expose a NeoClient.");
+        }
+
+        private static IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+            GetGeneratedReadOnlyFactories(Type generatedProjectType)
+        {
+            PropertyInfo property = generatedProjectType.GetProperty(
+                    "NeoReadOnlyValueFactories",
+                    BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
+                ?? throw new MissingMemberException(
+                    generatedProjectType.FullName,
+                    "NeoReadOnlyValueFactories");
+            return property.GetValue(null)
+                    as IReadOnlyDictionary<string, NeoGeneratedTypesSupport.ReadOnlyClassFactory>
+                ?? throw new InvalidOperationException(
+                    $"Generated project '{generatedProjectType.FullName}' exposed an invalid NeoReadOnlyValueFactories map.");
         }
 
         private static string SanitizeAssetFileName(string value)

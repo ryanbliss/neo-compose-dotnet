@@ -17,17 +17,44 @@ namespace NeoCompose.Runtime
         private bool isDisposed;
         private readonly List<IDisposable> subscriptions = new();
         private NeoMemberClassWritable? writableNodeCache;
+        private bool isClassDefaultReference;
         protected object? FunctionHandlerObject { get; set; }
         protected NeoValueOwnership InheritedStorageOwnership { get; private set; }
         protected NeoMemberClassWritable writableNode =>
             writableNodeCache ??= NeoGeneratedTypesSupport.AsWritable(node, InheritedStorageOwnership);
 
-        public string? valueId => node.overrideValueId ?? node.value?.id;
+        /// <summary>
+        /// Resolves an exact internal-record relation declared from this
+        /// wrapper's backing record. Unlike <see cref="valueId"/>, the source
+        /// identity remains available to generated class-default wrappers.
+        /// </summary>
+        protected string? ResolveExactInternalRecordRelationTarget(
+            string relationKind,
+            string sourceRecordKind,
+            string targetRecordKind)
+        {
+            string? sourceRecordId = node.overrideValueId ?? node.value?.id;
+            if (string.IsNullOrWhiteSpace(sourceRecordId)) return null;
+            return client.InternalRecordRelations.ResolveExactTargetId(
+                relationKind,
+                sourceRecordKind,
+                sourceRecordId!,
+                targetRecordKind);
+        }
+
+        public string? valueId => isClassDefaultReference
+            ? null
+            : node.overrideValueId ?? node.value?.id;
         public string? classId => node.value?.classId ?? fallbackClassId;
         public bool IsReadOnly { get; }
         internal NeoClient Client => client;
         internal NeoValueOwnership ValueOwnership => node.ownership;
         internal NeoRenderBindingStore RenderBindings { get; } = new();
+
+        internal void MarkClassDefaultReference()
+        {
+            isClassDefaultReference = true;
+        }
 
         protected NeoGeneratedClassValue(
             NeoClient client,

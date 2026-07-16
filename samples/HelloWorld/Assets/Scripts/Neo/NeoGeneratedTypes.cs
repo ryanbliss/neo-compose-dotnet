@@ -11997,8 +11997,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             Background = background;
             Collisions = collisions;
             Objects = objects;
-            TileLayersInOrder = new ReadOnlyNeoTileLayerRuntime[] { Background, Collisions };
-            ObjectLayersInOrder = new ReadOnlyNeoObjectLayerRuntime[] { Objects };
+            TileLayersInOrder = new IReadOnlyNeoTileLayerRuntime[] { Background, Collisions };
+            ObjectLayersInOrder = new IReadOnlyNeoObjectLayerRuntime[] { Objects };
         }
 
         private ReadOnlyOldConsoleLandingGridContent(NeoReadOnlyTileGridPrimitive primitive)
@@ -12024,8 +12024,8 @@ namespace HelloWorld.Assets.Scripts.Neo
             return Primitive.OnChanged(handler);
         }
 
-        public IReadOnlyList<ReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
-        public IReadOnlyList<ReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
+        public IReadOnlyList<IReadOnlyNeoTileLayerRuntime> TileLayersInOrder { get; }
+        public IReadOnlyList<IReadOnlyNeoObjectLayerRuntime> ObjectLayersInOrder { get; }
     }
 
     public partial class OldConsoleLandingGridContent : ReadOnlyOldConsoleLandingGridContent, INeoWritableTileGridContent

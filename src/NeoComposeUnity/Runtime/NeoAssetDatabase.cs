@@ -39,7 +39,8 @@ namespace NeoCompose.Runtime
         public IReadOnlyList<NeoAssetDatabaseEntry> Files => files;
 
         /// <summary>
-        /// Read-only generated Tile/RuleTile assets keyed by Neo tile value id.
+        /// Read-only generated Tile/RuleTile assets keyed by either a Neo tile
+        /// value id or, for class-default assets, a tile class id.
         /// </summary>
         public IReadOnlyList<NeoAssetDatabaseTileEntry> TileAssets => tileAssets;
 
@@ -85,6 +86,15 @@ namespace NeoCompose.Runtime
         public TileBase? TryGetTileBase(string tileValueId)
         {
             return TryGetTileEntry(tileValueId)?.TileBase;
+        }
+
+        /// <summary>
+        /// Resolves an editor-generated Tile or RuleTile for a class-backed
+        /// default placement.
+        /// </summary>
+        public TileBase? TryGetTileBaseForClass(string tileClassId)
+        {
+            return TryGetTileEntryForClass(tileClassId)?.TileBase;
         }
 
         /// <summary>
@@ -175,6 +185,20 @@ namespace NeoCompose.Runtime
             return null;
         }
 
+        public NeoAssetDatabaseTileEntry? TryGetTileEntryForClass(string tileClassId)
+        {
+            if (string.IsNullOrWhiteSpace(tileClassId)) return null;
+            foreach (var entry in tileAssets)
+            {
+                if (entry.TileClassId == tileClassId
+                    && string.IsNullOrEmpty(entry.TileValueId))
+                {
+                    return entry;
+                }
+            }
+            return null;
+        }
+
         /// <summary>
         /// Upserts a file mapping after the editor has downloaded and
         /// imported the matching Unity asset.
@@ -262,6 +286,35 @@ namespace NeoCompose.Runtime
             entry.TileBase = tileBase;
         }
 
+        public void SetTileClassAsset(
+            string tileClassId,
+            string assetPath,
+            string contentHash,
+            TileBase tileBase)
+        {
+            if (string.IsNullOrWhiteSpace(tileClassId))
+            {
+                throw new ArgumentException("Tile class id cannot be empty.", nameof(tileClassId));
+            }
+            if (string.IsNullOrWhiteSpace(assetPath))
+            {
+                throw new ArgumentException("Asset path cannot be empty.", nameof(assetPath));
+            }
+            if (tileBase == null) throw new ArgumentNullException(nameof(tileBase));
+
+            var entry = TryGetTileEntryForClass(tileClassId);
+            if (entry == null)
+            {
+                entry = new NeoAssetDatabaseTileEntry();
+                tileAssets.Add(entry);
+            }
+            entry.TileValueId = "";
+            entry.TileClassId = tileClassId;
+            entry.AssetPath = assetPath;
+            entry.ContentHash = contentHash;
+            entry.TileBase = tileBase;
+        }
+
         /// <summary>
         /// Returns stale file mappings whose ids are no longer present in the
         /// latest Neo Compose export.
@@ -286,9 +339,21 @@ namespace NeoCompose.Runtime
             var missing = new List<NeoAssetDatabaseTileEntry>();
             foreach (var entry in tileAssets)
             {
+                if (string.IsNullOrEmpty(entry.TileValueId)) continue;
                 if (!tileValueIds.Contains(entry.TileValueId)) missing.Add(entry);
             }
 
+            return missing.ToArray();
+        }
+
+        public NeoAssetDatabaseTileEntry[] FindMissingTileClassAssets(ISet<string> tileClassIds)
+        {
+            var missing = new List<NeoAssetDatabaseTileEntry>();
+            foreach (var entry in tileAssets)
+            {
+                if (!string.IsNullOrEmpty(entry.TileValueId)) continue;
+                if (!tileClassIds.Contains(entry.TileClassId)) missing.Add(entry);
+            }
             return missing.ToArray();
         }
 
@@ -306,6 +371,13 @@ namespace NeoCompose.Runtime
         public void RemoveTileAsset(string tileValueId)
         {
             tileAssets.RemoveAll(entry => entry.TileValueId == tileValueId);
+        }
+
+        public void RemoveTileClassAsset(string tileClassId)
+        {
+            tileAssets.RemoveAll(entry =>
+                string.IsNullOrEmpty(entry.TileValueId)
+                && entry.TileClassId == tileClassId);
         }
     }
 

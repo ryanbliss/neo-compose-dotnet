@@ -27,6 +27,41 @@ namespace NeoCompose.Runtime.Json
     }
 
     /// <summary>
+    /// One declared, independently versioned project-record relation. The
+    /// runtime resolves source inheritance and target class expansion from
+    /// this declared graph plus <see cref="NeoSchemaClass.extendsClassId"/>;
+    /// exports never duplicate inherited effective edges.
+    /// </summary>
+    public sealed class InternalRecordRelation
+    {
+        public string id = null!;
+        public string projectId = null!;
+        public string relationKind = null!;
+        public string sourceRecordKind = null!;
+        public string sourceRecordId = null!;
+        public string targetRecordKind = null!;
+        public string targetRecordId = null!;
+        public string? orderKey;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
+    }
+
+    public static class InternalRecordRelationKinds
+    {
+        public const string WorldGridTileImport = "world.grid.tile-import";
+        public const string WorldGridObjectImport = "world.grid.object-import";
+        public const string WorldGridTileLayer = "world.grid.tile-layer";
+        public const string WorldGridObjectLayer = "world.grid.object-layer";
+        public const string WorldTileCompatibleLayer = "world.tile.compatible-layer";
+        public const string WorldTileDefaultLayer = "world.tile.default-layer";
+        public const string WorldObjectCompatibleLayer = "world.object.compatible-layer";
+        public const string WorldObjectDefaultLayer = "world.object.default-layer";
+        public const string WorldTileLayerLinkTarget = "world.tile-layer-link.target";
+        public const string WorldObjectLayerLinkTarget = "world.object-layer-link.target";
+        public const string WorldSmartTileNeighborTile = "world.smart-tile-neighbor.tile";
+    }
+
+    /// <summary>
     /// Top-level deserialization target — pass to
     /// <c>JsonConvert.DeserializeObject&lt;ProjectExport&gt;(json)</c>.
     /// Mirrors the TS-side <c>IProjectUnityExport</c> wrapper:
@@ -72,6 +107,12 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public Dictionary<string, JToken>? valuePartitions;
         public Dictionary<string, NeoSchemaClass> classes = null!;
+        /// <summary>
+        /// Declared relation rows keyed by stable relation id. Required by
+        /// export schema 9; absent on the explicitly supported schema-8
+        /// compatibility boundary.
+        /// </summary>
+        public Dictionary<string, InternalRecordRelation>? internalRecordRelations;
         public Dictionary<string, Interface> interfaces = new();
         public Dictionary<string, Enum> enums = null!;
         public Dictionary<string, ProjectFile> files = new();

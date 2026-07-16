@@ -65,6 +65,7 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<Sprite, Tile> spriteTiles = new();
         private readonly Dictionary<NeoGeneratedClassValue, TileBase> generatedTileBases = new();
         private readonly Dictionary<string, TileBase> tileBasesByValueId = new();
+        private readonly Dictionary<string, TileBase> tileBasesByClassId = new();
         private readonly Dictionary<TileBase, NeoGeneratedClassValue> valuesByTileBase = new();
         private readonly Dictionary<string, Tilemap> tilemapsByLayerId = new();
         private readonly Dictionary<string, Dictionary<Vector2Int, TileBase>> renderedTilesByLayerId = new();
@@ -72,8 +73,8 @@ namespace NeoCompose.Runtime
         private readonly Dictionary<string, Dictionary<Vector2Int, string>> renderedTileSourceIdsByLayerId = new();
         private readonly Dictionary<NeoTileSourceProjectionKey, Dictionary<Vector2Int, NeoResolvedTileInstance>>
             sourceLinkTilesByLayerAndSource = new();
-        private readonly Dictionary<string, ReadOnlyNeoTileLayerRuntime> tileLayersByLayerId = new();
-        private readonly Dictionary<string, ReadOnlyNeoObjectLayerRuntime> objectLayersByLayerId = new();
+        private readonly Dictionary<string, IReadOnlyNeoTileLayerRuntime> tileLayersByLayerId = new();
+        private readonly Dictionary<string, IReadOnlyNeoObjectLayerRuntime> objectLayersByLayerId = new();
         private readonly Dictionary<string, GameObject> objectLayerRootsByLayerId = new();
         private readonly Dictionary<NeoObjectInstanceId, GameObject> objectRootsByInstanceId = new();
         private readonly Dictionary<NeoObjectInstanceId, IDisposable>
@@ -232,8 +233,8 @@ namespace NeoCompose.Runtime
 
         public void Render(
             NeoReadOnlyTileGridPrimitive primitive,
-            IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
-            IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null)
+            IEnumerable<IReadOnlyNeoTileLayerRuntime> tileLayers,
+            IEnumerable<IReadOnlyNeoObjectLayerRuntime>? objectLayers = null)
         {
             CancelInFlightRender();
             StopLiveSync();
@@ -243,8 +244,8 @@ namespace NeoCompose.Runtime
 
         private void RenderOneShot(
             NeoReadOnlyTileGridPrimitive primitive,
-            IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
-            IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null)
+            IEnumerable<IReadOnlyNeoTileLayerRuntime> tileLayers,
+            IEnumerable<IReadOnlyNeoObjectLayerRuntime>? objectLayers = null)
         {
             if (primitive == null) throw new ArgumentNullException(nameof(primitive));
             if (tileLayers == null) throw new ArgumentNullException(nameof(tileLayers));
@@ -269,7 +270,7 @@ namespace NeoCompose.Runtime
                 var positions = new List<Vector3Int>();
                 var tiles = new List<TileBase>();
                 var renderedTiles = new Dictionary<Vector2Int, TileBase>();
-                var snapshot = layer.GetRenderSnapshot();
+                var snapshot = NeoWorldLayerRuntimeSupport.GetRenderSnapshot(layer);
                 CacheTileLayerSnapshot(layer.LayerId, snapshot);
                 foreach (var tile in snapshot.Winners)
                 {
@@ -320,8 +321,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         public async Awaitable RenderAsync(
             NeoReadOnlyTileGridPrimitive primitive,
-            IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
-            IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers = null,
+            IEnumerable<IReadOnlyNeoTileLayerRuntime> tileLayers,
+            IEnumerable<IReadOnlyNeoObjectLayerRuntime>? objectLayers = null,
             NeoTileGridRenderOptions? options = null)
         {
             options ??= new NeoTileGridRenderOptions();
@@ -369,8 +370,8 @@ namespace NeoCompose.Runtime
 
         private async Awaitable RenderOneShotAsync(
             NeoReadOnlyTileGridPrimitive primitive,
-            IEnumerable<ReadOnlyNeoTileLayerRuntime> tileLayers,
-            IEnumerable<ReadOnlyNeoObjectLayerRuntime>? objectLayers,
+            IEnumerable<IReadOnlyNeoTileLayerRuntime> tileLayers,
+            IEnumerable<IReadOnlyNeoObjectLayerRuntime>? objectLayers,
             NeoTileGridRenderOptions options,
             CancellationToken token)
         {
@@ -405,7 +406,7 @@ namespace NeoCompose.Runtime
                 var positions = new List<Vector3Int>(options.NormalizedMaxTilesPerFrame);
                 var tiles = new List<TileBase>(options.NormalizedMaxTilesPerFrame);
                 var renderedTiles = new Dictionary<Vector2Int, TileBase>();
-                var snapshot = layer.GetRenderSnapshot();
+                var snapshot = NeoWorldLayerRuntimeSupport.GetRenderSnapshot(layer);
                 CacheTileLayerSnapshot(layer.LayerId, snapshot);
                 foreach (var tile in snapshot.Winners)
                 {
@@ -480,6 +481,7 @@ namespace NeoCompose.Runtime
             spriteTiles.Clear();
             generatedTileBases.Clear();
             tileBasesByValueId.Clear();
+            tileBasesByClassId.Clear();
             valuesByTileBase.Clear();
         }
 
@@ -546,7 +548,7 @@ namespace NeoCompose.Runtime
         }
 
         private bool ShouldRenderObjectInstance(
-            ReadOnlyNeoObjectLayerRuntime layer,
+            IReadOnlyNeoObjectLayerRuntime layer,
             NeoResolvedObjectInstance instance)
         {
             var lifecycle = Lifecycle;
@@ -605,7 +607,7 @@ namespace NeoCompose.Runtime
         }
 
         private void ApplyTileLayerDelta(
-            ReadOnlyNeoTileLayerRuntime layer,
+            IReadOnlyNeoTileLayerRuntime layer,
             NeoTileLayerChangedArgs change)
         {
             if (!tilemapsByLayerId.TryGetValue(layer.LayerId, out var tilemap) ||
@@ -701,7 +703,7 @@ namespace NeoCompose.Runtime
         }
 
         private void SetResolvedTileAt(
-            ReadOnlyNeoTileLayerRuntime layer,
+            IReadOnlyNeoTileLayerRuntime layer,
             Tilemap tilemap,
             Dictionary<Vector2Int, TileBase> renderedTiles,
             Vector2Int cell)
@@ -762,7 +764,7 @@ namespace NeoCompose.Runtime
         }
 
         private void ApplyObjectLayerDelta(
-            ReadOnlyNeoObjectLayerRuntime layer,
+            IReadOnlyNeoObjectLayerRuntime layer,
             NeoObjectLayerChangedArgs change)
         {
             if (!objectLayerRootsByLayerId.TryGetValue(layer.LayerId, out var root) ||
@@ -1025,7 +1027,7 @@ namespace NeoCompose.Runtime
 
         private Tilemap CreateTilemap(
             Transform parent,
-            ReadOnlyNeoTileLayerRuntime layer,
+            IReadOnlyNeoTileLayerRuntime layer,
             int sortingOrder)
         {
             var go = new GameObject($"Tile Layer - {layer.DisplayName}");
@@ -1039,7 +1041,7 @@ namespace NeoCompose.Runtime
 
         private GameObject CreateObjectLayerRoot(
             Transform parent,
-            ReadOnlyNeoObjectLayerRuntime layer)
+            IReadOnlyNeoObjectLayerRuntime layer)
         {
             var go = new GameObject($"Object Layer - {layer.DisplayName}");
             go.transform.SetParent(parent, false);
@@ -1049,7 +1051,7 @@ namespace NeoCompose.Runtime
 
         private GameObject SpawnObject(
             Transform parent,
-            ReadOnlyNeoObjectLayerRuntime layer,
+            IReadOnlyNeoObjectLayerRuntime layer,
             NeoResolvedObjectInstance instance,
             int layerFallbackSortingOrder)
         {
@@ -1064,7 +1066,7 @@ namespace NeoCompose.Runtime
 
         private GameObject BuildObjectRoot(
             Transform parent,
-            ReadOnlyNeoObjectLayerRuntime layer,
+            IReadOnlyNeoObjectLayerRuntime layer,
             NeoResolvedObjectInstance instance,
             int layerFallbackSortingOrder)
         {
@@ -1114,7 +1116,7 @@ namespace NeoCompose.Runtime
 
         private int RenderObjectComposition(
             Transform parent,
-            ReadOnlyNeoObjectLayerRuntime layer,
+            IReadOnlyNeoObjectLayerRuntime layer,
             NeoGeneratedClassValue value,
             int baseSortingOrder,
             HashSet<string> visitedValueIds,
@@ -1152,7 +1154,7 @@ namespace NeoCompose.Runtime
 
         private int RenderObjectChild(
             Transform parent,
-            ReadOnlyNeoObjectLayerRuntime layer,
+            IReadOnlyNeoObjectLayerRuntime layer,
             object child,
             int baseSortingOrder,
             int orderOffset,
@@ -1221,7 +1223,7 @@ namespace NeoCompose.Runtime
 
         private int RenderTileLayerLinkChild(
             Transform parent,
-            ReadOnlyNeoObjectLayerRuntime layer,
+            IReadOnlyNeoObjectLayerRuntime layer,
             object link,
             Vector3 linkOffset,
             int baseSortingOrder)
@@ -1256,7 +1258,7 @@ namespace NeoCompose.Runtime
 
         private void RenderSpriteChild(
             Transform parent,
-            ReadOnlyNeoObjectLayerRuntime layer,
+            IReadOnlyNeoObjectLayerRuntime layer,
             object source,
             Sprite sprite,
             Vector3 localPosition,
@@ -1369,9 +1371,31 @@ namespace NeoCompose.Runtime
                 return valueTile;
             }
 
+            string? classId = value.classId;
+            if (string.IsNullOrEmpty(valueId)
+                && !string.IsNullOrEmpty(classId)
+                && tileBasesByClassId.TryGetValue(classId!, out var classTile))
+            {
+                generatedTileBases[value] = classTile;
+                valuesByTileBase[classTile] = value;
+                return classTile;
+            }
+
             if (!string.IsNullOrEmpty(valueId))
             {
                 var databaseTile = assetDatabase?.TryGetTileBase(valueId!);
+                if (databaseTile != null)
+                {
+                    NeoTileAssetFactory.ConfigureRuntimeTileBase(
+                        databaseTile,
+                        SmartTileMatcher);
+                    RegisterTileBase(value, databaseTile);
+                    return databaseTile;
+                }
+            }
+            else if (!string.IsNullOrEmpty(classId))
+            {
+                var databaseTile = assetDatabase?.TryGetTileBaseForClass(classId!);
                 if (databaseTile != null)
                 {
                     NeoTileAssetFactory.ConfigureRuntimeTileBase(
@@ -1405,6 +1429,10 @@ namespace NeoCompose.Runtime
             if (!string.IsNullOrEmpty(valueId))
             {
                 tileBasesByValueId[valueId!] = tileBase;
+            }
+            else if (!string.IsNullOrEmpty(value.classId))
+            {
+                tileBasesByClassId[value.classId!] = tileBase;
             }
             valuesByTileBase[tileBase] = value;
         }
@@ -1652,9 +1680,18 @@ namespace NeoCompose.Runtime
             NeoRuleTileNeighbor neighbor,
             TileBase? other)
         {
-            return other != null
-                && !string.IsNullOrEmpty(neighbor.TileValueId)
-                && TryGetGeneratedValueForTileBase(other, out var value)
+            if (other == null || !TryGetGeneratedValueForTileBase(other, out var value))
+            {
+                return false;
+            }
+            if (!string.IsNullOrEmpty(neighbor.TileClassId))
+            {
+                return string.Equals(
+                    value.classId,
+                    neighbor.TileClassId,
+                    StringComparison.Ordinal);
+            }
+            return !string.IsNullOrEmpty(neighbor.TileValueId)
                 && string.Equals(value.valueId, neighbor.TileValueId, StringComparison.Ordinal);
         }
 
@@ -1663,11 +1700,15 @@ namespace NeoCompose.Runtime
             TileBase? other)
         {
             if (other == null) return false;
-            if (string.IsNullOrEmpty(neighbor.TileValueId)) return false;
             if (!TryGetGeneratedValueForTileBase(other, out var otherValue))
             {
                 return false;
             }
+            if (!string.IsNullOrEmpty(neighbor.TileClassId))
+            {
+                return IsClassOrSubclass(otherValue, neighbor.TileClassId!);
+            }
+            if (string.IsNullOrEmpty(neighbor.TileValueId)) return false;
             var referencedTile = ResolveTileValueById(neighbor.TileValueId!);
             if (referencedTile == null) return false;
             return IsClassOrSubclass(otherValue, referencedTile.classId);

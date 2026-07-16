@@ -3963,5 +3963,55 @@ namespace NeoCompose.Runtime
             foreach (var reference in references) ids.Add(reference.Id);
             return ids.ToArray();
         }
+
+        /// <summary>
+        /// Creates the generated wrapper for a class-default asset without
+        /// inventing a definition value id. Used by grid bindings and editor
+        /// asset synchronization for schema-9 class-backed world assets.
+        /// </summary>
+        public static NeoGeneratedClassValue CreateReadOnlyClassDefault(
+            NeoClient client,
+            string classId,
+            IReadOnlyDictionary<string, ReadOnlyClassFactory> readOnlyFactories)
+        {
+            if (client == null) throw new ArgumentNullException(nameof(client));
+            if (string.IsNullOrWhiteSpace(classId))
+            {
+                throw new ArgumentException("Class id cannot be empty.", nameof(classId));
+            }
+            if (readOnlyFactories == null)
+            {
+                throw new ArgumentNullException(nameof(readOnlyFactories));
+            }
+            if (!readOnlyFactories.TryGetValue(classId, out var factory))
+            {
+                throw new InvalidOperationException(
+                    $"No generated read-only factory exists for class '{classId}'. Regenerate the project's C# types.");
+            }
+
+            var now = NeoTimestamp.Now();
+            var member = new ClassMember
+            {
+                id = $"__neo_class_default:{classId}",
+                name = "ClassDefault",
+                kind = MemberKind.Class,
+                classId = classId,
+                defaultValue = new ObjectMemberValueBase
+                {
+                    classId = classId,
+                    value = new Dictionary<string, string>(),
+                },
+                createdAt = now,
+                updatedAt = now,
+            };
+            object value = factory(client, new NeoMemberClass(client, member, null));
+            if (value is not NeoGeneratedClassValue generated)
+            {
+                throw new InvalidOperationException(
+                    $"Generated factory for class '{classId}' did not return a NeoGeneratedClassValue.");
+            }
+            generated.MarkClassDefaultReference();
+            return generated;
+        }
     }
 }

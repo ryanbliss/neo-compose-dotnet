@@ -74,6 +74,16 @@ namespace NeoCompose.Runtime
         string? TileValueId { get; }
     }
 
+    /// <summary>
+    /// Class-backed smart-tile neighbor reference emitted by schema-9 generated
+    /// types. Kept separate from <see cref="INeoSmartTileNeighbor"/> so
+    /// schema-8 generated projects remain binary/source compatible.
+    /// </summary>
+    public interface INeoSmartTileClassNeighbor
+    {
+        string? TileClassId { get; }
+    }
+
     public enum NeoSmartTileNeighborKind
     {
         DontCare = 0,
@@ -220,11 +230,13 @@ namespace NeoCompose.Runtime
         public NeoRuleTileNeighbor(
             Vector3Int offset,
             NeoSmartTileNeighborKind kind,
-            string? tileValueId = null)
+            string? tileValueId = null,
+            string? tileClassId = null)
         {
             Offset = offset;
             Kind = kind;
             TileValueId = tileValueId;
+            TileClassId = tileClassId;
         }
 
         public Vector3Int Offset { get; }
@@ -232,6 +244,8 @@ namespace NeoCompose.Runtime
         public NeoSmartTileNeighborKind Kind { get; }
 
         public string? TileValueId { get; }
+
+        public string? TileClassId { get; }
     }
 
     public interface INeoSmartTileNeighborMatcher
@@ -301,6 +315,8 @@ namespace NeoCompose.Runtime
         private NeoSmartTileNeighborKind kind;
         [SerializeField]
         private string tileValueId = "";
+        [SerializeField]
+        private string tileClassId = "";
 
         public int Id => id;
 
@@ -314,6 +330,7 @@ namespace NeoCompose.Runtime
                 offset = neighbor.Offset,
                 kind = neighbor.Kind,
                 tileValueId = neighbor.TileValueId ?? "",
+                tileClassId = neighbor.TileClassId ?? "",
             };
         }
 
@@ -322,7 +339,8 @@ namespace NeoCompose.Runtime
             return new NeoRuleTileNeighbor(
                 offset,
                 kind,
-                string.IsNullOrWhiteSpace(tileValueId) ? null : tileValueId);
+                string.IsNullOrWhiteSpace(tileValueId) ? null : tileValueId,
+                string.IsNullOrWhiteSpace(tileClassId) ? null : tileClassId);
         }
     }
 
@@ -398,17 +416,24 @@ namespace NeoCompose.Runtime
             }
 
             // ParseCondition only returns This, NotThis, or the two
-            // inherits-from-class kinds, which require a referenced tile value.
-            if (string.IsNullOrEmpty(neighbor.TileValueId))
+            // inherits-from-class kinds, which require a referenced tile class
+            // (schema 9) or the explicit schema-8 value fallback.
+            string? tileClassId = (neighbor as INeoSmartTileClassNeighbor)?.TileClassId;
+            if (string.IsNullOrEmpty(tileClassId)
+                && string.IsNullOrEmpty(neighbor.TileValueId))
             {
                 throw new InvalidOperationException(
                     $"Smart tile rule {ruleIndex} neighbor at cell "
                         + $"({neighbor.Cell.x}, {neighbor.Cell.y}) uses condition "
-                        + $"'{neighbor.Condition}' but has no TileValueId.");
+                        + $"'{neighbor.Condition}' but has no TileClassId or legacy TileValueId.");
             }
 
             return tile.RegisterCustomNeighbor(
-                new NeoRuleTileNeighbor(offset, kind, neighbor.TileValueId));
+                new NeoRuleTileNeighbor(
+                    offset,
+                    kind,
+                    neighbor.TileValueId,
+                    tileClassId));
         }
 
         private static Sprite[] SpritesForRule(

@@ -121,6 +121,28 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public void ToRuleTile_PrefersClassBackedNeighborReference()
+        {
+            var rule = new FakeSmartTileRule();
+            rule.Neighbors.Add(new FakeSmartTileNeighbor
+            {
+                Cell = new Vector2Int(1, 0),
+                Condition = NeoSmartTileOptionIds.ConditionInheritsFromClass,
+                TileClassId = "base-tile-class",
+                TileValueId = "legacy-definition-value",
+            });
+            var matcher = new RecordingNeighborMatcher();
+            var tile = Convert(SmartTileWithRules(rule), matcher);
+
+            int neighborId = tile.m_TilingRules[0].GetNeighbors()[new Vector3Int(1, 0, 0)];
+            tile.RuleMatch(neighborId, null!);
+
+            Assert.AreEqual(1, matcher.Observed.Count);
+            Assert.AreEqual("base-tile-class", matcher.Observed[0].TileClassId);
+            Assert.AreEqual("legacy-definition-value", matcher.Observed[0].TileValueId);
+        }
+
+        [Test]
         public void ToRuleTile_MapsOutputOptionIds()
         {
             var smartTile = SmartTileWithRules(
@@ -394,13 +416,17 @@ namespace NeoCompose.Tests
             IReadOnlyList<Sprite> INeoSmartTileRule.Sprites => Sprites;
         }
 
-        private sealed class FakeSmartTileNeighbor : INeoSmartTileNeighbor
+        private sealed class FakeSmartTileNeighbor
+            : INeoSmartTileNeighbor,
+              INeoSmartTileClassNeighbor
         {
             public Vector2Int Cell { get; set; }
 
             public string Condition { get; set; } = NeoSmartTileOptionIds.ConditionThis;
 
             public string? TileValueId { get; set; }
+
+            public string? TileClassId { get; set; }
         }
 
         private sealed class RecordingNeighborMatcher : INeoSmartTileNeighborMatcher
