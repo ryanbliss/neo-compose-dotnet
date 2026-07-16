@@ -1,6 +1,19 @@
 <Project>
   <PropertyGroup>
     <!--
+      Unity 6000.5 moved its managed reference assemblies from
+      `Contents/Managed/UnityEngine` to
+      `Contents/Resources/Scripting/Managed/UnityEngine`.
+
+      Keep the install/version default in one place so the hand-authored IDE
+      shims cannot drift apart during Unity upgrades. Any property can still
+      be overridden from the environment or command line for another install.
+    -->
+    <UnityEditorVersion Condition="'$(UnityEditorVersion)' == ''">6000.5.4f1</UnityEditorVersion>
+    <UnityEditorContentsDir Condition="'$(UnityEditorContentsDir)' == ''">/Applications/Unity/Hub/Editor/$(UnityEditorVersion)/Unity.app/Contents</UnityEditorContentsDir>
+    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">$(UnityEditorContentsDir)/Resources/Scripting/Managed/UnityEngine</UnityManagedDir>
+
+    <!--
       Two layers of output redirection, both critical:
 
       1. **NuGet restore isolation** — multiple csprojs share a single

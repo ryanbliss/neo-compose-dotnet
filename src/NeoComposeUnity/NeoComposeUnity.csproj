@@ -3,8 +3,6 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <LangVersion>9.0</LangVersion>
     <RootNamespace>NeoCompose</RootNamespace>
-    <!-- Override UnityManagedDir via env var or a local Directory.Build.props if your Unity install differs -->
-    <UnityManagedDir Condition="'$(UnityManagedDir)' == ''">/Applications/Unity/Hub/Editor/6000.5.4f1/Unity.app/Contents/Managed/UnityEngine</UnityManagedDir>
     <!-- UPM packages Unity compiles into a project's Library (e.g.
          Unity.Localization) live in its ScriptAssemblies. Default to the
          HelloWorld sample's so this shim resolves them whether it is loaded
