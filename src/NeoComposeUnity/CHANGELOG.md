@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.2.1] - 2026-07-16
+
+### Added
+
+- Added incremental Unity Editor synchronization using cached export manifests
+  and bounded snapshot batches.
+
+### Changed
+
+- Reduced runtime save I/O by suppressing semantic no-op writes and loading full
+  save snapshots only when needed.
+- Added save partition-home metadata required by copy-on-write snapshot storage.
+
+### Fixed
+
+- Fixed incremental value deltas mutating a detached JSON object instead of the
+  cached project document.
+
 ## [0.2.0] - 2026-07-15
 
 ### Breaking
