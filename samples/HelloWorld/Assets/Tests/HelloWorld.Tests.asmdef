@@ -15,7 +15,8 @@
     "autoReferenced": false,
     "overrideReferences": true,
     "precompiledReferences": [
-        "nunit.framework.dll"
+        "nunit.framework.dll",
+        "Newtonsoft.Json.dll"
     ],
     "defineConstraints": [
         "UNITY_INCLUDE_TESTS"

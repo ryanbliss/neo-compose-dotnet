@@ -314,7 +314,7 @@ namespace NeoCompose.Tests
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
             await store.LoadAsync();
             api.commitResults.Enqueue(
-                NeoCommitResult.Committed(NeoSaveTestSupport.Remote("save-1", "head-1", "h1")));
+                NeoCommitResult.Committed(NeoSaveTestSupport.Remote("save-1", "head-1")));
 
             var sync = store.CreateNew("save-1");
             string values =

@@ -9,6 +9,7 @@ using HelloWorld.Assets.Scripts;
 using HelloWorld.Assets.Scripts.Neo;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 using UnityEngine;
 
@@ -190,28 +191,134 @@ namespace HelloWorld.Assets.Tests
                 string snapshotId) =>
                 GetSaveAsync(customId);
 
+            public Awaitable<GameSaveRecordPage> GetSaveRecordManifestPageAsync(
+                string customId, string snapshotId, GameSaveRecordPageRequest request) =>
+                NeoAwaitable.FromResult(new GameSaveRecordPage { isDone = true });
+
+            public Awaitable<GameSaveRecordPage> GetSaveRecordDeltaPageAsync(
+                string customId, string snapshotId, GameSaveRecordDeltaPageRequest request) =>
+                NeoAwaitable.FromResult(new GameSaveRecordPage { isDone = true });
+
+            public Awaitable<IReadOnlyList<GameSaveRecordState>> GetSaveRecordStatesAsync(
+                string customId, string snapshotId, IReadOnlyList<string> recordStateIds) =>
+                NeoAwaitable.FromResult<IReadOnlyList<GameSaveRecordState>>(
+                    new List<GameSaveRecordState>());
+
             public Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot)
             {
+                var mergedValues = request.values.Raw is JObject mainValues
+                    ? (JObject)mainValues.DeepClone()
+                    : new JObject();
+                if (request.valuePartitions != null)
+                {
+                    foreach (var partition in request.valuePartitions.Values)
+                    {
+                        if (partition.Raw is not JObject partitionValues) continue;
+                        foreach (var value in partitionValues.Properties())
+                        {
+                            mergedValues[value.Name] = value.Value.DeepClone();
+                        }
+                    }
+                }
                 var remote = new RemoteGameSave
                 {
                     serverId = "server-" + request.customId,
                     id = request.customId,
                     snapshotId = Guid.NewGuid().ToString("N"),
-                    snapshotHash = Guid.NewGuid().ToString("N"),
+                    snapshotRevision = 1,
                     releaseChannelId = Channel,
                     name = request.name,
                     projectId = "project-1",
                     version = request.version,
-                    values = request.values,
+                    values = new NeoSaveValues(mergedValues),
                     createdAt = 1,
                     updatedAt = 2,
                     synchronizedAt = 3,
                 };
+                remote.recordCache.snapshotId = remote.snapshotId;
+                remote.recordCache.snapshotRevision = remote.snapshotRevision;
                 saves[request.customId] = remote;
                 return NeoAwaitable.FromResult(NeoCommitResult.Committed(remote));
             }
 
-            public Awaitable<RemoteGameSave> CloneSaveAsync(string customId, NeoCloneRequest request) =>
+            public Awaitable<NeoCommitResult> CommitSparseSnapshotAsync(
+                string customId,
+                NeoSparseSnapshotCommitRequest request)
+            {
+                var current = saves[customId];
+                var values = current.values.Raw is JObject currentValues
+                    ? (JObject)currentValues.DeepClone()
+                    : new JObject();
+                var bindings = new Dictionary<string, string?>(current.staticBindings);
+                foreach (var change in request.changes)
+                {
+                    switch (change)
+                    {
+                        case GameSaveValueReplaceChange replace:
+                            values[replace.valueId] = replace.value.DeepClone();
+                            break;
+                        case GameSaveValuePatchChange patch
+                            when values[patch.valueId] is JObject row:
+                            foreach (var field in patch.set)
+                            {
+                                row[field.Key] = field.Value.DeepClone();
+                            }
+                            foreach (var field in patch.unset) row.Remove(field);
+                            break;
+                        case GameSaveValueRestoreToAuthoredChange restore:
+                            values.Remove(restore.valueId);
+                            break;
+                        case GameSaveStaticBindingSetChange binding:
+                            bindings[binding.memberId] = binding.valueId;
+                            break;
+                        case GameSaveStaticBindingRestoreToAuthoredChange restoreBinding:
+                            bindings.Remove(restoreBinding.memberId);
+                            break;
+                    }
+                }
+                current.snapshotId = Guid.NewGuid().ToString("N");
+                current.snapshotRevision = 1;
+                current.values = new NeoSaveValues(values);
+                current.staticBindings = bindings;
+                current.version = request.version;
+                current.recordCache.snapshotId = current.snapshotId;
+                current.recordCache.snapshotRevision = current.snapshotRevision;
+                saves[customId] = current;
+                return NeoAwaitable.FromResult(NeoCommitResult.Committed(current));
+            }
+
+            public Awaitable<NeoCommitResult> BeginStagedSnapshotAsync(
+                string customId,
+                NeoStagedSnapshotBeginRequest request) =>
+                throw new NotSupportedException();
+
+            public Awaitable<NeoCloneResult> CloneSaveAsync(
+                string customId,
+                NeoCloneRequest request) =>
+                throw new NotSupportedException();
+
+            public Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
+                NeoChunkedCreateRequest request) =>
+                throw new NotSupportedException();
+
+            public Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
+                string customId,
+                string resumeToken,
+                long baseSnapshotRevision,
+                IReadOnlyList<GameSaveRecordChange> changes,
+                NeoTimestamp updatedAt) =>
+                throw new NotSupportedException();
+
+            public Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
+                string customId,
+                string resumeToken) =>
+                throw new NotSupportedException();
+
+            public Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(
+                string customId) =>
+                throw new NotSupportedException();
+
+            public Awaitable RetrySaveTransitionAsync(string customId) =>
                 throw new NotSupportedException();
 
             public Awaitable ArchiveSaveAsync(string customId)

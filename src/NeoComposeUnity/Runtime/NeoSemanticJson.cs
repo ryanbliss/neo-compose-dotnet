@@ -28,6 +28,11 @@ namespace NeoCompose.Runtime
         internal static bool ProjectRecordsEqual(JToken? left, JToken? right) =>
             JToken.DeepEquals(ProjectRecord(left), ProjectRecord(right));
 
+        internal static bool ValuesEqual(JToken? left, JToken? right) =>
+            JToken.DeepEquals(
+                Canonicalize(left ?? JValue.CreateNull()),
+                Canonicalize(right ?? JValue.CreateNull()));
+
         internal static JToken ProjectRecord(JToken? value)
         {
             if (value is not JObject record)
@@ -79,7 +84,7 @@ namespace NeoCompose.Runtime
             return semantic;
         }
 
-        private static JToken Canonicalize(JToken value)
+        internal static JToken Canonicalize(JToken value)
         {
             if (value is JObject obj)
             {

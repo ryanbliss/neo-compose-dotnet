@@ -153,7 +153,7 @@ namespace NeoCompose.Tests
                 // The cloud still lists the save (so it reads as synced) ...
                 list = new NeoSaveFileList
                 {
-                    saves = { NeoSaveTestSupport.Summary("save-1", "snap-1", "hash-1") },
+                    saves = { NeoSaveTestSupport.Summary("save-1", "snap-1") },
                 },
                 // ... but it is deleted before the archive lands — the archive 404s.
                 archiveThrows = new NeoComposeNotFoundException("save was not found"),

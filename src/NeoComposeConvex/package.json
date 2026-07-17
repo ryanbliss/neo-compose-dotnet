@@ -1,6 +1,6 @@
 {
     "name": "com.ryanbliss.neocompose.convex",
-    "version": "0.3.0",
+    "version": "0.4.0",
     "displayName": "NeoCompose Convex Realtime",
     "description": "Convex realtime sync plugin for NeoCompose. Wraps a vendored copy of the unofficial Convex .NET client behind the NeoCompose realtime provider seam.",
     "unity": "6000.0",
@@ -11,6 +11,6 @@
     },
     "license": "MIT",
     "dependencies": {
-        "com.ryanbliss.neocompose": "0.3.0"
+        "com.ryanbliss.neocompose": "0.4.0"
     }
 }

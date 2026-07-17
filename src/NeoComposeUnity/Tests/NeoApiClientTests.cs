@@ -19,7 +19,7 @@ namespace NeoCompose.Tests
         private const string RemoteJson =
             "{" +
             "\"serverId\":\"server-1\",\"id\":\"save-1\",\"snapshotId\":\"snap-1\"," +
-            "\"snapshotHash\":\"hash-1\",\"releaseChannelId\":\"channel-dev\"," +
+            "\"snapshotRevision\":1,\"releaseChannelId\":\"channel-dev\"," +
             "\"name\":\"My Save\",\"projectId\":\"project-1\"," +
             "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
             "\"author\":{\"kind\":\"user\",\"id\":\"user-1\"}," +
@@ -35,7 +35,35 @@ namespace NeoCompose.Tests
         [Test]
         public async Task EveryRequest_AttachesBearerToken()
         {
-            var http = new FakeHttpClient { body = CombinedBody };
+            var http = new FakeHttpClient
+            {
+                bodyForUrl = url =>
+                {
+                    if (url.EndsWith("/saves/query"))
+                        return "{\"saves\":[],\"cloneRequired\":{}}";
+                    if (url.EndsWith("/saves/save-1/query")) return RemoteJson;
+                    if (url.EndsWith("/snapshots/query")) return "{\"snapshots\":[]}";
+                    if (url.EndsWith("/snapshots/snap-1/query")) return RemoteJson;
+                    if (url.EndsWith("/saves/commit"))
+                        return "{\"kind\":\"committed\",\"save\":" + RemoteJson + "}";
+                    if (url.EndsWith("/saves/save-1/snapshots/commit"))
+                        return "{\"kind\":\"committed\",\"save\":" + RemoteJson + "}";
+                    if (url.EndsWith("/saves/chunked-create/begin"))
+                        return "{\"customId\":\"save-1\",\"snapshotId\":\"snap-1\"," +
+                            "\"snapshotRevision\":0,\"resumeToken\":\"resume-1\"}";
+                    if (url.EndsWith("/chunked-create/append"))
+                        return "{\"kind\":\"patched\",\"snapshotId\":\"snap-1\"," +
+                            "\"snapshotRevision\":1,\"synchronizedAt\":3," +
+                            "\"changedDescriptors\":[]}";
+                    if (url.EndsWith("/chunked-create/complete")) return RemoteJson;
+                    if (url.EndsWith("/saves/save-1/clone"))
+                        return "{\"kind\":\"cloned\",\"save\":" + RemoteJson + "}";
+                    if (url.EndsWith("/saves/save-1/status/query"))
+                        return "{\"kind\":\"ready\",\"save\":" + RemoteJson + "}";
+                    if (url.EndsWith("/snapshots/snap-1/archive")) return RemoteJson;
+                    return "{}";
+                },
+            };
             var client = NewClient(new FakeProvider("the-token"), http);
 
             await client.ListSavesAsync(null);
@@ -43,11 +71,38 @@ namespace NeoCompose.Tests
             await client.GetSaveSnapshotsAsync("save-1");
             await client.GetSaveSnapshotAsync("save-1", "snap-1");
             await client.CommitAsync(NewCommit(), replaceSnapshot: false);
+            await client.CommitSparseSnapshotAsync(
+                "save-1",
+                new NeoSparseSnapshotCommitRequest
+                {
+                    baseSnapshotId = "snap-1",
+                    baseSnapshotRevision = 1,
+                });
+            await client.BeginChunkedCreateAsync(new NeoChunkedCreateRequest
+            {
+                customId = "save-1",
+                uploadFingerprint = "sha256:upload-1",
+            });
+            await client.AppendChunkedCreateAsync(
+                "save-1",
+                "resume-1",
+                0,
+                new List<GameSaveRecordChange>
+                {
+                    new GameSaveValueReplaceChange
+                    {
+                        valueId = "value-1",
+                        value = Newtonsoft.Json.Linq.JObject.Parse("{\"value\":1}"),
+                    },
+                },
+                3);
+            await client.CompleteChunkedCreateAsync("save-1", "resume-1");
             await client.CloneSaveAsync("save-1", new NeoCloneRequest());
+            await client.GetSaveTransitionStatusAsync("save-1");
             await client.ArchiveSaveAsync("save-1");
             await client.ArchiveSnapshotAsync("save-1", "snap-1");
 
-            Assert.That(http.sends, Has.Count.EqualTo(8));
+            Assert.That(http.sends, Has.Count.EqualTo(21));
             foreach (var send in http.sends)
             {
                 Assert.That(send.bearer, Is.EqualTo("the-token"), $"Request to {send.url} must carry the bearer.");
@@ -119,7 +174,7 @@ namespace NeoCompose.Tests
             http.body = RemoteJson;
             var detail = await client.GetSaveSnapshotAsync("save-1", "snap-1");
 
-            Assert.That(detail.snapshotHash, Is.EqualTo("hash-1"));
+            Assert.That(detail.snapshotRevision, Is.EqualTo(1));
             Assert.That(detail.values, Is.Not.Null);
             StringAssert.EndsWith(
                 "/saves/save-1/snapshots/snap-1/query",
@@ -163,7 +218,230 @@ namespace NeoCompose.Tests
             Assert.That(result.IsConflict, Is.True);
             Assert.That(result.Outcome, Is.EqualTo(NeoCommitOutcome.Conflict));
             Assert.That(result.CommittedSave, Is.Null);
-            Assert.That(result.ServerHead!.snapshotHash, Is.EqualTo("hash-1"));
+            Assert.That(result.ServerHead!.snapshotRevision, Is.EqualTo(1));
+        }
+
+        [Test]
+        public async Task SparseCommit_UsesBoundedSnapshotRouteAndReturnsTransitionIdentity()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"kind\":\"transitioning\",\"customId\":\"save-1\"," +
+                    "\"targetSnapshotId\":\"snap-next\"}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+            var request = new NeoSparseSnapshotCommitRequest
+            {
+                baseSnapshotId = "snap-1",
+                baseSnapshotRevision = 1,
+                changes = new List<GameSaveRecordChange>
+                {
+                    new GameSaveValueReplaceChange
+                    {
+                        valueId = "value-1",
+                        value = Newtonsoft.Json.Linq.JObject.Parse("{\"value\":2}"),
+                    },
+                },
+            };
+
+            var result = await client.CommitSparseSnapshotAsync("save-1", request);
+
+            Assert.That(result.IsTransitioning, Is.True);
+            Assert.That(result.TargetSnapshotId, Is.EqualTo("snap-next"));
+            StringAssert.EndsWith(
+                "/saves/save-1/snapshots/commit", http.sends[0].url);
+            StringAssert.Contains("\"snapshot\":", http.sends[0].body);
+            StringAssert.Contains("\"baseSnapshotRevision\":1", http.sends[0].body);
+            StringAssert.Contains("\"kind\":\"value.replace\"", http.sends[0].body);
+        }
+
+        [Test]
+        public async Task StagedSnapshotBegin_UsesMetadataOnlySuccessorRoute()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"kind\":\"transitioning\",\"customId\":\"save-1\"," +
+                    "\"targetSnapshotId\":\"snap-next\"}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            var result = await client.BeginStagedSnapshotAsync(
+                "save-1",
+                new NeoStagedSnapshotBeginRequest
+                {
+                    baseSnapshotId = "snap-1",
+                    baseSnapshotRevision = 4,
+                    version = new VersionData { id = "v1", label = "1.0" },
+                    uploadFingerprint = "sha256:staged-v1",
+                    liveSessionId = "session-1",
+                });
+
+            Assert.That(result.IsTransitioning, Is.True);
+            StringAssert.EndsWith(
+                "/saves/save-1/snapshots/staged/begin", http.sends[0].url);
+            StringAssert.Contains("\"baseSnapshotRevision\":4", http.sends[0].body);
+            StringAssert.Contains("\"uploadFingerprint\":\"sha256:staged-v1\"",
+                http.sends[0].body);
+            StringAssert.Contains("\"liveSessionId\":\"session-1\"",
+                http.sends[0].body);
+            StringAssert.DoesNotContain("\"changes\"", http.sends[0].body);
+        }
+
+        [Test]
+        public async Task Clone_TransitioningReturnsPollIdentityWithoutReadingPartialRecords()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"kind\":\"transitioning\",\"customId\":\"save-2\"," +
+                    "\"targetSnapshotId\":\"snap-2\"}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            var result = await client.CloneSaveAsync(
+                "save-1", new NeoCloneRequest());
+
+            Assert.That(result.Outcome, Is.EqualTo(NeoCloneOutcome.Transitioning));
+            Assert.That(result.CustomId, Is.EqualTo("save-2"));
+            Assert.That(result.TargetSnapshotId, Is.EqualTo("snap-2"));
+            Assert.That(result.ClonedSave, Is.Null);
+            Assert.That(http.sends, Has.Count.EqualTo(1),
+                "an accepted copy must not expose or request partial manifest records");
+        }
+
+        [Test]
+        public async Task ChunkedCreate_UsesMetadataThenBoundedRecordAppendThenComplete()
+        {
+            var http = new FakeHttpClient
+            {
+                bodyForUrl = url =>
+                {
+                    if (url.EndsWith("/chunked-create/begin"))
+                        return "{\"customId\":\"save-1\",\"snapshotId\":\"snap-new\"," +
+                            "\"snapshotRevision\":0,\"resumeToken\":\"resume-new\"}";
+                    if (url.EndsWith("/chunked-create/append"))
+                        return "{\"kind\":\"patched\",\"snapshotId\":\"snap-new\"," +
+                            "\"snapshotRevision\":1,\"synchronizedAt\":4," +
+                            "\"changedDescriptors\":[]}";
+                    if (url.EndsWith("/chunked-create/complete")) return RemoteJson;
+                    return "{}";
+                },
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+            var target = await client.BeginChunkedCreateAsync(
+                new NeoChunkedCreateRequest
+                {
+                    customId = "save-1",
+                    name = "Large",
+                    targetReleaseChannelId = "channel-dev",
+                    createdAt = 1,
+                    updatedAt = 2,
+                    uploadFingerprint = "sha256:large-save-v1",
+                });
+            var change = new GameSaveValueReplaceChange
+            {
+                valueId = "value-1",
+                value = Newtonsoft.Json.Linq.JObject.Parse("{\"value\":1}"),
+            };
+            var appended = await client.AppendChunkedCreateAsync(
+                target.customId,
+                target.resumeToken,
+                target.snapshotRevision,
+                new[] { change },
+                2);
+            await client.CompleteChunkedCreateAsync(
+                target.customId, target.resumeToken);
+
+            Assert.That(appended.SnapshotRevision, Is.EqualTo(1));
+            StringAssert.EndsWith("/saves/chunked-create/begin", http.sends[0].url);
+            StringAssert.DoesNotContain("values", http.sends[0].body);
+            StringAssert.EndsWith(
+                "/saves/save-1/chunked-create/append", http.sends[1].url);
+            StringAssert.Contains("\"resumeToken\":\"resume-new\"", http.sends[1].body);
+            StringAssert.Contains("\"baseSnapshotRevision\":0", http.sends[1].body);
+            StringAssert.DoesNotContain("snapshotId", http.sends[1].body);
+            StringAssert.Contains("\"kind\":\"value.replace\"", http.sends[1].body);
+            StringAssert.EndsWith(
+                "/saves/save-1/chunked-create/complete", http.sends[2].url);
+            StringAssert.Contains("\"resumeToken\":\"resume-new\"", http.sends[2].body);
+        }
+
+        [Test]
+        public async Task TransitionStatus_ParsesCopyingStagingAndFailedOutcomes()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"kind\":\"copying\",\"customId\":\"save-2\"," +
+                    "\"targetSnapshotId\":\"snap-2\"}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            var copying = await client.GetSaveTransitionStatusAsync("save-2");
+            Assert.That(copying.Outcome, Is.EqualTo(NeoSaveTransitionOutcome.Copying));
+            StringAssert.EndsWith(
+                "/saves/save-2/status/query", http.sends[0].url);
+
+            http.body = "{\"kind\":\"staging\",\"customId\":\"save-2\"," +
+                "\"targetSnapshotId\":\"snap-2\",\"snapshotRevision\":7," +
+                "\"resumeToken\":\"resume-2\"}";
+            var staging = await client.GetSaveTransitionStatusAsync("save-2");
+            Assert.That(staging.Outcome, Is.EqualTo(NeoSaveTransitionOutcome.Staging));
+            Assert.That(staging.SnapshotRevision, Is.EqualTo(7));
+            Assert.That(staging.ResumeToken, Is.EqualTo("resume-2"));
+
+            http.body = "{\"kind\":\"failed\",\"customId\":\"save-2\"," +
+                "\"targetSnapshotId\":\"snap-2\",\"error\":\"copy failed\"}";
+            var failed = await client.GetSaveTransitionStatusAsync("save-2");
+
+            Assert.That(failed.Outcome, Is.EqualTo(NeoSaveTransitionOutcome.Failed));
+            Assert.That(failed.Error, Is.EqualTo("copy failed"));
+        }
+
+        [Test]
+        public async Task TransitionRetry_UsesFailedStatusRoute()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"kind\":\"retrying\",\"customId\":\"save-2\"}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            await client.RetrySaveTransitionAsync("save-2");
+
+            StringAssert.EndsWith(
+                "/saves/save-2/status/retry", http.sends[0].url);
+            Assert.That(http.sends[0].body, Is.EqualTo("{}"));
+        }
+
+        [Test]
+        public async Task RecordReads_UsePagedAllPartitionRoutes()
+        {
+            var http = new FakeHttpClient();
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            await client.GetSaveRecordManifestPageAsync(
+                "save-1", "snap-1", new GameSaveRecordPageRequest
+                {
+                    cursor = "cursor-1",
+                    numItems = 64,
+                });
+            await client.GetSaveRecordDeltaPageAsync(
+                "save-1", "snap-1", new GameSaveRecordDeltaPageRequest
+                {
+                    afterRevision = 4,
+                    throughRevision = 7,
+                    numItems = 64,
+                });
+            await client.GetSaveRecordStatesAsync(
+                "save-1", "snap-1", new[] { "state-1" });
+
+            StringAssert.EndsWith("/records/manifest/query", http.sends[0].url);
+            StringAssert.Contains("\"cursor\":\"cursor-1\"", http.sends[0].body);
+            StringAssert.DoesNotContain("mapKey", http.sends[0].body);
+            StringAssert.EndsWith("/records/delta/query", http.sends[1].url);
+            StringAssert.Contains("\"afterRevision\":4", http.sends[1].body);
+            StringAssert.Contains("\"throughRevision\":7", http.sends[1].body);
+            StringAssert.EndsWith("/records/states/query", http.sends[2].url);
+            StringAssert.Contains("\"recordStateIds\":[\"state-1\"]", http.sends[2].body);
         }
 
         [Test]
@@ -267,6 +545,7 @@ namespace NeoCompose.Tests
             public readonly List<(string url, string method, string? body, string? bearer)> sends = new();
             public long status = 200;
             public string body = "{}";
+            public System.Func<string, string>? bodyForUrl;
 
             public Task<NeoComposeWebResponse> SendAsync(
                 string url,
@@ -275,7 +554,25 @@ namespace NeoCompose.Tests
                 string? bearerToken)
             {
                 sends.Add((url, method, jsonBody, bearerToken));
-                return Task.FromResult(new NeoComposeWebResponse(status, false, body, ""));
+                if (url.Contains("/records/manifest/query"))
+                {
+                    return Task.FromResult(new NeoComposeWebResponse(
+                        200, false,
+                        "{\"page\":[],\"isDone\":true,\"continueCursor\":null}", ""));
+                }
+                if (url.Contains("/records/delta/query"))
+                {
+                    return Task.FromResult(new NeoComposeWebResponse(
+                        200, false,
+                        "{\"page\":[],\"isDone\":true,\"continueCursor\":null}", ""));
+                }
+                if (url.Contains("/records/states/query"))
+                {
+                    return Task.FromResult(new NeoComposeWebResponse(
+                        200, false, "{\"states\":[]}", ""));
+                }
+                return Task.FromResult(new NeoComposeWebResponse(
+                    status, false, bodyForUrl?.Invoke(url) ?? body, ""));
             }
 
             public Task<byte[]> DownloadAsync(string url) =>

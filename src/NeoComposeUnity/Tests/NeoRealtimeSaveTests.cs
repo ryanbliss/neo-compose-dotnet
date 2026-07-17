@@ -75,7 +75,7 @@ namespace NeoCompose.Tests
             var listChanges = 0;
             store.OnListChanged += () => listChanges++;
 
-            var remote = NeoSaveTestSupport.Remote("save-1", "snap-1", "hash-1");
+            var remote = NeoSaveTestSupport.Remote("save-1", "snap-1");
             realtime.PushList(new NeoSaveFileList
             {
                 saves = new List<RemoteGameSaveSummary>
@@ -92,18 +92,18 @@ namespace NeoCompose.Tests
             api.getResult = remote;
             var sync = store.Open("save-1");
             var content = await sync.LoadSaveContentAsync();
-            Assert.That(content, Does.Contain("hash-1"));
+            Assert.That(content, Does.Contain("\"snapshotRevision\":1"));
             Assert.That(api.getCalls, Is.EqualTo(1),
                 "a summary list row must never masquerade as the full payload");
         }
 
         [Test]
-        public async Task HeadPush_RaisesTheDivergenceEventOnlyWhenTheHashMoves()
+        public async Task RevisionSignal_RaisesDivergenceOnlyWhenTheSnapshotMoves()
         {
             var (store, api, local, realtime) =
                 await ReadyStoreWithRealtimeAsync(NeoRealtimeConnectionState.Connected);
             await local.CommitSaveAsync("save-1", NeoSaveTestSupport.SyncedSaveContent("Local"));
-            api.getResult = NeoSaveTestSupport.Remote("save-1", "snap-1", "hash-1");
+            api.getResult = NeoSaveTestSupport.Remote("save-1", "snap-1");
 
             var sync = store.Open("save-1");
             await sync.LoadSaveContentAsync();
@@ -113,15 +113,18 @@ namespace NeoCompose.Tests
             var divergences = new List<RemoteGameSave>();
             sync.OnRemoteHeadChanged += divergences.Add;
 
-            // Same hash as the active state: cache primed, no event.
-            realtime.PushHead(NeoSaveTestSupport.Remote("save-1", "snap-1", "hash-1"));
+            // Same applied revision: this is our own echo, so no event.
+            realtime.PushHead(NeoSaveTestSupport.Remote("save-1", "snap-1"));
             Assert.That(divergences, Is.Empty);
 
             // A new head from another device: event fires, never auto-applies.
-            realtime.PushHead(NeoSaveTestSupport.Remote("save-1", "snap-2", "hash-2"));
+            var moved = NeoSaveTestSupport.Remote(
+                "save-1", "snap-2", snapshotRevision: 2);
+            api.getResult = moved;
+            realtime.PushHead(moved);
             Assert.That(divergences, Has.Count.EqualTo(1));
             Assert.That(divergences[0].snapshotId, Is.EqualTo("snap-2"));
-            Assert.That(sync.ActiveSave!.snapshotHash, Is.EqualTo("hash-1"), "no auto-apply");
+            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(1), "no auto-apply");
         }
 
         [Test]
@@ -131,7 +134,7 @@ namespace NeoCompose.Tests
                 await ReadyStoreWithRealtimeAsync(NeoRealtimeConnectionState.Connected);
             realtime.canCommit = true;
             realtime.commitResults.Enqueue(
-                NeoCommitResult.Committed(NeoSaveTestSupport.Remote("save-1", "snap-1", "hash-1")));
+                NeoCommitResult.Committed(NeoSaveTestSupport.Remote("save-1", "snap-1")));
 
             var sync = store.CreateNew("save-1");
             await sync.CommitSaveContentAsync(
@@ -149,7 +152,7 @@ namespace NeoCompose.Tests
             realtime.canCommit = true;
             realtime.commitThrows = new InvalidOperationException("socket died (test)");
             api.commitResults.Enqueue(
-                NeoCommitResult.Committed(NeoSaveTestSupport.Remote("save-1", "snap-1", "hash-1")));
+                NeoCommitResult.Committed(NeoSaveTestSupport.Remote("save-1", "snap-1")));
 
             var sync = store.CreateNew("save-1");
             await sync.CommitSaveContentAsync(
@@ -166,7 +169,7 @@ namespace NeoCompose.Tests
                 await ReadyStoreWithRealtimeAsync(NeoRealtimeConnectionState.Connected);
             realtime.canCommit = false;
             api.commitResults.Enqueue(
-                NeoCommitResult.Committed(NeoSaveTestSupport.Remote("save-1", "snap-1", "hash-1")));
+                NeoCommitResult.Committed(NeoSaveTestSupport.Remote("save-1", "snap-1")));
 
             var sync = store.CreateNew("save-1");
             await sync.CommitSaveContentAsync(
@@ -321,7 +324,7 @@ namespace NeoCompose.Tests
         public readonly List<(string? channel, Action<NeoSaveFileList> onChanged)> ListSubscriptions =
             new();
 
-        public readonly List<(string customId, Action<RemoteGameSave> onChanged)> HeadSubscriptions =
+        public readonly List<(string customId, Action<GameSaveSnapshotRevisionSignal> onChanged)> HeadSubscriptions =
             new();
 
         public readonly Queue<NeoCommitResult> commitResults = new();
@@ -379,7 +382,9 @@ namespace NeoCompose.Tests
             return new SubscriptionHandle();
         }
 
-        public IDisposable SubscribeSaveHead(string customId, Action<RemoteGameSave> onChanged)
+        public IDisposable SubscribeSaveRevision(
+            string customId,
+            Action<GameSaveSnapshotRevisionSignal> onChanged)
         {
             HeadSubscriptions.Add((customId, onChanged));
             return new SubscriptionHandle();
@@ -425,7 +430,11 @@ namespace NeoCompose.Tests
         {
             foreach (var subscription in HeadSubscriptions.ToArray())
             {
-                subscription.onChanged(remote);
+                subscription.onChanged(new GameSaveSnapshotRevisionSignal
+                {
+                    snapshotId = remote.snapshotId,
+                    snapshotRevision = remote.snapshotRevision,
+                });
             }
         }
 

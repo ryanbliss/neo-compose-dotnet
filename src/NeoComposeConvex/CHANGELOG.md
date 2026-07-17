@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0] - 2026-07-17
+
+### Breaking
+
+- Requires `com.ryanbliss.neocompose` 0.4.0 and its normalized, payload-free
+  record-head save protocol.
+
+### Changed
+
+- Realtime synchronization now follows paginated manifests and deltas, hydrates
+  selected record states, and carries dirty-field live patches through bounded
+  sparse/chunked writes and durable snapshot transitions.
+
 ## [0.3.0] - 2026-07-17
 
 ### Breaking

@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using NeoCompose.Runtime.Json;
@@ -21,7 +22,7 @@ namespace NeoCompose.Runtime
     /// </summary>
     /// <remarks>
     /// Load parallelizes the local read and the cloud fetch, matches by id,
-    /// compares <see cref="RemoteGameSave.snapshotHash"/>, raises
+    /// compares the snapshot id and record revision, raises
     /// <see cref="OnConflict"/> on divergence (throwing when unhandled), runs
     /// <c>TryDeserialize</c> and raises <see cref="OnMigrationRequired"/> when the
     /// values can't be read, and raises <see cref="OnSelectedSaveRequiringClone"/>
@@ -38,6 +39,8 @@ namespace NeoCompose.Runtime
         private readonly string? draftName;
         private LocalGameSave? active;
         private IDisposable? realtimeHeadSubscription;
+        private bool realtimeRevisionApplyRunning;
+        private GameSaveSnapshotRevisionSignal? pendingRealtimeRevision;
 
         // --- Live session state (specs/live-save-sessions.md) ---------------
         // One synchronizer instance is one play session of its save.
@@ -51,6 +54,12 @@ namespace NeoCompose.Runtime
         /// <summary>The server-acknowledged values map; the per-key diff base
         /// for the next flush. Null until a load/flush establishes it.</summary>
         private JObject? liveBaseline;
+        private Dictionary<string, string?> liveStaticBindingBaseline = new();
+        private readonly Dictionary<string, HashSet<string>?> dirtyValueFields =
+            new(StringComparer.Ordinal);
+        private readonly HashSet<string> dirtyStaticBindings =
+            new(StringComparer.Ordinal);
+        private bool stagedLiveUsesTrackedMutations = true;
 
         /// <summary>The most recently staged local save; what the next flush
         /// diffs against <see cref="liveBaseline"/>.</summary>
@@ -74,13 +83,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private string? liveKnownServerId;
         private string? liveKnownSnapshotId;
-        private string? liveKnownSnapshotHash;
+        private long liveKnownSnapshotRevision;
         private double? liveKnownSynchronizedAt;
-
-        /// <summary>Hashes this session produced, newest last. A head push
-        /// carrying one of these is this session's own write echoing back.</summary>
-        private readonly List<string> recentLiveHashes = new List<string>();
-        private const int RecentLiveHashCapacity = 8;
 
         // Trailing debounce + max-latency cap on the flush pipeline. Internal
         // so tests can compress time; not public API (decision 9 of the spec).
@@ -91,6 +95,37 @@ namespace NeoCompose.Runtime
         /// deterministic under test.</summary>
         internal Func<double> LiveClock = DefaultLiveClock;
         internal Func<double, Awaitable> LiveDelay = DefaultLiveDelay;
+
+        internal void MarkDirtyValue(string valueId, string? field)
+        {
+            if (string.IsNullOrEmpty(valueId)) return;
+            if (field != "value" && field != "mark") field = null;
+            if (!dirtyValueFields.TryGetValue(valueId, out var fields))
+            {
+                dirtyValueFields[valueId] = field == null
+                    ? null
+                    : new HashSet<string>(StringComparer.Ordinal) { field };
+                return;
+            }
+            if (fields == null || field == null)
+            {
+                dirtyValueFields[valueId] = null;
+                return;
+            }
+            fields.Add(field);
+        }
+
+        internal void MarkDirtyStaticBinding(string memberId)
+        {
+            if (!string.IsNullOrEmpty(memberId)) dirtyStaticBindings.Add(memberId);
+        }
+
+        private void ClearDirtyRecords()
+        {
+            dirtyValueFields.Clear();
+            dirtyStaticBindings.Clear();
+            stagedLiveUsesTrackedMutations = true;
+        }
 
         internal NeoSaveSynchronizer(
             InternalProjectStore core,
@@ -193,7 +228,19 @@ namespace NeoCompose.Runtime
                         $"Resolved save content for \"{CustomId}\" could not be parsed.");
                 }
 
+                if (remote != null
+                    && loaded.snapshotId == remote.snapshotId
+                    && loaded.snapshotRevision == remote.snapshotRevision)
+                {
+                    // Remote record caches are client-only and intentionally do
+                    // not serialize on RemoteGameSave. Reattach the materialized
+                    // cache after the opaque local artifact round-trip.
+                    loaded.recordCache = remote.recordCache;
+                    loaded.liveSessionId = remote.liveSessionId;
+                }
+
                 active = loaded;
+                ClearDirtyRecords();
                 State = NeoSaveSynchronizerState.Ready;
                 ResetLiveSessionBasis(loaded);
                 AttachRealtimeHead();
@@ -208,12 +255,17 @@ namespace NeoCompose.Runtime
         }
 
         public Awaitable CommitSaveContentAsync(string content, bool replaceSnapshot) =>
-            CommitSaveContentAsync(content, replaceSnapshot, flushLiveImmediately: false);
+            CommitSaveContentAsync(
+                content,
+                replaceSnapshot,
+                flushLiveImmediately: false,
+                useTrackedMutations: false);
 
         internal async Awaitable CommitSaveContentAsync(
             string content,
             bool replaceSnapshot,
-            bool flushLiveImmediately)
+            bool flushLiveImmediately,
+            bool useTrackedMutations = false)
         {
             if (string.IsNullOrWhiteSpace(content))
             {
@@ -226,7 +278,8 @@ namespace NeoCompose.Runtime
             // the live snapshot IS the in-place target.
             if (LiveModeEnabled)
             {
-                await StageLiveCommitAsync(content, flushLiveImmediately);
+                await StageLiveCommitAsync(
+                    content, flushLiveImmediately, useTrackedMutations);
                 return;
             }
 
@@ -248,17 +301,21 @@ namespace NeoCompose.Runtime
                 {
                     active = local;
                     core.RecordSavedFile(local, null);
+                    ClearDirtyRecords();
                     State = NeoSaveSynchronizerState.Ready;
                     OnCommitSuccess?.Invoke(local);
                     return;
                 }
 
-                var committedRemote = await CommitToCloudAsync(local, replaceSnapshot);
+                var committedRemote = await CommitToCloudAsync(
+                    local,
+                    replaceSnapshot,
+                    useTrackedMutations: useTrackedMutations);
                 if (committedRemote != null)
                 {
                     active = LocalGameSave.FromRemote(committedRemote);
                     // Re-stamp the local file with the server identity so a later
-                    // load sees the synchronized snapshot hash.
+                    // load sees the synchronized snapshot revision.
                     await core.LocalStore.CommitSaveAsync(
                         CustomId, JsonConvert.SerializeObject(active));
                     // A brand-new save skipped the load path (and with it
@@ -275,6 +332,7 @@ namespace NeoCompose.Runtime
                 }
 
                 core.RecordSavedFile(active, committedRemote);
+                if (committedRemote != null) ClearDirtyRecords();
                 State = NeoSaveSynchronizerState.Ready;
                 OnCommitSuccess?.Invoke(active);
             }
@@ -292,24 +350,83 @@ namespace NeoCompose.Runtime
         /// back to one REST attempt so a flaky socket never costs a save.
         /// </summary>
         private async Awaitable<NeoCommitResult> CommitTransportAsync(
-            NeoSaveCommitRequest request, bool replaceSnapshot)
+            NeoSaveCommitRequest request,
+            bool replaceSnapshot,
+            GameSaveRecordCache? reusableCache = null)
         {
             var realtime = core.RealtimeProvider;
             if (realtime != null && realtime.CanCommit)
             {
+                NeoCommitResult realtimeResult;
                 try
                 {
-                    return await realtime.CommitAsync(request, replaceSnapshot);
+                    realtimeResult = await realtime.CommitAsync(request, replaceSnapshot);
                 }
                 catch (Exception exception)
                 {
                     Debug.LogWarning(
                         $"[NeoCompose] Realtime commit for save \"{CustomId}\" failed; retrying " +
                         $"over REST. {exception.GetType().Name}: {exception.Message}");
+                    var fallback = await core.ApiClient!.CommitAsync(
+                        request, replaceSnapshot);
+                    return await HydrateRealtimeCommitResultAsync(
+                        fallback, reusableCache);
                 }
+
+                // Convex mutation results intentionally carry head metadata only.
+                // Materialize record content through the bounded REST reads before
+                // any caller persists or presents the result. Keep this outside the
+                // mutation catch: a failed read must never repeat an accepted write.
+                return await HydrateRealtimeCommitResultAsync(
+                    realtimeResult, reusableCache);
             }
 
-            return await core.ApiClient!.CommitAsync(request, replaceSnapshot);
+            var rest = await core.ApiClient!.CommitAsync(request, replaceSnapshot);
+            return await HydrateRealtimeCommitResultAsync(rest, reusableCache);
+        }
+
+        private async Awaitable<NeoCommitResult> HydrateRealtimeCommitResultAsync(
+            NeoCommitResult result,
+            GameSaveRecordCache? reusableCache)
+        {
+            if (result.IsTransitioning)
+            {
+                var customId = result.CustomId
+                    ?? throw new InvalidOperationException(
+                        "Neo Compose save transition omitted its save id.");
+                var targetSnapshotId = result.TargetSnapshotId
+                    ?? throw new InvalidOperationException(
+                        "Neo Compose save transition omitted its snapshot id.");
+                var ready = await core.WaitForSaveTransitionReadyAsync(
+                    customId, targetSnapshotId);
+                return NeoCommitResult.Committed(ready);
+            }
+
+            var save = result.IsConflict ? result.ServerHead! : result.CommittedSave!;
+            if (save.recordCache.snapshotId == save.snapshotId
+                && save.recordCache.snapshotRevision == save.snapshotRevision)
+            {
+                return result;
+            }
+
+            await NeoGameSaveRecordSync.LoadManifestAsync(
+                core.ApiClient!,
+                CustomId,
+                save,
+                CloneRecordStateCache(reusableCache));
+            return result;
+        }
+
+        private static GameSaveRecordCache CloneRecordStateCache(
+            GameSaveRecordCache? source)
+        {
+            var clone = new GameSaveRecordCache();
+            if (source == null) return clone;
+            foreach (var cached in source.states)
+            {
+                clone.states[cached.Key] = cached.Value;
+            }
+            return clone;
         }
 
         /// <summary>
@@ -318,14 +435,37 @@ namespace NeoCompose.Runtime
         /// a best-effort cloud commit failed (the local commit still stands).
         /// </summary>
         private async Awaitable<RemoteGameSave?> CommitToCloudAsync(
-            LocalGameSave local, bool replaceSnapshot, string? createAsLiveSessionId = null)
+            LocalGameSave local,
+            bool replaceSnapshot,
+            string? createAsLiveSessionId = null,
+            bool useTrackedMutations = false)
         {
             NeoCommitResult result;
             try
             {
-                result = await CommitTransportAsync(
-                    BuildCommitRequest(local, active?.snapshotId, createAsLiveSessionId),
-                    replaceSnapshot);
+                var request = BuildCommitRequest(
+                    local, active?.snapshotId, createAsLiveSessionId);
+                var initialChanges = BuildInitialRecordChanges(local);
+                if (local.IsLocalOnly
+                    && request.baseSnapshotId == null
+                    && initialChanges != null
+                    && initialChanges.Count > 64)
+                {
+                    var committed = await core.CreateSaveInChunksAsync(
+                        BuildChunkedCreateRequest(request), initialChanges);
+                    result = NeoCommitResult.Committed(committed);
+                }
+                else if (!local.IsLocalOnly && local.snapshotId != null)
+                {
+                    var baseline = await ResolveSparseCommitBaselineAsync(local);
+                    result = await CommitExistingSnapshotAsync(
+                        local, baseline, replaceSnapshot, useTrackedMutations);
+                }
+                else
+                {
+                    result = await CommitTransportAsync(
+                        request, replaceSnapshot, local.recordCache);
+                }
             }
             catch (Exception ex)
             {
@@ -374,8 +514,11 @@ namespace NeoCompose.Runtime
 
             // Keep local: write a NEW head on top of the server head — never a
             // destructive overwrite, so neither side's data is lost.
-            var rebased = await CommitTransportAsync(
-                BuildCommitRequest(local, serverHead.snapshotId), replaceSnapshot: false);
+            var rebased = await CommitExistingSnapshotAsync(
+                local,
+                SparseCommitBaseline.FromRemote(serverHead),
+                replaceSnapshot: false,
+                useTrackedMutations: useTrackedMutations);
             if (rebased.IsConflict)
             {
                 throw new NeoSaveConflictUnresolvedException(
@@ -383,6 +526,167 @@ namespace NeoCompose.Runtime
             }
 
             return rebased.CommittedSave;
+        }
+
+        private async Awaitable<SparseCommitBaseline> ResolveSparseCommitBaselineAsync(
+            LocalGameSave local)
+        {
+            if (active != null
+                && active.snapshotId == local.snapshotId
+                && active.snapshotRevision == local.snapshotRevision)
+            {
+                return SparseCommitBaseline.FromLocal(active);
+            }
+
+            var snapshotId = local.snapshotId
+                ?? throw new InvalidOperationException(
+                    "An existing save commit requires a base snapshot id.");
+            var remote = await core.ApiClient!.GetSaveSnapshotAsync(
+                CustomId, snapshotId);
+            return SparseCommitBaseline.FromRemote(remote);
+        }
+
+        private async Awaitable<NeoCommitResult> CommitExistingSnapshotAsync(
+            LocalGameSave local,
+            SparseCommitBaseline baseline,
+            bool replaceSnapshot,
+            bool useTrackedMutations)
+        {
+            var staged = AsValuesObject(local.values)
+                ?? throw new InvalidOperationException(
+                    "Sparse save commits require an object-shaped values overlay.");
+            var changes = BuildPendingPatch(
+                    baseline.values,
+                    staged,
+                    baseline.recordCache,
+                    baseline.staticBindings,
+                    local.staticBindings,
+                    useTrackedMutations)
+                .changes;
+
+            if (replaceSnapshot)
+            {
+                return await PatchExistingLiveSnapshotAsync(
+                    local, baseline, changes);
+            }
+            if (changes.Count > 64)
+            {
+                return await core.StageSnapshotInChunksAsync(
+                    CustomId,
+                    BuildStagedSnapshotRequest(local, baseline),
+                    changes);
+            }
+
+            var result = await core.ApiClient!.CommitSparseSnapshotAsync(
+                CustomId,
+                new NeoSparseSnapshotCommitRequest
+                {
+                    baseSnapshotId = baseline.snapshotId,
+                    baseSnapshotRevision = baseline.snapshotRevision,
+                    version = local.version,
+                    changes = changes,
+                    snapshotName = local.snapshotName,
+                    platforms = local.platforms,
+                    systems = local.systems,
+                    inputDevices = local.inputDevices,
+                    updatedAt = local.updatedAt,
+                });
+            return await HydrateRealtimeCommitResultAsync(
+                result, baseline.recordCache);
+        }
+
+        private static NeoStagedSnapshotBeginRequest BuildStagedSnapshotRequest(
+            LocalGameSave local,
+            SparseCommitBaseline baseline,
+            string? liveSessionId = null) => new()
+        {
+            baseSnapshotId = baseline.snapshotId,
+            baseSnapshotRevision = baseline.snapshotRevision,
+            version = local.version,
+            snapshotName = local.snapshotName,
+            platforms = local.platforms,
+            systems = local.systems,
+            inputDevices = local.inputDevices,
+            updatedAt = local.updatedAt,
+            liveSessionId = liveSessionId,
+        };
+
+        private async Awaitable<NeoCommitResult> PatchExistingLiveSnapshotAsync(
+            LocalGameSave local,
+            SparseCommitBaseline baseline,
+            IReadOnlyList<GameSaveRecordChange> changes)
+        {
+            if (string.IsNullOrEmpty(baseline.liveSessionId))
+            {
+                throw new InvalidOperationException(
+                    "replaceSnapshot requires a mutable live snapshot; the current head " +
+                    "is frozen or classic.");
+            }
+            var realtime = core.RealtimeProvider;
+            if (realtime == null || !realtime.CanCommit)
+            {
+                throw new InvalidOperationException(
+                    "replaceSnapshot requires a connected realtime provider.");
+            }
+
+            for (var index = 0; index < changes.Count; index += 64)
+            {
+                var count = Math.Min(64, changes.Count - index);
+                var patch = new NeoSavePatch
+                {
+                    changes = new List<GameSaveRecordChange>(
+                        changes.Skip(index).Take(count)),
+                };
+                var patched = await realtime.PatchLiveAsync(new NeoLivePatchRequest
+                {
+                    customId = CustomId,
+                    snapshotId = baseline.snapshotId,
+                    patch = patch,
+                    updatedAt = local.updatedAt,
+                });
+                if (patched.IsConflict || patched.IsStaleTarget)
+                {
+                    var serverHead = await core.ApiClient!.GetSaveAsync(CustomId);
+                    return NeoCommitResult.Conflict(serverHead);
+                }
+            }
+
+            return NeoCommitResult.Committed(
+                await core.ApiClient!.GetSaveAsync(CustomId));
+        }
+
+        private sealed class SparseCommitBaseline
+        {
+            public string snapshotId = "";
+            public long snapshotRevision;
+            public JObject values = new();
+            public Dictionary<string, string?> staticBindings = new();
+            public GameSaveRecordCache recordCache = new();
+            public string? liveSessionId;
+
+            public static SparseCommitBaseline FromLocal(LocalGameSave save) => new()
+            {
+                snapshotId = save.snapshotId!,
+                snapshotRevision = save.snapshotRevision,
+                values = AsValuesObject(save.values) is { } values
+                    ? (JObject)values.DeepClone()
+                    : new JObject(),
+                staticBindings = new Dictionary<string, string?>(save.staticBindings),
+                recordCache = save.recordCache,
+                liveSessionId = save.liveSessionId,
+            };
+
+            public static SparseCommitBaseline FromRemote(RemoteGameSave save) => new()
+            {
+                snapshotId = save.snapshotId,
+                snapshotRevision = save.snapshotRevision,
+                values = AsValuesObject(save.values) is { } values
+                    ? (JObject)values.DeepClone()
+                    : new JObject(),
+                staticBindings = new Dictionary<string, string?>(save.staticBindings),
+                recordCache = save.recordCache,
+                liveSessionId = save.liveSessionId,
+            };
         }
 
         /// <summary>
@@ -403,7 +707,8 @@ namespace NeoCompose.Runtime
             if (remote == null) return JsonConvert.SerializeObject(local);
             if (local == null) return JsonConvert.SerializeObject(remote);
 
-            if (local.snapshotHash == remote.snapshotHash)
+            if (local.snapshotId == remote.snapshotId
+                && local.snapshotRevision == remote.snapshotRevision)
             {
                 // In sync; prefer the cloud head as the authoritative copy.
                 return JsonConvert.SerializeObject(remote);
@@ -461,7 +766,7 @@ namespace NeoCompose.Runtime
             var decision = await continuation.Completion;
             if (!decision.Approved) return null; // no-op.
 
-            var cloned = await core.ApiClient!.CloneSaveAsync(
+            var cloned = await core.CloneSaveToReadyAsync(
                 CustomId,
                 new NeoCloneRequest
                 {
@@ -517,7 +822,8 @@ namespace NeoCompose.Runtime
             realtimeHeadSubscription = null;
             var realtime = core.RealtimeProvider;
             if (realtime == null) return;
-            realtimeHeadSubscription = realtime.SubscribeSaveHead(CustomId, OnRealtimeRemoteHead);
+            realtimeHeadSubscription = realtime.SubscribeSaveRevision(
+                CustomId, OnRealtimeRevisionSignal);
             if (liveConnectionHook == null)
             {
                 // Reconnects restart the flush loop so offline-composed deltas
@@ -527,13 +833,113 @@ namespace NeoCompose.Runtime
             }
         }
 
-        private void OnRealtimeRemoteHead(RemoteGameSave remote)
+        private async void OnRealtimeRevisionSignal(GameSaveSnapshotRevisionSignal signal)
         {
-            core.RecordRealtimeRemoteHead(remote);
-            if (TryHandleLiveRemoteHead(remote)) return;
-            if (active != null && remote.snapshotHash != active.snapshotHash)
+            if (pendingRealtimeRevision == null
+                || pendingRealtimeRevision.snapshotId != signal.snapshotId
+                || signal.snapshotRevision > pendingRealtimeRevision.snapshotRevision)
             {
-                OnRemoteHeadChanged?.Invoke(remote);
+                pendingRealtimeRevision = signal;
+            }
+            if (realtimeRevisionApplyRunning) return;
+
+            realtimeRevisionApplyRunning = true;
+            try
+            {
+                while (pendingRealtimeRevision != null)
+                {
+                    var next = pendingRealtimeRevision;
+                    pendingRealtimeRevision = null;
+                    await ApplyRealtimeRevisionSignalAsync(next);
+                }
+            }
+            finally
+            {
+                realtimeRevisionApplyRunning = false;
+            }
+        }
+
+        private async Awaitable ApplyRealtimeRevisionSignalAsync(
+            GameSaveSnapshotRevisionSignal signal)
+        {
+            var current = active;
+            if (current == null) return;
+            if (signal.snapshotId == current.snapshotId
+                && signal.snapshotRevision <= current.snapshotRevision)
+            {
+                return;
+            }
+
+            try
+            {
+                if (signal.snapshotId != current.snapshotId || core.ApiClient == null)
+                {
+                    // GetSaveAsync reads payload-free metadata, then explicitly
+                    // assembles the new snapshot through its manifest and state
+                    // endpoints. No full legacy save payload is accepted here.
+                    var remote = await SafeGetRemoteAsync(CustomId);
+                    if (remote == null) return;
+                    core.RecordRealtimeRemoteHead(remote);
+                    if (liveSnapshotId != null && remote.snapshotId != liveSnapshotId)
+                    {
+                        liveSnapshotId = null;
+                    }
+                    OnRemoteHeadChanged?.Invoke(remote);
+                    return;
+                }
+
+                NeoSavePatch? localDirty = null;
+                if (LiveModeEnabled
+                    && stagedLive != null
+                    && liveBaseline != null
+                    && liveFirstDirtyAt >= 0)
+                {
+                    var staged = AsValuesObject(stagedLive.values);
+                    if (staged != null)
+                    {
+                        localDirty = BuildPendingPatch(
+                            liveBaseline,
+                            staged,
+                            current.recordCache,
+                            liveStaticBindingBaseline,
+                            stagedLive!.staticBindings,
+                            stagedLiveUsesTrackedMutations);
+                    }
+                }
+
+                var changed = await NeoGameSaveRecordSync.ApplyDeltaAsync(
+                    core.ApiClient, CustomId, current, signal.snapshotRevision);
+                if (!changed) return;
+
+                var serverValues = AsValuesObject(current.values);
+                liveStaticBindingBaseline =
+                    new Dictionary<string, string?>(current.staticBindings);
+                if (serverValues != null)
+                {
+                    liveBaseline = (JObject)serverValues.DeepClone();
+                    if (localDirty != null)
+                    {
+                        ApplyLocalChanges(
+                            serverValues, current.staticBindings, localDirty);
+                        current.values = new NeoSaveValues(serverValues);
+                    }
+                }
+                current.liveFlushed = liveFirstDirtyAt < 0;
+                stagedLive = current;
+                RecordKnownLiveIdentity(
+                    current.serverId,
+                    current.snapshotId,
+                    current.snapshotRevision,
+                    current.synchronizedAt);
+                await core.LocalStore.CommitSaveAsync(
+                    CustomId, JsonConvert.SerializeObject(current));
+                OnLiveContentChanged?.Invoke(JsonConvert.SerializeObject(current));
+            }
+            catch (Exception exception)
+            {
+                Debug.LogWarning(
+                    $"[NeoCompose] Could not apply save record delta for \"{CustomId}\". " +
+                    $"{exception.GetType().Name}: {exception.Message}");
             }
         }
 
@@ -570,16 +976,24 @@ namespace NeoCompose.Runtime
             liveBaseline = AsValuesObject(loaded.values) is JObject values
                 ? (JObject)values.DeepClone()
                 : null;
+            liveStaticBindingBaseline =
+                new Dictionary<string, string?>(loaded.staticBindings);
             RecordKnownLiveIdentity(
-                loaded.serverId, loaded.snapshotId, loaded.snapshotHash, loaded.synchronizedAt);
+                loaded.serverId,
+                loaded.snapshotId,
+                loaded.snapshotRevision,
+                loaded.synchronizedAt);
         }
 
         private void RecordKnownLiveIdentity(
-            string? serverId, string? snapshotId, string? snapshotHash, double? synchronizedAt)
+            string? serverId,
+            string? snapshotId,
+            long snapshotRevision,
+            double? synchronizedAt)
         {
             liveKnownServerId = serverId;
             liveKnownSnapshotId = snapshotId;
-            liveKnownSnapshotHash = snapshotHash;
+            liveKnownSnapshotRevision = snapshotRevision;
             liveKnownSynchronizedAt = synchronizedAt;
         }
 
@@ -589,9 +1003,15 @@ namespace NeoCompose.Runtime
         {
             if (string.IsNullOrEmpty(local.serverId)) local.serverId = liveKnownServerId;
             if (string.IsNullOrEmpty(local.snapshotId)) local.snapshotId = liveKnownSnapshotId;
-            if (string.IsNullOrEmpty(local.snapshotHash))
+            if (local.snapshotRevision < liveKnownSnapshotRevision)
+                local.snapshotRevision = liveKnownSnapshotRevision;
+            if (local.recordCache.descriptors.Count == 0
+                && active?.recordCache is { } knownCache)
             {
-                local.snapshotHash = liveKnownSnapshotHash;
+                // Generated game save content intentionally omits the client-only
+                // record cache. Preserve the synchronizer's OCC bases when that
+                // content becomes the next staged local artifact.
+                local.recordCache = knownCache;
             }
             local.synchronizedAt ??= liveKnownSynchronizedAt;
         }
@@ -607,6 +1027,8 @@ namespace NeoCompose.Runtime
             if (!ReferenceEquals(stagedLive, local)) return;
             local.liveFlushed = true;
             await core.LocalStore.CommitSaveAsync(CustomId, JsonConvert.SerializeObject(local));
+            ClearDirtyRecords();
+            stagedLiveUsesTrackedMutations = true;
             liveFirstDirtyAt = -1;
         }
 
@@ -617,7 +1039,8 @@ namespace NeoCompose.Runtime
         /// </summary>
         private async Awaitable StageLiveCommitAsync(
             string content,
-            bool flushImmediately = false)
+            bool flushImmediately = false,
+            bool useTrackedMutations = false)
         {
             State = NeoSaveSynchronizerState.Committing;
             try
@@ -640,6 +1063,10 @@ namespace NeoCompose.Runtime
                 // its live snapshot.
                 MergeKnownLiveIdentityInto(local);
 
+                var alreadyStaged = liveFirstDirtyAt >= 0;
+                stagedLiveUsesTrackedMutations = alreadyStaged
+                    ? stagedLiveUsesTrackedMutations && useTrackedMutations
+                    : useTrackedMutations;
                 active = local;
                 stagedLive = local;
                 core.RecordSavedFile(local, null);
@@ -798,54 +1225,118 @@ namespace NeoCompose.Runtime
             }
 
             var baseline = liveBaseline ?? new JObject();
-            var patch = BuildLivePatch(baseline, staged);
+            var patch = BuildPendingPatch(
+                baseline,
+                staged,
+                local.recordCache,
+                liveStaticBindingBaseline,
+                local.staticBindings,
+                stagedLiveUsesTrackedMutations);
             if (patch.IsEmpty)
             {
-                if (ReferenceEquals(stagedLive, local)) liveFirstDirtyAt = -1;
+                if (ReferenceEquals(stagedLive, local))
+                {
+                    ClearDirtyRecords();
+                    liveFirstDirtyAt = -1;
+                }
                 return;
             }
 
             if (liveSnapshotId == null)
             {
-                await ForkLiveSessionAsync(realtime, local, staged, patch, local.snapshotId!);
-                return;
-            }
-
-            NeoLivePatchResult result;
-            try
-            {
-                result = await realtime.PatchLiveAsync(new NeoLivePatchRequest
-                {
-                    customId = CustomId,
-                    snapshotId = liveSnapshotId,
-                    patch = patch,
-                });
-            }
-            catch (Exception exception)
-            {
-                HandleLiveFlushFailure(exception);
-                return;
-            }
-
-            if (result.IsStaleTarget)
-            {
-                // Our live snapshot froze (a newer session forked past it, or
-                // the head was repointed). Re-fork immediately; the stale base
-                // then surfaces through the typed conflict contract.
-                liveSnapshotId = null;
                 await ForkLiveSessionAsync(
-                    realtime, local, staged, patch, result.ServerHead!.snapshotId);
+                    realtime,
+                    local,
+                    staged,
+                    patch,
+                    local.snapshotId!,
+                    local.snapshotRevision);
                 return;
             }
 
-            RecordLiveHash(result.SnapshotHash);
+            await PatchLiveBatchesAsync(realtime, local, staged, patch);
+        }
+
+        private async Awaitable<bool> PatchLiveBatchesAsync(
+            INeoRealtimeProvider realtime,
+            LocalGameSave local,
+            JObject staged,
+            NeoSavePatch patch)
+        {
+            foreach (var batch in SplitPatch(patch))
+            {
+                NeoLivePatchResult result;
+                try
+                {
+                    result = await realtime.PatchLiveAsync(new NeoLivePatchRequest
+                    {
+                        customId = CustomId,
+                        snapshotId = liveSnapshotId!,
+                        patch = batch,
+                        updatedAt = local.updatedAt,
+                    });
+                }
+                catch (Exception exception)
+                {
+                    HandleLiveFlushFailure(exception);
+                    return false;
+                }
+
+                if (result.IsStaleTarget)
+                {
+                    // Preserve the already-acknowledged batch baselines, then
+                    // re-fork only the remaining staged delta on the moved head.
+                    liveSnapshotId = null;
+                    var remaining = BuildPendingPatch(
+                        liveBaseline ?? new JObject(),
+                        staged,
+                        local.recordCache,
+                        liveStaticBindingBaseline,
+                        local.staticBindings,
+                        stagedLiveUsesTrackedMutations);
+                    await ForkLiveSessionAsync(
+                        realtime,
+                        local,
+                        staged,
+                        remaining,
+                        result.ServerHead!.snapshotId,
+                        result.ServerHead.snapshotRevision);
+                    return false;
+                }
+
+                if (result.IsConflict)
+                {
+                    // The next normalized patch uses this record's new OCC base.
+                    var descriptor = result.Conflict!.currentDescriptor;
+                    local.recordCache.descriptors[descriptor.LogicalKey] = descriptor;
+                    liveFirstDirtyAt = LiveClock();
+                    KickLiveFlushLoop();
+                    return false;
+                }
+
+                foreach (var descriptor in result.ChangedDescriptors)
+                {
+                    local.recordCache.descriptors[descriptor.LogicalKey] = descriptor;
+                }
+                local.recordCache.snapshotId = result.SnapshotId;
+                local.recordCache.snapshotRevision = result.SnapshotRevision;
+                liveBaseline ??= new JObject();
+                ApplyLocalChanges(liveBaseline, liveStaticBindingBaseline, batch);
+                local.snapshotId = result.SnapshotId;
+                local.snapshotRevision = result.SnapshotRevision;
+                local.synchronizedAt = result.SynchronizedAt.EpochMilliseconds;
+                RecordKnownLiveIdentity(
+                    local.serverId,
+                    result.SnapshotId,
+                    result.SnapshotRevision,
+                    local.synchronizedAt);
+            }
+
             liveBaseline = (JObject)staged.DeepClone();
-            local.snapshotId = result.SnapshotId;
-            local.snapshotHash = result.SnapshotHash;
-            local.synchronizedAt = result.SynchronizedAt.EpochMilliseconds;
-            RecordKnownLiveIdentity(
-                local.serverId, result.SnapshotId, result.SnapshotHash, local.synchronizedAt);
+            liveStaticBindingBaseline =
+                new Dictionary<string, string?>(local.staticBindings);
             await PersistFlushedLocalAsync(local);
+            return true;
         }
 
         /// <summary>First flush of the session (or a re-fork after the live
@@ -855,16 +1346,71 @@ namespace NeoCompose.Runtime
             LocalGameSave local,
             JObject staged,
             NeoSavePatch patch,
-            string baseSnapshotId)
+            string baseSnapshotId,
+            long baseSnapshotRevision)
         {
+            if (patch.changes.Count > 64)
+            {
+                NeoCommitResult stagedResult;
+                try
+                {
+                    stagedResult = await core.StageSnapshotInChunksAsync(
+                        CustomId,
+                        BuildStagedSnapshotRequest(
+                            local,
+                            new SparseCommitBaseline
+                            {
+                                snapshotId = baseSnapshotId,
+                                snapshotRevision = baseSnapshotRevision,
+                            },
+                            liveSessionId),
+                        patch.changes);
+                }
+                catch (Exception exception)
+                {
+                    HandleLiveFlushFailure(exception);
+                    return;
+                }
+                if (stagedResult.IsConflict)
+                {
+                    await ResolveLiveForkConflictAsync(
+                        realtime,
+                        local,
+                        staged,
+                        patch,
+                        stagedResult.ServerHead!);
+                    return;
+                }
+                AdoptForkedHead(local, staged, stagedResult.CommittedSave!);
+                await PersistFlushedLocalAsync(local);
+                return;
+            }
+
+            var batches = SplitPatch(patch);
+            if (batches.Count == 0) return;
             NeoCommitResult result;
             try
             {
                 result = await realtime.ForkLiveAsync(
-                    BuildLiveForkRequest(local, patch, baseSnapshotId));
+                    BuildLiveForkRequest(
+                        local, batches[0], baseSnapshotId, baseSnapshotRevision));
             }
             catch (Exception exception)
             {
+                HandleLiveFlushFailure(exception);
+                return;
+            }
+
+            try
+            {
+                result = await HydrateRealtimeCommitResultAsync(
+                    result, local.recordCache);
+            }
+            catch (Exception exception)
+            {
+                // The fork mutation may already have committed. Surface the read
+                // failure and retain the staged local content; never repeat the
+                // mutation merely because record materialization failed.
                 HandleLiveFlushFailure(exception);
                 return;
             }
@@ -913,27 +1459,51 @@ namespace NeoCompose.Runtime
                 RecordKnownLiveIdentity(
                     serverHead.serverId,
                     serverHead.snapshotId,
-                    serverHead.snapshotHash,
+                    serverHead.snapshotRevision,
                     adopted.synchronizedAt);
                 await core.LocalStore.CommitSaveAsync(
                     CustomId, JsonConvert.SerializeObject(adopted));
                 active = adopted;
+                ClearDirtyRecords();
+                stagedLiveUsesTrackedMutations = true;
                 stagedLive = null;
                 liveSnapshotId = null;
                 liveBaseline = AsValuesObject(serverHead.values) is JObject values
                     ? (JObject)values.DeepClone()
                     : null;
+                liveStaticBindingBaseline =
+                    new Dictionary<string, string?>(serverHead.staticBindings);
                 liveFirstDirtyAt = -1;
-                RecordLiveHash(serverHead.snapshotHash);
                 OnLiveContentChanged?.Invoke(JsonConvert.SerializeObject(adopted));
                 return;
             }
 
+            var batches = SplitPatch(patch);
+            if (batches.Count == 0) return;
             NeoCommitResult rebased;
             try
             {
-                rebased = await realtime.ForkLiveAsync(
-                    BuildLiveForkRequest(local, patch, serverHead.snapshotId));
+                if (patch.changes.Count > 64)
+                {
+                    rebased = await core.StageSnapshotInChunksAsync(
+                        CustomId,
+                        BuildStagedSnapshotRequest(
+                            local,
+                            SparseCommitBaseline.FromRemote(serverHead),
+                            liveSessionId),
+                        patch.changes);
+                }
+                else
+                {
+                    rebased = await realtime.ForkLiveAsync(
+                        BuildLiveForkRequest(
+                            local,
+                            batches[0],
+                            serverHead.snapshotId,
+                            serverHead.snapshotRevision));
+                    rebased = await HydrateRealtimeCommitResultAsync(
+                        rebased, serverHead.recordCache);
+                }
             }
             catch (Exception exception)
             {
@@ -964,7 +1534,10 @@ namespace NeoCompose.Runtime
             try
             {
                 committed = await CommitToCloudAsync(
-                    local, replaceSnapshot: false, createAsLiveSessionId: liveSessionId);
+                    local,
+                    replaceSnapshot: false,
+                    createAsLiveSessionId: liveSessionId,
+                    useTrackedMutations: stagedLiveUsesTrackedMutations);
             }
             catch (Exception exception)
             {
@@ -986,19 +1559,21 @@ namespace NeoCompose.Runtime
                 liveSnapshotId = committed.snapshotId;
             }
 
-            RecordLiveHash(committed.snapshotHash);
             liveBaseline = AsValuesObject(committed.values) is JObject values
                 ? (JObject)values.DeepClone()
                 : null;
+            liveStaticBindingBaseline =
+                new Dictionary<string, string?>(committed.staticBindings);
             local.serverId = committed.serverId;
             local.snapshotId = committed.snapshotId;
-            local.snapshotHash = committed.snapshotHash;
+            local.snapshotRevision = committed.snapshotRevision;
+            local.recordCache = committed.recordCache;
             local.snapshotName = committed.snapshotName;
             local.synchronizedAt = committed.synchronizedAt.EpochMilliseconds;
             RecordKnownLiveIdentity(
                 committed.serverId,
                 committed.snapshotId,
-                committed.snapshotHash,
+                committed.snapshotRevision,
                 local.synchronizedAt);
             await PersistFlushedLocalAsync(local);
 
@@ -1020,20 +1595,22 @@ namespace NeoCompose.Runtime
         /// only identity/sync fields are restamped.</summary>
         private void AdoptForkedHead(LocalGameSave local, JObject staged, RemoteGameSave committed)
         {
-            RecordLiveHash(committed.snapshotHash);
             liveSnapshotId = committed.snapshotId;
             liveBaseline = AsValuesObject(committed.values) is JObject serverValues
                 ? (JObject)serverValues.DeepClone()
                 : (JObject)staged.DeepClone();
+            liveStaticBindingBaseline =
+                new Dictionary<string, string?>(committed.staticBindings);
             local.serverId = committed.serverId;
             local.snapshotId = committed.snapshotId;
-            local.snapshotHash = committed.snapshotHash;
+            local.snapshotRevision = committed.snapshotRevision;
+            local.recordCache = committed.recordCache;
             local.snapshotName = committed.snapshotName;
             local.synchronizedAt = committed.synchronizedAt.EpochMilliseconds;
             RecordKnownLiveIdentity(
                 committed.serverId,
                 committed.snapshotId,
-                committed.snapshotHash,
+                committed.snapshotRevision,
                 local.synchronizedAt);
         }
 
@@ -1127,13 +1704,17 @@ namespace NeoCompose.Runtime
         }
 
         private NeoLiveForkRequest BuildLiveForkRequest(
-            LocalGameSave local, NeoSavePatch patch, string baseSnapshotId)
+            LocalGameSave local,
+            NeoSavePatch patch,
+            string baseSnapshotId,
+            long baseSnapshotRevision)
         {
             return new NeoLiveForkRequest
             {
                 customId = string.IsNullOrEmpty(local.customId) ? CustomId : local.customId,
                 liveSessionId = liveSessionId,
                 baseSnapshotId = baseSnapshotId,
+                baseSnapshotRevision = baseSnapshotRevision,
                 version = local.version,
                 patch = patch,
                 platforms = local.platforms,
@@ -1143,99 +1724,6 @@ namespace NeoCompose.Runtime
             };
         }
 
-        /// <summary>
-        /// Live handling of a pushed head. True when fully handled here:
-        /// this session's own write echoing back (dropped), or a co-editor's
-        /// patch of the session's live snapshot (merged + applied). False
-        /// falls through to the classic <see cref="OnRemoteHeadChanged"/>
-        /// divergence event.
-        /// </summary>
-        private bool TryHandleLiveRemoteHead(RemoteGameSave remote)
-        {
-            if (!LiveModeEnabled) return false;
-            if (recentLiveHashes.Contains(remote.snapshotHash))
-            {
-                return true;
-            }
-
-            if (liveSnapshotId == null || remote.snapshotId != liveSnapshotId)
-            {
-                if (liveSnapshotId != null)
-                {
-                    // A newer session forked past ours; our snapshot froze. The
-                    // next flush re-forks (stale base ⇒ typed conflict contract).
-                    liveSnapshotId = null;
-                }
-
-                return false;
-            }
-
-            ApplyLiveRemoteValues(remote);
-            return true;
-        }
-
-        /// <summary>
-        /// A co-editor (e.g. the web tool) patched this session's live
-        /// snapshot: merge the remote values into the active save with locally
-        /// dirty keys winning until they flush, persist, and hand the merged
-        /// content to the game via <see cref="OnLiveContentChanged"/>.
-        /// </summary>
-        private void ApplyLiveRemoteValues(RemoteGameSave remote)
-        {
-            var current = active;
-            if (current == null) return;
-            var remoteValues = AsValuesObject(remote.values);
-            if (remoteValues == null)
-            {
-                Debug.LogWarning(
-                    $"[NeoCompose] Live head push for save \"{CustomId}\" carried non-object " +
-                    "values; skipping the apply.");
-                return;
-            }
-
-            var merged = (JObject)remoteValues.DeepClone();
-            var staged = stagedLive != null ? AsValuesObject(stagedLive.values) : null;
-            if (staged != null && liveBaseline != null && liveFirstDirtyAt >= 0)
-            {
-                var dirty = BuildLivePatch(liveBaseline, staged);
-                foreach (var pair in dirty.entries) merged[pair.Key] = pair.Value;
-                foreach (var key in dirty.restoredToAuthored) merged.Remove(key);
-            }
-            liveBaseline = (JObject)remoteValues.DeepClone();
-            current.values = new NeoSaveValues(merged);
-            current.snapshotId = remote.snapshotId;
-            current.snapshotHash = remote.snapshotHash;
-            current.synchronizedAt = remote.synchronizedAt.EpochMilliseconds;
-            current.liveFlushed = liveFirstDirtyAt < 0;
-            RecordKnownLiveIdentity(
-                current.serverId,
-                remote.snapshotId,
-                remote.snapshotHash,
-                current.synchronizedAt);
-            stagedLive = current;
-            // Re-pushed identical state must not re-apply; the ring doubles as
-            // an applied-push dedupe.
-            RecordLiveHash(remote.snapshotHash);
-            PersistLiveApplyQuietly(current);
-            OnLiveContentChanged?.Invoke(JsonConvert.SerializeObject(current));
-        }
-
-        /// <summary>Best-effort persistence of an inbound live apply; a local
-        /// write failure must not break the realtime stream.</summary>
-        private async void PersistLiveApplyQuietly(LocalGameSave save)
-        {
-            try
-            {
-                await core.LocalStore.CommitSaveAsync(CustomId, JsonConvert.SerializeObject(save));
-            }
-            catch (Exception exception)
-            {
-                Debug.LogWarning(
-                    $"[NeoCompose] Persisting an applied live edit for \"{CustomId}\" failed: " +
-                    $"{exception.Message}");
-            }
-        }
-
         private void OnLiveConnectionStateChanged(NeoRealtimeConnectionState state)
         {
             if (state != NeoRealtimeConnectionState.Connected) return;
@@ -1243,19 +1731,136 @@ namespace NeoCompose.Runtime
             KickLiveFlushLoop();
         }
 
-        private void RecordLiveHash(string snapshotHash)
+        /// <summary>
+        /// Builds one normalized change per dirty value record. Object rows
+        /// become field operations; unknown/non-object shapes retain the
+        /// record-level replace escape hatch.
+        /// </summary>
+        private NeoSavePatch BuildPendingPatch(
+            JObject baseline,
+            JObject staged,
+            GameSaveRecordCache? cache,
+            IReadOnlyDictionary<string, string?> baselineStaticBindings,
+            IReadOnlyDictionary<string, string?> stagedStaticBindings,
+            bool useTrackedMutations)
         {
-            if (string.IsNullOrEmpty(snapshotHash)) return;
-            recentLiveHashes.Remove(snapshotHash);
-            recentLiveHashes.Add(snapshotHash);
-            if (recentLiveHashes.Count > RecentLiveHashCapacity)
+            if (!useTrackedMutations
+                || (dirtyValueFields.Count == 0 && dirtyStaticBindings.Count == 0))
             {
-                recentLiveHashes.RemoveAt(0);
+                // Opaque developer-authored local files and explicit imports do
+                // not pass through generated setters. Diff them as a compatibility
+                // escape hatch; generated runtime writes use the targeted path.
+                return BuildLivePatch(
+                    baseline,
+                    staged,
+                    cache,
+                    baselineStaticBindings,
+                    stagedStaticBindings);
             }
+
+            var patch = new NeoSavePatch();
+            foreach (var dirty in dirtyValueFields.OrderBy(
+                         pair => pair.Key, StringComparer.Ordinal))
+            {
+                var descriptor = FindValueDescriptor(cache, dirty.Key);
+                var hasBaseline = baseline.TryGetValue(dirty.Key, out var before);
+                var hasStaged = staged.TryGetValue(dirty.Key, out var after);
+                if (!hasStaged)
+                {
+                    if (hasBaseline
+                        && descriptor is
+                            { deleted: false, recordStateId: not null,
+                                recordRevisionToken: not null })
+                    {
+                        patch.changes.Add(new GameSaveValueRestoreToAuthoredChange
+                        {
+                            valueId = dirty.Key,
+                            baseRecordStateId = descriptor.recordStateId,
+                            baseRecordRevisionToken = descriptor.recordRevisionToken,
+                        });
+                    }
+                    continue;
+                }
+                if (hasBaseline && NeoSemanticJson.ProjectRecordsEqual(before, after))
+                {
+                    continue;
+                }
+                if (dirty.Value != null
+                    && before is JObject oldObject
+                    && after is JObject newObject
+                    && descriptor is
+                        { deleted: false, recordStateId: not null,
+                            recordRevisionToken: not null }
+                    && OnlySafeRecordFieldsDiffer(oldObject, newObject))
+                {
+                    var fieldPatch = BuildValueFieldPatch(
+                        dirty.Key, oldObject, newObject, descriptor);
+                    if (fieldPatch.set.Count != 0 || fieldPatch.unset.Count != 0)
+                    {
+                        patch.changes.Add(fieldPatch);
+                        continue;
+                    }
+                }
+                patch.changes.Add(new GameSaveValueReplaceChange
+                {
+                    valueId = dirty.Key,
+                    baseRecordStateId = descriptor is { deleted: false }
+                        ? descriptor.recordStateId
+                        : null,
+                    baseRecordRevisionToken = descriptor is { deleted: false }
+                        ? descriptor.recordRevisionToken
+                        : null,
+                    value = after!.DeepClone(),
+                });
+            }
+
+            foreach (var memberId in dirtyStaticBindings.OrderBy(
+                         id => id, StringComparer.Ordinal))
+            {
+                var descriptor = FindDescriptor(
+                    cache, NeoGameSaveRecordKinds.StaticBinding, memberId);
+                if (stagedStaticBindings.TryGetValue(memberId, out var valueId))
+                {
+                    if (baselineStaticBindings.TryGetValue(memberId, out var before)
+                        && before == valueId)
+                    {
+                        continue;
+                    }
+                    patch.changes.Add(new GameSaveStaticBindingSetChange
+                    {
+                        memberId = memberId,
+                        valueId = valueId,
+                        baseRecordStateId = descriptor is { deleted: false }
+                            ? descriptor.recordStateId
+                            : null,
+                        baseRecordRevisionToken = descriptor is { deleted: false }
+                            ? descriptor.recordRevisionToken
+                            : null,
+                    });
+                    continue;
+                }
+                if (baselineStaticBindings.ContainsKey(memberId)
+                    && descriptor is
+                        { deleted: false, recordStateId: not null,
+                            recordRevisionToken: not null })
+                {
+                    patch.changes.Add(new GameSaveStaticBindingRestoreToAuthoredChange
+                    {
+                        memberId = memberId,
+                        baseRecordStateId = descriptor.recordStateId,
+                        baseRecordRevisionToken = descriptor.recordRevisionToken,
+                    });
+                }
+            }
+            return patch;
         }
 
-        /// <summary>Per-key diff for the sparse values overlay.</summary>
-        internal static NeoSavePatch BuildLivePatch(JObject baseline, JObject staged)
+        internal static NeoSavePatch BuildLivePatch(
+            JObject baseline,
+            JObject staged,
+            GameSaveRecordCache? cache = null,
+            IReadOnlyDictionary<string, string?>? baselineStaticBindings = null,
+            IReadOnlyDictionary<string, string?>? stagedStaticBindings = null)
         {
             var patch = new NeoSavePatch();
             foreach (var property in staged.Properties())
@@ -1263,10 +1868,33 @@ namespace NeoCompose.Runtime
                 if (!baseline.TryGetValue(property.Name, out var existing)
                     || !NeoSemanticJson.ProjectRecordsEqual(existing, property.Value))
                 {
-                    patch.entries[property.Name] = property.Value;
-                    if (existing != null)
+                    var descriptor = FindValueDescriptor(cache, property.Name);
+                    if (existing is JObject oldObject
+                        && property.Value is JObject newObject
+                        && descriptor is { deleted: false, recordStateId: not null,
+                            recordRevisionToken: not null }
+                        && OnlySafeRecordFieldsDiffer(oldObject, newObject))
                     {
-                        patch.baseMapKeys[property.Name] = ReadMapKey(existing);
+                        var fieldPatch = BuildValueFieldPatch(
+                            property.Name, oldObject, newObject, descriptor);
+                        if (fieldPatch.set.Count != 0 || fieldPatch.unset.Count != 0)
+                        {
+                            patch.changes.Add(fieldPatch);
+                        }
+                    }
+                    else
+                    {
+                        patch.changes.Add(new GameSaveValueReplaceChange
+                        {
+                            valueId = property.Name,
+                            baseRecordStateId = descriptor is { deleted: false }
+                                ? descriptor.recordStateId
+                                : null,
+                            baseRecordRevisionToken = descriptor is { deleted: false }
+                                ? descriptor.recordRevisionToken
+                                : null,
+                            value = property.Value.DeepClone(),
+                        });
                     }
                 }
             }
@@ -1275,22 +1903,199 @@ namespace NeoCompose.Runtime
             {
                 if (!staged.ContainsKey(property.Name))
                 {
-                    patch.restoredToAuthored.Add(property.Name);
-                    patch.baseMapKeys[property.Name] = ReadMapKey(property.Value);
+                    var descriptor = FindValueDescriptor(cache, property.Name);
+                    if (descriptor is { deleted: false, recordStateId: not null,
+                        recordRevisionToken: not null })
+                    {
+                        patch.changes.Add(new GameSaveValueRestoreToAuthoredChange
+                        {
+                            valueId = property.Name,
+                            baseRecordStateId = descriptor.recordStateId,
+                            baseRecordRevisionToken = descriptor.recordRevisionToken,
+                        });
+                    }
+                }
+            }
+
+            if (baselineStaticBindings != null && stagedStaticBindings != null)
+            {
+                foreach (var binding in stagedStaticBindings)
+                {
+                    if (baselineStaticBindings.TryGetValue(binding.Key, out var existing)
+                        && existing == binding.Value)
+                    {
+                        continue;
+                    }
+                    var descriptor = FindDescriptor(
+                        cache, NeoGameSaveRecordKinds.StaticBinding, binding.Key);
+                    patch.changes.Add(new GameSaveStaticBindingSetChange
+                    {
+                        memberId = binding.Key,
+                        valueId = binding.Value,
+                        baseRecordStateId = descriptor is { deleted: false }
+                            ? descriptor.recordStateId
+                            : null,
+                        baseRecordRevisionToken = descriptor is { deleted: false }
+                            ? descriptor.recordRevisionToken
+                            : null,
+                    });
+                }
+                foreach (var binding in baselineStaticBindings)
+                {
+                    if (stagedStaticBindings.ContainsKey(binding.Key)) continue;
+                    var descriptor = FindDescriptor(
+                        cache, NeoGameSaveRecordKinds.StaticBinding, binding.Key);
+                    if (descriptor is not
+                        { deleted: false, recordStateId: not null,
+                            recordRevisionToken: not null })
+                    {
+                        continue;
+                    }
+                    patch.changes.Add(
+                        new GameSaveStaticBindingRestoreToAuthoredChange
+                        {
+                            memberId = binding.Key,
+                            baseRecordStateId = descriptor.recordStateId,
+                            baseRecordRevisionToken = descriptor.recordRevisionToken,
+                        });
                 }
             }
 
             return patch;
         }
 
-        private static string? ReadMapKey(JToken entry)
+        private static GameSaveRecordDescriptor? FindValueDescriptor(
+            GameSaveRecordCache? cache,
+            string valueId) =>
+            FindDescriptor(cache, NeoGameSaveRecordKinds.Value, valueId);
+
+        private static GameSaveRecordDescriptor? FindDescriptor(
+            GameSaveRecordCache? cache,
+            string recordKind,
+            string recordId)
         {
-            if (entry is not JObject row) return null;
-            var mapKey = row["mapKey"];
-            return mapKey?.Type == JTokenType.String
-                ? mapKey.Value<string>()
-                : null;
+            if (cache == null) return null;
+            cache.descriptors.TryGetValue(
+                GameSaveRecordDescriptor.MakeLogicalKey(
+                    recordKind, recordId),
+                out var descriptor);
+            return descriptor;
         }
+
+        private static GameSaveValuePatchChange BuildValueFieldPatch(
+            string valueId,
+            JObject baseline,
+            JObject staged,
+            GameSaveRecordDescriptor descriptor)
+        {
+            var change = new GameSaveValuePatchChange
+            {
+                valueId = valueId,
+                baseRecordStateId = descriptor.recordStateId!,
+                baseRecordRevisionToken = descriptor.recordRevisionToken!,
+            };
+            foreach (var field in staged.Properties())
+            {
+                if (!IsSafeRecordPatchField(field.Name)) continue;
+                if (!baseline.TryGetValue(field.Name, out var before)
+                    || !NeoSemanticJson.ValuesEqual(before, field.Value))
+                {
+                    change.set[field.Name] = field.Value.DeepClone();
+                }
+            }
+            foreach (var field in baseline.Properties())
+            {
+                if (!IsSafeRecordPatchField(field.Name)) continue;
+                if (!staged.ContainsKey(field.Name)) change.unset.Add(field.Name);
+            }
+            return change;
+        }
+
+        private static bool OnlySafeRecordFieldsDiffer(
+            JObject baseline,
+            JObject staged)
+        {
+            foreach (var field in baseline.Properties())
+            {
+                if (IsCanonicalOrTimestampField(field.Name)) continue;
+                if (staged.TryGetValue(field.Name, out var after)
+                    && NeoSemanticJson.ValuesEqual(field.Value, after))
+                {
+                    continue;
+                }
+                if (!IsSafeRecordPatchField(field.Name)) return false;
+            }
+            foreach (var field in staged.Properties())
+            {
+                if (IsCanonicalOrTimestampField(field.Name)) continue;
+                if (baseline.TryGetValue(field.Name, out var before)
+                    && NeoSemanticJson.ValuesEqual(before, field.Value))
+                {
+                    continue;
+                }
+                if (!IsSafeRecordPatchField(field.Name)) return false;
+            }
+            return true;
+        }
+
+        private static bool IsSafeRecordPatchField(string field) =>
+            field == "value" || field == "mark";
+
+        private static void ApplyLocalChanges(
+            JObject values,
+            IDictionary<string, string?> staticBindings,
+            NeoSavePatch patch)
+        {
+            foreach (var change in patch.changes)
+            {
+                switch (change)
+                {
+                    case GameSaveValueReplaceChange replace:
+                        values[replace.valueId] = replace.value.DeepClone();
+                        break;
+                    case GameSaveValueRestoreToAuthoredChange restore:
+                        values.Remove(restore.valueId);
+                        break;
+                    case GameSaveValuePatchChange fieldPatch:
+                    {
+                        if (values[fieldPatch.valueId] is not JObject row) break;
+                        foreach (var pair in fieldPatch.set)
+                        {
+                            row[pair.Key] = pair.Value.DeepClone();
+                        }
+                        foreach (var field in fieldPatch.unset) row.Remove(field);
+                        break;
+                    }
+                    case GameSaveStaticBindingSetChange binding:
+                        staticBindings[binding.memberId] = binding.valueId;
+                        break;
+                    case GameSaveStaticBindingRestoreToAuthoredChange restoreBinding:
+                        staticBindings.Remove(restoreBinding.memberId);
+                        break;
+                }
+            }
+        }
+
+        private static List<NeoSavePatch> SplitPatch(NeoSavePatch patch)
+        {
+            var batches = new List<NeoSavePatch>();
+            for (var index = 0; index < patch.changes.Count; index += 64)
+            {
+                batches.Add(new NeoSavePatch
+                {
+                    changes = patch.changes.Skip(index).Take(64).ToList(),
+                });
+            }
+            return batches;
+        }
+
+        private static bool IsCanonicalOrTimestampField(string field) =>
+            field == "_id"
+            || field == "projectId"
+            || field == "id"
+            || field == "mapKey"
+            || field == "createdAt"
+            || field == "updatedAt";
 
         /// <summary>The values map as a JSON object: a null token reads as an
         /// empty overlay; any other non-object shape is unpatchable (null).</summary>
@@ -1452,5 +2257,37 @@ namespace NeoCompose.Runtime
                 liveSessionId = createAsLiveSessionId,
             };
         }
+
+        private static List<GameSaveRecordChange>? BuildInitialRecordChanges(
+            LocalGameSave local)
+        {
+            var values = AsValuesObject(local.values);
+            if (values == null) return null;
+            return BuildLivePatch(
+                    new JObject(),
+                    values,
+                    cache: null,
+                    baselineStaticBindings:
+                        new Dictionary<string, string?>(),
+                    stagedStaticBindings: local.staticBindings)
+                .changes;
+        }
+
+        private static NeoChunkedCreateRequest BuildChunkedCreateRequest(
+            NeoSaveCommitRequest request) =>
+            new NeoChunkedCreateRequest
+            {
+                customId = request.customId,
+                name = request.name,
+                version = request.version,
+                targetReleaseChannelId = request.targetReleaseChannelId,
+                snapshotName = request.snapshotName,
+                liveSessionId = request.liveSessionId,
+                platforms = request.platforms,
+                systems = request.systems,
+                inputDevices = request.inputDevices,
+                createdAt = request.createdAt,
+                updatedAt = request.updatedAt,
+            };
     }
 }

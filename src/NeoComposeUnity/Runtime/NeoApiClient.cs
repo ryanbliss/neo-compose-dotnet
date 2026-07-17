@@ -28,8 +28,39 @@ namespace NeoCompose.Runtime
         Awaitable<RemoteGameSave> GetSaveAsync(string customId);
         Awaitable<IReadOnlyList<RemoteGameSaveSummary>> GetSaveSnapshotsAsync(string customId);
         Awaitable<RemoteGameSave> GetSaveSnapshotAsync(string customId, string snapshotId);
+        Awaitable<GameSaveRecordPage> GetSaveRecordManifestPageAsync(
+            string customId,
+            string snapshotId,
+            GameSaveRecordPageRequest request);
+        Awaitable<GameSaveRecordPage> GetSaveRecordDeltaPageAsync(
+            string customId,
+            string snapshotId,
+            GameSaveRecordDeltaPageRequest request);
+        Awaitable<IReadOnlyList<GameSaveRecordState>> GetSaveRecordStatesAsync(
+            string customId,
+            string snapshotId,
+            IReadOnlyList<string> recordStateIds);
         Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot);
-        Awaitable<RemoteGameSave> CloneSaveAsync(string customId, NeoCloneRequest request);
+        Awaitable<NeoCommitResult> CommitSparseSnapshotAsync(
+            string customId,
+            NeoSparseSnapshotCommitRequest request);
+        Awaitable<NeoCommitResult> BeginStagedSnapshotAsync(
+            string customId,
+            NeoStagedSnapshotBeginRequest request);
+        Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
+            NeoChunkedCreateRequest request);
+        Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
+            string customId,
+            string resumeToken,
+            long baseSnapshotRevision,
+            IReadOnlyList<GameSaveRecordChange> changes,
+            NeoTimestamp updatedAt);
+        Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
+            string customId,
+            string resumeToken);
+        Awaitable<NeoCloneResult> CloneSaveAsync(string customId, NeoCloneRequest request);
+        Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(string customId);
+        Awaitable RetrySaveTransitionAsync(string customId);
         Awaitable ArchiveSaveAsync(string customId);
         Awaitable<RemoteGameSave> ArchiveSnapshotAsync(string customId, string snapshotId);
     }
@@ -84,7 +115,9 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "read this save file", projectId, ReadScope);
             var json = await PostAuthorizedAsync(url, operation);
-            return Deserialize<RemoteGameSave>(json, "save file");
+            var save = Deserialize<RemoteGameSave>(json, "save file");
+            await NeoGameSaveRecordSync.LoadManifestAsync(this, customId, save);
+            return save;
         }
 
         public async Awaitable<IReadOnlyList<RemoteGameSaveSummary>> GetSaveSnapshotsAsync(
@@ -114,7 +147,65 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "read this save file snapshot", projectId, ReadScope);
             var json = await PostAuthorizedAsync(url, operation);
-            return Deserialize<RemoteGameSave>(json, "save snapshot");
+            var save = Deserialize<RemoteGameSave>(json, "save snapshot");
+            await NeoGameSaveRecordSync.LoadManifestAsync(this, customId, save);
+            return save;
+        }
+
+        public async Awaitable<GameSaveRecordPage> GetSaveRecordManifestPageAsync(
+            string customId,
+            string snapshotId,
+            GameSaveRecordPageRequest request)
+        {
+            RequireRecordReadArgs(customId, snapshotId, request);
+            var url = SnapshotRecordsUrl(customId, snapshotId, "/manifest/query");
+            var operation = new NeoComposeApiOperation(
+                "read this save snapshot's record manifest", projectId, ReadScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(request));
+            return Deserialize<GameSaveRecordPage>(json, "save record manifest page");
+        }
+
+        public async Awaitable<GameSaveRecordPage> GetSaveRecordDeltaPageAsync(
+            string customId,
+            string snapshotId,
+            GameSaveRecordDeltaPageRequest request)
+        {
+            RequireRecordReadArgs(customId, snapshotId, request);
+            if (request.throughRevision < request.afterRevision)
+            {
+                throw new ArgumentException(
+                    "Delta throughRevision cannot precede afterRevision.", nameof(request));
+            }
+            var url = SnapshotRecordsUrl(customId, snapshotId, "/delta/query");
+            var operation = new NeoComposeApiOperation(
+                "read this save snapshot's record delta", projectId, ReadScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(request));
+            return Deserialize<GameSaveRecordPage>(json, "save record delta page");
+        }
+
+        public async Awaitable<IReadOnlyList<GameSaveRecordState>> GetSaveRecordStatesAsync(
+            string customId,
+            string snapshotId,
+            IReadOnlyList<string> recordStateIds)
+        {
+            RequireCustomId(customId);
+            RequireSnapshotId(snapshotId);
+            if (recordStateIds == null)
+            {
+                throw new ArgumentNullException(nameof(recordStateIds));
+            }
+            var request = new GameSaveRecordStatesRequest();
+            request.recordStateIds.AddRange(recordStateIds);
+            var url = SnapshotRecordsUrl(customId, snapshotId, "/states/query");
+            var operation = new NeoComposeApiOperation(
+                "read this save snapshot's record states", projectId, ReadScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(request));
+            var response = Deserialize<GameSaveRecordStatesResponse>(
+                json, "save record states");
+            return response.states;
         }
 
         public async Awaitable<NeoCommitResult> CommitAsync(
@@ -142,21 +233,153 @@ namespace NeoCompose.Runtime
                         "Neo Compose save commit conflict response did not include the server head.");
                 }
 
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, request.customId, conflict.serverHead);
+
                 return NeoCommitResult.Conflict(conflict.serverHead);
             }
 
             var json = ReadBody(url, operation, response);
             var committed = Deserialize<CommitResponseWire>(json, "save commit");
+            if (committed.kind == "transitioning")
+            {
+                RequireTransitionIdentity(
+                    committed.customId, committed.targetSnapshotId, "save commit");
+                return NeoCommitResult.Transitioning(
+                    committed.customId, committed.targetSnapshotId);
+            }
             if (committed.save == null)
             {
                 throw new InvalidOperationException(
                     "Neo Compose save commit response did not include the committed save.");
             }
 
+            await NeoGameSaveRecordSync.LoadManifestAsync(
+                this, request.customId, committed.save);
+
             return NeoCommitResult.Committed(committed.save);
         }
 
-        public async Awaitable<RemoteGameSave> CloneSaveAsync(string customId, NeoCloneRequest request)
+        public async Awaitable<NeoCommitResult> CommitSparseSnapshotAsync(
+            string customId,
+            NeoSparseSnapshotCommitRequest request)
+        {
+            RequireCustomId(customId);
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            RequireSnapshotId(request.baseSnapshotId);
+            if (request.baseSnapshotRevision < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(request));
+            }
+            if (request.changes == null || request.changes.Count > 64)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(request),
+                    "A sparse snapshot commit cannot exceed 64 record changes.");
+            }
+
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/snapshots/commit");
+            var operation = new NeoComposeApiOperation(
+                "commit a sparse save snapshot", projectId, WriteScope);
+            var body = JsonConvert.SerializeObject(new { snapshot = request });
+            var response = await SendAuthorizedAsync(url, body);
+            if (response.StatusCode == 409)
+            {
+                var conflict = Deserialize<CommitResponseWire>(
+                    response.Text, "sparse save commit conflict");
+                if (conflict.serverHead == null)
+                {
+                    throw new InvalidOperationException(
+                        "Neo Compose sparse save conflict omitted the server head.");
+                }
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, customId, conflict.serverHead);
+                return NeoCommitResult.Conflict(conflict.serverHead);
+            }
+
+            var json = ReadBody(url, operation, response);
+            var result = Deserialize<CommitResponseWire>(json, "sparse save commit");
+            if (result.kind == "committed" && result.save != null)
+            {
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, customId, result.save);
+                return NeoCommitResult.Committed(result.save);
+            }
+            if (result.kind == "transitioning")
+            {
+                RequireTransitionIdentity(
+                    result.customId, result.targetSnapshotId, "sparse save commit");
+                return NeoCommitResult.Transitioning(
+                    result.customId, result.targetSnapshotId);
+            }
+            throw new InvalidOperationException(
+                $"Neo Compose sparse save commit returned unsupported kind '{result.kind}'.");
+        }
+
+        public async Awaitable<NeoCommitResult> BeginStagedSnapshotAsync(
+            string customId,
+            NeoStagedSnapshotBeginRequest request)
+        {
+            RequireCustomId(customId);
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            RequireSnapshotId(request.baseSnapshotId);
+            if (request.baseSnapshotRevision < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(request));
+            }
+            if (string.IsNullOrWhiteSpace(request.uploadFingerprint))
+            {
+                throw new ArgumentException(
+                    "Staged snapshot upload fingerprint cannot be empty.",
+                    nameof(request));
+            }
+
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/snapshots/staged/begin");
+            var operation = new NeoComposeApiOperation(
+                "begin an atomic staged save snapshot", projectId, WriteScope);
+            var response = await SendAuthorizedAsync(
+                url, JsonConvert.SerializeObject(new { snapshot = request }));
+            if (response.StatusCode == 409)
+            {
+                var conflict = Deserialize<CommitResponseWire>(
+                    response.Text, "staged save snapshot conflict");
+                if (conflict.serverHead == null)
+                {
+                    throw new InvalidOperationException(
+                        "Neo Compose staged snapshot conflict omitted the server head.");
+                }
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, customId, conflict.serverHead);
+                return NeoCommitResult.Conflict(conflict.serverHead);
+            }
+
+            var json = ReadBody(url, operation, response);
+            var result = Deserialize<CommitResponseWire>(
+                json, "staged save snapshot begin");
+            if (result.kind == "committed" && result.save != null)
+            {
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, customId, result.save);
+                return NeoCommitResult.Committed(result.save);
+            }
+            if (result.kind == "transitioning")
+            {
+                RequireTransitionIdentity(
+                    result.customId, result.targetSnapshotId,
+                    "staged save snapshot begin");
+                return NeoCommitResult.Transitioning(
+                    result.customId, result.targetSnapshotId);
+            }
+            throw new InvalidOperationException(
+                $"Neo Compose staged snapshot begin returned unsupported kind " +
+                $"'{result.kind}'.");
+        }
+
+        public async Awaitable<NeoCloneResult> CloneSaveAsync(
+            string customId,
+            NeoCloneRequest request)
         {
             RequireCustomId(customId);
             var url = SavesUrl($"/{UnityWebRequest.EscapeURL(customId)}/clone");
@@ -164,7 +387,179 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "clone this save file", projectId, WriteScope);
             var json = await PostAuthorizedAsync(url, operation, body);
-            return Deserialize<RemoteGameSave>(json, "cloned save file");
+            var response = Deserialize<CloneResponseWire>(json, "clone result");
+            if (response.kind == "cloned" && response.save != null)
+            {
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, response.save.id, response.save);
+                return NeoCloneResult.Cloned(response.save);
+            }
+            if (response.kind == "transitioning")
+            {
+                RequireTransitionIdentity(
+                    response.customId, response.targetSnapshotId, "clone");
+                return NeoCloneResult.Transitioning(
+                    response.customId, response.targetSnapshotId);
+            }
+            throw new InvalidOperationException(
+                $"Neo Compose clone response had unsupported kind '{response.kind}'.");
+        }
+
+        public async Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
+            NeoChunkedCreateRequest request)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            RequireCustomId(request.customId);
+            if (string.IsNullOrWhiteSpace(request.uploadFingerprint))
+            {
+                throw new ArgumentException(
+                    "Chunked create upload fingerprint cannot be empty.",
+                    nameof(request));
+            }
+            var url = SavesUrl("/chunked-create/begin");
+            var operation = new NeoComposeApiOperation(
+                "begin this large save file", projectId, WriteScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(new { save = request }));
+            var target = Deserialize<NeoChunkedCreateTarget>(
+                json, "chunked save create target");
+            RequireTransitionIdentity(
+                target.customId, target.snapshotId, "chunked save create");
+            if (target.snapshotRevision < 0)
+            {
+                throw new InvalidOperationException(
+                    "Neo Compose chunked save create returned a negative revision.");
+            }
+            if (string.IsNullOrWhiteSpace(target.resumeToken))
+            {
+                throw new InvalidOperationException(
+                    "Neo Compose chunked save create omitted its resume token.");
+            }
+            return target;
+        }
+
+        public async Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
+            string customId,
+            string resumeToken,
+            long baseSnapshotRevision,
+            IReadOnlyList<GameSaveRecordChange> changes,
+            NeoTimestamp updatedAt)
+        {
+            RequireCustomId(customId);
+            if (string.IsNullOrWhiteSpace(resumeToken))
+            {
+                throw new ArgumentException(
+                    "Resume token cannot be empty.", nameof(resumeToken));
+            }
+            if (baseSnapshotRevision < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(baseSnapshotRevision));
+            }
+            if (changes == null) throw new ArgumentNullException(nameof(changes));
+            if (changes.Count == 0 || changes.Count > 64)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(changes),
+                    "A chunked save append must contain between 1 and 64 changes.");
+            }
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/chunked-create/append");
+            var operation = new NeoComposeApiOperation(
+                "append records to this large save file", projectId, WriteScope);
+            var body = JsonConvert.SerializeObject(new
+            {
+                resumeToken,
+                baseSnapshotRevision,
+                changes,
+                updatedAt = updatedAt.EpochMilliseconds,
+            });
+            var json = await PostAuthorizedAsync(url, operation, body);
+            return ParseLivePatchResult(json, "chunked save append");
+        }
+
+        public async Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
+            string customId,
+            string resumeToken)
+        {
+            RequireCustomId(customId);
+            if (string.IsNullOrWhiteSpace(resumeToken))
+            {
+                throw new ArgumentException(
+                    "Resume token cannot be empty.", nameof(resumeToken));
+            }
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/chunked-create/complete");
+            var operation = new NeoComposeApiOperation(
+                "complete this large save file", projectId, WriteScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(new { resumeToken }));
+            var save = Deserialize<RemoteGameSave>(
+                json, "completed chunked save file");
+            await NeoGameSaveRecordSync.LoadManifestAsync(
+                this, customId, save);
+            return save;
+        }
+
+        public async Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(
+            string customId)
+        {
+            RequireCustomId(customId);
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/status/query");
+            var operation = new NeoComposeApiOperation(
+                "read this save file's copy status", projectId, ReadScope);
+            var json = await PostAuthorizedAsync(url, operation);
+            var response = Deserialize<TransitionStatusWire>(
+                json, "save transition status");
+            if (response.kind == "ready" && response.save != null)
+            {
+                await NeoGameSaveRecordSync.LoadManifestAsync(
+                    this, response.save.id, response.save);
+                return NeoSaveTransitionStatus.Ready(response.save);
+            }
+            if (response.kind == "copying")
+            {
+                RequireTransitionIdentity(
+                    response.customId, response.targetSnapshotId, "copy status");
+                return NeoSaveTransitionStatus.Copying(
+                    response.customId, response.targetSnapshotId);
+            }
+            if (response.kind == "staging")
+            {
+                RequireTransitionIdentity(
+                    response.customId, response.targetSnapshotId, "staging status");
+                if (response.snapshotRevision < 0
+                    || string.IsNullOrWhiteSpace(response.resumeToken))
+                {
+                    throw new InvalidOperationException(
+                        "Neo Compose staging status omitted its revision or resume token.");
+                }
+                return NeoSaveTransitionStatus.Staging(
+                    response.customId,
+                    response.targetSnapshotId,
+                    response.snapshotRevision,
+                    response.resumeToken);
+            }
+            if (response.kind == "failed")
+            {
+                RequireTransitionIdentity(
+                    response.customId, response.targetSnapshotId, "copy status");
+                return NeoSaveTransitionStatus.Failed(
+                    response.customId, response.targetSnapshotId, response.error);
+            }
+            throw new InvalidOperationException(
+                $"Neo Compose save transition response had unsupported kind " +
+                $"'{response.kind}'.");
+        }
+
+        public async Awaitable RetrySaveTransitionAsync(string customId)
+        {
+            RequireCustomId(customId);
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/status/retry");
+            var operation = new NeoComposeApiOperation(
+                "retry this save file's failed transition", projectId, WriteScope);
+            await PostAuthorizedAsync(url, operation, "{}");
         }
 
         public async Awaitable ArchiveSaveAsync(string customId)
@@ -189,7 +584,9 @@ namespace NeoCompose.Runtime
             var operation = new NeoComposeApiOperation(
                 "archive this save snapshot", projectId, ArchiveScope);
             var json = await PostAuthorizedAsync(url, operation);
-            return Deserialize<RemoteGameSave>(json, "archived save file");
+            var save = Deserialize<RemoteGameSave>(json, "archived save file");
+            await NeoGameSaveRecordSync.LoadManifestAsync(this, customId, save);
+            return save;
         }
 
         private string ReadScope => $"project:{projectId}:save:read";
@@ -198,6 +595,14 @@ namespace NeoCompose.Runtime
 
         private string SavesUrl(string suffix) =>
             $"{apiBaseUrl}/api/projects/{UnityWebRequest.EscapeURL(projectId)}/saves{suffix}";
+
+        private string SnapshotRecordsUrl(
+            string customId,
+            string snapshotId,
+            string suffix) =>
+            SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/snapshots/" +
+                $"{UnityWebRequest.EscapeURL(snapshotId)}/records{suffix}");
 
         private async Awaitable<string> PostAuthorizedAsync(
             string url,
@@ -286,6 +691,37 @@ namespace NeoCompose.Runtime
             return null;
         }
 
+        private static NeoLivePatchResult ParseLivePatchResult(
+            string json,
+            string description)
+        {
+            var response = Deserialize<LivePatchResponseWire>(json, description);
+            if (response.kind == "patched")
+            {
+                if (string.IsNullOrWhiteSpace(response.snapshotId))
+                {
+                    throw new InvalidOperationException(
+                        $"Neo Compose {description} response omitted snapshotId.");
+                }
+                return NeoLivePatchResult.Patched(
+                    response.snapshotId,
+                    response.snapshotRevision,
+                    response.synchronizedAt,
+                    response.changedDescriptors);
+            }
+            if (response.kind == "staleTarget" && response.serverHead != null)
+            {
+                return NeoLivePatchResult.StaleTarget(response.serverHead);
+            }
+            if (response.kind == "conflict" && response.conflict != null)
+            {
+                return NeoLivePatchResult.RecordConflict(response.conflict);
+            }
+            throw new InvalidOperationException(
+                $"Neo Compose {description} response had unsupported kind " +
+                $"'{response.kind}'.");
+        }
+
         private static T Deserialize<T>(string json, string description)
             where T : class
         {
@@ -308,11 +744,80 @@ namespace NeoCompose.Runtime
             }
         }
 
+        private static void RequireSnapshotId(string snapshotId)
+        {
+            if (string.IsNullOrWhiteSpace(snapshotId))
+            {
+                throw new ArgumentException("Snapshot id cannot be empty.", nameof(snapshotId));
+            }
+        }
+
+        private static void RequireTransitionIdentity(
+            string customId,
+            string targetSnapshotId,
+            string description)
+        {
+            if (string.IsNullOrWhiteSpace(customId)
+                || string.IsNullOrWhiteSpace(targetSnapshotId))
+            {
+                throw new InvalidOperationException(
+                    $"Neo Compose {description} response did not include its " +
+                    "customId and targetSnapshotId.");
+            }
+        }
+
+        private static void RequireRecordReadArgs(
+            string customId,
+            string snapshotId,
+            GameSaveRecordPageRequest request)
+        {
+            RequireCustomId(customId);
+            RequireSnapshotId(snapshotId);
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            if (request.numItems <= 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(request), "Record page size must be positive.");
+            }
+        }
+
         private sealed class CommitResponseWire
         {
             public string kind = "";
             public RemoteGameSave? save;
             public RemoteGameSave? serverHead;
+            public string customId = "";
+            public string targetSnapshotId = "";
+        }
+
+        private sealed class CloneResponseWire
+        {
+            public string kind = "";
+            public RemoteGameSave? save;
+            public string customId = "";
+            public string targetSnapshotId = "";
+        }
+
+        private sealed class TransitionStatusWire
+        {
+            public string kind = "";
+            public RemoteGameSave? save;
+            public string customId = "";
+            public string targetSnapshotId = "";
+            public long snapshotRevision;
+            public string resumeToken = "";
+            public string? error;
+        }
+
+        private sealed class LivePatchResponseWire
+        {
+            public string kind = "";
+            public string snapshotId = "";
+            public long snapshotRevision;
+            public NeoTimestamp synchronizedAt;
+            public List<GameSaveRecordDescriptor> changedDescriptors = new();
+            public GameSaveSnapshotRevisionSignal? serverHead;
+            public GameSaveRecordConflict? conflict;
         }
 
         private sealed class SnapshotListWire

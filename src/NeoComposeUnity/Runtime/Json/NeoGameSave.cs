@@ -18,7 +18,8 @@ namespace NeoCompose.Runtime.Json
         public string serverId = "";
         public string id = "";
         public string snapshotId = "";
-        public string snapshotHash = "";
+        public long snapshotRevision;
+
         public string projectId = "";
         public string releaseChannelId = "";
         public VersionData version = new VersionData();
@@ -38,7 +39,7 @@ namespace NeoCompose.Runtime.Json
             serverId = save.serverId,
             id = save.id,
             snapshotId = save.snapshotId,
-            snapshotHash = save.snapshotHash,
+            snapshotRevision = save.snapshotRevision,
             projectId = save.projectId,
             releaseChannelId = save.releaseChannelId,
             version = save.version,
@@ -131,8 +132,8 @@ namespace NeoCompose.Runtime.Json
     /// <summary>
     /// A save as it exists in the cloud: shared content plus server identity and
     /// synchronization metadata. Returned by the runtime save API. The head
-    /// snapshot's content is inlined; <see cref="snapshotHash"/> drives optimistic
-    /// concurrency and conflict detection.
+    /// snapshot content is assembled from record state; the snapshot id and
+    /// <see cref="snapshotRevision"/> drive synchronization and conflict detection.
     /// </summary>
     [JsonConverter(typeof(Schema8SaveEnvelopeConverter<RemoteGameSave>))]
     public sealed class RemoteGameSave : NeoGameSaveBase
@@ -146,8 +147,12 @@ namespace NeoCompose.Runtime.Json
         /// <summary>The head snapshot id this content came from.</summary>
         public string snapshotId = "";
 
-        /// <summary>Content hash of the head snapshot; used to detect conflicts.</summary>
-        public string snapshotHash = "";
+        /// <summary>Monotonic record-delta cursor for this snapshot.</summary>
+        public long snapshotRevision;
+
+        /// <summary>Client-side assembly cache; never part of cloud metadata.</summary>
+        [JsonIgnore]
+        public GameSaveRecordCache recordCache = new();
 
         /// <summary>The release channel this save is bound to.</summary>
         public string releaseChannelId = "";
@@ -188,9 +193,9 @@ namespace NeoCompose.Runtime.Json
     /// as a cloud save plus the identity/sync fields needed to reconcile against
     /// the cloud: the client-owned <see cref="customId"/> is always present, while
     /// the server identity (<see cref="serverId"/> / <see cref="snapshotId"/> /
-    /// <see cref="snapshotHash"/> / <see cref="synchronizedAt"/>) is null until the
-    /// save has been synchronized at least once (a from-scratch local save is
-    /// local-only until its first commit).
+    /// <see cref="snapshotRevision"/> / <see cref="synchronizedAt"/>) is absent or
+    /// zero until the save has synchronized at least once (a from-scratch local
+    /// save is local-only until its first commit).
     /// </summary>
     [JsonConverter(typeof(Schema8SaveEnvelopeConverter<LocalGameSave>))]
     public sealed class LocalGameSave : NeoGameSaveBase
@@ -204,14 +209,30 @@ namespace NeoCompose.Runtime.Json
         /// <summary>Display name of the locally-staged snapshot, if any.</summary>
         public string? snapshotName;
 
+        /// <summary>The owning live session when the synchronized head is mutable.</summary>
+        public string? liveSessionId;
+
         /// <summary>Server document id once synchronized; null for local-only saves.</summary>
         public string? serverId;
 
         /// <summary>Last synchronized head snapshot id; null for local-only saves.</summary>
         public string? snapshotId;
 
-        /// <summary>Hash of the last synchronized snapshot; the conflict base.</summary>
+        /// <summary>
+        /// Legacy opaque local-artifact field retained so existing disk files
+        /// continue to round-trip without loss.
+        /// </summary>
         public string? snapshotHash;
+
+        /// <summary>Last fully-applied cloud record revision.</summary>
+        public long snapshotRevision;
+
+        /// <summary>
+        /// Persisted record descriptor and payload cache. It is additive to
+        /// the opaque local save artifact, so older developer-controlled disk
+        /// files still load with an empty cache.
+        /// </summary>
+        public GameSaveRecordCache recordCache = new();
 
         /// <summary>
         /// Last successful cloud sync time as epoch milliseconds; null when never
@@ -254,9 +275,11 @@ namespace NeoCompose.Runtime.Json
                 createdAt = remote.createdAt,
                 updatedAt = remote.updatedAt,
                 snapshotName = remote.snapshotName,
+                liveSessionId = remote.liveSessionId,
                 serverId = remote.serverId,
                 snapshotId = remote.snapshotId,
-                snapshotHash = remote.snapshotHash,
+                snapshotRevision = remote.snapshotRevision,
+                recordCache = remote.recordCache,
                 synchronizedAt = remote.synchronizedAt.EpochMilliseconds,
             };
         }

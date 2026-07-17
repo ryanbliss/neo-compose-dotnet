@@ -492,7 +492,7 @@ namespace NeoCompose.Runtime
                 return await CloneLocalAsync(core, customId, newName);
             }
 
-            var cloned = await core.ApiClient.CloneSaveAsync(
+            var cloned = await core.CloneSaveToReadyAsync(
                 customId,
                 new NeoCloneRequest
                 {

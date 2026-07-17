@@ -45,10 +45,12 @@ namespace NeoCompose.Runtime
             string? targetReleaseChannelId, Action<NeoSaveFileList> onChanged);
 
         /// <summary>
-        /// Live cloud head for one save. Returns an inert subscription while
-        /// not <see cref="NeoRealtimeConnectionState.Connected"/>.
+        /// Payload-free live head signal for one save. Record descriptors and
+        /// states are fetched explicitly through the paginated read API.
         /// </summary>
-        IDisposable SubscribeSaveHead(string customId, Action<RemoteGameSave> onChanged);
+        IDisposable SubscribeSaveRevision(
+            string customId,
+            Action<GameSaveSnapshotRevisionSignal> onChanged);
 
         /// <summary>
         /// True when the provider is connected and can commit. The synchronizer
@@ -74,10 +76,9 @@ namespace NeoCompose.Runtime
         Awaitable<NeoCommitResult> ForkLiveAsync(NeoLiveForkRequest request);
 
         /// <summary>
-        /// In-place per-key merge into the live head snapshot: every session
-        /// flush after the fork, and nothing else. The returned
-        /// <see cref="NeoLivePatchResult.snapshotHash"/> is the caller's
-        /// echo-suppression token.
+        /// Record-scoped merge into the live head snapshot. A conflict is
+        /// limited to the one stale logical record and includes its current
+        /// descriptor for targeted rebase.
         /// </summary>
         Awaitable<NeoLivePatchResult> PatchLiveAsync(NeoLivePatchRequest request);
     }
