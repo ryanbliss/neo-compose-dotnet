@@ -373,6 +373,7 @@ namespace NeoCompose.Runtime
                 accepted.TargetSnapshotId);
 
             NeoSaveTransitionStatus staging;
+            var retriedFailedCopy = false;
             while (true)
             {
                 staging = await ApiClient.GetSaveTransitionStatusAsync(customId);
@@ -391,14 +392,19 @@ namespace NeoCompose.Runtime
                 if (staging.Outcome == NeoSaveTransitionOutcome.Staging) break;
                 if (staging.Outcome == NeoSaveTransitionOutcome.Failed)
                 {
-                    throw BuildTransitionFailure(
-                        customId, accepted.TargetSnapshotId, staging.Error);
+                    if (retriedFailedCopy)
+                    {
+                        throw BuildTransitionFailure(
+                            customId, accepted.TargetSnapshotId, staging.Error);
+                    }
+                    await ApiClient.RetrySaveTransitionAsync(customId);
+                    retriedFailedCopy = true;
+                    continue;
                 }
                 await Task.Delay(TimeSpan.FromMilliseconds(250));
             }
 
-            var acceptedBatches = staging.SnapshotRevision
-                - request.baseSnapshotRevision;
+            var acceptedBatches = staging.SnapshotRevision;
             if (acceptedBatches < 0 || acceptedBatches > batches.Count)
             {
                 throw new InvalidOperationException(
@@ -409,7 +415,7 @@ namespace NeoCompose.Runtime
                  batchIndex < batches.Count;
                  batchIndex++)
             {
-                var baseRevision = request.baseSnapshotRevision + batchIndex;
+                var baseRevision = batchIndex;
                 var batch = batches[batchIndex];
                 NeoLivePatchResult appended;
                 try

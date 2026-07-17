@@ -397,6 +397,22 @@ namespace NeoCompose.Tests
         }
 
         [Test]
+        public async Task TransitionRetry_UsesFailedStatusRoute()
+        {
+            var http = new FakeHttpClient
+            {
+                body = "{\"kind\":\"retrying\",\"customId\":\"save-2\"}",
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+
+            await client.RetrySaveTransitionAsync("save-2");
+
+            StringAssert.EndsWith(
+                "/saves/save-2/status/retry", http.sends[0].url);
+            Assert.That(http.sends[0].body, Is.EqualTo("{}"));
+        }
+
+        [Test]
         public async Task RecordReads_UsePagedAllPartitionRoutes()
         {
             var http = new FakeHttpClient();

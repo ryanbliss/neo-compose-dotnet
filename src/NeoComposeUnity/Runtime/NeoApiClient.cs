@@ -60,6 +60,7 @@ namespace NeoCompose.Runtime
             string resumeToken);
         Awaitable<NeoCloneResult> CloneSaveAsync(string customId, NeoCloneRequest request);
         Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(string customId);
+        Awaitable RetrySaveTransitionAsync(string customId);
         Awaitable ArchiveSaveAsync(string customId);
         Awaitable<RemoteGameSave> ArchiveSnapshotAsync(string customId, string snapshotId);
     }
@@ -549,6 +550,16 @@ namespace NeoCompose.Runtime
             throw new InvalidOperationException(
                 $"Neo Compose save transition response had unsupported kind " +
                 $"'{response.kind}'.");
+        }
+
+        public async Awaitable RetrySaveTransitionAsync(string customId)
+        {
+            RequireCustomId(customId);
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/status/retry");
+            var operation = new NeoComposeApiOperation(
+                "retry this save file's failed transition", projectId, WriteScope);
+            await PostAuthorizedAsync(url, operation, "{}");
         }
 
         public async Awaitable ArchiveSaveAsync(string customId)

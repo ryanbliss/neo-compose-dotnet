@@ -302,12 +302,12 @@ namespace NeoCompose.Tests
                 NeoCommitResult.Transitioning("save-1", "snap-live"));
             api.transitionStatuses.Enqueue(
                 NeoSaveTransitionStatus.Staging(
-                    "save-1", "snap-live", 1, "snap-live"));
+                    "save-1", "snap-live", 0, "snap-live"));
             api.chunkedCompleteResult = RemoteWithValues(
                 "snap-live",
                 allValues.ToString(Formatting.None),
                 "session-x",
-                snapshotRevision: 3);
+                snapshotRevision: 2);
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent(allValues.ToString(Formatting.None)),
@@ -321,7 +321,7 @@ namespace NeoCompose.Tests
                 Is.EqualTo(new[] { 64, 1 }));
             Assert.That(api.stagedBegins[0].request.liveSessionId, Is.Not.Empty);
             Assert.That(api.chunkedCompleteCalls, Is.EqualTo(1));
-            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(3));
+            Assert.That(sync.ActiveSave!.snapshotRevision, Is.EqualTo(2));
         }
 
         [Test]

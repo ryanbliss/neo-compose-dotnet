@@ -102,6 +102,7 @@ namespace NeoCompose.Tests
         public readonly Queue<NeoSaveTransitionStatus> transitionStatuses = new();
         public readonly List<string> cloneRequests = new();
         public readonly List<string> transitionStatusRequests = new();
+        public readonly List<string> transitionRetryRequests = new();
         public NeoChunkedCreateTarget? chunkedCreateTarget;
         public Exception? chunkedBeginThrows;
         public int chunkedBeginCalls;
@@ -401,6 +402,12 @@ namespace NeoCompose.Tests
                     "No save transition status configured.");
             }
             return NeoAwaitable.FromResult(transitionStatuses.Dequeue());
+        }
+
+        public Awaitable RetrySaveTransitionAsync(string customId)
+        {
+            transitionRetryRequests.Add(customId);
+            return NeoAwaitable.Completed();
         }
 
         public Exception? archiveThrows;

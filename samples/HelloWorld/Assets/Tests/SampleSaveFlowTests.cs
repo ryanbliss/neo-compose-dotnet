@@ -260,6 +260,9 @@ namespace HelloWorld.Assets.Tests
                 string customId) =>
                 throw new NotSupportedException();
 
+            public Awaitable RetrySaveTransitionAsync(string customId) =>
+                throw new NotSupportedException();
+
             public Awaitable ArchiveSaveAsync(string customId)
             {
                 saves.Remove(customId);
