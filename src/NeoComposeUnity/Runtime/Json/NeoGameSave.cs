@@ -19,6 +19,8 @@ namespace NeoCompose.Runtime.Json
         public string id = "";
         public string snapshotId = "";
         public string snapshotHash = "";
+        public long snapshotRevision;
+
         public string projectId = "";
         public string releaseChannelId = "";
         public VersionData version = new VersionData();
@@ -39,6 +41,7 @@ namespace NeoCompose.Runtime.Json
             id = save.id,
             snapshotId = save.snapshotId,
             snapshotHash = save.snapshotHash,
+            snapshotRevision = save.snapshotRevision,
             projectId = save.projectId,
             releaseChannelId = save.releaseChannelId,
             version = save.version,
@@ -149,6 +152,13 @@ namespace NeoCompose.Runtime.Json
         /// <summary>Content hash of the head snapshot; used to detect conflicts.</summary>
         public string snapshotHash = "";
 
+        /// <summary>Monotonic record-delta cursor for this snapshot.</summary>
+        public long snapshotRevision;
+
+        /// <summary>Client-side assembly cache; never part of cloud metadata.</summary>
+        [JsonIgnore]
+        public GameSaveRecordCache recordCache = new();
+
         /// <summary>The release channel this save is bound to.</summary>
         public string releaseChannelId = "";
 
@@ -213,6 +223,16 @@ namespace NeoCompose.Runtime.Json
         /// <summary>Hash of the last synchronized snapshot; the conflict base.</summary>
         public string? snapshotHash;
 
+        /// <summary>Last fully-applied cloud record revision.</summary>
+        public long snapshotRevision;
+
+        /// <summary>
+        /// Persisted record descriptor and payload cache. It is additive to
+        /// the opaque local save artifact, so older developer-controlled disk
+        /// files still load with an empty cache.
+        /// </summary>
+        public GameSaveRecordCache recordCache = new();
+
         /// <summary>
         /// Last successful cloud sync time as epoch milliseconds; null when never
         /// synced. Plain nullable so a JSON <c>null</c> round-trips to null.
@@ -257,6 +277,8 @@ namespace NeoCompose.Runtime.Json
                 serverId = remote.serverId,
                 snapshotId = remote.snapshotId,
                 snapshotHash = remote.snapshotHash,
+                snapshotRevision = remote.snapshotRevision,
+                recordCache = remote.recordCache,
                 synchronizedAt = remote.synchronizedAt.EpochMilliseconds,
             };
         }
