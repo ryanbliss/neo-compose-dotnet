@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0] - 2026-07-17
+
+### Breaking
+
+- Replaced materialized cloud-save payloads with payload-free metadata plus
+  paginated record-head manifests, revision deltas, and selected record states.
+  Upgrade Neo Compose server and Unity packages together.
+
+### Changed
+
+- Added bounded sparse, chunked, and staged save writes with durable snapshot
+  transition polling/retry support.
+- Live save synchronization now emits dirty-field patches so concurrent changes
+  to untouched fields survive.
+
 ## [0.3.0] - 2026-07-17
 
 ### Breaking
