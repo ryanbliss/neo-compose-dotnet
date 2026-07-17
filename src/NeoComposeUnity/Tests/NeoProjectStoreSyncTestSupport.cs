@@ -35,7 +35,7 @@ namespace NeoCompose.Tests
         public static string SyncedSaveContent(string name) =>
             "{\"name\":\"" + name + "\",\"projectId\":\"project-1\"," +
             "\"releaseChannelId\":\"" + TargetChannel + "\"," +
-            "\"serverId\":\"server-1\",\"snapshotId\":\"snap-1\",\"snapshotHash\":\"hash-1\"," +
+            "\"serverId\":\"server-1\",\"snapshotId\":\"snap-1\"," +
             "\"snapshotRevision\":1,\"synchronizedAt\":3," +
             "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
             "\"values\":{},\"createdAt\":1,\"updatedAt\":2}";
@@ -43,16 +43,14 @@ namespace NeoCompose.Tests
         public static RemoteGameSave Remote(
             string id,
             string snapshotId,
-            string snapshotHash,
-            string channel = TargetChannel,
-            long snapshotRevision = 1)
+            long snapshotRevision = 1,
+            string channel = TargetChannel)
         {
             return new RemoteGameSave
             {
                 serverId = "server-" + id,
                 id = id,
                 snapshotId = snapshotId,
-                snapshotHash = snapshotHash,
                 snapshotRevision = snapshotRevision,
                 releaseChannelId = channel,
                 name = "Cloud " + id,
@@ -68,10 +66,10 @@ namespace NeoCompose.Tests
         public static RemoteGameSaveSummary Summary(
             string id,
             string snapshotId,
-            string snapshotHash,
+            long snapshotRevision = 1,
             string channel = TargetChannel) =>
             RemoteGameSaveSummary.FromRemote(
-                Remote(id, snapshotId, snapshotHash, channel));
+                Remote(id, snapshotId, snapshotRevision, channel));
     }
 
     /// <summary>An <see cref="IProjectDataSource"/> whose read completes on demand.</summary>
@@ -97,10 +95,20 @@ namespace NeoCompose.Tests
         public readonly Queue<NeoSaveTransitionStatus> transitionStatuses = new();
         public readonly List<string> cloneRequests = new();
         public readonly List<string> transitionStatusRequests = new();
+        public NeoChunkedCreateTarget? chunkedCreateTarget;
+        public Exception? chunkedBeginThrows;
+        public int chunkedBeginCalls;
+        public readonly Queue<Exception?> chunkedAppendFailures = new();
+        public readonly List<List<GameSaveRecordChange>> chunkedAppends = new();
+        public RemoteGameSave? chunkedCompleteResult;
+        public Exception? chunkedCompleteThrows;
+        public int chunkedCompleteCalls;
         public readonly List<string> archivedSaves = new();
         public readonly List<string> archivedSnapshots = new();
         private GameSaveRecordPage deltaPage = new GameSaveRecordPage { isDone = true };
         private readonly Dictionary<string, GameSaveRecordState> recordStates = new();
+        private readonly Dictionary<string, GameSaveRecordDescriptor>
+            manifestDescriptors = new();
 
         public void SetValueDelta(string snapshotId, long revision, string valuesJson)
         {
@@ -175,11 +183,15 @@ namespace NeoCompose.Tests
             string customId,
             string snapshotId) =>
             NeoAwaitable.FromResult(
-                getResult ?? NeoSaveTestSupport.Remote(customId, snapshotId, "snapshot-hash"));
+                getResult ?? NeoSaveTestSupport.Remote(customId, snapshotId));
 
         public Awaitable<GameSaveRecordPage> GetSaveRecordManifestPageAsync(
             string customId, string snapshotId, GameSaveRecordPageRequest request) =>
-            NeoAwaitable.FromResult(new GameSaveRecordPage { isDone = true });
+            NeoAwaitable.FromResult(new GameSaveRecordPage
+            {
+                page = new List<GameSaveRecordDescriptor>(manifestDescriptors.Values),
+                isDone = true,
+            });
 
         public Awaitable<GameSaveRecordPage> GetSaveRecordDeltaPageAsync(
             string customId, string snapshotId, GameSaveRecordDeltaPageRequest request) =>
@@ -200,6 +212,80 @@ namespace NeoCompose.Tests
         {
             commits.Add((request, replaceSnapshot));
             return NeoAwaitable.FromResult(commitResults.Dequeue());
+        }
+
+        public Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
+            NeoChunkedCreateRequest request)
+        {
+            chunkedBeginCalls++;
+            if (chunkedBeginThrows != null) throw chunkedBeginThrows;
+            return NeoAwaitable.FromResult(
+                chunkedCreateTarget
+                ?? throw new InvalidOperationException(
+                    "No chunked create target configured."));
+        }
+
+        public Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
+            string customId,
+            string snapshotId,
+            IReadOnlyList<GameSaveRecordChange> changes,
+            NeoTimestamp updatedAt)
+        {
+            chunkedAppends.Add(new List<GameSaveRecordChange>(changes));
+            if (chunkedAppendFailures.Count != 0
+                && chunkedAppendFailures.Dequeue() is { } failure)
+            {
+                throw failure;
+            }
+
+            var descriptors = new List<GameSaveRecordDescriptor>();
+            foreach (var change in changes)
+            {
+                string recordKind;
+                string recordId;
+                switch (change)
+                {
+                    case GameSaveValueReplaceChange value:
+                        recordKind = NeoGameSaveRecordKinds.Value;
+                        recordId = value.valueId;
+                        break;
+                    case GameSaveStaticBindingSetChange binding:
+                        recordKind = NeoGameSaveRecordKinds.StaticBinding;
+                        recordId = binding.memberId;
+                        break;
+                    default:
+                        throw new InvalidOperationException(
+                            "Unexpected initial create change in fake API.");
+                }
+                var descriptor = new GameSaveRecordDescriptor
+                {
+                    recordKind = recordKind,
+                    recordId = recordId,
+                    recordStateId = $"state-{recordId}",
+                    recordRevisionToken = $"token-{recordId}",
+                    contentHash = $"hash-{recordId}",
+                    lastChangedRevision = chunkedAppends.Count,
+                };
+                manifestDescriptors[descriptor.LogicalKey] = descriptor;
+                descriptors.Add(descriptor);
+            }
+            return NeoAwaitable.FromResult(NeoLivePatchResult.Patched(
+                snapshotId,
+                chunkedAppends.Count,
+                updatedAt,
+                descriptors));
+        }
+
+        public Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
+            string customId,
+            string snapshotId)
+        {
+            chunkedCompleteCalls++;
+            if (chunkedCompleteThrows != null) throw chunkedCompleteThrows;
+            return NeoAwaitable.FromResult(
+                chunkedCompleteResult
+                ?? throw new InvalidOperationException(
+                    "No completed chunked save configured."));
         }
 
         public Awaitable<NeoCloneResult> CloneSaveAsync(
@@ -239,7 +325,8 @@ namespace NeoCompose.Tests
         public Awaitable<RemoteGameSave> ArchiveSnapshotAsync(string customId, string snapshotId)
         {
             archivedSnapshots.Add(snapshotId);
-            return NeoAwaitable.FromResult(getResult ?? NeoSaveTestSupport.Remote(customId, "s", "h"));
+            return NeoAwaitable.FromResult(
+                getResult ?? NeoSaveTestSupport.Remote(customId, "s"));
         }
     }
 }

@@ -18,7 +18,6 @@ namespace NeoCompose.Runtime.Json
         public string serverId = "";
         public string id = "";
         public string snapshotId = "";
-        public string snapshotHash = "";
         public long snapshotRevision;
 
         public string projectId = "";
@@ -40,7 +39,6 @@ namespace NeoCompose.Runtime.Json
             serverId = save.serverId,
             id = save.id,
             snapshotId = save.snapshotId,
-            snapshotHash = save.snapshotHash,
             snapshotRevision = save.snapshotRevision,
             projectId = save.projectId,
             releaseChannelId = save.releaseChannelId,
@@ -149,12 +147,6 @@ namespace NeoCompose.Runtime.Json
         /// <summary>The head snapshot id this content came from.</summary>
         public string snapshotId = "";
 
-        /// <summary>
-        /// Legacy local-artifact field. Cloud synchronization uses
-        /// <see cref="snapshotRevision"/> instead.
-        /// </summary>
-        public string snapshotHash = "";
-
         /// <summary>Monotonic record-delta cursor for this snapshot.</summary>
         public long snapshotRevision;
 
@@ -201,9 +193,9 @@ namespace NeoCompose.Runtime.Json
     /// as a cloud save plus the identity/sync fields needed to reconcile against
     /// the cloud: the client-owned <see cref="customId"/> is always present, while
     /// the server identity (<see cref="serverId"/> / <see cref="snapshotId"/> /
-    /// <see cref="snapshotHash"/> / <see cref="synchronizedAt"/>) is null until the
-    /// save has been synchronized at least once (a from-scratch local save is
-    /// local-only until its first commit).
+    /// <see cref="snapshotRevision"/> / <see cref="synchronizedAt"/>) is absent or
+    /// zero until the save has synchronized at least once (a from-scratch local
+    /// save is local-only until its first commit).
     /// </summary>
     [JsonConverter(typeof(Schema8SaveEnvelopeConverter<LocalGameSave>))]
     public sealed class LocalGameSave : NeoGameSaveBase
@@ -282,7 +274,6 @@ namespace NeoCompose.Runtime.Json
                 snapshotName = remote.snapshotName,
                 serverId = remote.serverId,
                 snapshotId = remote.snapshotId,
-                snapshotHash = remote.snapshotHash,
                 snapshotRevision = remote.snapshotRevision,
                 recordCache = remote.recordCache,
                 synchronizedAt = remote.synchronizedAt.EpochMilliseconds,

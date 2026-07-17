@@ -41,6 +41,16 @@ namespace NeoCompose.Runtime
             string snapshotId,
             IReadOnlyList<string> recordStateIds);
         Awaitable<NeoCommitResult> CommitAsync(NeoSaveCommitRequest request, bool replaceSnapshot);
+        Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
+            NeoChunkedCreateRequest request);
+        Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
+            string customId,
+            string snapshotId,
+            IReadOnlyList<GameSaveRecordChange> changes,
+            NeoTimestamp updatedAt);
+        Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
+            string customId,
+            string snapshotId);
         Awaitable<NeoCloneResult> CloneSaveAsync(string customId, NeoCloneRequest request);
         Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(string customId);
         Awaitable ArchiveSaveAsync(string customId);
@@ -263,6 +273,71 @@ namespace NeoCompose.Runtime
                 $"Neo Compose clone response had unsupported kind '{response.kind}'.");
         }
 
+        public async Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
+            NeoChunkedCreateRequest request)
+        {
+            if (request == null) throw new ArgumentNullException(nameof(request));
+            RequireCustomId(request.customId);
+            var url = SavesUrl("/chunked-create/begin");
+            var operation = new NeoComposeApiOperation(
+                "begin this large save file", projectId, WriteScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(new { save = request }));
+            var target = Deserialize<NeoChunkedCreateTarget>(
+                json, "chunked save create target");
+            RequireTransitionIdentity(
+                target.customId, target.snapshotId, "chunked save create");
+            return target;
+        }
+
+        public async Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
+            string customId,
+            string snapshotId,
+            IReadOnlyList<GameSaveRecordChange> changes,
+            NeoTimestamp updatedAt)
+        {
+            RequireCustomId(customId);
+            RequireSnapshotId(snapshotId);
+            if (changes == null) throw new ArgumentNullException(nameof(changes));
+            if (changes.Count == 0 || changes.Count > 64)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(changes),
+                    "A chunked save append must contain between 1 and 64 changes.");
+            }
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/chunked-create/append");
+            var operation = new NeoComposeApiOperation(
+                "append records to this large save file", projectId, WriteScope);
+            var body = JsonConvert.SerializeObject(new
+            {
+                snapshotId,
+                changes,
+                updatedAt = updatedAt.EpochMilliseconds,
+            });
+            var json = await PostAuthorizedAsync(url, operation, body);
+            return ParseLivePatchResult(json, "chunked save append");
+        }
+
+        public async Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
+            string customId,
+            string snapshotId)
+        {
+            RequireCustomId(customId);
+            RequireSnapshotId(snapshotId);
+            var url = SavesUrl(
+                $"/{UnityWebRequest.EscapeURL(customId)}/chunked-create/complete");
+            var operation = new NeoComposeApiOperation(
+                "complete this large save file", projectId, WriteScope);
+            var json = await PostAuthorizedAsync(
+                url, operation, JsonConvert.SerializeObject(new { snapshotId }));
+            var save = Deserialize<RemoteGameSave>(
+                json, "completed chunked save file");
+            await NeoGameSaveRecordSync.LoadManifestAsync(
+                this, customId, save);
+            return save;
+        }
+
         public async Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(
             string customId)
         {
@@ -428,6 +503,37 @@ namespace NeoCompose.Runtime
             return null;
         }
 
+        private static NeoLivePatchResult ParseLivePatchResult(
+            string json,
+            string description)
+        {
+            var response = Deserialize<LivePatchResponseWire>(json, description);
+            if (response.kind == "patched")
+            {
+                if (string.IsNullOrWhiteSpace(response.snapshotId))
+                {
+                    throw new InvalidOperationException(
+                        $"Neo Compose {description} response omitted snapshotId.");
+                }
+                return NeoLivePatchResult.Patched(
+                    response.snapshotId,
+                    response.snapshotRevision,
+                    response.synchronizedAt,
+                    response.changedDescriptors);
+            }
+            if (response.kind == "staleTarget" && response.serverHead != null)
+            {
+                return NeoLivePatchResult.StaleTarget(response.serverHead);
+            }
+            if (response.kind == "conflict" && response.conflict != null)
+            {
+                return NeoLivePatchResult.RecordConflict(response.conflict);
+            }
+            throw new InvalidOperationException(
+                $"Neo Compose {description} response had unsupported kind " +
+                $"'{response.kind}'.");
+        }
+
         private static T Deserialize<T>(string json, string description)
             where T : class
         {
@@ -509,6 +615,17 @@ namespace NeoCompose.Runtime
             public string customId = "";
             public string targetSnapshotId = "";
             public string? error;
+        }
+
+        private sealed class LivePatchResponseWire
+        {
+            public string kind = "";
+            public string snapshotId = "";
+            public long snapshotRevision;
+            public NeoTimestamp synchronizedAt;
+            public List<GameSaveRecordDescriptor> changedDescriptors = new();
+            public GameSaveSnapshotRevisionSignal? serverHead;
+            public GameSaveRecordConflict? conflict;
         }
 
         private sealed class SnapshotListWire

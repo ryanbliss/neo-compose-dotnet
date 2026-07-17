@@ -229,6 +229,22 @@ namespace HelloWorld.Assets.Tests
                 NeoCloneRequest request) =>
                 throw new NotSupportedException();
 
+            public Awaitable<NeoChunkedCreateTarget> BeginChunkedCreateAsync(
+                NeoChunkedCreateRequest request) =>
+                throw new NotSupportedException();
+
+            public Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
+                string customId,
+                string snapshotId,
+                IReadOnlyList<GameSaveRecordChange> changes,
+                NeoTimestamp updatedAt) =>
+                throw new NotSupportedException();
+
+            public Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
+                string customId,
+                string snapshotId) =>
+                throw new NotSupportedException();
+
             public Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(
                 string customId) =>
                 throw new NotSupportedException();

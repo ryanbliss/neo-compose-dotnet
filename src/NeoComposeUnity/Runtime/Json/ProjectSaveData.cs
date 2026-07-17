@@ -115,7 +115,10 @@ namespace NeoCompose.Runtime.Json
         /// </summary>
         public string? snapshotId;
 
-        /// <summary>Hash of the loaded head snapshot; null for a local-only / session graph.</summary>
+        /// <summary>
+        /// Legacy opaque local-artifact field retained only so old developer
+        /// save files round-trip. Cloud synchronization ignores it.
+        /// </summary>
         public string? snapshotHash;
 
         /// <summary>

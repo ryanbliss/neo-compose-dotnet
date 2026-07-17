@@ -3,9 +3,13 @@
 
 #nullable enable
 
+using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using NUnit.Framework;
 
 namespace NeoCompose.Tests
@@ -24,6 +28,29 @@ namespace NeoCompose.Tests
                 targetReleaseChannelId: NeoSaveTestSupport.TargetChannel);
             await store.LoadAsync();
             return (store, api, local);
+        }
+
+        private static string LargeValuesJson(int count)
+        {
+            var values = new JObject();
+            for (int index = 0; index < count; index++)
+            {
+                string id = $"value-{index}";
+                values[id] = new JObject
+                {
+                    ["id"] = id,
+                    ["value"] = index,
+                };
+            }
+            return values.ToString(Formatting.None);
+        }
+
+        private static RemoteGameSave CompletedLargeSave(string valuesJson)
+        {
+            var save = NeoSaveTestSupport.Remote(
+                "save-1", "snap-large", snapshotRevision: 2);
+            save.values = new NeoSaveValues(JObject.Parse(valuesJson));
+            return save;
         }
 
         [Test]
@@ -47,7 +74,7 @@ namespace NeoCompose.Tests
         {
             var (store, api, _) = await ReadyStoreWithCloudAsync();
             api.commitResults.Enqueue(
-                NeoCommitResult.Conflict(NeoSaveTestSupport.Remote("save-1", "remote-head", "hr")));
+                NeoCommitResult.Conflict(NeoSaveTestSupport.Remote("save-1", "remote-head")));
 
             var sync = store.CreateNew("save-1");
 
@@ -62,9 +89,9 @@ namespace NeoCompose.Tests
         {
             var (store, api, _) = await ReadyStoreWithCloudAsync();
             api.commitResults.Enqueue(
-                NeoCommitResult.Conflict(NeoSaveTestSupport.Remote("save-1", "remote-head", "hr")));
+                NeoCommitResult.Conflict(NeoSaveTestSupport.Remote("save-1", "remote-head")));
             api.commitResults.Enqueue(
-                NeoCommitResult.Committed(NeoSaveTestSupport.Remote("save-1", "new-head", "hn")));
+                NeoCommitResult.Committed(NeoSaveTestSupport.Remote("save-1", "new-head")));
 
             var sync = store.CreateNew("save-1");
             sync.OnConflict += (_, continuation) => continuation.KeepLocal();
@@ -83,7 +110,7 @@ namespace NeoCompose.Tests
         {
             var (store, api, local) = await ReadyStoreWithCloudAsync();
             api.commitResults.Enqueue(
-                NeoCommitResult.Conflict(NeoSaveTestSupport.Remote("save-1", "remote-head", "hr")));
+                NeoCommitResult.Conflict(NeoSaveTestSupport.Remote("save-1", "remote-head")));
 
             var sync = store.CreateNew("save-1");
             sync.OnConflict += (_, continuation) => continuation.KeepRemote();
@@ -114,6 +141,70 @@ namespace NeoCompose.Tests
             Assert.That(commitErrors, Is.EqualTo(1));
             Assert.That(await local.LoadSaveAsync("save-1"), Is.Not.Null);
             Assert.That(store.Saves[0].isLocalOnly, Is.True);
+        }
+
+        [Test]
+        public async Task LargeInitialCreate_AppendsAtMost64RecordsBeforeActivation()
+        {
+            var (store, api, _) = await ReadyStoreWithCloudAsync();
+            string values = LargeValuesJson(65);
+            api.chunkedCreateTarget = new NeoChunkedCreateTarget
+            {
+                customId = "save-1",
+                snapshotId = "snap-large",
+            };
+            api.chunkedCompleteResult = CompletedLargeSave(values);
+
+            var sync = store.CreateNew("save-1");
+            await sync.CommitSaveContentAsync(
+                NeoSaveTestSupport.SaveContent("Large", values),
+                replaceSnapshot: false);
+
+            Assert.That(api.commits, Is.Empty, "the unbounded classic payload is never sent");
+            Assert.That(api.chunkedAppends, Has.Count.EqualTo(2));
+            Assert.That(api.chunkedAppends[0], Has.Count.EqualTo(64));
+            Assert.That(api.chunkedAppends[1], Has.Count.EqualTo(1));
+            Assert.That(api.chunkedCompleteCalls, Is.EqualTo(1));
+            Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-large"));
+        }
+
+        [Test]
+        public async Task LargeInitialCreate_RetryUsesManifestWithoutReuploadingCompletedChunk()
+        {
+            var (store, api, _) = await ReadyStoreWithCloudAsync();
+            string values = LargeValuesJson(65);
+            api.chunkedCreateTarget = new NeoChunkedCreateTarget
+            {
+                customId = "save-1",
+                snapshotId = "snap-large",
+            };
+            api.chunkedCompleteResult = CompletedLargeSave(values);
+            api.chunkedAppendFailures.Enqueue(null);
+            api.chunkedAppendFailures.Enqueue(
+                new InvalidOperationException("append response lost"));
+
+            var sync = store.CreateNew("save-1");
+            await sync.CommitSaveContentAsync(
+                NeoSaveTestSupport.SaveContent("Large", values),
+                replaceSnapshot: false);
+            Assert.That(sync.ActiveSave!.IsLocalOnly, Is.True,
+                "the accepted partial create remains local until a retry completes it");
+
+            api.chunkedBeginThrows = new InvalidOperationException("already exists");
+            api.transitionStatuses.Enqueue(
+                NeoSaveTransitionStatus.Copying("save-1", "snap-large"));
+            await sync.CommitSaveContentAsync(
+                NeoSaveTestSupport.SaveContent("Large", values),
+                replaceSnapshot: false);
+
+            Assert.That(api.chunkedAppends, Has.Count.EqualTo(3));
+            Assert.That(api.chunkedAppends[0], Has.Count.EqualTo(64));
+            Assert.That(api.chunkedAppends[1], Has.Count.EqualTo(1));
+            Assert.That(api.chunkedAppends[2], Has.Count.EqualTo(1),
+                "retry sends only the record absent from the recovered manifest");
+            Assert.That(api.cloneRequests, Is.Empty,
+                "resuming a create never allocates a second save");
+            Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-large"));
         }
 
         [Test]
@@ -150,12 +241,12 @@ namespace NeoCompose.Tests
         {
             var (store, api, _) = await ReadyStoreWithCloudAsync();
             // The cloud save is bound to a different channel than the target.
-            api.getResult = NeoSaveTestSupport.Remote("save-1", "snap-1", "h1", channel: "channel-prod");
+            api.getResult = NeoSaveTestSupport.Remote(
+                "save-1", "snap-1", channel: "channel-prod");
             api.cloneResult = NeoCloneResult.Cloned(
                 NeoSaveTestSupport.Remote(
                     "save-2",
                     "snap-2",
-                    "h2",
                     channel: NeoSaveTestSupport.TargetChannel));
 
             var sync = store.Open("save-1");
@@ -178,7 +269,7 @@ namespace NeoCompose.Tests
         {
             var (store, api, _) = await ReadyStoreWithCloudAsync();
             api.getResult = NeoSaveTestSupport.Remote(
-                "save-1", "snap-1", "h1", channel: "channel-prod");
+                "save-1", "snap-1", channel: "channel-prod");
             api.cloneResult = NeoCloneResult.Transitioning("save-2", "snap-2");
             api.transitionStatuses.Enqueue(
                 NeoSaveTransitionStatus.Copying("save-2", "snap-2"));
@@ -186,7 +277,6 @@ namespace NeoCompose.Tests
                 NeoSaveTestSupport.Remote(
                     "save-2",
                     "snap-2",
-                    "h2",
                     channel: NeoSaveTestSupport.TargetChannel)));
 
             var sync = store.Open("save-1");
@@ -208,7 +298,8 @@ namespace NeoCompose.Tests
         public async Task Load_CrossChannelSave_DenyClone_IsNoOp()
         {
             var (store, api, _) = await ReadyStoreWithCloudAsync();
-            api.getResult = NeoSaveTestSupport.Remote("save-1", "snap-1", "h1", channel: "channel-prod");
+            api.getResult = NeoSaveTestSupport.Remote(
+                "save-1", "snap-1", channel: "channel-prod");
 
             var sync = store.Open("save-1");
             sync.OnSelectedSaveRequiringClone += (_, continuation) => continuation.Deny();

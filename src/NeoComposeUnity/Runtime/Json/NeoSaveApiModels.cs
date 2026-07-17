@@ -68,6 +68,33 @@ namespace NeoCompose.Runtime.Json
         public string? targetReleaseChannelId;
     }
 
+    /// <summary>
+    /// Metadata-only first phase of a large save creation. Record changes are
+    /// appended separately in bounded batches before activation.
+    /// </summary>
+    public sealed class NeoChunkedCreateRequest
+    {
+        public string customId = "";
+        public string name = "";
+        public VersionData version = new();
+        public string targetReleaseChannelId = "";
+        public string? snapshotName;
+        public string? liveSessionId;
+        public List<GameRuntimePlatform>? platforms;
+        public List<GameSystemInfo>? systems;
+        public List<GameInputDeviceInfo>? inputDevices;
+        public NeoTimestamp createdAt;
+        public NeoTimestamp updatedAt;
+    }
+
+    /// <summary>Hidden destination accepted for a chunked save creation.</summary>
+    public sealed class NeoChunkedCreateTarget
+    {
+        public string customId = "";
+        public string snapshotId = "";
+        public long snapshotRevision;
+    }
+
     public enum NeoCloneOutcome
     {
         Cloned,

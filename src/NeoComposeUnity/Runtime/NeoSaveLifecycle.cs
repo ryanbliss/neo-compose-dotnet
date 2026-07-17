@@ -45,7 +45,6 @@ namespace NeoCompose.Runtime
         public string name = "";
         public string releaseChannelId = "";
         public long snapshotRevision;
-        public string? snapshotHash;
         public bool isLocalOnly;
         public bool existsRemotely;
         public bool requiresClone;

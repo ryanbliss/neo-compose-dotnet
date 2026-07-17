@@ -64,23 +64,24 @@ namespace NeoCompose.Tests
         private static string LiveSaveContent(
             string values,
             string snapshotId = "snap-1",
-            string snapshotHash = "hash-1")
+            long snapshotRevision = 1)
         {
             return "{\"name\":\"Live Save\",\"projectId\":\"project-1\"," +
                 "\"customId\":\"save-1\",\"releaseChannelId\":\"" + LiveChannel + "\"," +
                 "\"serverId\":\"server-save-1\",\"snapshotId\":\"" + snapshotId + "\"," +
-                "\"snapshotHash\":\"" + snapshotHash + "\",\"synchronizedAt\":3," +
+                "\"snapshotRevision\":" + snapshotRevision + ",\"synchronizedAt\":3," +
                 "\"version\":{\"id\":\"v1\",\"label\":\"1.0\"}," +
                 "\"values\":" + values +
                 ",\"createdAt\":1,\"updatedAt\":2}";
         }
 
         private static RemoteGameSave RemoteWithValues(
-            string snapshotId, string snapshotHash, string valuesJson,
+            string snapshotId, string valuesJson,
             string? liveSessionId = null,
             long snapshotRevision = 1)
         {
-            var remote = NeoSaveTestSupport.Remote("save-1", snapshotId, snapshotHash);
+            var remote = NeoSaveTestSupport.Remote(
+                "save-1", snapshotId, snapshotRevision);
             remote.values = new NeoSaveValues(JToken.Parse(valuesJson));
             remote.liveSessionId = liveSessionId;
             remote.snapshotRevision = snapshotRevision;
@@ -135,7 +136,7 @@ namespace NeoCompose.Tests
         {
             var api = new FakeApiClient
             {
-                getResult = RemoteWithValues("snap-1", "hash-1", "{}"),
+                getResult = RemoteWithValues("snap-1", "{}"),
             };
             var local = new NeoInMemoryLocalSaveStore();
             var realtime = new FakeRealtimeProvider
@@ -161,7 +162,7 @@ namespace NeoCompose.Tests
         }
 
         /// <summary>Drives a session through its fork so patch-path tests start
-        /// from an established live snapshot ("snap-live"/"hash-live").</summary>
+        /// from an established live snapshot at revision one.</summary>
         private static async Task ForkEstablishedAsync(
             NeoSaveSynchronizer sync,
             FakeRealtimeProvider realtime,
@@ -169,7 +170,7 @@ namespace NeoCompose.Tests
             string forkedValues = "{\"a\":1}")
         {
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live", "hash-live", forkedValues, "session-x")));
+                RemoteWithValues("snap-live", forkedValues, "session-x")));
             await sync.CommitSaveContentAsync(
                 LiveSaveContent(forkedValues), replaceSnapshot: false);
             scheduler.Advance(0.5);
@@ -201,7 +202,7 @@ namespace NeoCompose.Tests
             sync.OnCommitSuccess += commits.Add;
 
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live", "hash-live", "{\"a\":1}", "session-x")));
+                RemoteWithValues("snap-live", "{\"a\":1}", "session-x")));
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"),
@@ -224,7 +225,7 @@ namespace NeoCompose.Tests
         {
             var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live", "hash-live", "{\"a\":1}", "session-x")));
+                RemoteWithValues("snap-live", "{\"a\":1}", "session-x")));
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
@@ -251,7 +252,7 @@ namespace NeoCompose.Tests
         {
             var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live", "hash-live", "{\"a\":2}", "session-x")));
+                RemoteWithValues("snap-live", "{\"a\":2}", "session-x")));
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
@@ -272,7 +273,7 @@ namespace NeoCompose.Tests
         {
             var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live", "hash-live", "{\"a\":4}", "session-x")));
+                RemoteWithValues("snap-live", "{\"a\":4}", "session-x")));
 
             // A stage every 0.4s keeps the debounce window perpetually moving;
             // the latency cap (2s) must force the flush anyway.
@@ -295,7 +296,7 @@ namespace NeoCompose.Tests
 
             realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":2,\"b\":true}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":2,\"b\":true}", "snap-live"),
                 replaceSnapshot: false);
             scheduler.Advance(0.5);
 
@@ -316,7 +317,7 @@ namespace NeoCompose.Tests
 
             realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":1}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":1}", "snap-live"),
                 replaceSnapshot: false);
             scheduler.Advance(0.5);
 
@@ -336,11 +337,11 @@ namespace NeoCompose.Tests
 
             realtime.canCommit = false;
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
             scheduler.Advance(0.5);
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":3,\"c\":1}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":3,\"c\":1}", "snap-live"),
                 replaceSnapshot: false);
             scheduler.Advance(0.5);
             Assert.That(realtime.livePatches, Is.Empty, "offline: deltas stay staged");
@@ -366,7 +367,7 @@ namespace NeoCompose.Tests
             sync.OnLiveContentChanged += liveChanges.Add;
 
             realtime.PushHead(RemoteWithValues(
-                "snap-live", "hash-live", "{\"a\":1}", "session-x"));
+                "snap-live", "{\"a\":1}", "session-x"));
 
             Assert.That(headChanges, Is.Empty);
             Assert.That(liveChanges, Is.Empty);
@@ -386,7 +387,6 @@ namespace NeoCompose.Tests
                 "snap-live", 2, "{\"a\":{\"value\":1},\"web\":{\"value\":5}}");
             realtime.PushHead(RemoteWithValues(
                 "snap-live",
-                "",
                 "{}",
                 "session-x",
                 snapshotRevision: 2));
@@ -410,14 +410,13 @@ namespace NeoCompose.Tests
 
             // Stage a=2 but do NOT advance the clock: the key is dirty.
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
 
             api.SetValueDelta(
                 "snap-live", 2, "{\"a\":{\"value\":9},\"web\":{\"value\":5}}");
             realtime.PushHead(RemoteWithValues(
                 "snap-live",
-                "",
                 "{}",
                 "session-x",
                 snapshotRevision: 2));
@@ -444,15 +443,15 @@ namespace NeoCompose.Tests
             var headChanges = new List<RemoteGameSave>();
             sync.OnRemoteHeadChanged += headChanges.Add;
 
-            // A different session's fork moves the head (hash not in our ring).
+            // A different session's fork moves the snapshot identity.
             realtime.PushHead(RemoteWithValues(
-                "snap-other", "hash-other", "{\"o\":1}", "session-other"));
+                "snap-other", "{\"o\":1}", "session-other"));
             Assert.That(headChanges, Has.Count.EqualTo(1), "classic divergence event");
 
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live-2", "hash-live-2", "{\"a\":2}", "session-x")));
+                RemoteWithValues("snap-live-2", "{\"a\":2}", "session-x")));
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
             scheduler.Advance(0.5);
 
@@ -473,10 +472,10 @@ namespace NeoCompose.Tests
                     snapshotRevision = 2,
                 }));
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live-2", "hash-live-2", "{\"a\":2}", "session-x")));
+                RemoteWithValues("snap-live-2", "{\"a\":2}", "session-x")));
 
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
             scheduler.Advance(0.5);
 
@@ -498,7 +497,7 @@ namespace NeoCompose.Tests
             sync.OnConflict += (_, continuation) => continuation.KeepRemote();
 
             realtime.forkResults.Enqueue(NeoCommitResult.Conflict(
-                RemoteWithValues("snap-2", "hash-2", "{\"s\":1}")));
+                RemoteWithValues("snap-2", "{\"s\":1}")));
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
             scheduler.Advance(0.5);
@@ -523,9 +522,9 @@ namespace NeoCompose.Tests
             sync.OnConflict += (_, continuation) => continuation.KeepLocal();
 
             realtime.forkResults.Enqueue(NeoCommitResult.Conflict(
-                RemoteWithValues("snap-2", "hash-2", "{\"s\":1}")));
+                RemoteWithValues("snap-2", "{\"s\":1}")));
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live", "hash-live", "{\"s\":1,\"a\":1}", "session-x")));
+                RemoteWithValues("snap-live", "{\"s\":1,\"a\":1}", "session-x")));
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
@@ -542,7 +541,7 @@ namespace NeoCompose.Tests
             var (_, sync, _, _, realtime, _) = await LiveSessionAsync(
                 liveSessionsEnabled: false);
             realtime.commitResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-2", "hash-2", "{\"a\":1}")));
+                RemoteWithValues("snap-2", "{\"a\":1}")));
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"a\":1}"), replaceSnapshot: false);
@@ -560,7 +559,7 @@ namespace NeoCompose.Tests
 
             realtime.livePatchResults.Enqueue(Patched("snap-live", 2));
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
 
             sync.Dispose();
@@ -583,7 +582,7 @@ namespace NeoCompose.Tests
             realtime.livePatchThrows =
                 new ObjectDisposedException("ConvexRealtimeProvider");
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
 
             scheduler.Advance(0.5);
@@ -607,7 +606,7 @@ namespace NeoCompose.Tests
 
             realtime.livePatchThrows = new TaskCanceledException("The operation was canceled.");
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
 
             scheduler.Advance(0.5);
@@ -641,7 +640,7 @@ namespace NeoCompose.Tests
                     "Live flush for save \"save-1\" was rejected by the server"));
 
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
             scheduler.Advance(0.5);
 
@@ -669,7 +668,7 @@ namespace NeoCompose.Tests
         {
             var api = new FakeApiClient
             {
-                getResult = RemoteWithValues("snap-1", "hash-1", "{}"),
+                getResult = RemoteWithValues("snap-1", "{}"),
             };
             var local = new NeoInMemoryLocalSaveStore();
             var realtime = new FakeRealtimeProvider
@@ -696,7 +695,7 @@ namespace NeoCompose.Tests
             app.Client.LiveAutoCommitDelay = autoCommitScheduler.Delay;
 
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live", "hash-live", "{}", "session-x")));
+                RemoteWithValues("snap-live", "{}", "session-x")));
 
             // The game just plays — no CommitAsync anywhere.
             app.Save.Score = 41;
@@ -743,7 +742,7 @@ namespace NeoCompose.Tests
             sync.LiveDelay = scheduler.Delay;
 
             realtime.commitResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-created", "hash-created", "{\"a\":1}", "stamped")));
+                RemoteWithValues("snap-created", "{\"a\":1}", "stamped")));
             await sync.CommitSaveContentAsync(
                 NeoSaveTestSupport.SaveContent("New Save", "{\"a\":1}"),
                 replaceSnapshot: false);
@@ -785,7 +784,6 @@ namespace NeoCompose.Tests
                 "snap-created", 3, "{\"a\":{\"value\":2},\"web\":{\"value\":5}}");
             realtime.PushHead(RemoteWithValues(
                 "snap-created",
-                "",
                 "{}",
                 "stamped",
                 snapshotRevision: 3));
@@ -806,14 +804,14 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient
             {
                 getResult = RemoteWithValues(
-                    "snap-live", "hash-web", "{}", "session-prior"),
+                    "snap-live", "{}", "session-prior", snapshotRevision: 2),
             };
             var local = new NeoInMemoryLocalSaveStore();
             // The previous session flushed fully before closing: the persisted
             // copy is exactly the server-acknowledged state of snap-live.
             await local.CommitSaveAsync(
                 "save-1",
-                LiveSaveContent("{}", "snap-live", "hash-old")
+                LiveSaveContent("{}", "snap-live")
                     .Replace("\"serverId\"", "\"liveFlushed\":true,\"serverId\""));
             var store = new NeoProjectStore(
                 dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
@@ -831,7 +829,8 @@ namespace NeoCompose.Tests
             // No OnConflict handler attached: a conflict here would throw.
             var content = await sync.LoadSaveContentAsync();
 
-            Assert.That(content, Does.Contain("hash-web"), "the cloud copy was adopted");
+            Assert.That(content, Does.Contain("\"snapshotRevision\":2"),
+                "the cloud copy was adopted");
         }
 
         [Test]
@@ -840,13 +839,13 @@ namespace NeoCompose.Tests
             var api = new FakeApiClient
             {
                 getResult = RemoteWithValues(
-                    "snap-live", "hash-web", "{\"a\":9}", "session-prior"),
+                    "snap-live", "{\"a\":9}", "session-prior", snapshotRevision: 2),
             };
             var local = new NeoInMemoryLocalSaveStore();
             // Same snapshot, but the local copy has unflushed offline edits
             // (no liveFlushed marker): the conflict contract must still run.
             await local.CommitSaveAsync(
-                "save-1", LiveSaveContent("{}", "snap-live", "hash-old"));
+                "save-1", LiveSaveContent("{}", "snap-live"));
             var store = new NeoProjectStore(
                 dataSource: new NeoJsonProjectDataSource(NeoSaveTestSupport.ProjectJson),
                 localStore: local,
@@ -874,7 +873,7 @@ namespace NeoCompose.Tests
         {
             var (_, sync, _, _, realtime, scheduler) = await LiveSessionAsync();
             realtime.forkResults.Enqueue(NeoCommitResult.Committed(
-                RemoteWithValues("snap-live", "hash-live", "{}", "session-x")));
+                RemoteWithValues("snap-live", "{}", "session-x")));
 
             await sync.CommitSaveContentAsync(
                 LiveSaveContent("{\"stamp\":{\"value\":\"2026-06-11T11:50:29.643Z\"}}"),
@@ -899,7 +898,7 @@ namespace NeoCompose.Tests
 
             realtime.livePatchThrows = new InvalidOperationException("socket died");
             await sync.CommitSaveContentAsync(
-                LiveSaveContent("{\"a\":2}", "snap-live", "hash-live"),
+                LiveSaveContent("{\"a\":2}", "snap-live"),
                 replaceSnapshot: false);
             scheduler.Advance(0.5);
             Assert.That(errors, Has.Count.EqualTo(1));

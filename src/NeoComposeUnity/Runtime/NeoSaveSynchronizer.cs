@@ -256,7 +256,7 @@ namespace NeoCompose.Runtime
                 {
                     active = LocalGameSave.FromRemote(committedRemote);
                     // Re-stamp the local file with the server identity so a later
-                    // load sees the synchronized snapshot hash.
+                    // load sees the synchronized snapshot revision.
                     await core.LocalStore.CommitSaveAsync(
                         CustomId, JsonConvert.SerializeObject(active));
                     // A brand-new save skipped the load path (and with it
@@ -321,9 +321,22 @@ namespace NeoCompose.Runtime
             NeoCommitResult result;
             try
             {
-                result = await CommitTransportAsync(
-                    BuildCommitRequest(local, active?.snapshotId, createAsLiveSessionId),
-                    replaceSnapshot);
+                var request = BuildCommitRequest(
+                    local, active?.snapshotId, createAsLiveSessionId);
+                var initialChanges = BuildInitialRecordChanges(local);
+                if (local.IsLocalOnly
+                    && request.baseSnapshotId == null
+                    && initialChanges != null
+                    && initialChanges.Count > 64)
+                {
+                    var committed = await core.CreateSaveInChunksAsync(
+                        BuildChunkedCreateRequest(request), initialChanges);
+                    result = NeoCommitResult.Committed(committed);
+                }
+                else
+                {
+                    result = await CommitTransportAsync(request, replaceSnapshot);
+                }
             }
             catch (Exception ex)
             {
@@ -1665,5 +1678,37 @@ namespace NeoCompose.Runtime
                 liveSessionId = createAsLiveSessionId,
             };
         }
+
+        private static List<GameSaveRecordChange>? BuildInitialRecordChanges(
+            LocalGameSave local)
+        {
+            var values = AsValuesObject(local.values);
+            if (values == null) return null;
+            return BuildLivePatch(
+                    new JObject(),
+                    values,
+                    cache: null,
+                    baselineStaticBindings:
+                        new Dictionary<string, string?>(),
+                    stagedStaticBindings: local.staticBindings)
+                .changes;
+        }
+
+        private static NeoChunkedCreateRequest BuildChunkedCreateRequest(
+            NeoSaveCommitRequest request) =>
+            new NeoChunkedCreateRequest
+            {
+                customId = request.customId,
+                name = request.name,
+                version = request.version,
+                targetReleaseChannelId = request.targetReleaseChannelId,
+                snapshotName = request.snapshotName,
+                liveSessionId = request.liveSessionId,
+                platforms = request.platforms,
+                systems = request.systems,
+                inputDevices = request.inputDevices,
+                createdAt = request.createdAt,
+                updatedAt = request.updatedAt,
+            };
     }
 }

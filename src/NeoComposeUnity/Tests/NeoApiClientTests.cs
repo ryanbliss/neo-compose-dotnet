@@ -46,6 +46,14 @@ namespace NeoCompose.Tests
                     if (url.EndsWith("/snapshots/snap-1/query")) return RemoteJson;
                     if (url.EndsWith("/saves/commit"))
                         return "{\"kind\":\"committed\",\"save\":" + RemoteJson + "}";
+                    if (url.EndsWith("/saves/chunked-create/begin"))
+                        return "{\"customId\":\"save-1\",\"snapshotId\":\"snap-1\"," +
+                            "\"snapshotRevision\":0}";
+                    if (url.EndsWith("/chunked-create/append"))
+                        return "{\"kind\":\"patched\",\"snapshotId\":\"snap-1\"," +
+                            "\"snapshotRevision\":1,\"synchronizedAt\":3," +
+                            "\"changedDescriptors\":[]}";
+                    if (url.EndsWith("/chunked-create/complete")) return RemoteJson;
                     if (url.EndsWith("/saves/save-1/clone"))
                         return "{\"kind\":\"cloned\",\"save\":" + RemoteJson + "}";
                     if (url.EndsWith("/saves/save-1/status/query"))
@@ -61,12 +69,29 @@ namespace NeoCompose.Tests
             await client.GetSaveSnapshotsAsync("save-1");
             await client.GetSaveSnapshotAsync("save-1", "snap-1");
             await client.CommitAsync(NewCommit(), replaceSnapshot: false);
+            await client.BeginChunkedCreateAsync(new NeoChunkedCreateRequest
+            {
+                customId = "save-1",
+            });
+            await client.AppendChunkedCreateAsync(
+                "save-1",
+                "snap-1",
+                new List<GameSaveRecordChange>
+                {
+                    new GameSaveValueReplaceChange
+                    {
+                        valueId = "value-1",
+                        value = Newtonsoft.Json.Linq.JObject.Parse("{\"value\":1}"),
+                    },
+                },
+                3);
+            await client.CompleteChunkedCreateAsync("save-1", "snap-1");
             await client.CloneSaveAsync("save-1", new NeoCloneRequest());
             await client.GetSaveTransitionStatusAsync("save-1");
             await client.ArchiveSaveAsync("save-1");
             await client.ArchiveSnapshotAsync("save-1", "snap-1");
 
-            Assert.That(http.sends, Has.Count.EqualTo(15));
+            Assert.That(http.sends, Has.Count.EqualTo(19));
             foreach (var send in http.sends)
             {
                 Assert.That(send.bearer, Is.EqualTo("the-token"), $"Request to {send.url} must carry the bearer.");
@@ -204,6 +229,54 @@ namespace NeoCompose.Tests
             Assert.That(result.ClonedSave, Is.Null);
             Assert.That(http.sends, Has.Count.EqualTo(1),
                 "an accepted copy must not expose or request partial manifest records");
+        }
+
+        [Test]
+        public async Task ChunkedCreate_UsesMetadataThenBoundedRecordAppendThenComplete()
+        {
+            var http = new FakeHttpClient
+            {
+                bodyForUrl = url =>
+                {
+                    if (url.EndsWith("/chunked-create/begin"))
+                        return "{\"customId\":\"save-1\",\"snapshotId\":\"snap-new\"," +
+                            "\"snapshotRevision\":0}";
+                    if (url.EndsWith("/chunked-create/append"))
+                        return "{\"kind\":\"patched\",\"snapshotId\":\"snap-new\"," +
+                            "\"snapshotRevision\":1,\"synchronizedAt\":4," +
+                            "\"changedDescriptors\":[]}";
+                    if (url.EndsWith("/chunked-create/complete")) return RemoteJson;
+                    return "{}";
+                },
+            };
+            var client = NewClient(new FakeProvider("the-token"), http);
+            var target = await client.BeginChunkedCreateAsync(
+                new NeoChunkedCreateRequest
+                {
+                    customId = "save-1",
+                    name = "Large",
+                    targetReleaseChannelId = "channel-dev",
+                    createdAt = 1,
+                    updatedAt = 2,
+                });
+            var change = new GameSaveValueReplaceChange
+            {
+                valueId = "value-1",
+                value = Newtonsoft.Json.Linq.JObject.Parse("{\"value\":1}"),
+            };
+            var appended = await client.AppendChunkedCreateAsync(
+                target.customId, target.snapshotId, new[] { change }, 2);
+            await client.CompleteChunkedCreateAsync(
+                target.customId, target.snapshotId);
+
+            Assert.That(appended.SnapshotRevision, Is.EqualTo(1));
+            StringAssert.EndsWith("/saves/chunked-create/begin", http.sends[0].url);
+            StringAssert.DoesNotContain("values", http.sends[0].body);
+            StringAssert.EndsWith(
+                "/saves/save-1/chunked-create/append", http.sends[1].url);
+            StringAssert.Contains("\"kind\":\"value.replace\"", http.sends[1].body);
+            StringAssert.EndsWith(
+                "/saves/save-1/chunked-create/complete", http.sends[2].url);
         }
 
         [Test]

@@ -215,6 +215,215 @@ namespace NeoCompose.Runtime
             }
         }
 
+        /// <summary>
+        /// Creates a large local artifact through the hidden begin/append/complete
+        /// protocol. A retry recovers the accepted destination through status and
+        /// skips logical records already visible in its manifest.
+        /// </summary>
+        internal async Awaitable<RemoteGameSave> CreateSaveInChunksAsync(
+            NeoChunkedCreateRequest request,
+            IReadOnlyList<GameSaveRecordChange> changes)
+        {
+            if (ApiClient == null)
+            {
+                throw new InvalidOperationException(
+                    "Chunked cloud creation requires an API client.");
+            }
+
+            NeoChunkedCreateTarget target;
+            try
+            {
+                target = await ApiClient.BeginChunkedCreateAsync(request);
+            }
+            catch (Exception beginError)
+            {
+                NeoSaveTransitionStatus status;
+                try
+                {
+                    status = await ApiClient.GetSaveTransitionStatusAsync(
+                        request.customId);
+                }
+                catch
+                {
+                    throw beginError;
+                }
+
+                if (status.Outcome == NeoSaveTransitionOutcome.Ready)
+                {
+                    var ready = status.ReadySave
+                        ?? throw new InvalidOperationException(
+                            "Neo Compose reported a ready create without a save.");
+                    if (ready.id != request.customId)
+                    {
+                        throw new InvalidOperationException(
+                            "Neo Compose create status returned a different save id.");
+                    }
+                    return ready;
+                }
+                if (status.Outcome == NeoSaveTransitionOutcome.Failed)
+                {
+                    throw BuildTransitionFailure(
+                        status.CustomId, status.TargetSnapshotId, status.Error);
+                }
+                if (status.CustomId != request.customId)
+                {
+                    throw new InvalidOperationException(
+                        "Neo Compose create status returned a different save id.");
+                }
+                target = new NeoChunkedCreateTarget
+                {
+                    customId = status.CustomId,
+                    snapshotId = status.TargetSnapshotId,
+                    snapshotRevision = 0,
+                };
+            }
+
+            if (target.customId != request.customId)
+            {
+                throw new InvalidOperationException(
+                    "Neo Compose accepted a chunked create under a different save id.");
+            }
+
+            var applied = await LoadManifestLogicalKeysAsync(
+                target.customId, target.snapshotId);
+            var pending = new List<GameSaveRecordChange>();
+            foreach (var change in changes)
+            {
+                if (!applied.Contains(LogicalKey(change))) pending.Add(change);
+            }
+
+            while (pending.Count != 0)
+            {
+                int count = Math.Min(64, pending.Count);
+                var chunk = pending.GetRange(0, count);
+                try
+                {
+                    var result = await ApiClient.AppendChunkedCreateAsync(
+                        target.customId,
+                        target.snapshotId,
+                        chunk,
+                        request.updatedAt);
+                    if (result.IsConflict)
+                    {
+                        throw new InvalidOperationException(
+                            "A fresh chunked save create reported a record conflict.");
+                    }
+                    if (result.IsStaleTarget
+                        || result.SnapshotId != target.snapshotId)
+                    {
+                        throw new InvalidOperationException(
+                            "A chunked save append targeted a stale snapshot.");
+                    }
+                    pending.RemoveRange(0, count);
+                }
+                catch (Exception appendError)
+                {
+                    // The response may have been lost after the atomic append.
+                    // Re-read the manifest before deciding what remains; never
+                    // resend the same mutation based only on a transport error.
+                    var resumed = await LoadManifestLogicalKeysAsync(
+                        target.customId, target.snapshotId);
+                    pending.RemoveAll(change => resumed.Contains(LogicalKey(change)));
+                    if (pending.Count == 0) break;
+                    throw appendError;
+                }
+            }
+
+            try
+            {
+                return await ApiClient.CompleteChunkedCreateAsync(
+                    target.customId, target.snapshotId);
+            }
+            catch (Exception completeError)
+            {
+                var status = await ApiClient.GetSaveTransitionStatusAsync(
+                    target.customId);
+                if (status.Outcome == NeoSaveTransitionOutcome.Ready)
+                {
+                    var ready = status.ReadySave
+                        ?? throw new InvalidOperationException(
+                            "Neo Compose reported a ready create without a save.");
+                    if (ready.id != target.customId
+                        || ready.snapshotId != target.snapshotId)
+                    {
+                        throw new InvalidOperationException(
+                            "Neo Compose completed a different chunked save target.");
+                    }
+                    return ready;
+                }
+                if (status.Outcome == NeoSaveTransitionOutcome.Failed)
+                {
+                    throw BuildTransitionFailure(
+                        status.CustomId, status.TargetSnapshotId, status.Error);
+                }
+                throw completeError;
+            }
+        }
+
+        private async Awaitable<HashSet<string>> LoadManifestLogicalKeysAsync(
+            string customId,
+            string snapshotId)
+        {
+            var keys = new HashSet<string>();
+            string? cursor = null;
+            do
+            {
+                var page = await ApiClient!.GetSaveRecordManifestPageAsync(
+                    customId,
+                    snapshotId,
+                    new GameSaveRecordPageRequest
+                    {
+                        cursor = cursor,
+                        numItems = 128,
+                    });
+                foreach (var descriptor in page.page)
+                {
+                    if (!descriptor.deleted) keys.Add(descriptor.LogicalKey);
+                }
+                cursor = page.isDone ? null : page.continueCursor;
+                if (!page.isDone && string.IsNullOrEmpty(cursor))
+                {
+                    throw new InvalidOperationException(
+                        "Neo Compose manifest page was unfinished without a cursor.");
+                }
+            } while (cursor != null);
+            return keys;
+        }
+
+        private static string LogicalKey(GameSaveRecordChange change) => change switch
+        {
+            GameSaveValuePatchChange value =>
+                GameSaveRecordDescriptor.MakeLogicalKey(
+                    NeoGameSaveRecordKinds.Value, value.valueId),
+            GameSaveValueReplaceChange value =>
+                GameSaveRecordDescriptor.MakeLogicalKey(
+                    NeoGameSaveRecordKinds.Value, value.valueId),
+            GameSaveValueRestoreToAuthoredChange value =>
+                GameSaveRecordDescriptor.MakeLogicalKey(
+                    NeoGameSaveRecordKinds.Value, value.valueId),
+            GameSaveStaticBindingSetChange binding =>
+                GameSaveRecordDescriptor.MakeLogicalKey(
+                    NeoGameSaveRecordKinds.StaticBinding, binding.memberId),
+            GameSaveStaticBindingRestoreToAuthoredChange binding =>
+                GameSaveRecordDescriptor.MakeLogicalKey(
+                    NeoGameSaveRecordKinds.StaticBinding, binding.memberId),
+            _ => throw new InvalidOperationException(
+                $"Unsupported game save change type {change.GetType().Name}."),
+        };
+
+        private static InvalidOperationException BuildTransitionFailure(
+            string customId,
+            string snapshotId,
+            string? error)
+        {
+            var detail = string.IsNullOrWhiteSpace(error)
+                ? "The server did not provide an error."
+                : error;
+            return new InvalidOperationException(
+                $"Neo Compose transition for save \"{customId}\" and snapshot " +
+                $"\"{snapshotId}\" failed. {detail}");
+        }
+
         private static void RequireMatchingCloneTransition(
             NeoCloneResult accepted,
             string customId,
@@ -299,7 +508,6 @@ namespace NeoCompose.Runtime
                 name = local.name,
                 releaseChannelId = remote?.releaseChannelId ?? local.releaseChannelId,
                 snapshotRevision = remote?.snapshotRevision ?? local.snapshotRevision,
-                snapshotHash = remote?.snapshotHash ?? local.snapshotHash,
                 isLocalOnly = remote == null,
                 existsRemotely = remote != null,
                 requiresClone = false,
@@ -337,7 +545,6 @@ namespace NeoCompose.Runtime
                 name = local.name,
                 releaseChannelId = channel,
                 snapshotRevision = local.snapshotRevision,
-                snapshotHash = local.snapshotHash,
                 isLocalOnly = local.IsLocalOnly,
                 existsRemotely = !local.IsLocalOnly,
                 requiresClone = channel != TargetReleaseChannelId,
@@ -378,7 +585,6 @@ namespace NeoCompose.Runtime
             entry.name = remote.name;
             entry.releaseChannelId = remote.releaseChannelId;
             entry.snapshotRevision = remote.snapshotRevision;
-            entry.snapshotHash = remote.snapshotHash;
             entry.existsRemotely = true;
             entry.isLocalOnly = false;
             entry.requiresClone = requiresClone;

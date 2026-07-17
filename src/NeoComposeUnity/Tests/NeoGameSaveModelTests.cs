@@ -18,7 +18,7 @@ namespace NeoCompose.Tests
             "\"serverId\":\"server-1\"," +
             "\"id\":\"save-1\"," +
             "\"snapshotId\":\"snap-1\"," +
-            "\"snapshotHash\":\"hash-1\"," +
+            "\"snapshotRevision\":1," +
             "\"releaseChannelId\":\"channel-dev\"," +
             "\"snapshotName\":\"Auto 1\"," +
             "\"name\":\"My Save\"," +
@@ -39,7 +39,7 @@ namespace NeoCompose.Tests
 
             Assert.That(save.id, Is.EqualTo("save-1"));
             Assert.That(save.serverId, Is.EqualTo("server-1"));
-            Assert.That(save.snapshotHash, Is.EqualTo("hash-1"));
+            Assert.That(save.snapshotRevision, Is.EqualTo(1));
             Assert.That(save.releaseChannelId, Is.EqualTo("channel-dev"));
             Assert.That(save.author.id, Is.EqualTo("user-1"));
             // values stayed opaque: the raw token is preserved, not pre-typed.
@@ -177,6 +177,7 @@ namespace NeoCompose.Tests
         {
             var remote = RemoteGameSaveLoader.Load(RemoteJson);
             var local = LocalGameSave.FromRemote(remote);
+            local.snapshotHash = "legacy-local-hash";
 
             var json = LocalGameSaveLoader.Serialize(local);
             var reloaded = LocalGameSaveLoader.Load(json);
@@ -184,7 +185,7 @@ namespace NeoCompose.Tests
             Assert.That(reloaded.customId, Is.EqualTo("save-1"));
             Assert.That(reloaded.serverId, Is.EqualTo("server-1"));
             Assert.That(reloaded.snapshotId, Is.EqualTo("snap-1"));
-            Assert.That(reloaded.snapshotHash, Is.EqualTo("hash-1"));
+            Assert.That(reloaded.snapshotHash, Is.EqualTo("legacy-local-hash"));
             Assert.That((bool)reloaded.values.Raw["v1"]!["value"]!, Is.True);
             Assert.That(reloaded.staticBindings["member-current"], Is.EqualTo("v1"));
             Assert.That(reloaded.staticBindings.ContainsKey("member-cleared"), Is.True);
