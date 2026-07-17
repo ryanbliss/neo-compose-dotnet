@@ -85,6 +85,7 @@ namespace NeoCompose.Runtime.Json
         public List<GameInputDeviceInfo>? inputDevices;
         public NeoTimestamp createdAt;
         public NeoTimestamp updatedAt;
+        public string uploadFingerprint = "";
     }
 
     /// <summary>Hidden destination accepted for a chunked save creation.</summary>
@@ -93,6 +94,7 @@ namespace NeoCompose.Runtime.Json
         public string customId = "";
         public string snapshotId = "";
         public long snapshotRevision;
+        public string resumeToken = "";
     }
 
     public enum NeoCloneOutcome

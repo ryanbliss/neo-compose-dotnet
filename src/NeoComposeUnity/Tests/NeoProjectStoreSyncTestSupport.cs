@@ -98,11 +98,15 @@ namespace NeoCompose.Tests
         public NeoChunkedCreateTarget? chunkedCreateTarget;
         public Exception? chunkedBeginThrows;
         public int chunkedBeginCalls;
+        public readonly List<string> chunkedBeginFingerprints = new();
         public readonly Queue<Exception?> chunkedAppendFailures = new();
         public readonly List<List<GameSaveRecordChange>> chunkedAppends = new();
+        public readonly List<string> chunkedAppendResumeTokens = new();
+        public readonly List<long> chunkedAppendBaseRevisions = new();
         public RemoteGameSave? chunkedCompleteResult;
         public Exception? chunkedCompleteThrows;
         public int chunkedCompleteCalls;
+        public readonly List<string> chunkedCompleteResumeTokens = new();
         public readonly List<string> archivedSaves = new();
         public readonly List<string> archivedSnapshots = new();
         private GameSaveRecordPage deltaPage = new GameSaveRecordPage { isDone = true };
@@ -260,6 +264,7 @@ namespace NeoCompose.Tests
             NeoChunkedCreateRequest request)
         {
             chunkedBeginCalls++;
+            chunkedBeginFingerprints.Add(request.uploadFingerprint);
             if (chunkedBeginThrows != null) throw chunkedBeginThrows;
             return NeoAwaitable.FromResult(
                 chunkedCreateTarget
@@ -269,11 +274,14 @@ namespace NeoCompose.Tests
 
         public Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
             string customId,
-            string snapshotId,
+            string resumeToken,
+            long baseSnapshotRevision,
             IReadOnlyList<GameSaveRecordChange> changes,
             NeoTimestamp updatedAt)
         {
             chunkedAppends.Add(new List<GameSaveRecordChange>(changes));
+            chunkedAppendResumeTokens.Add(resumeToken);
+            chunkedAppendBaseRevisions.Add(baseSnapshotRevision);
             if (chunkedAppendFailures.Count != 0
                 && chunkedAppendFailures.Dequeue() is { } failure)
             {
@@ -312,17 +320,18 @@ namespace NeoCompose.Tests
                 descriptors.Add(descriptor);
             }
             return NeoAwaitable.FromResult(NeoLivePatchResult.Patched(
-                snapshotId,
-                chunkedAppends.Count,
+                chunkedCreateTarget?.snapshotId ?? resumeToken,
+                baseSnapshotRevision + 1,
                 updatedAt,
                 descriptors));
         }
 
         public Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
             string customId,
-            string snapshotId)
+            string resumeToken)
         {
             chunkedCompleteCalls++;
+            chunkedCompleteResumeTokens.Add(resumeToken);
             if (chunkedCompleteThrows != null) throw chunkedCompleteThrows;
             return NeoAwaitable.FromResult(
                 chunkedCompleteResult

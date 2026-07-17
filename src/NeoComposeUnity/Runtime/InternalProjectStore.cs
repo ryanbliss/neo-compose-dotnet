@@ -5,9 +5,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
 using NeoCompose.Runtime.Json;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace NeoCompose.Runtime
 {
@@ -217,8 +222,9 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Creates a large local artifact through the hidden begin/append/complete
-        /// protocol. A retry recovers the accepted destination through status and
-        /// skips logical records already visible in its manifest.
+        /// protocol. The deterministic upload plan maps one bounded batch to one
+        /// snapshot revision, so replayed begin responses can resume without ever
+        /// exposing a pending snapshot's manifest.
         /// </summary>
         internal async Awaitable<RemoteGameSave> CreateSaveInChunksAsync(
             NeoChunkedCreateRequest request,
@@ -230,52 +236,19 @@ namespace NeoCompose.Runtime
                     "Chunked cloud creation requires an API client.");
             }
 
+            var batches = BuildChunkedCreateBatches(changes);
+            request.uploadFingerprint = BuildChunkedCreateFingerprint(request, batches);
+
             NeoChunkedCreateTarget target;
             try
             {
                 target = await ApiClient.BeginChunkedCreateAsync(request);
             }
-            catch (Exception beginError)
+            catch
             {
-                NeoSaveTransitionStatus status;
-                try
-                {
-                    status = await ApiClient.GetSaveTransitionStatusAsync(
-                        request.customId);
-                }
-                catch
-                {
-                    throw beginError;
-                }
-
-                if (status.Outcome == NeoSaveTransitionOutcome.Ready)
-                {
-                    var ready = status.ReadySave
-                        ?? throw new InvalidOperationException(
-                            "Neo Compose reported a ready create without a save.");
-                    if (ready.id != request.customId)
-                    {
-                        throw new InvalidOperationException(
-                            "Neo Compose create status returned a different save id.");
-                    }
-                    return ready;
-                }
-                if (status.Outcome == NeoSaveTransitionOutcome.Failed)
-                {
-                    throw BuildTransitionFailure(
-                        status.CustomId, status.TargetSnapshotId, status.Error);
-                }
-                if (status.CustomId != request.customId)
-                {
-                    throw new InvalidOperationException(
-                        "Neo Compose create status returned a different save id.");
-                }
-                target = new NeoChunkedCreateTarget
-                {
-                    customId = status.CustomId,
-                    snapshotId = status.TargetSnapshotId,
-                    snapshotRevision = 0,
-                };
+                // BEGIN is keyed by the upload fingerprint. If the first response
+                // was lost, this exact replay returns the same hidden target.
+                target = await ApiClient.BeginChunkedCreateAsync(request);
             }
 
             if (target.customId != request.customId)
@@ -283,133 +256,160 @@ namespace NeoCompose.Runtime
                 throw new InvalidOperationException(
                     "Neo Compose accepted a chunked create under a different save id.");
             }
-
-            var applied = await LoadManifestLogicalKeysAsync(
-                target.customId, target.snapshotId);
-            var pending = new List<GameSaveRecordChange>();
-            foreach (var change in changes)
+            if (target.snapshotRevision < 0
+                || target.snapshotRevision > batches.Count)
             {
-                if (!applied.Contains(LogicalKey(change))) pending.Add(change);
+                throw new InvalidOperationException(
+                    "Neo Compose chunked create revision does not match the upload plan.");
             }
 
-            while (pending.Count != 0)
+            for (var batchIndex = (int)target.snapshotRevision;
+                 batchIndex < batches.Count;
+                 batchIndex++)
             {
-                int count = Math.Min(64, pending.Count);
-                var chunk = pending.GetRange(0, count);
+                var chunk = batches[batchIndex];
+                NeoLivePatchResult result;
                 try
                 {
-                    var result = await ApiClient.AppendChunkedCreateAsync(
+                    result = await ApiClient.AppendChunkedCreateAsync(
                         target.customId,
-                        target.snapshotId,
+                        target.resumeToken,
+                        batchIndex,
                         chunk,
                         request.updatedAt);
-                    if (result.IsConflict)
-                    {
-                        throw new InvalidOperationException(
-                            "A fresh chunked save create reported a record conflict.");
-                    }
-                    if (result.IsStaleTarget
-                        || result.SnapshotId != target.snapshotId)
-                    {
-                        throw new InvalidOperationException(
-                            "A chunked save append targeted a stale snapshot.");
-                    }
-                    pending.RemoveRange(0, count);
                 }
-                catch (Exception appendError)
+                catch
                 {
-                    // The response may have been lost after the atomic append.
-                    // Re-read the manifest before deciding what remains; never
-                    // resend the same mutation based only on a transport error.
-                    var resumed = await LoadManifestLogicalKeysAsync(
-                        target.customId, target.snapshotId);
-                    pending.RemoveAll(change => resumed.Contains(LogicalKey(change)));
-                    if (pending.Count == 0) break;
-                    throw appendError;
+                    // APPEND makes an exact immediate replay idempotent. Retain
+                    // both the batch and base revision after a lost response.
+                    result = await ApiClient.AppendChunkedCreateAsync(
+                        target.customId,
+                        target.resumeToken,
+                        batchIndex,
+                        chunk,
+                        request.updatedAt);
+                }
+                if (result.IsConflict)
+                {
+                    throw new InvalidOperationException(
+                        "A fresh chunked save create reported a record conflict.");
+                }
+                if (result.IsStaleTarget
+                    || result.SnapshotId != target.snapshotId
+                    || result.SnapshotRevision != batchIndex + 1)
+                {
+                    throw new InvalidOperationException(
+                        "A chunked save append returned an unexpected snapshot revision.");
                 }
             }
 
             try
             {
                 return await ApiClient.CompleteChunkedCreateAsync(
-                    target.customId, target.snapshotId);
+                    target.customId, target.resumeToken);
             }
-            catch (Exception completeError)
+            catch
             {
-                var status = await ApiClient.GetSaveTransitionStatusAsync(
-                    target.customId);
-                if (status.Outcome == NeoSaveTransitionOutcome.Ready)
-                {
-                    var ready = status.ReadySave
-                        ?? throw new InvalidOperationException(
-                            "Neo Compose reported a ready create without a save.");
-                    if (ready.id != target.customId
-                        || ready.snapshotId != target.snapshotId)
-                    {
-                        throw new InvalidOperationException(
-                            "Neo Compose completed a different chunked save target.");
-                    }
-                    return ready;
-                }
-                if (status.Outcome == NeoSaveTransitionOutcome.Failed)
-                {
-                    throw BuildTransitionFailure(
-                        status.CustomId, status.TargetSnapshotId, status.Error);
-                }
-                throw completeError;
+                // COMPLETE is idempotent, including after activation. Retry the
+                // same resume token instead of consulting a copy-status endpoint.
+                return await ApiClient.CompleteChunkedCreateAsync(
+                    target.customId, target.resumeToken);
             }
         }
 
-        private async Awaitable<HashSet<string>> LoadManifestLogicalKeysAsync(
-            string customId,
-            string snapshotId)
+        private static List<List<GameSaveRecordChange>> BuildChunkedCreateBatches(
+            IReadOnlyList<GameSaveRecordChange> changes)
         {
-            var keys = new HashSet<string>();
-            string? cursor = null;
-            do
+            var values = new Dictionary<string, GameSaveValueReplaceChange>(
+                StringComparer.Ordinal);
+            var bindings = new Dictionary<string, GameSaveStaticBindingSetChange>(
+                StringComparer.Ordinal);
+            foreach (var change in changes)
             {
-                var page = await ApiClient!.GetSaveRecordManifestPageAsync(
-                    customId,
-                    snapshotId,
-                    new GameSaveRecordPageRequest
-                    {
-                        cursor = cursor,
-                        numItems = 128,
-                    });
-                foreach (var descriptor in page.page)
+                switch (change)
                 {
-                    if (!descriptor.deleted) keys.Add(descriptor.LogicalKey);
+                    case GameSaveValueReplaceChange value
+                        when value.baseRecordStateId == null
+                             && value.baseRecordRevisionToken == null:
+                        if (!values.TryAdd(value.valueId, value))
+                        {
+                            throw new InvalidOperationException(
+                                $"Chunked create repeats value record \"{value.valueId}\".");
+                        }
+                        break;
+                    case GameSaveStaticBindingSetChange binding
+                        when binding.baseRecordStateId == null
+                             && binding.baseRecordRevisionToken == null:
+                        if (!bindings.TryAdd(binding.memberId, binding))
+                        {
+                            throw new InvalidOperationException(
+                                $"Chunked create repeats static binding \"{binding.memberId}\".");
+                        }
+                        break;
+                    default:
+                        throw new InvalidOperationException(
+                            "Chunked create accepts only base-free value.replace and " +
+                            "static-binding.set changes.");
                 }
-                cursor = page.isDone ? null : page.continueCursor;
-                if (!page.isDone && string.IsNullOrEmpty(cursor))
+            }
+
+            var ordered = new List<GameSaveRecordChange>(changes.Count);
+            var remaining = new SortedSet<string>(values.Keys, StringComparer.Ordinal);
+            var emitted = new HashSet<string>(StringComparer.Ordinal);
+            while (remaining.Count != 0)
+            {
+                var ready = remaining.Where(valueId =>
+                {
+                    var value = values[valueId].value as JObject;
+                    var containerId = value?["containerId"]?.Value<string>();
+                    return string.IsNullOrEmpty(containerId)
+                        || !values.ContainsKey(containerId)
+                        || emitted.Contains(containerId);
+                }).ToList();
+                if (ready.Count == 0)
                 {
                     throw new InvalidOperationException(
-                        "Neo Compose manifest page was unfinished without a cursor.");
+                        "Chunked create value ownership contains a cycle.");
                 }
-            } while (cursor != null);
-            return keys;
+                foreach (var valueId in ready)
+                {
+                    remaining.Remove(valueId);
+                    emitted.Add(valueId);
+                    ordered.Add(values[valueId]);
+                }
+            }
+            ordered.AddRange(bindings.OrderBy(pair => pair.Key, StringComparer.Ordinal)
+                .Select(pair => pair.Value));
+
+            var batches = new List<List<GameSaveRecordChange>>();
+            for (var index = 0; index < ordered.Count; index += 64)
+            {
+                batches.Add(ordered.GetRange(index, Math.Min(64, ordered.Count - index)));
+            }
+            return batches;
         }
 
-        private static string LogicalKey(GameSaveRecordChange change) => change switch
+        private static string BuildChunkedCreateFingerprint(
+            NeoChunkedCreateRequest request,
+            IReadOnlyList<List<GameSaveRecordChange>> batches)
         {
-            GameSaveValuePatchChange value =>
-                GameSaveRecordDescriptor.MakeLogicalKey(
-                    NeoGameSaveRecordKinds.Value, value.valueId),
-            GameSaveValueReplaceChange value =>
-                GameSaveRecordDescriptor.MakeLogicalKey(
-                    NeoGameSaveRecordKinds.Value, value.valueId),
-            GameSaveValueRestoreToAuthoredChange value =>
-                GameSaveRecordDescriptor.MakeLogicalKey(
-                    NeoGameSaveRecordKinds.Value, value.valueId),
-            GameSaveStaticBindingSetChange binding =>
-                GameSaveRecordDescriptor.MakeLogicalKey(
-                    NeoGameSaveRecordKinds.StaticBinding, binding.memberId),
-            GameSaveStaticBindingRestoreToAuthoredChange binding =>
-                GameSaveRecordDescriptor.MakeLogicalKey(
-                    NeoGameSaveRecordKinds.StaticBinding, binding.memberId),
-            _ => throw new InvalidOperationException(
-                $"Unsupported game save change type {change.GetType().Name}."),
-        };
+            var metadata = JObject.FromObject(request);
+            metadata.Remove(nameof(request.uploadFingerprint));
+            var serializedBatches = new JArray(
+                batches.Select(batch => JArray.FromObject(batch)));
+            var plan = new JObject
+            {
+                ["protocol"] = "neo-chunked-create-v1",
+                ["metadata"] = metadata,
+                ["batches"] = serializedBatches,
+            };
+            var canonical = NeoSemanticJson.Canonicalize(plan)
+                .ToString(Formatting.None);
+            using var sha256 = SHA256.Create();
+            var hash = sha256.ComputeHash(Encoding.UTF8.GetBytes(canonical));
+            var hex = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            return "sha256:" + hex;
+        }
 
         private static InvalidOperationException BuildTransitionFailure(
             string customId,

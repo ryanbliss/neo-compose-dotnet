@@ -235,14 +235,15 @@ namespace HelloWorld.Assets.Tests
 
             public Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
                 string customId,
-                string snapshotId,
+                string resumeToken,
+                long baseSnapshotRevision,
                 IReadOnlyList<GameSaveRecordChange> changes,
                 NeoTimestamp updatedAt) =>
                 throw new NotSupportedException();
 
             public Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
                 string customId,
-                string snapshotId) =>
+                string resumeToken) =>
                 throw new NotSupportedException();
 
             public Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(

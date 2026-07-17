@@ -84,7 +84,7 @@ namespace NeoCompose.Runtime
             return semantic;
         }
 
-        private static JToken Canonicalize(JToken value)
+        internal static JToken Canonicalize(JToken value)
         {
             if (value is JObject obj)
             {

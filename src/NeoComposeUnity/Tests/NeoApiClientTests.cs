@@ -48,7 +48,7 @@ namespace NeoCompose.Tests
                         return "{\"kind\":\"committed\",\"save\":" + RemoteJson + "}";
                     if (url.EndsWith("/saves/chunked-create/begin"))
                         return "{\"customId\":\"save-1\",\"snapshotId\":\"snap-1\"," +
-                            "\"snapshotRevision\":0}";
+                            "\"snapshotRevision\":0,\"resumeToken\":\"resume-1\"}";
                     if (url.EndsWith("/chunked-create/append"))
                         return "{\"kind\":\"patched\",\"snapshotId\":\"snap-1\"," +
                             "\"snapshotRevision\":1,\"synchronizedAt\":3," +
@@ -72,10 +72,12 @@ namespace NeoCompose.Tests
             await client.BeginChunkedCreateAsync(new NeoChunkedCreateRequest
             {
                 customId = "save-1",
+                uploadFingerprint = "sha256:upload-1",
             });
             await client.AppendChunkedCreateAsync(
                 "save-1",
-                "snap-1",
+                "resume-1",
+                0,
                 new List<GameSaveRecordChange>
                 {
                     new GameSaveValueReplaceChange
@@ -85,7 +87,7 @@ namespace NeoCompose.Tests
                     },
                 },
                 3);
-            await client.CompleteChunkedCreateAsync("save-1", "snap-1");
+            await client.CompleteChunkedCreateAsync("save-1", "resume-1");
             await client.CloneSaveAsync("save-1", new NeoCloneRequest());
             await client.GetSaveTransitionStatusAsync("save-1");
             await client.ArchiveSaveAsync("save-1");
@@ -240,7 +242,7 @@ namespace NeoCompose.Tests
                 {
                     if (url.EndsWith("/chunked-create/begin"))
                         return "{\"customId\":\"save-1\",\"snapshotId\":\"snap-new\"," +
-                            "\"snapshotRevision\":0}";
+                            "\"snapshotRevision\":0,\"resumeToken\":\"resume-new\"}";
                     if (url.EndsWith("/chunked-create/append"))
                         return "{\"kind\":\"patched\",\"snapshotId\":\"snap-new\"," +
                             "\"snapshotRevision\":1,\"synchronizedAt\":4," +
@@ -258,6 +260,7 @@ namespace NeoCompose.Tests
                     targetReleaseChannelId = "channel-dev",
                     createdAt = 1,
                     updatedAt = 2,
+                    uploadFingerprint = "sha256:large-save-v1",
                 });
             var change = new GameSaveValueReplaceChange
             {
@@ -265,18 +268,26 @@ namespace NeoCompose.Tests
                 value = Newtonsoft.Json.Linq.JObject.Parse("{\"value\":1}"),
             };
             var appended = await client.AppendChunkedCreateAsync(
-                target.customId, target.snapshotId, new[] { change }, 2);
+                target.customId,
+                target.resumeToken,
+                target.snapshotRevision,
+                new[] { change },
+                2);
             await client.CompleteChunkedCreateAsync(
-                target.customId, target.snapshotId);
+                target.customId, target.resumeToken);
 
             Assert.That(appended.SnapshotRevision, Is.EqualTo(1));
             StringAssert.EndsWith("/saves/chunked-create/begin", http.sends[0].url);
             StringAssert.DoesNotContain("values", http.sends[0].body);
             StringAssert.EndsWith(
                 "/saves/save-1/chunked-create/append", http.sends[1].url);
+            StringAssert.Contains("\"resumeToken\":\"resume-new\"", http.sends[1].body);
+            StringAssert.Contains("\"baseSnapshotRevision\":0", http.sends[1].body);
+            StringAssert.DoesNotContain("snapshotId", http.sends[1].body);
             StringAssert.Contains("\"kind\":\"value.replace\"", http.sends[1].body);
             StringAssert.EndsWith(
                 "/saves/save-1/chunked-create/complete", http.sends[2].url);
+            StringAssert.Contains("\"resumeToken\":\"resume-new\"", http.sends[2].body);
         }
 
         [Test]

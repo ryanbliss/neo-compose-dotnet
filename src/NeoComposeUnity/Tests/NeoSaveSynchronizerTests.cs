@@ -5,6 +5,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using NeoCompose.Runtime;
 using NeoCompose.Runtime.Json;
@@ -233,6 +234,7 @@ namespace NeoCompose.Tests
             {
                 customId = "save-1",
                 snapshotId = "snap-large",
+                resumeToken = "resume-large",
             };
             api.chunkedCompleteResult = CompletedLargeSave(values);
 
@@ -245,12 +247,72 @@ namespace NeoCompose.Tests
             Assert.That(api.chunkedAppends, Has.Count.EqualTo(2));
             Assert.That(api.chunkedAppends[0], Has.Count.EqualTo(64));
             Assert.That(api.chunkedAppends[1], Has.Count.EqualTo(1));
+            Assert.That(api.chunkedAppendBaseRevisions, Is.EqualTo(new long[] { 0, 1 }));
+            Assert.That(
+                api.chunkedAppendResumeTokens,
+                Is.All.EqualTo("resume-large"));
             Assert.That(api.chunkedCompleteCalls, Is.EqualTo(1));
+            Assert.That(api.chunkedCompleteResumeTokens, Is.EqualTo(new[] { "resume-large" }));
+            Assert.That(api.chunkedBeginFingerprints[0], Does.StartWith("sha256:"));
             Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-large"));
         }
 
         [Test]
-        public async Task LargeInitialCreate_RetryUsesManifestWithoutReuploadingCompletedChunk()
+        public async Task LargeInitialCreate_OrdersParentsBeforeChildrenAndBindingsLast()
+        {
+            var (store, api, _) = await ReadyStoreWithCloudAsync();
+            var values = new JObject();
+            for (var index = 0; index < 63; index++)
+            {
+                var id = $"root-{index:00}";
+                values[id] = new JObject { ["id"] = id, ["value"] = index };
+            }
+            values["z-parent"] = new JObject
+            {
+                ["id"] = "z-parent",
+                ["value"] = new JObject(),
+            };
+            values["a-child"] = new JObject
+            {
+                ["id"] = "a-child",
+                ["containerId"] = "z-parent",
+                ["value"] = 1,
+            };
+            var content = JObject.Parse(NeoSaveTestSupport.SaveContent(
+                "Large", values.ToString(Formatting.None)));
+            content["staticBindings"] = new JObject { ["member-1"] = "z-parent" };
+            api.chunkedCreateTarget = new NeoChunkedCreateTarget
+            {
+                customId = "save-1",
+                snapshotId = "snap-large",
+                resumeToken = "resume-large",
+            };
+            api.chunkedCompleteResult = CompletedLargeSave(
+                values.ToString(Formatting.None));
+
+            var sync = store.CreateNew("save-1");
+            await sync.CommitSaveContentAsync(
+                content.ToString(Formatting.None), replaceSnapshot: false);
+
+            Assert.That(api.chunkedAppends, Has.Count.EqualTo(2));
+            Assert.That(
+                api.chunkedAppends[0].OfType<GameSaveValueReplaceChange>()
+                    .Select(change => change.valueId),
+                Does.Contain("z-parent"));
+            Assert.That(
+                api.chunkedAppends[0].OfType<GameSaveValueReplaceChange>()
+                    .Select(change => change.valueId),
+                Does.Not.Contain("a-child"));
+            Assert.That(
+                ((GameSaveValueReplaceChange)api.chunkedAppends[1][0]).valueId,
+                Is.EqualTo("a-child"));
+            Assert.That(
+                api.chunkedAppends[1][1],
+                Is.TypeOf<GameSaveStaticBindingSetChange>());
+        }
+
+        [Test]
+        public async Task LargeInitialCreate_LostAppendResponseReplaysTheExactChunkAndRevision()
         {
             var (store, api, _) = await ReadyStoreWithCloudAsync();
             string values = LargeValuesJson(65);
@@ -258,6 +320,7 @@ namespace NeoCompose.Tests
             {
                 customId = "save-1",
                 snapshotId = "snap-large",
+                resumeToken = "resume-large",
             };
             api.chunkedCompleteResult = CompletedLargeSave(values);
             api.chunkedAppendFailures.Enqueue(null);
@@ -268,23 +331,46 @@ namespace NeoCompose.Tests
             await sync.CommitSaveContentAsync(
                 NeoSaveTestSupport.SaveContent("Large", values),
                 replaceSnapshot: false);
-            Assert.That(sync.ActiveSave!.IsLocalOnly, Is.True,
-                "the accepted partial create remains local until a retry completes it");
-
-            api.chunkedBeginThrows = new InvalidOperationException("already exists");
-            api.transitionStatuses.Enqueue(
-                NeoSaveTransitionStatus.Copying("save-1", "snap-large"));
-            await sync.CommitSaveContentAsync(
-                NeoSaveTestSupport.SaveContent("Large", values),
-                replaceSnapshot: false);
 
             Assert.That(api.chunkedAppends, Has.Count.EqualTo(3));
             Assert.That(api.chunkedAppends[0], Has.Count.EqualTo(64));
             Assert.That(api.chunkedAppends[1], Has.Count.EqualTo(1));
             Assert.That(api.chunkedAppends[2], Has.Count.EqualTo(1),
-                "retry sends only the record absent from the recovered manifest");
-            Assert.That(api.cloneRequests, Is.Empty,
-                "resuming a create never allocates a second save");
+                "the lost response retries the same bounded mutation");
+            Assert.That(
+                api.chunkedAppendBaseRevisions,
+                Is.EqualTo(new long[] { 0, 1, 1 }));
+            Assert.That(
+                api.chunkedAppends[2][0],
+                Is.SameAs(api.chunkedAppends[1][0]));
+            Assert.That(api.transitionStatusRequests, Is.Empty,
+                "pending manifests and copy status are not part of upload recovery");
+            Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-large"));
+        }
+
+        [Test]
+        public async Task LargeInitialCreate_ReplayedBeginSkipsAcceptedRevisionBatches()
+        {
+            var (store, api, _) = await ReadyStoreWithCloudAsync();
+            string values = LargeValuesJson(65);
+            api.chunkedCreateTarget = new NeoChunkedCreateTarget
+            {
+                customId = "save-1",
+                snapshotId = "snap-large",
+                snapshotRevision = 1,
+                resumeToken = "resume-large",
+            };
+            api.chunkedCompleteResult = CompletedLargeSave(values);
+
+            var sync = store.CreateNew("save-1");
+            await sync.CommitSaveContentAsync(
+                NeoSaveTestSupport.SaveContent("Large", values),
+                replaceSnapshot: false);
+
+            Assert.That(api.chunkedAppends, Has.Count.EqualTo(1));
+            Assert.That(api.chunkedAppends[0], Has.Count.EqualTo(1));
+            Assert.That(api.chunkedAppendBaseRevisions, Is.EqualTo(new long[] { 1 }));
+            Assert.That(api.transitionStatusRequests, Is.Empty);
             Assert.That(sync.ActiveSave!.snapshotId, Is.EqualTo("snap-large"));
         }
 

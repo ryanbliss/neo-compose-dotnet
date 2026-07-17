@@ -45,12 +45,13 @@ namespace NeoCompose.Runtime
             NeoChunkedCreateRequest request);
         Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
             string customId,
-            string snapshotId,
+            string resumeToken,
+            long baseSnapshotRevision,
             IReadOnlyList<GameSaveRecordChange> changes,
             NeoTimestamp updatedAt);
         Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
             string customId,
-            string snapshotId);
+            string resumeToken);
         Awaitable<NeoCloneResult> CloneSaveAsync(string customId, NeoCloneRequest request);
         Awaitable<NeoSaveTransitionStatus> GetSaveTransitionStatusAsync(string customId);
         Awaitable ArchiveSaveAsync(string customId);
@@ -278,6 +279,12 @@ namespace NeoCompose.Runtime
         {
             if (request == null) throw new ArgumentNullException(nameof(request));
             RequireCustomId(request.customId);
+            if (string.IsNullOrWhiteSpace(request.uploadFingerprint))
+            {
+                throw new ArgumentException(
+                    "Chunked create upload fingerprint cannot be empty.",
+                    nameof(request));
+            }
             var url = SavesUrl("/chunked-create/begin");
             var operation = new NeoComposeApiOperation(
                 "begin this large save file", projectId, WriteScope);
@@ -287,17 +294,36 @@ namespace NeoCompose.Runtime
                 json, "chunked save create target");
             RequireTransitionIdentity(
                 target.customId, target.snapshotId, "chunked save create");
+            if (target.snapshotRevision < 0)
+            {
+                throw new InvalidOperationException(
+                    "Neo Compose chunked save create returned a negative revision.");
+            }
+            if (string.IsNullOrWhiteSpace(target.resumeToken))
+            {
+                throw new InvalidOperationException(
+                    "Neo Compose chunked save create omitted its resume token.");
+            }
             return target;
         }
 
         public async Awaitable<NeoLivePatchResult> AppendChunkedCreateAsync(
             string customId,
-            string snapshotId,
+            string resumeToken,
+            long baseSnapshotRevision,
             IReadOnlyList<GameSaveRecordChange> changes,
             NeoTimestamp updatedAt)
         {
             RequireCustomId(customId);
-            RequireSnapshotId(snapshotId);
+            if (string.IsNullOrWhiteSpace(resumeToken))
+            {
+                throw new ArgumentException(
+                    "Resume token cannot be empty.", nameof(resumeToken));
+            }
+            if (baseSnapshotRevision < 0)
+            {
+                throw new ArgumentOutOfRangeException(nameof(baseSnapshotRevision));
+            }
             if (changes == null) throw new ArgumentNullException(nameof(changes));
             if (changes.Count == 0 || changes.Count > 64)
             {
@@ -311,7 +337,8 @@ namespace NeoCompose.Runtime
                 "append records to this large save file", projectId, WriteScope);
             var body = JsonConvert.SerializeObject(new
             {
-                snapshotId,
+                resumeToken,
+                baseSnapshotRevision,
                 changes,
                 updatedAt = updatedAt.EpochMilliseconds,
             });
@@ -321,16 +348,20 @@ namespace NeoCompose.Runtime
 
         public async Awaitable<RemoteGameSave> CompleteChunkedCreateAsync(
             string customId,
-            string snapshotId)
+            string resumeToken)
         {
             RequireCustomId(customId);
-            RequireSnapshotId(snapshotId);
+            if (string.IsNullOrWhiteSpace(resumeToken))
+            {
+                throw new ArgumentException(
+                    "Resume token cannot be empty.", nameof(resumeToken));
+            }
             var url = SavesUrl(
                 $"/{UnityWebRequest.EscapeURL(customId)}/chunked-create/complete");
             var operation = new NeoComposeApiOperation(
                 "complete this large save file", projectId, WriteScope);
             var json = await PostAuthorizedAsync(
-                url, operation, JsonConvert.SerializeObject(new { snapshotId }));
+                url, operation, JsonConvert.SerializeObject(new { resumeToken }));
             var save = Deserialize<RemoteGameSave>(
                 json, "completed chunked save file");
             await NeoGameSaveRecordSync.LoadManifestAsync(
