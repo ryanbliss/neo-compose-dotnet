@@ -1122,8 +1122,9 @@ namespace NeoCompose.Runtime
 
         /// <summary>
         /// Stable-id overlay resolution for a writable (Save/Session) node: the
-        /// ownership store's row when present — Session falls through to Save,
-        /// then both writable stores fall through to the authored default. A removal tombstone
+        /// selected ownership store's row when present, then the authored
+        /// default. Save and Session are independent overlays; neither falls
+        /// through to the other. A removal tombstone
         /// (<see cref="MemberValue.IsRemoved"/>) resolves as <b>unset</b>
         /// (returns false, never falling through) — otherwise the authored asset
         /// default. This is the shadow rule <c>save.values[id] ?? authored</c>
@@ -1136,23 +1137,56 @@ namespace NeoCompose.Runtime
             [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
         {
             value = null;
-            if (ownership == NeoValueOwnership.Session
-                && sessionData.values.TryGetValue(id, out MemberValue sessionRow))
+            if (ownership != NeoValueOwnership.Asset)
             {
-                if (sessionRow.IsRemoved) return false;
-                value = sessionRow as TValue;
+                var store = GetWritableStore(ownership);
+                if (store.values.TryGetValue(id, out MemberValue overlaid))
+                {
+                    if (overlaid.IsRemoved) return false;
+                    value = overlaid as TValue;
+                    return value is not null;
+                }
+            }
+            if (data.values.TryGetValue(id, out MemberValue assetRow))
+            {
+                value = assetRow as TValue;
                 return value is not null;
             }
-            if ((ownership == NeoValueOwnership.Session || ownership == NeoValueOwnership.Save)
+            return false;
+        }
+
+        /// <summary>
+        /// Resolves the row a writable mutation should clone. Session writes
+        /// may shadow an existing Save row, while ordinary Session member
+        /// reads remain independent from Save via
+        /// <see cref="TryGetOverlaidValue{TValue}"/>.
+        /// </summary>
+        internal bool TryGetWritableShadowSource<TValue>(
+            NeoValueOwnership ownership,
+            string id,
+            [NotNullWhen(true)] out TValue? value) where TValue : MemberValue
+        {
+            value = null;
+            if (ownership != NeoValueOwnership.Asset)
+            {
+                var store = GetWritableStore(ownership);
+                if (store.values.TryGetValue(id, out MemberValue ownedRow))
+                {
+                    if (ownedRow.IsRemoved) return false;
+                    value = ownedRow as TValue;
+                    return value is not null;
+                }
+            }
+            if (ownership == NeoValueOwnership.Session
                 && saveData.values.TryGetValue(id, out MemberValue saveRow))
             {
                 if (saveRow.IsRemoved) return false;
                 value = saveRow as TValue;
                 return value is not null;
             }
-            if (data.values.TryGetValue(id, out MemberValue assetRow))
+            if (data.values.TryGetValue(id, out MemberValue authoredRow))
             {
-                value = assetRow as TValue;
+                value = authoredRow as TValue;
                 return value is not null;
             }
             return false;

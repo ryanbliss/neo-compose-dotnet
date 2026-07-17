@@ -23,7 +23,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
         private const string ProjectResourcePath = "Neo/project";
 
         [UnityTest]
-        public IEnumerator Schema8Export_LoadsClassAndMemberContractInPlayMode()
+        public IEnumerator Schema9Export_LoadsClassAndMemberContractInPlayMode()
         {
             Assert.IsTrue(Application.isPlaying, "This gate must run through the PlayMode test runner.");
             yield return null;
@@ -33,7 +33,7 @@ namespace HelloWorld.Assets.Tests.PlayMode
             var schema = synchronizer.Schema;
 
             Assert.IsNotNull(schema.metadata);
-            Assert.AreEqual(8, schema.metadata!.schemaVersion);
+            Assert.AreEqual(9, schema.metadata!.schemaVersion);
             Assert.IsNotEmpty(schema.classes);
             Assert.IsNotEmpty(schema.members);
 

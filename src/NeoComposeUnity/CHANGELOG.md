@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0] - 2026-07-17
+
+### Breaking
+
+- Advanced the required Unity export contract to schema 9. Schema-8 exports are
+  rejected; re-export projects and regenerate their C# types and synchronized
+  Unity assets.
+- Replaced value-backed tile-grid world metadata with class-backed
+  `internalRecordRelations`, covering grid imports and layers, compatible and
+  default layers, layer-link targets, and smart-tile neighbors. Generated layer
+  APIs now bind authored classes, and tile-grid mutation contexts expose class
+  IDs plus optional asset-value overrides; code using the former wrapper and
+  value-ID APIs must migrate.
+
+### Added
+
+- Added typed `NeoClassRef<T>` definitions and class-default tile and object
+  placement APIs.
+
 ## [0.2.1] - 2026-07-16
 
 ### Added

@@ -2983,7 +2983,7 @@ namespace NeoCompose.Runtime
                 variantClassId,
                 BuildObjectInstanceJson(record, layerId)));
 
-            if (!client.TryGetOverlaidValue(
+            if (!client.TryGetWritableShadowSource(
                     writeOwnership, record.InstanceId, out ObjectMemberValue? objectRow))
             {
                 return NeoPlacementResult.Error(
@@ -3206,7 +3206,7 @@ namespace NeoCompose.Runtime
             string assetClassId,
             string? assetValueId)
         {
-            if (!client.TryGetOverlaidValue(
+            if (!client.TryGetWritableShadowSource(
                     writeOwnership,
                     record.PlacementValueId,
                     out ObjectMemberValue? existing))
